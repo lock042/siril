@@ -126,6 +126,7 @@ gboolean string_is_a_path(const char *file);
 int is_readable_file(const char *filename);
 gboolean is_forbiden_in_filename(gchar c);
 gboolean file_name_has_invalid_chars(const char *name);
+void replace_invalid_chars(char *name, char repl);
 int stat_file(const char *filename2, image_type *type, char **realname);
 const char* get_filename_ext(const char *filename);
 

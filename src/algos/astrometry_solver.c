@@ -116,10 +116,13 @@ const char *catalog_to_str(online_catalog cat) {
 
 static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
 	struct astrometry_data *ret = malloc(sizeof(struct astrometry_data));
-	if (!ret)
+	if (!ret) {
+		PRINT_ALLOC_ERR;
 		return NULL;
+	}
 	memcpy(ret, args, sizeof(struct astrometry_data));
-	ret->cat_center = siril_world_cs_ref(args->cat_center);
+	if (args->cat_center)
+		ret->cat_center = siril_world_cs_ref(args->cat_center);
 	ret->fit = NULL;
 	ret->filename = NULL;
 	/* assuming catalog stays the same */
@@ -449,6 +452,11 @@ gpointer search_in_online_conesearch(gpointer p) {
 	string_url = g_string_append(string_url, "&-objFilter=111");
 	string_url = g_string_append(string_url, "&-refsys=EQJ2000");
 	string_url = g_string_append(string_url, "&-from=Siril;");
+	if (!gfit.date_obs) {
+		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+		return NULL;
+	}
+	siril_log_message(_("Solar System Objects search on observation date %s\n"), formatted_date);
 
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
@@ -527,6 +535,10 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-mime=text/csv");
 		string_url = g_string_append(string_url, "&-output=--jd");
 		string_url = g_string_append(string_url, "&-from=Siril;");
+		if (!gfit.date_obs) {
+			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+			return NULL;
+		}
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
 
 		if (!gfit.sitelat || !gfit.sitelong) {
@@ -1422,10 +1434,17 @@ gpointer plate_solver(gpointer p) {
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 		// capping the detection to max usable number of stars
 		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
+#ifdef _WIN32
+		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
+		int nthreads = (!args->for_sequence || args->onlineCatalog == CAT_ASNET) ? com.max_thread : 1;
+#else
+		// on UNIX, asnet is in parallel for sequences, we need to restrain to one per worker
+		int nthreads = (!args->for_sequence) ? com.max_thread : 1;
+#endif
 
 		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
 				&(args->solvearea), FALSE, args->onlineCatalog != CAT_ASNET,
-				max_stars, com.pref.starfinder_conf.profile, com.max_thread);
+				max_stars, com.pref.starfinder_conf.profile, nthreads);
 
 		if (args->downsample) {
 			clearfits(args->fit);
@@ -1454,16 +1473,21 @@ gpointer plate_solver(gpointer p) {
 	solution.size.y = args->fit->ry;
 	solution.pixel_size = args->pixel_size;
 
-	if (args->onlineCatalog == CAT_ASNET)
+	if (args->onlineCatalog == CAT_ASNET) {
+		if (!args->for_sequence) {
+			com.child_is_running = EXT_ASNET;
+			g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
+		}
 		args->ret = local_asnet_platesolve(stars, nb_stars, args, &solution);
-	else match_catalog(stars, nb_stars, args, &solution);
+	} else
+		match_catalog(stars, nb_stars, args, &solution);
 	if (args->ret)
 		goto clearup;
 
 	/* 4. Print and store some results */
 	args->fit->focal_length = solution.focal_length;
 	args->fit->pixel_size_x = args->fit->pixel_size_y = solution.pixel_size;
-	if (com.pref.astrometry.update_default_scale) {
+	if (!args->for_sequence && com.pref.astrometry.update_default_scale) {
 		com.pref.starfinder_conf.focal_length = solution.focal_length;
 		com.pref.starfinder_conf.pixel_size_x = solution.pixel_size;
 		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), solution.focal_length, solution.pixel_size);
@@ -1557,8 +1581,11 @@ clearup:
 		siril_log_message(_("Plate solving failed: %s\n"), args->message);
 		g_free(args->message);
 	}
-	if (!args->for_sequence)
+	if (!args->for_sequence) {
+		com.child_is_running = EXT_NONE;
+		g_unlink("stop");
 		siril_add_idle(end_plate_solver, args);
+	}
 	else free(args);
 	return GINT_TO_POINTER(retval);
 }
@@ -1859,6 +1886,16 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #endif
 
 	gchar *table_filename = replace_ext(args->filename, ".xyls");
+#ifdef _WIN32
+	gchar *stopfile = g_build_filename(com.wd, "stop", NULL);
+	if (!g_path_is_absolute(table_filename)) {
+		gchar *tmp = g_build_filename(com.wd, table_filename, NULL);
+		g_free(table_filename);
+		table_filename = tmp;
+	}
+#else
+	gchar *stopfile = g_strdup("stop");
+#endif
 	if (save_list_as_FITS_table(table_filename, stars, nb_stars, args->rx_solver, args->ry_solver)) {
 		siril_log_message(_("Failed to create the input data for solve-field\n"));
 		g_free(table_filename);
@@ -1883,7 +1920,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		"--temp-axy",	// not available in the old version of ansvr
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
+		"-U", "none", "-S", "none", "-C", stopfile, "--crpix-center", "-l", time_limit,
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
 	char order[12];	// referenced in sfargs, needs the same scope
@@ -1948,20 +1985,19 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	g_free(command);
 
 	/* call solve-field */
-	gint child_stdout, child_stderr;
-	GPid child_pid;
+	gint child_stdout;
 	g_autoptr(GError) error = NULL;
 
 	g_spawn_async_with_pipes(NULL, sfargs, NULL,
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
-			NULL, NULL, &child_pid, NULL, &child_stdout,
-			&child_stderr, &error);
+			NULL, NULL, NULL, NULL, &child_stdout, NULL, &error);
 	if (error != NULL) {
 		siril_log_color_message("Spawning solve-field failed: %s\n", "red", error->message);
 		if (!com.pref.astrometry.keep_xyls_files)
 			if (g_unlink(table_filename))
 				siril_debug_print("Error unlinking table_filename\n");
 		g_free(table_filename);
+		g_free(stopfile);
 #ifdef _WIN32
 		g_free(asnet_shell);
 #else
@@ -1998,11 +2034,14 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
+	if (!g_close(child_stdout, &error))
+		siril_debug_print("%s\n", error->message);
 	if (!com.pref.astrometry.keep_xyls_files)
 		if (g_unlink(table_filename)) {
 			siril_debug_print("Error unlinking table_filename\n");
 		}
 	g_free(table_filename);
+	g_free(stopfile);
 #ifdef _WIN32
 	g_free(asnet_shell);
 #else
@@ -2172,6 +2211,10 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	remove_prefixed_star_files(arg->seq, arg->new_seq_prefix);
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
+	if (args->onlineCatalog == CAT_ASNET) {
+		com.child_is_running = EXT_ASNET;
+		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
+	}
 	return get_catalog_stars(args);
 }
 
@@ -2201,6 +2244,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	if (aargs->catalog_file)
 		g_object_unref(aargs->catalog_file);
 	free (aargs);
+	com.child_is_running = EXT_NONE;
+	g_unlink("stop");
 	return 0;
 }
 
@@ -2214,7 +2259,11 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seq->selnum;
 	seqargs->stop_on_error = FALSE;
-	seqargs->parallel = TRUE;		// I don't think local catalogues are reentrant
+#ifdef _WIN32
+	seqargs->parallel = args->onlineCatalog != CAT_ASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
+#else
+	seqargs->parallel = TRUE;
+#endif
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;
