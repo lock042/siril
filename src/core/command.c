@@ -5140,7 +5140,12 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
-		if (seq->cfa_opened_monochrome && !do_cfa) {
+		fits tmpfit = { 0 };
+		seq_read_frame(seq, sequence_find_refimage(seq), &tmpfit, FALSE, -1);
+		gboolean mono = (tmpfit.naxes[2] == 1);
+		gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
+		clearfits(&tmpfit);
+		if (mono && cfa && !do_cfa) {
 			siril_log_color_message(_("Warning: applying background extraction to sequence of undebayered images. This is very likely to give poor results. If you really want this, use the -override-cfa option.\n"), "salmon");
 			free(args);
 			return CMD_GENERIC_ERROR;
