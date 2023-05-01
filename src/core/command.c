@@ -598,6 +598,7 @@ int process_starnet(int nb){
 			return CMD_ARG_ERROR;
 		}
 	}
+	image_cfa_warning_check();
 
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(do_starnet, starnet_args);
@@ -633,7 +634,6 @@ int process_seq_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
-//	starnet_args->starnet_fit = &gfit;
 	gboolean error = FALSE;
 	starnet_args->seq = seq;
 	if (!starnet_args->seq) {
@@ -686,6 +686,7 @@ int process_seq_starnet(int nb){
 			return CMD_ARG_ERROR;
 		}
 	}
+	sequence_cfa_warning_chack(starnet_args->seq);
 	set_cursor_waiting(TRUE);
 	apply_starnet_to_sequence(starnet_args);
 
