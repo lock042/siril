@@ -566,6 +566,8 @@ end:
 /************************* GUI for FFT ********************************/
 
 void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	const char *mag, *phase;
 	char *type = NULL, page;
 	int type_order = -1;

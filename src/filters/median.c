@@ -44,6 +44,8 @@ void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	int combo_size = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(
 				gtk_builder_get_object(gui.builder, "combo_ksize_median")));

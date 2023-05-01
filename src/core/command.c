@@ -979,7 +979,7 @@ int process_fmul(int nb){
 int process_entropy(int nb){
 	rectangle area;
 	float e = 0.f;
-
+	image_cfa_warning_check();
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		area = com.selection;
 		for (int c = 0; c < gfit.naxes[2]; c++)
@@ -1000,6 +1000,7 @@ int process_gauss(int nb){
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
 		return CMD_ARG_ERROR;
 	}
+	image_cfa_warning_check();
 	unsharp(&gfit, sigma, 0.0, TRUE);
 	//gaussian_blur_RT(&gfit, sigma, com.max_thread);
 
@@ -2172,6 +2173,7 @@ int process_linear_match(int nb) {
 	if (readfits(word[1], &ref, NULL, gfit.type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
 	if (!find_linear_coeff(&gfit, &ref, low, high, a, b, NULL)) {
+		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
 
@@ -2243,7 +2245,7 @@ int process_clahe(int nb) {
 	args->fit = &gfit;
 	args->clip = clip_limit;
 	args->tileSize = size;
-
+	image_cfa_warning_check();
 	start_in_new_thread(clahe, args);
 
 	return CMD_OK;
@@ -4199,7 +4201,7 @@ int process_seq_crop(int nb) {
 
 int process_bg(int nb) {
 	WORD us_bg;
-
+	image_cfa_warning_check();
 	for (int layer = 0; layer < gfit.naxes[2]; layer++) {
 		double bg = background(&gfit, layer, &com.selection, MULTI_THREADED);
 		if (gfit.type == DATA_USHORT) {
@@ -4214,6 +4216,7 @@ int process_bg(int nb) {
 }
 
 int process_bgnoise(int nb) {
+	image_cfa_warning_check();
 	evaluate_noise_in_image();
 	return CMD_OK;
 }
@@ -4226,6 +4229,7 @@ int process_histo(int nb) {
 
 	if (end == word[1] || nlayer > 3 || nlayer < 0)
 		return CMD_INVALID_IMAGE;
+	image_cfa_warning_check();
 	gsl_histogram *histo = computeHisto(&gfit, nlayer);
 	if (!isrgb(&gfit))
 		clayer = "bw";		//if B&W
@@ -4805,7 +4809,7 @@ int process_fmedian(int nb){
 		return CMD_ARG_ERROR;
 	}
 	args->fit = &gfit;
-
+	image_cfa_warning_check();
 	start_in_new_thread(median_filter, args);
 
 	return CMD_OK;
@@ -4958,7 +4962,7 @@ int process_fft(int nb){
 	args->modulus = strdup(word[1]);
 	args->phase = strdup(word[2]);
 	args->type_order = 0;
-
+	image_cfa_warning_check();
 	start_in_new_thread(fourier_transform, args);
 
 	return CMD_OK;
@@ -4998,6 +5002,7 @@ int process_fixbanding(int nb) {
 			arg_index++;
 		}
 	}
+	image_cfa_warning_check();
 	start_in_new_thread(BandingEngineThreaded, args);
 	return CMD_OK;
 }
@@ -5065,7 +5070,7 @@ int process_seq_fixbanding(int nb) {
 	}
 	if (!args->seqEntry)
 		args->seqEntry = strdup("unband_");
-
+	sequence_cfa_warning_check(seq);
 	apply_banding_to_sequence(args);
 	return CMD_OK;
 }
