@@ -536,6 +536,7 @@ int process_denoise(int nb){
 			args->sos = 1;
 		}
 	}
+	image_cfa_warning_check();
 	start_in_new_thread(run_nlbayes_on_fit, args);
 
 	return CMD_OK;

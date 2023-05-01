@@ -133,6 +133,8 @@ void on_radio_denoise_vst_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
 	denoise_modulation = (float)gtk_spin_button_get_value(spin_denoise_modulation);
 	//	copy_gfit_to_backup();
