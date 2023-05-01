@@ -452,6 +452,11 @@ gpointer search_in_online_conesearch(gpointer p) {
 	string_url = g_string_append(string_url, "&-objFilter=111");
 	string_url = g_string_append(string_url, "&-refsys=EQJ2000");
 	string_url = g_string_append(string_url, "&-from=Siril;");
+	if (!gfit.date_obs) {
+		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+		return NULL;
+	}
+	siril_log_message(_("Solar System Objects search on observation date %s\n"), formatted_date);
 
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
@@ -530,6 +535,10 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-mime=text/csv");
 		string_url = g_string_append(string_url, "&-output=--jd");
 		string_url = g_string_append(string_url, "&-from=Siril;");
+		if (!gfit.date_obs) {
+			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+			return NULL;
+		}
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
 
 		if (!gfit.sitelat || !gfit.sitelong) {
