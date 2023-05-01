@@ -149,14 +149,9 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	copy_backup_to_gfit();
 
-	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
-		int confirm = siril_confirm_dialog(_("Undebayered CFA image"),
-				_("You are about to compute the background for an undebayered CFA image. "
-					"This is highly unlikely to give good results."), _("Extract Background"));
-		if (!confirm) {
-			set_cursor_waiting(FALSE);
-			return;
-		}
+	if (!check_ok_if_cfa()) {
+		set_cursor_waiting(FALSE);
+		return;
 	}
 
 	background_correction correction = get_correction_type();

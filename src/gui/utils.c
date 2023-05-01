@@ -23,6 +23,7 @@
 #include <glib.h>
 
 #include "utils.h"
+#include "message_dialog.h"
 
 struct _label_data {
 	const char *label_name;
@@ -249,4 +250,16 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 
 int select_vport(int vport) {
 	return vport == RGB_VPORT ? GREEN_VPORT : vport;
+}
+
+gboolean check_ok_if_cfa() {
+	gboolean retval;
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		int confirm = siril_confirm_dialog(_("Undebayered CFA image"),
+				_("You are about to apply a function that is not intended for use on an undebayered CFA image. Are you sure you wish to proceed?"), _("Proceed"));
+		retval = confirm ? TRUE : FALSE;
+	} else {
+		retval = TRUE;
+	}
+	return retval;
 }

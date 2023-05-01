@@ -132,6 +132,39 @@
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
+// Returns TRUE if the sequence does not contain CFA images
+// Otherwise, returns FALSE and prints a warning
+gboolean sequence_cfa_warning_check(sequence* seq) {
+	gboolean retval;
+	fits tmpfit = { 0 };
+	seq_read_frame(seq, sequence_find_refimage(seq), &tmpfit, FALSE, -1);
+	gboolean mono = (tmpfit.naxes[2] == 1);
+	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
+	clearfits(&tmpfit);
+	if (mono && cfa) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Applying a sequence function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
+		retval = FALSE;
+	} else {
+		retval = TRUE;
+	}
+	return retval;
+}
+
+// Returns TRUE if gfit does not contain a CFA image
+// Otherwise, returns FALSE and prints a warning
+gboolean image_cfa_warning_check() {
+	gboolean retval;
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Applying an image function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
+		retval = FALSE;
+	} else {
+		retval = TRUE;
+	}
+	return retval;
+}
+
 int process_load(int nb){
 	long maxpath = get_pathmax();
 	char filename[maxpath];
@@ -5032,7 +5065,6 @@ int process_subsky(int nb) {
 	gboolean dithering;
 	background_interpolation interp;
 	char *prefix = NULL;
-	gboolean do_cfa = FALSE;
 
 	int arg_index = 1;
 	gboolean is_sequence = (word[0][2] == 'q');
@@ -5110,10 +5142,6 @@ int process_subsky(int nb) {
 		else if (is_sequence && !g_strcmp0(arg, "-nodither")) {
 			dithering = FALSE;
 		}
-		else if (!g_strcmp0(arg, "-override-cfa")) {
-			siril_log_message(_("CFA override enabled.\n"));
-			do_cfa = TRUE;
-		}
 		else if (!is_sequence && !g_strcmp0(arg, "-dither")) {
 			dithering = TRUE;
 		}
@@ -5140,27 +5168,14 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
-		fits tmpfit = { 0 };
-		seq_read_frame(seq, sequence_find_refimage(seq), &tmpfit, FALSE, -1);
-		gboolean mono = (tmpfit.naxes[2] == 1);
-		gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
-		clearfits(&tmpfit);
-		if (mono && cfa && !do_cfa) {
-			siril_log_color_message(_("Warning: applying background extraction to sequence of undebayered images. This is very likely to give poor results. If you really want this, use the -override-cfa option.\n"), "salmon");
-			free(args);
-			return CMD_GENERIC_ERROR;
-		}
+		sequence_cfa_warning_check(seq);
 
 		apply_background_extraction_to_sequence(args);
 	} else {
 		args->seq = NULL;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
-		if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0' && !do_cfa) {
-			siril_log_color_message(_("Warning: applying background extraction to undebayered image. If you really want this, use the -override-cfa option.\n"), "salmon");
-			free(args);
-			return CMD_GENERIC_ERROR;
-		}
+		image_cfa_warning_check();
 
 		if (!generate_background_samples(samples, tolerance))
 			start_in_new_thread(remove_gradient_from_image, args);
