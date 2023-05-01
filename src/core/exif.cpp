@@ -140,9 +140,9 @@ gchar* siril_get_date_from_exif(const char *filename) {
 		std::string date_str = iter->value().toString();
 
 		return g_strdup(date_str.c_str());
-
 	} catch (Exiv2::AnyError &e) {
-		fprintf(stderr, "Error: %s\n", e.what());
+		std::string s(e.what());
+		std::cerr << "[exiv2]: " << s << std::endl;
 		return NULL;
 	}
 }
