@@ -156,7 +156,8 @@ void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data) {
 
 #ifdef HAVE_LIBTIFF
 void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
-	check_ok_if_cfa();
+	if (!check_ok_if_cfa())
+		return;
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
 	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));

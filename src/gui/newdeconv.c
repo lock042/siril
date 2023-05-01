@@ -1317,8 +1317,9 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkEntry* deconvolutionSeqEntry = GTK_ENTRY(lookup_widget("bdeconv_seq_prefix"));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
+	if (!check_ok_if_cfa())
+		return;
 	set_cursor_waiting(TRUE);
-	check_ok_if_cfa();
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		seqargs = malloc(sizeof(deconvolution_sequence_data));
 		seqargs->seq = &com.seq;
@@ -1336,13 +1337,17 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 
 void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	sequence_is_running = 0;
+	gboolean abort = FALSE;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	if(!sequence_is_loaded())
 		the_fit = &gfit;
 	if(!com.headless)
 		set_estimate_params(); // Do this before entering the thread as it contains GTK functions
-	start_in_new_thread(estimate_only, NULL);
+	if (args.psftype == PSF_STARS || args.psftype == PSF_BLIND)
+		abort = !check_ok_if_cfa();
+	if (!abort)
+		start_in_new_thread(estimate_only, NULL);
 }
 
 // Actual drawing function
