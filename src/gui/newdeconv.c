@@ -1315,10 +1315,10 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* seq = GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_seqapply"));
 	deconvolution_sequence_data* seqargs = NULL;
 	GtkEntry* deconvolutionSeqEntry = GTK_ENTRY(lookup_widget("bdeconv_seq_prefix"));
-//	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
 	set_cursor_waiting(TRUE);
+	check_ok_if_cfa();
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		seqargs = malloc(sizeof(deconvolution_sequence_data));
 		seqargs->seq = &com.seq;

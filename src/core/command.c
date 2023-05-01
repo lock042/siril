@@ -1157,6 +1157,7 @@ int process_makepsf(int nb) {
 					goto terminate_makepsf;
 				}
 			}
+			image_cfa_warning_check();
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "stars")) {
@@ -1211,6 +1212,7 @@ int process_makepsf(int nb) {
 			if (!force_ks) {
 				data->recalc_ks = TRUE;
 			}
+			image_cfa_warning_check();
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "manual")) {
@@ -1494,7 +1496,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 	else data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
-
+	image_cfa_warning_check();
 	start_in_new_thread(deconvolve, data);
 
 	return CMD_OK;
@@ -1621,7 +1623,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	else data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
-
+	sequence_cfa_warning_check(seq);
 	deconvolve_sequence_command(data, seq);
 
 	return CMD_OK;
