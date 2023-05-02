@@ -122,6 +122,7 @@ int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, c
 }
 
 gchar* siril_get_date_from_exif(const char *filename) {
+#ifdef HAVE_EXIV2
 	try {
 		Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(WIDEN(filename));
 		if (image.get() == 0) {
@@ -151,4 +152,7 @@ gchar* siril_get_date_from_exif(const char *filename) {
 		std::cerr << "[exiv2]: " << s << std::endl;
 		return NULL;
 	}
+#else
+	return NULL;
+#endif
 }
