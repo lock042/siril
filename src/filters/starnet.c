@@ -72,6 +72,10 @@
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+	siril_debug_print("starnet is being closed\n");
+	g_spawn_close_pid(pid);
+}
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
@@ -82,7 +86,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
 
@@ -90,6 +94,13 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
 		return retval;
 	}
+	g_child_watch_add(child_pid, child_watch_cb, NULL);
+	com.child_is_running = EXT_STARNET;
+#ifdef _WIN32
+	com.childhandle = child_pid;		// For Windows, handle of a child process
+#else
+	com.childpid = child_pid;			// For other OSes, PID of a child process
+#endif
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -123,7 +134,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 			arg += 9;
 		double value = g_ascii_strtod(arg, NULL);
 		if (value != 0.0 && value == value && verbose) {
-			set_progress_bar_data(_("Running StarNet"), (value / 100));
+			set_progress_bar_data(_("Running StarNet"), value / 100.0);
 		}
 		if (g_str_has_prefix(buffer, "100% finished") || g_strrstr(buffer, "Writing mask")) {
 			retval = 0;
@@ -144,6 +155,8 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 #endif
 	g_object_unref(data_input);
 	g_object_unref(stream);
+	if (!g_close(child_stdout, &error))
+		siril_debug_print("%s\n", error->message);
 	return retval;
 }
 
@@ -151,7 +164,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	char *test_argv[3] = {0};
 	int retval = NIL;
 	gint child_stdout;
-	GPid child_pid;
 	g_autoptr(GError) error = NULL;
 	gchar *v1dir = NULL;
 	if (!executable || executable[0] == '\0') {
@@ -198,7 +210,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
-			NULL, NULL, &child_pid, NULL, &child_stdout,
+			NULL, NULL, NULL, NULL, &child_stdout,
 			NULL, &error);
 
 	if (error != NULL) {
@@ -241,6 +253,8 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_free(versionarg);
+	if (!g_close(child_stdout, &error))
+		siril_debug_print("%s\n", error->message);
 
 	retval2 = g_chdir(currentdir);
 	if (retval2) {
@@ -389,15 +403,14 @@ gpointer do_starnet(gpointer p) {
 		imagenoextorig = g_strdup_printf("image");
 	}
 	imagenoext = g_strdup(imagenoextorig);
-	// for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
-    //     *q = *c == ' ' ? '_' : *c;
-	// if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
-	// 	siril_log_color_message(_("StarNet: spaces detected in filename. StarNet can't handle these so they have been replaced by underscores.\n"), "salmon");
 	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
 	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
 	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
-	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	imagenoext = remove_ext_from_filename(imagenoext);
+	temp = g_build_filename(com.wd, imagenoext, NULL);
+	g_free(imagenoext);
+	imagenoext = remove_ext_from_filename(temp);
+	g_free(temp);
+	temp = NULL;
 	temptif = g_strdup_printf("%s.tif", imagenoext);
 	if (strlen(temptif) > pathmax) {
 		retval = 1;
@@ -776,8 +789,8 @@ gpointer do_starnet(gpointer p) {
 	CLEANUP2:
 	clearfits(&workingfit);
 	CLEANUP3:
-	if (com.child_is_running)
-		com.child_is_running = FALSE;
+	if (com.child_is_running == EXT_STARNET)
+		com.child_is_running = EXT_NONE;
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);

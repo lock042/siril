@@ -132,6 +132,29 @@ void populate_seqcombo(const gchar *realname) {
 	g_free(rname);
 }
 
+/* normalizes sequence name
+ * takes a string and 
+ * - removes the extension if known
+ * - appends _ at the end if required and add_underscore is TRUE
+ * also calls get_locale_filename() to solve Windows localized string problems
+ * returns a newly allocated string to be freed with free
+ */
+char *normalize_seqname(char *name, gboolean add_underscore) {
+	gchar *locname = get_locale_filename(name);
+	char *file_no_ext;
+	if (g_str_has_suffix(locname, ".seq") || g_str_has_suffix(locname, ".fit") || g_str_has_suffix(locname, ".fits") ||
+	g_str_has_suffix(locname, ".fts") || g_str_has_suffix(locname, ".ser")) {
+		file_no_ext = remove_ext_from_filename(locname);
+	} else {
+		file_no_ext = strdup(locname);
+	}
+	gboolean needs_underscore = add_underscore && !g_str_has_suffix(name, "_");
+	gchar *outname = g_strdup_printf("%s%s", file_no_ext, needs_underscore ? "_" : "");
+	g_free(locname);
+	free(file_no_ext);
+	return outname;
+}
+
 /* when opening a file outside the main sequence loading system and that file
  * is a sequence (SER/AVI), this function is called to load this sequence. */
 int read_single_sequence(char *realname, image_type imagetype) {
@@ -613,8 +636,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			set_display_mode();		// display the display mode in the combo box
 		}
 		redraw(REMAP_ALL);
-
-		redraw_previews();		// redraw registration preview areas
+		if (seq->is_variable)
+			clear_previews();
+		else
+			redraw_previews();		// redraw registration preview areas
 		display_filename();		// display filename in gray window
 		set_precision_switch(); // set precision on screen
 		adjust_reginfo();		// change registration displayed/editable values
@@ -692,6 +717,7 @@ gboolean check_if_seq_exist(gchar *name, gboolean name_is_base) {
 		path = g_build_filename(com.wd, seq, NULL);
 		path_ = g_build_filename(com.wd, seq_, NULL);
 		g_free(seq);
+		g_free(seq_);
 		gboolean retval = is_readable_file(path);
 		if (!retval) {
 			retval = is_readable_file(path_);
@@ -2087,10 +2113,10 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 		for (int i = 0; i < seq->number; i++) {
 			seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
 		}
+		// unsetting ref image
+		seq->reference_image = -1;
 		fix_selnum(seq, TRUE);
 	}
-	// unsetting ref image
-	seq->reference_image = -1;
 	writeseqfile(seq);
 }
 

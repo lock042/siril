@@ -50,6 +50,7 @@
 #include "single_image.h"
 #include "sequence_list.h"
 #include "callbacks.h"
+#include "io/gnuplot_i.h"
 
 #include "algos/astrometry_solver.h"
 #include "utils.h"
@@ -1155,12 +1156,46 @@ static void load_accels() {
 	set_accel_map(accelmap);
 }
 
+static void remove_accels() {
+    GApplication *app = g_application_get_default();
+    gchar **action_names = (gchar**) gtk_application_list_action_descriptions(GTK_APPLICATION(app));
+
+    GPtrArray *accelmap = g_ptr_array_new();
+
+    for (gchar **it = action_names; it[0]; it++) {
+        g_ptr_array_add(accelmap, it[0]);
+        g_ptr_array_add(accelmap, NULL);
+    }
+
+    g_ptr_array_add(accelmap, NULL);
+
+    set_accel_map((const gchar**) g_ptr_array_free(accelmap, FALSE));
+
+    g_strfreev(action_names);
+}
+
 void set_accel_map(const gchar * const *accelmap) {
 	GApplication *application = g_application_get_default();
 
-	for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
-		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
-	}
+		for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
+			gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
+		}
+}
+
+gboolean on_command_focus_in_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	remove_accels();
+
+	return FALSE;
+}
+
+gboolean on_command_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	load_accels();
+
+	return FALSE;
 }
 
 /* Initialize the rendering mode from the GUI */
@@ -1612,14 +1647,17 @@ void load_main_window_state() {
 	if (!com.script && com.pref.gui.remember_windows) {
 		GtkWidget *win = lookup_widget("control_window");
 		GdkRectangle workarea = { 0 };
+		GdkWindow *window = gtk_widget_get_window(win);
+		GdkMonitor *monitor = gdk_display_get_monitor_at_window(gdk_window_get_display(window), window);
 
-		gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
+		gdk_monitor_get_workarea(monitor, &workarea);
+		int scale_factor = gdk_monitor_get_scale_factor(monitor);
 
 		int w = com.pref.gui.main_w_pos.w;
 		int h = com.pref.gui.main_w_pos.h;
 
-		int x = CLAMP(com.pref.gui.main_w_pos.x, 0, workarea.width - w);
-		int y = CLAMP(com.pref.gui.main_w_pos.y, 0, workarea.height - h);
+		int x = CLAMP(com.pref.gui.main_w_pos.x, 0, workarea.width - w) * scale_factor;
+		int y = CLAMP(com.pref.gui.main_w_pos.y, 0, workarea.height - h) * scale_factor;
 
 		if (w > 0 && h > 0) {
 			if (com.pref.gui.is_maximized) {
@@ -1646,8 +1684,10 @@ void load_main_window_state() {
 
 void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
+	exit_com_gnuplot_handles(); // close any remaining open GNUplot handles
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
+	kill_child_process(TRUE); // kill running child processes if any
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	exit(EXIT_SUCCESS);
 }
@@ -1916,6 +1956,8 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 			adjust_sellabel();
 			reset_plot();
 			set_layers_for_registration();
+			if (cleanstat)
+				notify_gfit_modified();
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}

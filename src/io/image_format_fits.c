@@ -80,6 +80,36 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 	} while ((keywords[__iter__]) && (*status > 0)); \
 }
 
+static void read_fits_locdata_header(fits *fit) {
+	int status = 0;
+	char sitelat_dump[FLEN_VALUE] = { 0 };
+	char sitelong_dump[FLEN_VALUE] = { 0 };
+	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
+
+	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "*LAT", &sitelat_dump, NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases in TSTRING style
+	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "*LON*", &sitelong_dump, NULL, &status);	// Handles SITELONG and SITE-LON keyword cases in TSTRING style
+
+	d_sitelat_dump = parse_dms(sitelat_dump);
+	d_sitelong_dump = parse_dms(sitelong_dump);
+	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
+		fit->sitelat = strtod(sitelat_dump, NULL);
+		fit->sitelong = strtod(sitelong_dump, NULL);
+	} else {
+		fit->sitelat = d_sitelat_dump;
+		fit->sitelong = d_sitelong_dump;
+	}
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev), NULL, &status);	// Handles SITEELEV keyword cases
+	if (status) {
+		fit->siteelev = 0.0;	// set to 0.0 if no elevation keyword (all except NINA and Seq. Generator, for now)
+	}
+}
+
 static void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
 	char ut_start[FLEN_VALUE] = { 0 };
@@ -122,7 +152,7 @@ void fit_get_photometry_data(fits *fit) {
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
 }
 
-static int fit_stats(fits *fit, float *mini, float *maxi) {
+static int fit_stats(fitsfile *fptr, float *mini, float *maxi) {
 	int status = 0;
 	int ii;
 	long npixels = 1L;
@@ -134,7 +164,7 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 	*mini = 0;
 	*maxi = 0;
 
-	fits_get_img_size(fit->fptr, 3, anaxes, &status);
+	fits_get_img_size(fptr, 3, anaxes, &status);
 
 	if (status) {
 		report_fits_error(status); /* print error message */
@@ -153,7 +183,7 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 		/* loop over all rows of the plane */
 		for (firstpix[1] = 1; firstpix[1] <= anaxes[1]; firstpix[1]++) {
 			/* give starting pixel coordinate and number of pixels to read */
-			if (fits_read_pix(fit->fptr, TFLOAT, firstpix, npixels, NULL, pix,
+			if (fits_read_pix(fptr, TFLOAT, firstpix, npixels, NULL, pix,
 						NULL, &status))
 				break; /* jump out of loop on error */
 
@@ -278,7 +308,7 @@ static void load_wcs_keywords(fits *fit) {
 		char hms[FLEN_VALUE];
 		fits_read_key(fit->fptr, TSTRING, "RA", hms, NULL, &status);
 		if (!status) {
-			fit->wcsdata.ra = parse_ra_hms(hms);
+			fit->wcsdata.ra = parse_hms(hms);
 			if (isnan(fit->wcsdata.ra)) fit->wcsdata.ra = 0.0;
 			else siril_debug_print("read RA as HMS\n");
 		}
@@ -294,7 +324,7 @@ static void load_wcs_keywords(fits *fit) {
 		char dms[FLEN_VALUE];
 		fits_read_key(fit->fptr, TSTRING, "DEC", dms, NULL, &status);
 		if (!status) {
-			fit->wcsdata.dec = parse_dec_dms(dms);
+			fit->wcsdata.dec = parse_dms(dms);
 			if (isnan(fit->wcsdata.dec)) fit->wcsdata.dec = 0.0;
 			else siril_debug_print("read DEC as DMS\n");
 		}
@@ -418,12 +448,11 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->data_max), NULL, &status);
 
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-		if (status == KEY_NO_EXIST) {
-			float mini, maxi;
-			fit_stats(fit, &mini, &maxi);
-			fit->data_max = (double) maxi;
-			fit->data_min = (double) mini;
-		}
+		float mini, maxi;
+		fit_stats(fit->fptr, &mini, &maxi);
+		// override data_max if needed. In some images there are differences between max and data_max
+		fit->data_max = (double) maxi;
+		fit->data_min = (double) mini;
 	}
 
 	status = 0;
@@ -512,6 +541,12 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
 
 	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "EXPSTART", &(fit->expstart), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->expend), NULL, &status);
+
+	status = 0;
 	__tryToFindKeywords(fit->fptr, TSTRING, FILTER, &fit->filter, &status);
 
 	status = 0;
@@ -520,19 +555,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->object), NULL, &status);
 
-	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TDOUBLE, "*LAT", &(fit->sitelat), NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases
-
-	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TDOUBLE, "*LON*", &(fit->sitelong), NULL, &status);	// Handles SITELONG and SITE-LON keyword cases
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev), NULL, &status);
-	if (status) {
-		fit->siteelev = 0.0;	// set to 0.0 if no elevation keyword
-	}
+	read_fits_locdata_header(fit);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->aperture), NULL, &status);
@@ -1239,8 +1262,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		/* we assume we are in the range [0, 1]. But, for some images
 		 * some values can be negative
 		 */
-		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero,
-				&status);
+		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				|| fit->bitpix == BYTE_IMG) || fit->data_max > 2.0) { // needed for some FLOAT_IMG
 			convert_floats(fit->bitpix, fit->fdata, nbdata, fit->data_max, fit->data_min);
@@ -1264,7 +1286,6 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area) {
 	double data_max = -1.0;
-	double data_min = 0.0;
 	int datatype;
 	BYTE *data8;
 	long *pixels_long;
@@ -1316,13 +1337,14 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			break;
 		case DOUBLE_IMG:	// 64-bit floating point pixels
 		case FLOAT_IMG:		// 32-bit floating point pixels
-			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest,
-					&zero, &status);
+			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest, &zero, &status);
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata, data_max, data_min);
+				float mini, maxi;
+				fit_stats(fptr, &mini, &maxi);
+				convert_floats(bitpix, dest, nbdata, (double) maxi, (double) mini);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -1963,12 +1985,11 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 			status = 0;
 			fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
 			if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-				if (status == KEY_NO_EXIST) {
-					float mini, maxi;
-					fit_stats(fit, &mini, &maxi);
-					fit->data_max = (double) maxi;
-					fit->data_min = (double) mini;
-				}
+				// override data_max if needed. In some images there are differences between max and data_max
+				float mini, maxi;
+				fit_stats(fit->fptr, &mini, &maxi);
+				fit->data_max = (double) maxi;
+				fit->data_min = (double) mini;
 			}
 		}
 

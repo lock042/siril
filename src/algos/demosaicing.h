@@ -59,5 +59,6 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize);
 WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, size_t *newsize);
 float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize);
+float *extract_CFA_buffer_area_float(fits *fit, int layer, rectangle *bounds, size_t *newsize);
 
 #endif

@@ -1016,43 +1016,40 @@ int process_makepsf(int nb) {
 	gboolean error = FALSE;
 	estk_data* data = malloc(sizeof(estk_data));
 	reset_conv_args(data);
+	cmd_errors status = CMD_OK;
 
 	char *arg = word[1];
-	if (!word[1]) {
-		free(data);
-		return CMD_WRONG_N_ARG;
-	}
-	if (g_str_has_prefix(arg, "clear")) {
+	if (!g_strcmp0(arg, "clear")) {
 		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
-			free(data);
-			return CMD_GENERIC_ERROR;
+			status = CMD_GENERIC_ERROR;
+			goto terminate_makepsf;
 		}
-		if (com.kernel) {
-			free(com.kernel);
-			com.kernel = NULL;
-			com.kernelsize = 0;
-		}
+		reset_conv_kernel();
 		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
-		free(data);
-		return CMD_OK;
+		goto terminate_makepsf;
 	} else {
-		if (g_str_has_prefix(arg, "save")) {
+		if (!g_strcmp0(arg, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
-			on_bdeconv_savekernel_clicked(NULL, NULL);
-			free(data);
-			return CMD_OK;
+			if (!word[2] || word[2][0] == '\0') {
+				on_bdeconv_savekernel_clicked(NULL, NULL);
+			} else {
+				if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+					siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
+					status = CMD_ARG_ERROR;
+					goto terminate_makepsf;
+				}
+				save_kernel(word[2]);
+			}
+			goto terminate_makepsf;
 		}
-		if (com.kernel) {
-			free(com.kernel);
-			com.kernel = NULL;
-			com.kernelsize = 0;
-		}
-		if (g_str_has_prefix(arg, "blind")) {
+		reset_conv_kernel();
+		status = CMD_ARG_ERROR; // setting to this value as it will be the most likely error from now on
+		if (!g_strcmp0(arg, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
-				free(data);
-				return CMD_GENERIC_ERROR;
+				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "blind");
+				status = CMD_GENERIC_ERROR;
+				goto terminate_makepsf;
 			}
 			data->psftype = PSF_BLIND;
 			siril_log_message(_("Blind kernel estimation:\n"));
@@ -1060,299 +1057,321 @@ int process_makepsf(int nb) {
 				char *arg = word[i], *end;
 				if (!word[i])
 					break;
-				if (g_str_has_prefix(arg, "-l0")) {
+				if (!g_strcmp0(arg, "-l0")) {
 					siril_log_message(_("ℓ0 descent prior method\n"));
 					data->blindtype = 1;
 				}
-				else if (g_str_has_prefix(arg, "-si")) {
+				else if (!g_strcmp0(arg, "-si")) {
 					siril_log_message(_("spectral irregularity method\n"));
 					data->blindtype = 0;
 				}
-				else if (g_str_has_prefix(arg, "-multiscale")) {
+				else if (!g_strcmp0(arg, "-multiscale")) {
 					siril_log_message(_("multiscale estimation\n"));
 					data->multiscale = TRUE;
 				}
 				else if (g_str_has_prefix(arg, "-lambda=")) {
 					arg += 8;
 					float lambda = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((lambda < 0.f) || (lambda > 100000.f)) {
-						siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
-						g_free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if (error || lambda < 0.f || lambda > 100000.f) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "lambda", "]0,10000[");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->lambda = lambda;
-						data->finaldeconvolutionweight = lambda;
-						data->intermediatedeconvolutionweight = lambda;
-					}
+					data->lambda = lambda;
+					data->finaldeconvolutionweight = lambda;
+					data->intermediatedeconvolutionweight = lambda;
 				}
 				else if (g_str_has_prefix(arg, "-comp=")) {
 					arg += 6;
 					float comp = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((comp < 1.f) || (comp > 100000.f)) {
-						siril_log_message(_("Error in compensation factor parameter: must be between 1 and 1e5, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if (comp < 1.f || comp > 100000.f) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "compensation factor", "]1,10000[");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->compensationfactor = comp;
-					}
+					data->compensationfactor = comp;
 				}
 				else if (g_str_has_prefix(arg, "-ks=")) {
 					arg += 4;
 					int ks = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
-						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if (ks < 3 || !(ks %2) || ks > min(gfit.rx, gfit.ry)) {
+						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width), aborting.\n"));
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->ks = ks;
-					}
+					data->ks = ks;
 				}
-			}
-			if (error) {
-				free(data);
-				return CMD_ARG_ERROR;
+				else if (g_str_has_prefix(arg, "-savepsf=")) {
+					if (data->savepsf_filename) {
+						g_free(data->savepsf_filename);
+						data->savepsf_filename = NULL;
+					}
+					arg += 9;
+					if (arg[0] == '\0') {
+						siril_log_message(_("Error: no filename specified, aborting.\n"));
+						goto terminate_makepsf;
+					} else {
+						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
+							goto terminate_makepsf;
+						}
+						data->savepsf_filename = g_strdup(arg);
+						data->save_after = TRUE;
+					}
+				} else {
+					siril_log_color_message(_("Unknown parameter %s, aborting.\n"), "red", arg);
+					goto terminate_makepsf;
+				}
 			}
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (g_str_has_prefix(arg, "stars")) {
+		} else if (!g_strcmp0(arg, "stars")) {
+			data->recalc_ks = FALSE;
+			gboolean force_ks = FALSE;
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
-				free(data);
-				return CMD_GENERIC_ERROR;
+				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "star-based");
+				status = CMD_GENERIC_ERROR;
+				goto terminate_makepsf;
 			}
-			if (!(com.stars && com.stars[0])) {
-				siril_log_message(_("Error: requested to generate PSF from stars but no stars have been selected. Run findstar first.\n"));
-				free(data);
-				return CMD_ARG_ERROR;
-			} else {
-				data->psftype = PSF_STARS;
-				for (int i = 2; i < nb; i++) {
-					char *arg = word[i], *end;
-					if (!word[i])
-						break;
-					if (g_str_has_prefix(arg, "-sym")) {
+			data->psftype = PSF_STARS;
+			for (int i = 2; i < nb; i++) {
+				char *arg = word[i], *end;
+				if (!word[i])
+					break;
+				if (!g_strcmp0(arg, "-sym")) {
 					siril_log_message(_("symmetric kernel\n"));
-						data->symkern = TRUE;
-					}
-					else if (g_str_has_prefix(arg, "-ks=")) {
-						arg += 4;
-						int ks = (int) g_ascii_strtod(arg, &end);
-						if (arg == end) error = TRUE;
-						else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
-							siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
-							free(data);
-							return CMD_ARG_ERROR;
-						}
-						if (!error) {
-							data->ks = ks;
-						}
-					}
+					data->symkern = TRUE;
 				}
-				if (error) {
-					free(data);
-					return CMD_ARG_ERROR;
+				else if (g_str_has_prefix(arg, "-ks=")) {
+					arg += 4;
+					int ks = (int) g_ascii_strtod(arg, &end);
+					if (arg == end) goto terminate_makepsf;
+					if (ks < 3 || !(ks %2) || ks > min(gfit.rx, gfit.ry)) {
+						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width), aborting.\n"));
+						goto terminate_makepsf;
+					}
+					data->ks = ks;
 				}
-				start_in_new_thread(estimate_only,data);
-				return CMD_OK;
+				else if (g_str_has_prefix(arg, "-savepsf=")) {
+					if (data->savepsf_filename) {
+						g_free(data->savepsf_filename);
+						data->savepsf_filename = NULL;
+					}
+					arg += 9;
+					if (arg[0] == '\0') {
+						siril_log_message(_("Error: no filename specified, aborting.\n"));
+						goto terminate_makepsf;
+					} else {
+						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
+							goto terminate_makepsf;
+						}
+						data->savepsf_filename = g_strdup(arg);
+						data->save_after = TRUE;
+					}
+				} else {
+					siril_log_color_message(_("Unknown parameter %s, aborting.\n"), "red", arg);
+					goto terminate_makepsf;
+				}
 			}
-		} else if (g_str_has_prefix(arg, "manual")) {
+			if (!force_ks) {
+				data->recalc_ks = TRUE;
+			}
+			start_in_new_thread(estimate_only, data);
+			return CMD_OK;
+		} else if (!g_strcmp0(arg, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
 			data->psftype = PSF_MANUAL;
 			for (int i = 2; i < nb; i++) {
 				char *arg = word[i], *end;
 				if (!word[i])
 					break;
-				if (g_str_has_prefix(arg, "-gaussian")) {
+				if (!g_strcmp0(arg, "-gaussian")) {
 					siril_log_message(_("Gaussian PSF\n"));
 					data->profile = 0;
 				}
-				else if (g_str_has_prefix(arg, "-moffat")) {
+				else if (!g_strcmp0(arg, "-moffat")) {
 					siril_log_message(_("Moffat PSF\n"));
 					data->profile = 1;
 				}
-				else if (g_str_has_prefix(arg, "-disc")) {
+				else if (!g_strcmp0(arg, "-disc")) {
 					siril_log_message(_("Disc PSF\n"));
 					data->profile = 2;
 				}
-				else if (g_str_has_prefix(arg, "-airy")) {
+				else if (!g_strcmp0(arg, "-airy")) {
 					siril_log_message(_("Airy disc PSF\n"));
 					data->profile = 3;
-				}
-				else if (g_str_has_prefix(arg, "-ks=")) {
-					arg += 4;
-					int ks = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
-						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
-					}
-					if (!error) {
-						data->ks = ks;
-					}
 				}
 				else if (g_str_has_prefix(arg, "-fwhm=")) {
 					arg += 6;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val <= 0.f) || (val > 100.f)) {
-						siril_log_message(_("Error in fwhm parameter: must be between 0 and 100, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if ((val <= 0.f) || (val > 100.f)) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "fwhm", "]0,100]");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->psf_fwhm = val;
-					}
+					data->psf_fwhm = val;
 				}
 				else if (g_str_has_prefix(arg, "-angle=")) {
 					arg += 7;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val <= -360.f) || (val > 360.f)) {
-						siril_log_message(_("Error in ratio parameter: must be between -360 and +360, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if ((val <= -360.f) || (val > 360.f)) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "angle", "]-360,360]");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->psf_angle = val;
-					}
+					data->psf_angle = val;
 				}
 				else if (g_str_has_prefix(arg, "-ratio=")) {
 					arg += 7;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
+					if (arg == end) goto terminate_makepsf;
 					else if ((val < 1.f) || (val > 5.f)) {
-						siril_log_message(_("Error in ratio parameter: must be between 0 and 5, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "ratio", "[1,5]");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->psf_ratio = val;
-					}
+					data->psf_ratio = val;
 				}
 				else if (g_str_has_prefix(arg, "-beta=")) {
 					arg += 6;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val <= 0.f) || (val > 10.f)) {
-						siril_log_message(_("Error in beta parameter: must be between 0 and 10, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if ((val <= 0.f) || (val > 10.f)) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "beta", "]0,10]");
+						goto terminate_makepsf;;
 					}
-					if (!error) {
-						data->psf_beta = val;
-					}
+					data->psf_beta = val;
 				}
 				else if (g_str_has_prefix(arg, "-dia=")) {
 					arg += 5;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val <= 0.f) || (val > 5000.f)) {
-						siril_log_message(_("Error in dia parameter: must be between 0 and 5000, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if ((val <= 0.f) || (val > 5000.f)) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "dia", "]0,5000]");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->airy_diameter = val;
-					}
+					data->airy_diameter = val;
 				}
 				else if (g_str_has_prefix(arg, "-fl=")) {
 					arg += 4;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val <= 0.f) || (val > 60000.f)) {
-						siril_log_message(_("Error in fl parameter: must be between 0 and 60000, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if ((val <= 0.f) || (val > 60000.f)) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "fl", "]0,60000]");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->airy_fl = val;
-					}
+					data->airy_fl = val;
 				}
 				else if (g_str_has_prefix(arg, "-wl=")) {
 					arg += 4;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val <= 100.f) || (val > 30000.f)) {
-						siril_log_message(_("Error in wl parameter: must be between 100 and 30000, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if ((val < 100.f) || (val > 30000.f)) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "wl", "[100,30000]");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->airy_wl = val;
-					}
+					data->airy_wl = val;
 				}
 				else if (g_str_has_prefix(arg, "-pixelsize=")) {
 					arg += 11;
 					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val < 1.f) || (val > 30.f)) {
-						siril_log_message(_("Error in fwhm parameter: must be between 1 and 30, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+					if (arg == end) goto terminate_makepsf;
+					if ((val < 1.f) || (val > 30.f)) {
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "pixelsize", "[1,30]");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->airy_pixelsize = val;
-					}
+					data->airy_pixelsize = val;
 				}
 				else if (g_str_has_prefix(arg, "-obstruct=")) {
 					arg += 10;
 					float val = (float) g_ascii_strtod(arg, &end);
 					if (arg == end) error = TRUE;
 					else if ((val < 0.f) || (val >= 100.f)) {
-						siril_log_message(_("Error in fwhm parameter: must be between 0 and 100, aborting.\n"));
-						free(data);
-						return CMD_ARG_ERROR;
+						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "obstruct", "[0,100[");
+						goto terminate_makepsf;
 					}
-					if (!error) {
-						data->airy_obstruction = val;
-					}
+					data->airy_obstruction = val;
 				}
-			}
-			if (error) {
-				free(data);
-				return CMD_ARG_ERROR;
+				else if (g_str_has_prefix(arg, "-ks=")) {
+					arg += 4;
+					int ks = (int) g_ascii_strtod(arg, &end);
+					if (arg == end) goto terminate_makepsf;
+					if (ks < 3 || !(ks %2) || ks > min(gfit.rx, gfit.ry)) {
+						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width), aborting.\n"));
+						goto terminate_makepsf;
+					}
+					data->ks = ks;
+				}
+				else if (g_str_has_prefix(arg, "-savepsf=")) {
+					if (data->savepsf_filename) {
+						g_free(data->savepsf_filename);
+						data->savepsf_filename = NULL;
+					}
+					arg += 9;
+					if (arg[0] == '\0') {
+						siril_log_message(_("Error: no filename specified, aborting.\n"));
+						goto terminate_makepsf;
+					} else {
+						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
+							goto terminate_makepsf;
+						}
+						data->savepsf_filename = g_strdup(arg);
+						data->save_after = TRUE;
+					}
+				} else {
+					siril_log_color_message(_("Unknown parameter %s, aborting.\n"), "red", arg);
+					goto terminate_makepsf;
+				}
 			}
 			start_in_new_thread(estimate_only,data);
 			return CMD_OK;
-		} else if (g_str_has_prefix(arg, "load")) {
+		} else if (!g_strcmp0(arg, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {
 				if (load_kernel(word[2])) {
-					siril_log_message(_("Error loading PSF.\n"));
-					free(data);
-					return CMD_FILE_NOT_FOUND;
+					siril_log_color_message(_("Error loading PSF.\n"), "red");
+					status = CMD_FILE_NOT_FOUND;
+					goto terminate_makepsf;
 				}
 			}
 			data->psftype = PSF_PREVIOUS;
-			free(data);
-			return CMD_OK;
+			status = CMD_OK;
+			goto terminate_makepsf;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 		}
 	}
+terminate_makepsf:
+	g_free(data->savepsf_filename);
 	free(data);
-	return CMD_ARG_ERROR;
+	return status;
 }
 
 int process_deconvolve(int nb, nonblind_t type) {
 	gboolean error = FALSE;
+	gboolean kernel_loaded = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
-	if (type == 0)
+	if (type == DECONV_SB)
 		data->finaliters = 1;
-	if (type == 2)
+	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(arg, "-alpha=")) {
+		if (g_str_has_prefix(arg, "-loadpsf=")) {
+			arg += 9;
+			if (arg[0] != '\0' && load_kernel(arg)) {
+				siril_log_message(_("Error loading PSF.\n"));
+				free(data);
+				return CMD_FILE_NOT_FOUND;
+			}
+			kernel_loaded = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-alpha=")) {
 			arg += 7;
 			float alpha = (float) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
@@ -1405,14 +1424,18 @@ int process_deconvolve(int nb, nonblind_t type) {
 				data->stepsize = stepsize;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-tv")) {
+		else if (!g_strcmp0(arg, "-tv")) {
 			 data->regtype = REG_TV_GRAD;
 		}
-		else if (g_str_has_prefix(arg, "-mul")) {
+		else if (!g_strcmp0(arg, "-mul")) {
 			data->rl_method = RL_MULT;
 		}
-		else if (g_str_has_prefix(arg, "-fh")) {
+		else if (!g_strcmp0(arg, "-fh")) {
 			data->regtype = REG_FH_GRAD;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			free(data);
+			return CMD_ARG_ERROR;
 		}
 	}
 
@@ -1421,13 +1444,16 @@ int process_deconvolve(int nb, nonblind_t type) {
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
-	// Order of preference is: if com.stars is populated, assume the user wants to make
-	// PSF from stars. If not, if com.kernel is already populated then use it. If not,
+	// Order of preference is: if a PSF has specifically been loaded, use that, else
+	// if com.stars is populated, assume the user wants to make a PSF from stars and
+	// use that. If not, if com.kernel is already populated then use it. Otherwise,
 	// do a blind deconvolution using the default parameters (and default l0 method).
 	// A manual PSF, if required, must be created using the makepsf command and then rl
 	// will detect it as an existing kernel and use it.
 
-	if (com.stars && com.stars[0])
+	if (kernel_loaded)
+		data->psftype = PSF_PREVIOUS; // use loaded (existing) kernel
+	else if (com.stars && com.stars[0])
 		data->psftype = PSF_STARS; // PSF from stars
 	else if (com.kernel && (com.kernelsize != 0))
 		data->psftype = PSF_PREVIOUS; // use existing kernel
@@ -1446,18 +1472,28 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	gboolean error = FALSE;
+	gboolean kernel_loaded = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
-	if (type == 0)
+	if (type == DECONV_SB)
 		data->finaliters = 1;
-	if (type == 2)
+	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
 	for (int i = 2; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(arg, "-alpha=")) {
+		if (g_str_has_prefix(arg, "-loadpsf=")) {
+			arg += 9;
+			if (arg[0] != '\0' && load_kernel(arg)) {
+				siril_log_message(_("Error loading PSF.\n"));
+				free(data);
+				return CMD_FILE_NOT_FOUND;
+			}
+			kernel_loaded = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-alpha=")) {
 			arg += 7;
 			float alpha = (float) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
@@ -1518,14 +1554,18 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 				data->stepsize = stepsize;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-tv")) {
+		else if (!g_strcmp0(arg, "-tv")) {
 			 data->regtype = REG_TV_GRAD;
 		}
-		else if (g_str_has_prefix(arg, "-mul")) {
+		else if (!g_strcmp0(arg, "-mul")) {
 			data->rl_method = RL_MULT;
 		}
-		else if (g_str_has_prefix(arg, "-fh")) {
+		else if (!g_strcmp0(arg, "-fh")) {
 			data->regtype = REG_FH_GRAD;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			free(data);
+			return CMD_ARG_ERROR;
 		}
 	}
 
@@ -1536,13 +1576,11 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
-	// Order of preference is: if com.stars is populated, assume the user wants to make
-	// PSF from stars. If not, if com.kernel is already populated then use it. If not,
-	// do a blind deconvolution using the default parameters (and default l0 method).
-	// A manual PSF, if required, must be created using the makepsf command and then rl
-	// will detect it as an existing kernel and use it.
+	// Order of preference is the same as process_deconvolve() above.
 
-	if (com.stars && com.stars[0])
+	if (kernel_loaded)
+		data->psftype = PSF_PREVIOUS; // use loaded (existing) kernel
+	else if (com.stars && com.stars[0])
 		data->psftype = PSF_STARS; // PSF from stars
 	else if (com.kernel && (com.kernelsize != 0))
 		data->psftype = PSF_PREVIOUS; // use existing kernel
@@ -1767,7 +1805,11 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			} else {
 				return CMD_ARG_ERROR;
 			}
-		} else {
+		}
+		else if (g_str_has_prefix(arg, "-sat")) {
+			stretch_colourmodel = COL_SAT;
+		}
+		else {
 			if (stretchtype == STRETCH_LINEAR) {
 				return CMD_ARG_ERROR;
 			}
@@ -1777,7 +1819,7 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			else if (g_str_has_prefix(arg, "-even")) {
 				stretch_colourmodel = COL_EVENLUM;
 			}
-			else if (g_str_has_prefix(arg, "-independent")) {
+			else if (g_str_has_prefix(arg, "-indep")) {
 				stretch_colourmodel = COL_INDEP;
 			}
 			else if (g_str_has_prefix(arg,"-D=")) {
@@ -1851,6 +1893,10 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			return CMD_ARG_ERROR;
 		}
 		BP = 0.0;
+		if (stretch_colourmodel == COL_SAT && (!(do_red && do_green && do_blue))) {
+			siril_log_message(_("Error: saturation stretch requires that all channels must be selected.\n"));
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	set_cursor_waiting(TRUE);
@@ -1903,6 +1949,13 @@ int process_seq_ghs(int nb, int stretchtype) {
 			free_sequence(seq, TRUE);
 		return retval;
 	}
+	if (params->payne_colourstretchmodel == COL_SAT && seq->nb_layers != 3) {
+		siril_log_message(_("Error: cannot apply saturation stretch to mono images.\n"));
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
+		return CMD_ARG_ERROR;
+	}
 	if (!seqdata->seqEntry)
 		seqdata->seqEntry = strdup("stretch_");
 
@@ -1942,7 +1995,16 @@ int process_ghs(int nb, int stretchtype) {
 		free (params);
 		return retval;
 	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	if (params->payne_colourstretchmodel == COL_SAT && gfit.naxes[2] != 3) {
+		siril_log_message(_("Error: cannot apply saturation stretch to a mono image.\n"));
+		free(params);
+		return CMD_ARG_ERROR;
+	}
+
+	if (params->payne_colourstretchmodel == COL_SAT)
+		apply_sat_ght_to_fits(&gfit, &gfit, params, TRUE);
+	else
+		apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	switch (stretchtype) {
 		case STRETCH_PAYNE_NORMAL:
@@ -2304,6 +2366,10 @@ int process_merge(int nb) {
 		set_cursor_waiting(FALSE);
 		return CMD_NO_CWD;
 	}
+	if (file_name_has_invalid_chars(word[nb - 1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[nb - 1]);
+		return CMD_ARG_ERROR;
+	}
 	char *dest_dir = strdup(com.wd);
 	char *outseq_name = NULL;
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
@@ -2370,7 +2436,7 @@ int process_merge(int nb) {
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(destroot, TRUE);
+			args->destroot = destroot;
 			args->input_has_a_seq = FALSE;
 			args->input_has_a_film = FALSE;
 			args->debayer = FALSE;
@@ -3039,7 +3105,7 @@ int process_set(int nb) {
 		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
-		return read_keyfile(kf);
+		return read_keyfile(kf) == 0;
 	}
 	return 0;
 }
@@ -3479,27 +3545,6 @@ int process_unset_mag_seq(int nb) {
 	return CMD_OK;
 }
 
-static void remove_char_from_str(char *str, const char toRemove) {
-	int i, j;
-	int len = strlen(str);
-
-	for (i = 0; i < len; i++) {
-		/*
-		 * If the character to remove is found then shift all characters to one
-		 * place left and decrement the length of string by 1.
-		 */
-		if (str[i] == toRemove) {
-			for (j = i; j < len; j++) {
-				str[j] = str[j + 1];
-			}
-
-			len--;
-			// If a character is removed then make sure i doesn't increments
-			i--;
-		}
-	}
-}
-
 int process_pm(int nb) {
 	/* First we want to replace all variable by filename if exist. Return error if not
 	 * Variables start and end by $ token.
@@ -3611,12 +3656,31 @@ int process_pm(int nb) {
 				return CMD_INVALID_IMAGE;
 			}
 		}
+		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+		// This avoids conflicts where characters are permitted in filenames but cannot
+		// be used in pixelmath variable names.
+		// We will amend the expression to match below.
+		g_free(args->varname[j]);
+		args->varname[j] = g_strdup_printf("var_%d", j + 1);
 	}
 
 	/* remove tokens */
 	g_free(expression);
 	expression = g_shell_unquote(word[1], NULL);
-	remove_char_from_str(expression, '$');
+
+	// Now need to replace the original variable names between the $ signs in expression with
+	// the new generic variable names.
+	// This ensures the variable names in the expression passed to pm match the variable names
+	// that are stored in args->varname
+	gchar** chunks = g_strsplit(expression, "$", count + 1);
+	for (int i = 0 ; i < count / 2 ; i++) {
+		g_free(chunks[2*i+1]);
+		chunks[2*i+1] = g_strdup_printf("var_%d", i + 1);
+	}
+	g_free(expression);
+	expression = g_strjoinv(NULL, chunks);
+	g_strfreev(chunks);
+
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
@@ -5474,6 +5538,7 @@ int process_seq_mtf(int nb) {
 			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		free(args->seqEntry);
 		free(args);
 		if (!check_seq_is_comseq(seq))
 			free_sequence(seq, TRUE);
@@ -6102,7 +6167,11 @@ int process_convertraw(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	char *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	sequence_type output = SEQ_REGULAR;
@@ -6200,10 +6269,7 @@ int process_convertraw(int nb) {
 	args->start = idx;
 	args->list = files_to_convert;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
@@ -6220,7 +6286,11 @@ int process_link(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 
 	for (int i = 2; i < nb; i++) {
@@ -6310,7 +6380,7 @@ int process_link(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	args->destroot = format_basename(destroot, TRUE);
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = FALSE;
@@ -6328,7 +6398,11 @@ int process_convert(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = TRUE;
@@ -6432,10 +6506,7 @@ int process_convert(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;

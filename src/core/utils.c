@@ -757,7 +757,9 @@ int is_readable_file(const char *filename) {
 	return 0;
 }
 
-static gchar forbidden_char[] = { '/', '\\', '"', '\'' };
+// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+// we still allow for '.' though
+static gchar forbidden_char[] = { '/', '\\', '"', '\'' , '?', '%', '*', ':', '|', '<', '>', ';', '='};
 
 gboolean is_forbiden_in_filename(gchar c) {
 	for (int i = 0; i < G_N_ELEMENTS(forbidden_char); i++) {
@@ -770,10 +772,21 @@ gboolean is_forbiden_in_filename(gchar c) {
 gboolean file_name_has_invalid_chars(const char *name) {
 	if (!name)
 		return TRUE;	// NULL is kind of invalid
-	for (int i = 0; i < strlen(name); i++)
+	int l = strlen(name);
+	for (int i = 0; i < l; i++)
 		if (is_forbiden_in_filename(name[i]))
 			return TRUE;
 	return FALSE;
+}
+
+void replace_invalid_chars(char *name, char repl) {
+	if (!name)
+		return;	// NULL is kind of invalid
+	int l = strlen(name);
+	for (int i = 0; i < l; i++)
+		if (is_forbiden_in_filename(name[i]))
+			name[i] = repl;
+	return;
 }
 
 /** Tests if filename is the canonical name of a known file type

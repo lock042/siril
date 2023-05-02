@@ -5881,6 +5881,10 @@ enter a visible wavelength in nm</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child internal-child="action_area">
@@ -5931,11 +5935,12 @@ enter a visible wavelength in nm</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
+            <property name="spacing">4</property>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="spacing">6</property>
+                <property name="spacing">8</property>
                 <child>
                   <object class="GtkExpander">
                     <property name="visible">True</property>
@@ -11177,6 +11182,7 @@ Note that luminance based models are not generally invertible.</property>
   <object class="GtkImage" id="image2">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Compute the image tilt. Tilt is shown as an overlay and overall tilt information is written to the Console tab. The tilt overlay can be cleared using the Remove button</property>
     <property name="pixbuf">pixmaps/tilt_dark.svg</property>
   </object>
   <object class="GtkImage" id="image3">
@@ -11202,6 +11208,7 @@ Note that luminance based models are not generally invertible.</property>
   <object class="GtkImage" id="image_export">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Export list of stars to a file</property>
     <property name="pixbuf">pixmaps/export_dark.svg</property>
   </object>
   <object class="GtkImage" id="image_mirrorx">
@@ -12841,6 +12848,10 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <column type="gdouble"/>
       <!-- column-name ypos -->
       <column type="gdouble"/>
+      <!-- column-name Ra -->
+      <column type="gdouble"/>
+      <!-- column-name Dec -->
+      <column type="gdouble"/>
       <!-- column-name FWHMx -->
       <column type="gdouble"/>
       <!-- column-name FWHMy -->
@@ -12927,6 +12938,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <signal name="key-release-event" handler="on_Stars_stored_key_release_event" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection">
+                    <property name="mode">multiple</property>
                     <signal name="changed" handler="on_treeview_selection_changed" swapped="no"/>
                   </object>
                 </child>
@@ -13025,6 +13037,32 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                   </object>
                 </child>
                 <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn30">
+                    <property name="spacing">2</property>
+                    <property name="title" translatable="yes">Ra</property>
+                    <property name="clickable">True</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_ra"/>
+                      <attributes>
+                        <attribute name="text">13</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn31">
+                    <property name="spacing">2</property>
+                    <property name="title" translatable="yes">Dec</property>
+                    <property name="clickable">True</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_dec"/>
+                      <attributes>
+                        <attribute name="text">14</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn9">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
@@ -13078,7 +13116,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">7</attribute>
+                        <attribute name="text">8</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -13118,7 +13156,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">8</attribute>
+                        <attribute name="text">9</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -13138,7 +13176,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">9</attribute>
+                        <attribute name="text">10</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -13158,7 +13196,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">10</attribute>
+                        <attribute name="text">11</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -13166,6 +13204,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <child>
                   <object class="GtkTreeViewColumn">
                     <property name="visible">False</property>
+                    <property name="spacing">2</property>
                     <property name="title" translatable="yes">index</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_index"/>
@@ -13704,7 +13743,7 @@ Use only to display optical distorsions or double stars, not for registration or
                   <object class="GtkToolButton" id="remove_all_button">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Remove all stars from the list</property>
+                    <property name="tooltip-text" translatable="yes">Remove all stars from the list and clears the tilt overlay, if displayed</property>
                     <property name="use-underline">True</property>
                     <property name="icon-name">edit-clear</property>
                     <signal name="clicked" handler="on_remove_all_button_clicked" swapped="no"/>
@@ -15384,6 +15423,8 @@ Each image in the sequence will only be processed if the corresponding images fo
     <property name="default-width">1</property>
     <property name="default-height">1</property>
     <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_button_histo_close_clicked" swapped="no"/>
     <signal name="show" handler="on_histogram_window_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -16076,13 +16117,15 @@ Each image in the sequence will only be processed if the corresponding images fo
                           <object class="GtkComboBoxText" id="combo_payne_colour_stretch_model">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel. Note: human-weighted luminance is not allowed if less than 3 colour channels are selected as it doesn't make sense.</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which stretches based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; independent channel values, which applies the stretch independently to each channel of the pixel; and saturation, which applies the stretch to the S component in HSL space. In saturation mode the saturation histogram curve is shown in yellow.
+Note: human-weighted luminance is not allowed if less than 3 colour channels are selected as it doesn't make sense.</property>
                             <property name="hexpand">True</property>
                             <property name="active">0</property>
                             <items>
                               <item translatable="yes">Independent channel values</item>
                               <item translatable="yes">Human weighted luminance</item>
                               <item translatable="yes">Even weighted luminance</item>
+                              <item translatable="yes">Saturation stretch</item>
                             </items>
                             <signal name="changed" handler="on_payne_colour_stretch_model_changed" swapped="no"/>
                           </object>
@@ -18049,7 +18092,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometry color calibration dialog</property>
+            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
             <property name="action-name">win.pcc-processing</property>
             <property name="text" translatable="yes">Photometric Color Calibration...</property>
           </object>
@@ -19100,7 +19143,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <object class="GtkDrawingArea" id="drawingarear">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                             <property name="margin-start">2</property>
                             <property name="margin-end">2</property>
                             <property name="margin-top">2</property>
@@ -19264,7 +19307,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <object class="GtkDrawingArea" id="drawingareag">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                             <property name="margin-start">2</property>
                             <property name="margin-end">2</property>
                             <property name="margin-top">2</property>
@@ -19432,7 +19475,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <object class="GtkDrawingArea" id="drawingareab">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                             <property name="margin-start">2</property>
                             <property name="margin-end">2</property>
                             <property name="margin-top">2</property>
@@ -19603,7 +19646,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                               <object class="GtkDrawingArea" id="drawingareargb">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
+                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                                 <property name="margin-start">2</property>
                                 <property name="margin-end">2</property>
                                 <property name="margin-top">2</property>
@@ -21658,7 +21701,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="autoreg_expander">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
@@ -23277,7 +23320,7 @@ This option is useful when sequence has previously been aligned using a method t
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="manualreg_expander">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <child>
@@ -24279,21 +24322,21 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <object class="GtkComboBoxText" id="comboweighing">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">Four methods of weighing are available:
+                                                            <property name="tooltip-markup" translatable="yes">Four methods of weighting are available:
 
-&lt;b&gt;Number of stars&lt;/b&gt; weighs individual frames based on number of stars computed during registration step.
+&lt;b&gt;Number of stars&lt;/b&gt; weights individual frames based on number of stars computed during registration step.
 
-&lt;b&gt;Weighted FWHM&lt;/b&gt; weighs individual frames based on wFWHM computed during registration step.
+&lt;b&gt;Weighted FWHM&lt;/b&gt; weights individual frames based on wFWHM computed during registration step.
 
-&lt;b&gt;Noise&lt;/b&gt; weighs individual frames based on background noise values.
+&lt;b&gt;Noise&lt;/b&gt; weights individual frames based on background noise values.
 
-&lt;b&gt;Number of images&lt;/b&gt; weighs individual frames based on their integration time.</property>
+&lt;b&gt;Number of images&lt;/b&gt; weights individual frames based on their integration time.</property>
                                                             <property name="valign">start</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">None</item>
                                                             <item translatable="yes">Number of stars</item>
-                                                            <item translatable="yes">Weighed FWHM</item>
+                                                            <item translatable="yes">Weighted FWHM</item>
                                                             <item translatable="yes">Noise</item>
                                                             <item translatable="yes">Number of images</item>
                                                             </items>
@@ -24309,7 +24352,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Weighing:</property>
+                                                            <property name="label" translatable="yes">Weighting:</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -25300,6 +25343,8 @@ WARNING: This option should not be checked for master stacking.</property>
                                             <property name="placeholder-text" translatable="yes">Type "help" for the list of supported commands</property>
                                             <property name="input-hints">GTK_INPUT_HINT_WORD_COMPLETION | GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                             <signal name="activate" handler="on_command_activate" swapped="no"/>
+                                            <signal name="focus-in-event" handler="on_command_focus_in_event" swapped="no"/>
+                                            <signal name="focus-out-event" handler="on_command_focus_out_event" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="expand">True</property>
@@ -29846,7 +29891,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             <child>
                               <object class="GtkSpinButton" id="spinAperture">
                                 <property name="visible">True</property>
-                                <property name="sensitive">False</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
                                 <property name="halign">start</property>
@@ -29872,7 +29916,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius. When unchecked, you can set the radius value in the box below.</property>
                                 <property name="halign">start</property>
-                                <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
                                 <signal name="toggled" handler="on_photometry_force_radius_button_toggled" object="spinAperture" swapped="no"/>
                               </object>

@@ -300,12 +300,9 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	int compute_median = (option & STATS_BASIC) || (option & STATS_AVGDEV) ||
 		(option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS);
 
-	if (layer < 0) {
-		if (!fit)
-			return NULL;	// not in cache, don't compute
-		g_assert(!selection || selection->h <= 0 || selection->w <= 0);
-		// selection is not supported because not useful for now
-	}
+	gboolean valid_selection = selection && selection->h > 0 && selection->w > 0;
+	if (!fit && (layer < 0 || valid_selection))
+		return NULL;	// not in cache, don't compute
 
 	if (!stat) {
 		allocate_stats(&stat);
@@ -314,19 +311,32 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	}
 
 	if (fit) {
-		if (selection && selection->h > 0 && selection->w > 0) {
+		if (valid_selection) {
 			nx = selection->w;
 			ny = selection->h;
-			data = malloc(nx * ny * sizeof(float));
-			if (!data) {
-				PRINT_ALLOC_ERR;
-				if (stat_is_local) free(stat);
-				return NULL;
+			if (layer < 0) {
+				size_t newsz;
+				data = extract_CFA_buffer_area_float(fit, -layer - 1, selection, &newsz);
+				if (!data) {
+					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					return NULL;
+				}
+				nx = newsz;
+				ny = 1;
+			} else {
+				data = malloc(nx * ny * sizeof(float));
+				if (!data) {
+					PRINT_ALLOC_ERR;
+					if (stat_is_local) free(stat);
+					return NULL;
+				}
+				g_assert(layer < fit->naxes[2]);
+				select_area_float(fit, data, layer, selection);
 			}
-			select_area_float(fit, data, layer, selection);
 			free_data = 1;
 		} else {
 			if (layer >= 0) {
+				g_assert(layer < fit->naxes[2]);
 				nx = fit->rx;
 				ny = fit->ry;
 				data = fit->fpdata[layer];
@@ -338,7 +348,6 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				data = extract_CFA_buffer_float(fit, -layer - 1, &newsz);
 				if (!data) {
 					siril_log_color_message(_("Failed to compute CFA statistics\n"), "red");
-					if (stat_is_local) free(stat);
 					return NULL;
 				}
 				nx = newsz;

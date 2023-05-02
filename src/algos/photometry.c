@@ -76,30 +76,6 @@ struct phot_config *phot_set_adjusted_for_image(fits *fit) {
 	return retval;
 }
 
-// dynamic radius: aperture = 2*fwhm, inner and outer based on preferences
-rectangle compute_dynamic_area_for_psf(psf_star *psf, struct phot_config *original, struct phot_config *phot_set, Homography H, Homography Href) {
-	phot_set->gain = original->gain;
-	phot_set->aperture = psf->fwhmx * 2.0;
-	phot_set->inner = psf->fwhmx * com.pref.phot_set.auto_inner_factor;
-	phot_set->outer = psf->fwhmx * com.pref.phot_set.auto_outer_factor;
-	phot_set->force_radius = TRUE;
-	phot_set->minval = original->minval;
-	phot_set->maxval = original->maxval;
-
-	double start = 1.5 * phot_set->outer;
-	double size = 3 * phot_set->outer;
-	double x = psf->xpos, y = psf->ypos;
-	cvTransfPoint(&x, &y, Href, H);
-
-	rectangle area = {
-		.x = x - start,
-		.y = y - start,
-		.w = size,
-		.h = size
-	};
-	return area;
-}
-
 /* Function that compute all photometric data. The result must be freed */
 photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error) {
@@ -443,7 +419,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 
 		/*  data are computed, now plot the graph. */
 		if (use_gnuplot) {
-			gnuplot_ctrl *gplot = gnuplot_init(TRUE);
+			gnuplot_ctrl *gplot = gnuplot_init();
 			if (gplot) {
 				/* Plotting light curve */
 				gchar *title = g_strdup_printf("Light curve of star %s", target_descr);
@@ -454,12 +430,15 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				gnuplot_setstyle(gplot, "errorbars");
 				if (display_graph) {
 					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
-					g_idle_add(gnuplot_close_idle, gplot); // called in idle to let the plotting finish before closing gnuplot
+					// Don't close gnuplots with active windows
+					// gnuplot_close(gplot);
 				} else {
 					gchar *image_name = replace_ext(filename, ".png");
 					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
 					siril_log_message(_("%s has been generated.\n"), image_name);
 					g_free(image_name);
+					// It's ok to close a gnuplot that has finished writing to
+					// a png though
 					gnuplot_close(gplot);
 				}
 				g_free(title);
