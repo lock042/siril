@@ -362,7 +362,7 @@ void open_compositing_window() {
 		/* the list below depends on the content of the glade file. It
 		 * should be done in the same way as in registration.c, but it
 		 * woud be easier if the two glades are merged. */
-		reg_methods[0] = new_reg_method(_("Global star registration (deep-sky)"), &register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[0] = new_reg_method(_("Global star registration (deep-sky)"), &register_global_for_comp, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 		reg_methods[1] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
 
 		reg_methods[2] = NULL;
@@ -623,7 +623,7 @@ void create_the_internal_sequence() {
 			}
 		}
 	}
-
+	seq->bitpix = gfit.bitpix;
 	seq->rx = gfit.rx;
 	seq->ry = gfit.ry;
 }
@@ -637,12 +637,12 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *regcombo;
 
 	create_the_internal_sequence();
-
 	/* align it */
 	regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 
 	regargs.seq = seq;
+	regargs.no_output = TRUE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = 0;	// TODO: fix with dynamic layers list
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
