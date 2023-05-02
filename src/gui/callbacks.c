@@ -50,6 +50,7 @@
 #include "single_image.h"
 #include "sequence_list.h"
 #include "callbacks.h"
+#include "io/gnuplot_i.h"
 
 #include "algos/astrometry_solver.h"
 #include "utils.h"
@@ -1683,8 +1684,10 @@ void load_main_window_state() {
 
 void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
+	exit_com_gnuplot_handles(); // close any remaining open GNUplot handles
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
+	kill_child_process(TRUE); // kill running child processes if any
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	exit(EXIT_SUCCESS);
 }

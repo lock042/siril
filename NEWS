@@ -11,12 +11,13 @@ xx/xx/xx
 * Added better handling of special characters in sequence name during conversion
 * Changed Windows to build in console mode even for stable releases
 * Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak)
+* Improved parsing of localization data for wider imaging software compatibility
+* Improved DATE-OBS control and log for solar system features
 * Improved clipping model in luminance-based GHS stretches
 * Added GHS saturation stretch mode
 * Fixed UI and command issues in deconvolution code
 * Print help and deconvolution tips URLs to the log
-* Fixed star recomposition issue where LIVETIME and STACKCNT could be doubled when obviously
-  processing the starless and star mask parts of the same image
+* Fixed star recomposition issue where LIVETIME and STACKCNT could be doubled when processing the starless and star mask parts of the same image
 * Fixed "image copy error in previews" bug in asinh transformation
 * Fixed reset of the viewports when reopening the RGB composition tool after opening a mono sequence
 * Fixed terminology - "weighted" instead of "weighed", consistency in name of PCC tool
@@ -28,6 +29,10 @@ xx/xx/xx
 * Add Astro-TIFF in sequence export
 * Force statistics for all images not from Siril (ensures DATAMAX is correct)
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
+* Fix GNUplot terminals so they remain interactive and free resources when closed
+* Fixed crash that could occur when parsing string keywords that contained forbidden characters
+* Fixed calling external processes that left too many opened file descriptors
+* Fixed Stop behavior for starnet and local astrometry.net
 
 v1.2.0-beta2 March 12, 2023
 

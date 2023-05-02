@@ -117,10 +117,12 @@ static void global_initialization() {
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
-	com.child_is_running = FALSE;
+	com.child_is_running = EXT_NONE;
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
+	com.num_gnuplot_handles = 0;
+	com.gnuplot_handles = NULL;
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else
