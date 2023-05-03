@@ -362,7 +362,7 @@ void open_compositing_window() {
 		/* the list below depends on the content of the glade file. It
 		 * should be done in the same way as in registration.c, but it
 		 * woud be easier if the two glades are merged. */
-		reg_methods[0] = new_reg_method(_("Global star registration (deep-sky)"), &register_global_for_comp, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[0] = new_reg_method(_("Global star registration (deep-sky)"), &register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 		reg_methods[1] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
 
 		reg_methods[2] = NULL;
@@ -640,6 +640,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	/* align it */
 	regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
+	if (method < 0)
+		method = 0;
 
 	regargs.seq = seq;
 	regargs.no_output = TRUE;
@@ -707,7 +709,13 @@ static float get_composition_pixel_value(int fits_index, int reg_layer, int x, i
 		realY = y - round_to_int(dy);
 		if (realY < 0 || realY >= gfit.ry) return 0.0f;
 	}
-	float pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * gfit.rx];
+	float pixel_value;
+	if (layers[fits_index]->the_fit.type == DATA_FLOAT)
+		pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * gfit.rx];
+	else if (layers[fits_index]->the_fit.type == DATA_USHORT)
+		pixel_value = (float) layers[fits_index]->the_fit.pdata[0][realX + realY * gfit.rx] / USHRT_MAX_SINGLE;
+	else
+		pixel_value = 0.f;
 	if (coeff) {
 		// normalization
 		pixel_value = get_normalized_pixel_value(fits_index, pixel_value);

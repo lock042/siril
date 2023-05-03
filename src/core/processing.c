@@ -301,7 +301,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			save_stats_from_fit(fit, args->seq, input_idx);
 		}
 
-		if (!have_seqwriter) {
+		if (!have_seqwriter && !args->seq->internal_fits) {
 			clearfits(fit);
 			free(fit);
 		}

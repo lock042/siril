@@ -52,7 +52,7 @@
 static void create_output_sequence_for_global_star(struct registration_args *args);
 static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units);
 
-static int get_min_requires_stars(transformation_type type) {
+int get_min_requires_stars(transformation_type type) {
 	switch(type) {
 	case SHIFT_TRANSFORMATION:
 	case SIMILARITY_TRANSFORMATION:
@@ -222,7 +222,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	return star_align_prepare_results(args);
 }
 
-static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
 	double scale_min = 0.9;
 	double scale_max = 1.1;
 	int attempt = 1;

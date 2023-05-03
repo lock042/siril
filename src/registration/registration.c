@@ -777,6 +777,12 @@ int register_global_for_comp(struct registration_args *regargs) {
 	double fwhm_min = DBL_MAX;
 	int fwhm_index = -1;
 	regdata *current_regdata;
+	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
+	if (!sadata) {
+		free(regargs);
+		return -1;
+	}
+	sadata->regargs = regargs;
 
 	/* Align image using the global image hook */
 	for (frame = 0; frame < regargs->seq->number; frame++) {
@@ -851,12 +857,12 @@ int register_global_for_comp(struct registration_args *regargs) {
 	#ifdef _OPENMP
 	#pragma omp critical
 	#endif
-			seq->regparam[frame].H = H;
+			regargs->seq->regparam[frame]->H = H;
 
 		} else {
 			// reference image
 			cvGetEye(&H);
-			seq->regparam[frame].H = H;
+			regargs->seq->regparam[frame]->H = H;
 		}
 
 /*		if (!regargs->no_output) {
@@ -883,16 +889,16 @@ int register_global_for_comp(struct registration_args *regargs) {
 			regargs->seq->imgparam[frame].incl = SEQUENCE_DEFAULT_INCLUDE;
 //		}
 //////
-		if (args->run_in_thread && !get_thread_run())
+		if (regargs->run_in_thread && !get_thread_run())
 			break;
-		if (args->filters.filter_included && !args->seq->imgparam[frame].incl) {
+		if (regargs->filters.filter_included && !regargs->seq->imgparam[frame].incl) {
 			// current_regdata was set with identity matrices
 			// need to return null matcices for unselected frames
 			SetNullH(&current_regdata[frame].H);
 			continue;
 		}
 		if (frame == ref_image || !current_regdata[frame].fwhm_data) {
-			set_shifts(args->seq, frame, args->layer, 0.0, 0.0, FALSE);
+			set_shifts(regargs->seq, frame, regargs->layer, 0.0, 0.0, FALSE);
 			continue;
 		}
 		if (current_regdata[frame].fwhm < fwhm_min
@@ -905,15 +911,15 @@ int register_global_for_comp(struct registration_args *regargs) {
 		current_regdata[frame].H = H_from_translation(shiftx, shifty);
 
 		fprintf(stderr, "reg: file %d, shiftx=%f shifty=%f\n",
-				args->seq->imgparam[frame].filenum, shiftx, shifty);
+				regargs->seq->imgparam[frame].filenum, shiftx, shifty);
 		cur_nb += 1.f;
 		set_progress_bar_data(NULL, cur_nb / nb_frames);
 	}
 
-	if (args->x2upscale)
-		args->seq->upscale_at_stacking = 2.0;
+	if (regargs->x2upscale)
+		regargs->seq->upscale_at_stacking = 2.0;
 	else
-		args->seq->upscale_at_stacking = 1.0;
+		regargs->seq->upscale_at_stacking = 1.0;
 
 	siril_log_message(_("Registration finished.\n"));
 	siril_log_color_message(_("Best frame: #%d with fwhm=%.3g.\n"), "bold",
