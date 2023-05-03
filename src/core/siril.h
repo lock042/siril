@@ -667,6 +667,8 @@ struct cominf {
 #endif
 	gnuplot_ctrl **gnuplot_handles; // list of gnuplot handles
 	int num_gnuplot_handles; // how many gnuplot handles are in the list
+	GFileMonitor* filemon; // file monitor to detect on-disk changes to com.uniq
+	gboolean filewatcher_enabled; // file watcher enabled or not?
 
 };
 

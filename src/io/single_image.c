@@ -54,6 +54,11 @@
 #include "compositing/compositing.h"
 #include "registration/registration.h"
 
+gboolean filemonitor_active = FALSE;
+gboolean filemonitor_reloading = FALSE;
+static void watched_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+		GFileMonitorEvent evtype, gpointer user_data);
+
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
  */
@@ -66,6 +71,12 @@ void close_single_image() {
 	 * with previews
 	 */
 	free_image_data();
+	if (com.filemon) {
+		g_signal_handlers_disconnect_by_func(G_OBJECT(com.filemon), watched_file_changed, NULL);
+		g_object_unref(com.filemon);
+		com.filemon = NULL;
+	}
+	filemonitor_active = FALSE;
 }
 
 static gboolean free_image_data_idle(gpointer p) {
@@ -246,6 +257,16 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	com.uniq->fileexist = exists;
 	com.uniq->nb_layers = gfit.naxes[2];
 	com.uniq->fit = &gfit;
+	if (com.filewatcher_enabled) {
+		register_filemonitor();
+		if (!filemonitor_active && !filemonitor_reloading) {
+			gchar* basename = g_path_get_basename(filename);
+			siril_log_color_message(_("File watcher active for file %s. Warning: File will automatically reload if it changes on disk. Any unsaved changes will be lost.\n"), "salmon", basename);
+			g_free(basename);
+			filemonitor_active = TRUE;
+		}
+	}
+
 	return 0;
 }
 
@@ -440,5 +461,44 @@ void notify_gfit_modified() {
 	invalidate_gfit_histogram();
 
 	siril_add_idle(end_gfit_operation, NULL);
+}
+
+/* File watcher and callback */
+
+static void watched_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+		GFileMonitorEvent evtype, gpointer user_data) {
+	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
+		gchar *filename = g_file_get_basename(file);
+		siril_log_message(_("File %s changed on disk: reloading...\n"), filename);
+		filemonitor_reloading = TRUE;
+		open_single_image(filename);
+		filemonitor_reloading = FALSE;
+		g_free(filename);
+	}
+	register_filemonitor();
+}
+
+void disconnect_filewatcher() {
+	if (com.filemon) {
+		g_signal_handlers_disconnect_by_func(G_OBJECT(com.filemon), watched_file_changed, NULL);
+		g_object_unref(com.filemon);
+		com.filemon = NULL;
+	}
+}
+
+int register_filemonitor() {
+	GFile *file = g_file_new_for_path(com.uniq->filename);
+	g_autoptr(GError) err = NULL;
+	disconnect_filewatcher();
+	com.filemon = g_file_monitor_file(file, G_FILE_MONITOR_NONE, NULL, &err); // Check the flags
+	if (err) {
+	}
+	if (g_signal_connect(G_OBJECT(com.filemon), "changed", G_CALLBACK(watched_file_changed), NULL) <= 0) {
+		siril_log_message(_("Unable to monitor file (%s): %s\n"), com.uniq->filename, err->message);
+		g_object_unref(com.filemon);
+		com.filemon = NULL;
+		return 1;
+	}
+	return 0;
 }
 
