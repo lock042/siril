@@ -156,8 +156,8 @@ void parallel_loop(void *(*work)(char *), char *jobdata, size_t elsize, int njob
 #endif
 
 static void global_initialization() {
-	com.filemon = NULL;
-	com.filewatcher_enabled = FALSE;
+	com.file_monitor = NULL;
+	com.file_monitor_enabled = FALSE;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;

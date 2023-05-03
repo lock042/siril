@@ -252,7 +252,7 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	com.uniq->fileexist = exists;
 	com.uniq->nb_layers = gfit.naxes[2];
 	com.uniq->fit = &gfit;
-	if (com.filewatcher_enabled) {
+	if (com.file_monitor_enabled) {
 		if (!filemonitor_active && !filemonitor_reloading) {
 			gchar* basename = g_path_get_basename(filename);
 			siril_log_color_message(_("File watcher active for file %s. Warning: the file will automatically reload if it changes on disk. Any unsaved changes will be lost.\n"), "salmon", basename);
@@ -473,10 +473,10 @@ static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile 
 }
 
 void unregister_filemonitor() {
-	if (com.filemon) {
-		g_signal_handlers_disconnect_by_func(G_OBJECT(com.filemon), on_monitored_file_changed, NULL);
-		g_object_unref(com.filemon);
-		com.filemon = NULL;
+	if (com.file_monitor) {
+		g_signal_handlers_disconnect_by_func(G_OBJECT(com.file_monitor), on_monitored_file_changed, NULL);
+		g_object_unref(com.file_monitor);
+		com.file_monitor = NULL;
 	}
 	filemonitor_active = FALSE;
 }
@@ -485,13 +485,13 @@ int register_filemonitor() {
 	GFile *file = g_file_new_for_path(com.uniq->filename);
 	g_autoptr(GError) err = NULL;
 	unregister_filemonitor();
-	com.filemon = g_file_monitor_file(file, G_FILE_MONITOR_NONE, NULL, &err); // Check the flags
+	com.file_monitor = g_file_monitor_file(file, G_FILE_MONITOR_NONE, NULL, &err); // Check the flags
 	if (err) {
 	}
-	if (g_signal_connect(G_OBJECT(com.filemon), "changed", G_CALLBACK(on_monitored_file_changed), NULL) <= 0) {
+	if (g_signal_connect(G_OBJECT(com.file_monitor), "changed", G_CALLBACK(on_monitored_file_changed), NULL) <= 0) {
 		siril_log_message(_("Unable to monitor file (%s): %s\n"), com.uniq->filename, err->message);
-		g_object_unref(com.filemon);
-		com.filemon = NULL;
+		g_object_unref(com.file_monitor);
+		com.file_monitor = NULL;
 		return 1;
 	}
 	filemonitor_active = TRUE;
@@ -499,8 +499,8 @@ int register_filemonitor() {
 }
 
 void on_toggle_filewatcher_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.filewatcher_enabled = gtk_toggle_button_get_active(button);
-	if (com.filewatcher_enabled) {
+	com.file_monitor_enabled = gtk_toggle_button_get_active(button);
+	if (com.file_monitor_enabled) {
 
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-color:salmon;}", -1, NULL);
