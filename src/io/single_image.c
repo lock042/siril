@@ -56,7 +56,7 @@
 
 gboolean filemonitor_active = FALSE;
 gboolean filemonitor_reloading = FALSE;
-static void watched_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data);
 
 /* Closes and frees resources attached to the single image opened in gfit.
@@ -459,7 +459,7 @@ void notify_gfit_modified() {
 
 /* File watcher and callback */
 
-static void watched_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data) {
 	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
 		gchar *filename = g_file_get_basename(file);
@@ -474,7 +474,7 @@ static void watched_file_changed(GFileMonitor *monitor, GFile *file, GFile *othe
 
 void unregister_filemonitor() {
 	if (com.filemon) {
-		g_signal_handlers_disconnect_by_func(G_OBJECT(com.filemon), watched_file_changed, NULL);
+		g_signal_handlers_disconnect_by_func(G_OBJECT(com.filemon), on_monitored_file_changed, NULL);
 		g_object_unref(com.filemon);
 		com.filemon = NULL;
 	}
@@ -488,7 +488,7 @@ int register_filemonitor() {
 	com.filemon = g_file_monitor_file(file, G_FILE_MONITOR_NONE, NULL, &err); // Check the flags
 	if (err) {
 	}
-	if (g_signal_connect(G_OBJECT(com.filemon), "changed", G_CALLBACK(watched_file_changed), NULL) <= 0) {
+	if (g_signal_connect(G_OBJECT(com.filemon), "changed", G_CALLBACK(on_monitored_file_changed), NULL) <= 0) {
 		siril_log_message(_("Unable to monitor file (%s): %s\n"), com.uniq->filename, err->message);
 		g_object_unref(com.filemon);
 		com.filemon = NULL;
