@@ -8,21 +8,22 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-05-03 10:49+0200\n"
-"Last-Translator: \n"
-"Language-Team: \n"
+"PO-Revision-Date: 2023-05-03 10:48+0000\n"
+"Last-Translator: Victor Boesen Gandløse <victorboesen@hotmail.com>\n"
+"Language-Team: Danish <https://weblate.pixls.us/projects/siril/"
+"siril-application/da/>\n"
 "Language: da\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.2.2\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7996
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
 #: src/filters/cosmetic_correction.c:805
 msgid "Cosmetic Correction"
-msgstr ""
+msgstr "Kosmetisk Korrektion"
 
 #: src/gui/siril3.glade:165 src/gui/siril3.glade:582 src/gui/siril3.glade:1009
 #: src/gui/siril3.glade:1013 src/gui/siril3.glade:1168 src/gui/siril3.glade:1488
@@ -37,12 +38,12 @@ msgstr ""
 #: src/gui/siril3.glade:18881 src/gui/siril3.glade:26621
 #: src/gui/siril3.glade:26833
 msgid "Close"
-msgstr ""
+msgstr "Luk"
 
 #: src/gui/siril3.glade:169 src/gui/siril3.glade:2111 src/gui/siril3.glade:9476
 #: src/gui/siril3.glade:18885
 msgid "Close current window"
-msgstr ""
+msgstr "Luk nuværende vindue"
 
 #: src/gui/siril3.glade:180 src/gui/siril3.glade:596 src/gui/siril3.glade:772
 #: src/gui/siril3.glade:1024 src/gui/siril3.glade:1182 src/gui/siril3.glade:1502
@@ -57,31 +58,37 @@ msgstr ""
 #: src/gui/siril3.glade:18896 src/gui/siril3.glade:26847
 #: src/gui/siril3.glade:27585
 msgid "Apply"
-msgstr ""
+msgstr "Anvend"
 
 #: src/gui/siril3.glade:185
 msgid "Apply Cosmetic Correction"
-msgstr ""
+msgstr "Anvend Kosmetisk Korrektion"
 
 #: src/gui/siril3.glade:217 src/gui/siril3.glade:21275
 msgid "Cold Sigma:"
-msgstr ""
+msgstr "Kold Sigma:"
 
 #: src/gui/siril3.glade:221
 msgid ""
 "How many times (in averrage deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
 msgstr ""
+"Hvor mange gange (i enheder af gennemsnitlig afvigelse) en pixel-værdi skal "
+"afvige fra værdien af omkringliggende naboer for at blive betragtet som en "
+"kold pixel."
 
 #: src/gui/siril3.glade:237 src/gui/siril3.glade:267
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from the "
 "value of surrounding neighbors to be considered as a cold pixel."
 msgstr ""
+"Hvor mange gange (i enheder af gennemsnitlig afvigelse) en pixel-værdi skal "
+"afvige fra værdien af omkringliggende naboer for at blive betragtet som en "
+"kold pixel."
 
 #: src/gui/siril3.glade:283 src/gui/siril3.glade:21305
 msgid "Hot Sigma:"
-msgstr ""
+msgstr "Varm Sigma:"
 
 #: src/gui/siril3.glade:287
 msgid ""
@@ -98,13 +105,15 @@ msgstr ""
 #: src/gui/siril3.glade:352 src/gui/siril3.glade:1215 src/gui/siril3.glade:5163
 #: src/gui/siril3.glade:5431
 msgid "Amount"
-msgstr ""
+msgstr "Mængde"
 
 #: src/gui/siril3.glade:387
 msgid ""
 "0: No correction\n"
 "1 : 100% corrected"
 msgstr ""
+"0: Ingen korrektion\n"
+"1 : 100% korrigeret"
 
 #: src/gui/siril3.glade:403
 msgid "CFA"
@@ -120,7 +129,7 @@ msgstr ""
 #: src/gui/siril3.glade:3947 src/gui/siril3.glade:7733 src/gui/siril3.glade:15213
 #: src/gui/siril3.glade:15936 src/gui/siril3.glade:18957
 msgid "Apply to sequence"
-msgstr ""
+msgstr "Anvend på sekvens"
 
 #: src/gui/siril3.glade:429 src/gui/siril3.glade:1367 src/gui/siril3.glade:3951
 #: src/gui/siril3.glade:15940 src/gui/siril3.glade:18961
@@ -128,6 +137,8 @@ msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
 msgstr ""
+"Hvis en sekvens er indlæst, og dette er aktiveret, udfør behandling på alle "
+"billeder af sekvensen frem for kun det indlæste billede."
 
 #: src/gui/siril3.glade:443 src/gui/siril3.glade:1382 src/gui/siril3.glade:3964
 #: src/gui/siril3.glade:7873 src/gui/siril3.glade:15955
@@ -137,7 +148,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:455
 msgid "Prefix of the image names resulting from the cosmetic correction process."
-msgstr ""
+msgstr "Præfiks af billednavnene efter den kosmetiske korrektionsproces."
 
 #: src/gui/siril3.glade:566
 msgid "Binning"
@@ -153,15 +164,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:677
 msgid "Average"
-msgstr ""
+msgstr "Gennemsnit"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
-msgstr ""
+msgstr "Sum"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17639
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr ""
+msgstr "Kontrastbegrænset og Adaptiv Histogram Udligning"
 
 #: src/gui/siril3.glade:744 src/gui/siril3.glade:2390 src/gui/siril3.glade:3190
 #: src/gui/siril3.glade:5054 src/gui/siril3.glade:10775
@@ -176,7 +187,7 @@ msgstr ""
 #: src/gui/siril3.glade:7939 src/gui/siril3.glade:14976
 #: src/gui/siril3.glade:27571
 msgid "Cancel"
-msgstr ""
+msgstr "Afbryd"
 
 #: src/gui/siril3.glade:804
 msgid "Tiles Grid Size"
@@ -194,7 +205,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:899
 msgid "Sets threshold for contrast limiting."
-msgstr ""
+msgstr "Sætter grænse for kontrastbegrænsning."
 
 #. Try to have 3 lines here.
 #: src/gui/siril3.glade:917
@@ -203,6 +214,9 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
+"Venligst sørg for at fjerne alle sorte kanter eller andre\n"
+"stacking residualer ved at beskære billedet. Hvis ikke dette gøres\n"
+"kan artefakter forekomme."
 
 #: src/gui/siril3.glade:930 src/gui/siril3.glade:3046 src/gui/siril3.glade:3379
 #: src/gui/siril3.glade:5269
@@ -224,26 +238,27 @@ msgstr ""
 
 #: src/gui/siril3.glade:1080
 msgid "Type of algorithm"
-msgstr ""
+msgstr "Type af algoritme"
 
 #: src/gui/siril3.glade:1085 src/gui/siril3.glade:2478 src/gui/siril3.glade:14411
 #: src/gui/siril3.glade:25753 src/gui/siril3.glade:30542
 #: src/gui/siril3.glade:30609
 msgid "Linear"
-msgstr ""
+msgstr "Lineær"
 
 #: src/gui/siril3.glade:1086 src/gui/siril3.glade:2479
 msgid "BSpline"
 msgstr ""
 
 #: src/gui/siril3.glade:1099
+#, fuzzy
 msgid "Nb. of Layers: "
-msgstr ""
+msgstr "Antal Lag: "
 
 #: src/gui/siril3.glade:1111 src/gui/siril3.glade:18487
 #: src/gui/siril3.glade:18758
 msgid "Interpolation: "
-msgstr ""
+msgstr "Interpolering: "
 
 #: src/gui/siril3.glade:1152 src/filters/banding.c:125
 msgid "Banding Reduction"
@@ -251,7 +266,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1227 src/gui/siril3.glade:1250
 msgid "Defines the strength of the correction."
-msgstr ""
+msgstr "Definerer styrken af korrektionen."
 
 #: src/gui/siril3.glade:1266
 msgid "Protect from Highlights"
@@ -259,7 +274,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1270
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "Lysstærke pixels er ignoreret."
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
@@ -285,7 +300,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1472
 msgid "Median Filter"
-msgstr ""
+msgstr "Median Filter"
 
 #: src/gui/siril3.glade:1542
 msgid "Kernel Size:"
@@ -299,7 +314,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1590 src/gui/siril3.glade:6760 src/gui/siril3.glade:7536
 msgid "Iterations"
-msgstr ""
+msgstr "Gentagelser"
 
 #: src/gui/siril3.glade:1602
 msgid ""
@@ -307,10 +322,13 @@ msgid ""
 "This is useful when modulation parameter is different to 1 helping the whole "
 "process to converge to better result."
 msgstr ""
+"Antal iterationer af algoritmen.\n"
+"Dette er brugbart når modulationsparameteren er forskellig fra 1, og hjælper "
+"hele processen med at konvergere for opnå et bedre resultat."
 
 #: src/gui/siril3.glade:1648 src/gui/siril3.glade:8251
 msgid "Modulation"
-msgstr ""
+msgstr "Modulation"
 
 #: src/gui/siril3.glade:1684
 msgid ""
@@ -321,7 +339,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1701 src/gui/siril3.glade:8920
 msgid "Use Luminance"
-msgstr ""
+msgstr "Brug Luminans"
 
 #: src/gui/siril3.glade:1801
 msgid "Rotational Gradient"
