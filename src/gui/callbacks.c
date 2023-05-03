@@ -1477,6 +1477,18 @@ void on_register_all_toggle(GtkToggleButton *togglebutton, gpointer user_data) {
 	update_reg_interface(TRUE);
 }
 
+void on_toggle_filewatcher_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.filewatcher_enabled = gtk_toggle_button_get_active(button);
+	if (com.filewatcher_enabled) {
+		siril_log_color_message(_("File watcher activated. Warning: open files will be reloaded if they change on disk. Any unsaved changes will be lost.\n"), "salmon");
+		if (com.uniq)
+			register_filemonitor();
+	} else {
+		siril_log_message(_("File watcher deactivated\n"));
+		disconnect_filewatcher();
+	}
+}
+
 /* when the cursor moves, update the value displayed in the textbox and save it
  * in the related layer_info. Does not change display until cursor is released. */
 void on_minscale_changed(GtkRange *range, gpointer user_data) {

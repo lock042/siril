@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -26221,6 +26221,26 @@ WARNING: This option should not be checked for master stacking.</property>
           </packing>
         </child>
         <child>
+          <object class="GtkToggleButton" id="toggle_filewatcher">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-markup" translatable="yes">Refresh the current image if changed on disk
+&lt;b&gt;WARNING&lt;/b&gt;: unsaved changes will be lost!</property>
+            <signal name="toggled" handler="on_toggle_filewatcher_toggled" swapped="no"/>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="stock">gtk-refresh</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkButtonBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -26271,7 +26291,7 @@ WARNING: This option should not be checked for master stacking.</property>
             </child>
           </object>
           <packing>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -26318,7 +26338,7 @@ WARNING: This option should not be checked for master stacking.</property>
             </child>
           </object>
           <packing>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -26366,7 +26386,7 @@ WARNING: This option should not be checked for master stacking.</property>
             </style>
           </object>
           <packing>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -26387,7 +26407,7 @@ WARNING: This option should not be checked for master stacking.</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
         <child>
@@ -26435,7 +26455,7 @@ WARNING: This option should not be checked for master stacking.</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">7</property>
+            <property name="position">8</property>
           </packing>
         </child>
         <child>
@@ -26531,7 +26551,7 @@ WARNING: This option should not be checked for master stacking.</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">8</property>
+            <property name="position">9</property>
           </packing>
         </child>
         <child>
@@ -26559,7 +26579,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">9</property>
+            <property name="position">10</property>
           </packing>
         </child>
         <child>
@@ -26614,7 +26634,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">10</property>
+            <property name="position">11</property>
           </packing>
         </child>
       </object>

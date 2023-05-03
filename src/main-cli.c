@@ -113,6 +113,8 @@ static GOptionEntry main_option[] = {
 };
 
 static void global_initialization() {
+	com.filemon = NULL;
+	com.filewatcher_enabled = FALSE;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;
