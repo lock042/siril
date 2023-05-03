@@ -70,6 +70,10 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 		case PATHPARSE_ERR_NOSEQLOADED_NOFAIL:
 			msg = _("No sequence loaded");
 			break;
+		case PATHPARSE_ERR_BADSTRING:
+		case PATHPARSE_ERR_BADSTRING_NOFAIL:
+			msg = _("Wrongly formatted string: ");
+			break;
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
 			msg = _("More than one match for: ");
 			break;
@@ -99,24 +103,26 @@ static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, d
 	g_sprintf(searchstr, "%-8s=", key);
 	for (int i = 0; i < g_strv_length(headers); i++) {
 		if (g_str_has_prefix(headers[i], searchstr)) {
+			char val[FLEN_VALUE];
+			int fstatus = 0;
+			fits_parse_value(headers[i], val, NULL, &fstatus);
+			if (fstatus) {
+				return PATHPARSE_ERR_BADSTRING;
+			}
 			keyfound = TRUE;
-			gchar **subs = g_strsplit(headers[i], "=", 2);
-			gchar **valsubs = g_strsplit(subs[1], "/", 2);
 			if (numvalue) {
-				*numvalue = g_ascii_strtod(valsubs[0], NULL);
+				*numvalue = g_ascii_strtod(val, NULL);
 			} else if (strvalue) {
-				gchar *currstr = g_strdup(valsubs[0]);
-				currstr = g_shell_unquote(currstr, NULL);
-				strncpy(strvalue, currstr, FLEN_VALUE - 1);
-				g_free(currstr);
+				gchar *ucurrstr = g_shell_unquote(val, NULL);
+				if (ucurrstr)
+					strncpy(strvalue, ucurrstr, FLEN_VALUE - 1);
+				else
+					status = PATHPARSE_ERR_BADSTRING;
+				g_free(ucurrstr);	
 			} else {
-				g_free(valsubs);
-				g_free(subs);
 				status = PATHPARSE_ERR_WRONG_CALL; // internal error, should not be thrown
 				return status;
 			}
-			g_strfreev(subs);
-			g_strfreev(valsubs);
 			break;
 		}
 	}
@@ -346,6 +352,7 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 				}
 				g_strstrip(buf);
 				replace_spaces_from_str(buf, '_');
+				replace_invalid_chars(buf ,'_');
 			}
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
