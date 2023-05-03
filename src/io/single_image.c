@@ -478,20 +478,6 @@ static void watched_file_changed(GFileMonitor *monitor, GFile *file, GFile *othe
 	register_filemonitor();
 }
 
-/*
- * The callback may need to be paused during:
- * savefits
- * savejpg
- * savepng
- * savetif
- * saveNetPBM
- * savebmp
- *
- * If so, use:
- * g_signal_handlers_block_by_func(G_OBJECT(com.filemon), on_watched_file_changed, NULL);
- * g_signal_handlers_unblock_by_func(G_OBJECT(com.filemon), on_watched_file_changed, NULL);
- */
-
 void disconnect_filewatcher() {
 	if (com.filemon) {
 		g_signal_handlers_disconnect_by_func(G_OBJECT(com.filemon), watched_file_changed, NULL);
