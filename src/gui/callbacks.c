@@ -1480,10 +1480,23 @@ void on_register_all_toggle(GtkToggleButton *togglebutton, gpointer user_data) {
 void on_toggle_filewatcher_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.filewatcher_enabled = gtk_toggle_button_get_active(button);
 	if (com.filewatcher_enabled) {
+
+		GtkCssProvider *css = gtk_css_provider_new();
+		gtk_css_provider_load_from_data(css, "* { background-color:salmon;}", -1, NULL);
+		GtkStyleContext * context = gtk_widget_get_style_context((GtkWidget*) button);
+		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
+		g_object_unref(css);
+
 		siril_log_color_message(_("File watcher activated. Warning: open files will be reloaded if they change on disk. Any unsaved changes will be lost.\n"), "salmon");
 		if (com.uniq)
 			register_filemonitor();
 	} else {
+		GtkCssProvider *css = gtk_css_provider_new();
+		gtk_css_provider_load_from_data(css, "* { background-color:@theme-color;}", -1, NULL);
+		GtkStyleContext * context = gtk_widget_get_style_context((GtkWidget*) button);
+		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
+		g_object_unref(css);
+
 		siril_log_message(_("File watcher deactivated\n"));
 		disconnect_filewatcher();
 	}
