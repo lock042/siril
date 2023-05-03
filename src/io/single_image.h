@@ -17,6 +17,6 @@ int single_image_is_loaded();
 
 void adjust_cutoff_from_updated_gfit();		// was level_adjust(), deprecated too
 void notify_gfit_modified();		// to be called after all gfit modifications
-int register_filemonitor(char *filename); // register a g_filemonitor for com.uniq
+int register_filemonitor(); // register a g_filemonitor for com.uniq
 
 #endif
