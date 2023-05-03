@@ -40,6 +40,7 @@ static GHashTable *full_lang_list = NULL;
 parsed_code locale_str[] = {
 	{"ar_DZ", "العربية"},
 	{"ca", "Català"},
+	{"da", "Dansk"},
 	{"de", "Deutsch"},
 	{"el", "Ελληνικά"},
 	{"en", "English"},
