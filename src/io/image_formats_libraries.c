@@ -52,6 +52,7 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "core/exif.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
@@ -59,6 +60,21 @@
 #include "gui/progress_and_log.h"
 #include "single_image.h"
 #include "image_format_fits.h"
+
+static void fill_date_obs_if_any(fits *fit, const char *file) {
+	gchar *date_time = NULL;
+	int year = 1, month = 1, day = 1, h = 0, m = 0, s = 0;
+	date_time = siril_get_date_from_exif(file);
+	if (date_time) {
+		int n = sscanf(date_time, "%04d:%02d:%02d %02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
+		if (n == 6) {
+			GTimeZone *tz = g_time_zone_new_utc();
+			fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
+			g_time_zone_unref(tz);
+		}
+		g_free(date_time);
+	}
+}
 
 /********************* TIFF IMPORT AND EXPORT *********************/
 
@@ -884,6 +900,7 @@ int readjpg(const char* name, fits *fit){
 	fit->binning_x = fit->binning_y = 1;
 	fit->type = DATA_USHORT;
 	mirrorx(fit, FALSE);
+	fill_date_obs_if_any(fit, name);
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
@@ -1126,6 +1143,7 @@ int readpng(const char *name, fits* fit) {
 		fit->pdata[BLAYER] = fit->data + npixels * 2;
 		fit->binning_x = fit->binning_y = 1;
 		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+		fill_date_obs_if_any(fit, name);
 	}
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
@@ -1291,7 +1309,6 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	}
 
 	WORD *data = NULL;
-	uint8_t *data8 = NULL;
 
 	if (bytes_per_sample == 2) {
 		/* swap bytes of 16 bit files to most significant bit first */
@@ -1318,7 +1335,6 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	/* Close the file */
 	fclose(p_png_file);
 	if (data) free(data);
-	if (data8) free(data8);
 	free(row_pointers);
 	free(filename);
 	return 0;

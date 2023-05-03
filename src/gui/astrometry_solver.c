@@ -301,7 +301,6 @@ gboolean end_plate_solver(gpointer p) {
 	stop_processing_thread();
 
 	set_cursor_waiting(FALSE);
-	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	if (args->ret) {
 		char *title = siril_log_color_message(_("Plate Solving failed. "
@@ -340,6 +339,7 @@ static void start_image_plate_solve() {
 	args->for_photometry_cc = FALSE;
 	args->verbose = TRUE;
 	set_cursor_waiting(TRUE);
+	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!fill_plate_solver_structure_from_GUI(args)) {
 		start_in_new_thread(plate_solver, args);
 	} else {
