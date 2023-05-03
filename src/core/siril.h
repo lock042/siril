@@ -660,6 +660,7 @@ struct cominf {
 #endif
 	gnuplot_ctrl **gnuplot_handles; // list of gnuplot handles
 	int num_gnuplot_handles; // how many gnuplot handles are in the list
+	GFileMonitor* filemon;
 
 };
 

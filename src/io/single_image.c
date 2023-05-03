@@ -442,3 +442,32 @@ void notify_gfit_modified() {
 	siril_add_idle(end_gfit_operation, NULL);
 }
 
+/* File watcher and callback */
+
+static void watched_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+		GFileMonitorEvent evtype, gpointer user_data) {
+	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
+		gchar *filename = g_file_get_basename(file);
+		siril_debug_print("File %s changed: reloading\n", filename);
+		open_single_image(filename);
+		g_free(filename);
+	}
+}
+
+int register_filemonitor() {
+	GFile *file = g_file_new_for_path(com.uniq.filename);
+	g_autoptr(GError) err = NULL;
+	if (com.filemon)
+		g_object_unref(com.filemon);
+	com.filemon = g_file_monitor_file(file, G_FILE_MONITOR_NONE, NULL, &err); // Check the flags
+	if (err) {
+	}
+	if (g_signal_connect(G_OBJECT(filemon), "changed", G_CALLBACK(watched_file_changed), NULL) <= 0) {
+		siril_log_message(_("Unable to monitor file (%s): %s\n"), com.uniq.filename, err.message);
+		g_object_unref(com.filemon);
+		com.filemon = NULL;
+		returrn 1;
+	}
+	siril_debug_print("file watcher active for file %s\n", com.uniq.filename);
+}
+
