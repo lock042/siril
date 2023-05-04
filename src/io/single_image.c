@@ -54,10 +54,14 @@
 #include "compositing/compositing.h"
 #include "registration/registration.h"
 
-gboolean filemonitor_active = FALSE;
-gboolean filemonitor_reloading = FALSE;
 static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data);
+
+static gboolean filemonitor_active = FALSE;
+static gboolean filemonitor_reloading = FALSE;
+static unsigned filemonitor_dimensions[2] = { 0, 0 };
+static double filemonitor_zoom_value = 1.0;
+static point filemonitor_display_offset = { 0.0, 0.0 };
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
@@ -253,6 +257,13 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	com.uniq->nb_layers = gfit.naxes[2];
 	com.uniq->fit = &gfit;
 	if (com.file_monitor_enabled) {
+		if (filemonitor_reloading) {
+			if (filemonitor_dimensions[0] == gfit.rx && filemonitor_dimensions[1] == gfit.ry) {
+				gui.zoom_value = filemonitor_zoom_value;
+				gui.display_offset.x = filemonitor_display_offset.x;
+				gui.display_offset.y = filemonitor_display_offset.y;
+			}
+		}
 		if (!filemonitor_active && !filemonitor_reloading) {
 			gchar* basename = g_path_get_basename(filename);
 			siril_log_color_message(_("File watcher active for file %s. Warning: the file will automatically reload if it changes on disk. Any unsaved changes will be lost.\n"), "salmon", basename);
@@ -464,19 +475,15 @@ static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile 
 	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
 		gchar *filename = g_file_get_basename(file);
 		siril_log_message(_("File %s changed on disk: reloading...\n"), filename);
+		// Store current dimensions of gfit and display zoom and offset values
+		// If the image dimensions are the same, the zoom and offset will be preserved
+		// to improve usability for focus monitoring when zoomed in
+		filemonitor_dimensions[0] = gfit.rx;
+		filemonitor_dimensions[1] = gfit.ry;
+		filemonitor_zoom_value = gui.zoom_value;
+		memcpy(&filemonitor_display_offset, &gui.display_offset, sizeof(point));
 		filemonitor_reloading = TRUE;
-		unsigned rx = gfit.rx;
-		unsigned ry = gfit.ry;
-		unsigned nchans = gfit.naxes[2];
-		double zoom_value = gui.zoom_value;
-		point display_offset = { gui.display_offset.x, gui.display_offset.y };
 		open_single_image(filename);
-		if (gfit.rx == rx && gfit.ry == ry && gfit.naxes[2] == nchans) {
-			gui.zoom_value = zoom_value;
-			gui.display_offset.x = display_offset.x;
-			gui.display_offset.y = display_offset.y;
-			redraw(REMAP_ALL);
-		}
 		filemonitor_reloading = FALSE;
 		g_free(filename);
 	}
