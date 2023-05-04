@@ -465,7 +465,18 @@ static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile 
 		gchar *filename = g_file_get_basename(file);
 		siril_log_message(_("File %s changed on disk: reloading...\n"), filename);
 		filemonitor_reloading = TRUE;
+		unsigned rx = gfit.rx;
+		unsigned ry = gfit.ry;
+		unsigned nchans = gfit.naxes[2];
+		double zoom_value = gui.zoom_value;
+		point display_offset = { gui.display_offset.x, gui.display_offset.y };
 		open_single_image(filename);
+		if (gfit.rx == rx && gfit.ry == ry && gfit.naxes[2] == nchans) {
+			gui.zoom_value = zoom_value;
+			gui.display_offset.x = display_offset.x;
+			gui.display_offset.y = display_offset.y;
+			redraw(REMAP_ALL);
+		}
 		filemonitor_reloading = FALSE;
 		g_free(filename);
 	}
