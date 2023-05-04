@@ -35,6 +35,7 @@ xx/xx/xx
 * Fixed Stop behavior for starnet and local astrometry.net
 * Added read of datetime in jpeg and png file with exiv2
 * Added Danish language
+* Added file monitor function to reload a single image if it changes on disk
 
 v1.2.0-beta2 March 12, 2023
 
