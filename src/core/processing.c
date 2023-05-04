@@ -132,7 +132,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 	}
 
-	if (args->has_output && !args->partial_image) {
+	if (args->has_output && !args->partial_image && !(args->seq->type == SEQ_INTERNAL)) {
 		gint64 size;
 		if (args->compute_size_hook)
 			size = args->compute_size_hook(args, nb_frames);
@@ -445,7 +445,8 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 int seq_prepare_hook(struct generic_seq_args *args) {
 	int retval = 0;
 	g_assert(args->has_output); // don't call this hook otherwise
-	g_assert(args->new_seq_prefix); // don't call this hook otherwise
+	if (!(args->seq->type == SEQ_INTERNAL))
+		g_assert(args->new_seq_prefix); // don't call this hook otherwise
 	//removing existing files
 	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
 	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
@@ -530,17 +531,40 @@ int seq_finalize_hook(struct generic_seq_args *args) {
  * input-type condition
  */
 int generic_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
-		return ser_write_frame_from_fit(args->new_ser, fit, out_index);
-	} else if (args->force_fitseq_output || (args->seq->type == SEQ_FITSEQ && !args->force_ser_output)) {
-		return fitseq_write_image(args->new_fitseq, fit, out_index);
+	if (args->seq->type == SEQ_INTERNAL) {
+		// In this case we copy the fits metadata back to the internal_fits[index] pointer
+		// Only the pointer to data / fdata was copied across in seq_read_frame
+		// We re-copy the pointers back, because they are set to NULL in copyfits
+		// We then set the pointers in fit to NULL so that the memory doesn't get freed
+		// by the generic sequence worker
+		copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
+		if (fit->type == DATA_USHORT) {
+			args->seq->internal_fits[in_index]->data = fit->data;
+			args->seq->internal_fits[in_index]->pdata[0] = fit->pdata[0];
+			args->seq->internal_fits[in_index]->pdata[1] = fit->pdata[1];
+			args->seq->internal_fits[in_index]->pdata[2] = fit->pdata[2];
+		} else if (fit->type == DATA_FLOAT) {
+			args->seq->internal_fits[in_index]->fdata = fit->fdata;
+			args->seq->internal_fits[in_index]->fpdata[0] = fit->fpdata[0];
+			args->seq->internal_fits[in_index]->fpdata[1] = fit->fpdata[1];
+			args->seq->internal_fits[in_index]->fpdata[2] = fit->fpdata[2];
+		}
+		fit->data = NULL;
+		fit->fdata = NULL;
+		return 0;
 	} else {
-		char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
-				args->new_seq_prefix, in_index);
-		fit->bitpix = fit->orig_bitpix;
-		int retval = savefits(dest, fit);
-		free(dest);
-		return retval;
+		if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
+			return ser_write_frame_from_fit(args->new_ser, fit, out_index);
+		} else if (args->force_fitseq_output || (args->seq->type == SEQ_FITSEQ && !args->force_ser_output)) {
+			return fitseq_write_image(args->new_fitseq, fit, out_index);
+		} else {
+			char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
+					args->new_seq_prefix, in_index);
+			fit->bitpix = fit->orig_bitpix;
+			int retval = savefits(dest, fit);
+			free(dest);
+			return retval;
+		}
 	}
 }
 
