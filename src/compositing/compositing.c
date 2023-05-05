@@ -639,8 +639,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	/* align it */
 	regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
-	if (method < 0)
-		method = 0;
 
 	regargs.seq = seq;
 	regargs.no_output = FALSE;
@@ -654,14 +652,9 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
-	if (method->method_ptr(&regargs)) {
-		printf("Error in layers alignment\n");
+	if (method->method_ptr(&regargs))
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
-	}
-	else {
-		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
-		printf("Registration complete\n");
-	}
+	else set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
 
