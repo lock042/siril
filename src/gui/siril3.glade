@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -3706,7 +3706,6 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="spacing">6</property>
                     <child>
                       <object class="GtkLabel" id="background_label_tolorence">
                         <property name="visible">True</property>
@@ -3727,7 +3726,7 @@ This should be enabled for non-stretched images.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Tolerance factor of global sample rejection, in mad units (median + this * mad). By decreasing this value, Siril will be more restrictive to select background samples.</property>
-                        <property name="text">2.00</property>
+                        <property name="text">2,00</property>
                         <property name="input-purpose">digits</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">adj_background_tolerance</property>
@@ -3736,30 +3735,15 @@ This should be enabled for non-stretched images.</property>
                         <property name="value">2</property>
                       </object>
                       <packing>
-                        <property name="expand">True</property>
+                        <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="subsky_keep_samples">
-                        <property name="label" translatable="yes">Keep all samples</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Override tolerance and keep all samples. May be useful in cases of extreme gradients if tolerance 6 is insufficient: you will need to remove samples from astronomical objects manually.</property>
-                        <property name="halign">end</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
                       </packing>
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">4</property>
                   </packing>
