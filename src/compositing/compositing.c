@@ -24,6 +24,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -79,6 +80,7 @@ typedef struct {
 	GtkLabel *label;		// the labels
 	GtkSpinButton *spinbutton_x;	// the X spin button
 	GtkSpinButton *spinbutton_y;	// the Y spin button
+	GtkSpinButton *spinbutton_r;	// the rotation spin button
 
 	/* useful data */
 	GdkRGBA color;			// real color of the layer
@@ -97,6 +99,7 @@ static struct registration_method *reg_methods[3];
 
 static sequence *seq = NULL;		// the sequence of layers, for alignments and normalization
 static norm_coeff *coeff = NULL;	// the normalization coefficients
+static transformation_type the_type = HOMOGRAPHY_TRANSFORMATION; // always HOMOGRAPHY_TRANSFORMATION unless using the shift-only method
 
 static GdkRGBA list_of_12_palette_colors[12];
 static const char *list_of_12_color_names[12] = {
@@ -188,15 +191,20 @@ layer *create_layer(int index) {
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
 	g_object_ref(G_OBJECT(ret->label));	// don't destroy it on removal from grid
 
-	ret->spinbutton_x = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-1000.0, 1000.0, 1.0));
+	ret->spinbutton_x = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 1.0));
 	gtk_spin_button_set_value(ret->spinbutton_x, 0.0);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_x), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_x));	// don't destroy it on removal from grid
 
-	ret->spinbutton_y = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-1000.0, 1000.0, 1.0));
+	ret->spinbutton_y = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 1.0));
 	gtk_spin_button_set_value(ret->spinbutton_y, 0.0);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_y), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_y));	// don't destroy it on removal from grid
+
+	ret->spinbutton_r = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-360.0, 360.0, 1.0));
+	gtk_spin_button_set_value(ret->spinbutton_r, 0.0);
+	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_r), FALSE);
+	g_object_ref(G_OBJECT(ret->spinbutton_r));	// don't destroy it on removal from grid
 
 	/* set other layer data */
 	memset(&ret->the_fit, 0, sizeof(fits));
@@ -293,6 +301,7 @@ static void grid_remove_row(int layer, int free_the_row) {
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->label));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_x));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_y));
+	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_r));
 	if (free_the_row) {
 		g_object_unref(G_OBJECT(layers[layer]->remove_button));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->color_w));	// don't destroy it on removal from grid
@@ -300,6 +309,7 @@ static void grid_remove_row(int layer, int free_the_row) {
 		g_object_unref(G_OBJECT(layers[layer]->label));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_x));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_y));	// don't destroy it on removal from grid
+		g_object_unref(G_OBJECT(layers[layer]->spinbutton_r));	// don't destroy it on removal from grid
 	}
 }
 
@@ -311,6 +321,7 @@ static void grid_add_row(int layer, int index, int first_time) {
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->label),		3, index, 1, 1);
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_x),	4, index, 1, 1);
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_y),	5, index, 1, 1);
+	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_r),	6, index, 1, 1);
 
 	if (first_time) {
 		gtk_widget_show(GTK_WIDGET(layers[layer]->remove_button));
@@ -319,6 +330,7 @@ static void grid_add_row(int layer, int index, int first_time) {
 		gtk_widget_show(GTK_WIDGET(layers[layer]->label));
 		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_x));
 		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_y));
+		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_r));
 	}
 }
 
@@ -352,6 +364,7 @@ void open_compositing_window() {
 		layers[0]->label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_lum"));
 		layers[0]->spinbutton_x = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_x"));
 		layers[0]->spinbutton_y = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_y"));
+		layers[0]->spinbutton_r = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_r"));
 
 		for (i=1; i<4; i++) {
 			/* Create the three default layers */
@@ -378,6 +391,7 @@ void open_compositing_window() {
 		if (i > 0) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(aligncombo), 0);
 		}
+		update_compositing_registration_interface();
 		compositing_loaded = 1;
 	} else {
 		/* not the first load, update the CWD just in case it changed in the meantime */
@@ -585,6 +599,8 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		return;
 	}
 
+	update_compositing_registration_interface();
+
 	// enable the color balance finalization button
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
@@ -629,6 +645,15 @@ void create_the_internal_sequence() {
 
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
+	// Ensure the transformation type is set correctly
+	struct registration_method *method;
+	GtkComboBox *regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
+	method = reg_methods[gtk_combo_box_get_active(regcombo)];
+
+	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
+		the_type = SHIFT_TRANSFORMATION;
+	else
+		the_type = HOMOGRAPHY_TRANSFORMATION;
 
 	// Avoid crash if gfit has been closed since populating the layers
 	if (!gfit.data && !gfit.fdata) {
@@ -637,14 +662,10 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 
 	int i = 0;
 	struct registration_args regargs = { 0 };
-	struct registration_method *method;
 	char *msg;
-	GtkComboBox *regcombo;
 
 	create_the_internal_sequence();
 	/* align it */
-	regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
-	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 
 	regargs.seq = seq;
 	regargs.no_output = FALSE;
@@ -677,10 +698,12 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 
 	for (int j=0; i<layers_count; i++) {
 		if (has_fit(i)) {
-			double dx, dy;
+			double dx, dy, rotation;
 			translation_from_H(seq->regparam[0][j].H, &dx, &dy);
+			rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / M_PI;
 			gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
 			gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
+			gtk_spin_button_set_value(layers[i]->spinbutton_r, rotation);
 			j++;
 		}
 	}
@@ -690,6 +713,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	update_result(1);
 	free(regargs.imgparam);
 	free(regargs.regparam);
+	the_type = HOMOGRAPHY_TRANSFORMATION;
 }
 
 float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
@@ -708,8 +732,10 @@ float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
 static float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y) {
 	int realX = x, realY = y;
 	if (seq && seq->regparam && reg_layer < seq->number && reg_layer >= 0) {
-		double dx, dy;
-		translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
+		double dx = 0.0, dy = 0.0;
+		// Not needed except for shift transformation
+		if (the_type == SHIFT_TRANSFORMATION)
+			translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
 		// all images have one layer, hence the 0 below
 		realX = x - round_to_int(dx);
 		if (realX < 0 || realX >= gfit.rx) return 0.0f;
@@ -762,15 +788,14 @@ static void update_compositing_registration_interface() {
 	//int ref_layer = gtk_combo_box_get_active(GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_layer_combo")));
 	int sel_method = gtk_combo_box_get_active(combo);
 	/* select default method as function of selection size */
-	if (sel_method == -1 && com.selection.w > 0 && com.selection.h > 0) {
+	/*if (sel_method == -1 && com.selection.w > 0 && com.selection.h > 0) {
 		if (com.selection.w > 180 || com.selection.h > 180)
 			gtk_combo_box_set_active(combo, 0);	// activate DFT
 		else gtk_combo_box_set_active(combo, 1);	// activate FWHM
-	}
-
-	if (com.selection.w <= 0 && com.selection.h <= 0) {
+	}*/
+	if (com.selection.w <= 0 && com.selection.h <= 0 && sel_method == 1) {
 		gtk_label_set_text(label, _("An image area must be selected for align"));
-		gtk_widget_set_sensitive(lookup_widget("button_align"), TRUE);
+		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
 	/*} else if (ref_layer == -1 || (!luminance_mode && ref_layer == 0)) {
 		gtk_label_set_text(label, "A reference layer must be selected for align");
 		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);*/
@@ -786,6 +811,10 @@ static void update_compositing_registration_interface() {
 
 /* callback for changes of the selected reference layer */
 void on_compositing_align_layer_combo_changed(GtkComboBox *widget, gpointer user_data) {
+	update_compositing_registration_interface();
+}
+
+void on_compositing_align_method_combo_changed(GtkComboBox *widget, gpointer user_data) {
 	update_compositing_registration_interface();
 }
 
