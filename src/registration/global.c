@@ -481,7 +481,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-		if (!regargs->no_output) {
+		if (!regargs->no_output && (args->seq->type != SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_global_star(regargs);
 			// will be loaded in the idle function if (load_new_sequence)
@@ -643,10 +643,12 @@ int register_star_alignment_internal(struct registration_args *regargs) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	args->compute_mem_limits_hook = test;
+	args->compute_mem_limits_hook = star_align_compute_mem_limits;
+//	args->compute_mem_limits_hook = test;
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
-	args->stop_on_error = FALSE;
+	args->finalize_hook = star_align_finalize_hook;
+	args->stop_on_error = TRUE;
 	args->description = _("Global star registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);

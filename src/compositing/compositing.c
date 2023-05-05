@@ -376,9 +376,8 @@ void open_compositing_window() {
 			i++;
 		}
 		if (i > 0) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(aligncombo), com.pref.gui.reg_settings);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(aligncombo), 0);
 		}
-
 		compositing_loaded = 1;
 	} else {
 		/* not the first load, update the CWD just in case it changed in the meantime */
@@ -683,6 +682,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
 	update_result(1);
+	free(regargs.imgparam);
+	free(regargs.regparam);
 }
 
 float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {

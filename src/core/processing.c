@@ -268,6 +268,10 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 				excluded_frames++;
 			}
+			if (args->seq->type == SEQ_INTERNAL) {
+				fit->data = NULL;
+				fit->fdata = NULL;
+			}
 			clearfits(fit);
 			free(fit);
 			// for seqwriter, we need to notify the failed frame
@@ -537,6 +541,7 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 		// We re-copy the pointers back, because they are set to NULL in copyfits
 		// We then set the pointers in fit to NULL so that the memory doesn't get freed
 		// by the generic sequence worker
+		clearfits_keepdata(args->seq->internal_fits[in_index]);
 		copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
 		if (fit->type == DATA_USHORT) {
 			args->seq->internal_fits[in_index]->data = fit->data;
@@ -551,6 +556,9 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 		}
 		fit->data = NULL;
 		fit->fdata = NULL;
+		clearfits(fit);
+		free(fit);
+		fit = NULL;
 		return 0;
 	} else {
 		if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {

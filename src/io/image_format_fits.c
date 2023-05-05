@@ -1915,6 +1915,37 @@ void clearfits(fits *fit) {
 	memset(fit, 0, sizeof(fits));
 }
 
+// reset a fit data structure, deallocates everything in it but keep the data
+// useful in processing internal_fits in SEQ_INTERNAL sequences
+void clearfits_keepdata(fits *fit) {
+	if (fit == NULL)
+		return;
+	if (fit->header) {
+		free(fit->header);
+		fit->header = NULL;
+	}
+	if (fit->history) {
+		g_slist_free_full(fit->history, g_free);
+		fit->history = NULL;
+	}
+	if (fit->date_obs) {
+		g_date_time_unref(fit->date_obs);
+		fit->date_obs = NULL;
+	}
+	if (fit->date) {
+		g_date_time_unref(fit->date);
+		fit->date = NULL;
+	}
+	if (fit->stats) {
+		for (int i = 0; i < fit->naxes[2]; i++)
+			free_stats(fit->stats[i]);
+		free(fit->stats);
+		fit->stats = NULL;
+	}
+	free_wcs(fit, FALSE);
+	memset(fit, 0, sizeof(fits));
+}
+
 /* Read a rectangular section of a FITS image in Siril's format, pointed by its
  * exact filename. Only layer layer is read.
  * Returned fit->data is upside-down. */

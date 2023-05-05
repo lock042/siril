@@ -21,6 +21,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count);
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void clearfits(fits*);
+void clearfits_keepdata(fits*);
 int readfits_partial(const char *filename, int layer, fits *fit,
 		const rectangle *area, gboolean read_date);
 int read_fits_metadata(fits *fit);
