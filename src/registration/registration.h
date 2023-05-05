@@ -113,9 +113,6 @@ int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 
-int register_global_for_comp(struct registration_args *regargs);
-
-
 void reset_3stars();
 int _3stars_check_registration_ready();
 gboolean _3stars_check_selection();
