@@ -57,7 +57,6 @@ int	process_clear(int nb);
 int	process_clearstar(int nb);
 int	process_close(int nb);
 int	process_convert(int nb);
-int	process_convertraw(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
