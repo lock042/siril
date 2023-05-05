@@ -107,7 +107,6 @@ struct registration_method * get_selected_registration_method();
 int register_shift_dft(struct registration_args *args);
 int register_shift_fwhm(struct registration_args *args);
 int register_star_alignment(struct registration_args *args);
-int register_star_alignment_internal(struct registration_args *args);
 int register_multi_step_global(struct registration_args *regargs);
 int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);

@@ -633,40 +633,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	return regargs->retval;
 }
 
-int register_star_alignment_internal(struct registration_args *regargs) {
-	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
-	if (regargs->filters.filter_included) {
-		args->filtering_criterion = seq_filter_included;
-		args->nb_filtered_images = regargs->seq->selnum;
-	}
-	args->compute_mem_limits_hook = star_align_compute_mem_limits;
-	args->prepare_hook = star_align_prepare_hook;
-	args->image_hook = star_align_image_hook;
-	args->finalize_hook = star_align_finalize_hook;
-	args->stop_on_error = TRUE;
-	args->description = _("Global star registration");
-	args->has_output = TRUE;
-	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
-	args->new_seq_prefix = regargs->prefix;
-	args->load_new_sequence = !regargs->no_output;
-	args->already_in_a_thread = TRUE;
-
-	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
-	if (!sadata) {
-		free(args);
-		return -1;
-	}
-	sadata->regargs = regargs;
-	args->user = sadata;
-
-	generic_sequence_worker(args);
-
-	regargs->retval = args->retval;
-	free(args);
-	return regargs->retval;
-}
-
 static void create_output_sequence_for_global_star(struct registration_args *args) {
 	sequence seq = { 0 };
 	initialize_sequence(&seq, TRUE);
