@@ -1427,7 +1427,6 @@ gpointer plate_solver(gpointer p) {
 
 			// TODO: should we average x and y or even better separate scales on x and y?
 			args->scalefactor = (double)fit_backup.rx / (double)args->fit->rx;
-			args->scale *= args->scalefactor;
 			detection_layer = 0;
 		}
 
@@ -1449,6 +1448,16 @@ gpointer plate_solver(gpointer p) {
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
+			// we go back to original scale by multiplying stars x/y pos by scalefactor
+			if (stars) {
+				for (int i = 0; i < nb_stars; i++) {
+					stars[i]->xpos *= args->scalefactor;
+					stars[i]->ypos *= args->scalefactor;
+				}
+			}
+			args->rx_solver = args->fit->rx;
+			args->ry_solver = args->fit->ry;
+			args->scalefactor = 1.0;
 		}
 	} else {
 		stars = args->stars ? args->stars : com.stars;
