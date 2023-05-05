@@ -169,6 +169,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	sadata->ref.x = fit.rx;
 	sadata->ref.y = fit.ry;
 
+	// For internal sequences the data / fdata pointer still
+	// points to the original memory in seq->internal_fits.
+	// It must not be freed by clearfits here so we set the
+	// pointers in fit to NULL
 	if (args->seq->type == SEQ_INTERNAL) {
 		fit.data = NULL;
 		fit.fdata = NULL;
