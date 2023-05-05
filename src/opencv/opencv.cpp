@@ -367,8 +367,10 @@ void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
 	convert_MatH_to_H(H2, Hres);
 }
 
+// TODO: to be looked into when we sort out the conventions for astrometry (see #1103)
+
 unsigned char *cvCalculH(s_star *star_array_img,
-		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type) {
+		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type, float offset) {
 
 	std::vector<Point2f> ref;
 	std::vector<Point2f> img;
@@ -380,23 +382,24 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	Mat H, a, mask, s;
 	unsigned char *ret = NULL;
 
-	/* build vectors with lists of stars. */
-	/* the -0.5 term comes from the difference in convention between how we compute PSF
-	/ and opencv (zero coordinate at edge of pixel vs at center) */
+	/* 	build vectors with lists of stars.
+		When defined with offset, the -0.5 term comes from the difference 
+		in convention between how we compute PSF
+		and opencv (zero coordinate at edge of pixel vs at center) */
 	switch (type) {
 	case SIMILARITY_TRANSFORMATION:
 	case HOMOGRAPHY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref.push_back(Point2f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5));
-			img.push_back(Point2f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5));
+			ref.push_back(Point2f(star_array_ref[i].x + offset, star_array_ref[i].y + offset));
+			img.push_back(Point2f(star_array_img[i].x + offset, star_array_img[i].y + offset));
 		}
 	break;
 #ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref3.push_back(Point3f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5, 0.));
-			img3.push_back(Point3f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5, 0.));
+			ref3.push_back(Point3f(star_array_ref[i].x + offset, star_array_ref[i].y + offset, 0.));
+			img3.push_back(Point3f(star_array_img[i].x + offset, star_array_img[i].y + offset, 0.));
 		}
 	break;
 #endif

@@ -1620,7 +1620,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		free_stars(&star_list_A);
 		free_stars(&star_list_B);
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
-				scale_min, scale_max, &H,
+				scale_min, scale_max, &H, TRUE,
 				FALSE, NULL, NULL,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
@@ -1684,7 +1684,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		double focal = RADCONV * solution->pixel_size / resolution;
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
-		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, FALSE, NULL, NULL, AFFINE_TRANSFORMATION)){
+		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, TRUE, FALSE, NULL, NULL, AFFINE_TRANSFORMATION)){
 			args->message = g_strdup(_("Updating homography failed."));
 			args->ret = 1;
 			break;
@@ -1767,6 +1767,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 
 	/**** Fill wcsdata fit structure ***/
 	args->fit->wcsdata.equinox = 2000.0;
+
+	solution->crpix[0] = args->rx_solver * 0.5;
+	solution->crpix[1] = args->ry_solver * 0.5;
 
 	solution->crpix[0] *= args->scalefactor;
 	solution->crpix[1] *= args->scalefactor;
