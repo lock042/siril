@@ -1695,7 +1695,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		trans = H_to_linear_TRANS(H);
 		apply_match(solution->px_cat_center, solution->crpix, &trans, &ra0, &dec0);
 
-		conv = fabs((dec0 - orig_dec0) / orig_dec0) + fabs((ra0 - orig_ra0) / orig_ra0);
+		conv = fabs((dec0 - orig_dec0) / args->used_fov / 60.) + fabs((ra0 - orig_ra0) / args->used_fov / 60.);
 
 		trial++;
 		CHECK_FOR_CANCELLATION;
