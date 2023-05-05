@@ -1920,7 +1920,7 @@ void clearfits(fits *fit) {
 		free(fit->fdata);
 		fit->fdata = NULL;
 	}
-	clearfits_keepdata(fits);
+	clearfits_keepdata(fit);
 }
 
 /* Read a rectangular section of a FITS image in Siril's format, pointed by its
