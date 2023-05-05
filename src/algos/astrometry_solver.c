@@ -1432,7 +1432,10 @@ gpointer plate_solver(gpointer p) {
 
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 		// capping the detection to max usable number of stars
+		if (args->n_cat == 0)
+				args->n_cat = BRIGHTEST_STARS;
 		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
+
 #ifdef _WIN32
 		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
 		int nthreads = (!args->for_sequence || args->onlineCatalog == CAT_ASNET) ? com.max_thread : 1;
@@ -1442,7 +1445,7 @@ gpointer plate_solver(gpointer p) {
 #endif
 
 		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
-				&(args->solvearea), FALSE, args->onlineCatalog != CAT_ASNET,
+				&(args->solvearea), FALSE, TRUE,
 				max_stars, com.pref.starfinder_conf.profile, nthreads);
 
 		if (args->downsample) {
