@@ -629,6 +629,12 @@ void create_the_internal_sequence() {
 
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
+
+	// Avoid crash if gfit has been closed since populating the layers
+	if (!gfit.data && !gfit.fdata) {
+		update_result(1);
+	}
+
 	int i = 0;
 	struct registration_args regargs = { 0 };
 	struct registration_method *method;
@@ -644,6 +650,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.no_output = FALSE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = 0;	// TODO: fix with dynamic layers list
+	seq->reference_image = luminance_mode ? 0 : 1;
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
