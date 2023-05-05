@@ -653,6 +653,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	seq->reference_image = 0;
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
+	regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
 	msg = siril_log_message(_("Starting registration using method: %s\n"), method->name);
