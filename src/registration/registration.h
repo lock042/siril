@@ -165,6 +165,4 @@ void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
-int get_min_requires_stars(transformation_type type);
-int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
 #endif

@@ -52,7 +52,7 @@
 static void create_output_sequence_for_global_star(struct registration_args *args);
 static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units);
 
-int get_min_requires_stars(transformation_type type) {
+static int get_min_requires_stars(transformation_type type) {
 	switch(type) {
 	case SHIFT_TRANSFORMATION:
 	case SIMILARITY_TRANSFORMATION:
@@ -226,7 +226,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	return star_align_prepare_results(args);
 }
 
-int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
 	double scale_min = 0.9;
 	double scale_max = 1.1;
 	int attempt = 1;
@@ -633,10 +633,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	return regargs->retval;
 }
 
-static int test(struct generic_seq_args *args, gboolean for_writer) {
-	return 1;
-}
-
 int register_star_alignment_internal(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 	if (regargs->filters.filter_included) {
@@ -644,7 +640,6 @@ int register_star_alignment_internal(struct registration_args *regargs) {
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
 	args->compute_mem_limits_hook = star_align_compute_mem_limits;
-//	args->compute_mem_limits_hook = test;
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;
