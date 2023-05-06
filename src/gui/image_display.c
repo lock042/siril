@@ -1259,11 +1259,10 @@ static void draw_annotates(const draw_data_t* dd) {
 	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
 		gdouble radius = get_catalogue_object_radius(object);
-		gdouble world_x = get_catalogue_object_ra(object);
-		gdouble world_y = get_catalogue_object_dec(object);
+		gdouble ra = get_catalogue_object_ra(object);
+		gdouble dec = get_catalogue_object_dec(object);
 		gchar *code = get_catalogue_object_code(object);
 		guint catalog = get_catalogue_object_cat(object);
-		gdouble x, y;
 
 		switch (catalog) {
 		case USER_DSO_CAT_INDEX:
@@ -1288,8 +1287,10 @@ static void draw_annotates(const draw_data_t* dd) {
 		radius = radius / resolution / 60.0;
 		// radius now in pixels
 
-		if (!wcs2pix(&gfit, world_x, world_y, &x, &y)) {
-			y = height - y - 1;
+		double fx, fy;
+		if (!wcs2pix(&gfit, ra, dec, &fx, &fy)) {
+			double x, y;
+			fits_to_display(fx, fy, &x, &y, gfit.ry);
 			point offset = {10, -10};
 			if (radius < 0) {
 				// objects we don't have an accurate location (LdN, Sh2)
