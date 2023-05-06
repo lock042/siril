@@ -1072,21 +1072,25 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 	if (limit > 0) {
 		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
 		int float_multiplier = (is_float) ? 1 : 2;
+		int chan_multiplier = (args->seq->nb_layers == 3) ? 3 : 1;
 		int MB_per_float_image = MB_per_image * float_multiplier;
+		int MB_per_float_chan = MB_per_float_image / chan_multiplier;
+
 		// Allocations:
 		// ------------
-		// * extract_fits() allocates 1 * float_image;
-		// * If the image is DATA_FLOAT no memory is required for the Gaussian blur
-		//   as the in-place RT algorithm is used;
-		// * If the image is DATA_USHORT 2 copies of the image are allocated by
-		//   cvUnsharpFilter which is not in-place;
+		// * extract_fits() allocates 1 * float_channel in all cases.
+		// * As the 1-channel fits populated by extract_fits() is DATA_FLOAT no
+		//   memory is required for the Gaussian blur as the in-place RT algorithm is
+		//   used;
 		// * Also allow MAX_STARS * sizeof(psf_star) + 1MB margin for gslsolver data;
 		//   and the indexing arrays e.g. smooth_array (ry * sizeof(float*)).
+		// * For compressed FITS, allow 1 * MB_per_image for reading the entire image
+		// during decompression.
 		int stars_and_overhead = 1 + (int) ceilf(((float) MAX_STARS * (float) sizeof(psf_star)) / (float) BYTES_IN_A_MB);
-		required = MB_per_float_image + stars_and_overhead;
+		required = MB_per_image + MB_per_float_channel + stars_and_overhead;
+		if (com.pref.comp.fits_enabled)
+			required += MB_per_image;
 		int thread_limit = MB_avail / required;
-		if (!is_float)
-			required += 2 * MB_per_image;
 		if (thread_limit > com.max_thread)
 				thread_limit = com.max_thread;
 		limit = thread_limit;
