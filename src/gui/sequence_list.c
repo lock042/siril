@@ -424,7 +424,8 @@ void on_treeview1_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 		idx = g_value_get_int(&value) - 1;
 		if (idx != com.seq.current) {
 			fprintf(stdout, "loading image %d\n", idx);
-			seq_load_image(&com.seq, idx, TRUE);
+			if (seq_load_image(&com.seq, idx, TRUE)) // if loading fails, we fall back reloading the reference image
+				seq_load_image(&com.seq, com.seq.reference_image, TRUE); 
 		}
 		g_value_unset(&value);
 	}
@@ -841,7 +842,8 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 	gtk_tree_path_free(path);
 
 	if (do_load_image) {
-		seq_load_image(&com.seq, index, TRUE);
+		if (seq_load_image(&com.seq, index, TRUE)) // if loading fails, we fall back reloading the reference image
+			seq_load_image(&com.seq, com.seq.reference_image, TRUE); 
 		update_reg_interface(FALSE);
 		redraw(REDRAW_OVERLAY);
 	}

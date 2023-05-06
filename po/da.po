@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-05-03 10:48+0000\n"
+"PO-Revision-Date: 2023-05-05 19:21+0000\n"
 "Last-Translator: Victor Boesen Gandløse <victorboesen@hotmail.com>\n"
 "Language-Team: Danish <https://weblate.pixls.us/projects/siril/"
 "siril-application/da/>\n"
@@ -180,7 +180,7 @@ msgstr "Kontrastbegrænset og Adaptiv Histogram Udligning"
 #: src/gui/siril3.glade:15406 src/gui/siril3.glade:15410
 #: src/gui/siril3.glade:27557
 msgid "Reset"
-msgstr ""
+msgstr "Nulstil"
 
 #: src/gui/siril3.glade:758 src/gui/siril3.glade:2107 src/gui/siril3.glade:2406
 #: src/gui/siril3.glade:3204 src/gui/siril3.glade:4221 src/gui/siril3.glade:5068
@@ -221,7 +221,7 @@ msgstr ""
 #: src/gui/siril3.glade:930 src/gui/siril3.glade:3046 src/gui/siril3.glade:3379
 #: src/gui/siril3.glade:5269
 msgid "Preview"
-msgstr ""
+msgstr "Forhåndsvisning"
 
 #: src/gui/siril3.glade:993
 msgid "Wavelets Layers Extraction"
@@ -18852,32 +18852,32 @@ msgstr ""
 
 #: src/stacking/stacking.c:295
 msgid "Pixel combination ......... none\n"
-msgstr ""
+msgstr "Pixel kombination ......... ingen\n"
 
 #: src/stacking/stacking.c:302 src/stacking/stacking.c:307
 #: src/stacking/stacking.c:339
 msgid "none"
-msgstr ""
+msgstr "ingen"
 
 #: src/stacking/stacking.c:310
 msgid "additive"
-msgstr ""
+msgstr "additiv"
 
 #: src/stacking/stacking.c:313
 msgid "multiplicative"
-msgstr ""
+msgstr "multiplikativ"
 
 #: src/stacking/stacking.c:316
 msgid "additive + scaling"
-msgstr ""
+msgstr "additiv + skalering"
 
 #: src/stacking/stacking.c:319
 msgid "multiplicative + scaling"
-msgstr ""
+msgstr "multiplikativ + skalering"
 
 #: src/stacking/stacking.c:323
 msgid " (fast)"
-msgstr ""
+msgstr " (hurtig)"
 
 #: src/stacking/stacking.c:325
 #, c-format
@@ -18886,15 +18886,15 @@ msgstr ""
 
 #: src/stacking/stacking.c:328
 msgid "Output normalization ...... enabled\n"
-msgstr ""
+msgstr "Output normalisering ...... aktiveret\n"
 
 #: src/stacking/stacking.c:329
 msgid "Output normalization ...... disabled\n"
-msgstr ""
+msgstr "Output normalisering ...... deaktiveret\n"
 
 #: src/stacking/stacking.c:333
 msgid "Pixel rejection ........... none\n"
-msgstr ""
+msgstr "Pixel afvisning ........... ingen\n"
 
 #: src/stacking/stacking.c:342
 msgid "percentile clipping"

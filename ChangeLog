@@ -22,7 +22,7 @@ xx/xx/xx
 * Fixed reset of the viewports when reopening the RGB composition tool after opening a mono sequence
 * Fixed terminology - "weighted" instead of "weighed", consistency in name of PCC tool
 * Enable detection for undersampled mono images
-* Improve Wayland support
+* Improved Wayland support
 * Fixed incorrect option name in `show` help text
 * Prevent cleaning stats from resetting the reference image
 * Fixed photometry with 32bit images from PRISM
@@ -32,6 +32,7 @@ xx/xx/xx
 * Reviewed and fixed coordinate conversion from WCS to display for annotations, nomad command, pcc
 * Improved astrometry.net handling on Windows to support more recent cygwin builds
 * Updated URLs to query online catalogs
+* Fixed sequence handling when images have different number of layers
 * Fixed GNUplot terminals so they remain interactive and free resources when closed
 * Fixed crash that could occur when parsing string keywords that contained forbidden characters
 * Fixed calling external processes that left too many opened file descriptors

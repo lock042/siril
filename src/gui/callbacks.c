@@ -891,7 +891,7 @@ int set_layers_for_registration() {
 		gchar *layer;
 		const gchar *layer_name = layer_name_for_gfit(i);
 		layer = g_strdup_printf("%d: %s", i, layer_name);
-		if (com.seq.regparam[i]) {
+		if (com.seq.regparam && com.seq.regparam[i]) {
 			str_append(&layer,  " (*)");
 			if (reminder == -1 || ((reminder >= 0) && !(com.seq.regparam[reminder]))) // set as default selection
 				reminder = i;
