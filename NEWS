@@ -31,6 +31,7 @@ xx/xx/xx
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
 * Reviewed and fixed coordinate conversion from WCS to display for annotations, nomad command, pcc
 * Improved astrometry.net handling on Windows to support more recent cygwin builds
+* Updated URLs to query online catalogs
 * Fixed GNUplot terminals so they remain interactive and free resources when closed
 * Fixed crash that could occur when parsing string keywords that contained forbidden characters
 * Fixed calling external processes that left too many opened file descriptors
