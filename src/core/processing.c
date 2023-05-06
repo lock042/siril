@@ -675,24 +675,43 @@ void wait_for_script_thread() {
 	}
 }
 
-void kill_child_process() {
-	if (com.child_is_running) {
+// kills external calls
+// if onexit is TRUE, also do some cleaning
+void kill_child_process(gboolean onexit) {
+	if (onexit)
+		printf("making sure no child is left behind\n");
+	// abort starnet by killing the process
+	if (com.child_is_running == EXT_STARNET) {
 #ifdef _WIN32
 		TerminateProcess(com.childhandle, 1);
-		CloseHandle(com.childhandle);
 		com.childhandle = NULL;
 #else
 		kill(com.childpid, SIGINT);
 		com.childpid = 0;
 #endif
-		com.child_is_running = FALSE;
+		com.child_is_running = EXT_NONE;
+		if (onexit)
+			printf("starnet has been stopped on exit\n");
 	}
+	// abort asnet by writing a file named stop in wd
+	if (com.child_is_running == EXT_ASNET) {
+		FILE* fp = fopen("stop", "w");
+		if (fp != NULL)
+			fclose(fp);
+		if (onexit) {
+			g_usleep(1000);
+			g_unlink("stop");
+			printf("asnet has been stopped on exit\n");
+		}
+	}
+	if (onexit)
+		printf("done\n");
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
-	kill_child_process();
+	kill_child_process(FALSE);
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();
