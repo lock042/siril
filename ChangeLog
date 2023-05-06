@@ -29,6 +29,9 @@ xx/xx/xx
 * Added Astro-TIFF in sequence export
 * Force statistics for all images not from Siril (ensures DATAMAX is correct)
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
+* Reviewed and fixed coordinate conversion from WCS to display for annotations, nomad command, pcc
+* Improved astrometry.net handling on Windows to support more recent cygwin builds
+* Updated URLs to query online catalogs
 * Fixed sequence handling when images have different number of layers
 * Fixed GNUplot terminals so they remain interactive and free resources when closed
 * Fixed crash that could occur when parsing string keywords that contained forbidden characters
