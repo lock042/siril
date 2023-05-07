@@ -1929,13 +1929,15 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	char *sfargs[50] = {
 #ifdef _WIN32
-		"solve-field",
+		"solve-field", "-C", "\"$c\"",
+		// the stop file must be passed in asnet.sh to be properly quoted and called
+		// in case there are spaces in cwd
 #else
-		asnet_path,
+		asnet_path, "-C", stopfile,
 		"--temp-axy",	// not available in the old version of ansvr
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "-S", "none", "-C", stopfile, "--crpix-center", "-l", time_limit,
+		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
 	char order[12];	// referenced in sfargs, needs the same scope
@@ -1989,6 +1991,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	}
 	/* Write data to this file  */
 	fprintf(tmpfd, "p=\"%s\"\n", (char*)table_filename);
+	fprintf(tmpfd, "c=\"%s\"\n", (char*)stopfile);
 	fprintf(tmpfd, "%s\n", command);
 	fclose(tmpfd);
 	g_free(asnetscript);
