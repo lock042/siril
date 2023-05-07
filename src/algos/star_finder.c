@@ -1087,7 +1087,7 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 		// * For compressed FITS, allow 1 * MB_per_image for reading the entire image
 		// during decompression.
 		int stars_and_overhead = 1 + (int) ceilf(((float) MAX_STARS * (float) sizeof(psf_star)) / (float) BYTES_IN_A_MB);
-		required = MB_per_image + MB_per_float_channel + stars_and_overhead;
+		required = MB_per_image + MB_per_float_chan + stars_and_overhead;
 		if (com.pref.comp.fits_enabled)
 			required += MB_per_image;
 		int thread_limit = MB_avail / required;
