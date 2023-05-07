@@ -1088,7 +1088,7 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 		curr_findstar_args->starfile = star_filename;
 
 	int retval = 0;
-	if (!check_starfile_date(args->seq, i, star_filename) ||
+	if (args->seq->type == SEQ_INTERNAL || !check_starfile_date(args->seq, i, star_filename) ||
 			!check_star_list(star_filename, curr_findstar_args))
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 

@@ -95,7 +95,7 @@ static int layers_count = 1;		// the glade has only luminance
 
 static int luminance_mode = 0;		// 0 if luminance is not used
 
-static struct registration_method *reg_methods[3];
+static struct registration_method *reg_methods[4];
 
 static sequence *seq = NULL;		// the sequence of layers, for alignments and normalization
 static norm_coeff *coeff = NULL;	// the normalization coefficients
@@ -376,9 +376,10 @@ void open_compositing_window() {
 		 * should be done in the same way as in registration.c, but it
 		 * woud be easier if the two glades are merged. */
 		reg_methods[0] = new_reg_method(_("Global star registration (deep-sky)"), &register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-		reg_methods[1] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+		reg_methods[1] = new_reg_method(_("2-step global star registration (deep-sky COG)"), &register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[2] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
 
-		reg_methods[2] = NULL;
+		reg_methods[3] = NULL;
 		update_compositing_registration_interface();
 		/* fill compositing_align_method_combo */
 		GtkComboBoxText *aligncombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
@@ -674,6 +675,11 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	seq->reference_image = 0;
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
+	if (method->method_ptr == register_multi_step_global) {
+		regargs.framing = FRAMING_COG;
+	} else {
+		regargs.framing = FRAMING_CURRENT;
+	}
 	regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
@@ -687,6 +693,15 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		free(regargs.imgparam);
 		free(regargs.regparam);
 		return;
+	}
+	if (method->method_ptr == register_multi_step_global) {
+		if (register_apply_reg(&regargs)) {
+			set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
+			set_cursor_waiting(FALSE);
+			free(regargs.imgparam);
+			free(regargs.regparam);
+			return;
+		}
 	}
 	else set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
@@ -793,7 +808,8 @@ static void update_compositing_registration_interface() {
 			gtk_combo_box_set_active(combo, 0);	// activate DFT
 		else gtk_combo_box_set_active(combo, 1);	// activate FWHM
 	}*/
-	if (com.selection.w <= 0 && com.selection.h <= 0 && sel_method == 1) {
+	if (com.selection.w <= 0 && com.selection.h <= 0 && sel_method == 2) {
+		// DFT shift requires a selection to be made
 		gtk_label_set_text(label, _("An image area must be selected for align"));
 		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
 	/*} else if (ref_layer == -1 || (!luminance_mode && ref_layer == 0)) {

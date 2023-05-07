@@ -133,7 +133,7 @@ void populate_seqcombo(const gchar *realname) {
 }
 
 /* normalizes sequence name
- * takes a string and 
+ * takes a string and
  * - removes the extension if known
  * - appends _ at the end if required and add_underscore is TRUE
  * also calls get_locale_filename() to solve Windows localized string problems
@@ -1233,7 +1233,13 @@ void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
 		char root[256];
 		fit_sequence_get_image_filename(seq, i, root, FALSE);
-		gchar *star_filename = g_strdup_printf("%s%s.lst", prefix, root);
+		gchar *star_filename = NULL;
+		if (prefix)
+			star_filename = g_strdup_printf("%s%s.lst", prefix, root);
+		else
+		// Despite the name this function does actually allow for
+		// the prefix to be NULL as this is of use with internal sequences
+			star_filename = g_strdup_printf("%s.lst", root);
 		siril_debug_print("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
 			siril_debug_print("g_unlink() failed\n");
