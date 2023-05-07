@@ -37,6 +37,7 @@ xx/xx/xx
 * Fixed crash that could occur when parsing string keywords that contained forbidden characters
 * Fixed calling external processes that left too many opened file descriptors
 * Fixed Stop behavior for starnet and local astrometry.net
+* Fixed crash when running merge_cfa in headless mode
 * Added read of datetime in jpeg and png file with exiv2
 * Added Danish language
 

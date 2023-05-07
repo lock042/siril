@@ -843,8 +843,12 @@ int process_rebayer(int nb){
 	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 	open_single_image_from_gfit();
+
+	if (!com.script) {
+		open_single_image_from_gfit();
+		siril_add_idle(merge_cfa_idle, NULL);
+	}
 	set_cursor_waiting(FALSE);
-	siril_add_idle(merge_cfa_idle, NULL);
 	return CMD_OK;
 }
 
