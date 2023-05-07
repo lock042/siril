@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2022-02-25 12:06+0200\n"
-"Last-Translator: Konstantinos Stavropoulos <kookoo_gr@yahoo.com>\n"
-"Language-Team: \n"
+"PO-Revision-Date: 2023-05-08 19:41+0000\n"
+"Last-Translator: kostas <kookoo_gr@yahoo.com>\n"
+"Language-Team: Greek <https://weblate.pixls.us/projects/siril/"
+"siril-application/el/>\n"
 "Language: el\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 3.0\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7996
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -370,7 +371,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1701 src/gui/siril3.glade:8920
 msgid "Use Luminance"
-msgstr "Χρήση φωτεινότητας"
+msgstr "Χρήση Luminance"
 
 #: src/gui/siril3.glade:1801
 msgid "Rotational Gradient"
@@ -775,10 +776,10 @@ msgid ""
 msgstr ""
 "Επιλέξτε τον τύπο της διόρθωσης που θέλετε να εφαρμόσετε:\n"
 "Αφαιρετική: χρησιμοποιείται κυρίως για την διόρθωση προσθετικών επιδράσεων, "
-"όπως βαθμιδωτού θορύβου που προκαλούνται από φωτορύπανση ή το Φεγγάρι.\n"
-"Διαιρετική:  χρησιμοποιείται κυρίως για την διόρθωση πολλαπλασιαστικών "
+"όπως βαθμιδωτού θορύβου που προκαλείται από φωτορύπανση ή το Φεγγάρι.\n"
+"Διαιρετική: χρησιμοποιείται κυρίως για την διόρθωση πολλαπλασιαστικών "
 "φαινομένων, όπως για παράδειγμα το βινιετάρισμα ή η διαφορική ατμοσφαιρική "
-"απορόφηση. Όμως αυτός ο τύπος της λειτουργίας θα έπρεπε να να γίνεται με "
+"απορρόφηση. Όμως αυτός ο τύπος της λειτουργίας θα έπρεπε να να γίνεται με "
 "διόρθωση Κυρίως-flat."
 
 #: src/gui/siril3.glade:3882
@@ -2074,7 +2075,7 @@ msgstr "Εγγραφή ενός αστεριού (βαθύ ουρανού)"
 
 #: src/gui/siril3.glade:9111
 msgid "For LRGB composition, the reference layer should be luminance."
-msgstr "Για σύνθεση LRGB, το επίπεδο αναφοράς θα πρέπει να είναι Luminance."
+msgstr "Για σύνθεση LRGB, το επίπεδο αναφοράς θα πρέπει να είναι luminance."
 
 #: src/gui/siril3.glade:9113 src/gui/callbacks.c:714
 msgid "Luminance"
@@ -2528,10 +2529,10 @@ msgid ""
 "are the translation relative to the reference image."
 msgstr ""
 "Λίστα των εικόνων στην ακολουθία, με την κατάσταση τους και πληροφορία "
-"ποιότητας. Η ποιότητα είναι το FWHM όταν εφαρμόζεται εγγραφή PSF, όσο πιο "
-"χαμηλά τόσο το καλύτερο, και εκτίμηση βαθμιδωτού θορύβου για εγγραφή DFT, "
-"όσο πιο ψηλά τόσο το καλύτερο. Οι στήλες Χ και Υ είναι η μετατόπιση σχετικά "
-"με την εικόνα αναφοράς."
+"ποιότητας. Η ποιότητα είναι το FWHM όταν χρησιμοποιείται εγγραφή PSF, όσο "
+"πιο χαμηλά τόσο το καλύτερο, και εκτίμηση βαθμιδωτού θορύβου για εγγραφή "
+"DFT, όσο πιο ψηλά τόσο το καλύτερο. Οι στήλες Χ και Υ είναι η μετατόπιση "
+"σχετικά με την εικόνα αναφοράς."
 
 #: src/gui/siril3.glade:11327
 msgid "File"
@@ -3962,7 +3963,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:17101
 msgid "column"
-msgstr ""
+msgstr "στήλη"
 
 #: src/gui/siril3.glade:17129
 #, fuzzy
@@ -5090,7 +5091,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:21209
 msgid "CFA data"
-msgstr ""
+msgstr "Δεδομένα CFA"
 
 #: src/gui/siril3.glade:21255 src/gui/siril3.glade:21279
 #: src/gui/siril3.glade:21309 src/gui/siril3.glade:21323
@@ -5111,24 +5112,21 @@ msgid ""
 "higher than 1% of the total of pixels, you will be encouraged to change "
 "sigma values."
 msgstr ""
-"Κάντε κλικ σε αυτό το κουμπί για την εκτίμηση των αποκλινόντων pixel. Αν οι "
-"τιμές είναι πάνω από 1% των συνολικών pixel, τότε θα σας προταθεί να "
-"αλλάξετε τις τιμές σίγμα."
+"Κάντε κλικ σε αυτό το κουμπί για την εκτίμηση του αριθμού των αποκλινόντων "
+"pixel. Αν οι τιμές είναι πάνω από 1% των συνολικών pixel, τότε θα σας "
+"προταθεί να αλλάξετε τις τιμές σίγμα."
 
 #: src/gui/siril3.glade:21346 src/gui/siril3.glade:21358
-#, fuzzy
 msgid "0 px"
-msgstr "Θερμό: 0 εικονοστοιχεία"
+msgstr "0 px"
 
 #: src/gui/siril3.glade:21379
-#, fuzzy
 msgid "Master-dark"
-msgstr "κυρίως-dark"
+msgstr "Κυρίως-dark"
 
 #: src/gui/siril3.glade:21388
-#, fuzzy
 msgid "Using Master-Dark"
-msgstr "κυρίως-dark"
+msgstr "Γίνεται χρήση Κυρίως-Dark"
 
 #: src/gui/siril3.glade:21414
 msgid ""
@@ -5171,9 +5169,8 @@ msgid "Prefix of the image names resulting from the calibration."
 msgstr "Πρόθεμα του ονόματος των εικόνων που προκύπτουν από την εγγραφή."
 
 #: src/gui/siril3.glade:21541
-#, fuzzy
 msgid "Start calibration"
-msgstr "Εγγραφή εικόνας"
+msgstr "Έναρξη Βαθμονόμησης"
 
 #: src/gui/siril3.glade:21546
 msgid ""
@@ -5225,7 +5222,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:21598
 msgid "Calibrate all frames"
-msgstr ""
+msgstr "Βαθμονόμηση όλων των καρέ"
 
 #: src/gui/siril3.glade:21602
 msgid "Force calibration of all frames even if marked as excluded."
@@ -5243,14 +5240,12 @@ msgstr ""
 "εικόνων."
 
 #: src/gui/siril3.glade:21644
-#, fuzzy
 msgid "Calibration"
-msgstr "Βαθμονόμηση Χρώματος"
+msgstr "Βαθμονόμηση"
 
 #: src/gui/siril3.glade:21720
-#, fuzzy
 msgid "Registration channel: "
-msgstr "Επίπεδο εγγραφής: "
+msgstr "Κανάλι εγγραφής: "
 
 #  It can only be done on one layer at a time, so on monochrome images
 # Do you mean:  It can only be done on one layer at a time, on monochrome images
@@ -8894,9 +8889,8 @@ msgid "Up is %+.2lf deg ClockWise wrt. N%s\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:793
-#, fuzzy
 msgid " (flipped)"
-msgstr "(ανεστραμμένο)"
+msgstr " (ανεστραμμένο)"
 
 #: src/algos/astrometry_solver.c:797
 #, c-format
@@ -17029,30 +17023,32 @@ msgstr ""
 "Αυτό διαγράφει προηγούμενες επιλογές εικόνας και δεν είναι δυνατή η αναίρεση."
 
 #: src/gui/callbacks.c:1903
-#, fuzzy
 msgid ""
 "\n"
 "- Registration"
-msgstr "Εγγραφή"
+msgstr ""
+"\n"
+"- Εγγραφή"
 
 #: src/gui/callbacks.c:1904
-#, fuzzy
 msgid ""
 "\n"
 "- Statistics"
-msgstr "Στατιστικά"
+msgstr ""
+"\n"
+"- Στατιστικά"
 
 #: src/gui/callbacks.c:1905
-#, fuzzy
 msgid ""
 "\n"
 "- Selection"
-msgstr "Επιλογή"
+msgstr ""
+"\n"
+"- Επιλογή"
 
 #: src/gui/callbacks.c:1909
-#, fuzzy
 msgid "Clear Sequence Data?"
-msgstr "Περικοπή ακολουθίας"
+msgstr "Καθαρισμός Δεδομένων Ακολουθίας;"
 
 #: src/gui/callbacks.c:1909
 #, fuzzy
