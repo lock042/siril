@@ -1877,7 +1877,7 @@ int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomo
 	return *status;
 }
 
-// reset a fit data structure, deallocates everything in it but keep the data
+// reset a fit data structure, deallocates everything in it but keep the data:
 // useful in processing internal_fits in SEQ_INTERNAL sequences
 void clearfits_keepdata(fits *fit) {
 	if (fit == NULL)

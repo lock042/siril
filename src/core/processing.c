@@ -305,9 +305,14 @@ gpointer generic_sequence_worker(gpointer p) {
 			save_stats_from_fit(fit, args->seq, input_idx);
 		}
 
-		if (!have_seqwriter && !args->seq->internal_fits) {
-			clearfits(fit);
-			free(fit);
+		if (!have_seqwriter) {
+			if (!(args->seq->type == SEQ_INTERNAL)) {
+				clearfits(fit);
+				free(fit);
+			} else {
+				clearfits_keepdata(fit);
+				free(fit);
+			}
 		}
 
 #ifdef _OPENMP
@@ -557,8 +562,6 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 		fit->data = NULL;
 		fit->fdata = NULL;
 		clearfits(fit);
-		free(fit);
-		fit = NULL;
 		return 0;
 	} else {
 		if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
