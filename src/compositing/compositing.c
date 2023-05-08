@@ -675,6 +675,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	seq->reference_image = 0;
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
+	regargs.interpolation = OPENCV_LANCZOS4;
+	regargs.clamp = TRUE;
 	if (method->method_ptr == register_multi_step_global) {
 		regargs.framing = FRAMING_COG;
 	} else {
