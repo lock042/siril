@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-05-08 03:40+0000\n"
+"PO-Revision-Date: 2023-05-08 19:41+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -5627,6 +5627,7 @@ msgid "Similarity"
 msgstr "Сходство"
 
 #: src/gui/siril3.glade:21922
+#, fuzzy
 msgid "Affine"
 msgstr "Аффинное"
 
@@ -14871,7 +14872,7 @@ msgstr "обновить размер пикселя после биннига"
 
 #: src/core/settings.c:268
 msgid "WCS formalism used in FITS header"
-msgstr ""
+msgstr "формализм WCS, используемый в заголовке FITS"
 
 #: src/core/settings.c:269
 msgid "Path of the namedstars.dat catalogue"
@@ -14964,7 +14965,7 @@ msgstr "Смещение шаблона Байера по Y"
 
 #: src/core/settings.c:297
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
-msgstr ""
+msgstr "Число проходов для алгоритма X-Trans Markesteijn"
 
 #: src/core/settings.c:299
 msgid "electrons per ADU for noise estimation"
