@@ -844,7 +844,7 @@ void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer use
 /* Image composition without luminance. Used for RGB composition for example.
  * Result is in gfit. */
 static void colors_align_and_compose() {
-	int x, y;	// i is browsing the 1D buffer, i = y * rx + x
+	int x, y;
 	if (no_color_available()) return;
 	fprintf(stdout, "colour layers only composition\n");
 #ifdef _OPENMP
