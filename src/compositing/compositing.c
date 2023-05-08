@@ -844,9 +844,12 @@ void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer use
 /* Image composition without luminance. Used for RGB composition for example.
  * Result is in gfit. */
 static void colors_align_and_compose() {
-	int x, y, i = 0;	// i is browsing the 1D buffer, i = y * rx + x
+	int x, y;	// i is browsing the 1D buffer, i = y * rx + x
 	if (no_color_available()) return;
 	fprintf(stdout, "colour layers only composition\n");
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
+#endif
 	for (y = 0; y < gfit.ry; ++y) {
 		for (x = 0; x < gfit.rx; ++x) {
 			int layer;
@@ -862,10 +865,10 @@ static void colors_align_and_compose() {
 			}
 
 			rgb_pixel_limiter(&pixel);
-			gfit.fpdata[RLAYER][i] = pixel.red;
-			gfit.fpdata[GLAYER][i] = pixel.green;
-			gfit.fpdata[BLAYER][i] = pixel.blue;
-			i++;
+			size_t dst_index = y * gfit.rx + x;
+			gfit.fpdata[RLAYER][dst_index] = pixel.red;
+			gfit.fpdata[GLAYER][dst_index] = pixel.green;
+			gfit.fpdata[BLAYER][dst_index] = pixel.blue;
 		}
 	}
 }
