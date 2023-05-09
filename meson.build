@@ -448,13 +448,13 @@ conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the loc
 
 if platform_windows
   conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\siril\config.ini')
-  conf_data.set('MAN_CSS_PATH', '.B C:\Program Files\Siril\share\siril\siril.css')
+  conf_data.set('MAN_CSS_PATH', '.B C:\eProgram Files\eSiril\eshare\esiril\esiril.css')
 elif platform_osx
   conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/config.ini')
-  conf_data.set('MAN_CSS_PATH', '.B $PREFIX/share/siril/siril.css')
+  conf_data.set('MAN_CSS_PATH', '.B /usr/share/siril/siril.css')
 else
   conf_data.set('MAN_CONFIG_PATH', '.B ~/.config/siril/config.ini')
-  conf_data.set('MAN_CSS_PATH', '.B  $PREFIX/share/siril/siril.css')
+  conf_data.set('MAN_CSS_PATH', '.B  /usr/share/siril/siril.css')
 endif
 
 
