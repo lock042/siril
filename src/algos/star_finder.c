@@ -1273,11 +1273,14 @@ gpointer findstar_worker(gpointer p) {
 
 			if (args->starfile && args->save_eqcoords) {
 				sequence *seq = args->im.from_seq;
-				double x = stars[i]->xpos, y = stars[i]->ypos;
+				double dx = stars[i]->xpos, dy = stars[i]->ypos;
 				if (has_wcs(args->im.fit)) {
 					double ra = 0.0, dec = 0.0;
 #ifdef HAVE_WCSLIB
-					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+					// coordinates of the star in FITS/WCS coordinates
+					double fx, fy;
+					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 #endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
@@ -1288,10 +1291,13 @@ gpointer findstar_worker(gpointer p) {
 					// image was not registered, ignore
 				}
 				else {
-					cvTransfPoint(&x, &y, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
+					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
 					double ra = 0.0, dec = 0.0;
 #ifdef HAVE_WCSLIB
-					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+					// coordinates of the star in FITS/WCS coordinates
+					double fx, fy;
+					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 #endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;

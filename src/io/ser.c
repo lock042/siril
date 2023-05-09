@@ -556,7 +556,13 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 	}
 	ser_write_header(ser_file);	// writes the header
 	ser_write_timestamps(ser_file);	// writes the trailer
+	gchar *file_to_delete = NULL;
+	if (retval)
+		file_to_delete = g_strdup(ser_file->filename);
 	ser_close_file(ser_file);// closes, frees and zeroes
+	if (retval && file_to_delete)
+		g_unlink(file_to_delete);
+	g_free(file_to_delete);
 	return retval;
 }
 
@@ -621,6 +627,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 	ser_file->writer = malloc(sizeof(struct seqwriter_data));
 	ser_file->writer->write_image_hook = ser_write_image_for_writer;
 	ser_file->writer->sequence = ser_file;
+	ser_file->writer->output_type = SEQ_SER;
 
 	siril_log_message(_("Created SER file %s\n"), filename);
 	start_writer(ser_file->writer, ser_file->frame_count);
