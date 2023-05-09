@@ -95,6 +95,8 @@ typedef struct {
  * The first element is reserved for luminance and cannot be removed. */
 static layer *layers[MAX_LAYERS+1];	// NULL terminated
 static int layers_count = 1;		// the glade has only luminance
+static unsigned int orig_rx[MAX_LAYERS] = { 0 }; // these are used to hold the original layer image
+static unsigned int orig_ry[MAX_LAYERS] = { 0 }; // dimensions before any upscaling
 
 static int luminance_mode = 0;		// 0 if luminance is not used
 
@@ -297,7 +299,6 @@ static void remove_layer(int layer) {
 	// Abort if the layer we are asked to remove does not exist
 	if (!layers[layer])
 		return;
-
 	int refresh = 0;
 	if (layer != maximum_layers-1) {
 		// the add button is not present if we're at the maximum number of layers
@@ -622,7 +623,9 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
 			close_tab();
 
-			if (number_of_images_loaded() == 1) { // check memory limits
+			if (number_of_images_loaded() == 1) { // set orig_rx and orig_ry, and check memory limits
+				orig_rx[layer] = layers[layer]->the_fit.rx;
+				orig_ry[layer] = layers[layer]->the_fit.ry;
 				compute_compositor_mem_limits(&layers[layer]->the_fit);
 			}
 			if (number_of_images_loaded() > 1 &&
@@ -665,6 +668,8 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	}
 	if (retval) {
 		clearfits(&layers[layer]->the_fit);
+		orig_rx[layer] = 0;
+		orig_ry[layer] = 0;
 		return;
 	}
 
@@ -1434,4 +1439,39 @@ void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_show(win);
 }
 
+void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
+	if (number_of_images_loaded() < 1)
+		return;
+
+	// Clear the image data and the sequence, if populated
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layers[layer]->the_fit.rx != 0)
+			clearfits(&layers[layer]->the_fit);
+	}
+	if (seq) {
+		free_sequence(seq, TRUE);
+		seq = NULL;
+	}
+	close_single_image();
+
+	// Ensure the first image that was loaded before is reloaded first, as the first image to be
+	// loaded must be the largest dimensions
+	int biggest_layer;
+	for (biggest_layer = 0 ; biggest_layer < maximum_layers ; biggest_layer++) {
+		if (layers[biggest_layer])
+			break;
+	}
+	for (int layer = 1 ; layer < maximum_layers ; layer++) {
+		if (orig_rx[layer] > layers[biggest_layer]->the_fit.rx && orig_ry[layer] > layers[layer]->the_fit.ry)
+			biggest_layer = layer;
+	}
+	on_filechooser_file_set(layers[biggest_layer]->chooser, NULL);
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layer != biggest_layer) {
+			on_filechooser_file_set(layers[layer]->chooser, NULL);
+		}
+	}
+	siril_log_message(_("All images reloaded successfully.\n"));
+	update_result(1);
+}
 
