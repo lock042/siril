@@ -68,7 +68,10 @@ static coloring_type_enum coloring_type = HSL;
 /* The result is stored in gfit.
  * gfit.rx and gfit.ry are the reference 1x1 binning output image size. */
 
+// Absolute maximum possible layers
 #define MAX_LAYERS 8
+// Working limit (dependent on memory check)
+static int maximum_layers = MAX_LAYERS;
 
 /* the structure storing information for each layer to be composed
  * (one layer = one source image) and one associated colour */
@@ -123,6 +126,7 @@ static GtkGrid *grid_layers = NULL;
 static GtkButton *add_button = NULL;
 
 /******* internal functions *******/
+static void remove_layer(int layer);
 static void add_the_layer_add_button();
 static void grid_add_row(int layer, int index, int first_time);
 static void grid_remove_row(int layer, int free_the_row);
@@ -150,6 +154,40 @@ gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data);
 void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data);
 
 /********************************************************/
+
+/* mem_limits function */
+/* A bit like the sequence compute_mem_limits functions except this one is used
+ * to set a maximum on the number of layers that can be added, based on the size
+ * of the first one loaded. */
+static void compute_compositor_mem_limits(fits* fit) {
+	unsigned int MB_per_image, MB_per_scaled_image, MB_avail, required;
+	float overlap_allowance = 1.5f;
+	int limit = compute_nb_images_fit_memory_from_fit(fit, 1.0, FALSE, &MB_per_image, &MB_per_scaled_image, &MB_avail);
+	if (limit > 0) {
+		uint64_t float_channel_size = fit->rx * fit->ry * sizeof(float) / BYTES_IN_A_MB;
+		required = float_channel_size * 2;
+		limit = (MB_avail - (3.f * float_channel_size) * overlap_allowance) / required;
+		// UI limitations make it practically difficult to deal with > 10 images
+		// regardless of memory constraints, so we retain 10 as an upper bound.
+		if (limit > 8) {
+			limit = 8;
+		}
+		if (limit < 3) {
+			siril_log_color_message(_("Warning: memory limit check determines that fewer than 3 images of this size can be composited. RGB composition is not possible without freeing up more memory.\n"), "salmon");
+		} else if (limit < 4) {
+			siril_log_color_message(_("Warning: memory limit check determines that fewer than 4 images of this size can be composited. LRGB composition is not possible without freeing up more memory.\n"), "salmon");
+		} else {
+			siril_log_message(_("Based on the available memory and initial image dimensions, up to %d images may be composited (the maximum can never exceed 8).\n"), limit);
+		}
+	}
+	maximum_layers = limit;
+	// Ensure layers exceeding the limit are removed from the GUI
+	for (int layer = MAX_LAYERS ; layer > limit ; layer--) {
+		remove_layer(layer);
+	}
+	gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
+
+}
 
 /* the compositing menu callback */
 
@@ -224,7 +262,7 @@ void on_layer_add(GtkButton *button, gpointer user_data) {
 
 	/* move down the plus button */
 	gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
-	if (layers_count < MAX_LAYERS)
+	if (layers_count <= maximum_layers)
 		add_the_layer_add_button();
 
 	/* add the new layer */
@@ -255,15 +293,13 @@ static void add_the_layer_add_button() {
 		gtk_widget_show(GTK_WIDGET(add_button));
 }
 
-/* callback of the '-' button that is clicked to remove a layer in the list */
-void on_layer_remove(const GtkButton *button, gpointer user_data) {
-	int layer, refresh = 0;
-	for (layer = 1; layers[layer]; layer++)
-		if (layers[layer]->remove_button == button)
-			break;
-	if (!layers[layer]) return;
+static void remove_layer(int layer) {
+	// Abort if the layer we are asked to remove does not exist
+	if (!layers[layer])
+		return;
 
-	if (layer != MAX_LAYERS-1) {
+	int refresh = 0;
+	if (layer != maximum_layers-1) {
 		// the add button is not present if we're at the maximum number of layers
 		gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
 	}
@@ -290,6 +326,17 @@ void on_layer_remove(const GtkButton *button, gpointer user_data) {
 
 	if (refresh)
 		update_result(1);
+}
+
+/* callback of the '-' button that is clicked to remove a layer in the list */
+void on_layer_remove(const GtkButton *button, gpointer user_data) {
+	int layer;
+	for (layer = 1; layers[layer]; layer++)
+		if (layers[layer]->remove_button == button)
+			break;
+	if (!layers[layer]) return;
+
+	remove_layer(layer);
 }
 
 static void grid_remove_row(int layer, int free_the_row) {
@@ -437,6 +484,16 @@ static int no_color_available() {	// don't test luminance
 /* the 'enable luminance' checkbox callback */
 void on_composition_use_lum_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	luminance_mode = gtk_toggle_button_get_active(togglebutton);
+
+	// Reset the luminance file if it is toggled off when the maximum number
+	// of files are loaded.
+	if (!luminance_mode && layers[0]->the_fit.rx != 0 && number_of_images_loaded() == maximum_layers) {
+		clearfits(&layers[0]->the_fit);
+		gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(layers[0]->chooser));
+		gtk_label_set_text((GtkLabel*)layers[0]->label, _("not loaded"));
+	}
+
+	// Update the result if necessary
 	if (has_fit(0) && number_of_images_loaded() >= 1)
 		update_result(1);
 }
@@ -531,6 +588,18 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	if (!layers[layer]) return;	// not found
 	/* layer is the number of the opened layer */
 
+	// If this layer doesn't already have a fit loaded, and
+	// we already have the maximum number of images loaded,
+	// error message and return. This may happen because the
+	// memory check function can't be too strict about removing
+	// layers, it has to allow for either luminance or non-
+	// luminance compositions
+	if (layers[layer]->the_fit.rx == 0 && number_of_images_loaded() == maximum_layers) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"), _("The meximum number of images of this size has been reached based on available memory limits."));
+		gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(layers[layer]->chooser));
+		return;
+	}
+
 	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
 	if (!filename) return;
 	if (layers[layer]->the_fit.rx == 0) {	// already loaded image
@@ -553,6 +622,9 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
 			close_tab();
 
+			if (number_of_images_loaded() == 1) { // check memory limits
+				compute_compositor_mem_limits(&layers[layer]->the_fit);
+			}
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||
 							gfit.ry != layers[layer]->the_fit.ry)) {
