@@ -7,16 +7,16 @@
 #include "core/settings.h"
 
 typedef struct {
-	double mag; // magnitude
-	double s_mag; // magnitude uncertainty
-	gboolean valid; // TRUE if no pixel outside of the range
-	double SNR; // SNR estimation
+	double mag;	// magnitude
+	double s_mag;	// magnitude uncertainty
+	gboolean valid;	// TRUE if no pixel outside of the range
+	double SNR;	// SNR estimation
 } photometry;
 
 typedef struct {
-	float x, y;// in image pixels coordinates
-	float mag; // visible magnitude (V filter), for sorting and debug
-	float BV;
+	float x, y;	// in FITS/WCS coordinates
+	float mag;	// visible magnitude (V filter), for sorting and debug
+	float BV;	// B magnitude - V magnitude, -99.9 if not available
 } pcc_star;
 
 typedef enum {
