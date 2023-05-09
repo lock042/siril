@@ -375,9 +375,9 @@ void open_compositing_window() {
 		/* the list below depends on the content of the glade file. It
 		 * should be done in the same way as in registration.c, but it
 		 * woud be easier if the two glades are merged. */
-		reg_methods[0] = new_reg_method(_("Global star registration (deep-sky)"), &register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-		reg_methods[1] = new_reg_method(_("2-step global star registration (deep-sky COG)"), &register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-		reg_methods[2] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+		reg_methods[0] = new_reg_method(_("Deep Sky (two-step global star registration)"), &register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[1] = new_reg_method(_("Planetary (DFT image pattern alignment)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+		reg_methods[2] = new_reg_method(_("Planetary (KOMBAT image pattern alignment)"), &register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 
 		reg_methods[3] = NULL;
 		update_compositing_registration_interface();
@@ -544,7 +544,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		/* first we want test that we load a single-channel image */
 		if (layers[layer]->the_fit.naxes[2] > 1) {
 			gtk_label_set_markup(layers[layer]->label, _("<span foreground=\"red\">ERROR</span>"));
-			gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Only single channel images can be load"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Only single channel images can be loaded"));
 			retval = 1;
 		} else {
 			/* Force first tab to be Red and not B&W if an image was already loaded */
@@ -556,10 +556,6 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||
 							gfit.ry != layers[layer]->the_fit.ry)) {
-				/* TODO: handle the binning cases. Values should be stored
-				 * in, or even taken from fit->binning_x and binning_y */
-				//if (layers[layer]->the_fit.binning_x > 1 ||
-				//layers[layer]->the_fit.binning_y > 1)
 				if (gfit.rx < layers[layer]->the_fit.rx ||
 						gfit.ry < layers[layer]->the_fit.ry) {
 					siril_log_message(_("The first loaded image should have the greatest sizes for now\n"));
@@ -648,17 +644,46 @@ void create_the_internal_sequence() {
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	// Ensure the transformation type is set correctly
 	struct registration_method *method;
+	framing_type framing;
 	GtkComboBox *regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
-
+	GtkComboBox *framingcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_framing_combo"));
+	framing = (framing_type) gtk_combo_box_get_active(framingcombo);
 	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
 		the_type = SHIFT_TRANSFORMATION;
 	else
 		the_type = HOMOGRAPHY_TRANSFORMATION;
 
+	gboolean two_step = (method->method_ptr == register_multi_step_global ||
+		method->method_ptr == register_kombat) ? TRUE : FALSE;
+
 	// Avoid crash if gfit has been closed since populating the layers
 	if (!gfit.data && !gfit.fdata) {
 		update_result(1);
+	}
+
+	// Avoid crash if the size of gfit is larger than the input images
+	// This can happen if compositing is run twice in a row with a
+	// framing type that increases its dimensions
+	check_gfit_is_ours();
+
+	// Check the input images are still all the same size. Size changes
+	// can happen if a prior composition failed to align some images.
+	gboolean variable = FALSE;
+	int start = luminance_mode ? 0 : 1;
+	int rx = layers[start]->the_fit.rx;
+	int ry = layers[start]->the_fit.ry;
+	for (int i = start ; i < layers_count ; i++) {
+		if (rx != layers[i]->the_fit.rx || ry != layers[i]->the_fit.ry) {
+			char buf[48];
+			sprintf(buf, _("NOT OK: %ux%u"), layers[i]->the_fit.rx, layers[i]->the_fit.ry);
+			gtk_label_set_text(layers[i]->label, buf);
+			variable = TRUE;
+		}
+	}
+	if (variable) {
+		siril_log_color_message(_("The image sizes are not consistent. This may happen as the result of previous alignment operations. Please reload the input images.\n"), "red");
+		return;
 	}
 
 	int i = 0;
@@ -671,17 +696,16 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.seq = seq;
 	regargs.no_output = FALSE;
 	get_the_registration_area(&regargs, method);
-	regargs.layer = 0;	// TODO: fix with dynamic layers list
+	regargs.layer = 0;
 	seq->reference_image = 0;
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
 	regargs.interpolation = OPENCV_LANCZOS4;
 	regargs.clamp = TRUE;
-	if (method->method_ptr == register_multi_step_global) {
-		regargs.framing = FRAMING_COG;
-	} else {
-		regargs.framing = FRAMING_CURRENT;
-	}
+	regargs.framing = framing;
+	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
+	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
+						framing != FRAMING_CURRENT) ? TRUE : FALSE;
 	regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
@@ -694,14 +718,36 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(FALSE);
 		free(regargs.imgparam);
 		free(regargs.regparam);
+		set_cursor_waiting(FALSE);
+		com.run_thread = FALSE;	// fix for the cancelling check in processing
 		return;
 	}
-	if (method->method_ptr == register_multi_step_global) {
+	if (two_step) {
+		int count = 0;
+		for (int i = 0 ; i < layers_count - start ; i++) {
+			if (seq->imgparam[i].incl) count++;
+		}
+		if (count != layers_count - start) {
+			if (!siril_confirm_dialog(_("Incomplete alignment"),
+					_("Some images did not align correctly. Proceed to see the "
+					"partially aligned result? (This may alter image dimensions "
+					"in which case the images must be re-loaded to retry "
+					"alignment.)"), _("Proceed"))) {
+				set_cursor_waiting(FALSE);
+				free(regargs.imgparam);
+				free(regargs.regparam);
+				set_cursor_waiting(FALSE);
+				com.run_thread = FALSE;	// fix for the cancelling check in processing
+				return;
+			}
+		}
 		if (register_apply_reg(&regargs)) {
 			set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
 			set_cursor_waiting(FALSE);
 			free(regargs.imgparam);
 			free(regargs.regparam);
+			set_cursor_waiting(FALSE);
+			com.run_thread = FALSE;	// fix for the cancelling check in processing
 			return;
 		}
 	}
@@ -755,15 +801,15 @@ static float get_composition_pixel_value(int fits_index, int reg_layer, int x, i
 			translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
 		// all images have one layer, hence the 0 below
 		realX = x - round_to_int(dx);
-		if (realX < 0 || realX >= gfit.rx) return 0.0f;
+		if (realX < 0 || realX >= layers[fits_index]->the_fit.rx) return 0.0f;
 		realY = y - round_to_int(dy);
-		if (realY < 0 || realY >= gfit.ry) return 0.0f;
+		if (realY < 0 || realY >= layers[fits_index]->the_fit.ry) return 0.0f;
 	}
 	float pixel_value;
 	if (layers[fits_index]->the_fit.type == DATA_FLOAT)
-		pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * gfit.rx];
+		pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * layers[fits_index]->the_fit.rx];
 	else if (layers[fits_index]->the_fit.type == DATA_USHORT)
-		pixel_value = (float) layers[fits_index]->the_fit.pdata[0][realX + realY * gfit.rx] / USHRT_MAX_SINGLE;
+		pixel_value = (float) layers[fits_index]->the_fit.pdata[0][realX + realY * layers[fits_index]->the_fit.rx] / USHRT_MAX_SINGLE;
 	else
 		pixel_value = 0.f;
 	if (coeff) {
@@ -802,14 +848,9 @@ static void update_compositing_registration_interface() {
 	if (!gui.builder) return;
 	GtkLabel *label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_msg"));
 	GtkComboBox *combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
-	//int ref_layer = gtk_combo_box_get_active(GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_layer_combo")));
 	int sel_method = gtk_combo_box_get_active(combo);
-	/* select default method as function of selection size */
-	/*if (sel_method == -1 && com.selection.w > 0 && com.selection.h > 0) {
-		if (com.selection.w > 180 || com.selection.h > 180)
-			gtk_combo_box_set_active(combo, 0);	// activate DFT
-		else gtk_combo_box_set_active(combo, 1);	// activate FWHM
-	}*/
+
+
 	if (com.selection.w <= 0 && com.selection.h <= 0 && sel_method == 2) {
 		// DFT shift requires a selection to be made
 		gtk_label_set_text(label, _("An image area must be selected for align"));
@@ -828,9 +869,6 @@ static void update_compositing_registration_interface() {
 }
 
 /* callback for changes of the selected reference layer */
-void on_compositing_align_layer_combo_changed(GtkComboBox *widget, gpointer user_data) {
-	update_compositing_registration_interface();
-}
 
 void on_compositing_align_method_combo_changed(GtkComboBox *widget, gpointer user_data) {
 	update_compositing_registration_interface();

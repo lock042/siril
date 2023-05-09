@@ -9075,9 +9075,10 @@ Modifying parameters in this windows afterward will void the colour balance, and
             <property name="column-spacing">8</property>
             <child>
               <object class="GtkLabel" id="label_ref">
+                <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Align layers on this reference layer:</property>
+                <property name="label" translatable="yes">Use this alignment method:</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -9105,12 +9106,27 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">and using this alignment method:</property>
+                <property name="label" translatable="yes">and this framing method:</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">1</property>
                 <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_msg">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+                <property name="width">4</property>
               </packing>
             </child>
             <child>
@@ -9125,46 +9141,30 @@ Modifying parameters in this windows afterward will void the colour balance, and
               </object>
               <packing>
                 <property name="left-attach">2</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label_msg">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                </attributes>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="compositing_align_layer_combo">
-                <property name="sensitive">False</property>
-                <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">For LRGB composition, the reference layer should be luminance.</property>
-                <items>
-                  <item translatable="yes">Luminance</item>
-                  <item translatable="yes">Red</item>
-                  <item translatable="yes">Green</item>
-                  <item translatable="yes">Blue</item>
-                </items>
-                <signal name="changed" handler="on_compositing_align_layer_combo_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
                 <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+              <object class="GtkComboBoxText" id="compositing_align_framing_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Select framing method for deep-sky alignment:
+First channel - frame to the first channel (always L in luminance mode);
+Max - frame to the maximum extent of the aligned images;
+Min - frame to the minimum overlap of all aligned images;
+COG - frame to the centre of gravity of the pixels in the set of aligned images.</property>
+                <property name="active">1</property>
+                <items>
+                  <item translatable="yes">First channel</item>
+                  <item translatable="yes">Max</item>
+                  <item translatable="yes">Min</item>
+                  <item translatable="yes">COG</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
+              </packing>
             </child>
           </object>
           <packing>
