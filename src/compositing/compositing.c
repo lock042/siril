@@ -1475,3 +1475,26 @@ void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 	update_result(1);
 }
 
+void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
+	if (number_of_images_loaded() == 0) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No layers loaded: no files to save"));
+		return;
+	}
+	int retval = 0;
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layers[layer]->the_fit.rx != 0) {
+			gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(layers[layer]->chooser));
+			gchar *basename = g_path_get_basename(filename);
+			gchar *prepended_filename = g_strdup_printf("comp_%s", basename);
+			retval += savefits(prepended_filename, &layers[layer]->the_fit);
+			g_free(prepended_filename);
+			g_free(basename);
+			g_free(filename);
+		}
+	}
+	if (!retval) {
+		siril_log_color_message(_("All layer images saved correctly.\n"), "green");
+	} else {
+		siril_log_color_message(_("Error encountered in saving one or more files. Check previous log messages for details.\n"), "red");
+	}
+}
