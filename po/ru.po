@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-05-08 19:41+0000\n"
+"PO-Revision-Date: 2023-05-11 08:40+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -5627,7 +5627,6 @@ msgid "Similarity"
 msgstr "Сходство"
 
 #: src/gui/siril3.glade:21922
-#, fuzzy
 msgid "Affine"
 msgstr "Аффинное"
 
