@@ -100,7 +100,7 @@ static unsigned int orig_ry[MAX_LAYERS] = { 0 }; // dimensions before any upscal
 
 static int luminance_mode = 0;		// 0 if luminance is not used
 
-static struct registration_method *reg_methods[4];
+static struct registration_method *reg_methods[5];
 
 static sequence *seq = NULL;		// the sequence of layers, for alignments and normalization
 static norm_coeff *coeff = NULL;	// the normalization coefficients
@@ -146,6 +146,7 @@ static void clear_pixel(GdkRGBA *pixel);
 static void update_result(int and_refresh);
 static void populate_filter_lists();
 static void coeff_clear();
+int register_manual(struct registration_args *regargs);
 
 /* callbacks for programatic GTK */
 void on_layer_remove(const GtkButton *button, gpointer user_data);
@@ -426,8 +427,9 @@ void open_compositing_window() {
 		reg_methods[0] = new_reg_method(_("Deep Sky (two-step global star registration)"), &register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 		reg_methods[1] = new_reg_method(_("Planetary (DFT image pattern alignment)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
 		reg_methods[2] = new_reg_method(_("Planetary (KOMBAT image pattern alignment)"), &register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
+		reg_methods[3] = new_reg_method(_("Manual alignment"), &register_manual, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 
-		reg_methods[3] = NULL;
+		reg_methods[4] = NULL;
 		update_compositing_registration_interface();
 		/* fill compositing_align_method_combo */
 		GtkComboBoxText *aligncombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
@@ -927,9 +929,8 @@ static void update_compositing_registration_interface() {
 	GtkComboBox *combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 	int sel_method = gtk_combo_box_get_active(combo);
 
-
-	if (com.selection.w <= 0 && com.selection.h <= 0 && sel_method == 2) {
-		// DFT shift requires a selection to be made
+	if (com.selection.w <= 0 && com.selection.h <= 0 && (sel_method == 1 || sel_method == 2)) {
+		// DFT shift ad KOMBAT require a selection to be made
 		gtk_label_set_text(label, _("An image area must be selected for align"));
 		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
 	/*} else if (ref_layer == -1 || (!luminance_mode && ref_layer == 0)) {
@@ -949,6 +950,30 @@ static void update_compositing_registration_interface() {
 
 void on_compositing_align_method_combo_changed(GtkComboBox *widget, gpointer user_data) {
 	update_compositing_registration_interface();
+	int sel_method = gtk_combo_box_get_active(widget);
+	if (sel_method == 3) { // Prepare for manual alignment
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				// Make the spinbuttons sensitive to input
+				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_x, TRUE);
+				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_y, TRUE);
+				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_r, TRUE);
+				// Zero the spinbuttons
+				gtk_spin_button_set_value(layers[layer]->spinbutton_x, 0.0);
+				gtk_spin_button_set_value(layers[layer]->spinbutton_y, 0.0);
+				gtk_spin_button_set_value(layers[layer]->spinbutton_r, 0.0);
+			}
+		}
+	} else {
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				// Make the spinbuttons insensitive to input
+				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_x, FALSE);
+				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_y, FALSE);
+				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_r, FALSE);
+			}
+		}
+	}
 }
 
 void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer user_data) {
@@ -1498,3 +1523,247 @@ void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_color_message(_("Error encountered in saving one or more files. Check previous log messages for details.\n"), "red");
 	}
 }
+
+/* Manual registration function
+ * This registration function takes the shift and rotation values entered in the
+ * spinbutton boxes, generates a homography matrix from them and applies it to the
+ * set of images.
+ */
+
+int manual_align_prepare_results(struct generic_seq_args *args) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+
+	if (!regargs->no_output) {
+		// allocate destination sequence data
+		regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
+		regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
+		if (!regargs->imgparam  || !regargs->regparam) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		if (seq_prepare_hook(args))
+			return 1;
+	}
+
+	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
+	if (!sadata->success) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	return 0;
+}
+
+int manual_align_prepare_hook(struct generic_seq_args *args) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	fits fit = { 0 };
+	sadata->current_regdata = star_align_get_current_regdata(regargs);
+	if (!sadata->current_regdata) return -2;
+	/* first we're looking for stars in reference image */
+	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
+		siril_log_message(_("Could not load reference image\n"));
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		return 1;
+	}
+	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
+		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
+
+	siril_log_color_message(_("Reference Image:\n"), "green");
+	sadata->ref.x = fit.rx;
+	sadata->ref.y = fit.ry;
+	// For internal sequences the data / fdata pointer still
+	// points to the original memory in seq->internal_fits.
+	// It must not be freed by clearfits here so we set the
+	// pointers in fit to NULL
+	if (args->seq->type == SEQ_INTERNAL) {
+		fit.data = NULL;
+		fit.fdata = NULL;
+	}
+	clearfits(&fit);
+
+	if (regargs->x2upscale) {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 2.0;
+		} else {
+			sadata->ref.x *= 2.0;
+			sadata->ref.y *= 2.0;
+		}
+	}
+	else {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 1.0;
+		}
+	}
+	sadata->current_regdata[regargs->reference_image].roundness = 1.;
+	sadata->current_regdata[regargs->reference_image].fwhm = 1.;
+	sadata->current_regdata[regargs->reference_image].weighted_fwhm = 1.;
+	sadata->current_regdata[regargs->reference_image].background_lvl = 0.;
+	sadata->current_regdata[regargs->reference_image].number_of_stars = 0;
+	return manual_align_prepare_results(args);
+}
+
+Homography H_from_translation_and_rotation(double dx, double dy, double dr) {
+	Homography H = { cos(dr),	-sin(dr),	dx,
+					 sin(dr),	cos(dr),	dy,
+					 0,			0,			1 };
+	return H;
+}
+
+int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	int offset = luminance_mode ? 0 : 1;
+	if (regargs->no_output) {
+		/* if "save transformation only", we choose to initialize all frames
+		 * to exclude status. If registration is ok, the status is
+		 * set to include */
+		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+	}
+	if (layers[in_index + offset] && layers[in_index + offset]->the_fit.rx != 0) {
+		double dx = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_x);
+		double dy = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_y);
+		double dr = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_r);
+		if (dx == 0.0 && dy == 0.0 && dr == 0.0) {
+			regargs->reference_image = in_index;
+		}
+		Homography H = H_from_translation_and_rotation(dx, dy, dr);
+		if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
+			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+			return 1;
+		} else {
+			args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		}
+	} else {
+		args->seq->imgparam[in_index].incl = FALSE;
+		return 1;
+	}
+	if (!regargs->no_output) {
+		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		regargs->imgparam[out_index].rx = sadata->ref.x;
+		regargs->imgparam[out_index].ry = sadata->ref.y;
+		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
+		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
+		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+		cvGetEye(&regargs->regparam[out_index].H);
+
+		if (regargs->x2upscale) {
+			fit->pixel_size_x /= 2;
+			fit->pixel_size_y /= 2;
+			regargs->regparam[out_index].fwhm *= 2.0;
+			regargs->regparam[out_index].weighted_fwhm *= 2.0;
+		}
+	} else {
+		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
+		// seems like not but this could backfire at some point
+		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+	}
+	sadata->success[out_index] = 1;
+	return 0;
+}
+
+int manual_align_finalize_hook(struct generic_seq_args *args) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	int failed = 0;
+	// images may have been excluded but selnum wasn't updated
+	fix_selnum(args->seq, FALSE);
+	if (!args->retval) {
+		for (int i = 0; i < args->nb_filtered_images; i++)
+			if (!sadata->success[i])
+				failed++;
+		regargs->new_total = args->nb_filtered_images - failed;
+
+		if (!regargs->no_output) {
+			if (failed) {
+				// regargs->imgparam and regargs->regparam may have holes caused by images
+				// that failed to be registered - compact them
+				for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
+					while (!sadata->success[j] && j < args->nb_filtered_images) j++;
+					g_assert(sadata->success[j]);
+					if (i != j) {
+						regargs->imgparam[i] = regargs->imgparam[j];
+						regargs->regparam[i] = regargs->regparam[j];
+					}
+				}
+			}
+
+			seq_finalize_hook(args);
+		}
+	} else {
+		regargs->new_total = 0;
+		free(args->seq->regparam[regargs->layer]);
+		args->seq->regparam[regargs->layer] = NULL;
+
+		if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
+			fitseq_close_and_delete_file(args->new_fitseq);
+			free(args->new_fitseq);
+		}
+	}
+
+	if (sadata->success) free(sadata->success);
+	free(sadata);
+	args->user = NULL;
+	if (!args->retval) {
+		siril_log_message(_("Registration finished.\n"));
+		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
+		str = g_strdup_printf(str, args->nb_filtered_images);
+		siril_log_color_message(str, "green");
+		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+
+		g_free(str);
+	}
+	else {
+		siril_log_message(_("Registration aborted.\n"));
+	}
+	return regargs->new_total == 0;
+}
+
+int manual_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
+			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
+	if (limit > com.max_thread)
+		limit = com.max_thread;
+	return limit;
+}
+
+int register_manual(struct registration_args *regargs) {
+	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
+	if (regargs->filters.filter_included) {
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = regargs->seq->selnum;
+	}
+	args->compute_mem_limits_hook = manual_align_compute_mem_limits;	// ***
+	args->prepare_hook = manual_align_prepare_hook;						// ***
+	args->image_hook = manual_align_image_hook;							// ***
+	args->finalize_hook = manual_align_finalize_hook;					// ***
+	args->stop_on_error = FALSE;
+	args->description = _("Manual registration");
+	args->has_output = !regargs->no_output;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
+	args->new_seq_prefix = regargs->prefix;
+	args->load_new_sequence = !regargs->no_output;
+	args->already_in_a_thread = TRUE;
+
+	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
+	if (!sadata) {
+		free(args);
+		return -1;
+	}
+	sadata->regargs = regargs;
+	args->user = sadata;
+
+	generic_sequence_worker(args);
+
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
+}
+
