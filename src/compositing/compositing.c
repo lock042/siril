@@ -266,7 +266,7 @@ void on_layer_add(GtkButton *button, gpointer user_data) {
 
 	/* move down the plus button */
 	gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
-	if (layers_count <= maximum_layers)
+	if (layers_count < maximum_layers)
 		add_the_layer_add_button();
 
 	/* add the new layer */
