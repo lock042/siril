@@ -8978,6 +8978,8 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <object class="GtkLabel" id="label_alignments">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the x-axis shift.
+In other alignment modes, shows the x-axis shift applied to the layer.</property>
                 <property name="label" translatable="yes">x alignment</property>
               </object>
               <packing>
@@ -8989,6 +8991,8 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the y-axis shift.
+In other alignment modes, shows the y-axis shift applied to the layer.</property>
                 <property name="label" translatable="yes">y alignment</property>
               </object>
               <packing>
@@ -9000,6 +9004,9 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the rotation around the center of the image.
+In other alignment modes, shows the rotation applied to the layer around the origin.
+Rotation is shown in degrees anticlockwise.</property>
                 <property name="label" translatable="yes">rotation</property>
               </object>
               <packing>

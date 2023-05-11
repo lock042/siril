@@ -753,7 +753,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	int rx = layers[start]->the_fit.rx;
 	int ry = layers[start]->the_fit.ry;
 	for (int i = start ; i < layers_count ; i++) {
-		if (rx != layers[i]->the_fit.rx || ry != layers[i]->the_fit.ry) {
+		if (layers[i]->the_fit.rx != 0 && (rx != layers[i]->the_fit.rx || ry != layers[i]->the_fit.ry)) {
 			char buf[48];
 			sprintf(buf, _("NOT OK: %ux%u"), layers[i]->the_fit.rx, layers[i]->the_fit.ry);
 			gtk_label_set_text(layers[i]->label, buf);
