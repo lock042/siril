@@ -9113,7 +9113,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
           </packing>
         </child>
         <child>
-          <!-- n-columns=4 n-rows=3 -->
+          <!-- n-columns=5 n-rows=3 -->
           <object class="GtkGrid" id="grid19">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -9130,21 +9130,6 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="left-attach">0</property>
                 <property name="top-attach">0</property>
                 <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_align">
-                <property name="label" translatable="yes">Align</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Automatic alignment using the selected registration method.</property>
-                <signal name="clicked" handler="on_button_align_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">3</property>
-                <property name="top-attach">0</property>
-                <property name="height">2</property>
               </packing>
             </child>
             <child>
@@ -9211,6 +9196,40 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
                 <property name="left-attach">2</property>
                 <property name="top-attach">1</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_align">
+                <property name="label" translatable="yes">Align</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Automatic alignment using the selected registration method.</property>
+                <signal name="clicked" handler="on_button_align_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">0</property>
+                <property name="height">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="compositing_linear_match">
+                <property name="label" translatable="yes">Linear match</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Linear match the input layer images to the first layer.
+This is important if you are not coloring the layers with pure R, pure G and pure B.</property>
+                <signal name="clicked" handler="on_compositing_linear_match_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">0</property>
+                <property name="height">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>

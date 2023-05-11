@@ -41,6 +41,7 @@
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
+#include "gui/linear_match.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
@@ -84,7 +85,9 @@ typedef struct {
 	GtkSpinButton *spinbutton_x;	// the X spin button
 	GtkSpinButton *spinbutton_y;	// the Y spin button
 	GtkSpinButton *spinbutton_r;	// the rotation spin button
-
+	double spinbutton_x_value;
+	double spinbutton_y_value;
+	double spinbutton_r_value;
 	/* useful data */
 	GdkRGBA color;			// real color of the layer
 	GdkRGBA saturated_color;	// saturated color of the layer
@@ -788,6 +791,18 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
+	// Update the spinbutton values if we are doing manual reg
+	// This avoids GTK calls from threads
+	if (method->method_ptr == register_manual) {
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				layers[layer]->spinbutton_x_value = gtk_spin_button_get_value(layers[layer]->spinbutton_x);
+				layers[layer]->spinbutton_y_value = gtk_spin_button_get_value(layers[layer]->spinbutton_y);
+				layers[layer]->spinbutton_r_value = gtk_spin_button_get_value(layers[layer]->spinbutton_r);
+			}
+		}
+	}
+
 	msg = siril_log_message(_("Starting registration using method: %s\n"), method->name);
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
@@ -804,9 +819,12 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	if (two_step) {
 		int count_A = 0;
 		int count_B = 0;
-		for (int layer = 0 ; layer < layers_count - start ; layer++) {
-			if (seq->imgparam[layer].incl) count_A++;
-			if (layers[layer]->the_fit.rx != 0) count_B++;
+		for (int index = 0 ; index < layers_count - start ; index++) {
+			int layer = index + start;
+			if (layers[layer]->the_fit.rx != 0) {
+				count_B++;
+				if (seq->imgparam[index].incl) count_A++;
+			}
 		}
 		if (count_A != count_B) {
 			if (!siril_confirm_dialog(_("Incomplete alignment"),
@@ -853,7 +871,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			}
 		}
 	}
-
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
 	update_result(1);
@@ -1528,6 +1545,42 @@ void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
+void on_compositing_linear_match_clicked(GtkButton *button, gpointer *user_data) {
+	int error = 0;
+	if (number_of_images_loaded() < 2) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("At least 2 images must be loaded to perform linear matching."));
+		return;
+	}
+	int ref_layer = -1;
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layers[layer]->the_fit.rx != 0) {
+			ref_layer = layer;
+			break;
+		}
+	}
+	fits *ref = &layers[ref_layer]->the_fit;
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layer == ref_layer)
+			continue;
+		if (layers[layer] && layers[layer]->the_fit.rx != 0) {
+			double a[3] = { 0.0 }, b[3] = { 0.0 };
+			double low = 1.e-7;
+			double high = 0.875;
+			if (!find_linear_coeff(&layers[layer]->the_fit, ref, low, high, a, b, NULL)) {
+				apply_linear_to_fits(&layers[layer]->the_fit, a, b);
+			} else {
+				siril_log_message(_("Unable to find linear match coefficients for layer %d. Skipping...\n"), layer);
+				error++;
+			}
+		}
+		set_progress_bar_data(_("Linear match layers"), (double) layer / (double) maximum_layers);
+	}
+	set_progress_bar_data(_("Linear match layers complete"), 1.0);
+	if (error)
+		siril_log_color_message(_("Error: failed to match %d layers with the reference layer.\n"), "red", error);
+	update_result(1);
+}
+
 /*********************************
  *                               *
  * Manual registration functions *
@@ -1633,9 +1686,9 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 	if (layers[in_index + offset] && layers[in_index + offset]->the_fit.rx != 0) {
-		double dx = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_x);
-		double dy = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_y);
-		double dr = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_r);
+		double dx = layers[in_index + offset]->spinbutton_x_value;
+		double dy = layers[in_index + offset]->spinbutton_y_value;
+		double dr = layers[in_index + offset]->spinbutton_r_value;
 		// Convert dr to radians
 		dr *= M_PI;
 		dr /= 180.0;
