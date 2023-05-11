@@ -31,6 +31,7 @@
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"
@@ -44,6 +45,7 @@
 #include "gui/linear_match.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
+#include "gui/photometric_cc.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
 #include "gui/colors.h"
@@ -1478,11 +1480,21 @@ static void coeff_clear() {
 }
 
 void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	GtkWidget *win = lookup_widget("color_calibration");
-	initialize_calibration_interface();
+	gboolean photometric = gtk_toggle_button_get_active((GtkToggleButton*) lookup_widget("compositing_pcc_active"));
+	GtkWidget *win = NULL;
+	if (photometric) {
+		win = lookup_widget("ImagePlateSolver_Dial");
+		initialize_photometric_cc_dialog();
+	} else {
+		win = lookup_widget("color_calibration");
+		initialize_calibration_interface();
+	}
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */
 	gtk_widget_show(win);
+
+	if(photometric)
+		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 }
 
 void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {

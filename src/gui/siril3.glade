@@ -9041,6 +9041,22 @@ Rotation is shown in degrees anticlockwise.</property>
             <property name="margin-top">2</property>
             <property name="spacing">10</property>
             <child>
+              <object class="GtkButton" id="compositing_linear_match">
+                <property name="label" translatable="yes">Linear match</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Linear match the input layer images to the first layer.
+This is important if you are not coloring the layers with pure R, pure G and pure B.</property>
+                <signal name="clicked" handler="on_compositing_linear_match_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="composition_layers_autoadjust">
                 <property name="label" translatable="yes">Adjust layers brightness</property>
                 <property name="visible">True</property>
@@ -9052,12 +9068,12 @@ Rotation is shown in degrees anticlockwise.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkButton" id="composition_rgbcolor">
-                <property name="label" translatable="yes">Finalize colour balance</property>
+                <property name="label" translatable="yes">Color calibration</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
@@ -9069,7 +9085,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -9090,6 +9106,22 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="fill">True</property>
                 <property name="pack-type">end</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="compositing_pcc_active">
+                <property name="label" translatable="yes">photometric</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">When checked, photometric color calibration is used.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -9213,20 +9245,7 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="compositing_linear_match">
-                <property name="label" translatable="yes">Linear match</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Linear match the input layer images to the first layer.
-This is important if you are not coloring the layers with pure R, pure G and pure B.</property>
-                <signal name="clicked" handler="on_compositing_linear_match_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">3</property>
-                <property name="top-attach">0</property>
-                <property name="height">2</property>
-              </packing>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
