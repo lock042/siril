@@ -232,17 +232,17 @@ layer *create_layer(int index) {
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
 	g_object_ref(G_OBJECT(ret->label));	// don't destroy it on removal from grid
 
-	ret->spinbutton_x = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 1.0));
+	ret->spinbutton_x = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 0.1));
 	gtk_spin_button_set_value(ret->spinbutton_x, 0.0);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_x), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_x));	// don't destroy it on removal from grid
 
-	ret->spinbutton_y = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 1.0));
+	ret->spinbutton_y = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 0.1));
 	gtk_spin_button_set_value(ret->spinbutton_y, 0.0);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_y), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_y));	// don't destroy it on removal from grid
 
-	ret->spinbutton_r = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-360.0, 360.0, 1.0));
+	ret->spinbutton_r = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-360.0, 360.0, 0.001));
 	gtk_spin_button_set_value(ret->spinbutton_r, 0.0);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_r), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_r));	// don't destroy it on removal from grid
@@ -734,7 +734,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		the_type = HOMOGRAPHY_TRANSFORMATION;
 
 	gboolean two_step = (method->method_ptr == register_multi_step_global ||
-		method->method_ptr == register_kombat) ? TRUE : FALSE;
+		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
 
 	// Avoid crash if gfit has been closed since populating the layers
 	if (!gfit.data && !gfit.fdata) {
@@ -835,18 +835,20 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
 
 	/* display the values */
-	if (!luminance_mode)
-		i = 1;
+	if (method->method_ptr != register_manual) {
+		if (!luminance_mode)
+			i = 1;
 
-	for (int j=0; i<layers_count; i++) {
-		if (has_fit(i)) {
-			double dx, dy, rotation;
-			translation_from_H(seq->regparam[0][j].H, &dx, &dy);
-			rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / M_PI;
-			gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
-			gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
-			gtk_spin_button_set_value(layers[i]->spinbutton_r, rotation);
-			j++;
+		for (int j=0; i<layers_count; i++) {
+			if (has_fit(i)) {
+				double dx, dy, rotation;
+				translation_from_H(seq->regparam[0][j].H, &dx, &dy);
+				rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / M_PI;
+				gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
+				gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
+				gtk_spin_button_set_value(layers[i]->spinbutton_r, rotation);
+				j++;
+			}
 		}
 	}
 
@@ -1524,7 +1526,11 @@ void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
-/* Manual registration function
+/*********************************
+ *                               *
+ * Manual registration functions *
+ *                               *
+ *********************************
  * This registration function takes the shift and rotation values entered in the
  * spinbutton boxes, generates a homography matrix from them and applies it to the
  * set of images.
@@ -1605,10 +1611,12 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 	return manual_align_prepare_results(args);
 }
 
-Homography H_from_translation_and_rotation(double dx, double dy, double dr) {
-	Homography H = { cos(dr),	-sin(dr),	dx,
-					 sin(dr),	cos(dr),	dy,
-					 0,			0,			1 };
+Homography H_from_translation_and_rotation(double dx, double dy, double dr, point center) {
+	double alpha = cos(dr);
+	double beta = sin(dr);
+	Homography H = { alpha,	beta,	dx + (1 - alpha) * center.x - beta * center.y,
+					 -beta,	alpha,	dy + beta * center.x + (1 - alpha) * center.y,
+					 0,		0,		1 };
 	return H;
 }
 
@@ -1626,16 +1634,14 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		double dx = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_x);
 		double dy = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_y);
 		double dr = gtk_spin_button_get_value(layers[in_index + offset]->spinbutton_r);
+		// Convert dr to radians
+		dr *= M_PI;
+		dr /= 180.0;
+		point center = { fit->rx / 2.0, fit->ry / 2.0 };
 		if (dx == 0.0 && dy == 0.0 && dr == 0.0) {
 			regargs->reference_image = in_index;
 		}
-		Homography H = H_from_translation_and_rotation(dx, dy, dr);
-		if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
-			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
-			return 1;
-		} else {
-			args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		}
+		regargs->seq->regparam[regargs->layer][in_index].H = H_from_translation_and_rotation(dx, dy, dr, center);
 	} else {
 		args->seq->imgparam[in_index].incl = FALSE;
 		return 1;
@@ -1739,10 +1745,10 @@ int register_manual(struct registration_args *regargs) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	args->compute_mem_limits_hook = manual_align_compute_mem_limits;	// ***
-	args->prepare_hook = manual_align_prepare_hook;						// ***
-	args->image_hook = manual_align_image_hook;							// ***
-	args->finalize_hook = manual_align_finalize_hook;					// ***
+	args->compute_mem_limits_hook = manual_align_compute_mem_limits;
+	args->prepare_hook = manual_align_prepare_hook;
+	args->image_hook = manual_align_image_hook;
+	args->finalize_hook = manual_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Manual registration");
 	args->has_output = !regargs->no_output;
