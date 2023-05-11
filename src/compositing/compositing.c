@@ -802,11 +802,13 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 	if (two_step) {
-		int count = 0;
-		for (int i = 0 ; i < layers_count - start ; i++) {
-			if (seq->imgparam[i].incl) count++;
+		int count_A = 0;
+		int count_B = 0;
+		for (int layer = 0 ; layer < layers_count - start ; layer++) {
+			if (seq->imgparam[layer].incl) count_A++;
+			if (layers[layer]->the_fit.rx != 0) count_B++;
 		}
-		if (count != layers_count - start) {
+		if (count_A != count_B) {
 			if (!siril_confirm_dialog(_("Incomplete alignment"),
 					_("Some images did not align correctly. Proceed to see the "
 					"partially aligned result? (This may alter image dimensions "
