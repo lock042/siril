@@ -118,7 +118,7 @@ static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, d
 					strncpy(strvalue, ucurrstr, FLEN_VALUE - 1);
 				else
 					status = PATHPARSE_ERR_BADSTRING;
-				g_free(ucurrstr);	
+				g_free(ucurrstr);
 			} else {
 				status = PATHPARSE_ERR_WRONG_CALL; // internal error, should not be thrown
 				return status;
@@ -420,7 +420,7 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 			gboolean is_float = g_str_has_suffix(subs[1],"n");
 			SirilWorldCS *target_coords = NULL;
 			char val[FLEN_VALUE];
-			double valf;
+			double valf = 0.f;
 			if (is_float) {
 				if (!headerkeys) {
 					*status = 1;

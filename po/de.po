@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-03-27 08:39+0000\n"
+"PO-Revision-Date: 2023-05-11 08:40+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4621,9 +4621,8 @@ msgid "Color Calibration..."
 msgstr "Farbkalibrierung..."
 
 #: src/gui/siril3.glade:18061
-#, fuzzy
 msgid "Open the photometric color calibration dialog"
-msgstr "Öffne den photometrischen Farb-Kalibrierungsdialog"
+msgstr "Öffnet den photometrischen Farb-Kalibrierungsdialog"
 
 #: src/gui/siril3.glade:18063
 msgid "Photometric Color Calibration..."
@@ -10220,9 +10219,8 @@ msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
 msgstr "Photometrische Radien auf %.1f für innen und %.1f für außen gesetzt\n"
 
 #: src/algos/photometric_cc.c:380
-#, fuzzy
 msgid "Photometric color calibration in progress..."
-msgstr "Photometrische Farbkalibrierung in arbeit..."
+msgstr "Photometrische Farbkalibrierung in Arbeit..."
 
 #: src/algos/photometric_cc.c:385
 msgid "Photometric Color Calibration succeeded"
@@ -22656,11 +22654,8 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "Registriere %d Bildern aus %d aus der Sequenz"
 
 #: src/registration/registration.c:1163
-#, fuzzy
 msgid "not available for sequences with variable image sizes"
-msgstr ""
-"Die Bereichsauswahl kann nicht für eine Sequenz mit variablen Bildgrößen "
-"verwendet werden.\n"
+msgstr "nicht verfügbar für Sequenzen mit Bildern unterschiedlicher Größe"
 
 #: src/registration/registration.c:1168 src/registration/registration.c:1162
 msgid "Failed to determine registration method...\n"
