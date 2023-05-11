@@ -71,6 +71,11 @@ GtkWidget* lookup_widget(const gchar *widget_name) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, widget_name));
 }
 
+GObject* lookup_gobject(const gchar *gobject_name) {
+	return ((GObject*) gtk_builder_get_object(gui.builder, gobject_name));
+}
+
+
 void control_window_switch_to_tab(main_tabs tab) {
 	if (com.script)
 		return;
