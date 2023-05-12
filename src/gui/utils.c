@@ -255,3 +255,41 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 int select_vport(int vport) {
 	return vport == RGB_VPORT ? GREEN_VPORT : vport;
 }
+
+gchar* get_filename_from_filechooser_dialog(GtkFileChooserAction action, const gchar* parent, const gchar* filter) {
+	gint res;
+	gchar* filename = NULL;
+	gchar* title = NULL;
+	switch (action) {
+		case GTK_FILE_CHOOSER_ACTION_OPEN:
+			title = g_strdup(_("Open File"));
+			break;
+		case GTK_FILE_CHOOSER_ACTION_SAVE:
+			title = g_strdup(_("Save File"));
+			break;
+		case GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER:
+			title = g_strdup(_("Select Folder"));
+			break;
+		default:
+			title = g_strdup("Error: dialog called with incorrect parameters. Please report this as a bug.");
+	}
+	GtkWidget *dialog = gtk_file_chooser_dialog_new (title,
+										(GtkWindow*) lookup_widget(parent),
+										GTK_FILE_CHOOSER_ACTION_OPEN,
+										_("_Cancel"),
+										GTK_RESPONSE_CANCEL,
+										_("_Open"),
+										GTK_RESPONSE_ACCEPT,
+										NULL);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
+	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog),
+			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, filter)));
+	res = gtk_dialog_run (GTK_DIALOG (dialog));
+	if (res == GTK_RESPONSE_ACCEPT)
+	{
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+	}
+	g_free(title);
+	gtk_widget_destroy (dialog);
+	return filename;
+}

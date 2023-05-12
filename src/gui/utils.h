@@ -46,5 +46,6 @@ void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *cl
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
+gchar* get_filename_from_filechooser_dialog(GtkFileChooserAction action, const gchar* parent, const gchar* filter);
 
 #endif /* SRC_GUI_UTILS_H_ */
