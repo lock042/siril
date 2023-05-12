@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.38.2
 
 Copyright (C) The free-astro development team, 2019
 
@@ -8946,12 +8946,12 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               </packing>
             </child>
             <child>
-              <object class="GtkFileChooserButton" id="filechooser_lum">
+              <object class="GtkButton" id="filechooser_lum">
+                <property name="label" translatable="yes">(None)</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="filter">filefilter1</property>
-                <property name="width-chars">16</property>
-                <signal name="file-set" handler="on_filechooser_file_set" swapped="no"/>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_filechooser_file_set" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">2</property>
