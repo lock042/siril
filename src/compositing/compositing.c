@@ -146,6 +146,44 @@ void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data);
 
 /********************************************************/
 
+gchar* get_filename_from_filechooser_dialog(GtkFileChooserAction action, const gchar* parent, const gchar* filter) {
+	gint res;
+	gchar* filename = NULL;
+	gchar* title = NULL;
+	switch (action) {
+		case GTK_FILE_CHOOSER_ACTION_OPEN:
+			title = g_strdup(_("Open File"));
+			break;
+		case GTK_FILE_CHOOSER_ACTION_SAVE:
+			title = g_strdup(_("Save File"));
+			break;
+		case GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER:
+			title = g_strdup(_("Select Folder"));
+			break;
+		default:
+			title = g_strdup("Error: dialog called with incorrect parameters. Please report this as a bug.");
+	}
+	GtkWidget *dialog = gtk_file_chooser_dialog_new (title,
+										(GtkWindow*) lookup_widget(parent),
+										GTK_FILE_CHOOSER_ACTION_OPEN,
+										_("_Cancel"),
+										GTK_RESPONSE_CANCEL,
+										_("_Open"),
+										GTK_RESPONSE_ACCEPT,
+										NULL);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
+	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog),
+			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, filter)));
+	res = gtk_dialog_run (GTK_DIALOG (dialog));
+	if (res == GTK_RESPONSE_ACCEPT)
+	{
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+	}
+	g_free(title);
+	gtk_widget_destroy (dialog);
+	return filename;
+}
+
 /* mem_limits function */
 /* A bit like the sequence compute_mem_limits functions except this one is used
  * to set a maximum on the number of layers that can be added, based on the size
@@ -609,26 +647,8 @@ void on_filechooser_file_set(GtkButton *chooser, gpointer user_data) {
 		layers[layer]->filename = NULL;
 		return;
 	}
-	GtkWidget *dialog;
-	gint res;
 
-	dialog = gtk_file_chooser_dialog_new ("Open File",
-										(GtkWindow*) lookup_widget("composition_dialog"),
-										GTK_FILE_CHOOSER_ACTION_OPEN,
-										_("_Cancel"),
-										GTK_RESPONSE_CANCEL,
-										_("_Open"),
-										GTK_RESPONSE_ACCEPT,
-										NULL);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
-	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog),
-			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
-	res = gtk_dialog_run (GTK_DIALOG (dialog));
-	if (res == GTK_RESPONSE_ACCEPT)
-	{
-		layers[layer]->filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-	}
-	gtk_widget_destroy (dialog);
+	layers[layer]->filename = get_filename_from_filechooser_dialog(GTK_FILE_CHOOSER_ACTION_OPEN, "composition_dialog", "filefilter1");
 
 	if (!layers[layer]->filename) return;
 	gchar* basename = g_path_get_basename(layers[layer]->filename);
