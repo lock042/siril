@@ -267,7 +267,7 @@ gchar* button_get_filename_from_filechooser_dialog(GtkFileChooserAction action, 
 	g_assert(button);
 	GtkWidget *toplevel = gtk_widget_get_toplevel (GTK_WIDGET (button));
 	g_assert(GTK_IS_WINDOW(toplevel));
-	gint res;
+	gint res = 0;
 	gchar* filename = NULL;
 	gchar* title = NULL;
 	gchar* accept = NULL;
