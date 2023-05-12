@@ -257,8 +257,11 @@ int select_vport(int vport) {
 }
 
 gchar* button_get_filename_from_filechooser_dialog(GtkFileChooserAction action, const gchar* filter, GtkButton* button) {
-	// action must be provided and valid
-	//  must be provided
+	// * action must be provided and one of the two options in the g_assert
+	// (this function does not handle the other GtkFileChooserActions)
+	// * filter may be NULL, but if provided will be applied to the dialog
+	// * button must be provided, both for identifying the toplevel window and
+	// for setting the label to indicate the filename if required
 	g_assert(	action == GTK_FILE_CHOOSER_ACTION_OPEN ||
 				action == GTK_FILE_CHOOSER_ACTION_SAVE);
 	g_assert(button);
