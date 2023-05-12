@@ -1494,7 +1494,9 @@ gpointer plate_solver(gpointer p) {
 			args->ret = ERROR_PLATESOLVE;
 		}
 	} else
-		match_catalog(stars, nb_stars, args, &solution);
+		if (match_catalog(stars, nb_stars, args, &solution)) {
+			args->ret = ERROR_PLATESOLVE;
+		}
 	if (args->ret)
 		goto clearup;
 
