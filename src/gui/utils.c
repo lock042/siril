@@ -256,38 +256,57 @@ int select_vport(int vport) {
 	return vport == RGB_VPORT ? GREEN_VPORT : vport;
 }
 
-gchar* get_filename_from_filechooser_dialog(GtkFileChooserAction action, const gchar* parent, const gchar* filter) {
+gchar* button_get_filename_from_filechooser_dialog(GtkFileChooserAction action, const gchar* filter, GtkButton* button) {
+	// action must be provided and valid
+	//  must be provided
+	g_assert(	action == GTK_FILE_CHOOSER_ACTION_OPEN ||
+				action == GTK_FILE_CHOOSER_ACTION_SAVE);
+	g_assert(button);
+	GtkWidget *toplevel = gtk_widget_get_toplevel (GTK_WIDGET (button));
+	g_assert(GTK_IS_WINDOW(toplevel));
 	gint res;
 	gchar* filename = NULL;
 	gchar* title = NULL;
+	gchar* accept = NULL;
 	switch (action) {
 		case GTK_FILE_CHOOSER_ACTION_OPEN:
 			title = g_strdup(_("Open File"));
+			accept = g_strdup(_("Open"));
 			break;
 		case GTK_FILE_CHOOSER_ACTION_SAVE:
 			title = g_strdup(_("Save File"));
-			break;
-		case GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER:
-			title = g_strdup(_("Select Folder"));
+			accept = g_strdup(_("Save"));
 			break;
 		default:
-			title = g_strdup("Error: dialog called with incorrect parameters. Please report this as a bug.");
+			title = g_strdup("Error");
+			accept = g_strdup("Error");
 	}
 	GtkWidget *dialog = gtk_file_chooser_dialog_new (title,
-										(GtkWindow*) lookup_widget(parent),
-										GTK_FILE_CHOOSER_ACTION_OPEN,
+										(GTK_WINDOW(toplevel)),
+										action,
 										_("_Cancel"),
 										GTK_RESPONSE_CANCEL,
-										_("_Open"),
+										accept,
 										GTK_RESPONSE_ACCEPT,
 										NULL);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
-	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog),
-			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, filter)));
+	if (filter && action == GTK_FILE_CHOOSER_ACTION_OPEN) {
+		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog),
+				GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, filter)));
 	res = gtk_dialog_run (GTK_DIALOG (dialog));
+	}
 	if (res == GTK_RESPONSE_ACCEPT)
 	{
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+	}
+	if (button && action == GTK_FILE_CHOOSER_ACTION_OPEN) {
+		if (!filename) {
+			gtk_button_set_label(button, _("(None)"));
+		} else {
+			gchar* basename = g_path_get_basename(filename);
+			gtk_button_set_label(button, basename);
+			g_free(basename);
+		}
 	}
 	g_free(title);
 	gtk_widget_destroy (dialog);

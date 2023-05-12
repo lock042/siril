@@ -610,12 +610,8 @@ void on_filechooser_file_set(GtkButton *chooser, gpointer user_data) {
 		return;
 	}
 
-	layers[layer]->filename = get_filename_from_filechooser_dialog(GTK_FILE_CHOOSER_ACTION_OPEN, "composition_dialog", "filefilter1");
+	layers[layer]->filename = button_get_filename_from_filechooser_dialog(GTK_FILE_CHOOSER_ACTION_OPEN, "filefilter1", chooser);
 
-	if (!layers[layer]->filename) return;
-	gchar* basename = g_path_get_basename(layers[layer]->filename);
-	gtk_button_set_label(chooser, basename);
-	g_free(basename);
 	if (layers[layer]->the_fit.rx == 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
 	}
