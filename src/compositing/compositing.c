@@ -76,27 +76,6 @@ static coloring_type_enum coloring_type = HSL;
 // Working limit (dependent on memory check)
 static int maximum_layers = MAX_LAYERS;
 
-/* the structure storing information for each layer to be composed
- * (one layer = one source image) and one associated colour */
-typedef struct {
-	/* widgets data */
-	GtkButton *remove_button;
-	GtkDrawingArea *color_w;	// the simulated color chooser
-	GtkButton *chooser;	// the file choosers
-	gchar* filename; // the filename
-	GtkLabel *label;		// the labels
-	GtkSpinButton *spinbutton_x;	// the X spin button
-	GtkSpinButton *spinbutton_y;	// the Y spin button
-	GtkSpinButton *spinbutton_r;	// the rotation spin button
-	double spinbutton_x_value;
-	double spinbutton_y_value;
-	double spinbutton_r_value;
-	/* useful data */
-	GdkRGBA color;			// real color of the layer
-	GdkRGBA saturated_color;	// saturated color of the layer
-	fits the_fit;			// the fits for layers
-} layer;
-
 /* the list of layers. It is dynamic in content but fixed in size.
  * The first element is reserved for luminance and cannot be removed. */
 static layer *layers[MAX_LAYERS+1];	// NULL terminated
@@ -139,6 +118,7 @@ static void add_the_layer_add_button();
 static void grid_add_row(int layer, int index, int first_time);
 static void grid_remove_row(int layer, int free_the_row);
 static int has_fit(int layer);
+static int number_of_images_loaded();
 static void update_compositing_registration_interface();
 static float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y);
 static void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA *rgbpixel, float vlayer_pixel_value);
@@ -161,6 +141,8 @@ gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventBut
 gboolean on_color_button_motion_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data);
 gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data);
 void on_filechooser_file_set(GtkButton *widget, gpointer user_data);
+void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data);
+
 
 /********************************************************/
 
@@ -248,7 +230,28 @@ layer *create_layer(int index) {
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_r), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_r));	// don't destroy it on removal from grid
 
+	ret->centerbutton = GTK_TOGGLE_BUTTON(gtk_toggle_button_new());
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ret->centerbutton), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(ret->centerbutton), FALSE);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->centerbutton), _("Set rotation center for this layer"));
+	gtk_button_set_image(GTK_BUTTON(ret->centerbutton), gtk_image_new_from_icon_name("gtk-cdrom", GTK_ICON_SIZE_BUTTON));
+	g_signal_connect(ret->centerbutton, "toggled", G_CALLBACK(on_centerbutton_toggled), NULL);
+	g_object_ref(G_OBJECT(ret->centerbutton));	// don't destroy it on removal from grid
+
 	/* set other layer data */
+	if (number_of_images_loaded() > 0) {
+		// If we have images loaded, set the layer center to the center of the image
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]->the_fit.rx != 0) {
+				ret->center.x = layers[layer]->the_fit.rx / 2.0;
+				ret->center.y = layers[layer]->the_fit.ry / 2.0;
+				break;
+			}
+		}
+	} else {
+		// Otherwise initialize it to zero
+		memset(&ret->center, 0, sizeof(point));
+	}
 	memset(&ret->the_fit, 0, sizeof(fits));
 	assert(index >= 2);	// 1 is luminance
 	if (index <= 7)		// copy default RGB colours
@@ -353,6 +356,7 @@ static void grid_remove_row(int layer, int free_the_row) {
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_x));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_y));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_r));
+	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->centerbutton));
 	if (free_the_row) {
 		g_object_unref(G_OBJECT(layers[layer]->remove_button));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->color_w));	// don't destroy it on removal from grid
@@ -361,6 +365,7 @@ static void grid_remove_row(int layer, int free_the_row) {
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_x));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_y));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_r));	// don't destroy it on removal from grid
+		g_object_unref(G_OBJECT(layers[layer]->centerbutton));	// don't destroy it on removal from grid
 	}
 }
 
@@ -373,6 +378,7 @@ static void grid_add_row(int layer, int index, int first_time) {
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_x),	4, index, 1, 1);
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_y),	5, index, 1, 1);
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_r),	6, index, 1, 1);
+	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->centerbutton),	7, index, 1, 1);
 
 	if (first_time) {
 		gtk_widget_show(GTK_WIDGET(layers[layer]->remove_button));
@@ -382,6 +388,7 @@ static void grid_add_row(int layer, int index, int first_time) {
 		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_x));
 		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_y));
 		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_r));
+		gtk_widget_show(GTK_WIDGET(layers[layer]->centerbutton));
 	}
 }
 
@@ -415,6 +422,7 @@ void open_compositing_window() {
 		layers[0]->spinbutton_x = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_x"));
 		layers[0]->spinbutton_y = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_y"));
 		layers[0]->spinbutton_r = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_r"));
+		layers[0]->centerbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "centerbutton_lum"));
 
 		for (i=1; i<4; i++) {
 			/* Create the three default layers */
@@ -669,10 +677,14 @@ void on_filechooser_file_set(GtkButton *chooser, gpointer user_data) {
 								layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
 						cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_AREA, FALSE);
 						gtk_label_set_text(layers[layer]->label, buf);
+						layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
+						layers[layer]->center.y = layers[layer]->the_fit.ry / 2.0;
 						gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Image loaded, and upscaled"));
 				}
 			}
 			else if (!retval) {
+				layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
+				layers[layer]->center.y = layers[layer]->the_fit.ry / 2.0;
 				sprintf(buf, _("OK %ux%u"), layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
 				gtk_label_set_text(layers[layer]->label, buf);
 				gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Image loaded"));
@@ -694,7 +706,6 @@ void on_filechooser_file_set(GtkButton *chooser, gpointer user_data) {
 		orig_ry[layer] = 0;
 		return;
 	}
-
 	update_compositing_registration_interface();
 
 	// enable the color balance finalization button
@@ -739,8 +750,38 @@ void create_the_internal_sequence() {
 	seq->ry = gfit.ry;
 }
 
+void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data) {
+	// First, get the state of this centerbutton
+	gboolean state = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
+	// If state == active, ensure all the other centerbuttons are inactivated
+	if (state) {
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				if (layers[layer]->centerbutton != button) {
+					// Suppress the callback while deactivating each of the other buttons
+					g_signal_handlers_block_by_func(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), on_centerbutton_toggled, NULL);
+					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
+					g_signal_handlers_unblock_by_func(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), on_centerbutton_toggled, NULL);
+				} else {
+					// Set gui.comp_layer_centering to the current layer
+					gui.comp_layer_centering = layers[layer];
+					redraw(REDRAW_OVERLAY);
+				}
+			}
+		}
+		// Set the mouse_status to allow the image_interactions callbacks to set the center point
+		mouse_status = MOUSE_ACTION_GET_COMP_CENTER_COORDINATE;
+	} else {
+		// Reset the mouse status
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	}
+}
+
+
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
+	// Set gui.comp_layer_centering to NULL so that center points cease to be drawn
+	gui.comp_layer_centering = NULL;
 	// Ensure the transformation type is set correctly
 	struct registration_method *method;
 	framing_type framing;
@@ -867,7 +908,11 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
-	else set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+	else {
+		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+		free(regargs.imgparam);
+		free(regargs.regparam);
+	}
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
 
@@ -894,6 +939,15 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	free(regargs.imgparam);
 	free(regargs.regparam);
 	the_type = HOMOGRAPHY_TRANSFORMATION;
+	// Reset rotation centers: owing to the change of framing the previous rotation centers
+	// cannot be relied on. Note this means only one rotation should be carried out at a time.
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer]) {
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
+			layers[layer]->center.x = gfit.rx / 2.0;
+			layers[layer]->center.y = gfit.ry / 2.0;
+		}
+	}
 }
 
 float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
@@ -992,23 +1046,33 @@ void on_compositing_align_method_combo_changed(GtkComboBox *widget, gpointer use
 	if (sel_method == 3) { // Prepare for manual alignment
 		for (int layer = 0 ; layer < maximum_layers ; layer++) {
 			if (layers[layer]) {
-				// Make the spinbuttons sensitive to input
-				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_x, TRUE);
-				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_y, TRUE);
-				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_r, TRUE);
+				// Make the spinbuttons and centerbutton sensitive to input
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_x), TRUE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_y), TRUE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_r), TRUE);
+				// When changing method we always want to set all the center buttons to be inactive initially
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->centerbutton), TRUE);
 				// Zero the spinbuttons
-				gtk_spin_button_set_value(layers[layer]->spinbutton_x, 0.0);
-				gtk_spin_button_set_value(layers[layer]->spinbutton_y, 0.0);
-				gtk_spin_button_set_value(layers[layer]->spinbutton_r, 0.0);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(layers[layer]->spinbutton_x), 0.0);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(layers[layer]->spinbutton_y), 0.0);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(layers[layer]->spinbutton_r), 0.0);
+				layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
+				layers[layer]->center.y = layers[layer]->the_fit.ry  /2.0;
 			}
 		}
 	} else {
+		gui.comp_layer_centering = NULL;
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 		for (int layer = 0 ; layer < maximum_layers ; layer++) {
 			if (layers[layer]) {
-				// Make the spinbuttons insensitive to input
-				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_x, FALSE);
-				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_y, FALSE);
-				gtk_widget_set_sensitive((GtkWidget*) layers[layer]->spinbutton_r, FALSE);
+				// Make the spinbuttons and centerbutton insensitive to input
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_x), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_y), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_r), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->centerbutton), FALSE);
+				// When changing method we always want to set all the center buttons to be inactive initially
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
 			}
 		}
 	}
@@ -1132,6 +1196,7 @@ static void luminance_and_colors_align_and_compose() {
 }
 
 void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
+	gui.comp_layer_centering = NULL;
 	siril_close_dialog("composition_dialog");
 }
 
@@ -1341,6 +1406,7 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 }
 
 void reset_compositing_module() {
+	gui.comp_layer_centering = NULL;
 	if (!compositing_loaded)
 		return;
 
@@ -1353,6 +1419,7 @@ void reset_compositing_module() {
 			clearfits(&layers[i]->the_fit);
 		grid_remove_row(i, 1);
 		g_free(layers[i]->filename);
+		layers[i]->filename = NULL;
 		free(layers[i]);
 		layers[i] = NULL;
 		layers_count--;
@@ -1388,6 +1455,7 @@ void reset_compositing_module() {
 	gtk_widget_set_tooltip_text(GTK_WIDGET(layers[0]->label), _("not loaded"));
 
 	update_compositing_registration_interface();
+	on_compositing_align_method_combo_changed((GtkComboBox*)lookup_widget("compositing_align_method_combo"), NULL);
 }
 
 void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
@@ -1720,11 +1788,11 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		// Convert dr to radians
 		dr *= M_PI;
 		dr /= 180.0;
-		point center = { fit->rx / 2.0, fit->ry / 2.0 };
+		point* center = &layers[in_index + offset]->center;
 		if (dx == 0.0 && dy == 0.0 && dr == 0.0) {
 			regargs->reference_image = in_index;
 		}
-		regargs->seq->regparam[regargs->layer][in_index].H = H_from_translation_and_rotation(dx, dy, dr, center);
+		regargs->seq->regparam[regargs->layer][in_index].H = H_from_translation_and_rotation(dx, dy, dr, *center);
 	} else {
 		args->seq->imgparam[in_index].incl = FALSE;
 		return 1;

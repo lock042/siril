@@ -1344,6 +1344,22 @@ static void draw_annotates(const draw_data_t* dd) {
 	}
 }
 
+static void draw_rgb_centers(const draw_data_t* dd) {
+	if (!gui.comp_layer_centering) return;
+	cairo_t *cr = dd->cr;
+	cairo_set_dash(cr, NULL, 0, 0);
+
+	double red = gui.comp_layer_centering->saturated_color.red;
+	double green = gui.comp_layer_centering->saturated_color.green;
+	double blue = gui.comp_layer_centering->saturated_color.blue;
+	cairo_set_source_rgb(cr, red, green, blue);
+	cairo_set_line_width(cr, 2.0 / dd->zoom);
+
+	double size = 10. / dd->zoom;
+	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * M_PI);
+	cairo_stroke(cr);
+}
+
 static void draw_analysis(const draw_data_t* dd) {
 	if (com.tilt) {
 		cairo_t *cr = dd->cr;
@@ -1657,6 +1673,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* registration framing*/
 	draw_regframe(&dd);
+
+	/* RGB composition center points */
+	draw_rgb_centers(&dd);
 
 	/* allow custom rendering */
 	if (gui.draw_extra)

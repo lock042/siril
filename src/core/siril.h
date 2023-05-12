@@ -517,6 +517,29 @@ typedef struct _GNUPLOT_CTRL_ {
 	gboolean running;
 } gnuplot_ctrl ;
 
+/* the structure storing information for each layer to be composed
+ * (one layer = one source image) and one associated colour */
+typedef struct {
+	/* widgets data */
+	GtkButton *remove_button;
+	GtkDrawingArea *color_w;	// the simulated color chooser
+	GtkButton *chooser;	// the file choosers
+	gchar* filename; // the filename
+	GtkLabel *label;		// the labels
+	GtkSpinButton *spinbutton_x;	// the X spin button
+	GtkSpinButton *spinbutton_y;	// the Y spin button
+	GtkSpinButton *spinbutton_r;	// the rotation spin button
+	GtkToggleButton *centerbutton;	// the button to set the center
+	double spinbutton_x_value;
+	double spinbutton_y_value;
+	double spinbutton_r_value;
+	/* useful data */
+	GdkRGBA color;			// real color of the layer
+	GdkRGBA saturated_color;	// saturated color of the layer
+	fits the_fit;			// the fits for layers
+	point center;
+} layer;
+
 /* The rendering of the main image is cached. As it can be much larger than the
  * widget in which it's displayed, it can take a lot of time to transform it
  * for rendering. Unfortunately, rendering is requested on each update of a
@@ -608,6 +631,7 @@ struct guiinf {
 	int cmd_hist_size;		// allocated size
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
+	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
 };
 
 /* The global data structure of siril core */

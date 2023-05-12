@@ -112,6 +112,7 @@ int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 int register_kombat(struct registration_args *args);
+int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
 
 void reset_3stars();
 int _3stars_check_registration_ready();
