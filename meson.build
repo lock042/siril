@@ -447,7 +447,7 @@ conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the loc
 # Man page platform specific
 
 if platform_windows
-  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\siril\config.ini')
+  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\esiril\econfig.ini')
   conf_data.set('MAN_CSS_PATH', '.B C:\eProgram Files\eSiril\eshare\esiril\esiril.css')
 elif platform_osx
   conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/config.ini')
