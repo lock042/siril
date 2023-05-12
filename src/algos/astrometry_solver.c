@@ -1527,7 +1527,7 @@ gpointer plate_solver(gpointer p) {
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
 			if (get_photo_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-				args->ret = ERROR_PLATESOLVE;
+				args->ret = ERROR_PHOTOMETRY;
 			}
 		} else {
 			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit, TRUE,
@@ -1535,7 +1535,7 @@ gpointer plate_solver(gpointer p) {
 		}
 		if (args->ret) {
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
-			args->ret = ERROR_PLATESOLVE;
+			args->ret = ERROR_PHOTOMETRY;
 			goto clearup;
 		}
 		args->pcc->stars = pcc_stars;
