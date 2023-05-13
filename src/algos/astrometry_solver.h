@@ -19,6 +19,11 @@
 #define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?"
 #define SKYBOT "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?"
 
+typedef enum {
+	ERROR_PLATESOLVE = 1,
+	ERROR_PHOTOMETRY = 10,
+} platesolve_error_type;
+
 
 typedef enum {
 	CAT_TYCHO2,
