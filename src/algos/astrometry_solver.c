@@ -2135,6 +2135,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	if (args->verbose)
 		print_platesolving_results_from_wcs(args);
+	args->ret = 0;
 	return 0;
 }
 
