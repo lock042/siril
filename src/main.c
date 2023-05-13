@@ -142,7 +142,7 @@ void load_glade_file() {
 		g_clear_error(&err);
 		exit(EXIT_FAILURE);
 	}
-	g_printf(_("Successfully loaded '%s'\n"), gladefile);
+	g_print(_("Successfully loaded '%s'\n"), gladefile);
 	g_free(gladefile);
 }
 
