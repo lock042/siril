@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-14 02:16+0000\n"
+"PO-Revision-Date: 2023-05-14 19:31+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -7698,8 +7698,8 @@ msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://free-astro.org/index.php?"
 "title=Siril:Star_Catalogues\">more info</a>)"
 msgstr ""
-"<b>Локальные каталоги</b> (<a href=\"https://free-astro.org/index.php?"
-"title=Siril:Star_Catalogues\">more info</a>)"
+"<b>Локальные каталоги</b> (<a href=\"https://free-astro.org/index."
+"php?title=Siril:Star_Catalogues\">подробнее</a>)"
 
 #: src/gui/siril3.glade:28834
 msgid "Update default focal length and pixel size from the result"
@@ -7725,13 +7725,15 @@ msgstr "Степень полиномиальной коррекции:"
 
 #: src/gui/siril3.glade:28896
 msgid "Sampling tolerance (%):"
-msgstr ""
+msgstr "Допуск масштаба (%):"
 
 #: src/gui/siril3.glade:28907
 msgid ""
 "Percent below and above the expected sampling to allow. Given sampling is "
 "multiplied or divided by 1 + this / 100."
 msgstr ""
+"Процент, определяющий допустимые нижнюю и верхнюю границы масштаба. Данный "
+"масштаб умножается или делится на 1 + это значение / 100."
 
 #: src/gui/siril3.glade:28922
 msgid ""
@@ -17951,7 +17953,6 @@ msgid "avgDev"
 msgstr ""
 
 #: src/gui/statistics_list.c:51
-#, fuzzy
 msgid "MAD"
 msgstr "MAD"
 
