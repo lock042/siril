@@ -611,7 +611,12 @@ void on_filechooser_file_set(GtkButton *chooser, gpointer user_data) {
 	}
 
 	layers[layer]->filename = button_get_filename_from_filechooser_dialog(GTK_FILE_CHOOSER_ACTION_OPEN, "filefilter1", chooser);
-
+	if (!layers[layer]->filename) {
+		gtk_button_set_label(chooser, _("(None)"));
+		g_free(layers[layer]->filename);
+		layers[layer]->filename = NULL;
+		return;
+	}
 	if (layers[layer]->the_fit.rx == 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
 	}
@@ -886,11 +891,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
-	else {
-		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
-		free(regargs.imgparam);
-		free(regargs.regparam);
-	}
+	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
 
@@ -913,9 +914,10 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	}
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
-	update_result(1);
 	free(regargs.imgparam);
 	free(regargs.regparam);
+	update_result(1);
+	// reset the transformation type so that it is always in this state by default
 	the_type = HOMOGRAPHY_TRANSFORMATION;
 	// Reset rotation centers: owing to the change of framing the previous rotation centers
 	// cannot be relied on. Note this means only one rotation should be carried out at a time.
@@ -1584,7 +1586,7 @@ void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 			break;
 	}
 	for (int layer = 1 ; layer < maximum_layers ; layer++) {
-		if (orig_rx[layer] > layers[biggest_layer]->the_fit.rx && orig_ry[layer] > layers[layer]->the_fit.ry)
+		if (orig_rx[layer] > layers[biggest_layer]->the_fit.rx && orig_ry[layer] > layers[biggest_layer]->the_fit.ry)
 			biggest_layer = layer;
 	}
 	read_single_image(layers[biggest_layer]->filename, &layers[biggest_layer]->the_fit, NULL, FALSE, NULL, FALSE, TRUE);
