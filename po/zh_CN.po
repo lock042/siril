@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-04-26 14:11+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"PO-Revision-Date: 2023-05-14 19:31+0000\n"
+"Last-Translator: Yi Cao <caoyi06@qq.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -131,7 +131,7 @@ msgid ""
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
 "CFA图像请点选这里。\n"
-"单色传感器的图像不要选上。"
+"请勿用于单色传感器的图像。"
 
 #: src/gui/siril3.glade:425 src/gui/siril3.glade:1363 src/gui/siril3.glade:2292
 #: src/gui/siril3.glade:3947 src/gui/siril3.glade:7733
@@ -320,7 +320,7 @@ msgstr "内核尺寸:"
 msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
-msgstr "内核尺寸。这是为每个像素认定“邻居”的奇数范围值。"
+msgstr "内核大小。这是用于每个像素的考虑的邻域的奇数大小。"
 
 #: src/gui/siril3.glade:1590 src/gui/siril3.glade:6760
 #: src/gui/siril3.glade:7536
@@ -2491,12 +2491,12 @@ msgid ""
 "Compute the image tilt. Tilt is shown as an overlay and overall tilt "
 "information is written to the Console tab. The tilt overlay can be cleared "
 "using the Remove button"
-msgstr ""
+msgstr "计算图像倾斜度。倾斜度将显示为叠加图层，整体倾斜信息将被写入“控制台”。可以使"
+"用“移除”按钮清除倾斜叠加图层"
 
 #: src/gui/siril3.glade:11211
-#, fuzzy
 msgid "Export list of stars to a file"
-msgstr "将显示的图表导出为CSV文件。"
+msgstr "将显示的图表导出为CSV文件"
 
 #: src/gui/siril3.glade:11237 src/gui/siril3.glade:13642
 msgid ""
@@ -3039,13 +3039,12 @@ msgid "y0"
 msgstr "y0"
 
 #: src/gui/siril3.glade:13042
-#, fuzzy
 msgid "Ra"
-msgstr "R"
+msgstr "赤经"
 
 #: src/gui/siril3.glade:13055
 msgid "Dec"
-msgstr ""
+msgstr "赤纬"
 
 #: src/gui/siril3.glade:13069
 msgid "FWHMx"
@@ -3259,7 +3258,7 @@ msgstr "将所选星点从到列表中移除"
 #: src/gui/siril3.glade:13746
 msgid ""
 "Remove all stars from the list and clears the tilt overlay, if displayed"
-msgstr ""
+msgstr "从列表中删除所有星点并清除倾斜叠加图层（如果显示）"
 
 #: src/gui/siril3.glade:13780
 msgid "Live Stacking"
@@ -6219,7 +6218,6 @@ msgid "Generalized Extreme Studentized Deviate Test"
 msgstr "Generalized Extreme Studentized Deviate Test"
 
 #: src/gui/siril3.glade:24325
-#, fuzzy
 msgid ""
 "Four methods of weighting are available:\n"
 "\n"
@@ -6235,7 +6233,7 @@ msgid ""
 "time."
 msgstr ""
 "有四种加权方法可供选择：\n"
-" \n"
+"\n"
 "<b>星点数量</b> 根据对齐步骤中计算的星点数对各帧进行加权。\n"
 "\n"
 "<b>加权FWHM</b> 根据对齐步骤中计算的 wFWHM 对各帧进行加权。\n"
@@ -6249,7 +6247,6 @@ msgid "Number of stars"
 msgstr "星点数量"
 
 #: src/gui/siril3.glade:24339
-#, fuzzy
 msgid "Weighted FWHM"
 msgstr "加权FWHM"
 
@@ -6262,7 +6259,6 @@ msgid "Number of images"
 msgstr "图像数量"
 
 #: src/gui/siril3.glade:24355
-#, fuzzy
 msgid "Weighting:"
 msgstr "权重："
 
@@ -8514,9 +8510,9 @@ msgid ""
 msgstr "此命令仅适用于具有观测日期信息的图像\n"
 
 #: src/algos/astrometry_solver.c:459
-#, fuzzy, c-format
+#, c-format
 msgid "Solar System Objects search on observation date %s\n"
-msgstr "搜索太阳系天体%s于观测日期%s\n"
+msgstr "搜索观测日期%s的太阳系天体\n"
 
 #: src/algos/astrometry_solver.c:464 src/algos/astrometry_solver.c:565
 #, c-format
@@ -8746,9 +8742,9 @@ msgid "Flipping image and updating astrometry data.\n"
 msgstr "翻转图像并更新解析数据。\n"
 
 #: src/algos/astrometry_solver.c:1601
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry failed: %s\n"
-msgstr "解析失败：%s\n"
+msgstr "测光失败：%s\n"
 
 #: src/algos/astrometry_solver.c:1603
 #, c-format
@@ -10339,7 +10335,7 @@ msgstr "合并：工作目录未设置。\n"
 #: src/core/command.c:2373 src/core/command.c:6171 src/core/command.c:6289
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
-msgstr ""
+msgstr "输出名称“%s”含有非法字符，已停止\n"
 
 #: src/core/command.c:2393
 #, c-format
@@ -11094,19 +11090,18 @@ msgid "No RAW files were found for conversion\n"
 msgstr "未发现用于转化的RAW文件\n"
 
 #: src/core/command.c:6374
-#, fuzzy
 msgid "No files were found for conversion\n"
 msgstr "未发现用于转化的RAW文件\n"
 
 #: src/core/command.c:6389
-#, fuzzy, c-format
+#, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "转化：正在处理FITS文件 %d…\n"
 
 #: src/core/command.c:6466 src/registration/registration.c:1455
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
-msgstr "Shift-only registration is only possible with OpenCV 4.4\n"
+msgstr "平移对齐仅适用于OpenCV 4.4版本\n"
 
 #. using absolute min_pairs required by homography
 #: src/core/command.c:6517
@@ -12918,9 +12913,7 @@ msgstr "将多个队列合并为一个"
 msgid ""
 "Flips the image about the horizontal axis. Option <b>-bottomup</b> will only "
 "flip it if it's not already bottom-up"
-msgstr ""
-"Flips the image about the horizontal axis. Option <b>-bottomup</b> will only "
-"flip it if it's not already bottom-up"
+msgstr "将图像沿水平轴翻转。如果图像尚未倒置，选项<b>-bottomup</b>将进行翻转。"
 
 #: src/core/command_def.h:89
 msgid ""
@@ -13241,14 +13234,11 @@ msgid ""
 "b> values in the range [0, 1]. If no low and high values are provided, "
 "default values are set to 0 and 1"
 msgstr ""
-"This command evaluates the expression given in argument as in PixelMath "
-"tool. The full expression must be between double quotes and variables (that "
-"are image names, without extension, located in the working directory in that "
-"case) must be surrounded by the token $, e.g. \"$image1$ * 0.5 + $image2$ * "
-"0.5\". A maximum of 10 images can be used in the expression. Image can be "
-"rescaled with the option <b>-rescale</b> followed by <b>low</b> and <b>high</"
-"b> values in the range [0, 1]. If no low and high values are provided, "
-"default values are set to 0 and 1"
+"该命令按照PixelMath工具中给定的参数计算表达式。完整的表达式必须放在双引号之间"
+"，变量（即图像名称，不带扩展名，在这种情况下位于工作目录中）必须用标记$括起来"
+"，例如\"$image1$ * 0.5 + $image2$ * 0.5\"。表达式中最多可以使用10个图像。可以"
+"使用选项<b>-rescale</b>跟随<b>low</b>和<b>high</b>值（范围为[0, "
+"1]）来重新缩放图像。如果没有提供low和high值，则默认值设置为0和1。"
 
 #: src/core/command_def.h:106
 msgid ""
@@ -14410,7 +14400,6 @@ msgid "Sets the reference image of the sequence given in first argument"
 msgstr "Sets the reference image of the sequence given in first argument"
 
 #: src/core/command_def.h:173
-#, fuzzy
 msgid ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
@@ -14418,11 +14407,9 @@ msgid ""
 "can be passed using a CSV file with the option <b>-file=</b> containing a "
 "name, ra and dec. This is only available from the GUI of Siril"
 msgstr ""
-"Shows a point on the loaded plate solved image using the temporary user "
-"annotations catalogue, based on its equatorial coordinates. The <b>-reset</"
-"b> option clears this catalogue first and can be used alone. Several points "
-"can be passed using a CSV file with the option <b>-file=</b> containing a "
-"name, ra and dec. This is only available from the GUI of Siril"
+"根据其赤道坐标，在加载的平板解算图像上使用临时用户注释目录显示一个点。选项<b>"
+"-clear</b>会首先清除该目录(可单独使用)。可以使用选项<b>-file=</b>利用CSV文件"
+"传递多个点，其中包含名称、赤经和赤纬。这仅在Siril的图形用户界面中可"
 
 #: src/core/command_def.h:174
 msgid ""
@@ -15385,7 +15372,7 @@ msgstr "%s：处理中…\n"
 msgid ""
 "Image #%d: number of layers (%d) is not consistent with sequence (%d), "
 "aborting\n"
-msgstr ""
+msgstr "图像 #%d：图层数量（%d）与序列数量（%d）不一致，中止处理\n"
 
 #: src/core/processing.c:321
 #, c-format
@@ -16699,15 +16686,14 @@ msgid "Visit the Siril website"
 msgstr "访问Siril网站"
 
 #: src/gui/astrometry_solver.c:308
-#, fuzzy
 msgid "Photometry failed.\n"
-msgstr "测光"
+msgstr "测光失败。\n"
 
 #: src/gui/astrometry_solver.c:310
 msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
-msgstr ""
+msgstr "无法执行光度测量。您可以尝试在首选项中调整设置。"
 
 #: src/gui/astrometry_solver.c:314
 msgid ""
@@ -17774,14 +17760,13 @@ msgid "Frames"
 msgstr "帧"
 
 #: src/gui/plot.c:713
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "GNUplot not available: the light curve data will be produced in %s but no "
 "image will be created. You can specify the path to gnuplot in the Siril "
 "preferences.\n"
-msgstr ""
-"未找到 Gnuplot，光度曲线数据将生成于 %s，但不会创建图像。您可以在 Siril 首选"
-"项中指定 gnuplot 的路径。\n"
+msgstr "未找到 GNUplot，光度曲线数据将生成于 %s，但不会创建图像。您可以在 Siril "
+"首选项中指定 GNUplot 的路径。\n"
 
 #: src/gui/plot.c:807
 #, c-format
@@ -18700,19 +18685,19 @@ msgid ""
 msgstr "转化异常终止，%d 文件已创建基于 %d 输入文件（%d 帧已转化, %d 失败）\n"
 
 #: src/io/conversion.c:684
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion ended with error, %d output files created\n"
-msgstr "转化产生错误， %d/%d 输入文件已转化\n"
+msgstr "转化产生错误， 输出了%d帧文件\n"
 
 #: src/io/conversion.c:690
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion succeeded, %d file(s) created for %d input file(s)\n"
-msgstr "转化成功，%d 文件已创建基于 %d 输入文件（%d 帧已转化, %d 失败）\n"
+msgstr "转化成功，创建了%d帧文件（输入%d帧文件）\n"
 
 #: src/io/conversion.c:692
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion aborted, %d file(s) created for %d input file(s)\n"
-msgstr "转化异常终止，%d 文件已创建基于 %d 输入文件（%d 帧已转化, %d 失败）\n"
+msgstr "转化异常终止，创建了%d帧文件（输入%d帧文件）\n"
 
 #: src/io/conversion.c:834
 #, c-format
@@ -18792,11 +18777,10 @@ msgid "FILM ERROR: incompatible format\n"
 msgstr "视频错误：不兼容的格式\n"
 
 #: src/io/fits_sequence.c:84
-#, fuzzy
 msgid ""
 "Several images were found in the FITS file but they have different number of "
 "layers, which is not allowed.\n"
-msgstr "在 FITS 文件中找到了几个图像，但它们具有不同的参数，这是不允许的。\n"
+msgstr "在 FITS 文件中找到了几个图像，但它们具有不同数量的图层，这是不允许的。\n"
 
 #: src/io/fits_sequence.c:92
 msgid ""
@@ -19289,9 +19273,8 @@ msgid "Unsupported format: "
 msgstr "不支持的格式： "
 
 #: src/io/path_parse.c:75
-#, fuzzy
 msgid "Wrongly formatted string: "
-msgstr "错误的中央坐标： "
+msgstr "字符串格式不正确： "
 
 #: src/io/path_parse.c:78
 msgid "More than one match for: "
@@ -20545,12 +20528,11 @@ msgstr "未知的取景方法，异常终止\n"
 msgid ""
 "The output sequence is too small compared to reference image (too much "
 "rotation or little overlap?)\n"
-msgstr ""
+msgstr "与参考图像相比，输出序列太小（旋转过多或重叠度不足？）\n"
 
 #: src/registration/applyreg.c:632
-#, fuzzy
 msgid "You should change framing method, aborting\n"
-msgstr "未知的取景方法，异常终止\n"
+msgstr "异常终止，您应该更改取景方法\n"
 
 #: src/registration/comet.c:131 src/registration/comet.c:168
 msgid "There is no timestamp stored in the file"
