@@ -51,7 +51,7 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 		return NULL;
 	}
 
-	fprintf(stdout, "log: %s", msg);
+	g_print("log: %s", msg);
 	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
 	gui_log_message(msg, color);
 

@@ -454,6 +454,7 @@ gpointer search_in_online_conesearch(gpointer p) {
 	string_url = g_string_append(string_url, "&-from=Siril;");
 	if (!gfit.date_obs) {
 		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+		g_string_free(string_url, TRUE);
 		return NULL;
 	}
 	siril_log_message(_("Solar System Objects search on observation date %s\n"), formatted_date);
@@ -486,7 +487,7 @@ gpointer search_in_online_conesearch(gpointer p) {
 }
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
-	GString *string_url;
+	GString *string_url = NULL;
 	gchar *name = g_utf8_strdown(object, -1);
 	switch(server) {
 	case QUERY_SERVER_CDS:
@@ -537,6 +538,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-from=Siril;");
 		if (!gfit.date_obs) {
 			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+			g_string_free(string_url, TRUE);
 			return NULL;
 		}
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
@@ -1368,7 +1370,7 @@ gpointer plate_solver(gpointer p) {
 	psf_star **stars = NULL;	// image stars
 	int nb_stars = 0;	// number of image and catalogue stars
 
-	args->ret = 1;
+	args->ret = ERROR_PLATESOLVE;
 	args->message = NULL;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
@@ -1419,7 +1421,7 @@ gpointer plate_solver(gpointer p) {
 				clearfits(&tmp);
 				siril_log_color_message(_("Failed to downsample image, aborting\n"), "red");
 				args->message = g_strdup(_("Not enough memory"));
-				args->ret = 1;
+				args->ret = ERROR_PLATESOLVE;
 				goto clearup;
 			}
 			memcpy(&fit_backup, args->fit, sizeof(fits));
@@ -1474,7 +1476,7 @@ gpointer plate_solver(gpointer p) {
 	if (!stars || nb_stars < AT_MATCH_STARTN_LINEAR) {
 		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
 				"At least %d are needed."), AT_MATCH_STARTN_LINEAR);
-		args->ret = 1;
+		args->ret = ERROR_PLATESOLVE;
 		goto clearup;
 	}
 	if (args->verbose)
@@ -1490,9 +1492,13 @@ gpointer plate_solver(gpointer p) {
 			com.child_is_running = EXT_ASNET;
 			g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 		}
-		args->ret = local_asnet_platesolve(stars, nb_stars, args, &solution);
+		if (local_asnet_platesolve(stars, nb_stars, args, &solution)) {
+			args->ret = ERROR_PLATESOLVE;
+		}
 	} else
-		match_catalog(stars, nb_stars, args, &solution);
+		if (match_catalog(stars, nb_stars, args, &solution)) {
+			args->ret = ERROR_PLATESOLVE;
+		}
 	if (args->ret)
 		goto clearup;
 
@@ -1512,7 +1518,7 @@ gpointer plate_solver(gpointer p) {
 		int nb_pcc_stars;
 #ifndef HAVE_WCSLIB
 		siril_log_color_message(_("This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"), "red");
-		args->ret = 1;
+		args->ret = ERROR_PLATESOLVE;
 		goto clearup;
 #endif
 		if (args->use_local_cat) {
@@ -1525,7 +1531,7 @@ gpointer plate_solver(gpointer p) {
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
 			if (get_photo_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-				args->ret = 1;
+				args->ret = ERROR_PHOTOMETRY;
 			}
 		} else {
 			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit, TRUE,
@@ -1533,6 +1539,7 @@ gpointer plate_solver(gpointer p) {
 		}
 		if (args->ret) {
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
+			args->ret = ERROR_PHOTOMETRY;
 			goto clearup;
 		}
 		args->pcc->stars = pcc_stars;
@@ -1541,7 +1548,9 @@ gpointer plate_solver(gpointer p) {
 		if (args->downsample)
 			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
 
-		args->ret = photometric_cc(args->pcc);
+		if (photometric_cc(args->pcc)) {
+			args->ret = ERROR_PHOTOMETRY;
+		}
 
 		args->pcc = NULL; // freed in PCC code
 		free(pcc_stars);
@@ -1590,12 +1599,17 @@ clearup:
 
 	int retval = args->ret;
 	if (com.script && retval) {
-		siril_log_message(_("Plate solving failed: %s\n"), args->message);
+		if (retval == ERROR_PHOTOMETRY) {
+			siril_log_message(_("Photometry failed: %s\n"), args->message);
+		} else {
+			siril_log_message(_("Plate solving failed: %s\n"), args->message);
+		}
 		g_free(args->message);
 	}
 	if (!args->for_sequence) {
 		com.child_is_running = EXT_NONE;
-		g_unlink("stop");
+		if (g_unlink("stop"))
+			siril_debug_print("g_unlink() failed");
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
@@ -2124,6 +2138,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	if (args->verbose)
 		print_platesolving_results_from_wcs(args);
+	args->ret = 0;
 	return 0;
 }
 
@@ -2231,7 +2246,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	clearfits(&fit);
 	if (args->onlineCatalog == CAT_ASNET) {
 		com.child_is_running = EXT_ASNET;
-		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
+		if (g_unlink("stop")) // make sure the flag file for cancel is not already in the folder
+			siril_debug_print("g_unlink() failed\n");
 	}
 	return get_catalog_stars(args);
 }
@@ -2263,7 +2279,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		g_object_unref(aargs->catalog_file);
 	free (aargs);
 	com.child_is_running = EXT_NONE;
-	g_unlink("stop");
+	if (g_unlink("stop"))
+		siril_debug_print("g_unlink() failed\n");
 	return 0;
 }
 

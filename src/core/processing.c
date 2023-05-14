@@ -258,10 +258,10 @@ gpointer generic_sequence_worker(gpointer p) {
 			}
 			// TODO: for seqwriter, we need to notify the failed frame
 		}
-		// checking nb layers consistency
-		if (fit->naxes[2] != args->seq->nb_layers) {
-			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"), 
-			"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
+		// checking nb layers consistency, not for partial image
+		if (!args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
+			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
+						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
 			abort = 1;
 			clearfits(fit);
 			free(fit);
@@ -735,7 +735,8 @@ void kill_child_process(gboolean onexit) {
 			fclose(fp);
 		if (onexit) {
 			g_usleep(1000);
-			g_unlink("stop");
+			if (g_unlink("stop"))
+				siril_debug_print("g_unlink() failed\n");
 			printf("asnet has been stopped on exit\n");
 		}
 	}
