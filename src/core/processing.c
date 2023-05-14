@@ -700,7 +700,8 @@ void kill_child_process(gboolean onexit) {
 			fclose(fp);
 		if (onexit) {
 			g_usleep(1000);
-			g_unlink("stop");
+			if (g_unlink("stop"))
+				siril_debug_print("g_unlink() failed\n");
 			printf("asnet has been stopped on exit\n");
 		}
 	}
