@@ -645,9 +645,9 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		size += 5760; // FITS double HDU size
 		size *= nb_frames;
 	}
-	gchar* size = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
-	siril_debug_print("Apply Registration: sequence out size: %s\n", size);
-	g_free(size);
+	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
+	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
+	g_free(size_msg);
 	if (test_available_space(size)) {
 		siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 		return FALSE;
