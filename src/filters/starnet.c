@@ -849,15 +849,10 @@ static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean fo
 		required = MB_per_image;
 		if (starnet_args->upscale)
 			required *= 4;
-		else if (com.pref.comp.fits_enabled)
-			required *= 2; // Allow for FITS compression memory overhead
-			// Even though 2 images may be saved (starless plus star mask) they are only saved
-			// one at a time in the writer hook for any given thread, so only one lot of compression
-			// overhead is needed. File writing does not happen at the same time as memory is required
-			// to hold the upscaled image, so we can set required by if / else if.
 		limit = MB_avail / required;
 	}
 	limit = (limit >= 1 ? 1 : 0);
+	siril_log_message(_("Note: the StarNet sequence memory limit calculation is based on system RAM only. If you are using GPU TensorFlow libraries and have insufficient GPU memory, StarNet may still fail.\n"));
 	return limit;
 }
 
