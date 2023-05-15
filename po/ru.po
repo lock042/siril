@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-14 19:31+0000\n"
+"PO-Revision-Date: 2023-05-16 08:53+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -294,7 +294,7 @@ msgstr "Яркие пиксели игнорируются."
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
-msgstr "Коэффициент 1/сигма"
+msgstr "Коэффициент 1/σ"
 
 #: src/gui/siril3.glade:1303 src/gui/siril3.glade:1327
 msgid ""
@@ -19250,7 +19250,7 @@ msgstr ""
 #: src/io/ser.c:163
 #, c-format
 msgid "Warning: no timestamps stored in the SER sequence.\n"
-msgstr "Предупреждение: в последовательности SER нет временных отметок.\n"
+msgstr "Предупреждение: в последовательности SER нет отметок времени.\n"
 
 #: src/io/ser.c:172
 msgid "Trying to fix broken SER file...\n"
@@ -19266,19 +19266,19 @@ msgstr "Запись 32 битных изображений в файл SER не
 
 #: src/io/ser.c:514
 msgid "Warning: no timestamps stored in the SER file.\n"
-msgstr "Предупреждение: в файле SER нет временных отметок.\n"
+msgstr "Предупреждение: в файле SER нет отметок времени.\n"
 
 #: src/io/ser.c:516
 msgid "Warning: timestamps in the SER file are all identical.\n"
-msgstr "Предупреждение: временные отметки в файле SER идентичны.\n"
+msgstr "Предупреждение: отметки времени в файле SER идентичны.\n"
 
 #: src/io/ser.c:518
 msgid "Timestamps in the SER file are correctly ordered.\n"
-msgstr "Временные отметки в файле SER в правильном порядке.\n"
+msgstr "Отметки времени в файле SER в правильном порядке.\n"
 
 #: src/io/ser.c:520
 msgid "Warning: timestamps in the SER file are not in the correct order.\n"
-msgstr "Предупреждение: временные отметки в файле SER в неверном порядке.\n"
+msgstr "Предупреждение: отметки времени в файле SER в неверном порядке.\n"
 
 #. closes, frees and zeroes
 #: src/io/ser.c:542
@@ -20142,7 +20142,7 @@ msgstr "Неизвестный метод кадрирования, прерыв
 
 #: src/registration/comet.c:131 src/registration/comet.c:168
 msgid "There is no timestamp stored in the file"
-msgstr "В файле отсутствуют временные метки"
+msgstr "В файле отсутствуют отметки времени"
 
 #: src/registration/comet.c:132 src/registration/comet.c:169
 msgid ""
@@ -20507,10 +20507,10 @@ msgid ""
 "image."
 msgstr ""
 "<b>По комете/астероиду</b>: Алгоритм регистрации комет и астероидов. Для его "
-"применения необходимы временные метки, сохранённые в заголовке FITS и "
+"применения необходимы отметки времени, сохранённые в заголовке FITS, и "
 "загруженная последовательность с выравненными изображениями звёзд. Алгоритм "
 "осуществляет сдвиг каждого изображения на определённое количество пикселей, "
-"в зависимости от его временной отметки, и общий сдвиг объекта между первым и "
+"в зависимости от его отметки времени, и общий сдвиг объекта между первым и "
 "последним изображениями."
 
 #: src/registration/registration.c:88
