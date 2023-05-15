@@ -1452,8 +1452,6 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gb
 		} else if (args.nonblindtype == DECONV_WIENER) {
 			required += MB_per_float_chan * 8;
 		}
-		// No need to allow for the FITS compression memory overhead here as the memory required for deconvolution
-		// is always greater than a single extra copy of the image, and it will be freed by the time we save the image
 		limit = MB_avail / required;
 	}
 	// Limit to 1 image at a time anyway, to support FFTW planning optimizations
