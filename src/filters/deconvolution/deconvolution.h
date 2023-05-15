@@ -79,7 +79,7 @@ EXTERNC typedef struct estk_data {
 	float finaldeconvolutionweight;
 	float intermediatedeconvolutionweight;
 	// Non-blind deconvoluton stage
-	nonblind_t nonblindtype;
+	nonblind_t nonblindtype; // Type of final non-blind deconvolution to perform
 	float alpha; // = 1/3000;
 	int finaliters; // Iters for iterative final methods
 	float stopcriterion; // Stopping distance for Richardson-Lucy

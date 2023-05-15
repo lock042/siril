@@ -841,8 +841,19 @@ gpointer do_starnet(gpointer p) {
 
 static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 // StarNet cannot run in parallel as it fully utilizes the GPU. This function therefore
-// returns 1 and all images will be processed in series.
-	return 1;
+// returns a maximum of 1 and all images will be processed in series.
+	struct starnet_data *starnet_args = (struct starnet_data *) args->user;
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	if (limit > 0) {
+		required = MB_per_image;
+		if (starnet_args->upscale)
+			required *= 4;
+		limit = MB_avail / required;
+	}
+	limit = (limit >= 1 ? 1 : 0);
+	siril_log_message(_("Note: the StarNet sequence memory limit calculation is based on system RAM only. If you are using GPU TensorFlow libraries and have insufficient GPU memory, StarNet may still fail.\n"));
+	return limit;
 }
 
 static int starnet_finalize_hook(struct generic_seq_args *args) {

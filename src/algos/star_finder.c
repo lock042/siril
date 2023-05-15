@@ -1063,6 +1063,54 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 	return retval;
 }
 
+static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	// No need to allow extra for FITS compression memory overhead as seqfindstar
+	// args.has_output == FALSE therefore for_writer == FALSE
+
+	if (limit > 0) {
+		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+		int float_multiplier = (is_float) ? 1 : 2;
+		int chan_multiplier = (args->seq->nb_layers == 3) ? 3 : 1;
+		int MB_per_float_image = MB_per_image * float_multiplier;
+		int MB_per_float_chan = MB_per_float_image / chan_multiplier;
+
+		// Allocations:
+		// ------------
+		// * extract_fits() allocates 1 * float_channel in all cases.
+		// * As the 1-channel fits populated by extract_fits() is DATA_FLOAT no
+		//   memory is required for the Gaussian blur as the in-place RT algorithm is
+		//   used;
+		// * Also allow MAX_STARS * sizeof(psf_star) + 1MB margin for gslsolver data;
+		//   and the indexing arrays e.g. smooth_array (ry * sizeof(float*)).
+		int stars_and_overhead = 1 + (int) ceilf(((float) MAX_STARS * (float) sizeof(psf_star)) / (float) BYTES_IN_A_MB);
+		required = MB_per_image + MB_per_float_chan + stars_and_overhead;
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+				thread_limit = com.max_thread;
+		limit = thread_limit;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		limit = 1;
+#endif
+	}
+	return limit;
+}
+
 int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
@@ -1149,6 +1197,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	}
 	args->image_hook = findstar_image_hook;
 	args->finalize_hook = findstar_finalize_hook;
+	args->compute_mem_limits_hook = findstar_compute_mem_limits;
 	args->stop_on_error = FALSE;
 	args->description = _("FindStar");
 	args->has_output = FALSE;
