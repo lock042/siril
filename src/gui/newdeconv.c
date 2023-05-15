@@ -1242,11 +1242,11 @@ gpointer deconvolve(gpointer p) {
 				wienerdec(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, fftw_max_thread);
 				break;
 		}
-		free(msg_rl);
+		g_free(msg_rl);
 		msg_rl = NULL;
-		free(msg_wiener);
+		g_free(msg_wiener);
 		msg_wiener = NULL;
-		free(msg_earlystop);
+		g_free(msg_earlystop);
 		msg_earlystop = NULL;
 		gettimeofday(&t_end, NULL);
 		if (sequence_is_running == 0) {
