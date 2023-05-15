@@ -6139,7 +6139,15 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 	fits_read_keyword(fptr, args->key, str, NULL, &status);
 	if (status)
 		strcpy(str, "not found");
-	siril_log_message(_("Image %d, %s = %s\n"), index, args->key, str);
+	if (args->output_stream) {
+		GError *error = NULL;
+		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index, str)) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			return 1;
+		}
+	}
+	else siril_log_message(_("Image %d, %s = %s\n"), index, args->key, str);
 	return status;
 }
 
@@ -6154,10 +6162,35 @@ int process_seq_header(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	struct generic_seq_metadata_args *args = malloc(sizeof(struct generic_seq_metadata_args));
+	GOutputStream* output_stream = NULL;
+	if (nb > 3 && g_str_has_prefix(word[3], "-out=")) {
+		const char *arg = word[3] + 5;
+		if (arg[0] == '\0') {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			return CMD_ARG_ERROR;
+		}
+		GFile *file = g_file_new_for_path(arg);
+		GError *error = NULL;
+		output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+		g_object_unref(file);
+		if (!output_stream) {
+			if (error) {
+				siril_log_color_message(_("Failed to create output file: %s\n"), "red", error->message);
+				g_clear_error(&error);
+			}
+			return CMD_ARG_ERROR;
+		}
+		if (!g_output_stream_printf(output_stream, NULL, NULL, NULL, "# image number,%s\n", word[2])) {
+			siril_log_color_message(_("Failed to write to output file\n"), "red");
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	struct generic_seq_metadata_args *args = calloc(1, sizeof(struct generic_seq_metadata_args));
 	args->seq = seq;
 	args->key = g_strdup(word[2]);
 	args->image_hook = header_hook;
+	args->output_stream = output_stream;
 	start_in_new_thread(generic_sequence_metadata_worker, args);
 	return 0;
 }

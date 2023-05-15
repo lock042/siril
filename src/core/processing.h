@@ -175,6 +175,9 @@ struct generic_seq_metadata_args {
 
 	/** function called for each image with image index in sequence */
 	int (*image_hook)(struct generic_seq_metadata_args *, fitsfile *, int);
+
+	/** instead of outputing to the log, output to a file */
+	GOutputStream *output_stream;
 };
 
 gpointer generic_sequence_metadata_worker(gpointer args);
