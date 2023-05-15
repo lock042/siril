@@ -6330,7 +6330,7 @@ int process_convert(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	char *destroot = g_strdup(word[1]);
+	gchar *destroot = g_strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = !raw_only;

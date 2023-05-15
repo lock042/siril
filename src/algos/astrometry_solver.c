@@ -2246,8 +2246,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	clearfits(&fit);
 	if (args->onlineCatalog == CAT_ASNET) {
 		com.child_is_running = EXT_ASNET;
-		if (g_unlink("stop")) // make sure the flag file for cancel is not already in the folder
-			siril_debug_print("g_unlink() failed\n");
+		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
 	return get_catalog_stars(args);
 }
