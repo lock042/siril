@@ -1269,10 +1269,6 @@ static int mergecfa_compute_mem_limits(struct generic_seq_args *args, gboolean f
 	unsigned int MB_per_image, MB_avail, required;
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
 	required = 8 * MB_per_image;
-	// No need to allow extra for FITS compression memory overhead as the extra space required for
-	// the compression overhead is the same as that required for the 4 sub-channel FITS (these are
-	// freed by the time the file comes to be saved).
-
 	if (limit > 0) {
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)

@@ -708,9 +708,6 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 		siril_log_color_message("unknown extraction type\n", "red");
 	}
 
-	if (com.pref.comp.fits_enabled)
-		required = max(required, 2 * MB_per_output_image); // Allow for FITS compression memory overhead
-
 	if (limit > 0) {
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)

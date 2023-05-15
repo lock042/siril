@@ -1000,8 +1000,6 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 		uint64_t double_channel_size = args->seq->rx * args->seq->ry * sizeof(double);
 		unsigned int double_channel_size_MB = double_channel_size / BYTES_IN_A_MB;
 		required = MB_per_image + double_channel_size_MB * 2;
-		if (com.pref.comp.fits_enabled)
-			required = max(required, 2 * MB_per_image); // Allow for FITS compression memory overhead
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
 			thread_limit = com.max_thread;

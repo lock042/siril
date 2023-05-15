@@ -391,9 +391,6 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 		float factor = (is_float) ? 0.25 : 0.5;
 		required += (1 + factor) * MB_per_scaled_image;
 	}
-	if (com.pref.comp.fits_enabled)
-		required = max(required, 2 * MB_per_scaled_image); // Allow for FITS compression memory overhead
-
 	regargs = NULL;
 	sadata = NULL;
 

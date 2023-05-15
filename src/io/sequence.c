@@ -133,7 +133,7 @@ void populate_seqcombo(const gchar *realname) {
 }
 
 /* normalizes sequence name
- * takes a string and
+ * takes a string and 
  * - removes the extension if known
  * - appends _ at the end if required and add_underscore is TRUE
  * also calls get_locale_filename() to solve Windows localized string problems

@@ -382,8 +382,6 @@ static int cosmetic_mem_limits_hook(struct generic_seq_args *args, gboolean for_
 		unsigned int MB_per_float_image = MB_per_image * float_multiplier;
 		unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
 		required += MB_per_float_channel;
-		if (com.pref.comp.fits_enabled)
-			required = max(required, 2 * MB_per_image); // Allow for FITS compression memory overhead
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
                         thread_limit = com.max_thread;
