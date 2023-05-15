@@ -848,11 +848,13 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
-	if (method->method_ptr(&regargs)) {
+	int ret1 = (method->method_ptr(&regargs));
+	free(regargs.imgparam);
+	regargs.imgparam = NULL;
+	free(regargs.regparam);
+	regargs.regparam = NULL;
+	if (ret1) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
-		set_cursor_waiting(FALSE);
-		free(regargs.imgparam);
-		free(regargs.regparam);
 		set_cursor_waiting(FALSE);
 		com.run_thread = FALSE;	// fix for the cancelling check in processing
 		return;
@@ -874,18 +876,17 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 					"in which case the images must be re-loaded to retry "
 					"alignment.)"), _("Proceed"))) {
 				set_cursor_waiting(FALSE);
-				free(regargs.imgparam);
-				free(regargs.regparam);
-				set_cursor_waiting(FALSE);
 				com.run_thread = FALSE;	// fix for the cancelling check in processing
 				return;
 			}
 		}
-		if (register_apply_reg(&regargs)) {
+		int ret2 = register_apply_reg(&regargs);
+		free(regargs.imgparam);
+		regargs.imgparam = NULL;
+		free(regargs.regparam);
+		regargs.regparam = NULL;
+		if (ret2) {
 			set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
-			set_cursor_waiting(FALSE);
-			free(regargs.imgparam);
-			free(regargs.regparam);
 			set_cursor_waiting(FALSE);
 			com.run_thread = FALSE;	// fix for the cancelling check in processing
 			return;
@@ -914,8 +915,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	}
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
-	free(regargs.imgparam);
-	free(regargs.regparam);
+//	free(regargs.imgparam);
+//	free(regargs.regparam);
 	update_result(1);
 	// reset the transformation type so that it is always in this state by default
 	the_type = HOMOGRAPHY_TRANSFORMATION;
@@ -1696,9 +1697,8 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	fits fit = { 0 };
-	sadata->current_regdata = star_align_get_current_regdata(regargs);
-	if (!sadata->current_regdata) return -2;
-	/* first we're looking for stars in reference image */
+	/* read the reference frame to get sadata->ref.x and ref.y, and check
+	   it isn't a CFA sequence */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -1734,12 +1734,10 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 			args->seq->upscale_at_stacking = 1.0;
 		}
 	}
-	sadata->current_regdata[regargs->reference_image].roundness = 1.;
-	sadata->current_regdata[regargs->reference_image].fwhm = 1.;
-	sadata->current_regdata[regargs->reference_image].weighted_fwhm = 1.;
-	sadata->current_regdata[regargs->reference_image].background_lvl = 0.;
-	sadata->current_regdata[regargs->reference_image].number_of_stars = 0;
-	return manual_align_prepare_results(args);
+	int retval = manual_align_prepare_results(args);
+	if (!retval)
+		sadata->current_regdata = regargs->regparam;
+	return retval;
 }
 
 Homography H_from_translation_and_rotation(double dx, double dy, double dr, point center) {
@@ -1782,18 +1780,11 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 		regargs->imgparam[out_index].rx = sadata->ref.x;
 		regargs->imgparam[out_index].ry = sadata->ref.y;
-		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 		cvGetEye(&regargs->regparam[out_index].H);
 
 		if (regargs->x2upscale) {
 			fit->pixel_size_x /= 2;
 			fit->pixel_size_y /= 2;
-			regargs->regparam[out_index].fwhm *= 2.0;
-			regargs->regparam[out_index].weighted_fwhm *= 2.0;
 		}
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
