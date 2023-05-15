@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-14 19:31+0000\n"
+"PO-Revision-Date: 2023-05-16 08:53+0000\n"
 "Last-Translator: Yi Cao <caoyi06@qq.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -1065,7 +1065,7 @@ msgstr "光谱不规则"
 
 #: src/gui/siril3.glade:6034
 msgid "ℓ0 Descent"
-msgstr "ℓ0 Descent"
+msgstr "ℓ0 下降"
 
 #: src/gui/siril3.glade:6045
 msgid "Previous PSF"
@@ -3266,7 +3266,7 @@ msgstr "动态叠加"
 
 #: src/gui/siril3.glade:13840
 msgid "debayer"
-msgstr "debayer"
+msgstr "解拜耳"
 
 #: src/gui/siril3.glade:13845
 msgid "for now only detected in files and automatically enabled"
@@ -3337,7 +3337,7 @@ msgstr "图像信息"
 
 #: src/gui/siril3.glade:14204 src/gui/siril3.glade:27574
 msgid "Preferences"
-msgstr "首选项"
+msgstr "偏好设置"
 
 #: src/gui/siril3.glade:14229
 msgid "Siril Manual"
@@ -3403,7 +3403,7 @@ msgstr "平方"
 
 #: src/gui/siril3.glade:14489 src/gui/siril3.glade:30578
 msgid "Asinh"
-msgstr "反双曲正弦"
+msgstr "Asinh"
 
 #: src/gui/siril3.glade:14500
 msgid "AutoStretch"
@@ -3711,7 +3711,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:15389
 msgid "Sequences"
-msgstr "队列"
+msgstr "序列"
 
 #: src/gui/siril3.glade:15422 src/gui/histogram.c:1246
 msgid "Histogram Transformation"
@@ -4620,7 +4620,7 @@ msgstr ""
 #: src/gui/siril3.glade:20225 src/gui/siril3.glade:27931
 #: src/gui/open_dialog.c:216
 msgid "Debayer"
-msgstr "Debayer"
+msgstr "解拜耳"
 
 #: src/gui/siril3.glade:20229
 msgid ""
@@ -6191,31 +6191,31 @@ msgstr "无像素剔除"
 
 #: src/gui/siril3.glade:24306
 msgid "Percentile Clipping"
-msgstr "Percentile Clipping"
+msgstr "百分数裁切"
 
 #: src/gui/siril3.glade:24307
 msgid "Sigma Clipping"
-msgstr "Sigma Clipping"
+msgstr "Sigma裁切"
 
 #: src/gui/siril3.glade:24308 src/stacking/stacking.c:348
 msgid "MAD clipping"
-msgstr "MAD clipping"
+msgstr "MAD裁切"
 
 #: src/gui/siril3.glade:24309
 msgid "Median Sigma Clipping"
-msgstr "Median Sigma Clipping"
+msgstr "中位Sigma裁切"
 
 #: src/gui/siril3.glade:24310
 msgid "Winsorized Sigma Clipping"
-msgstr "Winsorized Sigma Clipping"
+msgstr "Winsorized Sigma裁切"
 
 #: src/gui/siril3.glade:24311
 msgid "Linear Fit Clipping"
-msgstr "Linear Fit Clipping"
+msgstr "线性拟合裁切"
 
 #: src/gui/siril3.glade:24312
 msgid "Generalized Extreme Studentized Deviate Test"
-msgstr "Generalized Extreme Studentized Deviate Test"
+msgstr "广义ESD检验（Generalized Extreme Studentized Deviate Test）"
 
 #: src/gui/siril3.glade:24325
 msgid ""
@@ -6710,7 +6710,7 @@ msgstr "白点参考"
 
 #: src/gui/siril3.glade:27676
 msgid "FITS/SER debayer"
-msgstr "FITS/SER debayer"
+msgstr "FITS/SER解拜耳"
 
 #: src/gui/siril3.glade:27706
 msgid "Bayer information from file's header if available"
@@ -6831,7 +6831,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:27822
 msgid "Fast Debayer"
-msgstr "Fast Debayer"
+msgstr "快速解拜耳"
 
 #: src/gui/siril3.glade:27823
 msgid "VNG4"
@@ -6900,7 +6900,7 @@ msgstr "1"
 
 #: src/gui/siril3.glade:27948
 msgid "FITS/SER Debayer"
-msgstr "FITS/SER Debayer"
+msgstr "FITS/SER解拜耳"
 
 #: src/gui/siril3.glade:27961
 msgid "FITS options"
@@ -8356,9 +8356,9 @@ msgid ""
 "%s\n"
 " Exiting.\n"
 msgstr ""
-"%s was not found or contains errors, cannot render GUI:\n"
+"找不到%s或包含错误，无法渲染GUI：\n"
 "%s\n"
-" Exiting.\n"
+"已退出。\n"
 
 #: src/main.c:145 src/gui/siril_css.c:73
 #, c-format
@@ -8785,13 +8785,14 @@ msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius for scales [%s, %s]\n"
 msgstr ""
-"Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
-"degrees radius for scales [%s, %s]\n"
+"使用搜索字段在赤经Ra：%s，赤纬Dec：%s，半径为%s度的范围内使用Astrometry."
+"net定位。\n"
+"搜索的比例尺范围为[%s, %s]。\n"
 
 #: src/algos/astrometry_solver.c:1976
 #, c-format
 msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
-msgstr "Astrometry.net solving blindly for scales [%s, %s]\n"
+msgstr "Astrometry.net盲目定位，比例尺范围为[%s, %s]。\n"
 
 #: src/algos/astrometry_solver.c:2054
 msgid "No astrometric solution found\n"
@@ -8944,7 +8945,7 @@ msgstr "FITS文件头不包含恰当的XTRANS模式，去马赛克无法完成\n
 #: src/algos/demosaicing.c:966
 #, c-format
 msgid "Invalid character in X-Trans filter pattern: %c\n"
-msgstr "Invalid character in X-Trans filter pattern: %c\n"
+msgstr "X-Trans滤镜中存在无效字符：%c\n"
 
 #: src/algos/demosaicing.c:1226
 msgid "Cannot perform debayering on image with more than one channel\n"
@@ -9072,9 +9073,7 @@ msgstr "Extract_HaOIII无法在非拜耳阵列的图像上执行！\n"
 msgid ""
 "Fix X-Trans: Unknown camera %s, trying to read information from "
 "preferences.\n"
-msgstr ""
-"Fix X-Trans: Unknown camera %s, trying to read information from "
-"preferences.\n"
+msgstr "请修复X-Trans：未知相机%s，尝试从首选项中读取信息。\n"
 
 #: src/algos/fix_xtrans_af.c:191
 msgid "Sample box cannot be bigger than the image.\n"
@@ -9090,12 +9089,12 @@ msgstr "首选项中无可用信息。\n"
 
 #: src/algos/fix_xtrans_af.c:259
 msgid "This CFA pattern cannot be handled by fix_xtrans_ac.\n"
-msgstr "This CFA pattern cannot be handled by fix_xtrans_ac.\n"
+msgstr "fix_xtrans_ac无法处理此CFA模式。\n"
 
 #: src/algos/fix_xtrans_af.c:341
 #, c-format
 msgid "Failed to sample enough pixels for AF type %d.\n"
-msgstr "Failed to sample enough pixels for AF type %d.\n"
+msgstr "无法对AF类型%d获取足够的像素采样。\n"
 
 #: src/algos/geometry.c:268
 #, c-format
@@ -9666,7 +9665,7 @@ msgstr "无法计算 CFA 统计信息\n"
 
 #: src/algos/statistics.c:745
 msgid "Bad argument to stats option\n"
-msgstr "Bad argument to stats option\n"
+msgstr "stats选项的参数错误。\n"
 
 #: src/algos/statistics.c:881
 #, c-format
@@ -9689,6 +9688,7 @@ msgid "MAD is null. Statistics cannot be computed.\n"
 msgstr "MAD为空，统计信息无法计算。\n"
 
 #: src/algos/transform.c:247
+#, fuzzy
 msgid "wavelet_transform_data: bad plane number\n"
 msgstr "wavelet_transform_data: bad plane number\n"
 
@@ -9748,7 +9748,7 @@ msgstr "将当前载入图像尺寸从 %dx%d 改变为 %dx%d\n"
 #: src/compositing/compositing.c:560
 #, c-format
 msgid "OK upscaled from %ux%u"
-msgstr "OK upscaled from %ux%u"
+msgstr "从%ux%u上采样完成"
 
 #: src/compositing/compositing.c:564
 msgid "Image loaded, and upscaled"
@@ -10216,39 +10216,39 @@ msgstr "参数错误。\n"
 #: src/core/command.c:7606 src/core/command.c:7635
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
-msgstr "Missing argument to %s, aborting.\n"
+msgstr "缺少参数%s，中止处理。\n"
 
 #: src/core/command.c:1856
 msgid "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
-msgstr "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
+msgstr "错误：BP在0.0到1.0之间，现在是 -BP=\n"
 
 #: src/core/command.c:1860
 msgid "Error: BP must be >= 0.0 and <= 1.0.\n"
-msgstr "Error: BP must be >= 0.0 and <= 1.0.\n"
+msgstr "错误：BP必须>=0.0且<=1.0。\n"
 
 #: src/core/command.c:1870
 msgid "Error: D must be specified between 0.0 and 1.0 using -D=\n"
-msgstr "Error: D must be specified between 0.0 and 1.0 using -D=\n"
+msgstr "错误：D在0.0和1.0之间，现在-D=\n"
 
 #: src/core/command.c:1876
 msgid "Error: B must be >= 0.0 and <= 15.0.\n"
-msgstr "Error: B must be >= 0.0 and <= 15.0.\n"
+msgstr "错误：B必须>=0.0且<=15.0。\n"
 
 #: src/core/command.c:1883
 msgid "Error: D must be > 0.0 and <= 10.0.\n"
-msgstr "Error: D must be > 0.0 and <= 10.0.\n"
+msgstr "错误：D必须>0.0且<=10.0。\n"
 
 #: src/core/command.c:1887
 msgid "Error: SP must be >= 0.0 and <= 1.0.\n"
-msgstr "Error: SP must be >= 0.0 and <= 1.0.\n"
+msgstr "错误：SP必须>=0.0且<=1.0。\n"
 
 #: src/core/command.c:1891
 msgid "Error: LP must be >= 0.0 and <= SP.\n"
-msgstr "Error: LP must be >= 0.0 and <= SP.\n"
+msgstr "错误：LP必须>=0.0且<=SP。\n"
 
 #: src/core/command.c:1895
 msgid "Error: HP must be >= SP and <= 1.0.\n"
-msgstr "Error: HP must be >= SP and <= 1.0.\n"
+msgstr "错误：HP必须>=SP且<=1.0。\n"
 
 #: src/core/command.c:1900
 msgid ""
@@ -10267,12 +10267,12 @@ msgstr "错误：无法对单色图像应用饱和度拉伸。\n"
 #: src/filters/wavelets.c:325
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
-msgstr "Wavelet: maximum number of plans for this image size is %d\n"
+msgstr "Wavelet：此图像尺寸的最大计划数为%d\n"
 
 #: src/core/command.c:2080 src/filters/wavelets.c:264
 #, c-format
 msgid "Wavelet: type must be %d or %d\n"
-msgstr "Wavelet: type must be %d or %d\n"
+msgstr "Wavelet：类型必须为%d或%d\n"
 
 #: src/core/command.c:2127
 msgid "Low value must be in the [0, 1] range.\n"
@@ -10497,7 +10497,7 @@ msgstr "角度 %lf 不允许。应介于 0.0 和 360.0 之间。\n"
 
 #: src/core/command.c:3032
 msgid "-nocrop option is not valid if a selection is active. Ignoring\n"
-msgstr "-nocrop option is not valid if a selection is active. Ignoring\n"
+msgstr "存在选区，-nocrop选项无效。已忽略\n"
 
 #: src/core/command.c:3042
 msgid "Angle is 0.0 or 360.0 degrees. Doing nothing...\n"
@@ -10562,7 +10562,7 @@ msgstr "参考帧必须在 1 和 %d 之间\n"
 
 #: src/core/command.c:3354
 msgid "Run a PSF for the sequence first (see seqpsf)\n"
-msgstr "Run a PSF for the sequence first (see seqpsf)\n"
+msgstr "序列首先需运行PSF（请参阅seqpsf）。\n"
 
 #: src/core/command.c:3358
 #, c-format
@@ -10646,16 +10646,16 @@ msgstr "半径 = %d\n"
 #: src/core/command.c:3519
 #, c-format
 msgid "amplitude range = [%f, %f]\n"
-msgstr "amplitude range = [%f, %f]\n"
+msgstr "振幅大小 = [%f, %f]\n"
 
 #: src/core/command.c:3521
 msgid "amplitude range unlimited\n"
-msgstr "amplitude range unlimited\n"
+msgstr "振幅大小无上限\n"
 
 #: src/core/command.c:3526
 #, c-format
 msgid "convergence = %d\n"
-msgstr "convergence = %d\n"
+msgstr "收敛 = %d\n"
 
 #: src/core/command.c:3528
 #, c-format
@@ -10670,17 +10670,17 @@ msgstr "像素尺寸 = %3.2f\n"
 #: src/core/command.c:3532
 #, c-format
 msgid "relax = %s\n"
-msgstr "relax = %s\n"
+msgstr "松弛 = %s\n"
 
 #: src/core/command.c:3534
-#, c-format
+#, c-format, fuzzy
 msgid "profile = %s\n"
 msgstr "profile = %s\n"
 
 #: src/core/command.c:3537
 #, c-format
 msgid "minimum beta = %3.2f\n"
-msgstr "minimum beta = %3.2f\n"
+msgstr "最小beta = %3.2f\n"
 
 #: src/core/command.c:3546
 msgid "Reference magnitude unset for sequence\n"
@@ -10690,13 +10690,11 @@ msgstr "队列中的参考星等未设定\n"
 msgid ""
 "You need to add at least one image as variable. Use $ tokens to surround the "
 "file names .\n"
-msgstr ""
-"You need to add at least one image as variable. Use $ tokens to surround the "
-"file names .\n"
+msgstr "你需要添加至少一张图片作为参数。 文件名应被 $ 括起来。\n"
 
 #: src/core/command.c:3571
 msgid "There is an unmatched $. Please check the expression.\n"
-msgstr "There is an unmatched $. Please check the expression.\n"
+msgstr "有不配对的 $。 请检查表达式。\n"
 
 #: src/core/command.c:3582 src/core/command.c:3587
 msgid "Rescale can only be done in the [0, 1] range.\n"
@@ -10750,10 +10748,9 @@ msgid ""
 msgstr "仅当队列已载入并且围绕星点进行选择时，参数才是可选的\n"
 
 #: src/core/command.c:3928 src/core/command.c:3983
-#, c-format
+#, c-format, fuzzy
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
-msgstr ""
-"PSF cannot be computed on channel %d for this sequence of %d channels\n"
+msgstr "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 
 #: src/core/command.c:3956
 #, c-format
@@ -10808,7 +10805,7 @@ msgstr "清除倾斜信息\n"
 #: src/core/command.c:4302 src/core/command.c:4327
 #, c-format
 msgid "Replacement value is out of range (0 - %d)\n"
-msgstr "Replacement value is out of range (0 - %d)\n"
+msgstr "替换值超出范围 (0 - %d)\n"
 
 #: src/core/command.c:4267
 msgid "lo must be strictly smaller than hi\n"
@@ -10861,8 +10858,7 @@ msgstr "队列为单色，忽略图层数。\n"
 #, c-format
 msgid ""
 "Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
-msgstr ""
-"Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
+msgstr "未知图层 %s，必须在0到2之间，已使用绿色图层。\n"
 
 #. limiting values to avoid too long computation or too low number of candidates
 #: src/core/command.c:4490 src/core/command.c:6534
@@ -10872,7 +10868,7 @@ msgstr "最大星点数 %s 不被允许。应该介于 %d 和 %d 之间。\n"
 
 #: src/core/command.c:4580
 msgid "Option -out= is not available for sequences, ignoring\n"
-msgstr "Option -out= is not available for sequences, ignoring\n"
+msgstr "选项 -out= 对序列无效，已忽略\n"
 
 #: src/core/command.c:4590
 msgid "find_hot must be applied on an one-channel master-dark frame"
@@ -11322,9 +11318,8 @@ msgstr ""
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
-msgstr ""
-"Extra parameters of percentile rejection algorithm must be between 0 and 1, "
-"default is 0.2 and 0.1.\n"
+msgstr "Percentile Rejection Algorithm算法的额外参数必须在0到1之间，默认为0.2和0.1。"
+"\n"
 
 #: src/core/command.c:7314 src/core/command.c:7443
 #, c-format
@@ -11343,7 +11338,7 @@ msgstr "队列叠加成功。\n"
 
 #: src/core/command.c:7391
 msgid "Missing arguments for rejection stacking.\n"
-msgstr "Missing arguments for rejection stacking.\n"
+msgstr "剔除叠加缺少参数。\n"
 
 #: src/core/command.c:7483 src/core/preprocess.c:662 src/core/preprocess.c:987
 msgid "Could not load the reference image of the sequence, aborting.\n"
@@ -11356,10 +11351,10 @@ msgstr "无法载入图像，异常中止。\n"
 #: src/core/command.c:7520
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
-msgstr "The offset value could not be parsed from expression: %s, aborting.\n"
+msgstr "偏移无法从表达式中计算：%s，已停止。\n"
 
 #: src/core/command.c:7526 src/core/preprocess.c:685
-#, c-format
+#, c-format, fuzzy
 msgid "Synthetic offset: Level = %d\n"
 msgstr "Synthetic offset: Level = %d\n"
 
@@ -11370,10 +11365,12 @@ msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr "offset 值超出允许的范围 [-%d，%d]，异常中止。\n"
 
 #: src/core/command.c:7613
+#, fuzzy
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr "Dark optimization: This process cannot be applied to 8b images\n"
 
 #: src/core/command.c:7641
+#, fuzzy
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
@@ -12913,7 +12910,7 @@ msgstr "将多个队列合并为一个"
 msgid ""
 "Flips the image about the horizontal axis. Option <b>-bottomup</b> will only "
 "flip it if it's not already bottom-up"
-msgstr "将图像沿水平轴翻转。如果图像尚未倒置，选项<b>-bottomup</b>将进行翻转。"
+msgstr "将图像沿水平轴翻转。如果图像尚未倒置，选项<b>-bottomup</b>将进行翻转"
 
 #: src/core/command_def.h:89
 msgid ""
@@ -13238,7 +13235,7 @@ msgstr ""
 "，变量（即图像名称，不带扩展名，在这种情况下位于工作目录中）必须用标记$括起来"
 "，例如\"$image1$ * 0.5 + $image2$ * 0.5\"。表达式中最多可以使用10个图像。可以"
 "使用选项<b>-rescale</b>跟随<b>low</b>和<b>high</b>值（范围为[0, "
-"1]）来重新缩放图像。如果没有提供low和high值，则默认值设置为0和1。"
+"1]）来重新缩放图像。如果没有提供low和high值，则默认值设置为0和1"
 
 #: src/core/command_def.h:106
 msgid ""
@@ -18430,11 +18427,11 @@ msgstr "sigma"
 
 #: src/gui/statistics_list.c:50
 msgid "avgDev"
-msgstr "avgDev"
+msgstr "平均值偏差（avgDev）"
 
 #: src/gui/statistics_list.c:51
 msgid "MAD"
-msgstr "MAD"
+msgstr "中位值偏差（MAD）"
 
 #: src/gui/statistics_list.c:52
 msgid "sqrt(BWMV)"
