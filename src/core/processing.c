@@ -735,8 +735,6 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	gettimeofday(&t_start, NULL);
 	for (int frame = 0; frame < args->seq->number; frame++) {
 		fits fit = { 0 };
-		//if (seq_read_frame_metadata(args->seq, i, &fit))
-		//	return 1;
 		if (seq_open_image(args->seq, frame))
 			return GINT_TO_POINTER(1);
 		if (args->seq->type == SEQ_REGULAR)
@@ -749,6 +747,8 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	show_time(t_start, t_end);
 	free_sequence(args->seq, TRUE);
 	g_free(args->key);
+	if (args->output_stream)
+		g_object_unref(args->output_stream);
 	free(args);
 	siril_add_idle(end_generic, NULL);
 	return 0;
