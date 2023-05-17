@@ -19,8 +19,23 @@
  */
 #ifndef SRC_CORE_ICC_PROFILE_H_
 #define SRC_CORE_ICC_PROFILE_H_
+#include <lcms2.h>
+
+#define ICC_COPYRIGHT "Copyright (C) 2005-2011 Francois Meyer, (C) 2012-2023 team free-astro (website: https://free-astro.org/index.php.Siril/). This ICC profile is licensed under the GNU Public Licence, either version 3 of the License or (at your option) any later version (http://www.gnu.org/licenses/)"
+
+#define GAMMA_LINEAR 1.0
+#define GAMMA_DISPLAY 2.19921875
+#define TYPE_RGB_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_RGB)|CHANNELS_SH(3)|BYTES_SH(4))|PLANAR_SH(1))
 
 const unsigned char* get_sRGB_profile_data(guint32 *len);
 const unsigned char* get_gray_profile_data(guint32 *len);
+
+cmsHPROFILE* initialize_icc_profile_srgb(double gamma);
+cmsHPROFILE* initialize_icc_profile_gray(double gamma);
+cmsHPROFILE* load_icc_profile_from_file(const char* filename);
+
+
+
+
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */
