@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
 "PO-Revision-Date: 2023-05-19 12:14+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"Last-Translator: Yi Cao <caoyi06@qq.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -3322,7 +3322,7 @@ msgstr "使用加权平均叠加"
 
 #: src/gui/siril3.glade:14118
 msgid "Configuration"
-msgstr "设置"
+msgstr "配置"
 
 #: src/gui/siril3.glade:14144 src/livestacking/gui.c:143
 msgid "Idle"
@@ -11779,11 +11779,11 @@ msgstr ""
 
 #: src/core/command_def.h:11
 msgid "Returns the background level of the image loaded in memory"
-msgstr "Returns the background level of the image loaded in memory"
+msgstr "返回当前加载图像的背景值"
 
 #: src/core/command_def.h:12
 msgid "Returns the background noise level of the image loaded in memory"
-msgstr "Returns the background noise level of the image loaded in memory"
+msgstr "返回当前加载图像的背景噪音大小"
 
 #: src/core/command_def.h:13
 msgid ""
