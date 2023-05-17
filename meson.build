@@ -240,6 +240,7 @@ gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
+lcms_dep = dependency('lcms2', required : true)
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -598,6 +599,7 @@ externals_dep = declare_dependency(
     gio_dep,
     gio_platform_dep,
     gtk_dep,
+    lcms_dep,
     libcurl_dep,
     gsl_dep,
     opencv4_dep,
