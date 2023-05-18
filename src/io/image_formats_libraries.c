@@ -884,7 +884,7 @@ int readxisf(const char* name, fits *fit, gboolean verbose) {
 		fit->type = DATA_USHORT;
 		break;
 	case LONG_IMG:
-		float *data32f = (float *)xdata->data;;
+		float *data32f = (float *)xdata->data;
 		for (int i = 0; i < npixels; i++)
 			fit->fdata[i] = (data32f[i] / USHRT_MAX_SINGLE);
 		fit->fpdata[RLAYER] = fit->fdata;
@@ -910,7 +910,6 @@ int readxisf(const char* name, fits *fit, gboolean verbose) {
 	if (ret) {
 		siril_debug_print("XISF Header cannot be read.\n");
 	}
-	fit->binning_x = fit->binning_y = 1;
 	mirrorx(fit, FALSE);
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
