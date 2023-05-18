@@ -28,16 +28,18 @@
 
 #include <glib.h>
 #include "icc_profile.h"
+#include "core/OS_utils.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/siril_app_dirs.h"
 #include "core/proto.h"
 
-#define DEFAULT_PATH_GV2g22 "~/.local/share/kstars/icc/Gray-siril-V2-g22.icc"
-#define DEFAULT_PATH_GV4g10 "~/.local/share/kstars/icc/Gray-siril-V4-g10.icc"
-#define DEFAULT_PATH_GV4g22 "~/.local/share/kstars/icc/Gray-siril-V4-g22.icc"
-#define DEFAULT_PATH_RGBV2g22 "~/.local/share/kstars/icc/sRGB-siril-V2-g22.icc"
-#define DEFAULT_PATH_RGBV4g10 "~/.local/share/kstars/icc/sRGB-siril-V4-g10.icc"
-#define DEFAULT_PATH_RGBV4g22 "~/.local/share/kstars/icc/sRGB-siril-V4-g22.icc"
+#define DEFAULT_PATH_GV2g22 "Gray-siril-V2-g22.icc"
+#define DEFAULT_PATH_GV4g10 "Gray-siril-V4-g10.icc"
+#define DEFAULT_PATH_GV4g22 "Gray-siril-V4-g22.icc"
+#define DEFAULT_PATH_RGBV2g22 "sRGB-siril-V2-g22.icc"
+#define DEFAULT_PATH_RGBV4g10 "sRGB-siril-V4-g10.icc"
+#define DEFAULT_PATH_RGBV4g22 "sRGB-siril-V4-g22.icc"
 
 #define INDEX_GV2G22 0
 #define INDEX_GV4G10 1
@@ -45,12 +47,14 @@
 #define INDEX_SRGBV2G22 3
 #define INDEX_SRGBV4G10 4
 #define INDEX_SRGBV4G22 5
+
+#define MAX_SYSTEM_ICC 5
 // The following two indices refer to user-provided screen and proof profiles
 // that may be stored in com.pref but for which there are no defaults
 #define INDEX_CUSTOM_MONITOR 6
 #define INDEX_CUSTOM_PROOF 7
 
-const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DEFAULT_PATH_GV4g22, DEFAULT_PATH_RGBV2g22, DEFAULT_PATH_RGBV4g10, DEFAULT_PATH_RGBV4g22, "", "" };
+const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DEFAULT_PATH_GV4g22, DEFAULT_PATH_RGBV2g22, DEFAULT_PATH_RGBV4g10, DEFAULT_PATH_RGBV4g22 };
 
 static cmsHPROFILE sRGB_g10;				// The working profile is always sRGB_g10
 static cmsHPROFILE Gray_g10;				// or Gray_g10 for mono images
@@ -59,7 +63,7 @@ static cmsHPROFILE sRGB_g22_v2;				// This is the standard profile for embedding
 static cmsHPROFILE Gray_g22_v2;				// This is the standard profile for embedding in saved mono images
 static cmsHPROFILE monitor_profile;			// This may store a user-provided monitor profile
 static cmsBool monitor_profile_active; 		// This says whether or not to use the user-provided monitor profile
-static cmsHPROFILE proof_profile;					// This may store a user-provided proof profile
+static cmsHPROFILE proof_profile;			// This may store a user-provided proof profile
 static cmsBool proof_profile_active;		// This says whether or not the user-provided proof profile is active
 static cmsHTRANSFORM icc_remap_sRGB_float;	// This is the CMS transform used to remap float RGB for display
 static cmsHTRANSFORM icc_remap_sRGB_WORD;	// This is the CMS transform used to remap WORD RGB for display
@@ -68,7 +72,8 @@ static cmsHTRANSFORM icc_remap_Gray_WORD;	// This is the CMS transform used to r
 
 ////// Functions //////
 
-void initialize_standard_profiles_and_transforms() {
+void initialize_profiles_and_transforms() {
+	int error = 0;
 	// Linear working color profiles
 	sRGB_g10 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G10], "r");
 	Gray_g10 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G10], "r");
@@ -78,11 +83,32 @@ void initialize_standard_profiles_and_transforms() {
 	sRGB_g22_v2 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV2G22], "r");
 	Gray_g22_v2 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV2G22], "r");
 	if (!sRGB_g10 || !Gray_g10 || !sRGB_g22_v4 || !sRGB_g22_v2 || !Gray_g22_v2) {
-		siril_log_color_message(_(	"Warning: standard color management profiles could not be loaded. Siril will continue"
-									"but colors in saved images will not be consistent when viewed in other applications"
-									"or printed. Check your installation."), "red");
+		error++;
+		siril_log_message(_("Error: standard color management profiles could not be loaded. Siril will continue "
+							"but colors in saved images will not be consistent when viewed in other applications "
+							"or printed. Check your installation is correct.\n"));
+	} else { // No point loading monitor and soft proof profiles if the standard ones are unavailable
+		// Open the custom monitor and soft proofing profiles if there is a path set in preferences
+		if (com.pref.icc_paths[INDEX_CUSTOM_MONITOR] && com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] != '\0') {
+			monitor_profile = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_CUSTOM_MONITOR], "r");
+			if (!monitor_profile) {
+				error++;
+				siril_log_message(_("Warning: custom monitor profile set but could not be loaded. Display will use a "
+									"standard sRGB profile with D65 white point and gamma = 2.2.\n"));
+			}
+		}
+		if (com.pref.icc_paths[INDEX_CUSTOM_MONITOR] && com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] != '\0') {
+			proof_profile = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_CUSTOM_PROOF], "r");
+			if (!monitor_profile) {
+				error++;
+				siril_log_message(_("Warning: soft proofing profile set but could not be loaded. Soft proofing will be "
+									"unavailable.\n"));
+			}
+		}
 	}
-
+	if (!error) {
+		siril_log_message(_("ICC profiles loaded correctly. Workflow will be color managed.\n"));
+	}
 //	icc_remap_sRGB_float = cmsCreateTransform(sRGB_g10, TYPE_RGB_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
 //	icc_remap_Gray_float = cmsCreateTransform(Gray_g10, TYPE_GRAY_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
 }
@@ -116,7 +142,7 @@ int load_proof_icc_profile(const char* filename) {
 }
 
 // Adapted from initialize_local_catalogues_paths()
-void initialize_local_icc_profiles_paths() {
+void initialize_icc_profiles_paths() {
 	int nb_icc = sizeof(default_icc_paths) / sizeof(const char *);
 	int maxpath = get_pathmax();
 	for (int icc = 0; icc < nb_icc; icc++) {
@@ -124,12 +150,10 @@ void initialize_local_icc_profiles_paths() {
 				com.pref.icc_paths[icc][0] != '\0')
 			continue;
 		char path[maxpath];
-		strncpy(path, default_icc_paths[icc], maxpath - 1);
-		// We don't expand_home_in_filename for the two empty default paths
-		// These should be copied as empty strings to initialize them in com.pref.icc_paths
-		if (path[0] != '\0')
-			expand_home_in_filename(path, maxpath);
+		gchar *filename = g_build_filename(siril_get_system_data_dir(), "icc", default_icc_paths[icc], NULL);
+		strncpy(path, filename, maxpath - 1);
 		com.pref.icc_paths[icc] = g_strdup(path);
+		g_free(filename);
 	}
 }
 

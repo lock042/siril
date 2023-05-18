@@ -31,10 +31,10 @@
 const unsigned char* get_sRGB_profile_data(guint32 *len);
 const unsigned char* get_gray_profile_data(guint32 *len);
 
-int initialize_icc_profile_srgb(double gamma, cmsHPROFILE* profile);
-int initialize_icc_profile_gray(double gamma, cmsHPROFILE* profile);
-cmsHPROFILE* load_icc_profile_from_file(const char* filename);
-unsigned char* get_profile_buf(cmsHPROFILE* profile, uint32_t* profile_len);
+//unsigned char* get_profile_buf(cmsHPROFILE* profile, uint32_t* profile_len);
 
+int load_display_icc_profile(const char* filename);
+int load_proof_icc_profile(const char* filename);
+void initialize_icc_profiles_paths();
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

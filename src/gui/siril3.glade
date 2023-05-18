@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -30666,6 +30666,90 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">5</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFrame">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label-xalign">0</property>
+                                    <property name="shadow-type">none</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=2 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-left">12</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="row-homogeneous">True</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Custom monitor profile</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Soft proofing profile</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkFileChooserButton" id="pref_custom_monitor_profile">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">To use a custom monitor ICC profile, set it here. If no custom profile is set, sRGB with D65 white point and gamma = 2.2 will be used.</property>
+                                            <property name="title" translatable="yes"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkFileChooserButton" id="pref_soft_proofing_profile">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">To use a custom proofing ICC profile, set it here. As the result of soft proofing is heavily dependent on having the correct profile for your printer and paper type, if no profile is set here soft proofing will be unavailable.</property>
+                                            <property name="title" translatable="yes"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="label">
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-top">10</property>
+                                        <property name="margin-bottom">10</property>
+                                        <property name="label" translatable="yes">Color Management</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">6</property>
                                   </packing>
                                 </child>
                               </object>

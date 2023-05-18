@@ -26,6 +26,7 @@
 #include "core/settings.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "io/catalogues.h"
 #include "stacking/stacking.h"
 
@@ -200,7 +201,8 @@ preferences pref_init = {
 		.multithreaded = TRUE,
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
-	}
+	},
+	.icc_paths = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 void free_preferences(preferences *pref) {
@@ -242,7 +244,7 @@ void initialize_default_settings() {
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
-	// set_wisdom_file();
+	initialize_icc_profiles_paths();
 }
 
 void update_gain_from_gfit() {
@@ -382,6 +384,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
+	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc_paths[6] },
+	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc_paths[7] },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
