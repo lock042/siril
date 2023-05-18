@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-16 08:53+0000\n"
-"Last-Translator: Yi Cao <caoyi06@qq.com>\n"
+"PO-Revision-Date: 2023-05-19 12:14+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -1129,15 +1129,14 @@ msgstr "确保尺寸足够大，不会裁剪 PSF 的任何重要部分。"
 
 #: src/gui/siril3.glade:6269 src/gui/siril3.glade:7237
 msgid "Profile"
-msgstr "曲线"
+msgstr "轮廓"
 
 #: src/gui/siril3.glade:6280
 msgid ""
 "Gaussian and Moffat profiles are good models for star shapes. Disc profiles "
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
-msgstr ""
-"高斯和Moffat曲线是星点形状的良好模型。Disc曲线可用于改善失焦问题。艾里班模拟"
+msgstr "高斯和Moffat轮廓是星点形状的良好模型。Disc轮廓可用于改善失焦问题。艾里班模拟"
 "望远镜的固有衍射。"
 
 #: src/gui/siril3.glade:6283 src/gui/siril3.glade:13426
@@ -1176,9 +1175,8 @@ msgstr "fwhm / \""
 msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
-msgstr ""
-"半高全宽FWHM。对于Disc剖面，这只是盘面的直径。对于椭圆形 PSF，这是长轴的 PSF "
-"尺寸。"
+msgstr "半高全宽FWHM。对于Disc轮廓，这只是盘面的直径。对于椭圆形PSF，这是长轴的PSF尺"
+"寸。"
 
 #: src/gui/siril3.glade:6394 src/gui/siril3.glade:7273
 msgid "Angle / º"
@@ -1196,8 +1194,7 @@ msgstr "beta (β)"
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
-msgstr ""
-"对于 Moffat 曲线，这将设置 beta 值。有关此参数的信息，请参阅天体测量文档。"
+msgstr "对于Moffat轮廓，这将设置beta值。有关此参数的信息，请参阅天体测量文档。"
 
 #: src/gui/siril3.glade:6463
 msgid "Pixel Size / μm"
@@ -3178,7 +3175,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:13413
 msgid "Profile type:"
-msgstr "配置文件类型:"
+msgstr "轮廓类型:"
 
 #: src/gui/siril3.glade:13440
 msgid "Minimum beta:"
@@ -3403,7 +3400,7 @@ msgstr "平方"
 
 #: src/gui/siril3.glade:14489 src/gui/siril3.glade:30578
 msgid "Asinh"
-msgstr "Asinh"
+msgstr "反双曲正弦"
 
 #: src/gui/siril3.glade:14500
 msgid "AutoStretch"
@@ -4217,8 +4214,8 @@ msgid ""
 "maximum 16-bit or 32-bit pixel range. Should be applied <i>before</i> "
 "<b>stretching</b> to achieve the best result."
 msgstr ""
-"去饱和剪裁的星点轮廓，并重新缩放输出，使其不超过最大 16 位或 32 位像素范围。"
-"应在<b>拉伸</b><i>之前</i>使用以达到最佳效果。"
+"去饱和剪裁的星点轮廓，并重新缩放输出，使其不超过最大 16 位或 32 "
+"位像素范围。应在<b>拉伸</b><i>之前</i>使用以达到最佳效果。"
 
 #: src/gui/siril3.glade:17987
 msgid "Desaturate Stars"
@@ -8784,10 +8781,8 @@ msgstr "无法为 solve-field 创建输入数据\n"
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius for scales [%s, %s]\n"
-msgstr ""
-"使用搜索字段在赤经Ra：%s，赤纬Dec：%s，半径为%s度的范围内使用Astrometry."
-"net定位。\n"
-"搜索的比例尺范围为[%s, %s]。\n"
+msgstr "Astrometry.net 进行解析基于RA：%s，Dec：%s，半径为%s度，缩放比例为[%s, %s]。"
+"\n"
 
 #: src/algos/astrometry_solver.c:1976
 #, c-format
@@ -9688,9 +9683,8 @@ msgid "MAD is null. Statistics cannot be computed.\n"
 msgstr "MAD为空，统计信息无法计算。\n"
 
 #: src/algos/transform.c:247
-#, fuzzy
 msgid "wavelet_transform_data: bad plane number\n"
-msgstr "wavelet_transform_data: bad plane number\n"
+msgstr "小波变换数据：错误的平面数\n"
 
 #: src/compositing/align_rgb.c:151 src/compositing/compositing.c:656
 msgid "Error in layers alignment."
@@ -10673,9 +10667,9 @@ msgid "relax = %s\n"
 msgstr "松弛 = %s\n"
 
 #: src/core/command.c:3534
-#, c-format, fuzzy
+#, c-format
 msgid "profile = %s\n"
-msgstr "profile = %s\n"
+msgstr "轮廓 = %s\n"
 
 #: src/core/command.c:3537
 #, c-format
@@ -10748,7 +10742,7 @@ msgid ""
 msgstr "仅当队列已载入并且围绕星点进行选择时，参数才是可选的\n"
 
 #: src/core/command.c:3928 src/core/command.c:3983
-#, c-format, fuzzy
+#, c-format
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 
@@ -11354,9 +11348,9 @@ msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr "偏移无法从表达式中计算：%s，已停止。\n"
 
 #: src/core/command.c:7526 src/core/preprocess.c:685
-#, c-format, fuzzy
+#, c-format
 msgid "Synthetic offset: Level = %d\n"
-msgstr "Synthetic offset: Level = %d\n"
+msgstr "合成偏移量：Level = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
 #: src/core/command.c:7529
@@ -11365,18 +11359,14 @@ msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr "offset 值超出允许的范围 [-%d，%d]，异常中止。\n"
 
 #: src/core/command.c:7613
-#, fuzzy
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
-msgstr "Dark optimization: This process cannot be applied to 8b images\n"
+msgstr "暗场优化：此过程不适用于8b图像\n"
 
 #: src/core/command.c:7641
-#, fuzzy
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
-msgstr ""
-"You must specify a masterdark with -dark= before activating this option, "
-"aborting.\n"
+msgstr "在激活此选项之前，必须使用 -dark= 指定主暗场，异常终止。\n"
 
 #: src/core/command.c:7661
 #, c-format
@@ -17419,7 +17409,7 @@ msgstr "错误：星点属性必须全部在同一图层上计算"
 
 #: src/gui/newdeconv.c:515
 msgid "Error: stars must all be modeled with the same profile type"
-msgstr "错误：星点必须全部使用相同的配置类型建模"
+msgstr "错误：星点必须全部使用相同的轮廓类型建模"
 
 #: src/gui/newdeconv.c:557
 msgid "No stars selected"
@@ -17932,7 +17922,7 @@ msgstr "星点属性必须全部在同一图层上计算"
 
 #: src/gui/PSF_list.c:313
 msgid "Stars must all be modeled with the same profile type"
-msgstr "星点必须全部使用相同的配置类型建模"
+msgstr "星点必须全部使用相同的轮廓类型建模"
 
 #: src/gui/PSF_list.c:341
 #, c-format
