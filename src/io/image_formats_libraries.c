@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <lcms2.h>
 
 #ifdef HAVE_LIBTIFF
 #define uint64 uint64_hack_
@@ -460,6 +461,11 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		TIFFSetDirectory(tif, currentIFD);
 	}
 
+	// Try to read embedded ICC profile data
+	cmsUInt32Number EmbedLen;
+	cmsUInt8Number* EmbedBuffer = NULL;
+	TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
+
 	// Retrieve Description field
 	char *desc = NULL;
 	if (TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &desc)) {
@@ -493,6 +499,17 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 			siril_log_color_message(_("Siril cannot read this TIFF format.\n"), "red");
 			retval = OPEN_IMAGE_ERROR;
 	}
+
+	/* Before loading into fit we check if we loaded an embedded ICC profile, if so we create
+	 * a transform from the embedded profile to the Siril linear working space and apply it.
+	 * If there is no embedded profile, we do not attempt any color management.
+	 * TODO: is this the correct approach? Or should we assume TIFFs without profiles are
+	 * likely to be in sRGB space? Or should treatment of unprofiled images be a Siril-wide
+	 * preference? */
+	if (EmbedBuffer && (data || fdata)) {
+		transformBufferOnLoad(data ? (void*) data : (void*) fdata, (fdata != NULL), EmbedBuffer, EmbedLen, nsamples, npixels);
+	}
+
 	TIFFClose(tif);
 	if (retval < 0) {
 		free(data);
@@ -500,6 +517,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		g_free(description);
 		return OPEN_IMAGE_ERROR;
 	}
+
 	/* We clear fits. Everything written above is erased */
 	clearfits(fit);
 	if (date_time) {
@@ -656,7 +674,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	float norm;
 	gchar *filename = g_strdup(name);
 	uint32_t profile_len = 0;
-	const unsigned char *profile;
+	unsigned char *profile;
 	gboolean write_ok = TRUE;
 
 	if (!g_str_has_suffix(filename, ".tif") && (!g_str_has_suffix(filename, ".tiff"))) {
@@ -696,12 +714,27 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->maxi);
 	TIFFSetField(tif, TIFFTAG_SOFTWARE, PACKAGE " v" VERSION);
 
+	gboolean src_is_float = (fit->type == DATA_FLOAT);
+	gboolean dest_is_float = (bitspersample == 32);
+	gboolean icc_transform = TRUE;
 	if (nsamples == 1) {
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-		profile = get_gray_profile_data(&profile_len);
+		if (bitspersample == 32) {
+			profile = get_gray_profile_data(&profile_len, TRUE); // 32 bit output -> g10 profile
+			if (src_is_float)
+				icc_transform = FALSE;
+		} else {
+			profile = get_gray_profile_data(&profile_len, FALSE); // <= 16 bit output -> g22 profile
+		}
 	} else if (nsamples == 3) {
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-		profile = get_sRGB_profile_data(&profile_len);
+		if (bitspersample == 32) {
+			profile = get_sRGB_profile_data(&profile_len, TRUE); // 32 bit output -> g10 profile
+			if (src_is_float)
+				icc_transform = FALSE;
+		} else {
+			profile = get_sRGB_profile_data(&profile_len, FALSE); // <= 16 bit output -> g22 profile
+		}
 	} else {
 		TIFFClose(tif);
 		siril_log_color_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"), "red");
@@ -716,12 +749,25 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		g_free(date_time);
 	}
 
-	if (embeded_icc && profile_len > 0) {
-		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
-	}
-
 	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+
+	void *buf = NULL;
+	void *dest = NULL;
+	if (embeded_icc && profile_len > 0) {
+		if (icc_transform) {
+			buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * (src_is_float ? 32 : 16));
+			gbuf[0] = (WORD *) dest;
+			gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+			gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+			gbuff[0] = (float *) dest;
+			gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+			gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
+			transformBufferOnSave(buf, dest, (src_is_float ? 32 : 16), (src_is_float ? 32 : 16), nsamples, width * height, TRUE, dest_is_float);
+		}
+		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
+	}
 
 	switch (bitspersample) {
 	case 8:
@@ -834,7 +880,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 			siril_log_message(_("Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 				bitspersample, filename, nsamples, width, height);
 	}
-
+	free(dest);
+	free(profile);
 	g_free(filename);
 	return retval;
 }
@@ -1077,6 +1124,15 @@ int readpng(const char *name, fits* fit) {
 		row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png, info));
 	}
 
+	png_charpp ProfileName = NULL;
+#if (PNG_LIBPNG_VER < 10500)
+    png_charpp EmbedBuffer = NULL;
+#else
+    png_bytepp EmbedBuffer = NULL;
+#endif
+	png_uint_32 EmbedLen;
+	gboolean icc_available = (gboolean) png_get_iCCP(png, info, ProfileName, PNG_COMPRESSION_TYPE_BASE, EmbedBuffer, &EmbedLen);
+
 	png_read_image(png, row_pointers);
 
 	fclose(f);
@@ -1144,6 +1200,9 @@ int readpng(const char *name, fits* fit) {
 		fit->binning_x = fit->binning_y = 1;
 		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 		fill_date_obs_if_any(fit, name);
+	}
+	if (icc_available) {
+		transformBufferOnLoad(fit->data, FALSE, (cmsUInt8Number*) *EmbedBuffer, EmbedLen, nbplanes, width * height);
 	}
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
@@ -1282,14 +1341,14 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 				PNG_COLOR_TYPE_RGB,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 				PNG_FILTER_TYPE_DEFAULT);
-		profile = get_sRGB_profile_data(&profile_len);
+		profile = get_sRGB_profile_data(&profile_len, FALSE);
 
 	} else {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
 				PNG_COLOR_TYPE_GRAY,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 				PNG_FILTER_TYPE_DEFAULT);
-		profile = get_gray_profile_data(&profile_len);
+		profile = get_gray_profile_data(&profile_len, FALSE);
 	}
 
 	if (profile_len > 0) {
@@ -1315,10 +1374,12 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		/* swap bytes of 16 bit files to most significant bit first */
 		png_set_swap(png_ptr);
 		data = convert_data(fit);
+		transformBufferOnSave((void*) data, (void *) data, 16, 16, (uint16_t) samples_per_pixel, width * height, FALSE, FALSE);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
 		data8 = convert_data8(fit);
+		transformBufferOnSave((void*) data, (void *) data, 8, 8, (uint16_t) samples_per_pixel, width * height, FALSE, FALSE);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
 	}

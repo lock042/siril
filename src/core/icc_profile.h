@@ -22,14 +22,12 @@
 #include <stdint.h>
 #include <lcms2.h>
 
-#define ICC_COPYRIGHT "Copyright (C) 2005-2011 Francois Meyer, (C) 2012-2023 team free-astro (website: https://free-astro.org/index.php.Siril/). This ICC profile is licensed under the GNU Public Licence, either version 3 of the License or (at your option) any later version (http://www.gnu.org/licenses/)"
+//#include <lcms2_fast_float.h>
 
-#define GAMMA_LINEAR 1.0
-#define GAMMA_DISPLAY 2.19921875
-#define TYPE_RGB_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_RGB)|CHANNELS_SH(3)|BYTES_SH(4))|PLANAR_SH(1))
+#define TYPE_RGB_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_RGB)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
 
-const unsigned char* get_sRGB_profile_data(guint32 *len);
-const unsigned char* get_gray_profile_data(guint32 *len);
+unsigned char* get_sRGB_profile_data(guint32 *len, gboolean linear);
+unsigned char* get_gray_profile_data(guint32 *len, gboolean linear);
 
 //unsigned char* get_profile_buf(cmsHPROFILE* profile, uint32_t* profile_len);
 
@@ -37,5 +35,8 @@ int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);
 void initialize_icc_profiles_paths();
 void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixels);
-
+void transformBufferOnLoad(void* buf, gboolean data_is_float, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen, uint16_t nsamples, size_t npixels);
+int transformBufferOnSave(void* src, void* dest, uint16_t src_bitspersample, uint16_t dest_bitspersample, uint16_t nsamples, size_t npixels, gboolean planar, gboolean linear);
+WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans);
+float float_pixel_icc_tx(float in, int channel, int nchans);
 #endif /* SRC_CORE_ICC_PROFILE_H_ */
