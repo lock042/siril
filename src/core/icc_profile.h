@@ -36,5 +36,6 @@ const unsigned char* get_gray_profile_data(guint32 *len);
 int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);
 void initialize_icc_profiles_paths();
+void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixels);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

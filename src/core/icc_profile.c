@@ -65,10 +65,10 @@ static cmsHPROFILE monitor_profile;			// This may store a user-provided monitor 
 static cmsBool monitor_profile_active; 		// This says whether or not to use the user-provided monitor profile
 static cmsHPROFILE proof_profile;			// This may store a user-provided proof profile
 static cmsBool proof_profile_active;		// This says whether or not the user-provided proof profile is active
-static cmsHTRANSFORM icc_remap_sRGB_float;	// This is the CMS transform used to remap float RGB for display
-static cmsHTRANSFORM icc_remap_sRGB_WORD;	// This is the CMS transform used to remap WORD RGB for display
-static cmsHTRANSFORM icc_remap_Gray_float;	// This is the CMS transform used to remap float mono data for display
-static cmsHTRANSFORM icc_remap_Gray_WORD;	// This is the CMS transform used to remap WORD mono data for display
+static cmsHTRANSFORM displayTransform;		// This is the CMS transform used to remap the display
+//static cmsHTRANSFORM icc_remap_sRGB_WORD;	// This is the CMS transform used to remap WORD RGB for display
+//static cmsHTRANSFORM icc_remap_Gray_float;	// This is the CMS transform used to remap float mono data for display
+//static cmsHTRANSFORM icc_remap_Gray_WORD;	// This is the CMS transform used to remap WORD mono data for display
 
 ////// Functions //////
 
@@ -109,7 +109,7 @@ void initialize_profiles_and_transforms() {
 	if (!error) {
 		siril_log_message(_("ICC profiles loaded correctly. Workflow will be color managed.\n"));
 	}
-//	icc_remap_sRGB_float = cmsCreateTransform(sRGB_g10, TYPE_RGB_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
+	displayTransform = cmsCreateTransform(sRGB_g10, TYPE_BGRA_8, sRGB_g22_v4, TYPE_BGRA_8, INTENT_PERCEPTUAL, 0);
 //	icc_remap_Gray_float = cmsCreateTransform(Gray_g10, TYPE_GRAY_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
 }
 
@@ -155,6 +155,10 @@ void initialize_icc_profiles_paths() {
 		com.pref.icc_paths[icc] = g_strdup(path);
 		g_free(filename);
 	}
+}
+
+void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixels) {
+	cmsDoTransform(displayTransform, src, dest, pixels);
 }
 
 // The rest of the code will be made obsolete by this MR and can be got rid of once the MR is working

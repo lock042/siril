@@ -26,6 +26,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
+#include "core/icc_profile.h"
 #include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/ccd-inspector.h"
@@ -134,6 +135,9 @@ static void remaprgb(void) {
 	for (i = 0; i < nbdata; ++i) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
+
+	// Color space transform
+	display_profile_transform(dst, dst, nbdata);
 
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
