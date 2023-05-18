@@ -539,14 +539,6 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
-struct cms_t {
-	cmsHPROFILE *working;	// The working profile is always sRGB_g10
-	cmsHPROFILE *display;	// This will usually be sRGB_g22 but may be loaded from
-							// a user-provided ICC profle
-	cmsHPROFILE *proof;		// This may be CMYK or another output profile loaded from
-							// an ICC profile
-};
-
 typedef struct draw_data {
 	cairo_t *cr;	// the context to draw to
 	int vport;	// the viewport index to draw
@@ -676,7 +668,6 @@ struct cominf {
 #endif
 	gnuplot_ctrl **gnuplot_handles; // list of gnuplot handles
 	int num_gnuplot_handles; // how many gnuplot handles are in the list
-	struct cms_t cms;
 
 };
 

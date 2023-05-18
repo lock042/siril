@@ -18,88 +18,175 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// This file includes some code taken from Elle Stone's
+// "make-elles-profiles.c" program (https://github.com/ellelstone/elles_icc_profiles/blob/master/code/make-elles-profiles.c)
+// Particularly important is the definitions of the pre-quantized
+// sRGB primaries which avoid issues with lcms
+// This is licenced under the GPL (version 2 or any later version)
+// Therefore it is included here and relicenced under the terms of the
+// GPL (version 3 or any later version to align with the rest of Siril.
+
 #include <glib.h>
 #include "icc_profile.h"
 #include "core/siril.h"
 
-const cmsCIExyY  d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
-const cmsCIExyY  d65_srgb_adobe_specs = {0.3127, 0.3290, 1.0};
-const cmsCIExyYTRIPLE srgb_primaries_pre_quantized = {
+static const cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
+static const cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
+static const cmsCIExyY d65_srgb_adobe_specs = {0.3127, 0.3290, 1.0};
+static const cmsCIExyYTRIPLE srgb_primaries_pre_quantized = {
 	{0.639998686, 0.330010138, 1.0},
 	{0.300003784, 0.600003357, 1.0},
 	{0.150002046, 0.059997204, 1.0}
 };
 
-// Calling this function with gamma == GAMMA_LINEAR returns the "linear light"
-// RGB working profile;
-// Calling it with gamma == GAMMA_DISPLAY returns the usual sRGB monitor profile.
+static cmsHPROFILE sRGB_g10;				// The working profile is always sRGB_g10
+static cmsHPROFILE Gray_g10;				// or Gray_g10 for mono images
+static cmsHPROFILE sRGB_g22_v4;				// This is the standard profile for display
+static cmsHPROFILE sRGB_g22_v2;				// This is the standard profile for embedding in saved RGB images
+static cmsHPROFILE Gray_g22_v2;				// This is the standard profile for embedding in saved mono images
+static cmsHPROFILE monitor_profile;			// This may store a user-provided monitor profile
+static cmsBool monitor_profile_active; 		// This says whether or not to use the user-provided monitor profile
+static cmsHPROFILE proof_profile;					// This may store a user-provided proof profile
+static cmsBool proof_profile_active;		// This says whether or not the user-provided proof profile is active
+static cmsHTRANSFORM icc_remap_sRGB_float;	// This is the CMS transform used to remap float RGB for display
+static cmsHTRANSFORM icc_remap_sRGB_WORD;	// This is the CMS transform used to remap WORD RGB for display
+static cmsHTRANSFORM icc_remap_Gray_float;	// This is the CMS transform used to remap float mono data for display
+static cmsHTRANSFORM icc_remap_Gray_WORD;	// This is the CMS transform used to remap WORD mono data for display
 
-cmsHPROFILE* initialize_icc_profile_srgb(double gamma) {
-	// Metadata and pointers
-	cmsHPROFILE* profile = malloc(sizeof(cmsHPROFILE));
-	cmsMLU* copyright = NULL;
-	cmsMLU* description = NULL;
-	cmsMLUsetASCII(copyright, "en", "US", ICC_COPYRIGHT);
-	cmsMLUsetASCII(description, "en", "US", "sRGB-Siril-v4-g10.icc");
+static cmsToneCurve* make_tonecurve (char * trc)
+{ //printf("%s\n", trc);
+  cmsToneCurve *tonecurve;
+  if (strcmp( trc, "-g10") == 0)
+  tonecurve = cmsBuildGamma (NULL, 1.00);
 
-	// Set up tone curves, white point and primaries
-	cmsToneCurve* tone_curve[3] = { NULL };
-	tone_curve[0] = tone_curve[1] = tone_curve[2] = cmsBuildGamma (NULL, gamma);
-	cmsCIExyY whitepoint = d65_srgb_adobe_specs;
-	cmsCIExyYTRIPLE primaries = srgb_primaries_pre_quantized;
+  else if (strcmp( trc, "-g18") == 0)
+  tonecurve = cmsBuildGamma (NULL, 1.80078125);
 
-	// Create profile and add metadata
-	profile = cmsCreateRGBProfile ( &whitepoint, &primaries, tone_curve );
-	cmsWriteTag(profile, cmsSigCopyrightTag, copyright);
-	cmsWriteTag(profile, cmsSigProfileDescriptionTag, description);
-	return profile;
+  else if (strcmp( trc, "-g22") == 0)
+  tonecurve = cmsBuildGamma (NULL, 2.19921875);
+
+  else if (strcmp( trc, "-srgbtrc") == 0) {
+  cmsFloat64Number srgb_parameters[5] =
+  { 2.4, 1.0 / 1.055,  0.055 / 1.055, 1.0 / 12.92, 0.04045 };
+  tonecurve =
+  cmsBuildParametricToneCurve(NULL, 4, srgb_parameters);
+  }
+
+  else if (strcmp( trc, "-rec709") == 0) {
+  cmsFloat64Number rec709_parameters[5] =
+  { 1.0 / 0.45, 1.0 / 1.099,  0.099 / 1.099,  1.0 / 4.5, 0.081 };
+  tonecurve =
+  cmsBuildParametricToneCurve(NULL, 4, rec709_parameters);
+  }
+
+  else if (strcmp( trc, "-labl") == 0) {
+  cmsFloat64Number labl_parameters[5] =
+  { 3.0, 1.0 / 1.16,  0.16 / 1.16, 2700.0 / 24389.0, 0.08000 };
+  tonecurve =
+  cmsBuildParametricToneCurve(NULL, 4, labl_parameters);
+  }
+
+  return tonecurve;
 }
 
-cmsHPROFILE* initialize_icc_profile_gray(double gamma) {
-	// Metadata and pointers
-	cmsHPROFILE* profile = malloc(sizeof(cmsHPROFILE));
-	const cmsToneCurve* grayTRC;
-	cmsMLU* copyright = NULL;
-	cmsMLU* description = NULL;
-	cmsMLUsetASCII(copyright, "en", "US", ICC_COPYRIGHT);
-	cmsMLUsetASCII(description, "en", "US", "sRGB-Siril-v4-g10.icc");
+static cmsHPROFILE make_Gray_V4_profile (cmsCIExyY       whitepoint,
+                                         char *          trc,
+                                         char *          description_text,
+                                         cmsCIEXYZ       media_whitepoint
+                                         )
+{
+	cmsToneCurve *grayTRC, *tonecurve;
+	tonecurve = make_tonecurve (trc);
+	grayTRC= tonecurve;
 
-	// Set up tone curves, white point and primaries
-	cmsCIExyY whitepoint = d50_illuminant_specs;
-	grayTRC = cmsBuildGamma (NULL, gamma);
+	/* Make V4 gray profile */
+	cmsHPROFILE profile = cmsCreateGrayProfile ( &whitepoint, grayTRC );
+	cmsWriteTag (profile, cmsSigMediaWhitePointTag, &media_whitepoint);
 
-	// Create profile and add metadata
-	profile = cmsCreateGrayProfile ( &whitepoint, grayTRC );
-	cmsWriteTag(profile, cmsSigCopyrightTag, copyright);
+	cmsMLU *MfgDesc;
+	MfgDesc   = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(MfgDesc, "en", "US", "Siril");
+	cmsWriteTag(profile, cmsSigDeviceMfgDescTag, MfgDesc);
+
+	cmsMLU *description;
+	description = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(description, "en", "US", description_text);
 	cmsWriteTag(profile, cmsSigProfileDescriptionTag, description);
-	cmsMLUfree(copyright);
+
+	cmsMLU *copyright;
+	copyright = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(copyright, "en", "US", "(C) team free-astro 2023. Licenced under CC(0) terms.");
+	cmsWriteTag(profile, cmsSigCopyrightTag, copyright);
+
 	cmsMLUfree(description);
-
+	cmsMLUfree(MfgDesc);
+	cmsMLUfree(copyright);
 	return profile;
 }
 
-cmsHPROFILE* load_icc_profile_from_file(const char* filename) {
-	cmsHPROFILE* profile = cmsOpenProfileFromFile(filename, "r");
-	return profile;
+static cmsHPROFILE make_sRGB_V4_profile (cmsCIExyY       whitepoint,
+                                    cmsCIExyYTRIPLE primaries,
+                                    char *          trc,
+                                    char *          description_text
+                                    )
+{
+	cmsToneCurve *curve[3], *tonecurve;
+	tonecurve = make_tonecurve (trc);
+	curve[0] = curve[1] = curve[2] = tonecurve;
+
+	/* Make V4 profile */
+	cmsHPROFILE V4_profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+
+	cmsMLU *MfgDesc;
+	MfgDesc   = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(MfgDesc, "en", "US", "Siril");
+	cmsWriteTag(V4_profile, cmsSigDeviceMfgDescTag, MfgDesc);
+
+	cmsMLU *description;
+	description = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(description, "en", "US", description_text);
+	cmsWriteTag(V4_profile, cmsSigProfileDescriptionTag, description);
+
+	cmsMLU *copyright;
+	copyright = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(copyright, "en", "US", "(C) team free-astro 2023. Licenced under CC(0) terms.");
+	cmsWriteTag(V4_profile, cmsSigCopyrightTag, copyright);
+
+	cmsMLUfree(description);
+	cmsMLUfree(MfgDesc);
+	return V4_profile;
 }
 
-// This creates the transform used on the initial remap LUT to transform it
-// to the monitor colour profile
-cmsHTRANSFORM* create_display_transform(fits *fit) {
-	cmsHTRANSFORM* transform = cmsCreateTransform(com.cms.working, TYPE_RGBA_8, com.cms.display, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
-	return transform;
+void initialize_standard_profiles_and_transforms() {
+	// Linear working color profiles
+	sRGB_g10 = make_sRGB_V4_profile(d65_srgb_adobe_specs, srgb_primaries_pre_quantized, "-g10", "Siril Linear sRGB D65");
+	Gray_g10 = make_Gray_V4_profile(d50_illuminant_specs, "-g10", "Siril Linear Gray D50", d50_illuminant_specs_media_whitepoint);
+	// Target profile for display
+	sRGB_g22_v4 = make_sRGB_V4_profile(d65_srgb_adobe_specs, srgb_primaries_pre_quantized, "-g22", "Siril Gamma 2.2 sRGB, D65");
+
+//	icc_remap_sRGB_float = cmsCreateTransform(sRGB_g10, TYPE_RGB_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
+//	icc_remap_Gray_float = cmsCreateTransform(Gray_g10, TYPE_GRAY_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
 }
 
-char* get_profile_block(cmsHPROFILE* profile) {
-	char* block = NULL;
-	cmsUInt32Number len = 0;
-	cmsBool ret = cmsSaveProfileToMem(profile, (void*) block, &len);
-	if (!ret) {
-		siril_debug_print("Error preparing ICC profile for embedding\n");
-		return NULL;
-	}
-	return block;
+int load_monitor_icc_profile(const char* filename) {
+	monitor_profile = cmsOpenProfileFromFile(filename, "r");
+	if (!monitor_profile)
+		return 1;
+	else
+		return 0;
 }
+
+int load_proof_icc_profile(const char* filename) {
+	proof_profile = cmsOpenProfileFromFile(filename, "r");
+	if (!proof_profile)
+		return 1;
+	else
+		return 0;
+}
+
+// We will retain the existing Siril code for embedding standard g22
+// sRGB and Gray profiles in saved files. It doesn't use lcms but saves
+// headaches to do with getting lcms to produce a well-behaved V2 profile
 
 static unsigned char sRGB_icc[] = {
   0x00, 0x00, 0x1a, 0xf4, 0x6c, 0x63, 0x6d, 0x73, 0x02, 0x30, 0x00, 0x00,
