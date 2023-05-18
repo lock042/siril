@@ -265,7 +265,7 @@ siril-win64:
 ################################################################################
 # macOS CI
 
-siril-macos:
+macos:
   stage: packaging
   image: macos-12-xcode-13
   parallel:
