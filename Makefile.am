@@ -6,6 +6,7 @@ SUBDIRS = subprojects \
 	po \
 	src \
 	data \
+	icc \
 	pixmaps \
 	platform-specific
 

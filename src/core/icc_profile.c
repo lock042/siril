@@ -29,15 +29,28 @@
 #include <glib.h>
 #include "icc_profile.h"
 #include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/proto.h"
 
-static const cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
-static const cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
-static const cmsCIExyY d65_srgb_adobe_specs = {0.3127, 0.3290, 1.0};
-static const cmsCIExyYTRIPLE srgb_primaries_pre_quantized = {
-	{0.639998686, 0.330010138, 1.0},
-	{0.300003784, 0.600003357, 1.0},
-	{0.150002046, 0.059997204, 1.0}
-};
+#define DEFAULT_PATH_GV2g22 "~/.local/share/kstars/icc/Gray-siril-V2-g22.icc"
+#define DEFAULT_PATH_GV4g10 "~/.local/share/kstars/icc/Gray-siril-V4-g10.icc"
+#define DEFAULT_PATH_GV4g22 "~/.local/share/kstars/icc/Gray-siril-V4-g22.icc"
+#define DEFAULT_PATH_RGBV2g22 "~/.local/share/kstars/icc/sRGB-siril-V2-g22.icc"
+#define DEFAULT_PATH_RGBV4g10 "~/.local/share/kstars/icc/sRGB-siril-V4-g10.icc"
+#define DEFAULT_PATH_RGBV4g22 "~/.local/share/kstars/icc/sRGB-siril-V4-g22.icc"
+
+#define INDEX_GV2G22 0
+#define INDEX_GV4G10 1
+#define INDEX_GV4G22 2
+#define INDEX_SRGBV2G22 3
+#define INDEX_SRGBV4G10 4
+#define INDEX_SRGBV4G22 5
+// The following two indices refer to user-provided screen and proof profiles
+// that may be stored in com.pref but for which there are no defaults
+#define INDEX_CUSTOM_MONITOR 6
+#define INDEX_CUSTOM_PROOF 7
+
+const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DEFAULT_PATH_GV4g22, DEFAULT_PATH_RGBV2g22, DEFAULT_PATH_RGBV4g10, DEFAULT_PATH_RGBV4g22, "", "" };
 
 static cmsHPROFILE sRGB_g10;				// The working profile is always sRGB_g10
 static cmsHPROFILE Gray_g10;				// or Gray_g10 for mono images
@@ -53,141 +66,74 @@ static cmsHTRANSFORM icc_remap_sRGB_WORD;	// This is the CMS transform used to r
 static cmsHTRANSFORM icc_remap_Gray_float;	// This is the CMS transform used to remap float mono data for display
 static cmsHTRANSFORM icc_remap_Gray_WORD;	// This is the CMS transform used to remap WORD mono data for display
 
-static cmsToneCurve* make_tonecurve (char * trc)
-{ //printf("%s\n", trc);
-  cmsToneCurve *tonecurve;
-  if (strcmp( trc, "-g10") == 0)
-  tonecurve = cmsBuildGamma (NULL, 1.00);
-
-  else if (strcmp( trc, "-g18") == 0)
-  tonecurve = cmsBuildGamma (NULL, 1.80078125);
-
-  else if (strcmp( trc, "-g22") == 0)
-  tonecurve = cmsBuildGamma (NULL, 2.19921875);
-
-  else if (strcmp( trc, "-srgbtrc") == 0) {
-  cmsFloat64Number srgb_parameters[5] =
-  { 2.4, 1.0 / 1.055,  0.055 / 1.055, 1.0 / 12.92, 0.04045 };
-  tonecurve =
-  cmsBuildParametricToneCurve(NULL, 4, srgb_parameters);
-  }
-
-  else if (strcmp( trc, "-rec709") == 0) {
-  cmsFloat64Number rec709_parameters[5] =
-  { 1.0 / 0.45, 1.0 / 1.099,  0.099 / 1.099,  1.0 / 4.5, 0.081 };
-  tonecurve =
-  cmsBuildParametricToneCurve(NULL, 4, rec709_parameters);
-  }
-
-  else if (strcmp( trc, "-labl") == 0) {
-  cmsFloat64Number labl_parameters[5] =
-  { 3.0, 1.0 / 1.16,  0.16 / 1.16, 2700.0 / 24389.0, 0.08000 };
-  tonecurve =
-  cmsBuildParametricToneCurve(NULL, 4, labl_parameters);
-  }
-
-  return tonecurve;
-}
-
-static cmsHPROFILE make_Gray_V4_profile (cmsCIExyY       whitepoint,
-                                         char *          trc,
-                                         char *          description_text,
-                                         cmsCIEXYZ       media_whitepoint
-                                         )
-{
-	cmsToneCurve *grayTRC, *tonecurve;
-	tonecurve = make_tonecurve (trc);
-	grayTRC= tonecurve;
-
-	/* Make V4 gray profile */
-	cmsHPROFILE profile = cmsCreateGrayProfile ( &whitepoint, grayTRC );
-	cmsWriteTag (profile, cmsSigMediaWhitePointTag, &media_whitepoint);
-
-	cmsMLU *MfgDesc;
-	MfgDesc   = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(MfgDesc, "en", "US", "Siril");
-	cmsWriteTag(profile, cmsSigDeviceMfgDescTag, MfgDesc);
-
-	cmsMLU *description;
-	description = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(description, "en", "US", description_text);
-	cmsWriteTag(profile, cmsSigProfileDescriptionTag, description);
-
-	cmsMLU *copyright;
-	copyright = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(copyright, "en", "US", "(C) team free-astro 2023. Licenced under CC(0) terms.");
-	cmsWriteTag(profile, cmsSigCopyrightTag, copyright);
-
-	cmsMLUfree(description);
-	cmsMLUfree(MfgDesc);
-	cmsMLUfree(copyright);
-	return profile;
-}
-
-static cmsHPROFILE make_sRGB_V4_profile (cmsCIExyY       whitepoint,
-                                    cmsCIExyYTRIPLE primaries,
-                                    char *          trc,
-                                    char *          description_text
-                                    )
-{
-	cmsToneCurve *curve[3], *tonecurve;
-	tonecurve = make_tonecurve (trc);
-	curve[0] = curve[1] = curve[2] = tonecurve;
-
-	/* Make V4 profile */
-	cmsHPROFILE V4_profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
-
-	cmsMLU *MfgDesc;
-	MfgDesc   = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(MfgDesc, "en", "US", "Siril");
-	cmsWriteTag(V4_profile, cmsSigDeviceMfgDescTag, MfgDesc);
-
-	cmsMLU *description;
-	description = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(description, "en", "US", description_text);
-	cmsWriteTag(V4_profile, cmsSigProfileDescriptionTag, description);
-
-	cmsMLU *copyright;
-	copyright = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(copyright, "en", "US", "(C) team free-astro 2023. Licenced under CC(0) terms.");
-	cmsWriteTag(V4_profile, cmsSigCopyrightTag, copyright);
-
-	cmsMLUfree(description);
-	cmsMLUfree(MfgDesc);
-	return V4_profile;
-}
+////// Functions //////
 
 void initialize_standard_profiles_and_transforms() {
 	// Linear working color profiles
-	sRGB_g10 = make_sRGB_V4_profile(d65_srgb_adobe_specs, srgb_primaries_pre_quantized, "-g10", "Siril Linear sRGB D65");
-	Gray_g10 = make_Gray_V4_profile(d50_illuminant_specs, "-g10", "Siril Linear Gray D50", d50_illuminant_specs_media_whitepoint);
+	sRGB_g10 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G10], "r");
+	Gray_g10 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G10], "r");
 	// Target profile for display
-	sRGB_g22_v4 = make_sRGB_V4_profile(d65_srgb_adobe_specs, srgb_primaries_pre_quantized, "-g22", "Siril Gamma 2.2 sRGB, D65");
+	sRGB_g22_v4 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
+	// Target profile for embedding in saved RGB and mono files
+	sRGB_g22_v2 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV2G22], "r");
+	Gray_g22_v2 = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV2G22], "r");
+	if (!sRGB_g10 || !Gray_g10 || !sRGB_g22_v4 || !sRGB_g22_v2 || !Gray_g22_v2) {
+		siril_log_color_message(_(	"Warning: standard color management profiles could not be loaded. Siril will continue"
+									"but colors in saved images will not be consistent when viewed in other applications"
+									"or printed. Check your installation."), "red");
+	}
 
 //	icc_remap_sRGB_float = cmsCreateTransform(sRGB_g10, TYPE_RGB_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
 //	icc_remap_Gray_float = cmsCreateTransform(Gray_g10, TYPE_GRAY_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
 }
 
+// Loads a custom monitor profile from a path in com.pref.icc_paths
+// The path must be set by the user in preferences, there is no default custom monitor profile
 int load_monitor_icc_profile(const char* filename) {
-	monitor_profile = cmsOpenProfileFromFile(filename, "r");
-	if (!monitor_profile)
+	if (com.pref.icc_paths[INDEX_CUSTOM_MONITOR] && com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] != '\0') {
+		monitor_profile = cmsOpenProfileFromFile(filename, "r");
+		if (!monitor_profile)
+			return 1;
+		else
+			return 0;
+	} else {
 		return 1;
-	else
-		return 0;
+	}
 }
 
+// Loads a custom proof profile from a path in com.pref.icc_paths
+// The path must be set by the user in preferences, there is no default custom proof profile
 int load_proof_icc_profile(const char* filename) {
-	proof_profile = cmsOpenProfileFromFile(filename, "r");
-	if (!proof_profile)
+	if (com.pref.icc_paths[INDEX_CUSTOM_PROOF] && com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] != '\0') {
+		proof_profile = cmsOpenProfileFromFile(filename, "r");
+		if (!proof_profile)
+			return 1;
+		else
+			return 0;
+	} else {
 		return 1;
-	else
-		return 0;
+	}
 }
 
-// We will retain the existing Siril code for embedding standard g22
-// sRGB and Gray profiles in saved files. It doesn't use lcms but saves
-// headaches to do with getting lcms to produce a well-behaved V2 profile
+// Adapted from initialize_local_catalogues_paths()
+void initialize_local_icc_profiles_paths() {
+	int nb_icc = sizeof(default_icc_paths) / sizeof(const char *);
+	int maxpath = get_pathmax();
+	for (int icc = 0; icc < nb_icc; icc++) {
+		if (com.pref.icc_paths[icc] &&
+				com.pref.icc_paths[icc][0] != '\0')
+			continue;
+		char path[maxpath];
+		strncpy(path, default_icc_paths[icc], maxpath - 1);
+		// We don't expand_home_in_filename for the two empty default paths
+		// These should be copied as empty strings to initialize them in com.pref.icc_paths
+		if (path[0] != '\0')
+			expand_home_in_filename(path, maxpath);
+		com.pref.icc_paths[icc] = g_strdup(path);
+	}
+}
 
+// The rest of the code will be made obsolete by this MR and can be got rid of once the MR is working
 static unsigned char sRGB_icc[] = {
   0x00, 0x00, 0x1a, 0xf4, 0x6c, 0x63, 0x6d, 0x73, 0x02, 0x30, 0x00, 0x00,
   0x6d, 0x6e, 0x74, 0x72, 0x52, 0x47, 0x42, 0x20, 0x58, 0x59, 0x5a, 0x20,

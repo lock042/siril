@@ -272,6 +272,7 @@ struct pref_struct {
 
 	int wcs_formalism;	// formalism used in FITS header
 	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
+	gchar *icc_paths[8]; // local ICC profile paths for color management
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
