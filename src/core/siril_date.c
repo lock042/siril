@@ -159,7 +159,7 @@ GDateTime *FITS_date_to_date_time(char *date) {
 	gint year = 0, month = 0, day = 0, hour = 0, min = 0;
 	gdouble sec = 0.0;
 
-	if (date[0] == '\0')
+	if (!date || date[0] == '\0')
 		return NULL;
 
 	if (sscanf(date, "%04d-%02d-%02dT%02d:%02d:%lf", &year, &month, &day, &hour, &min, &sec) != 6) {

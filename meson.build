@@ -32,7 +32,7 @@ project('siril',
   meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
-    'cpp_std=c++14',
+    'cpp_std=c++17',
     'buildtype=debugoptimized',
   ],
 )
@@ -53,6 +53,7 @@ enable_libtiff   = get_option('libtiff')
 enable_libjpeg   = get_option('libjpeg')
 enable_libpng    = get_option('libpng')
 enable_libheif   = get_option('libheif')
+enable_libXISF   = get_option('libXISF')
 enable_ffms2     = get_option('ffms2')
 enable_ffmpeg    = get_option('ffmpeg')
 enable_libconfig = get_option('libconfig')
@@ -141,6 +142,7 @@ cpp = meson.get_compiler('cpp')
 siril_cpp_flag = []
 siril_c_flag = []
 siril_link_arg = []
+
 
 # -fno-math-errno is used to speedup code, this for example speeds up all sqrt() functions.
 # There is no case where we check the math errno. So it’s safe to use this flag for siril.
@@ -378,6 +380,11 @@ if enable_libheif
   libheif_dep = dependency('libheif', required : true)
 endif
 
+libXISF_dep = no_dep
+if enable_libXISF
+  libXISF_dep = dependency('libxisf', required : true)
+endif
+
 ffms2_dep = no_dep
 if enable_ffms2
   ffms2_dep = dependency('ffms2', required : true)
@@ -544,6 +551,12 @@ else
   conf_data.set('HAVE_LIBHEIF', false, description : 'Using HEIF.')
 endif
 
+if libXISF_dep.found()
+  conf_data.set('HAVE_LIBXISF', true, description : 'Using XISF.')
+else
+  conf_data.set('HAVE_LIBXISF', false, description : 'Using XISF.')
+endif
+
 ffmpeg_found = false
 foreach dep : ffmpeg
   if not dep.found()
@@ -614,6 +627,7 @@ externals_dep = declare_dependency(
     libjpeg_dep,
     libpng_dep,
     libheif_dep,
+    libXISF_dep,
     ffms2_dep,
     openmp_dep,
     kplot_dep,
@@ -689,6 +703,7 @@ summary(
     'JPEG'      : libjpeg_dep.found(),
     'PNG'       : libpng_dep.found(),
     'HEIF'      : libheif_dep.found(),
+    'XISF'      : libXISF_dep.found(),
     'FFMS2'     : ffms2_dep.found(),
     'FFMPEG'    : ffmpeg_found,
     'libcurl'   : libcurl_dep.found(),
