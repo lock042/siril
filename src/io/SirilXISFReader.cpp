@@ -77,6 +77,7 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
         for(auto &fitsKeyword : fitsKeywords) {
         	if (fitsKeyword.name == "SIMPLE") continue;
         	if (fitsKeyword.name == "COMMENT") continue;
+        	if (fitsKeyword.name == "END") continue;
             fitsHeaderStream << std::setw(8) << std::left << fitsKeyword.name;
             fitsHeaderStream << "= " << std::setw(20) << fitsKeyword.value;
             fitsHeaderStream << " / " << fitsKeyword.comment << std::endl;
