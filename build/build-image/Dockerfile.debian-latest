@@ -39,7 +39,7 @@ RUN apt-get update -qyy \
 RUN git clone https://gitea.nouspiro.space/nou/libXISF.git \
     && cd libXISF \
     && mkdir -p build && cd build \
-    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. \
     && make install \
     && cd ../.. \
     && rm -rf libXISF
