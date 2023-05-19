@@ -26,6 +26,13 @@ crossroad ./configure --disable-examples --disable-static && \
 make install || exit 1
 cd ..
 
+# Build libXISF from git rep
+git clone https://gitea.nouspiro.space/nou/libXISF.git
+cd libXISF
+mkdir -p build && cd build
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ..
+make install || exit 1
+cd ../..
 
 if [ $? -ne 0 ]; then
   echo "Installation of pre-built dependencies failed.";
