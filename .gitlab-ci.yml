@@ -291,6 +291,7 @@ macos:
     RELEASE_TAG: r9
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
+    - echo ">>>>>>>>>>>>>>>>>>>$CI_PROJECT_DIR<"
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
     - |
       git clone https://gitlab.com/free-astro/siril_macos.git
