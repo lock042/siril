@@ -30,7 +30,7 @@ cd ..
 git clone https://gitea.nouspiro.space/nou/libXISF.git
 cd libXISF
 mkdir -p build && cd build
-cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ..
+crossroad cmake ..
 make install || exit 1
 cd ../..
 
