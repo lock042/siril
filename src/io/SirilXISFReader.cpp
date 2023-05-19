@@ -18,6 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+extern "C" {
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+}
+
+
+#ifdef HAVE_LIBXISF
 
 #include <iostream>
 #include <iomanip>      // std::setw
@@ -110,3 +118,5 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 	}
 	return 0;
 }
+
+#endif

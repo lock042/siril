@@ -20,6 +20,14 @@
 #ifndef SRC_IO_SIRILXISFREADER_H_
 #define SRC_IO_SIRILXISFREADER_H_
 
+extern "C" {
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+}
+
+#ifdef HAVE_LIBXISF
+
 #include "libxisf.h"
 
 using namespace LibXISF;
@@ -42,5 +50,7 @@ private:
     uint8_t *m_ImageBuffer { nullptr };
     uint32_t m_ImageBufferSize { 0 };
 };
+
+#endif /* HAVE_LIBXISF */
 
 #endif /* SRC_IO_SIRILXISFREADER_H_ */

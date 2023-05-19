@@ -23,6 +23,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "config.h"
+
+#ifdef HAVE_LIBXISF
 
 struct xisf_data {
 	uint8_t *data;
@@ -42,5 +45,6 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata);
 }
 #endif
 
+#endif /* HAVE_LIBXISF */
 
 #endif /* SRC_IO_SIRILXISFWRAPER_H_ */
