@@ -28,7 +28,6 @@
 #include "io/SirilXISFReader.h"
 #include "libxisf.h"
 
-using namespace LibXISF;
 
 SirilXISFReader::SirilXISFReader() {
     // Default constructor implementation
@@ -83,18 +82,30 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		xdata->height = image.height();
 		xdata->channelCount = image.channelCount();
 
-		uint8_t *buffer = (uint8_t *)image.imageData();
+		uint8_t *buffer = nullptr;
+
+		if (image.pixelStorage() == LibXISF::Image::Normal) {
+			LibXISF::Image normalImage = image;
+			if (normalImage.pixelStorage() == LibXISF::Image::Normal) {
+				normalImage.convertPixelStorageTo(LibXISF::Image::Planar);
+			}
+			buffer = (uint8_t *)normalImage.imageData();
+		} else {
+			buffer = (uint8_t *)image.imageData();
+		}
 		xdata->size = image.imageDataSize();
 
 		xdata->data = (uint8_t *) malloc(xdata->size);
 		if (!xdata->data) {
 			return 1;
 		}
+
 		memcpy(xdata->data, buffer, xdata->size);
 
 		xisfReader.close();
 
 	} catch (const LibXISF::Error &error) {
+		std::cout << error.what() << std::endl;
 		return 1;
 	}
 	return 0;
