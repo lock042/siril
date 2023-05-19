@@ -67,13 +67,12 @@ static cmsBool monitor_profile_active; 		// This says whether or not to use the 
 static cmsHPROFILE proof_profile;			// This may store a user-provided proof profile
 static cmsBool proof_profile_active;		// This says whether or not the user-provided proof profile is active
 static cmsHTRANSFORM displayTransform;		// This is the CMS transform used to remap the display
+static cmsHTRANSFORM ucharTransform;		// This is the CMS transform used to remap the display if it holds an 8-bit image
+static cmsHTRANSFORM ucharMonoTransform;	// This is the CMS transform used to remap the display if it holds an 8-bit image
 static cmsHTRANSFORM ushrtTransform;		// This is the CMS transform used to remap the display
 static cmsHTRANSFORM ushrtMonoTransform;		// This is the CMS transform used to remap the display
 static cmsHTRANSFORM floatTransform;		// This is the CMS transform used to remap the display
 static cmsHTRANSFORM floatMonoTransform;		// This is the CMS transform used to remap the display
-//static cmsHTRANSFORM icc_remap_sRGB_WORD;	// This is the CMS transform used to remap WORD RGB for display
-//static cmsHTRANSFORM icc_remap_Gray_float;	// This is the CMS transform used to remap float mono data for display
-//static cmsHTRANSFORM icc_remap_Gray_WORD;	// This is the CMS transform used to remap WORD mono data for display
 
 ////// Functions //////
 
@@ -119,9 +118,10 @@ void initialize_profiles_and_transforms() {
 	displayTransform = cmsCreateTransform(sRGB_g10, TYPE_BGRA_8, sRGB_g22_v4, TYPE_BGRA_8, INTENT_PERCEPTUAL, 0);
 	ushrtTransform = cmsCreateTransform(sRGB_g10, TYPE_RGB_16, sRGB_g22_v4, TYPE_RGB_16, INTENT_PERCEPTUAL, 0);
 	ushrtMonoTransform = cmsCreateTransform(Gray_g10, TYPE_GRAY_16, Gray_g22_v4, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0);
+	ucharTransform = cmsCreateTransform(sRGB_g10, TYPE_RGB_8, sRGB_g22_v4, TYPE_RGB_8, INTENT_PERCEPTUAL, 0);
+	ucharMonoTransform = cmsCreateTransform(Gray_g10, TYPE_GRAY_8, Gray_g22_v4, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
 	floatTransform = cmsCreateTransform(sRGB_g10, TYPE_RGB_FLT, sRGB_g22_v4, TYPE_RGB_FLT, INTENT_PERCEPTUAL, 0);
 	floatMonoTransform = cmsCreateTransform(Gray_g10, TYPE_GRAY_FLT, Gray_g22_v4, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0);
-//	icc_remap_Gray_float = cmsCreateTransform(Gray_g10, TYPE_GRAY_FLT_PLANAR, sRGB_g22, TYPE_RGBA_8, INTENT_PERCEPTUAL, 0);
 }
 
 // Loads a custom monitor profile from a path in com.pref.icc_paths
@@ -170,6 +170,19 @@ void initialize_icc_profiles_paths() {
 
 void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixels) {
 	cmsDoTransform(displayTransform, src, dest, pixels);
+}
+
+BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans) {
+	g_assert(channel >= 0 && channel < 3);
+	g_assert(channel < nchans);
+	BYTE input[3] = { 0 };
+	BYTE output[3] = { 0 };
+	input[channel] = in;
+	if (nchans == 1)
+		cmsDoTransform(ucharMonoTransform, input, output, 1);
+	else
+		cmsDoTransform(ucharTransform, input, output, 1);
+	return output[channel];
 }
 
 WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans) {
@@ -285,22 +298,22 @@ int transformBufferOnSave(void* src, void* dest, uint16_t src_bitspersample, uin
 }
 
 // This function is used in converting a loaded file into the working color profile
-void transformBufferOnLoad(void* buf, gboolean data_is_float, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen, uint16_t nsamples, size_t npixels) {
+void transformBufferOnLoad(void* buf, uint16_t bitdepth, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen, uint16_t nsamples, size_t npixels) {
 	// Convert the buffer into a profile in memory
 	cmsHPROFILE src_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
 	cmsHPROFILE dest_profile;
 	cmsHTRANSFORM transform;
 	cmsUInt32Number src_type, dest_type;
 	// Work out the src and dest data formats
-	if (!data_is_float) {
-		// 16-bit
+	if (bitdepth != 32) {
+		// 8- or 16-bit
 		if (nsamples == 1 || nsamples == 2) {
 			// mono
-			src_type = dest_type = TYPE_GRAY_16;
+			src_type = dest_type = bitdepth == 16 ? TYPE_GRAY_16 : TYPE_GRAY_8;
 			dest_profile = Gray_g10;
 		} else {
 			// RGB
-			src_type = dest_type = TYPE_RGB_16_PLANAR;
+			src_type = dest_type = bitdepth == 16 ? TYPE_RGB_16_PLANAR : TYPE_RGB_8_PLANAR;
 			dest_profile = sRGB_g10;
 		}
 	} else {

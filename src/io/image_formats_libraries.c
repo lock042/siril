@@ -505,14 +505,27 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	 * If there is no embedded profile, we assume the file is sRGB g22 and convert it to the
 	 * linear working space. We use a different buffer if loading the internal sRGB g22
 	 * profile as it must befreed differently. */
+
+	// 8 bit data gets right-shifted by 8 bits to make the 16-bit transform work
+	// It's easier than making a new buffer of packed 8-bit data and using a new transform
+	if (nbits == 8) {
+		for (size_t i = 0; i < npixels * nsamples ; i++) {
+			data[i] = data[i] << 8;
+		}
+	}
 	cmsUInt8Number* sRGBBuffer = NULL;
 	if (!EmbedBuffer) {
 		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
 	}
 	if ((EmbedBuffer || sRGBBuffer) && (data || fdata)) {
-		transformBufferOnLoad(data ? (void*) data : (void*) fdata, (fdata != NULL), (EmbedBuffer ? EmbedBuffer : sRGBBuffer), EmbedLen, nsamples, npixels);
+		transformBufferOnLoad(data, (nbits == 32 ? 32 : 16), (EmbedBuffer ? EmbedBuffer : sRGBBuffer), EmbedLen, nsamples, npixels);
 	}
 	free(sRGBBuffer);
+	if (nbits == 8) {
+		for (size_t i = 0; i < npixels * nsamples ; i++) {
+			data[i] = data[i] >> 8;
+		}
+	}
 
 	TIFFClose(tif);
 	if (retval < 0) {
@@ -1148,9 +1161,9 @@ int readpng(const char *name, fits* fit) {
 			png_byte* row = row_pointers[y];
 			for (int x = 0; x < width; x++) {
 				png_byte* ptr = &(row[x * 8]);
-				*buf[RLAYER]++ = ptr[0] * (UCHAR_MAX + 1) + ptr[1];
-				*buf[GLAYER]++ = ptr[2] * (UCHAR_MAX + 1) + ptr[3];
-				*buf[BLAYER]++ = ptr[4] * (UCHAR_MAX + 1) + ptr[5];
+				*buf[RLAYER]++ = (ptr[0] << 8) + ptr[1];
+				*buf[GLAYER]++ = (ptr[2] << 8) + ptr[3];
+				*buf[BLAYER]++ = (ptr[4] << 8) + ptr[5];
 			}
 		}
 	} else {
@@ -1158,9 +1171,9 @@ int readpng(const char *name, fits* fit) {
 			png_byte* row = row_pointers[y];
 			for (int x = 0; x < width; x++) {
 				png_byte* ptr = &(row[x * 4]);
-				*buf[RLAYER]++ = ptr[0];
-				*buf[GLAYER]++ = ptr[1];
-				*buf[BLAYER]++ = ptr[2];
+				*buf[RLAYER]++ = ptr[0] << 8;
+				*buf[GLAYER]++ = ptr[1] << 8;
+				*buf[BLAYER]++ = ptr[2] << 8;
 			}
 		}
 	}
@@ -1195,7 +1208,7 @@ int readpng(const char *name, fits* fit) {
 			fit->naxis = 2;
 		else
 			fit->naxis = 3;
-		fit->bitpix = (bit_depth == 16) ? USHORT_IMG : BYTE_IMG;
+		fit->bitpix = (bit_depth == 8 ? BYTE_IMG : USHORT_IMG);
 		fit->type = DATA_USHORT;
 		fit->orig_bitpix = fit->bitpix;
 		fit->data = data;
@@ -1207,7 +1220,6 @@ int readpng(const char *name, fits* fit) {
 		fill_date_obs_if_any(fit, name);
 	}
 
-
 	/* Before loading into fit we check if we loaded an embedded ICC profile, if so we create
 	 * a transform from the embedded profile to the Siril linear working space and apply it.
 	 * If there is no embedded profile, we assume the file is sRGB g22 and convert it to the
@@ -1218,10 +1230,14 @@ int readpng(const char *name, fits* fit) {
 		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
 	}
 	if (icc_available || sRGBBuffer) {
-		transformBufferOnLoad(fit->data, FALSE, (EmbedBuffer ? (cmsUInt8Number*) *EmbedBuffer : sRGBBuffer), EmbedLen, nbplanes, width * height);
+		transformBufferOnLoad(fit->data, (bit_depth == 32 ? 32 : 16), (EmbedBuffer ? (cmsUInt8Number*) *EmbedBuffer : sRGBBuffer), EmbedLen, nbplanes, width * height);
 	}
 	free(sRGBBuffer);
-
+	if (bit_depth == 8) {
+		for (size_t i = 0 ; i < fit->rx * fit->ry * fit->naxes[2] ; i++) {
+			fit->data[i] = fit->data[i] >> 8;
+		}
+	}
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 			bit_depth, basename, fit->naxes[2], fit->rx, fit->ry);

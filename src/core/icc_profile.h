@@ -35,8 +35,9 @@ int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);
 void initialize_icc_profiles_paths();
 void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixels);
-void transformBufferOnLoad(void* buf, gboolean data_is_float, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen, uint16_t nsamples, size_t npixels);
+void transformBufferOnLoad(void* buf, uint16_t bitdepth, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen, uint16_t nsamples, size_t npixels);
 int transformBufferOnSave(void* src, void* dest, uint16_t src_bitspersample, uint16_t dest_bitspersample, uint16_t nsamples, size_t npixels, gboolean planar, gboolean linear);
+BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans);
 WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans);
 float float_pixel_icc_tx(float in, int channel, int nchans);
 #endif /* SRC_CORE_ICC_PROFILE_H_ */
