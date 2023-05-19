@@ -924,6 +924,15 @@ int readjpg(const char* name, fits *fit){
 	jpeg_read_header(&cinfo, TRUE);
 	jpeg_start_decompress(&cinfo);
 
+	// Check for an ICC profile
+	JOCTET *EmbedBuffer = NULL;
+	unsigned int EmbedLen;
+	jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
+	cmsUInt8Number* sRGBBuffer = NULL;
+	if (!EmbedBuffer) {
+		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
+	}
+
 	size_t npixels = cinfo.output_width * cinfo.output_height;
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
 	if (!data) {
@@ -966,6 +975,19 @@ int readjpg(const char* name, fits *fit){
 	fit->type = DATA_USHORT;
 	mirrorx(fit, FALSE);
 	fill_date_obs_if_any(fit, name);
+
+	for (size_t i = 0 ; i < fit->rx * fit->ry * fit->naxes[2] ; i++) {
+		fit->data[i] = fit->data[i] << 8;
+	}
+	if (EmbedBuffer || sRGBBuffer) {
+		transformBufferOnLoad(fit->data, 16, (EmbedBuffer ? (cmsUInt8Number*) EmbedBuffer : sRGBBuffer), EmbedLen, cinfo.output_components, cinfo.output_width * cinfo.output_height);
+	}
+	free(sRGBBuffer);
+	free(EmbedBuffer);
+	for (size_t i = 0 ; i < fit->rx * fit->ry * fit->naxes[2] ; i++) {
+		fit->data[i] = fit->data[i] >> 8;
+	}
+
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
@@ -1002,8 +1024,23 @@ int savejpg(const char *name, fits *fit, int quality){
 	cinfo.input_components = fit->naxes[2];     // Number of color components per pixel.
 	cinfo.in_color_space = (fit->naxes[2] == 3) ? JCS_RGB : JCS_GRAYSCALE; // Colorspace of input image as RGB.
 
-	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+//	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
+//	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+
+	// Apply the colorspace transform
+	void *buf = NULL;
+	void *dest = NULL;
+	size_t npixels = fit->rx * fit->ry;
+	gboolean src_is_float = (fit->type == DATA_FLOAT);
+	buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+	if (src_is_float)
+		dest = (float*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+	else
+		dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+	transformBufferOnSave(buf, dest, (src_is_float ? 32 : 16), (src_is_float ? 32 : 16), cinfo.input_components, cinfo.image_width * cinfo.image_height, TRUE, FALSE);
+
+	WORD *gbuf[3] = { (WORD*) dest, (WORD*) dest + npixels, (WORD*) dest + 2*npixels };
+	float *gbuff[3] = { (float*) dest, (float*) dest + npixels, (float*) dest + 2*npixels };
 
 	jpeg_set_defaults(&cinfo);
 	jpeg_set_quality(&cinfo, quality, TRUE);
@@ -1045,8 +1082,21 @@ int savejpg(const char *name, fits *fit, int quality){
 			}
 		}
 	}
+	// Populate the ICC profile buffer for writing into the file
+	JOCTET *profile = NULL;
+	unsigned int profile_len;
+	if (cinfo.input_components == 3) {
+		profile = get_sRGB_profile_data(&profile_len, FALSE);
+	} else {
+		profile = get_gray_profile_data(&profile_len, FALSE);
+	}
 	//## START COMPRESSION:
 	jpeg_start_compress(&cinfo, TRUE);
+	// Write the ICC profile
+	if (profile)
+		jpeg_write_icc_profile(&cinfo, (const JOCTET*) profile, profile_len);
+	else
+		siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
 
 	JSAMPROW row_pointer[1];
@@ -1067,6 +1117,8 @@ int savejpg(const char *name, fits *fit, int quality){
 	siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
 						filename, quality, fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
+	free(profile);
+	free(dest);
 	return OPEN_IMAGE_OK;
 }
 
