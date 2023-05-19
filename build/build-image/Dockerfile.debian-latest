@@ -37,7 +37,7 @@ RUN apt-get update -qyy \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 RUN git clone https://gitea.nouspiro.space/nou/libXISF.git \
-    && cd libSISF \
+    && cd libXISF \
     && mkdir -p build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr \
     && make install \
