@@ -850,6 +850,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 #ifdef HAVE_LIBXISF
 
 int readxisf(const char* name, fits *fit, gboolean verbose) {
+	float *data32f = NULL;
 	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
 
 	siril_get_xisf_buffer(name, xdata);
@@ -884,7 +885,7 @@ int readxisf(const char* name, fits *fit, gboolean verbose) {
 		fit->type = DATA_USHORT;
 		break;
 	case LONG_IMG:
-		float *data32f = (float *)xdata->data;
+		data32f = (float *)xdata->data;
 		for (int i = 0; i < npixels; i++)
 			fit->fdata[i] = (data32f[i] / USHRT_MAX_SINGLE);
 		fit->fpdata[RLAYER] = fit->fdata;
