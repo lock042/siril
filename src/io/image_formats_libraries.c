@@ -1206,9 +1206,22 @@ int readpng(const char *name, fits* fit) {
 		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 		fill_date_obs_if_any(fit, name);
 	}
-	if (icc_available) {
-		transformBufferOnLoad(fit->data, FALSE, (cmsUInt8Number*) *EmbedBuffer, EmbedLen, nbplanes, width * height);
+
+
+	/* Before loading into fit we check if we loaded an embedded ICC profile, if so we create
+	 * a transform from the embedded profile to the Siril linear working space and apply it.
+	 * If there is no embedded profile, we assume the file is sRGB g22 and convert it to the
+	 * linear working space. We use a different buffer if loading the internal sRGB g22
+	 * profile as it must befreed differently. */
+	cmsUInt8Number* sRGBBuffer = NULL;
+	if (!icc_available) {
+		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
 	}
+	if (icc_available || sRGBBuffer) {
+		transformBufferOnLoad(fit->data, FALSE, (EmbedBuffer ? (cmsUInt8Number*) *EmbedBuffer : sRGBBuffer), EmbedLen, nbplanes, width * height);
+	}
+	free(sRGBBuffer);
+
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 			bit_depth, basename, fit->naxes[2], fit->rx, fit->ry);
