@@ -270,14 +270,14 @@ macos:
   image: macos-12-xcode-13
   parallel:
     matrix:
-      - RUNNER: [ "macosarm", "macosintel" ]
+      - RUNNER: [ "saas-macos-medium-m1", "macosintel" ]
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
-    - if: $RUNNER == "macosarm"
+    - if: $RUNNER == "saas-macos-medium-m1"
       variables:
         ARCHITECTURE: arm64
-        SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
+        MACOSX_DEPLOYMENT_TARGET: "11.3"
     - if: $RUNNER == "macosintel"
       variables:
         ARCHITECTURE: x86_64
