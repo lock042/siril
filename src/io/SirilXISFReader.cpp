@@ -90,25 +90,19 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		xdata->height = image.height();
 		xdata->channelCount = image.channelCount();
 
-		uint8_t *buffer = nullptr;
-
-		if (image.pixelStorage() == LibXISF::Image::Normal) {
-			LibXISF::Image normalImage = image;
-			if (normalImage.pixelStorage() == LibXISF::Image::Normal) {
-				normalImage.convertPixelStorageTo(LibXISF::Image::Planar);
-			}
-			buffer = (uint8_t *)normalImage.imageData();
-		} else {
-			buffer = (uint8_t *)image.imageData();
-		}
-		xdata->size = image.imageDataSize();
-
-		xdata->data = (uint8_t *) malloc(xdata->size);
+		xdata->data = (uint8_t *) malloc(image.imageDataSize());
 		if (!xdata->data) {
 			return 1;
 		}
 
-		memcpy(xdata->data, buffer, xdata->size);
+		if (image.pixelStorage() == LibXISF::Image::Normal) {
+			LibXISF::Image normalImage = image;
+			normalImage.convertPixelStorageTo(LibXISF::Image::Planar);
+			memcpy(xdata->data, normalImage.imageData(), normalImage.imageDataSize());
+
+		} else {
+			memcpy(xdata->data, image.imageData(), image.imageDataSize());
+		}
 
 		xisfReader.close();
 
