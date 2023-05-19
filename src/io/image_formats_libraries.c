@@ -502,13 +502,17 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 
 	/* Before loading into fit we check if we loaded an embedded ICC profile, if so we create
 	 * a transform from the embedded profile to the Siril linear working space and apply it.
-	 * If there is no embedded profile, we do not attempt any color management.
-	 * TODO: is this the correct approach? Or should we assume TIFFs without profiles are
-	 * likely to be in sRGB space? Or should treatment of unprofiled images be a Siril-wide
-	 * preference? */
-	if (EmbedBuffer && (data || fdata)) {
-		transformBufferOnLoad(data ? (void*) data : (void*) fdata, (fdata != NULL), EmbedBuffer, EmbedLen, nsamples, npixels);
+	 * If there is no embedded profile, we assume the file is sRGB g22 and convert it to the
+	 * linear working space. We use a different buffer if loading the internal sRGB g22
+	 * profile as it must befreed differently. */
+	cmsUInt8Number* sRGBBuffer = NULL;
+	if (!EmbedBuffer) {
+		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
 	}
+	if ((EmbedBuffer || sRGBBuffer) && (data || fdata)) {
+		transformBufferOnLoad(data ? (void*) data : (void*) fdata, (fdata != NULL), (EmbedBuffer ? EmbedBuffer : sRGBBuffer), EmbedLen, nsamples, npixels);
+	}
+	free(sRGBBuffer);
 
 	TIFFClose(tif);
 	if (retval < 0) {
@@ -517,6 +521,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		g_free(description);
 		return OPEN_IMAGE_ERROR;
 	}
+
 
 	/* We clear fits. Everything written above is erased */
 	clearfits(fit);
