@@ -48,7 +48,7 @@
 #include <libheif/heif.h>
 #endif
 #ifdef HAVE_LIBXISF
-#include "SirilXISFWraper.h"
+#include "io/SirilXISFWraper.h"
 #endif
 
 #include "core/siril.h"
@@ -850,7 +850,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 #ifdef HAVE_LIBXISF
 
 int readxisf(const char* name, fits *fit, gboolean verbose) {
-	float *data32f = NULL;
 	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
 
 	siril_get_xisf_buffer(name, xdata);
@@ -883,16 +882,6 @@ int readxisf(const char* name, fits *fit, gboolean verbose) {
 		fit->pdata[BLAYER] = fit->data + npixels * 2;
 		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
 		fit->type = DATA_USHORT;
-		break;
-	case LONG_IMG:
-		data32f = (float *)xdata->data;
-		for (int i = 0; i < npixels; i++)
-			fit->fdata[i] = (data32f[i] / USHRT_MAX_SINGLE);
-		fit->fpdata[RLAYER] = fit->fdata;
-		fit->fpdata[GLAYER] = fit->fdata + npixels;
-		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
-		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
-		fit->type = DATA_FLOAT;
 		break;
 	case FLOAT_IMG:
 		fit->fdata = (float *)xdata->data;

@@ -25,6 +25,9 @@ extern "C" {
 #endif
 #include "config.h"
 
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <glib.h>
+
 #ifdef HAVE_LIBXISF
 
 struct xisf_data {
@@ -38,6 +41,7 @@ struct xisf_data {
 };
 
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata);
+GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr);
 
 #ifdef __cplusplus
 }
