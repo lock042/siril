@@ -79,8 +79,8 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 
 		fitsHeaderStream << "SIMPLE  =                    T / file does conform to FITS standard" << std::endl;
 
-		auto &fitsKeywords = image.fitsKeywords();
-		for (auto &fitsKeyword : fitsKeywords) {
+		const auto& fitsKeywords = image.fitsKeywords();
+		for (const auto& fitsKeyword : fitsKeywords) {
 			if (fitsKeyword.name == "SIMPLE") continue;
 			if (fitsKeyword.name == "COMMENT") continue;
 			if (fitsKeyword.name == "END") continue;
@@ -144,22 +144,6 @@ static int get_bit_depth(LibXISF::Image::SampleFormat depth) {
 	default:
 		return -1;
 	}
-}
-
-void findMinMaxValues(const void* array, size_t size, uint8_t& minValue, uint8_t& maxValue) {
-    const uint8_t* uintArray = reinterpret_cast<const uint8_t*>(array);
-
-    minValue = std::numeric_limits<uint8_t>::max();  // Initialize the minimum value to the maximum possible value
-    maxValue = std::numeric_limits<uint8_t>::min();  // Initialize the maximum value to the minimum possible value
-
-    for (size_t i = 0; i < size; ++i) {
-        if (uintArray[i] < minValue) {
-            minValue = uintArray[i];
-        }
-        if (uintArray[i] > maxValue) {
-            maxValue = uintArray[i];
-        }
-    }
 }
 
 GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
