@@ -918,18 +918,20 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	/* let's do it before header parsing. */
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
-	if (fit->header) free(fit->header);
-	fit->header = strdup(xdata->fitsHeader);
-	int ret = fits_parse_header_string(fit, xdata->fitsHeader);
-	if (ret) {
-		siril_debug_print("XISF Header cannot be read.\n");
-	}
+	if (xdata->fitsHeader) {
+		if (fit->header) free(fit->header);
+		fit->header = strdup(xdata->fitsHeader);
+		int ret = fits_parse_header_string(fit, xdata->fitsHeader);
+		if (ret) {
+			siril_debug_print("XISF Header cannot be read.\n");
+		}
+		}
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
 
 	/* free data */
-	free(xdata->fitsHeader);
+	if (xdata->fitsHeader) free(xdata->fitsHeader);
 	free(xdata);
 
 	return 0;

@@ -76,21 +76,22 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		}
 
 		std::ostringstream fitsHeaderStream;
-
-		fitsHeaderStream << "SIMPLE  =                    T / file does conform to FITS standard" << std::endl;
+		xdata->fitsHeader = NULL;
 
 		const auto& fitsKeywords = image.fitsKeywords();
-		for (const auto& fitsKeyword : fitsKeywords) {
-			if (fitsKeyword.name == "SIMPLE") continue;
-			if (fitsKeyword.name == "COMMENT") continue;
-			if (fitsKeyword.name == "END") continue;
-			fitsHeaderStream << std::setw(8) << std::left << fitsKeyword.name;
-			fitsHeaderStream << "= " << std::setw(20) << fitsKeyword.value;
-			fitsHeaderStream << " / " << fitsKeyword.comment << std::endl;
+		if (!image.fitsKeywords().empty()) {
+			fitsHeaderStream << "SIMPLE  =                    T / file does conform to FITS standard" << std::endl;
+			for (const auto& fitsKeyword : fitsKeywords) {
+				if (fitsKeyword.name == "SIMPLE") continue;
+				if (fitsKeyword.name == "COMMENT") continue;
+				if (fitsKeyword.name == "END") continue;
+				fitsHeaderStream << std::setw(8) << std::left << fitsKeyword.name;
+				fitsHeaderStream << "= " << std::setw(20) << fitsKeyword.value;
+				fitsHeaderStream << " / " << fitsKeyword.comment << std::endl;
+			}
+			fitsHeaderStream << "END";
+			xdata->fitsHeader = strdup(fitsHeaderStream.str().c_str());
 		}
-		fitsHeaderStream << "END";
-
-		xdata->fitsHeader = strdup(fitsHeaderStream.str().c_str());
 
 		xdata->width = image.width();
 		xdata->height = image.height();
