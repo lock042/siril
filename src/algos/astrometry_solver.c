@@ -644,6 +644,9 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 }
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+#else
 	gchar *buffer = NULL;
 	GError *error = NULL;
 	/* ------------------- get Vizier catalog in catalog.dat -------------------------- */
@@ -715,6 +718,7 @@ download_error:
 	siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
 	g_clear_error(&error);
 	g_object_unref(file);
+#endif
 	return NULL;
 }
 
