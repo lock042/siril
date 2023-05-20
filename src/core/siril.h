@@ -472,6 +472,10 @@ struct ffit {
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
 
 	GSList *history;	// Former HISTORY comments of FITS file
+
+	/* ICC Color Management data */
+	cmsHPROFILE icc_profile; // ICC color management profile
+	cmsHTRANSFORM display_transform; // ICC transform for display
 };
 
 typedef struct {
@@ -549,6 +553,14 @@ typedef struct draw_data {
 	guint window_width, window_height;	// drawing area size
 } draw_data_t;
 
+struct gui_icc {
+	cmsHPROFILE monitor;
+	cmsHPROFILE soft_proof;
+	gboolean available;
+	cmsHTRANSFORM tx_display;
+	cmsUInt32Number rendering_intent;
+};
+
 /* The global data structure of siril gui */
 struct guiinf {
 	GtkBuilder *builder;		// the builder of the glade interface
@@ -584,6 +596,7 @@ struct guiinf {
 	BYTE *hd_remap_index[3];	// HD remap indexes for the high precision LUTs.
 	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
 	gboolean use_hd_remap;		// use high definition LUT for auto-stretch
+	struct gui_icc icc;
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
@@ -609,6 +622,17 @@ struct guiinf {
 	int cmd_hist_size;		// allocated size
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
+};
+
+struct common_icc {
+	cmsHPROFILE srgb_linear;
+	cmsHPROFILE mono_linear;
+	cmsHPROFILE srgb_standard;
+	cmsHPROFILE mono_standard;
+	cmsHPROFILE srgb_out;
+	cmsHPROFILE mono_out;
+	gboolean available;
+	cmsUInt32Number save_intent;
 };
 
 /* The global data structure of siril core */
@@ -668,7 +692,7 @@ struct cominf {
 #endif
 	gnuplot_ctrl **gnuplot_handles; // list of gnuplot handles
 	int num_gnuplot_handles; // how many gnuplot handles are in the list
-
+	struct common_icc icc; // struct to hold ICC profiles
 };
 
 #ifndef MAIN

@@ -42,6 +42,7 @@
 
 #include "git-version.h"
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/siril_actions.h"
 #include "core/initfile.h"

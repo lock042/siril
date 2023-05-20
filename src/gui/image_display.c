@@ -137,7 +137,7 @@ static void remaprgb(void) {
 	}
 
 	// Color space transform - do the STF transform here as it can be done multiple pixels at a time
-	if (gui.rendering_mode == STF_DISPLAY)
+//	if (gui.rendering_mode == STF_DISPLAY)
 		display_profile_transform(dst, dst, nbdata);
 
 	// flush to ensure all writing to the image was done and redraw the surface
@@ -270,7 +270,7 @@ static void remap(int vport) {
 
 	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || (gui.rendering_mode == STF_DISPLAY && !(gui.use_hd_remap && gfit.type == DATA_FLOAT)));
 
-	int norm = (int) get_normalized_value(&gfit);
+//	int norm = (int) get_normalized_value(&gfit);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -283,31 +283,31 @@ static void remap(int vport) {
 			BYTE dst_pixel_value = 0;
 			if (gfit.type == DATA_USHORT) {
 				// Apply ICC transform if showing the linear mode preview
-				WORD iccval = (norm == UCHAR_MAX ? uchar_pixel_icc_tx(src[src_index], vport, gfit.naxes[2]) : ushrt_pixel_icc_tx(src[src_index], vport, gfit.naxes[2]));
-				WORD val = (gui.rendering_mode == LINEAR_DISPLAY) ? iccval : src[src_index];
+				//WORD iccval = (norm == UCHAR_MAX ? uchar_pixel_icc_tx(src[src_index], vport, gfit.naxes[2]) : ushrt_pixel_icc_tx(src[src_index], vport, gfit.naxes[2]));
+				//WORD val = (gui.rendering_mode == LINEAR_DISPLAY) ? iccval : src[src_index];
 				if (hd_mode) {
 					dst_pixel_value = index[src[src_index] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
 				}
 				else if (special_mode)	// special case, no lo & hi
 					dst_pixel_value = index[src[src_index]];
-				else if (gui.cut_over && val > gui.hi)	// cut
+				else if (gui.cut_over && src[src_index] > gui.hi)	// cut
 					dst_pixel_value = 0;
 				else {
-					dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
+					dst_pixel_value = index[src[src_index] - gui.lo < 0 ? 0 : src[src_index] - gui.lo];
 				}
 			} else if (gfit.type == DATA_FLOAT) {
 				// Apply ICC transform if showing the linear mode preview
-				float val = (gui.rendering_mode == LINEAR_DISPLAY) ? float_pixel_icc_tx(fsrc[src_index], vport, gfit.naxes[2]) : fsrc[src_index];
+				//float val = (gui.rendering_mode == LINEAR_DISPLAY) ? float_pixel_icc_tx(fsrc[src_index], vport, gfit.naxes[2]) : fsrc[src_index];
 				if (hd_mode)
 					dst_pixel_value = index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)];
 				else if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
-				else if (gui.cut_over && roundf_to_WORD(val * USHRT_MAX_SINGLE) > gui.hi)	// cut
+				else if (gui.cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > gui.hi)	// cut
 					dst_pixel_value = 0;
 				else {
 					dst_pixel_value = index[
-						roundf_to_WORD(val * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
-							roundf_to_WORD(val * USHRT_MAX_SINGLE) - gui.lo];
+						roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
+							roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo];
 				}
 			}
 

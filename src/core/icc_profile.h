@@ -31,6 +31,7 @@ unsigned char* get_gray_profile_data(guint32 *len, gboolean linear);
 
 //unsigned char* get_profile_buf(cmsHPROFILE* profile, uint32_t* profile_len);
 
+void initialize_profiles_and_transforms();
 int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);
 void initialize_icc_profiles_paths();
@@ -40,4 +41,5 @@ int transformBufferOnSave(void* src, void* dest, uint16_t src_bitspersample, uin
 BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans);
 WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans);
 float float_pixel_icc_tx(float in, int channel, int nchans);
+void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

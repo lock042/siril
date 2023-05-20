@@ -464,7 +464,9 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	// Try to read embedded ICC profile data
 	cmsUInt32Number EmbedLen;
 	cmsUInt8Number* EmbedBuffer = NULL;
-	TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
+	if (com.icc.available) {
+		TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
+	}
 
 	// Retrieve Description field
 	char *desc = NULL;
@@ -508,7 +510,8 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 
 	// 8 bit data gets right-shifted by 8 bits to make the 16-bit transform work
 	// It's easier than making a new buffer of packed 8-bit data and using a new transform
-	if (nbits == 8) {
+
+/*	if (nbits == 8) {
 		for (size_t i = 0; i < npixels * nsamples ; i++) {
 			data[i] = data[i] << 8;
 		}
@@ -525,7 +528,9 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		for (size_t i = 0; i < npixels * nsamples ; i++) {
 			data[i] = data[i] >> 8;
 		}
-	}
+	}*/
+	if (com.icc.available)
+		fits_initialize_icc(fit, EmbedBuffer, EmbedLen);
 
 	TIFFClose(tif);
 	if (retval < 0) {
@@ -733,14 +738,12 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	TIFFSetField(tif, TIFFTAG_SOFTWARE, PACKAGE " v" VERSION);
 
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
-	gboolean dest_is_float = (bitspersample == 32);
-	gboolean icc_transform = TRUE;
+//	gboolean dest_is_float = (bitspersample == 32);
+//	gboolean icc_transform = TRUE;
 	if (nsamples == 1) {
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
 		if (bitspersample == 32) {
 			profile = get_gray_profile_data(&profile_len, TRUE); // 32 bit output -> g10 profile
-			if (src_is_float)
-				icc_transform = FALSE;
 		} else {
 			profile = get_gray_profile_data(&profile_len, FALSE); // <= 16 bit output -> g22 profile
 		}
@@ -748,8 +751,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
 		if (bitspersample == 32) {
 			profile = get_sRGB_profile_data(&profile_len, TRUE); // 32 bit output -> g10 profile
-			if (src_is_float)
-				icc_transform = FALSE;
 		} else {
 			profile = get_sRGB_profile_data(&profile_len, FALSE); // <= 16 bit output -> g22 profile
 		}
@@ -770,20 +771,33 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
+	// Apply the colorspace transform
 	void *buf = NULL;
 	void *dest = NULL;
-	if (embeded_icc && profile_len > 0) {
-		if (icc_transform) {
-			buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * (src_is_float ? 32 : 16));
-			gbuf[0] = (WORD *) dest;
-			gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
-			gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
-			gbuff[0] = (float *) dest;
-			gbuff[1] = (float *) dest + (fit->rx * fit->ry);
-			gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
-			transformBufferOnSave(buf, dest, (src_is_float ? 32 : 16), (src_is_float ? 32 : 16), nsamples, width * height, TRUE, dest_is_float);
+	if (com.icc.available) {
+		// Transform the data
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		size_t npixels = fit->rx * fit->ry;
+		size_t nchans = fit->naxes[2];
+		gboolean src_is_float = (fit->type == DATA_FLOAT);
+		cmsUInt32Number trans_type;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
+		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+		cmsDoTransform(save_transform, buf, dest, npixels * nchans);
+		cmsDeleteTransform(save_transform);
+		gbuf[0] = (WORD *) dest;
+		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+		gbuff[0] = (float *) dest;
+		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
+		// Embed the profile
 		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
 
@@ -912,6 +926,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 int readjpg(const char* name, fits *fit){
 	struct jpeg_decompress_struct cinfo;
 	struct jpeg_error_mgr jerr;
+	clearfits(fit);
 
 	FILE *f = g_fopen(name, "rb");
 	if (f == NULL) {
@@ -927,11 +942,11 @@ int readjpg(const char* name, fits *fit){
 	// Check for an ICC profile
 	JOCTET *EmbedBuffer = NULL;
 	unsigned int EmbedLen;
-	jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
-	cmsUInt8Number* sRGBBuffer = NULL;
-	if (!EmbedBuffer) {
-		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
+	if (com.icc.available) {
+		jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
 	}
+	if (com.icc.available)
+		fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
 
 	size_t npixels = cinfo.output_width * cinfo.output_height;
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
@@ -956,7 +971,6 @@ int readjpg(const char* name, fits *fit){
 	fclose(f);
 	jpeg_finish_decompress(&cinfo);
 	jpeg_destroy_decompress(&cinfo);
-	clearfits(fit);
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	if (cinfo.output_components == 1)
 		fit->naxis = 2;
@@ -976,17 +990,7 @@ int readjpg(const char* name, fits *fit){
 	mirrorx(fit, FALSE);
 	fill_date_obs_if_any(fit, name);
 
-	for (size_t i = 0 ; i < fit->rx * fit->ry * fit->naxes[2] ; i++) {
-		fit->data[i] = fit->data[i] << 8;
-	}
-	if (EmbedBuffer || sRGBBuffer) {
-		transformBufferOnLoad(fit->data, 16, (EmbedBuffer ? (cmsUInt8Number*) EmbedBuffer : sRGBBuffer), EmbedLen, cinfo.output_components, cinfo.output_width * cinfo.output_height);
-	}
-	free(sRGBBuffer);
-	free(EmbedBuffer);
-	for (size_t i = 0 ; i < fit->rx * fit->ry * fit->naxes[2] ; i++) {
-		fit->data[i] = fit->data[i] >> 8;
-	}
+	// Initialize ICC profile and display transform
 
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"),
@@ -1024,24 +1028,35 @@ int savejpg(const char *name, fits *fit, int quality){
 	cinfo.input_components = fit->naxes[2];     // Number of color components per pixel.
 	cinfo.in_color_space = (fit->naxes[2] == 3) ? JCS_RGB : JCS_GRAYSCALE; // Colorspace of input image as RGB.
 
-//	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-//	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
+	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
 	// Apply the colorspace transform
 	void *buf = NULL;
 	void *dest = NULL;
-	size_t npixels = fit->rx * fit->ry;
-	gboolean src_is_float = (fit->type == DATA_FLOAT);
-	buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-	if (src_is_float)
-		dest = (float*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-	else
-		dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-	transformBufferOnSave(buf, dest, (src_is_float ? 32 : 16), (src_is_float ? 32 : 16), cinfo.input_components, cinfo.image_width * cinfo.image_height, TRUE, FALSE);
-
-	WORD *gbuf[3] = { (WORD*) dest, (WORD*) dest + npixels, (WORD*) dest + 2*npixels };
-	float *gbuff[3] = { (float*) dest, (float*) dest + npixels, (float*) dest + 2*npixels };
-
+	if (com.icc.available) {
+		gboolean src_is_float = (fit->type == DATA_FLOAT);
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		size_t npixels = fit->rx * fit->ry;
+		size_t nchans = fit->naxes[2];
+		cmsUInt32Number trans_type;
+		if (src_is_float) {
+			dest = (float*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+		} else {
+			dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+		}
+		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+		cmsDoTransform(save_transform, buf, dest, npixels * nchans);
+		cmsDeleteTransform(save_transform);
+		gbuf[0] = (WORD*) dest;
+		gbuf[1] = (WORD*) dest + npixels;
+		gbuf[2] = (WORD*) dest + 2 * npixels;
+		gbuff[0] = (float*) dest;
+		gbuff[1] = (float*) dest + npixels;
+		gbuff[2] = (float*) dest + 2 * npixels;
+	}
 	jpeg_set_defaults(&cinfo);
 	jpeg_set_quality(&cinfo, quality, TRUE);
 
@@ -1082,21 +1097,22 @@ int savejpg(const char *name, fits *fit, int quality){
 			}
 		}
 	}
-	// Populate the ICC profile buffer for writing into the file
-	JOCTET *profile = NULL;
-	unsigned int profile_len;
-	if (cinfo.input_components == 3) {
-		profile = get_sRGB_profile_data(&profile_len, FALSE);
-	} else {
-		profile = get_gray_profile_data(&profile_len, FALSE);
-	}
 	//## START COMPRESSION:
 	jpeg_start_compress(&cinfo, TRUE);
 	// Write the ICC profile
-	if (profile)
-		jpeg_write_icc_profile(&cinfo, (const JOCTET*) profile, profile_len);
-	else
-		siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
+	JOCTET *EmbedBuffer = NULL;
+	if (com.icc.available) {
+		unsigned int EmbedLen;
+		if (cinfo.input_components == 3) {
+			EmbedBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
+		} else {
+			EmbedBuffer = get_gray_profile_data(&EmbedLen, FALSE);
+		}
+		if (EmbedBuffer)
+			jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
+		else
+			siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
+	}
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
 
 	JSAMPROW row_pointer[1];
@@ -1117,7 +1133,7 @@ int savejpg(const char *name, fits *fit, int quality){
 	siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
 						filename, quality, fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
-	free(profile);
+	free(EmbedBuffer);
 	free(dest);
 	return OPEN_IMAGE_OK;
 }
@@ -1201,7 +1217,7 @@ int readpng(const char *name, fits* fit) {
     png_bytepp EmbedBuffer = NULL;
 #endif
 	png_uint_32 EmbedLen;
-	gboolean icc_available = (gboolean) png_get_iCCP(png, info, ProfileName, PNG_COMPRESSION_TYPE_BASE, EmbedBuffer, &EmbedLen);
+	png_get_iCCP(png, info, ProfileName, PNG_COMPRESSION_TYPE_BASE, EmbedBuffer, &EmbedLen);
 
 	png_read_image(png, row_pointers);
 
@@ -1270,26 +1286,10 @@ int readpng(const char *name, fits* fit) {
 		fit->binning_x = fit->binning_y = 1;
 		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 		fill_date_obs_if_any(fit, name);
+		// Initialize ICC profile and display transform
+		fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
 	}
 
-	/* Before loading into fit we check if we loaded an embedded ICC profile, if so we create
-	 * a transform from the embedded profile to the Siril linear working space and apply it.
-	 * If there is no embedded profile, we assume the file is sRGB g22 and convert it to the
-	 * linear working space. We use a different buffer if loading the internal sRGB g22
-	 * profile as it must befreed differently. */
-	cmsUInt8Number* sRGBBuffer = NULL;
-	if (!icc_available) {
-		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
-	}
-	if (icc_available || sRGBBuffer) {
-		transformBufferOnLoad(fit->data, (bit_depth == 32 ? 32 : 16), (EmbedBuffer ? (cmsUInt8Number*) *EmbedBuffer : sRGBBuffer), EmbedLen, nbplanes, width * height);
-	}
-	free(sRGBBuffer);
-	if (bit_depth == 8) {
-		for (size_t i = 0 ; i < fit->rx * fit->ry * fit->naxes[2] ; i++) {
-			fit->data[i] = fit->data[i] >> 8;
-		}
-	}
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 			bit_depth, basename, fit->naxes[2], fit->rx, fit->ry);
@@ -1460,12 +1460,31 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		/* swap bytes of 16 bit files to most significant bit first */
 		png_set_swap(png_ptr);
 		data = convert_data(fit);
-		transformBufferOnSave((void*) data, (void *) data, 16, 16, (uint16_t) samples_per_pixel, width * height, FALSE, FALSE);
+		if (com.icc.available) {
+		// Apply ICC transform
+			cmsHTRANSFORM save_transform;
+			if (samples_per_pixel == 1)
+				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_16, com.icc.mono_out, TYPE_GRAY_16, com.icc.save_intent,0);
+			else
+				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_16, com.icc.mono_out, TYPE_RGB_16, com.icc.save_intent, 0);
+			cmsDoTransform(save_transform, data, data, fit->rx * fit->ry * fit->naxes[2]);
+			cmsDeleteTransform(save_transform);
+		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
 		data8 = convert_data8(fit);
-		transformBufferOnSave((void*) data, (void *) data, 8, 8, (uint16_t) samples_per_pixel, width * height, FALSE, FALSE);
+		if (com.icc.available) {
+		// Apply ICC transform
+			cmsHTRANSFORM save_transform;
+			if (samples_per_pixel == 1)
+				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_8, com.icc.mono_out, TYPE_GRAY_8, com.icc.save_intent, 0);
+			else
+				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_8, com.icc.mono_out, TYPE_RGB_8,com.icc.save_intent, 0);
+
+			cmsDoTransform(save_transform, data8, data8, fit->rx * fit->ry * fit->naxes[2]);
+			cmsDeleteTransform(save_transform);
+		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
 	}
