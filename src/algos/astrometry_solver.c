@@ -2251,6 +2251,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
 	aargs = copy_astrometry_args(aargs);
+	if (!aargs)
+		return 1;
 	aargs->fit = fit;
 
 	char root[256];

@@ -199,6 +199,7 @@ static void dec2dms(double dec, int *sign, int *d, int *m, double *s) {
 	*s = rem;
 }
 
+/* Warning: for format with decimal seconds, %lf is required, not %f (this is actually a bug) */
 gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) {
 	g_return_val_if_fail(world_cs != NULL, NULL);
 	g_return_val_if_fail(format != NULL, NULL);
@@ -227,6 +228,7 @@ gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) 
 	return g_strdup_printf(format, (sign==1 ? '+':'-'), degree, min, new_sec);
 }
 
+/* Warning: for format with decimal seconds, %lf is required, not %f (this is actually a bug) */
 gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) {
 	g_return_val_if_fail(world_cs != NULL, NULL);
 	g_return_val_if_fail(format != NULL, NULL);

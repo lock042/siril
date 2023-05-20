@@ -8625,6 +8625,7 @@ int process_nomad(int nb) {
 	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
 
 	if (cat == CAT_AUTO) {
+		// stars coordinates are the raw wcs2pix values, so FITS/WCS coordinates
 		if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			return CMD_GENERIC_ERROR;
