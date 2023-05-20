@@ -1064,10 +1064,8 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 }
 
 static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	unsigned int MB_per_image, MB_avail, required;
+	unsigned int MB_per_image, MB_avail, required = 0;
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
-	// No need to allow extra for FITS compression memory overhead as seqfindstar
-	// args.has_output == FALSE therefore for_writer == FALSE
 
 	if (limit > 0) {
 		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
