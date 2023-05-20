@@ -669,7 +669,7 @@ static gchar *get_changelog(gchar *str) {
 static void siril_check_updates_callback(GObject *source, GAsyncResult *result,
 		gpointer user_data) {
 	gboolean verbose = GPOINTER_TO_INT(user_data);
-	char *file_contents = NULL;
+	gchar *file_contents = NULL;
 	gsize file_length = 0;
 	GError *error = NULL;
 	gchar *msg = NULL;

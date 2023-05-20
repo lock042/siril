@@ -1506,3 +1506,24 @@ const gchar *get_com_ext(gboolean fz) {
     }
     return com.pref.ext;
 }
+
+/* converts FITS or WCS coordinates to display coordinates */
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
+       if (fx < 0.0 || fy < 1.0 || fy > ry)
+               return 1;
+       // TODO: does ROWORDER change this?
+       *dx = fx;
+       *dy = ry - fy;
+       return 0;
+}
+
+/* converts display coordinates to FITS or WCS coordinates */
+int display_to_fits(double dx, double dy, double *fx, double *fy, int ry) {
+       if (dx < 0.0 || dy < 0.0 || dy > ry - 1)
+               return 1;
+       // TODO: does ROWORDER change this?
+       *fx = dx;
+       *fy = ry - dy;
+       return 0;
+}
+

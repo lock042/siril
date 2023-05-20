@@ -631,12 +631,14 @@ static void save_stars_dialog() {
 static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
 	if (has_wcs(&gfit)) {
-		double world_x, world_y;
-		SirilWorldCS *world_cs;
+		// coordinates of the star in FITS/WCS coordinates
+		double fx, fy;
+		display_to_fits(star->xpos, star->ypos, &fx, &fy, gfit.ry);
 
-		pix2wcs(&gfit, star->xpos, (double) gfit.ry - star->ypos, &world_x, &world_y);
-		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
-
+		double ra, dec;
+		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		// *alpha = ra would work too instead of all this?
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
 			double a = siril_world_cs_get_alpha(world_cs);
 			double d = siril_world_cs_get_delta(world_cs);
@@ -806,112 +808,9 @@ void pick_a_star() {
 	redraw(REDRAW_OVERLAY);
 }
 
-static gchar *build_wcs_url(gchar *ra, gchar *dec) {
-	if (!has_wcs(&gfit)) return NULL;
-
-	double resolution = get_wcs_image_resolution(&gfit);
-
-	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
-
-	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
-	url = g_string_append(url, ra);
-	url = g_string_append(url, dec);
-	url = g_string_append(url, "&Radius=");
-	url = g_string_append(url, tol);
-	url = g_string_append(url, "&Radius.unit=arcsec");
-	url = g_string_append(url, "#lab_basic");
-
-	gchar *simbad_url = g_string_free(url, FALSE);
-	gchar *cleaned_url = url_cleanup(simbad_url);
-
-	g_free(tol);
-	g_free(simbad_url);
-
-	return cleaned_url;
-}
-
-static const char *SNR_quality(double SNR) {
-	if (SNR > 40.0) return _("Excellent");
-	if (SNR > 25.0) return _("Good");
-	if (SNR > 15.0) return _("Fair");
-	if (SNR > 10.0) return _("Poor");
-	if (SNR > 0.0) return _("Bad");
-	else return _("N/A");
-}
-
 void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
-	gchar *msg, *coordinates, *url = NULL;
-	char buffer2[50];
-	const char *str;
-	if (com.magOffset > 0.0)
-		str = _("true reduced");
-	else
-		str = _("relative");
-
-	double x = result->x0 + area->x;
-	double y = area->y + area->h - result->y0;
-	if (has_wcs(&gfit)) {
-		double world_x, world_y;
-		SirilWorldCS *world_cs;
-
-		pix2wcs(&gfit, x, (double) gfit.ry - y, &world_x, &world_y);
-		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
-		if (world_cs) {
-			gchar *ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
-			gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
-
-			url = build_wcs_url(ra, dec);
-			// TODO: change with vizier
-			// TODO: use box size as radius
-
-			g_free(ra);
-			g_free(dec);
-
-			if (com.pref.gui.show_deciasec) {
-				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.1lfs");
-				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
-			} else {
-				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
-				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
-			}
-
-			coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
-
-			g_free(ra);
-			g_free(dec);
-			siril_world_cs_unref(world_cs);
-		} else {
-			coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
-		}
-	} else {
-		coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
-	}
-
-	double fwhmx, fwhmy;
-	char *unts;
-	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
-	const gchar *chan = isrgb(fit) ? channel_number_to_name(result->layer) : _("monochrome");
-	if (result->beta > 0.0) {
-		g_snprintf(buffer2, 50, ", beta=%0.1f, %s channel", result->beta, chan);
-	}
-	else {
-		g_snprintf(buffer2, 50, "%s, %s channel", "", chan);
-	}
-	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
-				"Centroid Coordinates:\n\t\t%s\n\n"
-				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
-				"Angle:\n\t\t%0.2fdeg\n\n"
-				"Background Value:\n\t\tB=%.6f\n\n"
-				"Maximal Intensity:\n\t\tA=%.6f\n\n"
-				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
-				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
-				"RMSE:\n\t\tRMSE=%.3e"),
-			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
-			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
-			result->angle, result->B, result->A, str,
-			result->mag + com.magOffset, result->s_mag, result->SNR,
-			SNR_quality(result->SNR), result->rmse);
-	g_free(coordinates);
+	gchar *url = NULL;
+	gchar *msg = format_psf_result(result, area, fit, &url);
 	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(msg);
 	g_free(url);

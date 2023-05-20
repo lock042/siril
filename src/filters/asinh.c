@@ -93,13 +93,13 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 			float bprime = max(0, (b - offset) / (1.0f - offset));
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
-			data.tf[0] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
-			data.tf[1] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
-			data.tf[2] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[RLAYER] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[GLAYER] = (gprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * gprime) / (gprime * asinh_beta);
+			data.tf[BLAYER] = (bprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * bprime) / (bprime * asinh_beta);
 			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
-			data.sf[0] = min(1.0f, max(0.0f, (rprime * k)));
-			data.sf[1] = min(1.0f, max(0.0f, (gprime * k)));
-			data.sf[2] = min(1.0f, max(0.0f, (bprime * k)));
+			data.sf[RLAYER] = min(1.0f, max(0.0f, (rprime * k)));
+			data.sf[GLAYER] = min(1.0f, max(0.0f, (gprime * k)));
+			data.sf[BLAYER] = min(1.0f, max(0.0f, (bprime * k)));
 
 			rgbblend(&data, &rout, &gout, &bout, m_CB);
 
@@ -149,13 +149,13 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 			float bprime = max(0.0f, (b - offset) / (1.0f - offset));
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
-			data.tf[0] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
-			data.tf[1] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
-			data.tf[2] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[RLAYER] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[GLAYER] = (gprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * gprime) / (gprime * asinh_beta);
+			data.tf[BLAYER] = (bprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * bprime) / (bprime * asinh_beta);
 			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
-			data.sf[0] = min(1.0f, max(0.0f, (rprime * k)));
-			data.sf[1] = min(1.0f, max(0.0f, (gprime * k)));
-			data.sf[2] = min(1.0f, max(0.0f, (bprime * k)));
+			data.sf[RLAYER] = min(1.0f, max(0.0f, (rprime * k)));
+			data.sf[GLAYER] = min(1.0f, max(0.0f, (gprime * k)));
+			data.sf[BLAYER] = min(1.0f, max(0.0f, (bprime * k)));
 
 			rgbblend(&data, &buf[RLAYER][i], &buf[GLAYER][i], &buf[BLAYER][i], m_CB);
 		}

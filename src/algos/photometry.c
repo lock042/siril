@@ -455,18 +455,19 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 }
 
 static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangle *ret_area) {
-	double x, y;
-	if (wcs2pix(fit, ra, dec, &x, &y)) {
+	double fx, fy;
+	if (wcs2pix(fit, ra, dec, &fx, &fy)) {
 		siril_debug_print("star is outside image\n");
 		return 1;
 	}
-	y = (double)(fit->ry - 1) - y;
+	double dx, dy;
+	fits_to_display(fx, fy, &dx, &dy, fit->ry);
 	// some margin needs to be allowed for star centroid movement
 	double start = 1.5 * com.pref.phot_set.outer;
 	double size = 3.0 * com.pref.phot_set.outer;
 	rectangle area;
-	area.x = round_to_int(x - start);
-	area.y = round_to_int(y - start);
+	area.x = round_to_int(dx - start);
+	area.y = round_to_int(dy - start);
 	area.w = size;
 	area.h = size;
 	if (area.x < 0 || area.y < 0 ||
@@ -477,7 +478,7 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 		return 1;
 	}
 	*ret_area = area;
-	siril_debug_print("Pixel coordinates of a star: %.1f, %.1f\n", x, y);
+	siril_debug_print("Pixel coordinates of a star: %.1f, %.1f\n", dx, dy);
 	return 0;
 }
 

@@ -14,10 +14,15 @@
 
 #define CDSSESAME "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame"
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
-#define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
-#define SIMBADPHOTO "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT B, V, R ,I , J from allfluxes JOIN ident USING(oidref) WHERE id ='"
+#define SIMBADSESAME "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
+#define SIMBADPHOTO "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT B, V, R ,I , J from allfluxes JOIN ident USING(oidref) WHERE id ='"
 #define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?"
 #define SKYBOT "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?"
+
+typedef enum {
+	ERROR_PLATESOLVE = 1,
+	ERROR_PHOTOMETRY = 10,
+} platesolve_error_type;
 
 
 typedef enum {

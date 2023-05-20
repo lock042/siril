@@ -340,7 +340,7 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 		return;
 	}
 #ifdef GPLOT_DEBUG
-	siril_debug_print("Closing handle %lu via callback\n", (size_t) handle->thread);
+	siril_debug_print("Closing handle %zu via callback\n", (size_t) handle->thread);
 #endif
 	if (handle->ntmp) {
 		for (int i = 0 ; i < handle->ntmp ; i++) {

@@ -842,9 +842,12 @@ int process_rebayer(int nb){
 	com.seq.current = UNRELATED_IMAGE;
 	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
-	open_single_image_from_gfit();
+
+	if (!com.script) {
+		open_single_image_from_gfit();
+		siril_add_idle(merge_cfa_idle, NULL);
+	}
 	set_cursor_waiting(FALSE);
-	siril_add_idle(merge_cfa_idle, NULL);
 	return CMD_OK;
 }
 
@@ -3742,8 +3745,9 @@ int process_psf(int nb){
 	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, ps, TRUE, profile, &error);
 	free(ps);
 	if (result) {
-		psf_display_result(result, &com.selection);
+		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
 		free_psf(result);
+		siril_log_message("%s\n", str);
 	}
 	else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	return CMD_OK;
@@ -3843,16 +3847,17 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 			siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
 			return CMD_FOR_PLATE_SOLVED;
 		}
-		double x, y;
-		if (wcs2pix(first, ra, dec, &x, &y)) {
+		double fx, fy;
+		if (wcs2pix(first, ra, dec, &fx, &fy)) {
 			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
 			return CMD_ARG_ERROR;
 		}
-		y = first->ry - y - 1;
+		double dx, dy;
+		fits_to_display(fx, fy, &dx, &dy, first->ry);
 		double start = 1.5 * com.pref.phot_set.outer;
 		double size = 3 * com.pref.phot_set.outer;
-		area.x = x - start;
-		area.y = y - start;
+		area.x = dx - start;
+		area.y = dy - start;
 		area.w = size;
 		area.h = size;
 		if (area.x < 0 || area.y < 0 ||
@@ -3862,7 +3867,7 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
 			return CMD_ARG_ERROR;
 		}
-		siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), x, y);
+		siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), dx, dy);
 		if (target_descr && arg[1] != 'a')
 			*target_descr = g_strdup_printf("at %f, %f", ra, dec);
 	}
@@ -6134,7 +6139,15 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 	fits_read_keyword(fptr, args->key, str, NULL, &status);
 	if (status)
 		strcpy(str, "not found");
-	siril_log_message(_("Image %d, %s = %s\n"), index, args->key, str);
+	if (args->output_stream) {
+		GError *error = NULL;
+		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index, str)) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			return 1;
+		}
+	}
+	else siril_log_message(_("Image %d, %s = %s\n"), index, args->key, str);
 	return status;
 }
 
@@ -6149,136 +6162,37 @@ int process_seq_header(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	struct generic_seq_metadata_args *args = malloc(sizeof(struct generic_seq_metadata_args));
-	args->seq = seq;
-	args->key = g_strdup(word[2]);
-	args->image_hook = header_hook;
-	start_in_new_thread(generic_sequence_metadata_worker, args);
-	return 0;
-}
-
-int process_convertraw(int nb) {
-	if (!com.wd) {
-		siril_log_message(_("Conversion: no working directory set.\n"));
-		return CMD_NO_CWD;
-	}
-
-	if (word[1][0] == '-') {
-		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
-		return CMD_ARG_ERROR;
-	}
-	if (file_name_has_invalid_chars(word[1])) {
-		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
-		return CMD_ARG_ERROR;
-	}
-	char *destroot = strdup(word[1]);
-	int idx = 1;
-	gboolean debayer = FALSE;
-	sequence_type output = SEQ_REGULAR;
-
-	for (int i = 2; i < nb; i++) {
-		char *current = word[i], *value;
-		if (!strcmp(current, "-debayer")) {
-			debayer = TRUE;
-		} else if (!strcmp(current, "-fitseq")) {
-			output = SEQ_FITSEQ;
-			if (!g_str_has_suffix(destroot, com.pref.ext))
-				str_append(&destroot, com.pref.ext);
-		} else if (!strcmp(current, "-ser")) {
-			output = SEQ_SER;
-			if (!g_str_has_suffix(destroot, ".ser"))
-				str_append(&destroot, ".ser");
-		} else if (g_str_has_prefix(current, "-start=")) {
-			value = current + 7;
-			gchar *end;
-			idx = g_ascii_strtoull(value, &end, 10);
-			if (end == value || idx <= 0 || idx >= INDEX_MAX) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(current, "-out=")) {
-			value = current + 5;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
-				if (g_mkdir_with_parents(value, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
-					return CMD_GENERIC_ERROR;
-				}
-			}
-			gchar *filename = g_build_filename(value, destroot, NULL);
-			g_free(destroot);
-			destroot = filename;
+	GOutputStream* output_stream = NULL;
+	if (nb > 3 && g_str_has_prefix(word[3], "-out=")) {
+		const char *arg = word[3] + 5;
+		if (arg[0] == '\0') {
+			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			return CMD_ARG_ERROR;
 		}
-		else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+		GFile *file = g_file_new_for_path(arg);
+		GError *error = NULL;
+		output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+		g_object_unref(file);
+		if (!output_stream) {
+			if (error) {
+				siril_log_color_message(_("Failed to create output file: %s\n"), "red", error->message);
+				g_clear_error(&error);
+			}
+			return CMD_ARG_ERROR;
+		}
+		if (!g_output_stream_printf(output_stream, NULL, NULL, NULL, "# image number,%s\n", word[2])) {
+			siril_log_color_message(_("Failed to write to output file\n"), "red");
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	GDir *dir;
-	GError *error = NULL;
-	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
-		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
-		fprintf (stderr, "Conversion: %s\n", error->message);
-		g_clear_error(&error);
-		return CMD_NO_CWD;
-	}
-
-	int count = 0;
-	const gchar *file;
-	GList *list = NULL;
-	while ((file = g_dir_read_name(dir)) != NULL) {
-		const char *ext = get_filename_ext(file);
-		if (!ext || file[0] == '.')
-			continue;
-		image_type type = get_type_for_extension(ext);
-		if (type == TYPERAW) {
-			if (output == SEQ_SER && !g_ascii_strcasecmp(ext, "raf") && !debayer) {
-				siril_log_message(_("FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. You may use FITS sequences instead."));
-				g_list_free_full(list, g_free);
-				return CMD_GENERIC_ERROR;
-			}
-			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
-			count++;
-		}
-	}
-	g_dir_close(dir);
-	if (!count) {
-		siril_log_message(_("No RAW files were found for conversion\n"));
-		g_list_free_full(list, g_free);
-		return CMD_GENERIC_ERROR;
-	}
-	/* sort list */
-	list = g_list_sort(list, (GCompareFunc) strcompare);
-	/* convert the list to an array for parallel processing */
-	char **files_to_convert = glist_to_array(list, &count);
-
-	int nb_allowed;
-	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
-		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
-		g_strfreev(files_to_convert);
-		return CMD_GENERIC_ERROR;
-	}
-
-	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "green", count);
-
-	struct _convert_data *args = malloc(sizeof(struct _convert_data));
-	args->start = idx;
-	args->list = files_to_convert;
-	args->total = count;
-	args->destroot = destroot;
-	args->input_has_a_seq = FALSE;
-	args->input_has_a_film = FALSE;
-	args->debayer = debayer;
-	args->output_type = output;
-	args->multiple_output = FALSE;
-	args->make_link = FALSE;
-	gettimeofday(&(args->t_start), NULL);
-	start_in_new_thread(convert_thread_worker, args);
-	return CMD_OK;
+	struct generic_seq_metadata_args *args = calloc(1, sizeof(struct generic_seq_metadata_args));
+	args->seq = seq;
+	args->key = g_strdup(word[2]);
+	args->image_hook = header_hook;
+	args->output_stream = output_stream;
+	start_in_new_thread(generic_sequence_metadata_worker, args);
+	return 0;
 }
 
 int process_link(int nb) {
@@ -6394,6 +6308,12 @@ int process_link(int nb) {
 }
 
 int process_convert(int nb) {
+	gboolean raw_only = word[0][7] != '\0';
+	if (!com.wd) {
+		siril_log_message(_("Conversion: no working directory set.\n"));
+		return CMD_NO_CWD;
+	}
+
 	if (word[1][0] == '-') {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
@@ -6402,10 +6322,10 @@ int process_convert(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = strdup(word[1]);
+	char *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
-	gboolean make_link = TRUE;
+	gboolean make_link = !raw_only;
 	sequence_type output = SEQ_REGULAR;
 
 	for (int i = 2; i < nb; i++) {
@@ -6454,11 +6374,11 @@ int process_convert(int nb) {
 	GDir *dir;
 	GError *error = NULL;
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
-		siril_log_message(_("Convert: error opening working directory %s.\n"), com.wd);
-		fprintf (stderr, "Convert: %s\n", error->message);
+		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
+		fprintf (stderr, "Conversion: %s\n", error->message);
 		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
-		return CMD_GENERIC_ERROR;
+		return CMD_NO_CWD;
 	}
 
 	int count = 0;
@@ -6469,53 +6389,52 @@ int process_convert(int nb) {
 		if (!ext || file[0] == '.')
 			continue;
 		image_type type = get_type_for_extension(ext);
-		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPESER) {
+		if (type == TYPERAW && output == SEQ_SER && !g_ascii_strcasecmp(ext, "raf") && !debayer) {
+			siril_log_message(_("FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. You may use FITS sequences instead."));
+			g_list_free_full(list, g_free);
+			return CMD_GENERIC_ERROR;
+		}
+		if ((raw_only && type == TYPERAW) ||
+				(!raw_only && type != TYPEUNDEF && type != TYPEAVI && type != TYPESER)) {
 			list = g_list_append(list, g_build_filename(com.wd, file, NULL));
 			count++;
 		}
 	}
 	g_dir_close(dir);
 	if (!count) {
-		siril_log_message(_("No files were found for convert\n"));
+		if (raw_only)
+			siril_log_message(_("No RAW files were found for conversion\n"));
+		else siril_log_message(_("No files were found for conversion\n"));
 		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
-	gchar **files_to_link = glist_to_array(list, &count);
+	gchar **files_to_convert = glist_to_array(list, &count);
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
 		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
-		g_strfreev(files_to_link);
+		g_strfreev(files_to_convert);
 		return CMD_GENERIC_ERROR;
 	}
 
-	gchar *str = ngettext("Convert: processing %d FITS file...\n", "Convert: processing %d FITS files...\n", count);
-	str = g_strdup_printf(str, count);
-	siril_log_color_message(str, "green");
-	g_free(str);
-
-	if (!com.wd) {
-		siril_log_message(_("Convert: no working directory set.\n"));
-		g_strfreev(files_to_link);
-		return CMD_NO_CWD;
-	}
+	gchar *str = ngettext("Convert: processing %d file...\n", "Convert: processing %d files...\n", count);
+	siril_log_color_message(str, "green", count);
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	args->start = idx;
-	args->list = files_to_link;
+	args->list = files_to_convert;
 	args->total = count;
 	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
-	args->multiple_output = FALSE;
 	args->output_type = output;
+	args->multiple_output = FALSE;
 	args->make_link = make_link;
 	gettimeofday(&(args->t_start), NULL);
 	start_in_new_thread(convert_thread_worker, args);
-
 	return CMD_OK;
 }
 
@@ -8706,6 +8625,7 @@ int process_nomad(int nb) {
 	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
 
 	if (cat == CAT_AUTO) {
+		// stars coordinates are the raw wcs2pix values, so FITS/WCS coordinates
 		if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			return CMD_GENERIC_ERROR;
@@ -8735,8 +8655,7 @@ int process_nomad(int nb) {
 		if (!com.stars)
 			com.stars = new_fitted_stars(MAX_STARS);
 		com.stars[j] = new_psf_star();
-		com.stars[j]->xpos = stars[i].x;
-		com.stars[j]->ypos = stars[i].y;
+		fits_to_display(stars[i].x, stars[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
 		com.stars[j]->fwhmx = 5.0f;
 		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;

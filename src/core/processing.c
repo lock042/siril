@@ -258,7 +258,15 @@ gpointer generic_sequence_worker(gpointer p) {
 			}
 			// TODO: for seqwriter, we need to notify the failed frame
 		}
-
+		// checking nb layers consistency, not for partial image
+		if (!args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
+			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
+						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
+			abort = 1;
+			clearfits(fit);
+			free(fit);
+			continue;
+		}
 		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
@@ -267,6 +275,11 @@ gpointer generic_sequence_worker(gpointer p) {
 #pragma omp atomic
 #endif
 				excluded_frames++;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				progress++;
+				set_progress_bar_data(NULL, (float)progress / nb_framesf);
 			}
 			clearfits(fit);
 			free(fit);
@@ -727,8 +740,6 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	gettimeofday(&t_start, NULL);
 	for (int frame = 0; frame < args->seq->number; frame++) {
 		fits fit = { 0 };
-		//if (seq_read_frame_metadata(args->seq, i, &fit))
-		//	return 1;
 		if (seq_open_image(args->seq, frame))
 			return GINT_TO_POINTER(1);
 		if (args->seq->type == SEQ_REGULAR)
@@ -741,6 +752,8 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	show_time(t_start, t_end);
 	free_sequence(args->seq, TRUE);
 	g_free(args->key);
+	if (args->output_stream)
+		g_object_unref(args->output_stream);
 	free(args);
 	siril_add_idle(end_generic, NULL);
 	return 0;

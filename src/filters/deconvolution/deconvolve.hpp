@@ -134,6 +134,7 @@ namespace deconvolve {
             ratio.fft(est);
             ratio.map(ratio * K_otf); // convolve
             ratio.ifft(ratio); // denominator
+            ratio.sanitize();
             ratio.map(f / ratio); // divide
             ratio.fft(ratio);
             ratio.map(ratio * Kflip_otf); // correlate (convolve with flip)

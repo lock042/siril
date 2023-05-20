@@ -287,8 +287,8 @@ void center2wcs(fits *fit, double *r, double *d) {
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
-	pixcrd[0] = (double)(fit->rx + 1) / 2.;
-	pixcrd[1] = (double)(fit->ry + 1) / 2.;
+	pixcrd[0] = (double)(fit->rx) / 2.;
+	pixcrd[1] = (double)(fit->ry) / 2.;
 
 	status = wcsp2s(fit->wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
 	if (status != 0)

@@ -449,6 +449,20 @@ conf_data.set_quoted('PACKAGE_BUGREPORT', 'https://gitlab.com/free-astro/siril/i
 conf_data.set_quoted('PACKAGE_DATA_DIR', siril_datadir, description : 'Define to the data directory.')
 conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the locale directory.')
 
+# Man page platform specific
+
+if platform_windows
+  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\esiril\econfig.ini')
+  conf_data.set('MAN_CSS_PATH', '.B C:\eProgram Files\eSiril\eshare\esiril\esiril.css')
+elif platform_osx
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/config.ini')
+  conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
+else
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/.config/siril/config.ini')
+  conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
+endif
+
+
 # Build identifiers #
 
 if platform_linux

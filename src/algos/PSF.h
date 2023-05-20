@@ -71,11 +71,11 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error);
 
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, 
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence,
 		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error);
 
-void psf_display_result(psf_star *, rectangle *);
+gchar *format_psf_result(psf_star *result, rectangle *area, fits *fit, gchar **url);
 void fwhm_to_arcsec_if_needed(fits*, psf_star*);
 gboolean get_fwhm_as_arcsec_if_possible(psf_star *star, double *fwhmx, double *fwhmy, char **unit);
 gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, double px_size, double flength, double *result);
