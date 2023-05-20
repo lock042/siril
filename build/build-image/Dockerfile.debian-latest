@@ -36,7 +36,7 @@ RUN apt-get update -qyy \
         gcovr \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-RUN git clone --branch 0.2.4 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
+RUN git clone --branch v0.2.4 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
     && cd libXISF \
     && mkdir -p build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. \
