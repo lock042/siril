@@ -31,6 +31,7 @@ extern "C" {
 #include <iomanip>      // std::setw
 #include <string>
 #include <fitsio.h>	// fitsfile
+#include <math.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 
@@ -50,7 +51,7 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 
 		if (xisfReader.imagesCount() == 0) {
 			xisfReader.close();
-			return false;
+			return -1;
 		}
 
 		const LibXISF::Image &image = xisfReader.getImage(0);
@@ -71,7 +72,7 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		default:
 			xdata->sampleFormat = 0;
 			xisfReader.close();
-			return false;
+			return -1;
 		}
 
 		std::ostringstream fitsHeaderStream;
@@ -90,7 +91,6 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		fitsHeaderStream << "END";
 
 		xdata->fitsHeader = strdup(fitsHeaderStream.str().c_str());
-		std::cout << xdata->fitsHeader << std::endl;
 
 		xdata->width = image.width();
 		xdata->height = image.height();
@@ -99,7 +99,7 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		xdata->data = (uint8_t*) malloc(image.imageDataSize());
 		if (!xdata->data) {
 			xisfReader.close();
-			return 1;
+			return -1;
 		}
 
 		if (image.pixelStorage() == LibXISF::Image::Normal) {
@@ -116,7 +116,7 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 
 	} catch (const LibXISF::Error &error) {
 		std::cout << error.what() << std::endl;
-		return 1;
+		return -1;
 	}
 	return 0;
 }
@@ -142,8 +142,24 @@ static int get_bit_depth(LibXISF::Image::SampleFormat depth) {
 	case LibXISF::Image::Complex64:
 		return 64;
 	default:
-		return 0;
+		return -1;
 	}
+}
+
+void findMinMaxValues(const void* array, size_t size, uint8_t& minValue, uint8_t& maxValue) {
+    const uint8_t* uintArray = reinterpret_cast<const uint8_t*>(array);
+
+    minValue = std::numeric_limits<uint8_t>::max();  // Initialize the minimum value to the maximum possible value
+    maxValue = std::numeric_limits<uint8_t>::min();  // Initialize the maximum value to the minimum possible value
+
+    for (size_t i = 0; i < size; ++i) {
+        if (uintArray[i] < minValue) {
+            minValue = uintArray[i];
+        }
+        if (uintArray[i] > maxValue) {
+            maxValue = uintArray[i];
+        }
+    }
 }
 
 GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
@@ -164,15 +180,29 @@ GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
 			return NULL;
 		}
 
-		// TODO: We need to convert to RGB pixbuf when monochrome
-		uint8_t *pixbuf_data = (uint8_t*) malloc(thumbnail.imageDataSize());
+		/* Only RGB is handled in GdkPixBuf. So if the thumbnail is monochrome we need to add 2 channels */
+		size_t extra_size = 0;
+		if (thumbnail.channelCount() == 1) {
+			extra_size = 2;
+		}
+		uint8_t *pixbuf_data = (uint8_t*) malloc(thumbnail.imageDataSize() + extra_size * thumbnail.imageDataSize());
 		if (!pixbuf_data) {
 			xisfReader.close();
 			return NULL;
 		}
+
 		LibXISF::Image planarThumbnail = thumbnail;
 		planarThumbnail.convertPixelStorageTo(LibXISF::Image::Normal);
-		memcpy(pixbuf_data, planarThumbnail.imageData(), planarThumbnail.imageDataSize());
+		if (thumbnail.channelCount() == 1) {
+			uint8_t *buffer = (uint8_t *) planarThumbnail.imageData();
+			for (size_t i = 0, j = 0; i < planarThumbnail.imageDataSize() * 3; i += 3, j++) {
+				pixbuf_data[i + 0] = buffer[j];
+				pixbuf_data[i + 1] = buffer[j];
+				pixbuf_data[i + 2] = buffer[j];
+			}
+		} else {
+			memcpy(pixbuf_data, planarThumbnail.imageData(), planarThumbnail.imageDataSize());
+		}
 
 		pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,	// guchar* data
 				GDK_COLORSPACE_RGB,	// only this supported
@@ -185,9 +215,9 @@ GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
 
 		const LibXISF::Image &image = xisfReader.getImage(0);
 
-		description = g_strdup_printf("%ld x %ld %s\n%ld %s (%d bits)", thumbnail.width(),
-				thumbnail.height(), ngettext("pixel", "pixels", thumbnail.height()), thumbnail.channelCount(),
-				ngettext("channel", "channels", thumbnail.channelCount()), get_bit_depth(image.sampleFormat()));
+		description = g_strdup_printf("%ld x %ld %s\n%ld %s (%d bits)", image.width(),
+				image.height(), ngettext("pixel", "pixels", image.height()), image.channelCount(),
+				ngettext("channel", "channels", image.channelCount()), get_bit_depth(image.sampleFormat()));
 		xisfReader.close();
 	} catch (const LibXISF::Error &error) {
 		std::cout << error.what() << std::endl;

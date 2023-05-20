@@ -382,7 +382,7 @@ endif
 
 libXISF_dep = no_dep
 if enable_libXISF
-  libXISF_dep = dependency('libxisf', required : true)
+  libXISF_dep = dependency('libxisf', required : true, version: '>= 0.2.4')
 endif
 
 ffms2_dep = no_dep

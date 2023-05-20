@@ -849,7 +849,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 
 #ifdef HAVE_LIBXISF
 
-int readxisf(const char* name, fits *fit, gboolean verbose) {
+int readxisf(const char* name, fits *fit, gboolean force_float) {
 	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
 
 	siril_get_xisf_buffer(name, xdata);
@@ -874,6 +874,10 @@ int readxisf(const char* name, fits *fit, gboolean verbose) {
 		fit->pdata[BLAYER] = fit->data + npixels * 2;
 		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 		fit->type = DATA_USHORT;
+		if (force_float) {
+			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+			fit_replace_buffer(fit, ushort8_buffer_to_float(fit->data, ndata), DATA_FLOAT);
+		}
 		break;
 	case USHORT_IMG:
 		fit->data = (WORD *)xdata->data;
@@ -882,6 +886,10 @@ int readxisf(const char* name, fits *fit, gboolean verbose) {
 		fit->pdata[BLAYER] = fit->data + npixels * 2;
 		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
 		fit->type = DATA_USHORT;
+		if (force_float) {
+			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
+		}
 		break;
 	case FLOAT_IMG:
 		fit->fdata = (float *)xdata->data;
@@ -892,7 +900,8 @@ int readxisf(const char* name, fits *fit, gboolean verbose) {
 		fit->type = DATA_FLOAT;
 		break;
 	default:
-		return 1;
+		siril_log_message(_("This image type is not handled.\n"));
+		return -1;
 	}
 
 	/* let's do it before header parsing. */

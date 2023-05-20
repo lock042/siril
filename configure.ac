@@ -245,7 +245,7 @@ PKG_CHECK_MODULES(LIBHEIF, [libheif],
 
 dnl check heif lib
 PKG_CHECK_MODULES(LIBXISF, [libxisf],
-		  [AC_DEFINE([HAVE_LIBXISF], [1], [Using XISF images])],
+		  [AC_DEFINE([HAVE_LIBXISF], [1], [Using XISF images >= 0.2.4])],
 		  AC_MSG_WARN([libxisf not found. Not using XISF importer and exporter.]))
 
 dnl check ffms2
