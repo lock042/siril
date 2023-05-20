@@ -32,8 +32,8 @@ extern "C" {
 #include <string>
 #include <fitsio.h>	// fitsfile
 #include <math.h>
+#include <libintl.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <glib.h>
 
 #include "io/SirilXISFWraper.h"
 #include "io/SirilXISFReader.h"
