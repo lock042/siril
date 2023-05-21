@@ -454,7 +454,6 @@ gpointer search_in_online_conesearch(gpointer p) {
 	string_url = g_string_append(string_url, "&-from=Siril;");
 	if (!gfit.date_obs) {
 		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
-		g_string_free(string_url, TRUE);
 		return NULL;
 	}
 	siril_log_message(_("Solar System Objects search on observation date %s\n"), formatted_date);
