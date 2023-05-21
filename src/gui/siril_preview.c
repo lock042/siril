@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
@@ -70,6 +71,7 @@ void copy_gfit_to_backup() {
 		siril_log_message(_("Image copy error in previews\n"));
 		return;
 	}
+	preview_gfit_backup.icc_profile = copyICCProfile(gfit.icc_profile);
 	preview_is_active = TRUE;
 }
 
@@ -81,6 +83,7 @@ int copy_backup_to_gfit() {
 		siril_log_message(_("Image copy error in previews\n"));
 		retval = 1;
 	}
+	gfit.icc_profile = copyICCProfile(preview_gfit_backup.icc_profile);
 	return retval;
 }
 

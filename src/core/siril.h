@@ -210,7 +210,8 @@ typedef enum {
 	SQUARED_DISPLAY,
 	ASINH_DISPLAY,
 	STF_DISPLAY,
-	HISTEQ_DISPLAY
+	HISTEQ_DISPLAY,
+	SOFT_PROOF_DISPLAY
 } display_mode;
 #define DISPLAY_MODE_MAX HISTEQ_DISPLAY
 
@@ -559,6 +560,7 @@ struct gui_icc {
 	gboolean available;
 	cmsHTRANSFORM tx_display;
 	cmsUInt32Number rendering_intent;
+	cmsUInt32Number proofing_intent;
 };
 
 /* The global data structure of siril gui */

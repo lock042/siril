@@ -30,6 +30,7 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "icc_profile.h"
+#include "gui/utils.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "core/proto.h"
@@ -57,29 +58,15 @@
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 
 const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DEFAULT_PATH_GV4g22, DEFAULT_PATH_RGBV2g22, DEFAULT_PATH_RGBV4g10, DEFAULT_PATH_RGBV4g22 };
-/*
-static cmsHPROFILE sRGB_g10;				// The working profile is always sRGB_g10
-static cmsHPROFILE Gray_g10;				// or Gray_g10 for mono images
-static cmsHPROFILE sRGB_g22_v4;				// This is the standard profile for display and for transforming RGB images before saving
-static cmsHPROFILE Gray_g22_v4;				// This is the profile used for transforming mono images before saving
-static cmsHPROFILE sRGB_g22_v2;				// This is the standard profile for embedding in saved RGB images
-static cmsHPROFILE Gray_g22_v2;				// This is the standard profile for embedding in saved mono images
-static cmsHPROFILE monitor_profile;			// This may store a user-provided monitor profile
-static cmsBool monitor_profile_active; 		// This says whether or not to use the user-provided monitor profile
-static cmsHPROFILE proof_profile;			// This may store a user-provided proof profile
-static cmsBool proof_profile_active;		// This says whether or not the user-provided proof profile is active
-static cmsHTRANSFORM displayTransform;		// This is the CMS transform used to remap the display
-static cmsHTRANSFORM ucharTransform;		// This is the CMS transform used to remap the display if it holds an 8-bit image
-static cmsHTRANSFORM ucharMonoTransform;	// This is the CMS transform used to remap the display if it holds an 8-bit image
-static cmsHTRANSFORM ushrtTransform;		// This is the CMS transform used to remap the display
-static cmsHTRANSFORM ushrtMonoTransform;		// This is the CMS transform used to remap the display
-static cmsHTRANSFORM floatTransform;		// This is the CMS transform used to remap the display
-static cmsHTRANSFORM floatMonoTransform;		// This is the CMS transform used to remap the display
-*/
+
 ////// Functions //////
 
 void initialize_profiles_and_transforms() {
 //	cmsPlugin(cmsFastFloatExtensions());
+	initialize_icc_profiles_paths();
+	// Set alarm codes for out-of-gamut warning
+	cmsUInt16Number alarmcodes[16] = { 65535, 0, 65535, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	cmsSetAlarmCodes(alarmcodes); // Out of gamut colours will be shown in magenta
 	int error = 0;
 	// Intents
 	com.icc.save_intent = INTENT_RELATIVE_COLORIMETRIC;
@@ -90,9 +77,6 @@ void initialize_profiles_and_transforms() {
 	// Target profile for embedding in saved RGB and mono files
 	com.icc.srgb_out = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV2G22], "r");
 	com.icc.mono_out = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV2G22], "r");
-	// Target profiles for display
-//	gui.icc.sRGB = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
-//	gui.icc.mono = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G22], "r");
 	// ICC availability
 	com.icc.available = (com.icc.srgb_linear && com.icc.mono_linear && com.icc.srgb_out && com.icc.mono_out);
 	gui.icc.available = (com.icc.available); // && gui.icc_profile_rgb && gui.icc_profile_mono);
@@ -109,10 +93,13 @@ void initialize_profiles_and_transforms() {
 				error++;
 				siril_log_message(_("Warning: custom monitor profile set but could not be loaded. Display will use a "
 									"standard sRGB profile with D65 white point and gamma = 2.2.\n"));
+			} else {
+				siril_log_message(_("Monitor ICC profile loaded from %s\n"), com.pref.icc_paths[INDEX_CUSTOM_MONITOR]);
 			}
 		}
 		if (!gui.icc.monitor) {
 			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
+			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 		}
 		if (com.pref.icc_paths[INDEX_CUSTOM_PROOF] && com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] != '\0') {
 			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_CUSTOM_PROOF], "r");
@@ -120,19 +107,18 @@ void initialize_profiles_and_transforms() {
 				error++;
 				siril_log_message(_("Warning: soft proofing profile set but could not be loaded. Soft proofing will be "
 									"unavailable.\n"));
+			} else {
+				siril_log_message(_("Soft proofing ICC profile loaded from %s\n"), com.pref.icc_paths[INDEX_CUSTOM_PROOF]);
 			}
+		} else {
+			siril_log_message(_("No soft proofing ICC profile set. Soft proofing is unavailable.\n"));
+			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("soft_proof_item")), FALSE);
 		}
+
 	}
 	if (!error) {
 		siril_log_message(_("ICC profiles loaded correctly. Workflow will be color managed.\n"));
 	}
-//	gui.icc.tx_display = cmsCreateTransform(gfit.icc_profile, TYPE_BGRA_8, gui.icc.srgb, TYPE_BGRA_8, INTENT_PERCEPTUAL, 0);
-//	ushrtTransform = cmsCreateTransform(com.icc.mono_linear, TYPE_RGB_16, gui.icc.mono, TYPE_RGB_16, INTENT_PERCEPTUAL, 0);
-//	ushrtMonoTransform = cmsCreateTransform(com.icc.mono_linear, TYPE_GRAY_16, Gray_g22_v4, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0);
-//	ucharTransform = cmsCreateTransform(sRGB_g10, TYPE_RGB_8, sRGB_g22_v4, TYPE_RGB_8, INTENT_PERCEPTUAL, 0);
-//	ucharMonoTransform = cmsCreateTransform(com.icc.mono_linear, TYPE_GRAY_8, Gray_g22_v4, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
-//	floatTransform = cmsCreateTransform(sRGB_g10, TYPE_RGB_FLT, sRGB_g22_v4, TYPE_RGB_FLT, INTENT_PERCEPTUAL, 0);
-//	floatMonoTransform = cmsCreateTransform(Gray_g10, TYPE_GRAY_FLT, Gray_g22_v4, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0);
 }
 
 // Loads a custom monitor profile from a path in com.pref.icc_paths
@@ -189,46 +175,127 @@ void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixe
 			cmsDoTransform(gfit.display_transform, src, dest, pixels);
 	}
 }
-/*
-BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans) {
+
+void assign_linear_icc_profile(fits *fit) {
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+	}
+	fit->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.srgb_linear);
+}
+
+cmsHTRANSFORM initialize_display_transform() {
+	g_assert(gfit.icc_profile);
+	g_assert(gui.icc.monitor);
+	int norm = (int) get_normalized_value(&gfit);
+	cmsHTRANSFORM transform;
+	cmsUInt32Number type;
+	switch (norm) {
+		case 1:
+			type = TYPE_RGB_FLT;
+			break;
+		case UCHAR_MAX:
+			type = TYPE_RGB_8;
+			break;
+		default:
+		// includes case USHRT_MAX:
+			type = TYPE_RGB_16;
+	}
+	transform = cmsCreateTransform(gfit.icc_profile, type, gui.icc.monitor, type, gui.icc.rendering_intent, 0);
+	if (transform == NULL)
+		siril_log_message("Error: failed to create display_transform!\n");
+	return transform;
+}
+
+cmsHTRANSFORM initialize_proofing_transform() {
+	g_assert(gfit.icc_profile);
+	g_assert(gui.icc.monitor);
+	g_assert(gui.icc.soft_proof);
+	cmsUInt32Number flags = cmsFLAGS_SOFTPROOFING;
+
+	// Cut gamut check disabled, it tends to show everything as out of gamut and doesn't
+	// work with anything over 16-bit precision
+/*	if (gui.cut_over) {
+		flags |= cmsFLAGS_GAMUTCHECK;
+	}*/
+	cmsUInt32Number type;
+	int norm = (int) get_normalized_value(&gfit);
+	switch (norm) {
+		case 1:
+			type = TYPE_RGB_FLT;
+			break;
+		case UCHAR_MAX:
+			type = TYPE_RGB_8;
+			break;
+		default:
+			// includes case USHRT_MAX:
+			type = TYPE_RGB_16;
+	}
+	cmsHPROFILE proofing_transform = cmsCreateProofingTransform(
+						gfit.icc_profile,
+						type,
+						gui.icc.monitor,
+						type,
+						gui.icc.soft_proof,
+						gui.icc.rendering_intent,
+						gui.icc.proofing_intent,
+						flags);
+	return proofing_transform;
+}
+
+// Used where the max value of data in fits <=UCHAR_MAX
+// (assume we are dealing with an 8 bit image)
+BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans, cmsHTRANSFORM transform) {
 	g_assert(channel >= 0 && channel < 3);
 	g_assert(channel < nchans);
+	g_assert(transform);
 	BYTE input[3] = { 0 };
 	BYTE output[3] = { 0 };
+	BYTE out;
 	input[channel] = in;
-	if (nchans == 1)
-		cmsDoTransform(gfit.display_transform, input, output, 1);
-	else
-		cmsDoTransform(ucharTransform, input, output, 1);
+	if (nchans > 2) {
+		cmsDoTransform(transform, input, output, 1);
+	} else {
+		cmsDoTransform(transform, &in, &out, 1);
+		output[0] = out;
+		}
 	return output[channel];
 }
-
-WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans) {
+// Used for 16-bit images
+WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans, cmsHTRANSFORM transform) {
 	g_assert(channel >= 0 && channel < 3);
 	g_assert(channel < nchans);
+	g_assert(transform);
 	WORD input[3] = { 0 };
 	WORD output[3] = { 0 };
+	WORD out;
 	input[channel] = in;
-	if (nchans == 1)
-		cmsDoTransform(ushrtMonoTransform, input, output, 1);
-	else
-		cmsDoTransform(ushrtTransform, input, output, 1);
+	if (nchans > 2) {
+		cmsDoTransform(transform, input, output, 1);
+	} else {
+		cmsDoTransform(transform, &in, &out, 1);
+		output[0] = out;
+		}
 	return output[channel];
 }
 
-float float_pixel_icc_tx(float in, int channel, int nchans) {
+// Used for float images
+float float_pixel_icc_tx(float in, int channel, int nchans, cmsHTRANSFORM transform) {
 	g_assert(channel >= 0 && channel < 3);
 	g_assert(channel < nchans);
+	g_assert(transform);
 	float input[3] = { 0 };
 	float output[3] = { 0 };
+	float out;
 	input[channel] = in;
-	if (nchans == 2)
-		cmsDoTransform(floatMonoTransform, input, output, 1);
-	else
-		cmsDoTransform(floatTransform, input, output, 1);
+	if (nchans > 2) {
+		cmsDoTransform(transform, input, output, 1);
+	} else {
+		cmsDoTransform(transform, &in, &out, 1);
+		output[0] = out;
+		}
 	return output[channel];
 }
-*/
+
 // These functions populate the ICC profile buffers used in file save routines
 unsigned char* get_sRGB_profile_data(guint32 *len, gboolean linear) {
 	unsigned char* block = NULL;
@@ -264,96 +331,22 @@ unsigned char* get_gray_profile_data(guint32 *len, gboolean linear) {
 	return block;
 }
 
-// This function is used in converting buffers from fit.data or fit.fdata to a Gray or sRGB g22 profile prior to saving
-/*
-int transformBufferOnSave(void* src, void* dest, uint16_t src_bitspersample, uint16_t dest_bitspersample, uint16_t nsamples, size_t npixels, gboolean planar, gboolean linear) {
-	cmsHPROFILE src_profile = nsamples == 1 ? Gray_g10 : sRGB_g10;
-	cmsHPROFILE dest_profile;
-	cmsHTRANSFORM transform;
-	cmsUInt32Number src_type, dest_type;
-	gboolean src_is_float = (src_bitspersample == 32);
+unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len) {
+	unsigned char* block = NULL;
+	cmsUInt32Number length;
+	cmsBool ret = cmsSaveProfileToMem(*profile, NULL, &length);
+	if (length > 0) {
+		block = malloc(length * sizeof(BYTE));
+		ret = cmsSaveProfileToMem(*profile, (void*) block, &length);
+	}
+	if (!ret) {
+		siril_debug_print("Error preparing ICC profile for embedding...\n");
+		return NULL;
+	}
+	*len = length;
+	return block;
+}
 
-	if (src_is_float) {
-		// 32-bit
-		if (nsamples == 1 || nsamples == 2) {
-			// mono
-			src_type = TYPE_GRAY_FLT;
-			dest_profile = linear ? Gray_g10 : Gray_g22_v4;
-		} else {
-			// RGB
-			src_type = planar ? TYPE_RGB_FLT_PLANAR : TYPE_RGB_FLT;
-			dest_profile = linear ? sRGB_g10: sRGB_g22_v4;
-		}
-	} else {
-		// 16-bit
-		if (nsamples == 1 || nsamples == 2) {
-			// mono
-			src_type = TYPE_GRAY_16;
-			dest_profile = linear ? Gray_g10 : Gray_g22_v4;
-		} else {
-			// RGB
-			src_type = planar ? TYPE_RGB_16_PLANAR : TYPE_RGB_16;
-			dest_profile = linear ? sRGB_g10 : sRGB_g22_v4;
-		}
-	}
-	gboolean mono = (nsamples == 1 || nsamples == 2);
-	switch (dest_bitspersample) {
-		case 8:
-			dest_type = mono ? TYPE_GRAY_8 : planar ? TYPE_RGB_8_PLANAR : TYPE_RGB_8;
-			break;
-		case 16:
-			dest_type = mono ? TYPE_GRAY_16 : planar ? TYPE_RGB_16_PLANAR : TYPE_RGB_16;
-			break;
-		case 32:
-			dest_type = mono ? TYPE_GRAY_FLT : planar ? TYPE_RGB_FLT_PLANAR : TYPE_RGB_FLT;
-			break;
-		default:
-			return 1;
-	}
-	transform = cmsCreateTransform(src_profile, src_type, dest_profile, dest_type, INTENT_PERCEPTUAL, 0);
-	cmsDoTransform(transform, src, dest, npixels);
-	cmsDeleteTransform(transform);
-	return 0;
-}
-*/
-// This function is used in converting a loaded file into the working color profile
-/*
-void transformBufferOnLoad(void* buf, uint16_t bitdepth, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen, uint16_t nsamples, size_t npixels) {
-	// Convert the buffer into a profile in memory
-	cmsHPROFILE src_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
-	cmsHPROFILE dest_profile;
-	cmsHTRANSFORM transform;
-	cmsUInt32Number src_type, dest_type;
-	// Work out the src and dest data formats
-	if (bitdepth != 32) {
-		// 8- or 16-bit
-		if (nsamples == 1 || nsamples == 2) {
-			// mono
-			src_type = dest_type = bitdepth == 16 ? TYPE_GRAY_16 : TYPE_GRAY_8;
-			dest_profile = Gray_g10;
-		} else {
-			// RGB
-			src_type = dest_type = bitdepth == 16 ? TYPE_RGB_16_PLANAR : TYPE_RGB_8_PLANAR;
-			dest_profile = sRGB_g10;
-		}
-	} else {
-		// 32-bit
-		if (nsamples == 1 || nsamples == 2) {
-			// mono
-			src_type = dest_type = TYPE_GRAY_FLT;
-			dest_profile = Gray_g10;
-		} else {
-			// RGB
-			src_type = dest_type = TYPE_RGB_FLT_PLANAR;
-			dest_profile = sRGB_g10;
-		}
-	}
-	transform = cmsCreateTransform(src_profile, src_type, dest_profile, dest_type, INTENT_PERCEPTUAL, 0);
-	cmsDoTransform(transform, buf, buf, npixels);
-	cmsDeleteTransform(transform);
-	cmsCloseProfile(src_profile);
-}
-*/
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	cmsUInt32Number length = 0;
 	cmsUInt8Number* block = NULL;
@@ -380,10 +373,7 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 			fit->icc_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
 		} else {
 			// If there is no embedded profile we assume the usual sRGB D65 g22
-			fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_standard);
-		}
-		if (gui.icc.available && fit->icc_profile) {
-			fit->display_transform = cmsCreateTransform(fit->icc_profile, TYPE_BGRA_8, gui.icc.monitor, TYPE_BGRA_8, INTENT_PERCEPTUAL, 0);
+			fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_out : com.icc.srgb_out);
 		}
 	}
 }

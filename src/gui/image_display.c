@@ -136,10 +136,6 @@ static void remaprgb(void) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
-	// Color space transform - do the STF transform here as it can be done multiple pixels at a time
-//	if (gui.rendering_mode == STF_DISPLAY)
-		display_profile_transform(dst, dst, nbdata);
-
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
@@ -193,6 +189,25 @@ static void remap(int vport) {
 	if (gfit.type == DATA_UNSUPPORTED) {
 		siril_debug_print("data is not loaded yet\n");
 		return;
+	}
+
+	cmsHTRANSFORM display_transform = NULL;
+	cmsHTRANSFORM proofing_transform = NULL;
+	if (com.icc.available) {
+		// Set the display transform in case it is missing
+		if (gfit.icc_profile == NULL) {
+			// In all cases where the profile should have come from a loaded file or
+			// been assumed, this will be set. So it is safe to assume we should assign
+			// a linear profile if one is missing.
+			assign_linear_icc_profile(&gfit);
+		}
+		display_transform = initialize_display_transform();
+
+		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
+			// No need to nullcheck gui.icc.soft_proof because it is done
+			// in the GUI rendering mode setting callback
+			proofing_transform = initialize_proofing_transform();
+		}
 	}
 
 	struct image_view *view = &gui.view[vport];
@@ -269,8 +284,8 @@ static void remap(int vport) {
 		index = gui.remap_index[target_index];
 
 	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || (gui.rendering_mode == STF_DISPLAY && !(gui.use_hd_remap && gfit.type == DATA_FLOAT)));
+	int norm = (int) get_normalized_value(&gfit);
 
-//	int norm = (int) get_normalized_value(&gfit);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -283,31 +298,32 @@ static void remap(int vport) {
 			BYTE dst_pixel_value = 0;
 			if (gfit.type == DATA_USHORT) {
 				// Apply ICC transform if showing the linear mode preview
-				//WORD iccval = (norm == UCHAR_MAX ? uchar_pixel_icc_tx(src[src_index], vport, gfit.naxes[2]) : ushrt_pixel_icc_tx(src[src_index], vport, gfit.naxes[2]));
+				WORD iccval = (norm == UCHAR_MAX ? uchar_pixel_icc_tx(src[src_index], vport, gfit.naxes[2], (gui.rendering_mode == SOFT_PROOF_DISPLAY ? proofing_transform : display_transform)) : ushrt_pixel_icc_tx(src[src_index], vport, gfit.naxes[2], (gui.rendering_mode == SOFT_PROOF_DISPLAY ? proofing_transform : display_transform)));
+				WORD val = iccval;
 				//WORD val = (gui.rendering_mode == LINEAR_DISPLAY) ? iccval : src[src_index];
 				if (hd_mode) {
-					dst_pixel_value = index[src[src_index] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
+					dst_pixel_value = ushrt_pixel_icc_tx(index[src[src_index] * gui.hd_remap_max / USHRT_MAX], vport, gfit.naxes[2], display_transform); // Works as long as hd_remap_max is power of 2
 				}
 				else if (special_mode)	// special case, no lo & hi
-					dst_pixel_value = index[src[src_index]];
-				else if (gui.cut_over && src[src_index] > gui.hi)	// cut
+					dst_pixel_value = ushrt_pixel_icc_tx(index[src[src_index]], vport, gfit.naxes[2], display_transform);
+				else if (gui.cut_over && val > gui.hi)	// cut
 					dst_pixel_value = 0;
 				else {
-					dst_pixel_value = index[src[src_index] - gui.lo < 0 ? 0 : src[src_index] - gui.lo];
+					dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
 				}
 			} else if (gfit.type == DATA_FLOAT) {
 				// Apply ICC transform if showing the linear mode preview
-				//float val = (gui.rendering_mode == LINEAR_DISPLAY) ? float_pixel_icc_tx(fsrc[src_index], vport, gfit.naxes[2]) : fsrc[src_index];
+				float val = float_pixel_icc_tx(fsrc[src_index], vport, gfit.naxes[2], (gui.rendering_mode == SOFT_PROOF_DISPLAY ? proofing_transform : display_transform));
 				if (hd_mode)
-					dst_pixel_value = index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)];
+					dst_pixel_value = float_pixel_icc_tx(index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)], vport, gfit.naxes[2], display_transform);
 				else if (special_mode) // special case, no lo & hi
-					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
-				else if (gui.cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > gui.hi)	// cut
+					dst_pixel_value = float_pixel_icc_tx(index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)], vport, gfit.naxes[2], display_transform);
+				else if (gui.cut_over && roundf_to_WORD(val * USHRT_MAX_SINGLE) > gui.hi)	// cut
 					dst_pixel_value = 0;
 				else {
 					dst_pixel_value = index[
-						roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
-							roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo];
+						roundf_to_WORD(val * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
+							roundf_to_WORD(val * USHRT_MAX_SINGLE) - gui.lo];
 				}
 			}
 
@@ -326,6 +342,11 @@ static void remap(int vport) {
 		}
 	}
 
+	cmsDeleteTransform(display_transform);
+	display_transform = NULL;
+	if (proofing_transform)
+		cmsDeleteTransform(proofing_transform);
+	proofing_transform = NULL;
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);

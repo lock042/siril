@@ -188,7 +188,6 @@ static void global_initialization() {
 		gui.hd_remap_index[i] = NULL;
 
 	initialize_default_settings();	// com.pref
-	initialize_profiles_and_transforms(); // color management
 #ifdef HAVE_FFTW3F_MULTITHREAD
 	fprintf(stdout, _("Initializing FFTW multithreading support...\n"));
 	fftwf_init_threads(); // Should really only be called once so do it at startup
@@ -252,6 +251,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	// After this point com.pref is populated
+	initialize_profiles_and_transforms(); // color management
 
 	siril_language_parser_init();
 	if (com.pref.lang)

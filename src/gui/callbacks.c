@@ -69,7 +69,7 @@
 #include "registration_preview.h"
 
 
-static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
+static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
@@ -329,6 +329,15 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 
 	gui.rendering_mode = get_display_mode_from_menu();
 	siril_debug_print("Display mode %d\n", gui.rendering_mode);
+	gboolean override_label = FALSE;
+	if (gui.rendering_mode == SOFT_PROOF_DISPLAY && (!gui.icc.available || gui.icc.soft_proof == NULL)) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: ICC color management is not available or a soft proofing profile has not been set. Reverting to linear rendering mode.\n"), "salmon");
+		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("linear_item")), TRUE);
+		gui.rendering_mode = LINEAR_DISPLAY;
+		gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(lookup_widget("linear_item"))));
+		override_label = TRUE;
+	}
 	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type != DATA_FLOAT)
 		siril_log_message(_("Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"));
 	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap) {
@@ -339,7 +348,8 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 		if (gui.rendering_mode == STF_DISPLAY)
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 	}
-	gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
+	if (!override_label)
+		gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
@@ -616,6 +626,8 @@ static void set_initial_display_mode(display_mode x) {
 		case HISTEQ_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("histo_item")), TRUE);
 			break;
+		case SOFT_PROOF_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("softproof_item")), TRUE);
 	}
 }
 

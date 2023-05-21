@@ -502,33 +502,16 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 			retval = OPEN_IMAGE_ERROR;
 	}
 
-	/* Before loading into fit we check if we loaded an embedded ICC profile, if so we create
-	 * a transform from the embedded profile to the Siril linear working space and apply it.
-	 * If there is no embedded profile, we assume the file is sRGB g22 and convert it to the
-	 * linear working space. We use a different buffer if loading the internal sRGB g22
-	 * profile as it must befreed differently. */
+	/* We clear fits. Everything written above is erased */
+	/* note: this has been moved slightly, it has to happen before we initialize the ICC profile
+	 * which in turn has to happen before we close the TIFF */
+	clearfits(fit);
+	if (date_time) {
+		GTimeZone *tz = g_time_zone_new_utc();
+		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
+		g_time_zone_unref(tz);
+	}
 
-	// 8 bit data gets right-shifted by 8 bits to make the 16-bit transform work
-	// It's easier than making a new buffer of packed 8-bit data and using a new transform
-
-/*	if (nbits == 8) {
-		for (size_t i = 0; i < npixels * nsamples ; i++) {
-			data[i] = data[i] << 8;
-		}
-	}
-	cmsUInt8Number* sRGBBuffer = NULL;
-	if (!EmbedBuffer) {
-		sRGBBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
-	}
-	if ((EmbedBuffer || sRGBBuffer) && (data || fdata)) {
-		transformBufferOnLoad(data, (nbits == 32 ? 32 : 16), (EmbedBuffer ? EmbedBuffer : sRGBBuffer), EmbedLen, nsamples, npixels);
-	}
-	free(sRGBBuffer);
-	if (nbits == 8) {
-		for (size_t i = 0; i < npixels * nsamples ; i++) {
-			data[i] = data[i] >> 8;
-		}
-	}*/
 	if (com.icc.available)
 		fits_initialize_icc(fit, EmbedBuffer, EmbedLen);
 
@@ -540,14 +523,6 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		return OPEN_IMAGE_ERROR;
 	}
 
-
-	/* We clear fits. Everything written above is erased */
-	clearfits(fit);
-	if (date_time) {
-		GTimeZone *tz = g_time_zone_new_utc();
-		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
-		g_time_zone_unref(tz);
-	}
 	fit->rx = width;
 	fit->ry = height;
 	fit->naxes[0] = width;
@@ -738,22 +713,10 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	TIFFSetField(tif, TIFFTAG_SOFTWARE, PACKAGE " v" VERSION);
 
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
-//	gboolean dest_is_float = (bitspersample == 32);
-//	gboolean icc_transform = TRUE;
 	if (nsamples == 1) {
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-		if (bitspersample == 32) {
-			profile = get_gray_profile_data(&profile_len, TRUE); // 32 bit output -> g10 profile
-		} else {
-			profile = get_gray_profile_data(&profile_len, FALSE); // <= 16 bit output -> g22 profile
-		}
 	} else if (nsamples == 3) {
 		TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-		if (bitspersample == 32) {
-			profile = get_sRGB_profile_data(&profile_len, TRUE); // 32 bit output -> g10 profile
-		} else {
-			profile = get_sRGB_profile_data(&profile_len, FALSE); // <= 16 bit output -> g22 profile
-		}
 	} else {
 		TIFFClose(tif);
 		siril_log_color_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"), "red");
@@ -775,6 +738,10 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	void *buf = NULL;
 	void *dest = NULL;
 	if (com.icc.available) {
+		// Check the fit has a profile. If not, assign a linear one
+		if (fit->icc_profile == NULL) {
+			assign_linear_icc_profile(fit);
+		}
 		// Transform the data
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
@@ -789,7 +756,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
 		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, buf, dest, npixels * nchans);
+		cmsDoTransform(save_transform, (gui.icc.available ? dest : buf), dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
@@ -798,6 +765,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
 		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
 		// Embed the profile
+		profile = get_icc_profile_data(&com.icc.srgb_out, &profile_len);
 		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
 
@@ -1048,7 +1016,7 @@ int savejpg(const char *name, fits *fit, int quality){
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
 		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, buf, dest, npixels * nchans);
+		cmsDoTransform(save_transform, buf, dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD*) dest;
 		gbuf[1] = (WORD*) dest + npixels;
@@ -1464,10 +1432,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		// Apply ICC transform
 			cmsHTRANSFORM save_transform;
 			if (samples_per_pixel == 1)
-				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_16, com.icc.mono_out, TYPE_GRAY_16, com.icc.save_intent,0);
+				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_16, com.icc.mono_out, TYPE_GRAY_16, com.icc.save_intent, 0);
 			else
 				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_16, com.icc.mono_out, TYPE_RGB_16, com.icc.save_intent, 0);
-			cmsDoTransform(save_transform, data, data, fit->rx * fit->ry * fit->naxes[2]);
+			cmsDoTransform(save_transform, data, data, fit->rx * fit->ry);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)
@@ -1482,7 +1450,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			else
 				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_8, com.icc.mono_out, TYPE_RGB_8,com.icc.save_intent, 0);
 
-			cmsDoTransform(save_transform, data8, data8, fit->rx * fit->ry * fit->naxes[2]);
+			cmsDoTransform(save_transform, data8, data8, fit->rx * fit->ry);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)

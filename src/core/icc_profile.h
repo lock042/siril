@@ -32,14 +32,19 @@ unsigned char* get_gray_profile_data(guint32 *len, gboolean linear);
 //unsigned char* get_profile_buf(cmsHPROFILE* profile, uint32_t* profile_len);
 
 void initialize_profiles_and_transforms();
+void assign_linear_icc_profile(fits *fit);
+cmsHTRANSFORM initialize_display_transform();
+cmsHTRANSFORM initialize_proofing_transform();
 int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);
 void initialize_icc_profiles_paths();
 void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixels);
 void transformBufferOnLoad(void* buf, uint16_t bitdepth, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen, uint16_t nsamples, size_t npixels);
 int transformBufferOnSave(void* src, void* dest, uint16_t src_bitspersample, uint16_t dest_bitspersample, uint16_t nsamples, size_t npixels, gboolean planar, gboolean linear);
-BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans);
-WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans);
-float float_pixel_icc_tx(float in, int channel, int nchans);
+BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans, cmsHTRANSFORM display_transform);
+WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans, cmsHTRANSFORM display_transform);
+float float_pixel_icc_tx(float in, int channel, int nchans, cmsHTRANSFORM display_transform);
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
+cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
+unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len);
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

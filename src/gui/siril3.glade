@@ -14525,6 +14525,17 @@ Use only to display optical distorsions or double stars, not for registration or
         <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkRadioMenuItem" id="softproof_item">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Soft Proofing</property>
+        <property name="use-underline">True</property>
+        <property name="draw-as-radio">True</property>
+        <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkMenu" id="menu_plot">
     <property name="visible">True</property>

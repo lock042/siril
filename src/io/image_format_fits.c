@@ -36,6 +36,7 @@
 #include "core/siril_date.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
 #include "gui/utils.h"
@@ -1898,6 +1899,14 @@ void clearfits(fits *fit) {
 			free_stats(fit->stats[i]);
 		free(fit->stats);
 	}
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
+	if (fit->display_transform) {
+		cmsDeleteTransform(fit->display_transform);
+		fit->display_transform = NULL;
+	}
 	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
 }
@@ -2479,6 +2488,14 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->history = NULL;
 		to->date = NULL;
 		to->date_obs = NULL;
+		if (to->icc_profile) {
+			cmsCloseProfile(to->icc_profile);
+			to->icc_profile = NULL;
+		}
+		if (to->display_transform) {
+			cmsDeleteTransform(to->display_transform);
+			to->display_transform = NULL;
+		}
 #ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
 #endif
@@ -2574,6 +2591,12 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		} else {
 			invalidate_stats_from_fit(to);
 		}
+	}
+
+	// Why doesn't this work when the lines later in copy_gfit_to_backup and copy_backup_to_gfit do?
+	if ((oper & CP_ALLOC) || (oper & CP_COPYA)) {
+		// copy the ICC profile
+		to->icc_profile = copyICCProfile(from->icc_profile);
 	}
 
 	return 0;
@@ -3021,7 +3044,10 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	fit->type = newtype;
 	invalidate_stats_from_fit(fit);
-
+	if (fit->display_transform) {
+		cmsDeleteTransform(fit->display_transform);
+		fit->display_transform = NULL;
+	}
 	size_t nbdata = fit->naxes[0] * fit->naxes[1];
 	if (newtype == DATA_USHORT) {
 		fit->bitpix = USHORT_IMG;
@@ -3042,6 +3068,7 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 		fit->fpdata[0] = NULL;
 		fit->fpdata[1] = NULL;
 		fit->fpdata[2] = NULL;
+
 		siril_debug_print("Changed a fit data (WORD)\n");
 	} else if (newtype == DATA_FLOAT) {
 		fit->bitpix = FLOAT_IMG;
