@@ -779,25 +779,18 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 	char field_x[256] = "";
 	char field_y[256] = "";
 
-	/* rotation from eq(191) of WCS Paper II*/
 	double cd[2][2];
 	wcs_pc_to_cd(args->fit->wcsdata.pc, args->fit->wcsdata.cdelt, cd);
-	if (cd[1][0] > 0)
-		rotationa = atan2(cd[1][0], cd[0][0]);
-	else
-		rotationa = atan2(-cd[1][0], -cd[0][0]);
-	if (cd[0][1] > 0)
-		rotationb = atan2(cd[0][1], -cd[1][1]);
-	else
-		rotationb = atan2(-cd[0][1], cd[1][1]);
+	rotationa = atan2(-args->fit->wcsdata.pc[1][0], args->fit->wcsdata.pc[0][0]);
+	rotationb = atan2(args->fit->wcsdata.pc[0][1], args->fit->wcsdata.pc[1][1]);
 	rotation = 0.5 * (rotationa + rotationb) * RADTODEG;
 
 	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
 	/* If the determinant of the top-left 2x2 rotation matrix is < 0
 	 * the transformation is orientation-preserving. */
 
-	if (det > 0)
-		rotation *= -1.;
+	if (det > 0 && args->flip_image)
+		rotation = 180.0 - rotation;
 	if (rotation < -180.0)
 		rotation += 360.0;
 	if (rotation > 180.0)
