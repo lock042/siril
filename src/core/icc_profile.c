@@ -147,6 +147,9 @@ void initialize_profiles_and_transforms() {
 	}
 }
 
+void refresh_icc_settings() {
+}
+
 // Loads a custom monitor profile from a path in com.pref.icc_paths
 // The path must be set by the user in preferences, there is no default custom monitor profile
 int load_monitor_icc_profile(const char* filename) {

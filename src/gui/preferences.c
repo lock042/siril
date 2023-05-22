@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/siril_language.h"
 #include "core/settings.h"
@@ -747,6 +748,8 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();
+		refresh_icc_settings();		// To update color management settings with
+									// new preferences
 		save_main_window_state();
 		writeinitfile();
 

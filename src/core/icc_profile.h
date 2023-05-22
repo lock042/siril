@@ -31,6 +31,7 @@ unsigned char* get_gray_profile_data(guint32 *len, gboolean linear);
 
 //unsigned char* get_profile_buf(cmsHPROFILE* profile, uint32_t* profile_len);
 
+void refresh_icc_settings();
 void initialize_profiles_and_transforms();
 void assign_linear_icc_profile(fits *fit);
 cmsHTRANSFORM initialize_display_transform();

@@ -36,6 +36,7 @@
 #endif
 #ifdef HAVE_LIBJPEG
 #include <jpeglib.h>
+#include <jconfig.h>
 #endif
 #ifdef HAVE_LIBPNG
 #include <png.h>
@@ -910,9 +911,11 @@ int readjpg(const char* name, fits *fit){
 	// Check for an ICC profile
 	JOCTET *EmbedBuffer = NULL;
 	unsigned int EmbedLen;
+#ifdef LIBJPEG_TURBO_VERSION
 	if (com.icc.available) {
 		jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
 	}
+#endif
 	if (com.icc.available)
 		fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
 
@@ -1076,11 +1079,13 @@ int savejpg(const char *name, fits *fit, int quality){
 		} else {
 			EmbedBuffer = get_gray_profile_data(&EmbedLen, FALSE);
 		}
-		if (EmbedBuffer)
+#ifdef LIBJPEG_TURBO_VERSION
+if (EmbedBuffer)
 			jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
 		else
 			siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
 	}
+#endif
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
 
 	JSAMPROW row_pointer[1];
