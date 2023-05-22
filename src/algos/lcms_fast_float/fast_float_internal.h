@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -22,13 +22,13 @@
 #ifndef _FAST_INTERNAL_H
 #define _FAST_INTERNAL_H
 
-#include "lcms2_fast_float.h"
+#include "algos/lcms_fast_float/lcms2_fast_float.h"
 #include <stdint.h>
 
 #define REQUIRED_LCMS_VERSION 2120
 
 // Unused parameter warning suppression
-#define UNUSED_PARAMETER(x) ((void)x) 
+#define UNUSED_PARAMETER(x) ((void)x)
 
 // For testbed
 #define CMSCHECKPOINT CMSAPI
@@ -57,7 +57,7 @@
 
 
 // A fast way to convert from/to 16 <-> 8 bits
-#define FROM_8_TO_16(rgb) (cmsUInt16Number) ((((cmsUInt16Number) (rgb)) << 8)|(rgb)) 
+#define FROM_8_TO_16(rgb) (cmsUInt16Number) ((((cmsUInt16Number) (rgb)) << 8)|(rgb))
 #define FROM_16_TO_8(rgb) (cmsUInt8Number) ((((rgb) * 65281 + 8388608) >> 24) & 0xFF)
 
 
@@ -73,9 +73,9 @@
 
 #define cmsFLAGS_CAN_CHANGE_FORMATTER     0x02000000   // Allow change buffer format
 
-// Utility macros to convert from to 0...1.0 in 15.16 fixed domain to 0..0xffff as integer 
+// Utility macros to convert from to 0...1.0 in 15.16 fixed domain to 0..0xffff as integer
 cmsINLINE cmsS15Fixed16Number _cmsToFixedDomain(int a)                   { return a + ((a + 0x7fff) / 0xffff); }
-cmsINLINE int                 _cmsFromFixedDomain(cmsS15Fixed16Number a) { return a - ((a + 0x7fff) >> 16); }   
+cmsINLINE int                 _cmsFromFixedDomain(cmsS15Fixed16Number a) { return a - ((a + 0x7fff) >> 16); }
 
 // This is the upper part of internal transform structure. Only format specifiers are used
 typedef struct {
@@ -85,7 +85,7 @@ typedef struct {
 } _xform_head;
 
 
-#define MAX_NODES_IN_CURVE 0x8001  
+#define MAX_NODES_IN_CURVE 0x8001
 
 // To prevent out of bounds indexing
 cmsINLINE cmsFloat32Number fclamp(cmsFloat32Number v)
@@ -93,13 +93,13 @@ cmsINLINE cmsFloat32Number fclamp(cmsFloat32Number v)
     return ((v < 1.0e-9f) || isnan(v)) ? 0.0f : (v > 1.0f ? 1.0f : v);
 }
 
-// Fast floor conversion logic. 
+// Fast floor conversion logic.
 cmsINLINE int _cmsQuickFloor(cmsFloat64Number val)
 {
 #ifdef CMS_DONT_USE_FAST_FLOOR
        return (int)floor(val);
 #else
-#define _lcms_double2fixmagic  (68719476736.0 * 1.5)  
+#define _lcms_double2fixmagic  (68719476736.0 * 1.5)
 
        union {
               cmsFloat64Number val;
@@ -133,7 +133,7 @@ cmsINLINE cmsFloat32Number flerp(const cmsFloat32Number LutTable[], cmsFloat32Nu
        cmsFloat32Number y1, y0;
        cmsFloat32Number rest;
        int cell0, cell1;
-      
+
        if (isnan(v))
            return LutTable[0];
 
@@ -216,20 +216,20 @@ cmsBool Optimize8ByJoiningCurves(_cmsTransform2Fn* TransformFn,
                                  cmsUInt32Number* OutputFormat,
                                  cmsUInt32Number* dwFlags);
 
-cmsBool OptimizeFloatByJoiningCurves(_cmsTransform2Fn* TransformFn,                                  
+cmsBool OptimizeFloatByJoiningCurves(_cmsTransform2Fn* TransformFn,
                                    void** UserData,
                                    _cmsFreeUserDataFn* FreeUserData,
-                                   cmsPipeline** Lut, 
-                                   cmsUInt32Number* InputFormat, 
-                                   cmsUInt32Number* OutputFormat, 
-                                   cmsUInt32Number* dwFlags);    
+                                   cmsPipeline** Lut,
+                                   cmsUInt32Number* InputFormat,
+                                   cmsUInt32Number* OutputFormat,
+                                   cmsUInt32Number* dwFlags);
 
-cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,                                  
+cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,
                                    void** UserData,
                                    _cmsFreeUserDataFn* FreeUserData,
-                                   cmsPipeline** Lut, 
-                                   cmsUInt32Number* InputFormat, 
-                                   cmsUInt32Number* OutputFormat, 
+                                   cmsPipeline** Lut,
+                                   cmsUInt32Number* InputFormat,
+                                   cmsUInt32Number* OutputFormat,
                                    cmsUInt32Number* dwFlags);
 
 cmsBool Optimize8BitRGBTransform(_cmsTransform2Fn* TransformFn,
@@ -251,10 +251,10 @@ cmsBool Optimize16BitRGBTransform(_cmsTransform2Fn* TransformFn,
 cmsBool OptimizeCLUTRGBTransform(_cmsTransform2Fn* TransformFn,
                                   void** UserData,
                                   _cmsFreeUserDataFn* FreeDataFn,
-                                  cmsPipeline** Lut, 
-                                  cmsUInt32Number* InputFormat, 
-                                  cmsUInt32Number* OutputFormat, 
-                                  cmsUInt32Number* dwFlags);      
+                                  cmsPipeline** Lut,
+                                  cmsUInt32Number* InputFormat,
+                                  cmsUInt32Number* OutputFormat,
+                                  cmsUInt32Number* dwFlags);
 
 cmsBool OptimizeCLUTCMYKTransform(_cmsTransform2Fn* TransformFn,
 					              void** UserData,
@@ -268,10 +268,10 @@ cmsBool OptimizeCLUTCMYKTransform(_cmsTransform2Fn* TransformFn,
 cmsBool OptimizeCLUTLabTransform(_cmsTransform2Fn* TransformFn,
                                  void** UserData,
                                  _cmsFreeUserDataFn* FreeDataFn,
-                                 cmsPipeline** Lut, 
-                                 cmsUInt32Number* InputFormat, 
-                                 cmsUInt32Number* OutputFormat, 
-                                 cmsUInt32Number* dwFlags);      
+                                 cmsPipeline** Lut,
+                                 cmsUInt32Number* InputFormat,
+                                 cmsUInt32Number* OutputFormat,
+                                 cmsUInt32Number* dwFlags);
 
 
 #endif
