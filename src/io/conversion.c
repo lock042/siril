@@ -121,6 +121,9 @@ void list_format_available() {
 #ifdef HAVE_LIBTIFF
 	puts("TIFF\t(*.tif, *.tiff)");
 #endif
+#ifdef HAVE_LIBXISF
+	puts("XISF\t(*.xisf)");
+#endif
 #ifdef HAVE_LIBJPEG
 	puts("JPEG\t(*.jpg, *.jpeg)");
 #endif
@@ -210,6 +213,13 @@ gchar *initialize_converters() {
 	string = g_string_append(string, _("TIFF images"));
 	supported_extensions[count_ext++] = ".tif";
 	supported_extensions[count_ext++] = ".tiff";
+#endif
+
+#ifdef HAVE_LIBXISF
+	supported_filetypes |= TYPEXISF;
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("XISF images"));
+	supported_extensions[count_ext++] = ".xisf";
 #endif
 
 #ifdef HAVE_LIBJPEG
