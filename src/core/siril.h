@@ -476,7 +476,6 @@ struct ffit {
 
 	/* ICC Color Management data */
 	cmsHPROFILE icc_profile; // ICC color management profile
-	cmsHTRANSFORM display_transform; // ICC transform for display
 };
 
 typedef struct {
@@ -558,7 +557,8 @@ struct gui_icc {
 	cmsHPROFILE monitor;
 	cmsHPROFILE soft_proof;
 	gboolean available;
-	cmsHTRANSFORM tx_display;
+	cmsHTRANSFORM display_transform;
+	cmsHTRANSFORM proofing_transform;
 	cmsUInt32Number rendering_intent;
 	cmsUInt32Number proofing_intent;
 };

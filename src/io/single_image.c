@@ -26,6 +26,7 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "algos/annotate.h"
 #include "algos/ccd-inspector.h"
@@ -438,6 +439,14 @@ void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
+	if (gui.icc.available) {
+		if (gui.icc.display_transform)
+			cmsDeleteTransform(gui.icc.display_transform);
+		gui.icc.display_transform = initialize_display_transform();
+		if (gui.icc.proofing_transform)
+			cmsDeleteTransform(gui.icc.proofing_transform);
+		gui.icc.proofing_transform = initialize_proofing_transform();
+	}
 
 	siril_add_idle(end_gfit_operation, NULL);
 }

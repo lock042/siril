@@ -163,19 +163,6 @@ void initialize_icc_profiles_paths() {
 	}
 }
 
-void display_profile_transform(const void* src, void* dest, cmsUInt32Number pixels) {
-	if (gfit.display_transform) {
-		cmsDoTransform(gfit.display_transform, src, dest, pixels);
-		return;
-	}
-	if (!gfit.icc_profile) {
-		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.srgb_linear);
-		gfit.display_transform = cmsCreateTransform(gfit.icc_profile, TYPE_BGRA_8, gui.icc.monitor, TYPE_BGRA_8, INTENT_PERCEPTUAL, 0);
-		if (gfit.display_transform)
-			cmsDoTransform(gfit.display_transform, src, dest, pixels);
-	}
-}
-
 void assign_linear_icc_profile(fits *fit) {
 	if (fit->icc_profile) {
 		cmsCloseProfile(fit->icc_profile);
@@ -186,20 +173,8 @@ void assign_linear_icc_profile(fits *fit) {
 cmsHTRANSFORM initialize_display_transform() {
 	g_assert(gfit.icc_profile);
 	g_assert(gui.icc.monitor);
-	int norm = (int) get_normalized_value(&gfit);
 	cmsHTRANSFORM transform;
 	cmsUInt32Number type;
-/*	switch (norm) {
-		case 1:
-			type = TYPE_RGB_FLT;
-			break;
-		case UCHAR_MAX:
-			type = TYPE_RGB_8;
-			break;
-		default:
-		// includes case USHRT_MAX:
-			type = TYPE_RGB_16;
-	}*/
 	type = TYPE_RGB_16;
 	transform = cmsCreateTransform(gfit.icc_profile, type, gui.icc.monitor, type, gui.icc.rendering_intent, 0);
 	if (transform == NULL)
@@ -212,12 +187,9 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	g_assert(gui.icc.monitor);
 	g_assert(gui.icc.soft_proof);
 	cmsUInt32Number flags = cmsFLAGS_SOFTPROOFING;
-
-	// Cut gamut check disabled, it tends to show everything as out of gamut and doesn't
-	// work with anything over 16-bit precision
-/*	if (gui.cut_over) {
+	if (gui.cut_over) {
 		flags |= cmsFLAGS_GAMUTCHECK;
-	}*/
+	}
 	cmsUInt32Number type;
 	int norm = (int) get_normalized_value(&gfit);
 	switch (norm) {

@@ -756,7 +756,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
 		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, (gui.icc.available ? dest : buf), dest, npixels);
+		cmsDoTransform(save_transform, buf, dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
@@ -1434,7 +1434,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			if (samples_per_pixel == 1)
 				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_16, com.icc.mono_out, TYPE_GRAY_16, com.icc.save_intent, 0);
 			else
-				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_16, com.icc.mono_out, TYPE_RGB_16, com.icc.save_intent, 0);
+				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_16, com.icc.srgb_out, TYPE_RGB_16, com.icc.save_intent, 0);
 			cmsDoTransform(save_transform, data, data, fit->rx * fit->ry);
 			cmsDeleteTransform(save_transform);
 		}

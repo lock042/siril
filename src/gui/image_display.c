@@ -201,12 +201,14 @@ static void remap(int vport) {
 			// a linear profile if one is missing.
 			assign_linear_icc_profile(&gfit);
 		}
-		display_transform = initialize_display_transform();
+		if (!gui.icc.display_transform)
+			gui.icc.display_transform = initialize_display_transform();
 
 		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
 			// No need to nullcheck gui.icc.soft_proof because it is done
 			// in the GUI rendering mode setting callback
-			proofing_transform = initialize_proofing_transform();
+			if (!gui.icc.proofing_transform)
+				gui.icc.proofing_transform = initialize_proofing_transform();
 		}
 	}
 
@@ -305,25 +307,26 @@ static void remap(int vport) {
 				if (hd_mode) linebuf[x] *= (gui.hd_remap_max / USHRT_MAX);
 			}
 		} else if (norm == UCHAR_MAX) {
-			memcpy(linebuf, gfit.pdata[vport] + src_i, gfit.rx * sizeof(WORD));
+			memcpy(linebuf, src + src_i, gfit.rx * sizeof(WORD));
 #pragma omp simd
 			for (x = 0 ; x < gfit.rx ; x++) {
 				linebuf[x] = linebuf[x] << 8;
 			}
 		} else {
-			memcpy(linebuf, gfit.pdata[vport] + src_i, gfit.rx * sizeof(WORD));
+			memcpy(linebuf, src + src_i, gfit.rx * sizeof(WORD));
 		}
 		if (com.icc.available)
-			cmsDoTransform(display_transform, pixelbuf, pixelbuf, gfit.rx);
+			cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
+							gui.icc.proofing_transform :
+							gui.icc.display_transform,
+							pixelbuf, pixelbuf, gfit.rx);
 		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
 #pragma omp simd
 			for (x = 0 ; x < gfit.rx ; x++) {
 				linebuf[x] = linebuf[x] >> 8;
 			}
 		}
-#pragma omp simd
 		for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
-			guint src_index = y * gfit.rx + x;
 			BYTE dst_pixel_value = 0;
 				WORD val = linebuf[x];
 				if (special_mode)	// special case, no lo & hi
@@ -347,12 +350,6 @@ static void remap(int vport) {
 		}
 		free(pixelbuf);
 	}
-
-	cmsDeleteTransform(display_transform);
-	display_transform = NULL;
-	if (proofing_transform)
-		cmsDeleteTransform(proofing_transform);
-	proofing_transform = NULL;
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);

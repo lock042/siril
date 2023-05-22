@@ -1899,14 +1899,8 @@ void clearfits(fits *fit) {
 			free_stats(fit->stats[i]);
 		free(fit->stats);
 	}
-	if (fit->icc_profile) {
+	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = NULL;
-	}
-	if (fit->display_transform) {
-		cmsDeleteTransform(fit->display_transform);
-		fit->display_transform = NULL;
-	}
 	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
 }
@@ -2461,6 +2455,8 @@ int save_opened_fits(fits *f) {
 int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	int depth, i;
 	size_t nbdata = from->naxes[0] * from->naxes[1];
+	if (to->icc_profile)
+		cmsCloseProfile(to->icc_profile);
 
 	if ((oper & CP_EXPAND))
 		depth = 3;
@@ -2488,14 +2484,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->history = NULL;
 		to->date = NULL;
 		to->date_obs = NULL;
-		if (to->icc_profile) {
-			cmsCloseProfile(to->icc_profile);
-			to->icc_profile = NULL;
-		}
-		if (to->display_transform) {
-			cmsDeleteTransform(to->display_transform);
-			to->display_transform = NULL;
-		}
+		to->icc_profile = NULL;
 #ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
 #endif
@@ -3044,10 +3033,6 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	fit->type = newtype;
 	invalidate_stats_from_fit(fit);
-	if (fit->display_transform) {
-		cmsDeleteTransform(fit->display_transform);
-		fit->display_transform = NULL;
-	}
 	size_t nbdata = fit->naxes[0] * fit->naxes[1];
 	if (newtype == DATA_USHORT) {
 		fit->bitpix = USHORT_IMG;
