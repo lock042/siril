@@ -2,6 +2,7 @@
 #define _SIRIL_SETTING_H
 
 #include <glib.h>
+#include <lcms2.h>
 
 /********************* S E T T I N G S *********************
  * Settings are variables used at runtime but kept across several lunches of
@@ -272,7 +273,10 @@ struct pref_struct {
 
 	int wcs_formalism;	// formalism used in FITS header
 	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
-	gchar *icc_paths[8]; // local ICC profile paths for color management
+	gchar *icc_paths[10]; // local ICC profile paths for color management
+	cmsUInt32Number rendering_intent;
+	cmsUInt32Number proofing_intent;
+	cmsUInt32Number export_intent;
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF

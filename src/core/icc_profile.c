@@ -55,6 +55,7 @@
 // that may be stored in com.pref but for which there are no defaults
 #define INDEX_CUSTOM_MONITOR 6
 #define INDEX_CUSTOM_PROOF 7
+#define INDEX_CUSTOM_EXPORT 8
 
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 
@@ -62,22 +63,46 @@ const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DE
 
 ////// Functions //////
 
+void initialize_icc_profiles_paths() {
+	int nb_icc = sizeof(default_icc_paths) / sizeof(const char *);
+	int maxpath = get_pathmax();
+	for (int icc = 0; icc < nb_icc; icc++) {
+		if (com.pref.icc_paths[icc] &&
+				com.pref.icc_paths[icc][0] != '\0')
+			continue;
+		char path[maxpath];
+		gchar *filename = g_build_filename(siril_get_system_data_dir(), "icc", default_icc_paths[icc], NULL);
+		strncpy(path, filename, maxpath - 1);
+		com.pref.icc_paths[icc] = g_strdup(path);
+		g_free(filename);
+	}
+}
+
 void initialize_profiles_and_transforms() {
+	// Enablethe fast float plugin
 	cmsPlugin(cmsFastFloatExtensions());
+
+	// Initialize paths to standard ICC profiles
 	initialize_icc_profiles_paths();
+
 	// Set alarm codes for out-of-gamut warning
 	cmsUInt16Number alarmcodes[16] = { 65535, 0, 65535, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	cmsSetAlarmCodes(alarmcodes); // Out of gamut colours will be shown in magenta
 	int error = 0;
+
 	// Intents
-	com.icc.save_intent = INTENT_RELATIVE_COLORIMETRIC;
-	gui.icc.rendering_intent = INTENT_PERCEPTUAL;
+	com.icc.save_intent = com.pref.export_intent;
+	gui.icc.rendering_intent = com.pref.rendering_intent;
+	gui.icc.proofing_intent = com.pref.proofing_intent;
+
 	// Linear working profiles
 	com.icc.srgb_linear = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G10], "r");
 	com.icc.mono_linear = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G10], "r");
+
 	// Target profile for embedding in saved RGB and mono files
 	com.icc.srgb_out = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV2G22], "r");
 	com.icc.mono_out = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV2G22], "r");
+
 	// ICC availability
 	com.icc.available = (com.icc.srgb_linear && com.icc.mono_linear && com.icc.srgb_out && com.icc.mono_out);
 	gui.icc.available = (com.icc.available); // && gui.icc_profile_rgb && gui.icc_profile_mono);
@@ -146,22 +171,6 @@ int load_soft_proof_icc_profile(const char* filename) {
 		else
 			return 0;
 	} else return 1;
-}
-
-// Adapted from initialize_local_catalogues_paths()
-void initialize_icc_profiles_paths() {
-	int nb_icc = sizeof(default_icc_paths) / sizeof(const char *);
-	int maxpath = get_pathmax();
-	for (int icc = 0; icc < nb_icc; icc++) {
-		if (com.pref.icc_paths[icc] &&
-				com.pref.icc_paths[icc][0] != '\0')
-			continue;
-		char path[maxpath];
-		gchar *filename = g_build_filename(siril_get_system_data_dir(), "icc", default_icc_paths[icc], NULL);
-		strncpy(path, filename, maxpath - 1);
-		com.pref.icc_paths[icc] = g_strdup(path);
-		g_free(filename);
-	}
 }
 
 void assign_linear_icc_profile(fits *fit) {

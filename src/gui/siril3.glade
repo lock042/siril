@@ -30784,12 +30784,13 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkButton">
+                                          <object class="GtkButton" id="monitor_profile_clear">
                                             <property name="label" translatable="yes">Clear</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
                                             <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
+                                            <signal name="clicked" handler="on_monitor_profile_clear_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left-attach">2</property>
@@ -30797,12 +30798,13 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkButton">
+                                          <object class="GtkButton" id="proofing_profile_clear">
                                             <property name="label" translatable="yes">Clear</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
                                             <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
+                                            <signal name="clicked" handler="on_proofing_profile_clear_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left-attach">2</property>
@@ -30810,12 +30812,13 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkButton">
+                                          <object class="GtkButton" id="export_profile_clear">
                                             <property name="label" translatable="yes">Clear</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
                                             <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
+                                            <signal name="clicked" handler="on_export_profile_clear_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left-attach">2</property>
@@ -30908,7 +30911,6 @@ To use a custom export profile, set it here. This will apply to all images, with
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">False</property>
                                             <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                            <property name="active">True</property>
                                             <property name="draw-indicator">True</property>
                                           </object>
                                           <packing>

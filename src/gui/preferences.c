@@ -210,6 +210,9 @@ static void update_user_interface_preferences() {
 		g_free(com.pref.icc_paths[7]);
 		com.pref.icc_paths[7] = newpath;
 	}
+	com.pref.rendering_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")));
+	com.pref.proofing_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")));
+	com.pref.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
 }
 
 static void update_FITS_options_preferences() {
@@ -645,6 +648,9 @@ void update_preferences_from_model() {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile"));
 		gtk_file_chooser_set_filename(button, pref->icc_paths[7]);
 	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")), pref->rendering_intent);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")), pref->proofing_intent);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")), pref->export_intent);
 
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);

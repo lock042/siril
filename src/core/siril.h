@@ -9,7 +9,6 @@
 #include <glib/gprintf.h>
 #include <gtk/gtk.h>
 #include <gsl/gsl_histogram.h>
-#include <lcms2.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif

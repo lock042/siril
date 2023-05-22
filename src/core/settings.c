@@ -202,7 +202,10 @@ preferences pref_init = {
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
 	},
-	.icc_paths = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+	.icc_paths = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+	.rendering_intent = INTENT_PERCEPTUAL,
+	.proofing_intent = INTENT_RELATIVE_COLORIMETRIC,
+	.export_intent = INTENT_PERCEPTUAL
 };
 
 void free_preferences(preferences *pref) {
@@ -386,6 +389,10 @@ struct settings_access all_settings[] = {
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc_paths[6] },
 	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc_paths[7] },
+	{ "gui", "export_profile", STYPE_STR, N_("path to export ICC profile"), &com.pref.icc_paths[8] },
+	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.rendering_intent },
+	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.proofing_intent },
+	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.export_intent },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
