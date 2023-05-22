@@ -142,7 +142,14 @@ static void free_image_data_gui() {
 		view->view_width = -1;
 		view->view_height= -1;
 	}
-
+	if (gui.icc.display_transform) {
+		cmsDeleteTransform(gui.icc.display_transform);
+		gui.icc.display_transform = NULL;
+	}
+	if (gui.icc.proofing_transform) {
+		cmsDeleteTransform(gui.icc.proofing_transform);
+		gui.icc.proofing_transform = NULL;
+	}
 	clear_previews();
 	free_reference_image();
 }
@@ -439,12 +446,12 @@ void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
+	if (gui.icc.display_transform)
+		cmsDeleteTransform(gui.icc.display_transform);
+	if (gui.icc.proofing_transform)
+		cmsDeleteTransform(gui.icc.proofing_transform);
 	if (gui.icc.available) {
-		if (gui.icc.display_transform)
-			cmsDeleteTransform(gui.icc.display_transform);
 		gui.icc.display_transform = initialize_display_transform();
-		if (gui.icc.proofing_transform)
-			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
 	}
 
