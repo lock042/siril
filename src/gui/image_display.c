@@ -293,42 +293,47 @@ static void remap(int vport) {
 		guint x;
 		guint src_i = y * gfit.rx;
 		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
+
+		// Set up a buffer so that the color space transform can be carried out on a whole row at a time
+		// This improves memory access and will allow for further optimization via the lcms2 fast float plugin
+		WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
+		WORD *linebuf = pixelbuf + vport * gfit.rx;
+		if (gfit.type == DATA_FLOAT) {
+#pragma omp simd
+			for (x = 0 ; x < gfit.rx ; x++) {
+				linebuf[x] = fsrc[src_i + x] * USHRT_MAX_SINGLE;
+				if (hd_mode) linebuf[x] *= (gui.hd_remap_max / USHRT_MAX);
+			}
+		} else if (norm == UCHAR_MAX) {
+			memcpy(linebuf, gfit.pdata[vport] + src_i, gfit.rx * sizeof(WORD));
+#pragma omp simd
+			for (x = 0 ; x < gfit.rx ; x++) {
+				linebuf[x] = linebuf[x] << 8;
+			}
+		} else {
+			memcpy(linebuf, gfit.pdata[vport] + src_i, gfit.rx * sizeof(WORD));
+		}
+		if (com.icc.available)
+			cmsDoTransform(display_transform, pixelbuf, pixelbuf, gfit.rx);
+		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
+#pragma omp simd
+			for (x = 0 ; x < gfit.rx ; x++) {
+				linebuf[x] = linebuf[x] >> 8;
+			}
+		}
+#pragma omp simd
 		for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 			guint src_index = y * gfit.rx + x;
 			BYTE dst_pixel_value = 0;
-			if (gfit.type == DATA_USHORT) {
-				// Apply ICC transform if showing the linear mode preview
-				WORD iccval = (norm == UCHAR_MAX ? uchar_pixel_icc_tx(src[src_index], vport, gfit.naxes[2], (gui.rendering_mode == SOFT_PROOF_DISPLAY ? proofing_transform : display_transform)) : ushrt_pixel_icc_tx(src[src_index], vport, gfit.naxes[2], (gui.rendering_mode == SOFT_PROOF_DISPLAY ? proofing_transform : display_transform)));
-				WORD val = iccval;
-				//WORD val = (gui.rendering_mode == LINEAR_DISPLAY) ? iccval : src[src_index];
-				if (hd_mode) {
-					dst_pixel_value = ushrt_pixel_icc_tx(index[src[src_index] * gui.hd_remap_max / USHRT_MAX], vport, gfit.naxes[2], display_transform); // Works as long as hd_remap_max is power of 2
-				}
-				else if (special_mode)	// special case, no lo & hi
-					dst_pixel_value = ushrt_pixel_icc_tx(index[src[src_index]], vport, gfit.naxes[2], display_transform);
+				WORD val = linebuf[x];
+				if (special_mode)	// special case, no lo & hi
+					dst_pixel_value = index[val];
 				else if (gui.cut_over && val > gui.hi)	// cut
 					dst_pixel_value = 0;
 				else {
 					dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
 				}
-			} else if (gfit.type == DATA_FLOAT) {
-				// Apply ICC transform if showing the linear mode preview
-				float val = float_pixel_icc_tx(fsrc[src_index], vport, gfit.naxes[2], (gui.rendering_mode == SOFT_PROOF_DISPLAY ? proofing_transform : display_transform));
-				if (hd_mode)
-					dst_pixel_value = float_pixel_icc_tx(index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)], vport, gfit.naxes[2], display_transform);
-				else if (special_mode) // special case, no lo & hi
-					dst_pixel_value = float_pixel_icc_tx(index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)], vport, gfit.naxes[2], display_transform);
-				else if (gui.cut_over && roundf_to_WORD(val * USHRT_MAX_SINGLE) > gui.hi)	// cut
-					dst_pixel_value = 0;
-				else {
-					dst_pixel_value = index[
-						roundf_to_WORD(val * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
-							roundf_to_WORD(val * USHRT_MAX_SINGLE) - gui.lo];
-				}
-			}
-
 			dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
-
 			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
 			guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
 			switch (color) {
@@ -340,6 +345,7 @@ static void remap(int vport) {
 					*(guint32*)(dst + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
 			}
 		}
+		free(pixelbuf);
 	}
 
 	cmsDeleteTransform(display_transform);

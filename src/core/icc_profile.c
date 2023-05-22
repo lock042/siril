@@ -189,7 +189,7 @@ cmsHTRANSFORM initialize_display_transform() {
 	int norm = (int) get_normalized_value(&gfit);
 	cmsHTRANSFORM transform;
 	cmsUInt32Number type;
-	switch (norm) {
+/*	switch (norm) {
 		case 1:
 			type = TYPE_RGB_FLT;
 			break;
@@ -199,7 +199,8 @@ cmsHTRANSFORM initialize_display_transform() {
 		default:
 		// includes case USHRT_MAX:
 			type = TYPE_RGB_16;
-	}
+	}*/
+	type = TYPE_RGB_16;
 	transform = cmsCreateTransform(gfit.icc_profile, type, gui.icc.monitor, type, gui.icc.rendering_intent, 0);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
