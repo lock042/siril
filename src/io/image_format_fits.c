@@ -2383,7 +2383,7 @@ int save_opened_fits(fits *f) {
 				g_free(datau);
 				return 1;
 			}
-			free(data);
+			free(datau);
 		} else {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
