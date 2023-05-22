@@ -27,6 +27,7 @@
 // GPL (version 3 or any later version to align with the rest of Siril.
 
 #include <glib.h>
+#include "algos/lcms2_fast_float.h"
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "icc_profile.h"
@@ -62,7 +63,7 @@ const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DE
 ////// Functions //////
 
 void initialize_profiles_and_transforms() {
-//	cmsPlugin(cmsFastFloatExtensions());
+	cmsPlugin(cmsFastFloatExtensions());
 	initialize_icc_profiles_paths();
 	// Set alarm codes for out-of-gamut warning
 	cmsUInt16Number alarmcodes[16] = { 65535, 0, 65535, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };

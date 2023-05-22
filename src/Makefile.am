@@ -76,6 +76,21 @@ siril_common_SOURCES = \
 	algos/search_objects.c \
 	algos/siril_wcs.h \
 	algos/siril_wcs.c \
+	algos/lcms_fast_float/fast_16_tethra.c \
+	algos/lcms_fast_float/fast_8_curves.c \
+	algos/lcms_fast_float/fast_8_matsh.c \
+	algos/lcms_fast_float/fast_8_matsh_sse.c \
+	algos/lcms_fast_float/fast_8_tethra.c \
+	algos/lcms_fast_float/fast_float_15bits.c \
+	algos/lcms_fast_float/fast_float_15mats.c \
+	algos/lcms_fast_float/fast_float_cmyk.c \
+	algos/lcms_fast_float/fast_float_curves.c \
+	algos/lcms_fast_float/fast_float_internal.h \
+	algos/lcms_fast_float/fast_float_lab.c \
+	algos/lcms_fast_float/fast_float_matsh.c \
+	algos/lcms_fast_float/fast_float_separate.c \
+	algos/lcms_fast_float/fast_float_sup.c \
+	algos/lcms_fast_float/fast_float_tethra.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
 	compositing/compositing.c \

@@ -191,8 +191,6 @@ static void remap(int vport) {
 		return;
 	}
 
-	cmsHTRANSFORM display_transform = NULL;
-	cmsHTRANSFORM proofing_transform = NULL;
 	if (com.icc.available) {
 		// Set the display transform in case it is missing
 		if (gfit.icc_profile == NULL) {
