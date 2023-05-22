@@ -30686,12 +30686,14 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="label-xalign">0</property>
                                     <property name="shadow-type">none</property>
                                     <child>
-                                      <!-- n-columns=2 n-rows=2 -->
+                                      <!-- n-columns=4 n-rows=6 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="margin-left">12</property>
                                         <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
@@ -30699,23 +30701,12 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Custom monitor profile</property>
+                                            <property name="label" translatable="yes">&lt;b&gt;Custom monitor profile&lt;/b&gt;</property>
+                                            <property name="use-markup">True</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
                                             <property name="top-attach">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Soft proofing profile</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">0</property>
-                                            <property name="top-attach">1</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -30739,8 +30730,237 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">&lt;b&gt;Soft proofing profile&lt;/b&gt;</property>
+                                            <property name="use-markup">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Rendering intent</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
                                             <property name="top-attach">1</property>
                                           </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">&lt;b&gt;Export profile&lt;/b&gt;</property>
+                                            <property name="use-markup">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Soft proofing intent</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton">
+                                            <property name="label" translatable="yes">Clear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton">
+                                            <property name="label" translatable="yes">Clear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton">
+                                            <property name="label" translatable="yes">Clear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkFileChooserButton" id="pref_export_profile">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">The default export profile is sRGB using the ICC-standard D65 white point and gamma = 2.2. If you are in any doubt, you should keep the default as this will maximise compatibility with applications that don't implement full color management and just assume images are in sRGB.
+To use a custom export profile, set it here. This will apply to all images, with the exception of FITS and SER, that are exported in 16 bit precision or less.</property>
+                                            <property name="title" translatable="yes"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combo_rendering_intent">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Select the display intent. The default is perceptual rendering.</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">Perceptual</item>
+                                              <item translatable="yes">Relative Colorimetric</item>
+                                              <item translatable="yes">Saturation</item>
+                                              <item translatable="yes">Absolute Colorimetric</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combo_proofing_intent">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Select the display intent. The default is relative colorimetric. To account for the paper type, choose absolute colorimetric.</property>
+                                            <property name="active">1</property>
+                                            <items>
+                                              <item translatable="yes">Perceptual</item>
+                                              <item translatable="yes">Relative Colorimetric</item>
+                                              <item translatable="yes">Saturation</item>
+                                              <item translatable="yes">Absolute Colorimetric</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Export intent</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">5</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combo_export_intent">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Select the display intent. The default is perceptual rendering.</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">Perceptual</item>
+                                              <item translatable="yes">Relative Colorimetric</item>
+                                              <item translatable="yes">Saturation</item>
+                                              <item translatable="yes">Absolute Colorimetric</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">5</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_custom_monitor_profile_active">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="active">True</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">3</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">3</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom export profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">3</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
                                         </child>
                                       </object>
                                     </child>
