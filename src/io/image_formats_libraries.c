@@ -866,7 +866,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	fit->naxes[1] = xdata->height;
 	fit->naxes[2] = xdata->channelCount;
 
-	uint32_t *buffer;
+	uint32_t *buffer32;
+	double *buffer64;
+
 	switch (xdata->sampleFormat) {
 	case BYTE_IMG:
 		fit->data = (WORD *)xdata->data;
@@ -891,10 +893,10 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		}
 		break;
 	case LONG_IMG:
-		buffer = (uint32_t *)xdata->data;
+		buffer32 = (uint32_t *)xdata->data;
 		fit->fdata = (float *)xdata->data;
 		for (int i = 0; i < npixels * fit->naxes[2]; i++)
-			fit->fdata[i] = (float)buffer[i] / 4294967295.f;
+			fit->fdata[i] = (float)buffer32[i] / 4294967295.f;
 
 		fit->fpdata[RLAYER] = fit->fdata;
 		fit->fpdata[GLAYER] = fit->fdata + npixels;
@@ -904,6 +906,18 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		break;
 	case FLOAT_IMG:
 		fit->fdata = (float *)xdata->data;
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + npixels;
+		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
+		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
+		fit->type = DATA_FLOAT;
+		break;
+	case DOUBLE_IMG:
+		buffer64 = (double *)xdata->data;
+		fit->fdata = (float *)xdata->data;
+		for (int i = 0; i < npixels * fit->naxes[2]; i++)
+			fit->fdata[i] = (float)buffer64[i];
+
 		fit->fpdata[RLAYER] = fit->fdata;
 		fit->fpdata[GLAYER] = fit->fdata + npixels;
 		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;

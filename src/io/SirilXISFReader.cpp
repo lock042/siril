@@ -40,10 +40,6 @@ extern "C" {
 #include "libxisf.h"
 
 
-SirilXISFReader::SirilXISFReader() {
-    // Default constructor implementation
-}
-
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 	try {
 		LibXISF::XISFReader xisfReader;
@@ -68,6 +64,9 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 			break;
 		case LibXISF::Image::Float32:
 			xdata->sampleFormat = FLOAT_IMG;
+			break;
+		case LibXISF::Image::Float64:
+			xdata->sampleFormat = DOUBLE_IMG;
 			break;
 		default:
 			xdata->sampleFormat = 0;
