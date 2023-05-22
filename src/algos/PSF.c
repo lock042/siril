@@ -647,6 +647,8 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 	stridefrom = fit->rx - area->w;
 
 	// create the matrix with values from the selected rectangle
+	// area coordinates are in display coordinates, the matrix is read top-down but in
+	// FITS coordinates
 	if (fit->type == DATA_USHORT) {
 		WORD *from = fit->pdata[layer] +
 			(fit->ry - area->y - area->h) * fit->rx + area->x;

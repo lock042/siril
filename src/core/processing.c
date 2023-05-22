@@ -275,6 +275,11 @@ gpointer generic_sequence_worker(gpointer p) {
 #pragma omp atomic
 #endif
 				excluded_frames++;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				progress++;
+				set_progress_bar_data(NULL, (float)progress / nb_framesf);
 			}
 			clearfits(fit);
 			free(fit);
