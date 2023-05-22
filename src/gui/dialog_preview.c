@@ -113,7 +113,11 @@ static gboolean end_update_preview_cb(gpointer p) {
 		if (im_type == TYPEAVI || im_type == TYPESER ||
 				(im_type == TYPEFITS && fitseq_is_fitseq(args->filename, NULL)))
 			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "video", GTK_ICON_SIZE_DIALOG);
-		else gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image", GTK_ICON_SIZE_DIALOG);
+		else {
+			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image", GTK_ICON_SIZE_DIALOG);
+			if (args->description)
+				info_str = args->description;
+		}
 		gtk_image_set_pixel_size(GTK_IMAGE(preview->image), com.pref.gui.thumbnail_size);
 	}
 

@@ -158,44 +158,43 @@ GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr) {
 			return NULL;
 		}
 
+		/* Get thumbnail if available */
 		const LibXISF::Image &thumbnail = xisfReader.getThumbnail();
-		if (thumbnail.width() == 0 || thumbnail.height() == 0) {
-			xisfReader.close();
-			return NULL;
-		}
+		if (thumbnail.width() != 0 && thumbnail.height() != 0) {
 
-		/* Only RGB is handled in GdkPixBuf. So if the thumbnail is monochrome we need to add 2 channels */
-		size_t extra_size = 0;
-		if (thumbnail.channelCount() == 1) {
-			extra_size = 2;
-		}
-		uint8_t *pixbuf_data = (uint8_t*) malloc(thumbnail.imageDataSize() + extra_size * thumbnail.imageDataSize());
-		if (!pixbuf_data) {
-			xisfReader.close();
-			return NULL;
-		}
-
-		LibXISF::Image planarThumbnail = thumbnail;
-		planarThumbnail.convertPixelStorageTo(LibXISF::Image::Normal);
-		if (thumbnail.channelCount() == 1) {
-			uint8_t *buffer = (uint8_t *) planarThumbnail.imageData();
-			for (size_t i = 0, j = 0; i < planarThumbnail.imageDataSize() * 3; i += 3, j++) {
-				pixbuf_data[i + 0] = buffer[j];
-				pixbuf_data[i + 1] = buffer[j];
-				pixbuf_data[i + 2] = buffer[j];
+			/* Only RGB is handled in GdkPixBuf. So if the thumbnail is monochrome we need to add 2 channels */
+			size_t extra_size = 0;
+			if (thumbnail.channelCount() == 1) {
+				extra_size = 2;
 			}
-		} else {
-			memcpy(pixbuf_data, planarThumbnail.imageData(), planarThumbnail.imageDataSize());
-		}
+			uint8_t *pixbuf_data = (uint8_t*) malloc(thumbnail.imageDataSize() + extra_size * thumbnail.imageDataSize());
+			if (!pixbuf_data) {
+				xisfReader.close();
+				return NULL;
+			}
 
-		pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,	// guchar* data
-				GDK_COLORSPACE_RGB,	// only this supported
-				FALSE,				// no alpha
-				8,				// number of bits
-				thumbnail.width(), thumbnail.height(),				// size
-				thumbnail.width() * 3,				// line length in bytes
-				(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
-				NULL);
+			LibXISF::Image planarThumbnail = thumbnail;
+			planarThumbnail.convertPixelStorageTo(LibXISF::Image::Normal);
+			if (thumbnail.channelCount() == 1) {
+				uint8_t *buffer = (uint8_t *) planarThumbnail.imageData();
+				for (size_t i = 0, j = 0; i < planarThumbnail.imageDataSize() * 3; i += 3, j++) {
+					pixbuf_data[i + 0] = buffer[j];
+					pixbuf_data[i + 1] = buffer[j];
+					pixbuf_data[i + 2] = buffer[j];
+				}
+			} else {
+				memcpy(pixbuf_data, planarThumbnail.imageData(), planarThumbnail.imageDataSize());
+			}
+
+			pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,	// guchar* data
+					GDK_COLORSPACE_RGB,	// only this supported
+					FALSE,				// no alpha
+					8,				// number of bits
+					thumbnail.width(), thumbnail.height(),				// size
+					thumbnail.width() * 3,				// line length in bytes
+					(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
+					NULL);
+		}
 
 		const LibXISF::Image &image = xisfReader.getImage(0);
 
