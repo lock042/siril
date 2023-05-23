@@ -561,7 +561,8 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 		file_to_delete = g_strdup(ser_file->filename);
 	ser_close_file(ser_file);// closes, frees and zeroes
 	if (retval && file_to_delete)
-		g_unlink(file_to_delete);
+		if (g_unlink(file_to_delete))
+			siril_debug_print("g_unlink() failed\n");
 	g_free(file_to_delete);
 	return retval;
 }

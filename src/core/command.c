@@ -6204,7 +6204,7 @@ int process_link(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = strdup(word[1]);
+	char *destroot = strdup(word[1]);
 	int idx = 1;
 
 	for (int i = 2; i < nb; i++) {
@@ -6215,26 +6215,31 @@ int process_link(int nb) {
 			idx = g_ascii_strtoull(value, &end, 10);
 			if (end == value || idx <= 0 || idx >= INDEX_MAX) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), current);
+				free(destroot);
 				return CMD_ARG_ERROR;
 			}
 		} else if (g_str_has_prefix(current, "-out=")) {
 			value = current + 5;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				free(destroot);
 				return CMD_ARG_ERROR;
 			}
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
 				if (g_mkdir_with_parents(value, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+					free(destroot);
 					return CMD_GENERIC_ERROR;
 				}
 			}
 			gchar *filename = g_build_filename(value, destroot, NULL);
-			g_free(destroot);
-			destroot = filename;
+			free(destroot);
+			destroot = strdup(filename);
+			g_free(filename);
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+			free(destroot);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -6246,6 +6251,7 @@ int process_link(int nb) {
 		fprintf (stderr, "Link: %s\n", error->message);
 		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
+		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -6265,6 +6271,7 @@ int process_link(int nb) {
 	g_dir_close(dir);
 	if (!count) {
 		siril_log_message(_("No FITS files were found for link\n"));
+		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
@@ -6276,6 +6283,7 @@ int process_link(int nb) {
 	if (!allow_to_open_files(count, &nb_allowed)) {
 		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_link);
+		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -6287,6 +6295,7 @@ int process_link(int nb) {
 	if (!com.wd) {
 		siril_log_message(_("Link: no working directory set.\n"));
 		g_strfreev(files_to_link);
+		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -6347,26 +6356,31 @@ int process_convert(int nb) {
 			idx = g_ascii_strtoull(value, &end, 10);
 			if (end == value || idx <= 0 || idx >= INDEX_MAX) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), current);
+				free(destroot);
 				return CMD_ARG_ERROR;
 			}
 		} else if (g_str_has_prefix(current, "-out=")) {
 			value = current + 5;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				free(destroot);
 				return CMD_ARG_ERROR;
 			}
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
 				if (g_mkdir_with_parents(value, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+					free(destroot);
 					return CMD_GENERIC_ERROR;
 				}
 			}
 			gchar *filename = g_build_filename(value, destroot, NULL);
 			g_free(destroot);
-			destroot = filename;
+			destroot = strdup(filename);
+			g_free(filename);
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
+			free(destroot);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -6378,6 +6392,7 @@ int process_convert(int nb) {
 		fprintf (stderr, "Conversion: %s\n", error->message);
 		g_clear_error(&error);
 		set_cursor_waiting(FALSE);
+		free(destroot);
 		return CMD_NO_CWD;
 	}
 
@@ -6392,6 +6407,7 @@ int process_convert(int nb) {
 		if (type == TYPERAW && output == SEQ_SER && !g_ascii_strcasecmp(ext, "raf") && !debayer) {
 			siril_log_message(_("FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. You may use FITS sequences instead."));
 			g_list_free_full(list, g_free);
+			free(destroot);
 			return CMD_GENERIC_ERROR;
 		}
 		if ((raw_only && type == TYPERAW) ||
@@ -6405,6 +6421,7 @@ int process_convert(int nb) {
 		if (raw_only)
 			siril_log_message(_("No RAW files were found for conversion\n"));
 		else siril_log_message(_("No files were found for conversion\n"));
+		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
@@ -6416,6 +6433,7 @@ int process_convert(int nb) {
 	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
 		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_convert);
+		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
 
