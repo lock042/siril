@@ -23,6 +23,7 @@
 #define _FAST_INTERNAL_H
 
 #include "algos/lcms_fast_float/lcms2_fast_float.h"
+#include "lcms2_plugin.h"
 #include <stdint.h>
 
 #define REQUIRED_LCMS_VERSION 2120
