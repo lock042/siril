@@ -179,6 +179,16 @@ gboolean has_wcsdata(fits *fit) {
 	return FALSE;
 }
 
+double parse_hms(const char *objctra) {
+        fprintf(stderr, "ERROR: calling undefined function parse_hms\n");
+	return 0.0;
+}
+
+double parse_dms(const char *objctdec) {
+        fprintf(stderr, "ERROR: calling undefined function parse_dms\n");
+	return 0.0;
+}
+
 int check_threading(const threading_type *t) {
 	if (*t != SINGLE_THREADED)
 		return 2;

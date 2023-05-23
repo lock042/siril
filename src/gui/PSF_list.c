@@ -133,6 +133,8 @@ static void gdouble_ra_cell_data_function(GtkTreeViewColumn *col,
 		} else {
 			buf = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
 		}
+		siril_world_cs_unref(world_cs);
+
 	}
 	g_object_set(renderer, "text", buf, NULL);
 
@@ -155,6 +157,7 @@ static void gdouble_dec_cell_data_function(GtkTreeViewColumn *col,
 		} else {
 			buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 		}
+		siril_world_cs_unref(world_cs);
 	}
 	g_object_set(renderer, "text", buf, NULL);
 
@@ -522,8 +525,9 @@ static void set_filter(GtkFileChooser *dialog) {
 
 static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 	GError *error = NULL;
-    GFile *file = g_file_new_for_path(filename);
-    GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+	gboolean ret = TRUE;
+	GFile *file = g_file_new_for_path(filename);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 	if (output_stream == NULL) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
@@ -534,72 +538,76 @@ static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 		return;
 	}
 
-    GDataOutputStream *data_stream = g_data_output_stream_new(G_OUTPUT_STREAM(output_stream));
+	GDataOutputStream *data_stream = g_data_output_stream_new(
+			G_OUTPUT_STREAM(output_stream));
 
-    // Write header
-    gint n_columns = gtk_tree_view_get_n_columns(treeview);
-    for (gint i = 0; i < n_columns; i++) {
-        if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
-            const gchar *column_name = gtk_tree_view_column_get_title(gtk_tree_view_get_column(treeview, i));
-            g_data_output_stream_put_string(data_stream, column_name, NULL, NULL);
-            if (i < n_columns - 1) {
-                gint next_column = i + 1;
-                while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
-                    next_column++;
-                    if (next_column >= n_columns) {
-                        break;
-                    }
-                }
-                if (next_column < n_columns) {
-                    g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
-                }
-            }
-        }
-    }
-    g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+	// Write header
+	gint n_columns = gtk_tree_view_get_n_columns(treeview);
+	for (gint i = 0; i < n_columns; i++) {
+		if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
+			const gchar *column_name = gtk_tree_view_column_get_title(gtk_tree_view_get_column(treeview, i));
+			ret &= g_data_output_stream_put_string(data_stream, column_name, NULL, NULL);
+			if (i < n_columns - 1) {
+				gint next_column = i + 1;
+				while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+					next_column++;
+					if (next_column >= n_columns) {
+						break;
+					}
+				}
+				if (next_column < n_columns) {
+					ret &= g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+				}
+			}
+		}
+	}
+	ret &= g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
 
-    // Write row data
-    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
-    GtkTreeIter iter;
-    gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
-    while (valid) {
-        for (gint i = 0; i < n_columns; i++) {
-            if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
-                GValue value = G_VALUE_INIT;
-                gtk_tree_model_get_value(model, &iter, i, &value);
-                if (G_VALUE_TYPE(&value) == G_TYPE_DOUBLE) {
-                    gdouble dbl_value = g_value_get_double(&value);
-                    gchar *str_value = g_strdup_printf("%g", dbl_value);
-                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
-                    g_free(str_value);
-                } else if (G_VALUE_TYPE(&value) == G_TYPE_INT) {
-                    gint int_value = g_value_get_int(&value);
-                    gchar *str_value = g_strdup_printf("%d", int_value);
-                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
-                    g_free(str_value);
-                }
-                if (i < n_columns - 1) {
-                    gint next_column = i + 1;
-                    while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
-                        next_column++;
-                        if (next_column >= n_columns) {
-                            break;
-                        }
-                    }
-                    if (next_column < n_columns && gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
-                        g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
-                    }
-                }
-                g_value_unset(&value);
-            }
-        }
-        g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+	// Write row data
+	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+	GtkTreeIter iter;
+	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+	while (valid) {
+		for (gint i = 0; i < n_columns; i++) {
+			if (gtk_tree_view_column_get_visible(
+					gtk_tree_view_get_column(treeview, i))) {
+				GValue value = G_VALUE_INIT;
+				gtk_tree_model_get_value(model, &iter, i, &value);
+				if (G_VALUE_TYPE(&value) == G_TYPE_DOUBLE) {
+					gdouble dbl_value = g_value_get_double(&value);
+					gchar *str_value = g_strdup_printf("%g", dbl_value);
+					ret &= g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+					g_free(str_value);
+				} else if (G_VALUE_TYPE(&value) == G_TYPE_INT) {
+					gint int_value = g_value_get_int(&value);
+					gchar *str_value = g_strdup_printf("%d", int_value);
+					ret &= g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+					g_free(str_value);
+				}
+				if (i < n_columns - 1) {
+					gint next_column = i + 1;
+					while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+						next_column++;
+						if (next_column >= n_columns) {
+							break;
+						}
+					}
+					if (next_column < n_columns && gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+						ret &= g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+					}
+				}
+				g_value_unset(&value);
+			}
+		}
+		ret &= g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
 
-        valid = gtk_tree_model_iter_next(model, &iter);
-    }
-    g_object_unref(data_stream);
-    g_object_unref(output_stream);
-    g_object_unref(file);
+		valid = gtk_tree_model_iter_next(model, &iter);
+	}
+	if (!ret)
+		siril_log_color_message(_("Error: error writing the CSV.\n"), "red");
+	g_object_unref(data_stream);
+	g_object_unref(output_stream);
+	g_object_unref(file);
 }
 
 
