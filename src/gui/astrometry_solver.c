@@ -447,6 +447,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			g_signal_emit_by_name(GTK_TREE_VIEW(GtkTreeViewIPS), "cursor-changed");
 		}
 	}
+	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_cursor_waiting(FALSE);
 }
 
