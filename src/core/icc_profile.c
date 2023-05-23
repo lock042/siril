@@ -60,6 +60,8 @@
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 
 const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DEFAULT_PATH_GV4g22, DEFAULT_PATH_RGBV2g22, DEFAULT_PATH_RGBV4g10, DEFAULT_PATH_RGBV4g22 };
+static GMutex monitor_profile_mutex;
+static GMutex soft_proof_profile_mutex;
 
 ////// Functions //////
 
@@ -113,6 +115,7 @@ void initialize_profiles_and_transforms() {
 							"or printed. Check your installation is correct.\n"));
 	} else { // No point loading monitor and soft proof profiles if the standard ones are unavailable
 		// Open the custom monitor and soft proofing profiles if there is a path set in preferences
+		g_mutex_lock(&monitor_profile_mutex);
 		if (com.pref.icc_paths[INDEX_CUSTOM_MONITOR] && com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] != '\0') {
 			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_CUSTOM_MONITOR], "r");
 			if (!gui.icc.monitor) {
@@ -127,9 +130,13 @@ void initialize_profiles_and_transforms() {
 			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
 			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 		}
+		g_mutex_unlock(&monitor_profile_mutex);
+
 		if (com.pref.icc_paths[INDEX_CUSTOM_PROOF] && com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] != '\0') {
+			g_mutex_lock(&soft_proof_profile_mutex);
 			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_CUSTOM_PROOF], "r");
-			if (!gui.icc.soft_proof) {
+			g_mutex_unlock(&soft_proof_profile_mutex);
+		if (!gui.icc.soft_proof) {
 				error++;
 				siril_log_message(_("Warning: soft proofing profile set but could not be loaded. Soft proofing will be "
 									"unavailable.\n"));
@@ -154,9 +161,11 @@ void refresh_icc_settings() {
 // The path must be set by the user in preferences, there is no default custom monitor profile
 int load_monitor_icc_profile(const char* filename) {
 	if (com.pref.icc_paths[INDEX_CUSTOM_MONITOR] && com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] != '\0') {
+	g_mutex_lock(&monitor_profile_mutex);
 		if (gui.icc.monitor)
 			cmsCloseProfile(gui.icc.monitor);
 		gui.icc.monitor = cmsOpenProfileFromFile(filename, "r");
+	g_mutex_unlock(&soft_proof_profile_mutex);
 		if (!gui.icc.monitor)
 			return 1;
 		else
@@ -168,7 +177,9 @@ int load_monitor_icc_profile(const char* filename) {
 // The path must be set by the user in preferences, there is no default custom proof profile
 int load_soft_proof_icc_profile(const char* filename) {
 	if (com.pref.icc_paths[INDEX_CUSTOM_PROOF] && com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] != '\0') {
+		g_mutex_lock(&soft_proof_profile_mutex);
 		gui.icc.soft_proof = cmsOpenProfileFromFile(filename, "r");
+		g_mutex_unlock(&soft_proof_profile_mutex);
 		if (!gui.icc.soft_proof)
 			return 1;
 		else
@@ -189,7 +200,9 @@ cmsHTRANSFORM initialize_display_transform() {
 	cmsHTRANSFORM transform;
 	cmsUInt32Number type;
 	type = TYPE_RGB_16;
+	g_mutex_lock(&monitor_profile_mutex);
 	transform = cmsCreateTransform(gfit.icc_profile, type, gui.icc.monitor, type, gui.icc.rendering_intent, 0);
+	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
 	return transform;
@@ -216,6 +229,8 @@ cmsHTRANSFORM initialize_proofing_transform() {
 			// includes case USHRT_MAX:
 			type = TYPE_RGB_16;
 	}
+	g_mutex_lock(&soft_proof_profile_mutex);
+	g_mutex_lock(&monitor_profile_mutex);
 	cmsHPROFILE proofing_transform = cmsCreateProofingTransform(
 						gfit.icc_profile,
 						type,
@@ -225,7 +240,20 @@ cmsHTRANSFORM initialize_proofing_transform() {
 						gui.icc.rendering_intent,
 						gui.icc.proofing_intent,
 						flags);
+	g_mutex_unlock(&monitor_profile_mutex);
+	g_mutex_unlock(&soft_proof_profile_mutex);
 	return proofing_transform;
+}
+
+void refresh_icc_transforms() {
+	if (gui.icc.display_transform)
+		cmsDeleteTransform(gui.icc.display_transform);
+	if (gui.icc.proofing_transform)
+		cmsDeleteTransform(gui.icc.proofing_transform);
+	if (gui.icc.available) {
+		gui.icc.display_transform = initialize_display_transform();
+		gui.icc.proofing_transform = initialize_proofing_transform();
+	}
 }
 
 // Used where the max value of data in fits <=UCHAR_MAX
@@ -366,10 +394,10 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 
 ///// Preferences callbacks
 
-// TODO: being able to alter the profiles and intents from the GTK thread probably means all operations that
-// use the profiles need to go inside mutexes to prevent the profile being ripped out from under them.
-// This should primarily mean the transform generation, as it is safe to close profiles once the transform
-// is generated.
+// Being able to alter the monitor and soft_proof profiles and intents from the GTK thread means all operations
+// that use the profiles need to go inside mutexes to prevent the profiles being ripped out from under them.
+// This is not required for profiles in FITS structures as these are not subject to thread contention issues in
+// the same way.
 
 void initialize_icc_preferences_widgets() {
 	GtkToggleButton *monitortogglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
@@ -414,6 +442,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
 	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
 	gtk_file_chooser_unselect_all(filechooser);
+	g_mutex_lock(&monitor_profile_mutex);
 	if (com.pref.icc_paths[INDEX_CUSTOM_MONITOR] && com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] != '\0') {
 		g_free(com.pref.icc_paths[INDEX_CUSTOM_MONITOR]);
 		com.pref.icc_paths[INDEX_CUSTOM_MONITOR] = NULL;
@@ -426,15 +455,18 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 				siril_log_color_message(_("Error: standard sRGB ICC profile could not be loaded.\n"), "red");
 				com.icc.available = FALSE;
 			}
-		}
+		} else gui.icc.monitor = NULL;
 	}
+	g_mutex_unlock(&monitor_profile_mutex);
 	gtk_toggle_button_set_active(togglebutton, FALSE);
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
+	refresh_icc_transforms();
 }
 
 void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
 	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
+	g_mutex_lock(&soft_proof_profile_mutex);
 
 	gtk_file_chooser_unselect_all(filechooser);
 	if (com.pref.icc_paths[INDEX_CUSTOM_PROOF] && com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] != '\0') {
@@ -444,14 +476,18 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 			cmsCloseProfile(gui.icc.soft_proof);
 		gui.icc.soft_proof = NULL;
 	}
+	g_mutex_unlock(&soft_proof_profile_mutex);
 	gtk_toggle_button_set_active(togglebutton, FALSE);
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
+	refresh_icc_transforms();
+
 }
 
 void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
 	gboolean no_file = FALSE;
 	gboolean active = gtk_toggle_button_get_active(button);
+	g_mutex_lock(&monitor_profile_mutex);
 	if (gui.icc.monitor) {
 		cmsCloseProfile(gui.icc.monitor);
 	}
@@ -467,6 +503,8 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 		}
 		if (gui.icc.monitor) {
 			siril_log_message(_("Monitor profile loaded from %s\n"), com.pref.icc_paths[INDEX_CUSTOM_MONITOR], "r");
+			g_mutex_unlock(&monitor_profile_mutex);
+			refresh_icc_transforms();
 			return;
 		} else {
 			if (!no_file) {
@@ -489,12 +527,15 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 			com.icc.available = FALSE;
 		}
 	}
+	g_mutex_unlock(&monitor_profile_mutex);
+	refresh_icc_transforms();
 }
 
 void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
 	gboolean no_file;
 	gboolean active = gtk_toggle_button_get_active(button);
+	g_mutex_lock(&soft_proof_profile_mutex);
 	if (gui.icc.soft_proof) {
 		cmsCloseProfile(gui.icc.soft_proof);
 	}
@@ -510,6 +551,8 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 		}
 		if (gui.icc.soft_proof) {
 			siril_log_message(_("Soft proofing profile loaded from %s\n"), com.pref.icc_paths[INDEX_CUSTOM_PROOF]);
+			g_mutex_unlock(&soft_proof_profile_mutex);
+			refresh_icc_transforms();
 			return;
 		} else {
 			if (!no_file) {
@@ -521,4 +564,6 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 		gui.icc.soft_proof = NULL;
 		siril_log_color_message(_("Soft proofing ICC profile closed. Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
 	}
+	g_mutex_unlock(&soft_proof_profile_mutex);
+	refresh_icc_transforms();
 }

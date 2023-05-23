@@ -446,14 +446,7 @@ void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
-	if (gui.icc.display_transform)
-		cmsDeleteTransform(gui.icc.display_transform);
-	if (gui.icc.proofing_transform)
-		cmsDeleteTransform(gui.icc.proofing_transform);
-	if (gui.icc.available) {
-		gui.icc.display_transform = initialize_display_transform();
-		gui.icc.proofing_transform = initialize_proofing_transform();
-	}
+	refresh_icc_transforms();
 
 	siril_add_idle(end_gfit_operation, NULL);
 }
