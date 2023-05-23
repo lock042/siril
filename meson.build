@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.2.0-beta3dev',
+  version : '1.2.0-rc1',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -48,6 +48,7 @@ have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
 enable_json_glib = get_option('json_glib')
+enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
 enable_libjpeg   = get_option('libjpeg')
@@ -241,7 +242,6 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
-exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -353,6 +353,11 @@ endif
 json_glib_dep = no_dep
 if enable_json_glib
   json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
+endif
+
+exiv_dep = no_dep
+if enable_exiv
+  exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 endif
 
 libraw_dep = no_dep
@@ -521,6 +526,12 @@ else
   conf_data.set('HAVE_JSON_GLIB', false, description : 'Using json glib')
 endif
 
+if exiv_dep.found()
+  conf_data.set('HAVE_EXIV2', true, description : 'Using exif previews.')
+else
+  conf_data.set('HAVE_EXIV2', false, description : 'Using exif previews.')
+endif
+
 if libraw_dep.found()
   conf_data.set('HAVE_LIBRAW', true, description : 'Using RAW images.')
 else
@@ -594,6 +605,67 @@ else
 endif
 
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
+
+################################################################################
+# Check for GLib Networking
+
+glib_networking_works_run=false
+if meson.is_cross_build() and not meson.has_exe_wrapper()
+    # Cross-compilation without run capability: we won't be able to
+    # check networking support.
+    glib_networking_works = true
+    glib_warning = '''
+      Test for glib-networking cannot be performed while cross-compiling,
+      unless you set an `exe_wrapper` binary in your toolchain file.
+      Make sure glib-networking is installed, otherwise Siril will not be able
+      to open remote HTTPS (or other protocol using SSL/TLS) files.
+      HTTPS is becoming the expected standard and should not be considered
+      optional anymore.
+    '''
+    warning(glib_warning)
+    warnings += glib_warning
+else # not meson.is_cross_build() or meson.has_exe_wrapper()
+    glib_networking_works_run = cc.run(
+      '''#include <gio/gio.h>
+      int main() {
+        if (!g_tls_backend_supports_tls (g_tls_backend_get_default ()))
+	  return 1;
+	GFile *file = g_file_new_for_uri("https://localhost/test");
+	GError *error = NULL;
+	gchar *content = NULL;
+	g_file_load_contents(file, NULL, &content, NULL, NULL, &error);
+	return error->code == G_IO_ERROR_NOT_SUPPORTED;
+      }''',
+      dependencies: gio_dep,
+    )
+    glib_networking_works = (glib_networking_works_run.compiled() and
+                             glib_networking_works_run.returncode() == 0)
+    if (glib_networking_works)
+      message('glib-networking detected.')
+    elif meson.is_cross_build()
+        # Since cross-platform test runs may be unreliable, let's be
+        # flexible and pass the test with a warning.
+        glib_networking_works = true
+        glib_warning = '''
+      The cross-platform test for glib-networking failed, using the
+      `exe_wrapper` set in your toolchain file.
+      Make sure glib-networking is installed, otherwise Siril will not be able
+      to open remote HTTPS (or other protocol using SSL/TLS) files.
+      HTTPS is becoming the expected standard and should not be considered
+      optional anymore.
+        '''
+        warning(glib_warning)
+        warnings += glib_warning
+    endif
+endif
+
+if not glib_networking_works and not libcurl_dep.found()
+  warning('no networking library found, neither glib-networking or curl found.')
+  conf_data.set('HAVE_NETWORKING', false, description : 'Using networking.')
+else
+  message('networking solution found with either glib-networking or curl.')
+  conf_data.set('HAVE_NETWORKING', true, description : 'Using networking.')
+endif
 
 ## Git configuration
 git_data = configuration_data()
@@ -697,19 +769,21 @@ summary(
 
 summary(
   {
-    'json glib' : json_glib_dep.found(),
-    'libraw'    : libraw_dep.found(),
-    'TIFF'      : libtiff_dep.found(),
-    'JPEG'      : libjpeg_dep.found(),
-    'PNG'       : libpng_dep.found(),
-    'HEIF'      : libheif_dep.found(),
-    'XISF'      : libXISF_dep.found(),
-    'FFMS2'     : ffms2_dep.found(),
-    'FFMPEG'    : ffmpeg_found,
-    'libcurl'   : libcurl_dep.found(),
-    'wcslib'    : wcslib_dep.found(),
-    'libconfig' : libconfig_dep.found(),
-    'criterion' : criterion_dep.found(),
+    'json glib'         : json_glib_dep.found(),
+    'exiv2'             : exiv_dep.found(),
+    'libraw'            : libraw_dep.found(),
+    'TIFF'              : libtiff_dep.found(),
+    'XISF'              : libXISF_dep.found(),
+    'JPEG'              : libjpeg_dep.found(),
+    'PNG'               : libpng_dep.found(),
+    'HEIF'              : libheif_dep.found(),
+    'FFMS2'             : ffms2_dep.found(),
+    'ffmpeg'            : ffmpeg_found,
+    'libcurl'           : libcurl_dep.found(),
+    'glib-networking'   : glib_networking_works,
+    'wcslib'            : wcslib_dep.found(),
+    'libconfig'         : libconfig_dep.found(),
+    'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
 

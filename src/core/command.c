@@ -7976,15 +7976,20 @@ int process_capabilities(int nb) {
 #ifndef HAVE_CV44
 	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
 #endif
+#ifdef HAVE_NETWORKING
+	siril_log_message("Build with networking capabilities\n");
+#endif
 #ifdef HAVE_LIBCURL
 	siril_log_message("Built with libcurl\n");
 #endif
 #ifdef HAVE_JSON_GLIB
 	siril_log_message("Built with json-glib\n");
 #endif
-//#ifdef HAVE_GLIB_NETWORKING
 #ifdef HAVE_WCSLIB
 	siril_log_message("Built with wcslib\n");
+#endif
+#ifdef HAVE_EXIV2
+	siril_log_message("Built with exiv2\n");
 #endif
 
 	siril_log_message("Can read and write FITS files\n");

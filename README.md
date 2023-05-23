@@ -21,28 +21,32 @@ Main development is done with most recent versions of libraries.
 ## Requirements
 
 For compilation, these tools are needed in addition to the base development packages:
-
 - **meson**
 - **ninja**
 - **cmake**
 
 Then, mandatory build dependencies:
-
+- **glib-2.0** (>= 2.56.0) Glib Convenience Library
 - **GTK+ 3**, (>= 3.20) as GUI toolkit
 - **cfitsio** for FITS image read and write
 - **fftw3** for Fourier transforms
 - **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
 - **A C++ compiler** for opencv code and avi exporter
-- **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possbile without some shift-only registration)
-- **exiv2** to manage image metadata
+- **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possible without some shift-only registration)
 
 Siril works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file
 formats are handled internally, like BMP, PPM and SER, some require external
-libraries or programs listed below. Libraries need to be present at compilation
-time, or their support won't be included.
+libraries listed below. Libraries need to be present at compilation time, or
+their support won't be included.
 
-- **json-glib-1.0**, (>= 1.2.6) for Siril update check
+- **glib-networking** for Web requests or **libcurl**, depending on the platform
+    - both are required on Windows as there is a problem with both in some cases,
+      only curl is used for Mac as glib-networking does not work there,
+      and for linux both work and if curl is enabled during the build, glib-networking will not be used
+    - glib-networking requires the **gvfs-backends** dependency on some systems
+- **json-glib-1.0**, (>= 1.2.6) for Siril update check and metadata output
+- **exiv2** to get thumbnails from files
 - **libraw** for DSLR RAW files import
 - **libffms2** for films import (any format supported by ffmpeg)
 - **libtiff** (>= 4) for TIFF format support
@@ -50,14 +54,13 @@ time, or their support won't be included.
 - **libheif** for HEIF format files import
 - **libpng** (>= 1.6) for PNG format support
 - **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
-- **libcurl** for web interaction. Useless on GNU-Linux MUST be installed on macOS and Windows platform as GIO is broken
 - **wcslib** for some astrometry utilities
 - **gnuplot** for photometry graphs output
 - **libconfig** (>= 1.4) to read old configuration files (not used since 1.1)
-- **criterion** for unit testing (development)
+- **criterion** for unit testing with meson (development)
 
 All these libraries and programs are available in most Linux distributions and
-free systems, maybe with the exception of ffms2 that is not as popular as
+free systems, maybe with the exception of ffms2 that is not as popular as the
 others and may need to be compiled.
 
 ## Scripting
@@ -80,7 +83,11 @@ the `-p` argument is passed to the program on the command line.
 
 ## Download binaries
 
-We maintain binary packages of the latest stable version of Siril. A full list of all releases is available on [free-astro](https://free-astro.org/index.php?title=Siril:releases) as well as [Siril's website](https://siril.org/download/). The available packages per relesae might differ.
+We maintain binary packages of the latest stable version of Siril. A full list
+of all releases is available on
+[free-astro](https://free-astro.org/index.php?title=Siril:releases) as well as
+[Siril's website](https://siril.org/download/). The available packages per
+relesae might differ.
 
 - Ubuntu and Linux Mint: [`ppa:lock042/siril`](https://launchpad.net/~lock042/+archive/ubuntu/siril)
 - Windows: see [Downloads](https://siril.org/download/)
@@ -88,7 +95,9 @@ We maintain binary packages of the latest stable version of Siril. A full list o
 
 ## Download source
 
-You can get Siril's source code from the release archives on the webpage or fetch the latest version from our [repository on GitLab](https://gitlab.com/free-astro/siril):
+You can get Siril's source code from the release archives on the webpage or
+fetch the latest version from our [repository on
+GitLab](https://gitlab.com/free-astro/siril):
 
 ```bash
 git clone --recurse-submodules https://gitlab.com/free-astro/siril.git
@@ -119,11 +128,17 @@ To uninstall Siril, run the following command:
 ninja -C _build uninstall
 ```
 
+Using meson to build siril requires all optional dependencies to be available or explicitly
+disabled on the meson command line adding `-Djson_glib=false` for example. The autotools way
+still only enables dependencies that are found and is available using autogen.sh.
+
 ## Building Siril for macOS
 
-The official JHBuild-based build scripts are available in the [siril_macos](https://gitlab.com/free-astro/siril_macos) repository.
+The official JHBuild-based build scripts are available in the
+[siril_macos](https://gitlab.com/free-astro/siril_macos) repository.
 
-Alterantively, you can install Siril via [Homebrew](https://brew.sh). Please note that this is not maintained by Siril developers.
+Alternatively, you can install Siril via [Homebrew](https://brew.sh). Please
+note that this is not maintained by Siril developers.
 
 ```bash
 brew install siril
@@ -131,7 +146,8 @@ brew install siril
 
 ## Building Siril for Windows
 
-The build process using [msys2](https://www.msys2.org) is documented [here](https://free-astro.org/index.php?title=Siril:install#Installing_on_Windows).
+The build process using [msys2](https://www.msys2.org) is documented
+[here](https://free-astro.org/index.php?title=Siril:install#Building_on_Windows_with_msys2).
 
 ## Translation instructions for Siril
 
@@ -173,11 +189,11 @@ Siril supports SER v3. See [this page](https://free-astro.org/index.php/SER) for
 ## Useful links
 
 - [Project Homepage](https://www.siril.org)
-- [Documentation](https://free-astro.org/siril_doc-en)
+- [Documentation](https://siril.rtfd.io)
 - [Forum](https://discuss.pixls.us/siril)
 - [Releases and Downloads](https://free-astro.org/index.php?title=Siril:releases)
 - [Report a bug](https://gitlab.com/free-astro/siril/issues)
-- [Supported commands](https://free-astro.org/index.php?title=Siril:Commands)
+- [Commands reference](https://siril.readthedocs.io/en/latest/genindex.html)
 
 ## License
 
