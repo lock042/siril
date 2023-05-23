@@ -216,19 +216,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	if (gui.cut_over) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
-	cmsUInt32Number type;
-	int norm = (int) get_normalized_value(&gfit);
-	switch (norm) {
-		case 1:
-			type = TYPE_RGB_FLT;
-			break;
-		case UCHAR_MAX:
-			type = TYPE_RGB_8;
-			break;
-		default:
-			// includes case USHRT_MAX:
-			type = TYPE_RGB_16;
-	}
+	cmsUInt32Number type = (gfit.naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	g_mutex_lock(&monitor_profile_mutex);
 	cmsHPROFILE proofing_transform = cmsCreateProofingTransform(
