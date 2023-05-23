@@ -195,13 +195,13 @@ void assign_linear_icc_profile(fits *fit) {
 }
 
 cmsHTRANSFORM initialize_display_transform() {
-	g_assert(gfit.icc_profile);
 	g_assert(gui.icc.monitor);
-	cmsHTRANSFORM transform;
-	cmsUInt32Number type;
-	type = TYPE_RGB_16;
+	cmsHTRANSFORM transform = NULL;
+	if (gfit.icc_profile == NULL)
+		return NULL;
+	cmsUInt32Number type = (gfit.naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
 	g_mutex_lock(&monitor_profile_mutex);
-	transform = cmsCreateTransform(gfit.icc_profile, type, gui.icc.monitor, type, gui.icc.rendering_intent, 0);
+	transform = cmsCreateTransform(gfit.icc_profile, type, (gfit.naxes[2] == 3 ? gui.icc.monitor : com.icc.mono_out), type, gui.icc.rendering_intent, 0);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
@@ -209,9 +209,9 @@ cmsHTRANSFORM initialize_display_transform() {
 }
 
 cmsHTRANSFORM initialize_proofing_transform() {
-	g_assert(gfit.icc_profile);
 	g_assert(gui.icc.monitor);
-	g_assert(gui.icc.soft_proof);
+	if (gfit.icc_profile == NULL || gui.icc.soft_proof == NULL)
+		return NULL;
 	cmsUInt32Number flags = cmsFLAGS_SOFTPROOFING;
 	if (gui.cut_over) {
 		flags |= cmsFLAGS_GAMUTCHECK;
@@ -246,12 +246,13 @@ cmsHTRANSFORM initialize_proofing_transform() {
 }
 
 void refresh_icc_transforms() {
-	if (gui.icc.display_transform)
-		cmsDeleteTransform(gui.icc.display_transform);
-	if (gui.icc.proofing_transform)
-		cmsDeleteTransform(gui.icc.proofing_transform);
 	if (gui.icc.available) {
+		if (gui.icc.display_transform != NULL)
+			cmsDeleteTransform(gui.icc.display_transform);
 		gui.icc.display_transform = initialize_display_transform();
+
+		if (gui.icc.proofing_transform != NULL)
+			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
 	}
 }
@@ -380,6 +381,8 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	return retval;
 }
 
+// This function is for initializing the profile during file import, hence the fallback assumption of
+// a sRGB profile
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen) {
 	if (com.icc.available) {
 		if (EmbedBuffer) {
@@ -392,6 +395,14 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 	}
 }
 
+// This function is for checking that a fits has an associated ICC profile during image ops, hence the
+// fallback assumption of a linear profile
+void fits_check_icc(fits *fit) {
+	if (!fit->icc_profile) {
+		// If there is no embedded profile we assume the usual sRGB D65 g22
+		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_linear : com.icc.srgb_linear);
+	}
+}
 ///// Preferences callbacks
 
 // Being able to alter the monitor and soft_proof profiles and intents from the GTK thread means all operations

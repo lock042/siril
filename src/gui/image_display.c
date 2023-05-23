@@ -299,35 +299,77 @@ static void remap(int vport) {
 		WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
 		WORD *linebuf = pixelbuf + vport * gfit.rx;
 		if (gfit.type == DATA_FLOAT) {
+			if (hd_mode) {
 #pragma omp simd
-			for (x = 0 ; x < gfit.rx ; x++) {
-				linebuf[x] = fsrc[src_i + x] * USHRT_MAX_SINGLE;
-				if (hd_mode) linebuf[x] *= (gui.hd_remap_max / USHRT_MAX);
+				for (x = 0 ; x < gfit.rx ; x++)
+					linebuf[x] = index[float_to_max_range(fsrc[src_i + x], gui.hd_remap_max)] << 8;
+			} else if (gui.rendering_mode == STF_DISPLAY) {
+#pragma omp simd
+				for (x = 0 ; x < gfit.rx ; x++)
+					linebuf[x] = index[roundf_to_WORD(fsrc[src_i + x] * USHRT_MAX_SINGLE)] << 8;
+			} else {
+#pragma omp simd
+				for (x = 0 ; x < gfit.rx ; x++)
+					linebuf[x] = roundf_to_WORD(fsrc[src_i + x] * USHRT_MAX_SINGLE);
 			}
 		} else if (norm == UCHAR_MAX) {
-			memcpy(linebuf, src + src_i, gfit.rx * sizeof(WORD));
+			if (hd_mode) {
 #pragma omp simd
-			for (x = 0 ; x < gfit.rx ; x++) {
-				linebuf[x] = linebuf[x] << 8;
+				for (x = 0 ; x < gfit.rx ; x++) {
+					linebuf[x] = index[(src[src_i + x] * (gui.hd_remap_max / UCHAR_MAX))] << 8;
+				}
+			} else if (gui.rendering_mode == STF_DISPLAY) {
+#pragma omp simd
+				for (x = 0 ; x < gfit.rx ; x++) {
+					linebuf[x] = index[src[src_i + x] << 8] << 8;
+				}
+			} else {
+#pragma omp simd
+				for (x = 0 ; x < gfit.rx ; x++) {
+					linebuf[x] = src[src_i + x] << 8;
+				}
 			}
 		} else {
-			memcpy(linebuf, src + src_i, gfit.rx * sizeof(WORD));
+			if (hd_mode) {
+#pragma omp simd
+				for (x = 0 ; x < gfit.rx ; x++) {
+					linebuf[x] = index[(src[src_i + x] * (gui.hd_remap_max / USHRT_MAX))] << 8;
+				}
+			} else if (gui.rendering_mode == STF_DISPLAY) {
+#pragma omp simd
+				for (x = 0 ; x < gfit.rx ; x++) {
+					linebuf[x] = index[src[src_i + x]] << 8;
+				}
+			} else {
+				memcpy(linebuf, src + src_i, gfit.rx * sizeof(WORD));
+			}
 		}
-		if (com.icc.available)
+		if (com.icc.available && gui.rendering_mode != HISTEQ_DISPLAY)
 			cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
 							gui.icc.proofing_transform :
 							gui.icc.display_transform,
 							pixelbuf, pixelbuf, gfit.rx);
-		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
+		if ((gfit.type == DATA_USHORT && norm == UCHAR_MAX) || gui.rendering_mode == STF_DISPLAY) {
 #pragma omp simd
 			for (x = 0 ; x < gfit.rx ; x++) {
 				linebuf[x] = linebuf[x] >> 8;
 			}
 		}
+		// Mono transform is gray to gray: it only populates the first element
+		// of pixelbuf; we need to set them all the same so they will show as
+		// shades of grey not shades of red
+		if (gfit.naxes[2] == 1) {
+#pragma omp simd
+			for (x = 0 ; x < gfit.rx ; x++) {
+				pixelbuf[x + 2 * gfit.rx] = pixelbuf[x + gfit.rx] = linebuf[x];
+			}
+		}
 		for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 			BYTE dst_pixel_value = 0;
 				WORD val = linebuf[x];
-				if (special_mode)	// special case, no lo & hi
+				if (gui.rendering_mode == STF_DISPLAY)
+					dst_pixel_value = val;
+				else if (special_mode)	// special case, no lo & hi
 					dst_pixel_value = index[val];
 				else if (gui.cut_over && val > gui.hi)	// cut
 					dst_pixel_value = 0;

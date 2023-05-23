@@ -21,6 +21,7 @@
 #include <glib.h>
 #include "mtf.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
 
@@ -149,8 +150,18 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 	float m = 0.0;
 	int i, invertedChannels = 0;
 	imstats *stat[3];
+//	cmsHTRANSFORM transform = NULL;
 
 	int nb_channels = (int)fit->naxes[2];
+/*
+	if (com.icc.available) {
+		fits_check_icc(fit);
+		if (nb_channels == 1)
+			transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_FLT, com.icc.mono_standard, TYPE_GRAY_FLT, com.icc.save_intent, 0);
+		else
+			transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_FLT, com.icc.srgb_standard, TYPE_RGB_FLT, com.icc.save_intent, 0);
+	}
+*/
 	int retval = compute_all_channels_statistics_single_image(fit,
 			STATS_BASIC | STATS_MAD, MULTI_THREADED, stat);
 	for (i = 0; i < nb_channels; i++) {
@@ -175,6 +186,18 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
 			/* this is a guard to avoid breakdown point */
 			if (mad == 0.f) mad = 0.001f;
+/*
+			if (transform != NULL) {
+				if (nb_channels == 1) {
+					cmsDoTransform(transform, (void *) &median, (void *) &median, 1);
+				} else {
+					float rgb[3] = { 0 };
+					rgb[i] = median;
+					cmsDoTransform(transform, (void *) &rgb, (void *) &rgb, 1);
+					median = rgb[i];
+				}
+			}
+*/
 
 			c0 += median + shadows_clipping * mad;
 			m += median;

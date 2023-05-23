@@ -47,6 +47,7 @@ BYTE uchar_pixel_icc_tx(BYTE in, int channel, int nchans, cmsHTRANSFORM display_
 WORD ushrt_pixel_icc_tx(WORD in, int channel, int nchans, cmsHTRANSFORM display_transform);
 float float_pixel_icc_tx(float in, int channel, int nchans, cmsHTRANSFORM display_transform);
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
+void fits_check_icc(fits *fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len);
 #endif /* SRC_CORE_ICC_PROFILE_H_ */
