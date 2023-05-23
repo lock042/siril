@@ -755,19 +755,20 @@ summary(
 
 summary(
   {
-    'json glib' : json_glib_dep.found(),
-    'exiv2'     : exiv_dep.found(),
-    'libraw'    : libraw_dep.found(),
-    'TIFF'      : libtiff_dep.found(),
-    'JPEG'      : libjpeg_dep.found(),
-    'PNG'       : libpng_dep.found(),
-    'HEIF'      : libheif_dep.found(),
-    'FFMS2'     : ffms2_dep.found(),
-    'ffmpeg'    : ffmpeg_found,
-    'libcurl'   : libcurl_dep.found(),
-    'wcslib'    : wcslib_dep.found(),
-    'libconfig' : libconfig_dep.found(),
-    'criterion' : criterion_dep.found(),
+    'json glib'         : json_glib_dep.found(),
+    'exiv2'             : exiv_dep.found(),
+    'libraw'            : libraw_dep.found(),
+    'TIFF'              : libtiff_dep.found(),
+    'JPEG'              : libjpeg_dep.found(),
+    'PNG'               : libpng_dep.found(),
+    'HEIF'              : libheif_dep.found(),
+    'FFMS2'             : ffms2_dep.found(),
+    'ffmpeg'            : ffmpeg_found,
+    'libcurl'           : libcurl_dep.found(),
+    'glib-networking'   : glib_networking_works,
+    'wcslib'            : wcslib_dep.found(),
+    'libconfig'         : libconfig_dep.found(),
+    'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
 
