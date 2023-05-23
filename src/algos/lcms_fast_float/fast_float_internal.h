@@ -22,8 +22,12 @@
 #ifndef _FAST_INTERNAL_H
 #define _FAST_INTERNAL_H
 
-#include "algos/lcms_fast_float/lcms2_fast_float.h"
+#ifndef __SSE2__
+#define CMS_DONT_USE_SSE2
+#endif
+
 #include "lcms2_plugin.h"
+#include "algos/lcms_fast_float/lcms2_fast_float.h"
 #include <stdint.h>
 
 #define REQUIRED_LCMS_VERSION 2120
