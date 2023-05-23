@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <criterion/criterion.h>
 #include "core/siril_date.h"
 

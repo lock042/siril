@@ -171,14 +171,6 @@ deps-debian:
     - export PATH="${INSTALL_PREFIX}/bin:$PATH"
   needs: ["deps-debian"]
 
-siril-deb-autotools:
-  extends: .siril-debian/testing-base
-  script:
-    - NOCONFIGURE=1 ./autogen.sh
-    - mkdir ${BUILD_DIR} && cd ${BUILD_DIR}
-    - ../configure --prefix=${INSTALL_PREFIX}
-    - make -j "$(nproc)" all install
-
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:

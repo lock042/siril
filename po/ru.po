@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-19 01:35+0000\n"
+"PO-Revision-Date: 2023-05-20 01:28+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -4612,7 +4612,7 @@ msgstr "Частотные слои…"
 
 #: src/gui/siril3.glade:18409
 msgid "Resample"
-msgstr "Ресэмплинг"
+msgstr "Масштабировать"
 
 #: src/gui/siril3.glade:18480
 msgid "X scale (%): "
@@ -4628,7 +4628,7 @@ msgstr "Сохранить соотношение сторон"
 
 #: src/gui/siril3.glade:18532
 msgid "Type of algorithm used for resampling"
-msgstr "Метод интерполяции при ресэмплинге"
+msgstr "Метод интерполяции при масштабировании"
 
 #: src/gui/siril3.glade:18538 src/gui/siril3.glade:18810
 #: src/gui/siril3.glade:23180
@@ -6044,7 +6044,7 @@ msgstr "Выбор изображений:"
 
 #: src/gui/siril3.glade:23072
 msgid "Simplified Drizzle x2"
-msgstr "Упрощенный Drizzle ×2"
+msgstr "Упрощённый Drizzle ×2"
 
 #: src/gui/siril3.glade:23076
 msgid ""
@@ -6604,6 +6604,44 @@ msgid ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
+"Доступны семь алгоритмов выбраковки:\n"
+"\n"
+"<b>Обрезка по процентилям</b>: одношаговый алгоритм выбраковки, идеальный "
+"для небольших наборов данных (до 6 изображений).\n"
+"\n"
+"<b>Обрезка по σ</b>: итеративный алгоритм, который отбрасывает пиксели, "
+"отстоящие от медианы более чем на два заданных значения, указанных в "
+"единицах σ.\n"
+"\n"
+"<b>Обрезка по MAD</b>: итеративный алгоритм, работающий аналогично обрезке "
+"по σ, но использующий в качестве оценки медианное абсолютное отклонение (MAD)"
+". Он обычно используется для обработки зашумленных инфракрасных изображений."
+"\n"
+"\n"
+"<b>Медианная обрезка по σ</b>: тот же алгоритм, за исключением того, что "
+"отброшенный пиксели заменяются значением медианы.\n"
+"\n"
+"<b>Винсоризованная обрезка по σ</b>: очень похож на метод обрезки по σ, но "
+"использующий алгоритм, основанный на работе Хубера [1] [2].\n"
+"\n"
+"<b>Линейная обрезка</b>: алгоритм, разработанный Хуаном Конехеро (Juan "
+"Conejero), основным разработчиком PixInsight [2]. Алгоритм подгоняет "
+"наилучшую прямую линию (y=ax+b) стека пикселей и отбрасывает выбросы. Этот "
+"алгоритм очень хорошо работает с большими стеками и изображениями, "
+"содержащими градиенты неба с различающимися пространственным распределением "
+"и ориентацией.\n"
+"\n"
+"<b>GESDT</b>: алгоритм [3], являющийся обобщением критерия Граббса (Grubbs "
+"Test), который используется для обнаружения одного или нескольких выбросов в "
+"одномерном наборе данных, приблизительно соответствующему нормальному "
+"распределению. Данный алгоритм демонстрирует прекрасную производительность "
+"на больших наборах данных, имеющих более 50 изображений.\n"
+"\n"
+"[1] Peter J. Huber and E. Ronchetti (2009), Robust Statistics, 2nd Ed., "
+"Wiley\n"
+"[2] Juan Conejero, ImageIntegration, Pixinsight Tutorial\n"
+"[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
+"Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 
 #: src/gui/siril3.glade:24305
 msgid "No rejection"
@@ -6704,8 +6742,7 @@ msgstr "Слить L+H"
 #: src/gui/siril3.glade:24391
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
-msgstr ""
-"Создать одну карту выбраковки, которая суммирует низкую и высокую карты"
+msgstr "Создать одну карту выбраковки, которая суммирует карты низов и верхов"
 
 #: src/gui/siril3.glade:24422
 msgid "Pixel rejection:"
@@ -7074,6 +7111,9 @@ msgid ""
 "with every color channel.\n"
 "The Background Neutralization should be applied before this operation."
 msgstr ""
+"Три коэффициента калибровки цвета будут рассчитаны и умножены на каждый "
+"цветовой канал.\n"
+"Перед этой операцией должна выполняться нейтрализация фона."
 
 #: src/gui/siril3.glade:27058
 msgid "Background Neutralization"
@@ -9126,9 +9166,9 @@ msgstr ""
 "с ограничением по блеску %.2f\n"
 
 #: src/algos/astrometry_solver.c:1408
-#, fuzzy, c-format
+#, c-format
 msgid "Down-sampling image for faster star detection by a factor %.2f\n"
-msgstr "Уменьшение изображения для более быстрого поиска звёзд\n"
+msgstr "Уменьшение изображения на коэф-т %.2f для более быстрого поиска звёзд\n"
 
 #: src/algos/astrometry_solver.c:1420
 msgid "Failed to downsample image, aborting\n"
@@ -9876,9 +9916,9 @@ msgid "blue"
 msgstr "синий"
 
 #: src/algos/photometric_cc.c:376
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
-msgstr "Не удалось выполнить анализ звёзд"
+msgstr "Установлены наружный (%.1f) и внутренний (%0.1f) радиусы фотометрии\n"
 
 #: src/algos/photometric_cc.c:379
 msgid "Photometric color calibration in progress..."
@@ -10601,7 +10641,7 @@ msgstr "Оценка шума"
 #: src/core/command.c:1223 src/core/command.c:1233 src/core/command.c:1243
 #: src/core/command.c:1253 src/core/command.c:1263 src/core/command.c:1273
 #: src/core/command.c:1283 src/core/command.c:1293
-#, fuzzy, c-format
+#, c-format
 msgid "Error in %s parameter: must be in %s, aborting.\n"
 msgstr "Ошибка в параметре %s: должен быть в %s, прерывание.\n"
 
@@ -11481,9 +11521,9 @@ msgid "The third argument is larger than the number of images.\n"
 msgstr ""
 
 #: src/core/command.c:5248
-#, fuzzy, c-format
+#, c-format
 msgid "Re-adjusting to %d.\n"
-msgstr "Чтение %s\n"
+msgstr "Перенастройка %d.\n"
 
 #: src/core/command.c:5272 src/gui/sequence_list.c:628
 #, c-format
@@ -11562,9 +11602,8 @@ msgid "Link: error opening working directory %s.\n"
 msgstr "Ссылка: ошибка при открытии рабочей директории %s.\n"
 
 #: src/core/command.c:6234
-#, fuzzy
 msgid "No FITS files were found for link\n"
-msgstr "Не найдено RAW-файлов для конвертирования\n"
+msgstr "Не найдено FITS файлов для ссылки\n"
 
 #: src/core/command.c:6244 src/core/command.c:6384
 msgid ""
@@ -11604,9 +11643,8 @@ msgid "No RAW files were found for conversion\n"
 msgstr "Не найдено RAW-файлов для конвертирования\n"
 
 #: src/core/command.c:6374
-#, fuzzy
 msgid "No files were found for conversion\n"
-msgstr "Не найдено RAW-файлов для конвертирования\n"
+msgstr "Не найдено файлов для конвертирования\n"
 
 #: src/core/command.c:6389
 #, c-format
@@ -11688,9 +11726,9 @@ msgid "No registration data exists for this sequence, aborting\n"
 msgstr "Нет данных регистрации для этой последовательности, прерывание\n"
 
 #: src/core/command.c:6878
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown framing type %s, aborting.\n"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Неизвестный метод кадрирования %s, прерывание.\n"
 
 #: src/core/command.c:6894
 #, c-format
@@ -11773,7 +11811,7 @@ msgstr ""
 "игнорируем.\n"
 
 #: src/core/command.c:7034
-#, c-format, fuzzy
+#, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Неожиданный аргумент для укладки `%s', прерывание.\n"
 
@@ -12794,9 +12832,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:70
-#, fuzzy
 msgid "Inverse of the midtones transfer function"
-msgstr "Передаточная функция полутонов"
+msgstr "Обратная передаточная функция полутонов"
 
 #: src/core/command_def.h:71
 msgid ""
@@ -12989,7 +13026,7 @@ msgstr ""
 
 #: src/core/command_def.h:87
 msgid "Merges several sequences into one"
-msgstr ""
+msgstr "Слияние нескольких последовательностей в одну"
 
 #: src/core/command_def.h:88
 msgid ""
@@ -14590,7 +14627,7 @@ msgstr "Не удалась темновая оптимизация изобра
 #: src/core/preprocess.c:191
 #, c-format
 msgid "Dark optimization of image %d: k0=%.3f\n"
-msgstr "Темновая оптимизация изображения %d: k0=%.3f\n"
+msgstr "Темновая оптимизация изображения %d: k0 = %.3f\n"
 
 #: src/core/preprocess.c:349
 #, c-format
@@ -14613,6 +14650,8 @@ msgstr[2] "%ld пикселей исправлено (%ld + %ld)\n"
 msgid ""
 "Darkmap cosmetic correction is only supported with single channel images\n"
 msgstr ""
+"Косметическая коррекция с помощью темновой карты поддерживается только для "
+"одноканальных изображений\n"
 
 #: src/core/preprocess.c:483
 msgid "Preprocessing"
@@ -15100,22 +15139,18 @@ msgid "electrons per ADU for noise estimation"
 msgstr ""
 
 #: src/core/settings.c:300
-#, fuzzy
 msgid "inner radius for background annulus"
-msgstr "Усиление углового радиуса"
+msgstr "внутренний радиус кольца фона"
 
 #: src/core/settings.c:301
-#, fuzzy
 msgid "outer radius for background annulus"
-msgstr "Кольцевая зона фона"
+msgstr "внешний радиус кольца фона"
 
 #: src/core/settings.c:302
-#, fuzzy
 msgid "factor for inner radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внутреннего радиуса"
 
 #: src/core/settings.c:303
-#, fuzzy
 msgid "factor for outer radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внешнего радиуса"
 
@@ -19627,6 +19662,10 @@ msgid ""
 "Returns <i>expr_true</i> if <i>cond</i> evaluates to nonzero.\n"
 "Returns <i>expr_false</i> if <i>cond</i> evaluates to zero."
 msgstr ""
+"Функция проверки условий (встроенная функция if).\n"
+"\n"
+"Возвращает <i>expr_true</i> если <i>cond</i> не равно нулю.\n"
+"Возвращает <i>expr_false</i> если <i>cond</i> равно нулю."
 
 #: src/pixelMath/pixel_math_runner.c:84
 msgid "Highest integer less than or equal to x."
@@ -19758,15 +19797,15 @@ msgstr "Ширина указанного изображения в пиксел
 
 #: src/pixelMath/pixel_math_runner.c:125
 msgid "Pixel Inversion operator."
-msgstr ""
+msgstr "Оператор инверсии пикселя."
 
 #: src/pixelMath/pixel_math_runner.c:126
 msgid "Unary Minus operator (sign change)."
-msgstr ""
+msgstr "Унарный оператор минус (смена знака)"
 
 #: src/pixelMath/pixel_math_runner.c:127
 msgid "Unary Plus operator."
-msgstr ""
+msgstr "Унарный оператор плюс"
 
 #: src/pixelMath/pixel_math_runner.c:128
 msgid "Logical NOT operator."
@@ -19785,7 +19824,6 @@ msgid "Division operator."
 msgstr "Оператор деления."
 
 #: src/pixelMath/pixel_math_runner.c:132
-#, fuzzy
 msgid "Modulus operator."
 msgstr "Оператор модуля."
 
