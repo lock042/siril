@@ -647,7 +647,8 @@ else # not meson.is_cross_build() or meson.has_exe_wrapper()
 endif
 
 if not glib_networking_works and not libcurl_dep.found()
-  error('no networking library found, either glib-networking or curl are required.')
+  warning('no networking library found, neither glib-networking or curl found.')
+  conf_data.set('HAVE_NETWORKING', false, description : 'Using networking.')
 else
   message('networking solution found with either glib-networking or curl.')
   conf_data.set('HAVE_NETWORKING', true, description : 'Using networking.')
@@ -762,7 +763,7 @@ summary(
     'PNG'       : libpng_dep.found(),
     'HEIF'      : libheif_dep.found(),
     'FFMS2'     : ffms2_dep.found(),
-    'FFMPEG'    : ffmpeg_found,
+    'ffmpeg'    : ffmpeg_found,
     'libcurl'   : libcurl_dep.found(),
     'wcslib'    : wcslib_dep.found(),
     'libconfig' : libconfig_dep.found(),
