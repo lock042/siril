@@ -84,7 +84,7 @@
     <binary>siril</binary>
   </provides>
   <url type="homepage">https://www.siril.org</url>
-  <url type="bugtracker">https://gitlab.com/free-astro/siril/issues</url>
+  <url type="bugtracker">https://gitlab.com/free-astro/siril/-/issues</url>
   <url type="donation">https://siril.org/donate/</url>
   <url type="help">https://free-astro.org/siril_doc-en/</url>
   <update_contact>cyril_at_free-astro.org</update_contact>
