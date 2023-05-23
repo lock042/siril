@@ -651,8 +651,7 @@ void update_preferences_from_model() {
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")), pref->rendering_intent);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")), pref->proofing_intent);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")), pref->export_intent);
-
+	initialize_icc_preferences_widgets();
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->mem_mode == AMOUNT);

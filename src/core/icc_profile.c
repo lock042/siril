@@ -363,3 +363,162 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 		}
 	}
 }
+
+///// Preferences callbacks
+
+// TODO: being able to alter the profiles and intents from the GTK thread probably means all operations that
+// use the profiles need to go inside mutexes to prevent the profile being ripped out from under them.
+// This should primarily mean the transform generation, as it is safe to close profiles once the transform
+// is generated.
+
+void initialize_icc_preferences_widgets() {
+	GtkToggleButton *monitortogglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
+	GtkFileChooser *monitorfilechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
+
+	GtkToggleButton *proofingtogglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
+	GtkFileChooser *proofingfilechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
+
+	if (!gtk_file_chooser_get_filename(monitorfilechooser)) {
+		gtk_toggle_button_set_active(monitortogglebutton, FALSE);
+		gtk_widget_set_sensitive((GtkWidget*) monitortogglebutton, FALSE);
+	} else {
+		gtk_toggle_button_set_active(monitortogglebutton, TRUE);
+		gtk_widget_set_sensitive((GtkWidget*) monitortogglebutton, TRUE);
+	}
+
+	gtk_toggle_button_set_active(proofingtogglebutton, (gui.icc.soft_proof != NULL));
+	if (!gtk_file_chooser_get_filename(proofingfilechooser)) {
+		gtk_widget_set_sensitive((GtkWidget*) proofingtogglebutton, FALSE);
+	} else {
+		gtk_widget_set_sensitive((GtkWidget*) proofingtogglebutton, TRUE);
+	}
+}
+
+void on_pref_custom_monitor_profile_file_set(GtkFileChooser* filechooser, gpointer user_data) {
+	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
+	gchar *filename = gtk_file_chooser_get_filename(filechooser);
+	if (filename) {
+		gtk_widget_set_sensitive((GtkWidget*) togglebutton, TRUE);
+	}
+}
+
+void on_pref_soft_proofing_profile_file_set(GtkFileChooser* filechooser, gpointer user_data) {
+	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
+	gchar *filename = gtk_file_chooser_get_filename(filechooser);
+	if (filename) {
+		gtk_widget_set_sensitive((GtkWidget*) togglebutton, TRUE);
+	}
+}
+
+void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
+	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
+	gtk_file_chooser_unselect_all(filechooser);
+	if (com.pref.icc_paths[INDEX_CUSTOM_MONITOR] && com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] != '\0') {
+		g_free(com.pref.icc_paths[INDEX_CUSTOM_MONITOR]);
+		com.pref.icc_paths[INDEX_CUSTOM_MONITOR] = NULL;
+		cmsCloseProfile(gui.icc.monitor);
+		if (com.icc.available) {
+			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
+			if (gui.icc.monitor) {
+				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
+			} else {
+				siril_log_color_message(_("Error: standard sRGB ICC profile could not be loaded.\n"), "red");
+				com.icc.available = FALSE;
+			}
+		}
+	}
+	gtk_toggle_button_set_active(togglebutton, FALSE);
+	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
+}
+
+void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
+	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
+
+	gtk_file_chooser_unselect_all(filechooser);
+	if (com.pref.icc_paths[INDEX_CUSTOM_PROOF] && com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] != '\0') {
+		g_free(com.pref.icc_paths[INDEX_CUSTOM_PROOF]);
+		com.pref.icc_paths[INDEX_CUSTOM_PROOF] = NULL;
+		if (gui.icc.soft_proof)
+			cmsCloseProfile(gui.icc.soft_proof);
+		gui.icc.soft_proof = NULL;
+	}
+	gtk_toggle_button_set_active(togglebutton, FALSE);
+	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
+}
+
+void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
+	gboolean no_file = FALSE;
+	gboolean active = gtk_toggle_button_get_active(button);
+	if (gui.icc.monitor) {
+		cmsCloseProfile(gui.icc.monitor);
+	}
+	if (active) {
+		if (!com.pref.icc_paths[INDEX_CUSTOM_MONITOR] || com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] == '\0') {
+			com.pref.icc_paths[INDEX_CUSTOM_MONITOR] = g_strdup(gtk_file_chooser_get_filename(filechooser));
+		}
+		if (!com.pref.icc_paths[INDEX_CUSTOM_MONITOR] || com.pref.icc_paths[INDEX_CUSTOM_MONITOR][0] == '\0') {
+			siril_log_color_message(_("Error: no filename specfied for custom monitor profile.\n"), "red");
+			no_file = TRUE;
+		} else {
+			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_CUSTOM_MONITOR], "r");
+		}
+		if (gui.icc.monitor) {
+			siril_log_message(_("Monitor profile loaded from %s\n"), com.pref.icc_paths[INDEX_CUSTOM_MONITOR], "r");
+			return;
+		} else {
+			if (!no_file) {
+				siril_log_color_message(_("Monitor profile could not be loaded from %s\n"), "red", com.pref.icc_paths[INDEX_CUSTOM_MONITOR]);
+			}
+			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
+			if (gui.icc.monitor) {
+				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
+			} else {
+				siril_log_color_message(_("Error: standard sRGB ICC profile could not be loaded. Color management is disabled.\n"), "red");
+				com.icc.available = FALSE;
+			}
+		}
+	} else {
+		gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
+		if (gui.icc.monitor) {
+			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
+		} else {
+			siril_log_color_message(_("Error: standard sRGB ICC profile could not be loaded. Color management is disabled.\n"), "red");
+			com.icc.available = FALSE;
+		}
+	}
+}
+
+void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
+	gboolean no_file;
+	gboolean active = gtk_toggle_button_get_active(button);
+	if (gui.icc.soft_proof) {
+		cmsCloseProfile(gui.icc.soft_proof);
+	}
+	if (active) {
+		if (!com.pref.icc_paths[INDEX_CUSTOM_PROOF] || com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] == '\0') {
+			com.pref.icc_paths[INDEX_CUSTOM_PROOF] = g_strdup(gtk_file_chooser_get_filename(filechooser));
+		}
+		if (!com.pref.icc_paths[INDEX_CUSTOM_PROOF] || com.pref.icc_paths[INDEX_CUSTOM_PROOF][0] == '\0') {
+			siril_log_color_message(_("Error: no filename specfied for custom proofing profile.\n"), "red");
+			no_file = TRUE;
+		} else {
+			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_CUSTOM_PROOF], "r");
+		}
+		if (gui.icc.soft_proof) {
+			siril_log_message(_("Soft proofing profile loaded from %s\n"), com.pref.icc_paths[INDEX_CUSTOM_PROOF]);
+			return;
+		} else {
+			if (!no_file) {
+				siril_log_color_message(_("Soft proofing profile could not be loaded from %s\n"), "red", com.pref.icc_paths[INDEX_CUSTOM_PROOF]);
+			}
+			siril_log_color_message(_("Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
+		}
+	} else {
+		gui.icc.soft_proof = NULL;
+		siril_log_color_message(_("Soft proofing ICC profile closed. Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
+	}
+}

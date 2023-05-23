@@ -33,6 +33,7 @@ unsigned char* get_gray_profile_data(guint32 *len, gboolean linear);
 
 void refresh_icc_settings();
 void initialize_profiles_and_transforms();
+void initialize_icc_preferences_widgets();
 void assign_linear_icc_profile(fits *fit);
 cmsHTRANSFORM initialize_display_transform();
 cmsHTRANSFORM initialize_proofing_transform();

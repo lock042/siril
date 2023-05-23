@@ -30686,7 +30686,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="label-xalign">0</property>
                                     <property name="shadow-type">none</property>
                                     <child>
-                                      <!-- n-columns=4 n-rows=6 -->
+                                      <!-- n-columns=4 n-rows=5 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -30715,6 +30715,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="can-focus">False</property>
                                             <property name="tooltip-text" translatable="yes">To use a custom monitor ICC profile, set it here. If no custom profile is set, sRGB with D65 white point and gamma = 2.2 will be used.</property>
                                             <property name="title" translatable="yes"/>
+                                            <signal name="file-set" handler="on_pref_custom_monitor_profile_file_set" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
@@ -30727,6 +30728,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="can-focus">False</property>
                                             <property name="tooltip-text" translatable="yes">To use a custom proofing ICC profile, set it here. As the result of soft proofing is heavily dependent on having the correct profile for your printer and paper type, if no profile is set here soft proofing will be unavailable.</property>
                                             <property name="title" translatable="yes"/>
+                                            <signal name="file-set" handler="on_pref_soft_proofing_profile_file_set" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
@@ -30756,19 +30758,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           <packing>
                                             <property name="left-attach">0</property>
                                             <property name="top-attach">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="halign">start</property>
-                                            <property name="label" translatable="yes">&lt;b&gt;Export profile&lt;/b&gt;</property>
-                                            <property name="use-markup">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">0</property>
-                                            <property name="top-attach">4</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -30812,33 +30801,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkButton" id="export_profile_clear">
-                                            <property name="label" translatable="yes">Clear</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">True</property>
-                                            <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
-                                            <signal name="clicked" handler="on_export_profile_clear_clicked" swapped="no"/>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">2</property>
-                                            <property name="top-attach">4</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkFileChooserButton" id="pref_export_profile">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">The default export profile is sRGB using the ICC-standard D65 white point and gamma = 2.2. If you are in any doubt, you should keep the default as this will maximise compatibility with applications that don't implement full color management and just assume images are in sRGB.
-To use a custom export profile, set it here. This will apply to all images, with the exception of FITS and SER, that are exported in 16 bit precision or less.</property>
-                                            <property name="title" translatable="yes"/>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">1</property>
-                                            <property name="top-attach">4</property>
-                                          </packing>
-                                        </child>
-                                        <child>
                                           <object class="GtkComboBoxText" id="combo_rendering_intent">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
@@ -30875,6 +30837,36 @@ To use a custom export profile, set it here. This will apply to all images, with
                                           </packing>
                                         </child>
                                         <child>
+                                          <object class="GtkCheckButton" id="custom_monitor_profile_active">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_custom_monitor_profile_active_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">3</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="custom_proofing_profile_active">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_custom_proofing_profile_active_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">3</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
                                           <object class="GtkLabel">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
@@ -30883,14 +30875,14 @@ To use a custom export profile, set it here. This will apply to all images, with
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
-                                            <property name="top-attach">5</property>
+                                            <property name="top-attach">4</property>
                                           </packing>
                                         </child>
                                         <child>
                                           <object class="GtkComboBoxText" id="combo_export_intent">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">Select the display intent. The default is perceptual rendering.</property>
+                                            <property name="tooltip-text" translatable="yes">Select the color management intent for export file formats.</property>
                                             <property name="active">0</property>
                                             <items>
                                               <item translatable="yes">Perceptual</item>
@@ -30901,48 +30893,6 @@ To use a custom export profile, set it here. This will apply to all images, with
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
-                                            <property name="top-attach">5</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkCheckButton" id="pref_custom_monitor_profile_active">
-                                            <property name="label" translatable="yes">active</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">False</property>
-                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                            <property name="draw-indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">3</property>
-                                            <property name="top-attach">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkCheckButton">
-                                            <property name="label" translatable="yes">active</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">False</property>
-                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                            <property name="draw-indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">3</property>
-                                            <property name="top-attach">2</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkCheckButton">
-                                            <property name="label" translatable="yes">active</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">False</property>
-                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom export profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                            <property name="draw-indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">3</property>
                                             <property name="top-attach">4</property>
                                           </packing>
                                         </child>
