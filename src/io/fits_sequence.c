@@ -385,7 +385,8 @@ static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 	int status = 0;
 	fits_close_file(fitseq->fptr, &status);
 	if (retval && fitseq->filename)
-		g_unlink(fitseq->filename);
+		if (g_unlink(fitseq->filename))
+			siril_debug_print("g_unlink() failed\n");
 	if (fitseq->filename)
 		free(fitseq->filename);
 	if (fitseq->hdu_index)

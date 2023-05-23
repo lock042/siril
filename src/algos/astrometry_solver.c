@@ -486,7 +486,7 @@ gpointer search_in_online_conesearch(gpointer p) {
 }
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
-	GString *string_url;
+	GString *string_url = NULL;
 	gchar *name = g_utf8_strdown(object, -1);
 	switch(server) {
 	case QUERY_SERVER_CDS:
@@ -537,6 +537,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-from=Siril;");
 		if (!gfit.date_obs) {
 			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+			g_string_free(string_url, TRUE);
 			return NULL;
 		}
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
@@ -1599,7 +1600,8 @@ clearup:
 	}
 	if (!args->for_sequence) {
 		com.child_is_running = EXT_NONE;
-		g_unlink("stop");
+		if (g_unlink("stop"))
+			siril_debug_print("g_unlink() failed");
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
@@ -2270,7 +2272,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		g_object_unref(aargs->catalog_file);
 	free (aargs);
 	com.child_is_running = EXT_NONE;
-	g_unlink("stop");
+	if (g_unlink("stop"))
+		siril_debug_print("g_unlink() failed\n");
 	return 0;
 }
 
