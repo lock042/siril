@@ -406,7 +406,7 @@ retrieve:
 
 	return result;
 }
-#else
+#elif defined HAVE_NETWORKING
 static gchar *fetch_url(const gchar *url) {
 	GFile *file = g_file_new_for_uri(url);
 	GError *error = NULL;
@@ -424,6 +424,10 @@ static gchar *fetch_url(const gchar *url) {
 #endif
 
 gpointer search_in_online_conesearch(gpointer p) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	return GINT_TO_POINTER(1);
+#else
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	if (!args->fit->date_obs) {
 		free(args);
@@ -483,9 +487,14 @@ gpointer search_in_online_conesearch(gpointer p) {
 	}
 
 	return GINT_TO_POINTER(retval);
+#endif
 }
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	return NULL;
+#else
 	GString *string_url = NULL;
 	gchar *name = g_utf8_strdown(object, -1);
 	switch(server) {
@@ -570,6 +579,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	g_free(name);
 
 	return result;
+#endif
 }
 
 /* parse the result from search_in_catalogs(), for object name to coordinates conversion */
