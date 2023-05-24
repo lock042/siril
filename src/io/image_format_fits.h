@@ -14,7 +14,7 @@ typedef struct {
 	char *value;
 } header_record;
 GSList *read_header_keyvals_strings(fitsfile *fptr);
-
+int read_icc_profile_from_fits(fits *fit);
 data_type get_data_type(int bitpix);
 void fit_get_photometry_data(fits *fit);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
