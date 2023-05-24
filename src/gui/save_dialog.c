@@ -383,8 +383,8 @@ static int save_dialog() {
 		g_free(filename);
 		return res;
 	}
-	close_dialog();
 	siril_preview_free(preview);
+	close_dialog();
 
 	return res;
 }
@@ -520,6 +520,8 @@ static gpointer mini_save_dialog(gpointer p) {
 			break;
 		}
 	}
+	g_free(args->copyright);
+	g_free(args->description);
 	siril_add_idle(end_save, args);
 	return NULL;
 }
@@ -680,7 +682,9 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
-		g_free(args);
+		g_free(args->copyright);
+		g_free(args->description);
+		free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
@@ -692,6 +696,8 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
+		g_free(args->copyright);
+		g_free(args->description);
 		free(args);
 		siril_add_idle(end_generic, NULL);
 	}
@@ -714,6 +720,8 @@ void on_header_save_as_button_clicked() {
 				if (initialize_data(args)) {
 					start_in_new_thread(mini_save_dialog, args);
 				} else {
+					g_free(args->copyright);
+					g_free(args->description);
 					free(args);
 					siril_add_idle(end_generic, NULL);
 				}
