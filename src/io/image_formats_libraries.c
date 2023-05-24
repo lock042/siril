@@ -2051,6 +2051,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 
 	int has_alpha = heif_image_handle_has_alpha_channel(handle);
 
+
 	struct heif_image *img = 0;
 	err = heif_decode_image(handle, &img, heif_colorspace_RGB,
 			has_alpha ? heif_chroma_interleaved_32bit :
@@ -2061,7 +2062,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		heif_context_free(ctx);
 		return OPEN_IMAGE_ERROR;
 	}
-
 	int stride;
 	const uint8_t* udata = heif_image_get_plane_readonly(img, heif_channel_interleaved, &stride);
 	const int width = heif_image_get_width(img, heif_channel_interleaved);
@@ -2111,6 +2111,11 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
 	g_free(basename);
+
+	// Initialize ICC profile. As the buffer is set to NULL, this sets the
+	// profile as sRGB which is the target colorspace set in heif_decode_image()
+	if (com.icc.available)
+		fits_initialize_icc(fit, NULL, 0);
 
 	return OPEN_IMAGE_OK;
 }
