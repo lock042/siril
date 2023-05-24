@@ -31,6 +31,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
@@ -274,6 +275,11 @@ int readbmp(const char *name, fits *fit) {
 	}
 	fit->type = DATA_USHORT;
 	free(buf);
+	// Initialize ICC profile. As the buffer is set to NULL, this sets the
+	// profile as sRGB which is what we want for 8-bit BMPs
+	if (com.icc.available)
+		fits_initialize_icc(fit, NULL, 0);
+
 	char *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading BMP: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
@@ -305,6 +311,41 @@ int savebmp(const char *name, fits *fit) {
 
 	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+	// Apply the colorspace transform
+	void *buf = NULL;
+	void *dest = NULL;
+	if (com.icc.available) {
+		gboolean src_is_float = (fit->type == DATA_FLOAT);
+		// Check the fit has a profile. If not, assign a linear one
+		if (fit->icc_profile == NULL) {
+			assign_linear_icc_profile(fit);
+		}
+		// Transform the data
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		size_t npixels = fit->rx * fit->ry;
+		size_t nchans = fit->naxes[2];
+		cmsUInt32Number trans_type;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+		}
+		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+		cmsDoTransform(save_transform, buf, dest, npixels);
+		cmsDeleteTransform(save_transform);
+		gbuf[0] = (WORD *) dest;
+		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+		gbuff[0] = (float *) dest;
+		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
+		// No profile will be embedded as the version of BITMAPINFOHEADER
+		// we use does not support them: the assumption is that the data is
+		// sRGB (or possibly "Windows color space" which seems to be more or
+		// less the same thing).
+	}
 
 	unsigned int padsize = (4 - (width * 3) % 4) % 4;
 	size_t datasize = width * height * 3 + padsize * height;

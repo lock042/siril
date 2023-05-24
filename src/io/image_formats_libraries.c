@@ -747,7 +747,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
 		size_t nchans = fit->naxes[2];
-		gboolean src_is_float = (fit->type == DATA_FLOAT);
 		cmsUInt32Number trans_type;
 		if (src_is_float) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
