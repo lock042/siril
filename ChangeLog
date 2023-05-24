@@ -39,6 +39,7 @@ siril 1.2.0-rc1
 * Fixed crash when running merge_cfa in headless mode
 * Fixed console logs output on Windows when messages contained widechars
 * Fixed networking detection at build-time and made it and exiv2 optional
+* Fixed bug in NetPBM file import
 
 siril 1.2.0-beta2
 03/12/23
