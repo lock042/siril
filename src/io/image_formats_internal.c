@@ -456,7 +456,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	buf[i] = '\0';
-	fit->rx = g_ascii_strtoull(buf, NULL, 10);
+	fit->rx = fit->naxes[0] = g_ascii_strtoull(buf, NULL, 10);
 	j = ++i;
 	while (buf[j] >= '0' && buf[j] <= '9')
 		j++;
@@ -469,7 +469,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	buf[j] = '\0';
-	fit->ry = g_ascii_strtoull(buf + i, NULL, 10);
+	fit->ry = fit->naxes[1] = g_ascii_strtoull(buf + i, NULL, 10);
 
 	do {
 		if (fgets(buf, 256, file) == NULL) {
