@@ -383,8 +383,8 @@ static int save_dialog() {
 		g_free(filename);
 		return res;
 	}
-	siril_preview_free(preview);
 	close_dialog();
+	siril_preview_free(preview);
 
 	return res;
 }
