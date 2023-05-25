@@ -279,8 +279,8 @@ macos:
   variables:
     REP_DIR: /Users/Shared/data
     SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.30_$ARCHITECTURE.dmg
-    RELEASE_TAG: r9
+    RELEASE_ARCHIVE: jhb-0.32_$ARCHITECTURE.dmg
+    RELEASE_TAG: r10
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
