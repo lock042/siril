@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-19 12:14+0000\n"
+"PO-Revision-Date: 2023-05-26 13:18+0000\n"
 "Last-Translator: Yi Cao <caoyi06@qq.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -432,16 +432,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:2174
 msgid "Generate star mask"
-msgstr "生成星点掩膜"
+msgstr "生成星点遮罩"
 
 #: src/gui/siril3.glade:2179
 msgid ""
 "If selected, a star mask will be generated and saved in the working "
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
-msgstr ""
-"如果选中，将生成星点掩膜并将其保存在工作目录中。星点掩膜计算为原始图像和无星"
-"点图像之间的差异。缺省设置是生成星点掩膜。"
+msgstr "如果选中，将生成星点遮罩并将其保存在工作目录中。星点遮罩计算为原始图像和无星"
+"点图像之间的差异。缺省设置是生成星点遮罩。"
 
 #: src/gui/siril3.glade:2194
 msgid "Use custom stride"
@@ -488,7 +487,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:2274
 msgid "Upsample x2"
-msgstr "升采样 x2"
+msgstr "上采样 x2"
 
 #: src/gui/siril3.glade:2279
 msgid ""
@@ -497,7 +496,7 @@ msgid ""
 "processing time and may impair performance on very large stars. The image is "
 "rescaled to the original size on completion."
 msgstr ""
-"如果选中，则在运行 StarNet 之前，图像将升采样 2 倍。这提高了非常紧凑的星点的"
+"如果选中，则在运行 StarNet 之前，图像将上采样 2 倍。这提高了非常紧凑的星点的"
 "性能，但处理时间增加了四倍，并且当星点很大时会损失非常大的性能。完成后，图像"
 "将重新缩放为原始大小。"
 
@@ -505,9 +504,8 @@ msgstr ""
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
-msgstr ""
-"将 StarNet 应用于当前队列中的所有图像。将生成无星点和星点掩膜（如果选择）队"
-"列。"
+msgstr "将 StarNet "
+"应用于当前队列中的所有图像。将生成无星点和星点遮罩（如果选择）队列。"
 
 #: src/gui/siril3.glade:2372
 msgid "Wavelets control"
@@ -4774,7 +4772,7 @@ msgstr "进入叠加标签页"
 
 #: src/gui/siril3.glade:20695
 msgid "Fps:"
-msgstr "Fps:"
+msgstr "帧率："
 
 #: src/gui/siril3.glade:20707
 msgid "Frame rate"
@@ -10702,13 +10700,11 @@ msgstr "图像必须具有相同的维度\n"
 msgid ""
 "Please display the channel on which you want to compute the PSF or use -"
 "channel argument\n"
-msgstr ""
-"Please display the channel on which you want to compute the PSF or use -"
-"channel argument\n"
+msgstr "请指明计算PSF的通道或使用-channel参数\n"
 
 #: src/core/command.c:3737
 msgid "Please provide the channel number starting from 0 for red\n"
-msgstr "Please provide the channel number starting from 0 for red\n"
+msgstr "请从0（红色）开始提供通道编号\n"
 
 #: src/core/command.c:3812 src/core/command.c:3852 src/core/command.c:3867
 msgid "The given coordinates are not in the image, aborting\n"
@@ -10744,7 +10740,7 @@ msgstr "仅当队列已载入并且围绕星点进行选择时，参数才是可
 #: src/core/command.c:3928 src/core/command.c:3983
 #, c-format
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
-msgstr "PSF cannot be computed on channel %d for this sequence of %d channels\n"
+msgstr "PSF在通道 %d上，在有%d通道的序列中无法被计算\n"
 
 #: src/core/command.c:3956
 #, c-format
@@ -10763,15 +10759,13 @@ msgstr "无法在第一幅图像中找到星点，异常中止。\n"
 #, c-format
 msgid ""
 "Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
-msgstr ""
-"Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
+msgstr "将测光圆环的内半径和外半径为%.1f和%.1f（FWHM为%f）\n"
 
 #: src/core/command.c:4030 src/gui/nina_light_curve.c:108
 #, c-format
 msgid ""
 "Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
-msgstr ""
-"Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
+msgstr "使用预设的测光圆环内外半径%.1f和%.1f\n"
 
 #: src/core/command.c:4052
 msgid ""
@@ -10841,7 +10835,7 @@ msgstr "值必须为正并且小于 %d。\n"
 
 #: src/core/command.c:4427
 msgid "Fill2: select a region or provide x, y, width, height\n"
-msgstr "Fill2: select a region or provide x, y, width, height\n"
+msgstr "Fill2：选择一个区域或输入x，y，width，height\n"
 
 #. handling mono case
 #: src/core/command.c:4467 src/core/command.c:6486 src/core/command.c:6882
@@ -10866,7 +10860,7 @@ msgstr "选项 -out= 对序列无效，已忽略\n"
 
 #: src/core/command.c:4590
 msgid "find_hot must be applied on an one-channel master-dark frame"
-msgstr "find_hot must be applied on an one-channel master-dark frame"
+msgstr "find_hot必须被应用在一个单通道master-dark上"
 
 #: src/core/command.c:4610
 #, c-format
@@ -10937,17 +10931,16 @@ msgstr "Sigma high 必须为正值。\n"
 
 #: src/core/command.c:5235
 msgid "The second argument must be between 1 and the number of images.\n"
-msgstr "The second argument must be between 1 and the number of images.\n"
+msgstr "第二个参数在[1, 图像总数]之内。\n"
 
 #: src/core/command.c:5241
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
-msgstr ""
-"The third argument must be larger or equal than the \"from\" argument.\n"
+msgstr "第三个参数大于等于“from”参数。\n"
 
 #: src/core/command.c:5247
 msgid "The third argument is larger than the number of images.\n"
-msgstr "The third argument is larger than the number of images.\n"
+msgstr "第三个参数大于图像总数。\n"
 
 #: src/core/command.c:5248
 #, c-format
@@ -10983,8 +10976,8 @@ msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
 msgstr ""
-"%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
-"bgnoise: %0.1f\n"
+"%s 层：平均值：%0.1f 中位数：%0.1f Sigma: %0.1f 最小值：%0.1f 最大值：%0.1f "
+"bgnoise：%0.1f\n"
 
 #: src/core/command.c:5919 src/core/command.c:5926
 #, c-format
@@ -10992,8 +10985,8 @@ msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
-"%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
-"bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
+"%s 层：平均值：%0.1f 中位数：%0.1f Sigma: %0.1f 最小值：%0.1f 最大值：%0.1f "
+"bgnoise：%0.1f avgDev：%0.1f MAD：%0.1f sqrt(BWMV)：%0.1f\n"
 
 #: src/core/command.c:6012
 #, c-format
@@ -11013,8 +11006,7 @@ msgstr "将元数据保存到 JSON 文件 '%s'\n"
 #: src/core/command.c:6131
 msgid ""
 "json-glib was not found at build time, cannot proceed. Install and rebuild.\n"
-msgstr ""
-"json-glib was not found at build time, cannot proceed. Install and rebuild.\n"
+msgstr "json-glib没有被构建，请安装并重新构建。\n"
 
 #: src/core/command.c:6142
 #, c-format
@@ -11028,8 +11020,7 @@ msgstr "此命令只能用于FITS图像\n"
 #: src/core/command.c:6167 src/core/command.c:6285
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
-msgstr ""
-"First argument is the converted sequence name and shall not start with a -\n"
+msgstr "第一个参数声明了被转化后的序列名称，不能以 a - 开头\n"
 
 #: src/core/command.c:6212
 #, c-format
