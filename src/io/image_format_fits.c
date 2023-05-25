@@ -1779,6 +1779,69 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	return 0;
 }
 
+int write_icc_profile_to_fits(fits *fit) {
+	int status = 0;     // CFITSIO status variable
+	cmsUInt32Number profile_length;
+	cmsUInt8Number *profile = NULL;
+	status = cmsSaveProfileToMem(fit->icc_profile, NULL, &profile_length);
+	if (profile_length > 0) {
+		profile = malloc(profile_length * sizeof(cmsUInt8Number));
+		status = cmsSaveProfileToMem(fit->icc_profile, (void*) profile, &profile_length);
+		if (status) {
+			status = 0;
+		} else {
+			status = 1;
+		}
+	}
+
+	// Move to the last HDU
+	int nhdus;
+	fits_get_num_hdus(fit->fptr, &nhdus, &status);
+
+	if (fits_movabs_hdu(fit->fptr, nhdus, NULL, &status)) {
+		fits_report_error(stderr, status);
+		g_free(profile);
+		return status;
+	}
+
+	// Create an image extension with sample pixel data
+	long naxis = 1, naxes = profile_length;  // Image dimensions
+	long fpixel = 1;       // First pixel to write
+
+	// Create the image extension
+	if (fits_create_img(fit->fptr, BYTE_IMG, naxis, &naxes, &status)) {
+		fits_report_error(stderr, status);
+		g_free(profile);
+		return status;
+	}
+	int bitpix = 8, pcount = 0, gcount = 1;
+	// Populate the header with the field values
+	status = (fits_update_key(fit->fptr, TSTRING, "XTENSION", "IMAGE", NULL, &status));
+	if (!status) status = (fits_update_key(fit->fptr, TINT, "BITPIX", &bitpix, NULL, &status));
+	if (!status) status = (fits_update_key(fit->fptr, TINT, "NAXIS", &naxis, NULL, &status));
+	if (!status) status = (fits_update_key(fit->fptr, TINT, "NAXIS1", &profile_length, NULL, &status));
+	if (!status) status = (fits_update_key(fit->fptr, TINT, "PCOUNT", &pcount, NULL, &status));
+	if (!status) status = (fits_update_key(fit->fptr, TINT, "GCOUNT", &gcount, NULL, &status));
+	if (!status) status = (fits_update_key(fit->fptr, TSTRING, "EXTNAME", "ICCProfile", NULL, &status));
+	if (status) {
+		fits_report_error(stderr, status);
+		g_free(profile);
+		return status;
+	}
+
+	// Write the pixel data to the image extension
+	if (fits_write_img(fit->fptr, TBYTE, fpixel, profile_length, profile, &status)) {
+		fits_report_error(stderr, status);
+		g_free(profile);
+		return status;
+    } else {
+		siril_log_message(_("ICC profile embedded in FITS file\n"));
+	}
+	g_free(profile);
+
+	return 0;
+}
+
 /* Look for a HDU containing an ICC profile; if one is found, open it */
 int read_icc_profile_from_fits(fits *fit) {
 	int status = 0;
@@ -2378,6 +2441,8 @@ int savefits(const char *name, fits *f) {
 	}
 
 	save_opened_fits(f);
+
+	write_icc_profile_to_fits(f);
 
 	status = 0;
 	fits_close_file(f->fptr, &status);
