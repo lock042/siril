@@ -26,7 +26,6 @@
 #define CMS_DONT_USE_SSE2
 #endif
 
-#include "lcms2_plugin.h"
 #include "algos/lcms_fast_float/lcms2_fast_float.h"
 #include <stdint.h>
 
