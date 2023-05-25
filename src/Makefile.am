@@ -20,6 +20,7 @@ AM_CPPFLAGS = \
 	$(FFMS2_CFLAGS) \
 	$(WCSLIB_CFLAGS) \
 	$(LIBCONFIG_CFLAGS) \
+	$(LCMS2_CFLAGS)  \
 	-I$(top_builddir)/subprojects/kplot
 
 siril_common_SOURCES = \
@@ -383,6 +384,7 @@ siril_common_LDADD = \
 	$(LIBPNG_LIBS) \
 	$(FFTW_LIBS) \
 	$(CFITSIO_LIBS) \
+	$(LCMS2_LIBS) \
 	$(GSL_LIBS) \
 	$(JSON_GLIB_LIBS) \
 	$(FFMS2_LIBS) \

@@ -129,6 +129,9 @@ esac
 dnl check GTK
 PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
 
+dnl check lcms2
+PKG_CHECK_MODULES(lcms2, lcms2)
+
 dnl check cairo
 PKG_CHECK_MODULES(CAIRO, cairo)
 
@@ -467,5 +470,5 @@ AC_MSG_RESULT([$enable_relocatable_bundle])
 
 AC_SUBST([AM_LDFLAGS])
 
-AC_CONFIG_FILES([Makefile src/Makefile subprojects/Makefile data/Makefile pixmaps/Makefile pixmaps/icons/Makefile platform-specific/Makefile platform-specific/linux/Makefile po/Makefile.in])
+AC_CONFIG_FILES([Makefile src/Makefile subprojects/Makefile data/Makefile icc/Makefile pixmaps/Makefile pixmaps/icons/Makefile platform-specific/Makefile platform-specific/linux/Makefile po/Makefile.in])
 AC_OUTPUT
