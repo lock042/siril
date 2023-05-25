@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-13 12:35+0000\n"
+"PO-Revision-Date: 2023-05-19 12:14+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -10530,7 +10530,7 @@ msgstr ""
 #: src/algos/star_finder.c:190 src/algos/star_finder.c:193
 #, c-format
 msgid "Findstar: processing for channel %d...\n"
-msgstr "Findstar : en cours pour le cannal %d...\n"
+msgstr "Findstar : en cours pour le canal %d...\n"
 
 #: src/algos/star_finder.c:204
 msgid "Failed to copy the image for processing\n"

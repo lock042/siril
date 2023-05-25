@@ -287,7 +287,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	return g_string_free(url, FALSE);
 }
 
-#if defined HAVE_LIBCURL
+#ifdef HAVE_LIBCURL
 /*****
  * HTTP functions
  ****/
@@ -406,7 +406,7 @@ retrieve:
 
 	return result;
 }
-#else
+#elif defined HAVE_NETWORKING
 static gchar *fetch_url(const gchar *url) {
 	GFile *file = g_file_new_for_uri(url);
 	GError *error = NULL;
@@ -424,6 +424,10 @@ static gchar *fetch_url(const gchar *url) {
 #endif
 
 gpointer search_in_online_conesearch(gpointer p) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	return GINT_TO_POINTER(1);
+#else
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	if (!args->fit->date_obs) {
 		free(args);
@@ -484,9 +488,15 @@ gpointer search_in_online_conesearch(gpointer p) {
 	}
 
 	return GINT_TO_POINTER(retval);
+#endif
 }
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
+
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	return NULL;
+#else
 	GString *string_url = NULL;
 	gchar *name = g_utf8_strdown(object, -1);
 	switch(server) {
@@ -571,6 +581,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	g_free(name);
 
 	return result;
+#endif
 }
 
 /* parse the result from search_in_catalogs(), for object name to coordinates conversion */
@@ -646,6 +657,9 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 }
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+#else
 	gchar *buffer = NULL;
 	GError *error = NULL;
 	/* ------------------- get Vizier catalog in catalog.dat -------------------------- */
@@ -717,6 +731,7 @@ download_error:
 	siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
 	g_clear_error(&error);
 	g_object_unref(file);
+#endif
 	return NULL;
 }
 
@@ -781,25 +796,18 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 	char field_x[256] = "";
 	char field_y[256] = "";
 
-	/* rotation from eq(191) of WCS Paper II*/
 	double cd[2][2];
 	wcs_pc_to_cd(args->fit->wcsdata.pc, args->fit->wcsdata.cdelt, cd);
-	if (cd[1][0] > 0)
-		rotationa = atan2(cd[1][0], cd[0][0]);
-	else
-		rotationa = atan2(-cd[1][0], -cd[0][0]);
-	if (cd[0][1] > 0)
-		rotationb = atan2(cd[0][1], -cd[1][1]);
-	else
-		rotationb = atan2(-cd[0][1], cd[1][1]);
+	rotationa = atan2(-args->fit->wcsdata.pc[1][0], args->fit->wcsdata.pc[0][0]);
+	rotationb = atan2(args->fit->wcsdata.pc[0][1], args->fit->wcsdata.pc[1][1]);
 	rotation = 0.5 * (rotationa + rotationb) * RADTODEG;
 
 	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
 	/* If the determinant of the top-left 2x2 rotation matrix is < 0
 	 * the transformation is orientation-preserving. */
 
-	if (det > 0)
-		rotation *= -1.;
+	if (det > 0 && args->flip_image)
+		rotation = 180.0 - rotation;
 	if (rotation < -180.0)
 		rotation += 360.0;
 	if (rotation > 180.0)
@@ -2254,6 +2262,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
 	aargs = copy_astrometry_args(aargs);
+	if (!aargs)
+		return 1;
 	aargs->fit = fit;
 
 	char root[256];

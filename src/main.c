@@ -322,7 +322,7 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
-#ifdef HAVE_JSON_GLIB
+#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
 		/* Check for update */
 		if (com.pref.check_update) {
 			siril_check_updates(FALSE);

@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-11 08:40+0000\n"
+"PO-Revision-Date: 2023-05-19 22:43+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2739,11 +2739,13 @@ msgid ""
 "information is written to the Console tab. The tilt overlay can be cleared "
 "using the Remove button"
 msgstr ""
+"Berechnet die Verkippung des Sensors. Die Verkippung wird als Überlagerung "
+"des Bildes dargestellt und als Information in der Registerkarte \"Console\" "
+"ausgegeben. Die Überlagerung kann mit dem Löschen-Button entfernt werden"
 
 #: src/gui/siril3.glade:11211
-#, fuzzy
 msgid "Export list of stars to a file"
-msgstr "Exportiere die angezeigte Grafik als CSV-Datei."
+msgstr "Exportiert eine Liste von Sternen in eine Daten"
 
 #: src/gui/siril3.glade:11237 src/gui/siril3.glade:13642
 msgid ""
@@ -3337,9 +3339,8 @@ msgid "y0"
 msgstr "y0"
 
 #: src/gui/siril3.glade:13042
-#, fuzzy
 msgid "Ra"
-msgstr "R"
+msgstr "Ra"
 
 #: src/gui/siril3.glade:13055
 msgid "Dec"
@@ -3589,6 +3590,8 @@ msgstr "Entferne ausgewählten Stern aus der Liste"
 msgid ""
 "Remove all stars from the list and clears the tilt overlay, if displayed"
 msgstr ""
+"Entfernt alle Sterne aus der Liste und entfernt die Tilt-Überlagerung, falls "
+"vorhanden"
 
 #: src/gui/siril3.glade:13780
 msgid "Live Stacking"
@@ -4643,7 +4646,7 @@ msgstr "Farbkalibrierung..."
 
 #: src/gui/siril3.glade:18095
 msgid "Open the photometric color calibration dialog"
-msgstr "Öffnet den photometrischen Farb-Kalibrierungsdialog"
+msgstr "Öffnet den photometrischen Farbkalibrierungsdialog"
 
 #: src/gui/siril3.glade:18097
 msgid "Photometric Color Calibration..."
@@ -6790,7 +6793,6 @@ msgid "Generalized Extreme Studentized Deviate Test"
 msgstr "Generalisierter extrem studentisierter Abweichungstest"
 
 #: src/gui/siril3.glade:24325
-#, fuzzy
 msgid ""
 "Four methods of weighting are available:\n"
 "\n"
@@ -6813,7 +6815,7 @@ msgstr ""
 "<b>Gewichtetes FWHM</b> gewichtet einzelne Frames auf der Grundlage des "
 "während des Registrierungsschritts berechneten wFWHM.\n"
 "\n"
-"<b>Rauschen</b> gewichtet einzelne Frames auf der Grundlage von Werten des "
+"<b>Rauschen</b> gewichtet einzelne Frames auf der Grundlage des "
 "Hintergrundrauschens\n"
 "\n"
 "<b>Anzahl der Bilder</b> gewichtet einzelne Bilder auf der Grundlage ihrer "
@@ -6824,7 +6826,6 @@ msgid "Number of stars"
 msgstr "Anzahl Sterne"
 
 #: src/gui/siril3.glade:24339
-#, fuzzy
 msgid "Weighted FWHM"
 msgstr "Gewichtete FWHM"
 
@@ -6837,7 +6838,6 @@ msgid "Number of images"
 msgstr "Anzahl von Bildern"
 
 #: src/gui/siril3.glade:24355
-#, fuzzy
 msgid "Weighting:"
 msgstr "Gewichtung:"
 
@@ -9284,9 +9284,9 @@ msgid ""
 msgstr "Dieser Befehl funktioniert nur mit astrometrisch gelösten Bildern\n"
 
 #: src/algos/astrometry_solver.c:459
-#, fuzzy, c-format
+#, c-format
 msgid "Solar System Objects search on observation date %s\n"
-msgstr "Suche nach dem Sonnensystemobjekt %s am Beobachtungsdatum %s\n"
+msgstr "Suche nach dem Sonnensystemobjekten am Beobachtungsdatum %s\n"
 
 #: src/algos/astrometry_solver.c:464 src/algos/astrometry_solver.c:565
 #, c-format
@@ -9537,9 +9537,9 @@ msgid "Flipping image and updating astrometry data.\n"
 msgstr "Bild spiegeln und Astrometriedaten aktualisieren.\n"
 
 #: src/algos/astrometry_solver.c:1601
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry failed: %s\n"
-msgstr "AstrometrischeLösung fehlgeschlagen: %s\n"
+msgstr "Photometrie fehlgeschlagen: %s\n"
 
 #: src/algos/astrometry_solver.c:1603
 #, c-format
@@ -10864,7 +10864,7 @@ msgstr "Fehler: Keine ausführbare StarNet++-Datei konfiguriert.\n"
 #: src/core/command.c:518 src/core/command.c:585
 #, c-format
 msgid "Error: StarNet executable (%s) is not valid.\n"
-msgstr "Fehler: Keine gültige StarNet++-Datei gefunden.\n"
+msgstr "Fehler: Keine gültige StarNet-(%s) Datei gefunden.\n"
 
 #: src/core/command.c:548 src/core/command.c:630
 msgid ""
@@ -11258,6 +11258,7 @@ msgstr "Zusammenführen: kein Arbeitsverzeichnis festgelegt.\n"
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
 msgstr ""
+"Der angegebene Ausgabe-Dateiname %s enthält unerlaubte Zeichen, breche ab\n"
 
 #: src/core/command.c:2393
 #, c-format
@@ -12094,16 +12095,15 @@ msgid "No RAW files were found for conversion\n"
 msgstr "Kein RAW Dateien für die Umwandlung gefunden\n"
 
 #: src/core/command.c:6374
-#, fuzzy
 msgid "No files were found for conversion\n"
-msgstr "Kein RAW Dateien für die Umwandlung gefunden\n"
+msgstr "Keine Dateien für die Umwandlung gefunden\n"
 
 #: src/core/command.c:6389
-#, fuzzy, c-format
+#, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
-msgstr[0] "Konvertierung: bearbeite %d Datei... \n"
-msgstr[1] "Konvertierung: bearbeite %d Dateien... \n"
+msgstr[0] "Konvertierung: bearbeite Datei %d...\n"
+msgstr[1] "Konvertierung: bearbeite %d Dateien...\n"
 
 #: src/core/command.c:6466 src/registration/registration.c:1455
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
@@ -15621,7 +15621,6 @@ msgid "Sets the reference image of the sequence given in first argument"
 msgstr "Setzt das Referenzbild der im ersten Argument angegebenen Sequenz"
 
 #: src/core/command_def.h:173
-#, fuzzy
 msgid ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
@@ -15631,7 +15630,7 @@ msgid ""
 msgstr ""
 "Zeigt einen Punkt auf dem astrometrisch gelösten Bild unter Verwendung des "
 "temporären Benutzeranmerkungskatalogs basierend auf seinen äquatorialen "
-"Koordinaten an. Die Option <b>-reset</b> löscht diesen Katalog zuerst und "
+"Koordinaten an. Die Option <b>-löschen</b> löscht diesen Katalog zuerst und "
 "kann alleine verwendet werden. Mehrere Punkte können über eine CSV-Datei mit "
 "der Option <b>-file=</b> übergeben werden, die einen Namen, Ra- und Dek-"
 "Werte enthält. Dies ist nur über die GUI von Siril verfügbar"
@@ -16656,6 +16655,8 @@ msgid ""
 "Image #%d: number of layers (%d) is not consistent with sequence (%d), "
 "aborting\n"
 msgstr ""
+"Bild #%d: Die Anzahl der Layer (%d) stimmt nicht mit der Sequenz (%d) "
+"überein, breche ab\n"
 
 #: src/core/processing.c:321
 #, c-format
@@ -18030,15 +18031,16 @@ msgid "Visit the Siril website"
 msgstr "Besuchen Sie die SIRIL Website"
 
 #: src/gui/astrometry_solver.c:308
-#, fuzzy
 msgid "Photometry failed.\n"
-msgstr "Photometrie"
+msgstr "Photometrie fehlgeschlagen.\n"
 
 #: src/gui/astrometry_solver.c:310
 msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
 msgstr ""
+"Die Photometrie konnte nicht ausgeführt werden. Sie können versuchen die "
+"Einstellungen in den Siril-Einstellungen zu verändern."
 
 #: src/gui/astrometry_solver.c:314
 msgid ""
@@ -19221,13 +19223,13 @@ msgid "Frames"
 msgstr "Frames"
 
 #: src/gui/plot.c:713
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "GNUplot not available: the light curve data will be produced in %s but no "
 "image will be created. You can specify the path to gnuplot in the Siril "
 "preferences.\n"
 msgstr ""
-"Gnuplot wurde nicht gefunden, die Lichtkurve wird in %s erzeugt, aber es "
+"GNUplot wurde nicht gefunden, die Lichtkurve wird in %s erzeugt, aber es "
 "wird kein Bild erstellt. Sie können das Verzeichnis von gnuplot in den Siril-"
 "Einstellungen festlegen.\n"
 
@@ -19763,7 +19765,7 @@ msgstr "Alle einbeziehen"
 msgid "sequence"
 msgid_plural "sequences"
 msgstr[0] "Sequenz"
-msgstr[1] "Sequenz"
+msgstr[1] "Sequenzen"
 
 #: src/gui/single_image.c:74
 msgid "An image (or sequence) is already loaded"
@@ -20219,23 +20221,21 @@ msgstr ""
 "(%d Bild(er) konvertiert, %d fehlgeschlagen)\n"
 
 #: src/io/conversion.c:684
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion ended with error, %d output files created\n"
-msgstr "Umwandlung mit Fehlern beendet, %d/%d Dateien umgewandelt\n"
+msgstr "Umwandlung mit Fehlern beendet, %d/Dateien umgewandelt\n"
 
 #: src/io/conversion.c:690
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion succeeded, %d file(s) created for %d input file(s)\n"
 msgstr ""
-"Konvertierung erfolgreich, %d Datei(en) für %d Eingabedatei(en) erstellt (%d "
-"Bild(er) konvertiert, %d fehlgeschlagen)\n"
+"Konvertierung erfolgreich, %d Datei(en) für %d Eingabedatei(en) erstellt\n"
 
 #: src/io/conversion.c:692
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion aborted, %d file(s) created for %d input file(s)\n"
 msgstr ""
-"Konvertierung fehlgeschlagen, %d Datei(en) für %d Eingabedatei(en) erstellt "
-"(%d Bild(er) konvertiert, %d fehlgeschlagen)\n"
+"Konvertierung fehlgeschlagen, %d Datei(en) für %d Eingabedatei(en) erstellt\n"
 
 #: src/io/conversion.c:834
 #, c-format
@@ -20322,13 +20322,12 @@ msgid "FILM ERROR: incompatible format\n"
 msgstr "FILM ERROR: inkompatibles Format\n"
 
 #: src/io/fits_sequence.c:84
-#, fuzzy
 msgid ""
 "Several images were found in the FITS file but they have different number of "
 "layers, which is not allowed.\n"
 msgstr ""
 "Es wurden mehrere Bilder in der FITS-Datei gefunden, die jedoch "
-"unterschiedliche Parameter haben, was nicht zulässig ist.\n"
+"unterschiedliche Ebenen haben, was nicht zulässig ist.\n"
 
 #: src/io/fits_sequence.c:92
 msgid ""
@@ -20854,9 +20853,8 @@ msgid "Unsupported format: "
 msgstr "Bildformat nicht unterstützt: "
 
 #: src/io/path_parse.c:75
-#, fuzzy
 msgid "Wrongly formatted string: "
-msgstr "Falsche Koordinaten: "
+msgstr "Falsch formatierte Zeichenkette: "
 
 #: src/io/path_parse.c:78
 msgid "More than one match for: "
@@ -22211,11 +22209,12 @@ msgid ""
 "The output sequence is too small compared to reference image (too much "
 "rotation or little overlap?)\n"
 msgstr ""
+"Die Ausgabesequenz ist im Vergleich zum Referenzbild zu klein (zu starke "
+"Drehung oder geringe Überlappung?)\n"
 
 #: src/registration/applyreg.c:632
-#, fuzzy
 msgid "You should change framing method, aborting\n"
-msgstr "Unbekannte Framing-Methode, Abbruch\n"
+msgstr "Sie sollten die Rahmungsmethode ändern, Abbruch\n"
 
 #: src/registration/comet.c:131 src/registration/comet.c:168
 msgid "There is no timestamp stored in the file"

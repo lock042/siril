@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-14 19:31+0000\n"
+"PO-Revision-Date: 2023-05-20 01:28+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -294,7 +294,7 @@ msgstr "Яркие пиксели игнорируются."
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
-msgstr "Коэффициент 1/сигма"
+msgstr "Коэффициент 1/σ"
 
 #: src/gui/siril3.glade:1303 src/gui/siril3.glade:1327
 msgid ""
@@ -2127,6 +2127,9 @@ msgid ""
 "they don't overflow when compositing (based on max value for each image). "
 "Colour hues are unchanged."
 msgstr ""
+"Автоматически корректирует яркость цветов, выбранных для слоёв, чтобы они не "
+"переполнялись при компоновке (на основе максимального значения для каждого "
+"изображения). Цветовые оттенки остаются неизменными."
 
 #: src/gui/siril3.glade:8977
 msgid "Finalize colour balance"
@@ -2141,7 +2144,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:8996
-#, fuzzy
 msgid ""
 "Type of luminance-based colour composition. They represent the way of adding "
 "colour information to luminance data."
@@ -2712,9 +2714,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:11211
-#, fuzzy
 msgid "Export list of stars to a file"
-msgstr "Экспортировать отображаемый график в файл CSV."
+msgstr "Экспортировать список звёзд в файл"
 
 #: src/gui/siril3.glade:11237 src/gui/siril3.glade:13642
 msgid ""
@@ -3307,13 +3308,12 @@ msgid "y0"
 msgstr "y0"
 
 #: src/gui/siril3.glade:13042
-#, fuzzy
 msgid "Ra"
-msgstr "R"
+msgstr "ПВ"
 
 #: src/gui/siril3.glade:13055
 msgid "Dec"
-msgstr ""
+msgstr "Скл"
 
 #: src/gui/siril3.glade:13069
 msgid "FWHMx"
@@ -4612,7 +4612,7 @@ msgstr "Частотные слои…"
 
 #: src/gui/siril3.glade:18409
 msgid "Resample"
-msgstr "Ресэмплинг"
+msgstr "Масштабировать"
 
 #: src/gui/siril3.glade:18480
 msgid "X scale (%): "
@@ -4628,7 +4628,7 @@ msgstr "Сохранить соотношение сторон"
 
 #: src/gui/siril3.glade:18532
 msgid "Type of algorithm used for resampling"
-msgstr "Метод интерполяции при ресэмплинге"
+msgstr "Метод интерполяции при масштабировании"
 
 #: src/gui/siril3.glade:18538 src/gui/siril3.glade:18810
 #: src/gui/siril3.glade:23180
@@ -6044,7 +6044,7 @@ msgstr "Выбор изображений:"
 
 #: src/gui/siril3.glade:23072
 msgid "Simplified Drizzle x2"
-msgstr "Упрощенный Drizzle ×2"
+msgstr "Упрощённый Drizzle ×2"
 
 #: src/gui/siril3.glade:23076
 msgid ""
@@ -6378,7 +6378,6 @@ msgid "Plot"
 msgstr "График"
 
 #: src/gui/siril3.glade:24008
-#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -6410,26 +6409,26 @@ msgid ""
 "Pixels of the image are replaced by pixels at the same coordinates if "
 "intensity is lower."
 msgstr ""
-"<b>Суммирующая</b>: Простейший метод.\n"
+"<b>Сумма</b>: Простейший метод.\n"
 "Значения пикселей добавляются к изображению, нормализованному до 32 бит.\n"
 "Соотношение сигнал/шум (SNR) возрастает как квадратный корень из кол-ва "
 "кадров.\n"
 "\n"
-"<b>Усредняющая с выбраковкой</b>: Используется для последовательного "
-"удаления отклоняющихся пикселей.\n"
+"<b>Среднее с выбраковкой</b>: Используется для последовательного удаления "
+"отклоняющихся пикселей.\n"
 "Реализовано семь способов:\n"
-"- Percentile Clipping\n"
-"- Sigma Clipping\n"
-"- MAD Clipping\n"
-"- Median Sigma Clipping\n"
-"- Winsorized Sigma Clipping\n"
-"- Linear Fit Clipping\n"
-"- Generalized Extreme Studentized Deviate Test\n"
+"- Обрезка по процентилям \n"
+"- Обрезка по σ\n"
+"- Обрезка по MAD\n"
+"- Медианная обрезка по σ\n"
+"- Винсоризированная обрезка по σ\n"
+"- Линейная обрезка\n"
+"- GESDT\n"
 "После выбраковки пикселей, вычисляется среднее значение стека.\n"
 "\n"
-"<b>Медианная</b>: Этот метод используется в основном для укладки "
-"калибровочных кадров, хотя сейчас мы рекомендуем для этого усредняющую "
-"укладку с выбраковкой.\n"
+"<b>Медиана</b>: Этот метод используется в основном для укладки калибровочных "
+"кадров, хотя сейчас мы рекомендуем для этого усредняющую укладку с "
+"выбраковкой.\n"
 "Для каждого пикселя вычисляется медианное значение всех пикселей в стеке.\n"
 "\n"
 "<b>Максимум</b>: В основном применяется для создания изображений треков "
@@ -6467,7 +6466,6 @@ msgid "Method:"
 msgstr "Способ:"
 
 #: src/gui/siril3.glade:24083
-#, fuzzy
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -6486,18 +6484,23 @@ msgid ""
 "However, multiplicative normalisation must be used with flat-field frames.</"
 "b>"
 msgstr ""
-"Если выбран один из этих пунктов, процесс нормализации будет применён ко "
-"всем изображениям перед укладкой.\n"
+"Если выбран один из этих пунктов, ко всем изображениям перед укладкой будет "
+"применена нормализация.\n"
 "\n"
-"- \n"
+"- Нормализация сопоставляет среднее значение фона всех входящих изображений, "
+"после чего нормализация осуществляется посредством умножения или сложения. "
+"Имейте в виду, что оба процесса обычно приводят к схожим результатам, но "
+"мультипликативная нормализация предпочтительнее для изображений, которые "
+"будут использоваться для умножения или деления, как, например, кадры "
+"плоского поля.\n"
 "\n"
-"- Scale matches dispersion by weighting all input images. This tends to "
-"improve the signal-to-noise ratio and therefore this is the option used by "
-"default with the additive normalisation.\n"
+"- Масштабирование сопоставляет дисперсию, присваивая вес всем входящим "
+"изображениям. Это приводит к улучшению соотношения сигнал/шум и используется "
+"по умолчанию при аддитивной нормализации.\n"
 "\n"
-"<b>The offset and dark masters should not be processed with normalisation. "
-"However, multiplicative normalisation must be used with flat-field frames.</"
-"b>"
+"<b>Мастер-кадры шума считывания и темновые мастер-кадры должны "
+"обрабатываться без нормализации. Однако, при работе с кадрами плоского поля "
+"должна использоваться мультипликативная нормализация.</b>"
 
 #: src/gui/siril3.glade:24092
 msgid "No normalisation"
@@ -6542,6 +6545,13 @@ msgid ""
 "each image, they can still give a satisfactory result when compared to no "
 "normalization at all."
 msgstr ""
+"По умолчанию SIril использует оценку положения и масштаба с помощью IKSS для "
+"вычисления нормализации. Для больших последовательностей расчёт этой оценки "
+"может быть достаточно интенсивным. В таких случаях есть опция использования "
+"быстрой оценки, основанной на медиане и медианном абсолютном отклонении. "
+"Будучи менее устойчивыми к выбросам на отдельных изображениях, эти способы "
+"оценки всё же дают удовлетворительный результат по сравнению с отсутствием "
+"нормализации."
 
 #: src/gui/siril3.glade:24148
 msgid "Normalisation:"
@@ -6594,6 +6604,44 @@ msgid ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
+"Доступны семь алгоритмов выбраковки:\n"
+"\n"
+"<b>Обрезка по процентилям</b>: одношаговый алгоритм выбраковки, идеальный "
+"для небольших наборов данных (до 6 изображений).\n"
+"\n"
+"<b>Обрезка по σ</b>: итеративный алгоритм, который отбрасывает пиксели, "
+"отстоящие от медианы более чем на два заданных значения, указанных в "
+"единицах σ.\n"
+"\n"
+"<b>Обрезка по MAD</b>: итеративный алгоритм, работающий аналогично обрезке "
+"по σ, но использующий в качестве оценки медианное абсолютное отклонение (MAD)"
+". Он обычно используется для обработки зашумленных инфракрасных изображений."
+"\n"
+"\n"
+"<b>Медианная обрезка по σ</b>: тот же алгоритм, за исключением того, что "
+"отброшенный пиксели заменяются значением медианы.\n"
+"\n"
+"<b>Винсоризованная обрезка по σ</b>: очень похож на метод обрезки по σ, но "
+"использующий алгоритм, основанный на работе Хубера [1] [2].\n"
+"\n"
+"<b>Линейная обрезка</b>: алгоритм, разработанный Хуаном Конехеро (Juan "
+"Conejero), основным разработчиком PixInsight [2]. Алгоритм подгоняет "
+"наилучшую прямую линию (y=ax+b) стека пикселей и отбрасывает выбросы. Этот "
+"алгоритм очень хорошо работает с большими стеками и изображениями, "
+"содержащими градиенты неба с различающимися пространственным распределением "
+"и ориентацией.\n"
+"\n"
+"<b>GESDT</b>: алгоритм [3], являющийся обобщением критерия Граббса (Grubbs "
+"Test), который используется для обнаружения одного или нескольких выбросов в "
+"одномерном наборе данных, приблизительно соответствующему нормальному "
+"распределению. Данный алгоритм демонстрирует прекрасную производительность "
+"на больших наборах данных, имеющих более 50 изображений.\n"
+"\n"
+"[1] Peter J. Huber and E. Ronchetti (2009), Robust Statistics, 2nd Ed., "
+"Wiley\n"
+"[2] Juan Conejero, ImageIntegration, Pixinsight Tutorial\n"
+"[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
+"Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 
 #: src/gui/siril3.glade:24305
 msgid "No rejection"
@@ -6601,33 +6649,31 @@ msgstr "Без выбраковки"
 
 #: src/gui/siril3.glade:24306
 msgid "Percentile Clipping"
-msgstr ""
+msgstr "Обрезка по процентилям"
 
 #: src/gui/siril3.glade:24307
 msgid "Sigma Clipping"
-msgstr ""
+msgstr "Обрезка по σ"
 
 #: src/gui/siril3.glade:24308 src/stacking/stacking.c:348
-#, fuzzy
 msgid "MAD clipping"
-msgstr "Обрезка теней"
+msgstr "Обрезка по MAD"
 
 #: src/gui/siril3.glade:24309
-#, fuzzy
 msgid "Median Sigma Clipping"
-msgstr "Медианная"
+msgstr "Медианная обрезка по σ"
 
 #: src/gui/siril3.glade:24310
 msgid "Winsorized Sigma Clipping"
-msgstr ""
+msgstr "Винсоризованная обрезка по σ"
 
 #: src/gui/siril3.glade:24311
 msgid "Linear Fit Clipping"
-msgstr ""
+msgstr "Линейная обрезка"
 
 #: src/gui/siril3.glade:24312
 msgid "Generalized Extreme Studentized Deviate Test"
-msgstr ""
+msgstr "GESDT"
 
 #: src/gui/siril3.glade:24325
 msgid ""
@@ -6659,7 +6705,6 @@ msgid "Number of stars"
 msgstr "Кол-во звёзд"
 
 #: src/gui/siril3.glade:24339
-#, fuzzy
 msgid "Weighted FWHM"
 msgstr "Со взвешенной FWHM"
 
@@ -6697,8 +6742,7 @@ msgstr "Слить L+H"
 #: src/gui/siril3.glade:24391
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
-msgstr ""
-"Создать одну карту выбраковки, которая суммирует низкую и высокую карты"
+msgstr "Создать одну карту выбраковки, которая суммирует карты низов и верхов"
 
 #: src/gui/siril3.glade:24422
 msgid "Pixel rejection:"
@@ -7067,6 +7111,9 @@ msgid ""
 "with every color channel.\n"
 "The Background Neutralization should be applied before this operation."
 msgstr ""
+"Три коэффициента калибровки цвета будут рассчитаны и умножены на каждый "
+"цветовой канал.\n"
+"Перед этой операцией должна выполняться нейтрализация фона."
 
 #: src/gui/siril3.glade:27058
 msgid "Background Neutralization"
@@ -9119,9 +9166,9 @@ msgstr ""
 "с ограничением по блеску %.2f\n"
 
 #: src/algos/astrometry_solver.c:1408
-#, fuzzy, c-format
+#, c-format
 msgid "Down-sampling image for faster star detection by a factor %.2f\n"
-msgstr "Уменьшение изображения для более быстрого поиска звёзд\n"
+msgstr "Уменьшение изображения на коэф-т %.2f для более быстрого поиска звёзд\n"
 
 #: src/algos/astrometry_solver.c:1420
 msgid "Failed to downsample image, aborting\n"
@@ -9869,9 +9916,9 @@ msgid "blue"
 msgstr "синий"
 
 #: src/algos/photometric_cc.c:376
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
-msgstr "Не удалось выполнить анализ звёзд"
+msgstr "Установлены наружный (%.1f) и внутренний (%0.1f) радиусы фотометрии\n"
 
 #: src/algos/photometric_cc.c:379
 msgid "Photometric color calibration in progress..."
@@ -10594,9 +10641,9 @@ msgstr "Оценка шума"
 #: src/core/command.c:1223 src/core/command.c:1233 src/core/command.c:1243
 #: src/core/command.c:1253 src/core/command.c:1263 src/core/command.c:1273
 #: src/core/command.c:1283 src/core/command.c:1293
-#, fuzzy, c-format
+#, c-format
 msgid "Error in %s parameter: must be in %s, aborting.\n"
-msgstr "Неизвестный параметр %s, прерывание.\n"
+msgstr "Ошибка в параметре %s: должен быть в %s, прерывание.\n"
 
 #: src/core/command.c:1102 src/core/command.c:1153 src/core/command.c:1303
 msgid ""
@@ -11474,9 +11521,9 @@ msgid "The third argument is larger than the number of images.\n"
 msgstr ""
 
 #: src/core/command.c:5248
-#, fuzzy, c-format
+#, c-format
 msgid "Re-adjusting to %d.\n"
-msgstr "Чтение %s\n"
+msgstr "Перенастройка %d.\n"
 
 #: src/core/command.c:5272 src/gui/sequence_list.c:628
 #, c-format
@@ -11555,9 +11602,8 @@ msgid "Link: error opening working directory %s.\n"
 msgstr "Ссылка: ошибка при открытии рабочей директории %s.\n"
 
 #: src/core/command.c:6234
-#, fuzzy
 msgid "No FITS files were found for link\n"
-msgstr "Не найдено RAW-файлов для конвертирования\n"
+msgstr "Не найдено FITS файлов для ссылки\n"
 
 #: src/core/command.c:6244 src/core/command.c:6384
 msgid ""
@@ -11597,12 +11643,11 @@ msgid "No RAW files were found for conversion\n"
 msgstr "Не найдено RAW-файлов для конвертирования\n"
 
 #: src/core/command.c:6374
-#, fuzzy
 msgid "No files were found for conversion\n"
-msgstr "Не найдено RAW-файлов для конвертирования\n"
+msgstr "Не найдено файлов для конвертирования\n"
 
 #: src/core/command.c:6389
-#, fuzzy, c-format
+#, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "Конвертация: обработка %d FITS-файла…\n"
@@ -11681,9 +11726,9 @@ msgid "No registration data exists for this sequence, aborting\n"
 msgstr "Нет данных регистрации для этой последовательности, прерывание\n"
 
 #: src/core/command.c:6878
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown framing type %s, aborting.\n"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Неизвестный метод кадрирования %s, прерывание.\n"
 
 #: src/core/command.c:6894
 #, c-format
@@ -11768,7 +11813,7 @@ msgstr ""
 #: src/core/command.c:7034
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
-msgstr ""
+msgstr "Неожиданный аргумент для укладки `%s', прерывание.\n"
 
 #: src/core/command.c:7053
 #, c-format
@@ -11785,6 +11830,9 @@ msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
 "shifts. You should apply existing registration before stacking\n"
 msgstr ""
+"Укладкой определены данные регистрации слоя %d, включающие больше "
+"преобразований, что простые сдвиги. Необходимо применить существующую "
+"регистрацию перед укладкой.\n"
 
 #: src/core/command.c:7154
 #, c-format
@@ -11796,7 +11844,6 @@ msgid "Saving rejection maps\n"
 msgstr "Сохранение карт выбраковки\n"
 
 #: src/core/command.c:7190 src/stacking/stacking.c:658
-#, fuzzy
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr "Укладка не удалась, проверьте журнал, чтобы устранить проблему.\n"
 
@@ -11822,18 +11869,24 @@ msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
 msgstr ""
+"Для способа укладки 'Среднее с выбраковкой' необходимы два дополнительных "
+"аргумента: нижний и верхний пороги σ.\n"
 
 #: src/core/command.c:7300 src/core/command.c:7429
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
 msgstr ""
+"Дополнительные параметры для алгоритма выбраковки GESDT должны быть между 0 "
+"и 1. Значения по умолчанию: 0.3 и 0.05.\n"
 
 #: src/core/command.c:7305 src/core/command.c:7434
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
 msgstr ""
+"Дополнительные параметры для алгоритма выбраковки по процентилям должны быть "
+"между 0 и 1. Значения по умолчанию: 0.2 и 0.1.\n"
 
 #: src/core/command.c:7314 src/core/command.c:7443
 #, c-format
@@ -12268,11 +12321,12 @@ msgstr ""
 
 #: src/core/command_def.h:11
 msgid "Returns the background level of the image loaded in memory"
-msgstr ""
+msgstr "Возвращает значение уровня фона изображения, загруженного в память"
 
 #: src/core/command_def.h:12
 msgid "Returns the background noise level of the image loaded in memory"
 msgstr ""
+"Возвращает значение уровня фонового шума изображения, загруженного в память"
 
 #: src/core/command_def.h:13
 msgid ""
@@ -12778,9 +12832,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:70
-#, fuzzy
 msgid "Inverse of the midtones transfer function"
-msgstr "Передаточная функция полутонов"
+msgstr "Обратная передаточная функция полутонов"
 
 #: src/core/command_def.h:71
 msgid ""
@@ -12973,7 +13026,7 @@ msgstr ""
 
 #: src/core/command_def.h:87
 msgid "Merges several sequences into one"
-msgstr ""
+msgstr "Слияние нескольких последовательностей в одну"
 
 #: src/core/command_def.h:88
 msgid ""
@@ -14372,7 +14425,7 @@ msgid "value %f is out of range [%f, %f] for %s.%s\n"
 msgstr ""
 
 #: src/core/initfile.c:367
-#, fuzzy, c-format
+#, c-format
 msgid "unknown error in config file for %s.%s\n"
 msgstr "неизвестная ошибка в конфигурационном файле %s.%s\n"
 
@@ -14574,7 +14627,7 @@ msgstr "Не удалась темновая оптимизация изобра
 #: src/core/preprocess.c:191
 #, c-format
 msgid "Dark optimization of image %d: k0=%.3f\n"
-msgstr "Темновая оптимизация изображения %d: k0=%.3f\n"
+msgstr "Темновая оптимизация изображения %d: k0 = %.3f\n"
 
 #: src/core/preprocess.c:349
 #, c-format
@@ -14597,6 +14650,8 @@ msgstr[2] "%ld пикселей исправлено (%ld + %ld)\n"
 msgid ""
 "Darkmap cosmetic correction is only supported with single channel images\n"
 msgstr ""
+"Косметическая коррекция с помощью темновой карты поддерживается только для "
+"одноканальных изображений\n"
 
 #: src/core/preprocess.c:483
 msgid "Preprocessing"
@@ -15084,22 +15139,18 @@ msgid "electrons per ADU for noise estimation"
 msgstr ""
 
 #: src/core/settings.c:300
-#, fuzzy
 msgid "inner radius for background annulus"
-msgstr "Усиление углового радиуса"
+msgstr "внутренний радиус кольца фона"
 
 #: src/core/settings.c:301
-#, fuzzy
 msgid "outer radius for background annulus"
-msgstr "Кольцевая зона фона"
+msgstr "внешний радиус кольца фона"
 
 #: src/core/settings.c:302
-#, fuzzy
 msgid "factor for inner radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внутреннего радиуса"
 
 #: src/core/settings.c:303
-#, fuzzy
 msgid "factor for outer radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внешнего радиуса"
 
@@ -15967,9 +16018,8 @@ msgid "Error: image resize failed...\n"
 msgstr "Ошибка: не удалось изменить размер изображения...\n"
 
 #: src/filters/starnet.c:584
-#, fuzzy
 msgid "Error: unable to save working StarNet input file...\n"
-msgstr "Ошибка: не удалось сохранить рабочий файл StarNet...\n"
+msgstr "Ошибка: не удалось сохранить входящий рабочий файл StarNet...\n"
 
 #: src/filters/starnet.c:616
 msgid "Error: cannot read the neural net weights file.\n"
@@ -17034,9 +17084,9 @@ msgid "No suitable stars detectable in this image. Aborting..."
 msgstr "На изображении не обнаружено подходящих звёзд. Прерывание…"
 
 #: src/gui/newdeconv.c:1009
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d suitably bright, non-saturated stars.\n"
-msgstr "Звёзды не обнаружены. Поиск подходящих ненасыщенных звёзд...\n"
+msgstr "Обнаружено %d достаточно ярких, ненасыщенных звёзд.\n"
 
 #: src/gui/newdeconv.c:1017
 #, c-format
@@ -17270,7 +17320,7 @@ msgid "Frames"
 msgstr "Кадры"
 
 #: src/gui/plot.c:713
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "GNUplot not available: the light curve data will be produced in %s but no "
 "image will be created. You can specify the path to gnuplot in the Siril "
@@ -17287,9 +17337,9 @@ msgid ""
 msgstr ""
 
 #: src/gui/plot.c:1194
-#, fuzzy, c-format
+#, c-format
 msgid "Output files (*%s)"
-msgstr "Файлы SER (*.ser)"
+msgstr "Итоговые файлы (*%s)"
 
 #: src/gui/plot.c:1396
 #, c-format
@@ -18195,19 +18245,19 @@ msgid ""
 msgstr ""
 
 #: src/io/conversion.c:684
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion ended with error, %d output files created\n"
-msgstr "Конвертация завершена с ошибкой, конвертировано %d/%d файлов\n"
+msgstr "Конвертация завершена с ошибкой, создано %d итоговых файлов\n"
 
 #: src/io/conversion.c:690
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion succeeded, %d file(s) created for %d input file(s)\n"
-msgstr "Конвертация завершена с ошибкой, конвертировано %d/%d файлов\n"
+msgstr "Конвертация успешна, создано %d файлов из %d входящих\n"
 
 #: src/io/conversion.c:692
-#, fuzzy, c-format
+#, c-format
 msgid "Conversion aborted, %d file(s) created for %d input file(s)\n"
-msgstr "Конвертация завершена с ошибкой, конвертировано %d/%d файлов\n"
+msgstr "Конвертация прервана, создано %d файлов из %d входящих\n"
 
 #: src/io/conversion.c:834
 #, c-format
@@ -18248,7 +18298,7 @@ msgid "Reading %s\n"
 msgstr "Чтение %s\n"
 
 #: src/io/conversion.c:1183
-#, c-format, fuzzy
+#, c-format
 msgid "Error while opening film %s, aborting.\n"
 msgstr "Ошибка при открытии ролика %s, прерывание.\n"
 
@@ -18263,32 +18313,26 @@ msgid "Error while opening ser file %s, ignoring file.\n"
 msgstr "Ошибка при открытии ser-файла %s, игнорируем его.\n"
 
 #: src/io/conversion.c:1267
-#, fuzzy
 msgid "output sequence type unknown, aborting\n"
-msgstr "неизвестный тип конечной последовательности, прерывание\n"
+msgstr "неизвестный тип итоговой последовательности, прерывание\n"
 
 #: src/io/conversion.c:1282
-#, fuzzy
 msgid "Error while converting to SER (no space left?)\n"
 msgstr "Ошибка при конвертации в SER (закончилось место?)\n"
 
 #: src/io/conversion.c:1289
-#, fuzzy
 msgid "Error while converting to FITSEQ (no space left?)\n"
 msgstr "Ошибка при конвертации в FITSQ (закончилось место?)\n"
 
 #: src/io/conversion.c:1296
-#, fuzzy
 msgid "Error while converting to FITS (no space left?)\n"
 msgstr "Ошибка при конвертации в FITS (закончилось место?)\n"
 
 #: src/io/conversion.c:1307
-#, fuzzy
 msgid "Error while converting, unknown output\n"
 msgstr "Ошибка при конвертации, неизвестный вывод\n"
 
 #: src/io/films.c:251
-#, fuzzy
 msgid "FILM ERROR: incompatible format\n"
 msgstr "ОШИБКА РОЛИКА: несовместимый формат\n"
 
@@ -18299,7 +18343,6 @@ msgid ""
 msgstr ""
 
 #: src/io/fits_sequence.c:92
-#, fuzzy
 msgid ""
 "Several images were found in the FITS file but they have different "
 "parameters, which is not allowed.\n"
@@ -18308,7 +18351,6 @@ msgstr ""
 "недопустимо.\n"
 
 #: src/io/fits_sequence.c:112
-#, fuzzy
 msgid ""
 "Several images were found in the FITS file but they have different "
 "parameters.\n"
@@ -18673,12 +18715,12 @@ msgstr "Чтение FITS: файл %s, слоёв %ld, пикселей %u×%u,
 #: src/io/image_format_fits.c:1938
 #, c-format
 msgid "FITS read partial: there is no layer %d in the image %s\n"
-msgstr ""
+msgstr "Частичное чтение FITS: нет слоя %d в изображении %s\n"
 
 #: src/io/image_format_fits.c:1946
 #, c-format
 msgid "Unsupported FITS image format (%ld axes).\n"
-msgstr ""
+msgstr "Неподдерживаемый формат изображения FITS (осей %ld).\n"
 
 #: src/io/image_format_fits.c:2030
 #, c-format
@@ -18695,6 +18737,7 @@ msgid ""
 "The FITS image contains more than 3 channels (%ld). Opening only the three "
 "first.\n"
 msgstr ""
+"В изображении FITS более 3 каналов (%ld). Открываются только первые 3.\n"
 
 #: src/io/image_format_fits.c:2180
 msgid "Unknown FITS compression method in internal conversion\n"
@@ -18799,9 +18842,8 @@ msgid "Unsupported format: "
 msgstr "Неподдерживаемый формат: "
 
 #: src/io/path_parse.c:75
-#, fuzzy
 msgid "Wrongly formatted string: "
-msgstr "Некорректные координаты: "
+msgstr "Некорректный формат строки: "
 
 #: src/io/path_parse.c:78
 msgid "More than one match for: "
@@ -19250,7 +19292,7 @@ msgstr ""
 #: src/io/ser.c:163
 #, c-format
 msgid "Warning: no timestamps stored in the SER sequence.\n"
-msgstr "Предупреждение: в последовательности SER нет временных отметок.\n"
+msgstr "Предупреждение: в последовательности SER нет отметок времени.\n"
 
 #: src/io/ser.c:172
 msgid "Trying to fix broken SER file...\n"
@@ -19266,25 +19308,25 @@ msgstr "Запись 32 битных изображений в файл SER не
 
 #: src/io/ser.c:514
 msgid "Warning: no timestamps stored in the SER file.\n"
-msgstr "Предупреждение: в файле SER нет временных отметок.\n"
+msgstr "Предупреждение: в файле SER нет отметок времени.\n"
 
 #: src/io/ser.c:516
 msgid "Warning: timestamps in the SER file are all identical.\n"
-msgstr "Предупреждение: временные отметки в файле SER идентичны.\n"
+msgstr "Предупреждение: отметки времени в файле SER идентичны.\n"
 
 #: src/io/ser.c:518
 msgid "Timestamps in the SER file are correctly ordered.\n"
-msgstr "Временные отметки в файле SER в правильном порядке.\n"
+msgstr "Отметки времени в файле SER в правильном порядке.\n"
 
 #: src/io/ser.c:520
 msgid "Warning: timestamps in the SER file are not in the correct order.\n"
-msgstr "Предупреждение: временные отметки в файле SER в неверном порядке.\n"
+msgstr "Предупреждение: отметки времени в файле SER в неверном порядке.\n"
 
 #. closes, frees and zeroes
 #: src/io/ser.c:542
-#, fuzzy, c-format
+#, c-format
 msgid "Removing failed SER file: %s\n"
-msgstr "Удалить выделенные файлы"
+msgstr "Удаление некорректного файла SER: %s\n"
 
 #: src/io/ser.c:553
 msgid "The SER sequence is being created with no image in it.\n"
@@ -19620,6 +19662,10 @@ msgid ""
 "Returns <i>expr_true</i> if <i>cond</i> evaluates to nonzero.\n"
 "Returns <i>expr_false</i> if <i>cond</i> evaluates to zero."
 msgstr ""
+"Функция проверки условий (встроенная функция if).\n"
+"\n"
+"Возвращает <i>expr_true</i> если <i>cond</i> не равно нулю.\n"
+"Возвращает <i>expr_false</i> если <i>cond</i> равно нулю."
 
 #: src/pixelMath/pixel_math_runner.c:84
 msgid "Highest integer less than or equal to x."
@@ -19751,15 +19797,15 @@ msgstr "Ширина указанного изображения в пиксел
 
 #: src/pixelMath/pixel_math_runner.c:125
 msgid "Pixel Inversion operator."
-msgstr ""
+msgstr "Оператор инверсии пикселя."
 
 #: src/pixelMath/pixel_math_runner.c:126
 msgid "Unary Minus operator (sign change)."
-msgstr ""
+msgstr "Унарный оператор минус (смена знака)"
 
 #: src/pixelMath/pixel_math_runner.c:127
 msgid "Unary Plus operator."
-msgstr ""
+msgstr "Унарный оператор плюс"
 
 #: src/pixelMath/pixel_math_runner.c:128
 msgid "Logical NOT operator."
@@ -19779,7 +19825,7 @@ msgstr "Оператор деления."
 
 #: src/pixelMath/pixel_math_runner.c:132
 msgid "Modulus operator."
-msgstr ""
+msgstr "Оператор модуля."
 
 #: src/pixelMath/pixel_math_runner.c:133
 msgid "Addition operator."
@@ -19862,7 +19908,7 @@ msgid ""
 "3 channel images are incompatible with the \"Use single RGB/K expression\" "
 "unchecked."
 msgstr ""
-"Трёхканальные изображения несовместимы с опицией \"Использовать одно "
+"Трёхканальные изображения несовместимы с опцией \"Использовать одно "
 "выражение RGB/K\", отмена."
 
 #: src/pixelMath/pixel_math_runner.c:924
@@ -20024,9 +20070,9 @@ msgid "No registration data exists for this layer\n"
 msgstr "Для этого слоя нет данных регистрации\n"
 
 #: src/registration/applyreg.c:193
-#, fuzzy, c-format
+#, c-format
 msgid "Framing: Shift from reference origin: %d, %d\n"
-msgstr "Кадрирование: Сдвиг от опорного: %d, %d\n"
+msgstr "Кадрирование: Сдвиг от исходной точки: %d, %d\n"
 
 #: src/registration/applyreg.c:247
 msgid "Applying transformation on a sequence opened as CFA is a bad idea.\n"
@@ -20134,15 +20180,16 @@ msgid ""
 "The output sequence is too small compared to reference image (too much "
 "rotation or little overlap?)\n"
 msgstr ""
+"Итоговая последовательность слишком мала по сравнению с опорным изображением "
+"(слишком большой поворот или малое перекрытие?)\n"
 
 #: src/registration/applyreg.c:632
-#, fuzzy
 msgid "You should change framing method, aborting\n"
-msgstr "Неизвестный метод кадрирования, прерывание\n"
+msgstr "Измените метод кадрирования, прерывание\n"
 
 #: src/registration/comet.c:131 src/registration/comet.c:168
 msgid "There is no timestamp stored in the file"
-msgstr "В файле отсутствуют временные метки"
+msgstr "В файле отсутствуют отметки времени"
 
 #: src/registration/comet.c:132 src/registration/comet.c:169
 msgid ""
@@ -20359,7 +20406,7 @@ msgstr "округлость:%*.2f\n"
 
 #: src/registration/global.c:906
 msgid "The number of stars has capped, readapting threshold and filtering\n"
-msgstr ""
+msgstr "Ограничение кол-ва звёзд, изменение порога и фильтрация\n"
 
 #: src/registration/global.c:977
 #, c-format
@@ -20507,10 +20554,10 @@ msgid ""
 "image."
 msgstr ""
 "<b>По комете/астероиду</b>: Алгоритм регистрации комет и астероидов. Для его "
-"применения необходимы временные метки, сохранённые в заголовке FITS и "
+"применения необходимы отметки времени, сохранённые в заголовке FITS, и "
 "загруженная последовательность с выравненными изображениями звёзд. Алгоритм "
 "осуществляет сдвиг каждого изображения на определённое количество пикселей, "
-"в зависимости от его временной отметки, и общий сдвиг объекта между первым и "
+"в зависимости от его отметки времени, и общий сдвиг объекта между первым и "
 "последним изображениями."
 
 #: src/registration/registration.c:88
@@ -20611,11 +20658,8 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "Регистрация %d изображений из %d в последовательности"
 
 #: src/registration/registration.c:1163
-#, fuzzy
 msgid "not available for sequences with variable image sizes"
-msgstr ""
-"Нельзя использовать выделение области, когда изображения в "
-"последовательности имеют разный размер\n"
+msgstr "недоступно для последовательностей с изображениями разного размера"
 
 #: src/registration/registration.c:1168
 msgid "Failed to determine registration method...\n"
@@ -21009,14 +21053,12 @@ msgid "median sigma clipping"
 msgstr "медианная обрезка по σ"
 
 #: src/stacking/stacking.c:354
-#, fuzzy
 msgid "winsorized sigma clipping"
-msgstr "Медианная"
+msgstr "винсоризованная обрезка по σ"
 
 #: src/stacking/stacking.c:357
-#, fuzzy
 msgid "linear fit clipping"
-msgstr "Обрезка светов"
+msgstr "линейная обрезка"
 
 #: src/stacking/stacking.c:360
 msgid "GESDT clipping"
@@ -21095,39 +21137,43 @@ msgstr "Коэф-т обрезки верхов для алгоритма выб
 
 #: src/stacking/stacking.c:799
 msgid "Percentile low: "
-msgstr "Нижний процентиль: "
+msgstr "Нижний порог: "
 
 #: src/stacking/stacking.c:800
 msgid "Percentile high: "
-msgstr "Верхний процентиль: "
+msgstr "Верхний порог: "
 
 #: src/stacking/stacking.c:809
 msgid ""
 "Tolerance for low pixel values of the linear fit clipping algorithm, in "
 "sigma units."
 msgstr ""
+"Допуск для нижнего порога значений пикселей линейного алгоритма, в значениях "
+"σ."
 
 #: src/stacking/stacking.c:810
 msgid ""
 "Tolerance for high pixel values of the linear fit clipping algorithm, in "
 "sigma units."
 msgstr ""
+"Допуск для верхнего порога значений пикселей линейного алгоритма, в "
+"значениях σ."
 
 #: src/stacking/stacking.c:815
 msgid "Linear low: "
-msgstr ""
+msgstr "Нижний порог: "
 
 #: src/stacking/stacking.c:816
 msgid "Linear high: "
-msgstr ""
+msgstr "Верхний порог: "
 
 #: src/stacking/stacking.c:829
 msgid "Low clipping factor for the sigma clipping rejection algorithm."
-msgstr ""
+msgstr "Коэф-т обрезки низов для алгоритма выбраковки по σ."
 
 #: src/stacking/stacking.c:830
 msgid "High clipping factor for the sigma clipping rejection algorithm."
-msgstr ""
+msgstr "Коэф-т обрезки верхов для алгоритма выбраковки по σ."
 
 #: src/stacking/stacking.c:845
 msgid ""

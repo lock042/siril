@@ -551,10 +551,11 @@ static gboolean end_convert_idle(gpointer p) {
 					converted_seqname = malloc(extidx + 5);
 					strncpy(converted_seqname, args->destroot, extidx);
 					strcpy(converted_seqname+extidx, ".seq");
+				} else {
+					converted_seqname = strdup(args->destroot);
 				}
 			} else {
-				converted_seqname = malloc(strlen(args->destroot) + 5);
-				sprintf(converted_seqname, "%s.seq", args->destroot);
+				converted_seqname = strdup(args->destroot);
 			}
 			check_seq();
 		}

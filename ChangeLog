@@ -1,46 +1,45 @@
 siril 1.2.0-rc1
-xx/xx/xx
+06/01/23
 
+* Added GHS saturation stretch mode
+* Added special formatter to parse date-time in path parsing
+* Added Astro-TIFF in sequence export
+* Added read of datetime in jpeg and png file with exiv2
+* Added Danish language
+* Changed Windows to build in console mode even for stable releases
+* Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak)
+* Changed image opening for all images not from Siril (ensures DATAMAX is correct)
+* Improved parsing of localization data for wider imaging software compatibility
+* Improved DATE-OBS control and log for solar system features
+* Improved clipping model in luminance-based GHS stretches
+* Improved Wayland support
+* Reviewed and fixed coordinate conversion from WCS to display for annotations, nomad command, pcc
+* Improved astrometry.net handling on Windows to support more recent cygwin builds
+* Updated URLs to query online catalogs
+* Fixed handling of special characters in sequence name during conversion
 * Fixed crash in seqstarnet when processing single-file sequences (SER, FITSEQ)
 * Fixed hang in seqstarnet when processing a single-file sequence with no star mask
 * Fixed using default masters names in calibrate (GUI)
 * Fixed invoking external programs in CLI mode (Windows only)
 * Fixed stream setting for all versions of ffmpeg (mp4 export crash)
 * Fixed crash when doing manual registration of sequence with variable image sizes (now disabled)
-* Added special formatter to parse date-time in path parsing
-* Added better handling of special characters in sequence name during conversion
-* Changed Windows to build in console mode even for stable releases
-* Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak)
-* Improved parsing of localization data for wider imaging software compatibility
-* Improved DATE-OBS control and log for solar system features
-* Improved clipping model in luminance-based GHS stretches
-* Added GHS saturation stretch mode
 * Fixed UI and command issues in deconvolution code
-* Print help and deconvolution tips URLs to the log
 * Fixed star recomposition issue where LIVETIME and STACKCNT could be doubled when processing the starless and star mask parts of the same image
 * Fixed "image copy error in previews" bug in asinh transformation
 * Fixed reset of the viewports when reopening the RGB composition tool after opening a mono sequence
-* Fixed terminology - "weighted" instead of "weighed", consistency in name of PCC tool
-* Enable detection for undersampled mono images
-* Improved Wayland support
-* Fixed incorrect option name in `show` help text
-* Prevent cleaning stats from resetting the reference image
+* Fixed star detection for undersampled mono images
+* Fixed sequence cleaning with opened image and resetting the reference image
 * Fixed photometry with 32bit images from PRISM
-* Added Astro-TIFF in sequence export
-* Force statistics for all images not from Siril (ensures DATAMAX is correct)
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
-* Reviewed and fixed coordinate conversion from WCS to display for annotations, nomad command, pcc
-* Improved astrometry.net handling on Windows to support more recent cygwin builds
-* Updated URLs to query online catalogs
 * Fixed sequence handling when images have different number of layers
 * Fixed GNUplot terminals so they remain interactive and free resources when closed
 * Fixed crash that could occur when parsing string keywords that contained forbidden characters
 * Fixed calling external processes that left too many opened file descriptors
 * Fixed Stop behavior for starnet and local astrometry.net
 * Fixed crash when running merge_cfa in headless mode
-* Added read of datetime in jpeg and png file with exiv2
-* Added Danish language
 * Fixed console logs output on Windows when messages contained widechars
+* Fixed networking detection at build-time and made it and exiv2 optional
+* Fixed bug in NetPBM file import
 
 siril 1.2.0-beta2
 03/12/23

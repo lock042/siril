@@ -425,8 +425,8 @@ struct ffit {
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
 	char row_order[FLEN_VALUE];
-	GDateTime *date, *date_obs;
-	double expstart, expend;
+	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
+	double expstart, expend;		// Julian dates
 	char filter[FLEN_VALUE];		// FILTER key
 	char image_type[FLEN_VALUE];		// IMAGETYP key
 	char object[FLEN_VALUE];		// OBJECT key
@@ -441,7 +441,7 @@ struct ffit {
 	double airmass;                   // relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
-	double livetime;		// total exposure
+	double livetime;		// sum of exposures (s)
 	guint stackcnt;			// number of stacked frame
 	double cvf;			// Conversion factor (e-/adu)
 	int key_gain, key_offset;	// Gain, Offset values read in camera headers.

@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <criterion/criterion.h>
 #include "core/siril_date.h"
 
@@ -40,7 +41,7 @@
 /**
  *  Test consistency of siril_date_time functions
  *   */
-int test_consistency() {
+int test_ser_date() {
 	GDateTime *dt1, *dt2, *dt3, *dt4;
 	guint64 diff, ts;
 	gchar *date_str;
@@ -74,14 +75,30 @@ int test_consistency() {
 	return 0;
 }
 
+int test_julian_date() {
+	GDateTime *dt = g_date_time_new_from_iso8601("2023-05-20T21:15:55Z", NULL);
+	//printf("expected: 2460085.386053, obtained: %f\n", date_time_to_Julian(dt));
+	CHECK(abs(date_time_to_Julian(dt) - 2460085.386053) < 1e-7, "Julian date conversion failed\n");
+	g_date_time_unref(dt);
+
+	// same, with centiseconds (at the limit of double precision)
+	dt = g_date_time_new_from_iso8601("2023-05-20T21:15:55.2Z", NULL);
+	printf("expected: 2460085.386056, obtained: %.7f\n", date_time_to_Julian(dt));
+	CHECK(abs(date_time_to_Julian(dt) - 2460085.386056) < 1e-7, "Julian date conversion failed\n");
+	g_date_time_unref(dt);
+	return 0;
+}
+
 #ifdef WITH_MAIN
 int main() {
-	int retval = test_consistency();
+	int retval = test_ser_date();
+	retval += test_julian_date();
 	if (retval)
 		fprintf(stderr, "TESTS FAILED\n");
 	else fprintf(stderr, "ALL TESTS PASSED\n");
 	return retval;
 }
 #else // with criterion
-Test(check_date, test1) { cr_assert(!test_consistency()); }
+Test(check_date, test_ser) { cr_assert(!test_ser_date()); }
+Test(check_date, test_julian) { cr_assert(!test_julian_date()); }
 #endif

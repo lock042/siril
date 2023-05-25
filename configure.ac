@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [1])
 m4_define([siril_minor_version], [2])
 m4_define([siril_micro_version], [0])
-m4_define([siril_prerelease_version], [beta3dev])
+m4_define([siril_prerelease_version], [rc1])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -126,9 +126,6 @@ case "$host_os" in
     ;;
 esac
 
-dnl check libexiv2
-PKG_CHECK_MODULES(EXIV2, exiv2 >= 0.25)
-
 dnl check GTK
 PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
 
@@ -223,6 +220,11 @@ PKG_CHECK_MODULES(LIBRAW, [libraw >= 0.17],
 		  [AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],
 		  AC_MSG_WARN([libraw not found. Not using RAW importer.]))
 
+dnl check libexiv2
+PKG_CHECK_MODULES(EXIV2, [exiv2 >= 0.25],
+		  [AC_DEFINE([HAVE_EXIV2], [1], [Using exif previews])],
+		  AC_MSG_WARN([exiv2 not found. Not extracting image previews.]))
+
 dnl check tiff lib
 PKG_CHECK_MODULES(LIBTIFF, [libtiff-4],
 		  [AC_DEFINE([HAVE_LIBTIFF], [1], [Using TIFF images])],
@@ -253,21 +255,61 @@ PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale 
 		  [AC_DEFINE([HAVE_FFMPEG], [1], [film export supported])],
 		  AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
 
+dnl checking glib-networking and its capability to handle TLS
+AC_MSG_CHECKING([for glib-networking (GIO HTTPS implementation)])
+siril_save_CFLAGS="$CFLAGS"
+siril_save_LIBS="$LIBS"
+CFLAGS="$CFLAGS $GIO_CFLAGS"
+LIBS="$LIBS $GIO_LIBS"
+AC_LANG([C])
+AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
+			       [if (!g_tls_backend_supports_tls (g_tls_backend_get_default ()))
+					return 1;
+				GFile *file = g_file_new_for_uri("https://localhost/test");
+				GError *error = NULL;
+				gchar *content = NULL;
+				g_file_load_contents(file, NULL, &content, NULL, NULL, &error);
+				return error->code == G_IO_ERROR_NOT_SUPPORTED;])],
+              [have_glib_networking="yes"],
+              [have_glib_networking="no"],
+              [have_glib_networking="unknown (cross-compiling)"])
+CFLAGS="$siril_save_CFLAGS"
+LIBS="$siril_save_LIBS"
+AC_MSG_RESULT($have_glib_networking)
+AC_LANG([C++])
+
+if test "x$have_glib_networking" = "xno"; then
+  AC_MSG_NOTICE([glib-networking not found])
+elif test "x$have_glib_networking" != "xyes"; then
+  AC_MSG_WARN([Test for glib-networking cannot be performed while cross-compiling.
+         Make sure glib-networking is installed, otherwise Siril will not be able
+         to open remote HTTPS (or other protocol using SSL/TLS) files.
+         HTTPS is becoming the expected standard and should not be considered
+         optional anymore.])
+fi
+
 dnl checking libcurl
+curl_avail=no
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
-		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])],
-		     AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes, [])
+
+if test "x$curl_avail" = "xno" && test "x$have_glib_networking" != "xyes"; then
+	AC_MSG_WARN([no networking library found, either glib-networking or curl are required])
+else
+	AC_MSG_NOTICE([networking solution found with either glib-networking or curl])
+	AC_DEFINE(HAVE_NETWORKING, 1, [Using networking])
+fi
 
 dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, [wcslib],
 		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
-		  AC_MSG_WARN([wcslib not found. Not using WCS API and PCC.]))
+		  AC_MSG_WARN([wcslib not found. Not using astrometry.]))
 
 dnl Check for json-glib
 PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
 		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
-		  AC_MSG_WARN([json-glib not found. not using automatic update.]))
+		  AC_MSG_WARN([json-glib not found. Not using automatic updates.]))
 
 dnl check libconfig
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],
