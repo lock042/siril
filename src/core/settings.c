@@ -205,7 +205,8 @@ preferences pref_init = {
 	.icc_paths = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
 	.rendering_intent = INTENT_PERCEPTUAL,
 	.proofing_intent = INTENT_RELATIVE_COLORIMETRIC,
-	.export_intent = INTENT_PERCEPTUAL
+	.export_intent = INTENT_PERCEPTUAL,
+	.fits_save_icc = TRUE
 };
 
 void free_preferences(preferences *pref) {
@@ -259,6 +260,7 @@ struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
 	{ "core", "force_16bit", STYPE_BOOL, N_("don't use 32 bits for pixel depth"), &com.pref.force_16bit },
+	{ "core", "fits_save_icc", STYPE_BOOL, N_("embed ICC profiles in FITS when saving"), &com.pref.fits_save_icc },
 	{ "core", "allow_heterogeneous_fitseq", STYPE_BOOL, N_("allow FITS cubes to have different sizes"), &com.pref.allow_heterogeneous_fitseq },
 	{ "core", "mem_mode", STYPE_INT, N_("memory mode (0 ratio, 1 amount)"), &com.pref.mem_mode, { .range_int = { 0, 1 } } },
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },

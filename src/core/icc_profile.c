@@ -145,7 +145,6 @@ void initialize_profiles_and_transforms() {
 			}
 		} else {
 			siril_log_message(_("No soft proofing ICC profile set. Soft proofing is unavailable.\n"));
-			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("soft_proof_item")), FALSE);
 		}
 
 	}

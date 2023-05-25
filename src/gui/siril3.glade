@@ -28128,8 +28128,7 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Used for image sampling computation, pixel size can be given in two different ways: the real pixel size is given but has to be multiplied by the binning (checked), the already multiplied pixel size is given (unchecked).
-It depends on the acquistion software used to create the FITS.</property>
+                                <property name="tooltip-text" translatable="yes">When this checkbox is checked, FITS files will have their ICC color management profile embedded when saved.</property>
                                 <property name="halign">start</property>
                                 <property name="margin-start">12</property>
                                 <property name="active">True</property>
@@ -28141,6 +28140,21 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
+                            <child>
+                              <object class="GtkCheckButton" id="checkbutton_fits_save_icc">
+                                <property name="label" translatable="yes">Embed ICC profiles in saved FITS files</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                         <child type="label">
@@ -28149,7 +28163,7 @@ It depends on the acquistion software used to create the FITS.</property>
                             <property name="can-focus">False</property>
                             <property name="margin-top">10</property>
                             <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">&lt;b&gt;FITS Header&lt;/b&gt;</property>
+                            <property name="label" translatable="yes">&lt;b&gt;FITS Metadata&lt;/b&gt;</property>
                             <property name="use-markup">True</property>
                             <property name="single-line-mode">True</property>
                           </object>

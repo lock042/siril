@@ -1786,12 +1786,8 @@ int write_icc_profile_to_fits(fits *fit) {
 	status = cmsSaveProfileToMem(fit->icc_profile, NULL, &profile_length);
 	if (profile_length > 0) {
 		profile = malloc(profile_length * sizeof(cmsUInt8Number));
-		status = cmsSaveProfileToMem(fit->icc_profile, (void*) profile, &profile_length);
-		if (status) {
-			status = 0;
-		} else {
-			status = 1;
-		}
+		cmsBool ret = cmsSaveProfileToMem(fit->icc_profile, (void*) profile, &profile_length);
+		status = !ret;
 	}
 
 	// Move to the last HDU
@@ -1800,19 +1796,15 @@ int write_icc_profile_to_fits(fits *fit) {
 
 	if (fits_movabs_hdu(fit->fptr, nhdus, NULL, &status)) {
 		fits_report_error(stderr, status);
-		g_free(profile);
-		return status;
+		goto ERROR_MESSAGE_AND_RETURN;
 	}
 
-	// Create an image extension with sample pixel data
+	// Create the image extension
 	long naxis = 1, naxes = profile_length;  // Image dimensions
 	long fpixel = 1;       // First pixel to write
-
-	// Create the image extension
 	if (fits_create_img(fit->fptr, BYTE_IMG, naxis, &naxes, &status)) {
 		fits_report_error(stderr, status);
-		g_free(profile);
-		return status;
+		goto ERROR_MESSAGE_AND_RETURN;
 	}
 	int bitpix = 8, pcount = 0, gcount = 1;
 	// Populate the header with the field values
@@ -1825,21 +1817,24 @@ int write_icc_profile_to_fits(fits *fit) {
 	if (!status) status = (fits_update_key(fit->fptr, TSTRING, "EXTNAME", "ICCProfile", NULL, &status));
 	if (status) {
 		fits_report_error(stderr, status);
-		g_free(profile);
-		return status;
+		goto ERROR_MESSAGE_AND_RETURN;
 	}
 
-	// Write the pixel data to the image extension
+	// Write the ICC profile data to the image extension
 	if (fits_write_img(fit->fptr, TBYTE, fpixel, profile_length, profile, &status)) {
 		fits_report_error(stderr, status);
-		g_free(profile);
-		return status;
-    } else {
-		siril_log_message(_("ICC profile embedded in FITS file\n"));
+		goto ERROR_MESSAGE_AND_RETURN;
 	}
-	g_free(profile);
 
+	// Success! Clean up and return
+	g_free(profile);
+	siril_log_message(_("ICC profile embedded in FITS file\n"));
 	return 0;
+
+ERROR_MESSAGE_AND_RETURN:
+	free(profile);
+	siril_log_color_message(_("Warning: error encountered writing ICC profile to FITS.\n"), "salmon");
+	return status;
 }
 
 /* Look for a HDU containing an ICC profile; if one is found, open it */
@@ -2442,7 +2437,8 @@ int savefits(const char *name, fits *f) {
 
 	save_opened_fits(f);
 
-	write_icc_profile_to_fits(f);
+	if (com.pref.fits_save_icc)
+		write_icc_profile_to_fits(f);
 
 	status = 0;
 	fits_close_file(f->fptr, &status);

@@ -910,6 +910,10 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		fit_replace_buffer(fit, newbuf, DATA_FLOAT);
 	}
 
+	// Initialize the ICC profile. As no profile is passed, a sRGB or Gray g22 profile
+	// will be set.
+	fits_initialize_icc(fit, NULL, 0);
+
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
 	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
