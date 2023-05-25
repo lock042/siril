@@ -32,6 +32,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
