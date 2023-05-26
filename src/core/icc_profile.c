@@ -31,7 +31,9 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "icc_profile.h"
+#include "gui/dialogs.h"
 #include "gui/utils.h"
+#include "io/single_image.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "core/proto.h"
@@ -62,6 +64,9 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 const char* default_icc_paths[] = { DEFAULT_PATH_GV2g22, DEFAULT_PATH_GV4g10, DEFAULT_PATH_GV4g22, DEFAULT_PATH_RGBV2g22, DEFAULT_PATH_RGBV4g10, DEFAULT_PATH_RGBV4g22 };
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
+
+static cmsHPROFILE target = NULL; // Target profile for the GUI tool
+static int ui_operation = -1;
 
 ////// Functions //////
 
@@ -100,6 +105,8 @@ void initialize_profiles_and_transforms() {
 	// Linear working profiles
 	com.icc.srgb_linear = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G10], "r");
 	com.icc.mono_linear = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G10], "r");
+	com.icc.mono_standard = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G22], "r");
+	com.icc.srgb_standard = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
 
 	// Target profile for embedding in saved RGB and mono files
 	com.icc.srgb_out = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV2G22], "r");
@@ -564,4 +571,171 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	}
 	g_mutex_unlock(&soft_proof_profile_mutex);
 	refresh_icc_transforms();
+}
+
+//////// GUI callbacks for the color management dialog
+
+void set_target_information() {
+	if (!target) {
+		siril_debug_print("Error: target profile is NULL\n");
+		return;
+	}
+	// Set description
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
+	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_target_mfr_label");
+	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_target_copyright_label");
+	int length = cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", NULL, 0);
+	char *buffer = NULL;
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", buffer, length);
+		gtk_label_set_text(label, buffer);
+		free(buffer);
+	}
+
+	// Set manufacturer
+	length = cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", buffer, length);
+		gtk_label_set_text(mfr_label, buffer);
+		free(buffer);
+	}
+
+	// Set copyright
+	length = cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", buffer, length);
+		gtk_label_set_text(copyright_label, buffer);
+		free(buffer);
+	}
+}
+
+void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
+	GtkComboBox* target_combo = (GtkComboBox*) lookup_widget("icc_target_combo");
+	GtkComboBox* operation = (GtkComboBox*) lookup_widget("icc_operation_combo");
+	GtkFileChooser* filechooser = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
+	gtk_combo_box_set_active(target_combo, 0);
+	gtk_combo_box_set_active(operation, 0);
+	gtk_file_chooser_unselect_all(filechooser);
+	if (target) {
+		cmsCloseProfile(target);
+		target = NULL;
+		gtk_label_set_text(label, "");
+	}
+	ui_operation = -1;
+	siril_close_dialog("icc_dialog");
+}
+
+void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
+	switch(ui_operation) {
+		case 0:
+			// assign profile
+			if (gfit.icc_profile) {
+				cmsCloseProfile(gfit.icc_profile);
+				gfit.icc_profile = NULL;
+			}
+			gfit.icc_profile = target;
+			notify_gfit_modified();
+			break;
+		case 1:
+			// convert to profile
+			void *data = NULL;
+			cmsUInt32Number type;
+			size_t npixels = gfit.rx * gfit.ry;
+			if (gfit.type == DATA_FLOAT) {
+				data = (void*) gfit.fdata;
+				type = (gfit.naxes[2] == 1) ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+			} else {
+				data = (void*) gfit.data;
+				type = (gfit.naxes[2] == 1) ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+			}
+			cmsHTRANSFORM transform = cmsCreateTransform(gfit.icc_profile, type, target, type, gui.icc.rendering_intent, 0);
+			cmsDoTransform(transform, data, data, npixels);
+			cmsDeleteTransform(transform);
+			notify_gfit_modified();
+			break;
+	}
+	on_icc_cancel_clicked(button, user_data);
+}
+
+void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
+	int target_index = gtk_combo_box_get_active(combo);
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
+	switch (target_index) {
+		case 0:
+			if (target) {
+				GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_target_mfr_label");
+				GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_target_copyright_label");
+				cmsCloseProfile(target);
+				target = NULL;
+				gtk_label_set_text(label, "");
+				gtk_label_set_text(copyright_label, "");
+				gtk_label_set_text(mfr_label, "");
+			}
+			return;
+		case 1:
+			if (target) {
+				cmsCloseProfile(target);
+			}
+			if (gfit.naxes[2] == 1) {
+				target = copyICCProfile(com.icc.mono_linear);
+			} else {
+				target = copyICCProfile(com.icc.srgb_linear);
+			}
+			break;
+		case 2:
+			if (target) {
+				cmsCloseProfile(target);
+			}
+			if (gfit.naxes[2] == 1) {
+				target = copyICCProfile(com.icc.mono_standard);
+			} else {
+				target = copyICCProfile(com.icc.srgb_standard);
+			}
+			break;
+	}
+	set_target_information();
+}
+
+void on_icc_operation_combo_clicked(GtkComboBox* combo, gpointer* user_data) {
+	ui_operation = gtk_combo_box_get_active(combo);
+}
+
+void on_icc_target_filechooser_file_set(GtkButton* button, gpointer* user_data) {
+}
+
+void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
+	// Set description
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
+	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
+	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
+	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+	char *buffer = NULL;
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+		gtk_label_set_text(label, buffer);
+		free(buffer);
+	}
+
+	// Set manufacturer
+	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", buffer, length);
+		gtk_label_set_text(mfr_label, buffer);
+		free(buffer);
+	}
+
+	// Set copyright
+	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", buffer, length);
+		gtk_label_set_text(copyright_label, buffer);
+		free(buffer);
+	}
 }
