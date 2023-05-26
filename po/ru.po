@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-20 01:28+0000\n"
+"PO-Revision-Date: 2023-05-26 13:18+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -1634,9 +1634,8 @@ msgid ""
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
 "Регуляризация с помощью полной вариации хорошо сохраняет четкие края "
-"изображения. Если сомневаетесь, выбирайте полную вариацию. Однако это может "
-"иметь тенденцию создавать \"эффект лестницы\" на крупных однородных "
-"областях.\n"
+"изображения. Если сомневаетесь, выбирайте полную вариацию. Однако это имеет "
+"тенденцию создавать \"эффект лестницы\" на крупных однородных областях.\n"
 "Норма Фробениуса для гессиана использует член регуляризации второго порядка. "
 "Она чаще используется в регуляризации алгоритмов шумоподавления, но может "
 "хорошо работать при реконструкции маски звёзд, создаваемой интерфейсом Siril "
@@ -5929,7 +5928,7 @@ msgstr "FWHM"
 #: src/gui/siril3.glade:22927 src/gui/siril3.glade:24589
 #: src/gui/siril3.glade:24718 src/gui/siril3.glade:24858
 msgid "weighted FWHM"
-msgstr "с взвешенным FWHM"
+msgstr "со взвешенной FWHM"
 
 #: src/gui/siril3.glade:22659 src/gui/siril3.glade:22788
 #: src/gui/siril3.glade:22928 src/gui/siril3.glade:24590
@@ -10098,9 +10097,9 @@ msgid "Bmag= %lf  , Vmag= %lf\n"
 msgstr ""
 
 #: src/algos/search_objects.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported object type in response: %s\n"
-msgstr "Поддерживаемые форматы: %s\n"
+msgstr "Неподдерживаемый тип объекта в ответе: %s\n"
 
 #: src/algos/search_objects.c:267
 #, c-format
@@ -10553,9 +10552,8 @@ msgid "Invalid Bayer matrix specified!\n"
 msgstr "Указан неверный шаблон Байера!\n"
 
 #: src/core/command.c:843
-#, fuzzy
 msgid "Unsaved Bayer pattern merge"
-msgstr "Выберите узор матрицы вашей камеры"
+msgstr "Несохранённое слияние шаблона Байера"
 
 #: src/core/command.c:844
 #, fuzzy
@@ -18831,11 +18829,11 @@ msgstr "Ключ не найден: "
 
 #: src/io/path_parse.c:59
 msgid "Wrong date: "
-msgstr "Некорректная дата: "
+msgstr "Неверная дата: "
 
 #: src/io/path_parse.c:63
 msgid "Wrong coordinates: "
-msgstr "Некорректные координаты: "
+msgstr "Неверные координаты: "
 
 #: src/io/path_parse.c:67
 msgid "Unsupported format: "
@@ -20774,7 +20772,7 @@ msgstr "кол-во звёзд"
 #: src/stacking/median_and_mean.c:975
 #, c-format
 msgid "Using %d MB memory maximum for stacking\n"
-msgstr "Использование максимально %d Мб памяти для укладки\n"
+msgstr "Для укладки используется максимально %d Мб памяти\n"
 
 #: src/stacking/median_and_mean.c:1000
 msgid "Select at least two frames for stacking. Aborting.\n"
