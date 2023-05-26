@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-13 14:01+0200\n"
-"PO-Revision-Date: 2023-05-26 13:18+0000\n"
+"PO-Revision-Date: 2023-05-27 06:10+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -1108,7 +1108,6 @@ msgid "Use a manually defined PSF based on the parameters chosen."
 msgstr "Использовать PSF, определённую вручную на основе выбранных параметров."
 
 #: src/gui/siril3.glade:6030
-#, fuzzy
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
@@ -1361,7 +1360,6 @@ msgid "Gamma (γ)"
 msgstr "Гамма (γ)"
 
 #: src/gui/siril3.glade:6745
-#, fuzzy
 msgid "PSF estimation regularisation parameter"
 msgstr "Параметр регуляризации оценки PSF"
 
@@ -1378,28 +1376,25 @@ msgid "Lambda ratio"
 msgstr "Отношение λ"
 
 #: src/gui/siril3.glade:6797
-#, fuzzy
 msgid "Ratio of lambda at successive scales for multiscale PSF estimation."
-msgstr "Отношение λ для последовательных шкал при многошкальной оценке PSF."
+msgstr "Отношение λ для последовательных шкал при многоступенчатой оценке PSF."
 
 #: src/gui/siril3.glade:6813
 msgid "Lambda min"
 msgstr "Лямбда (мин.)"
 
 #: src/gui/siril3.glade:6824
-#, fuzzy
 msgid "Minimum value of lambda for multiscale PSF estimation"
-msgstr "Минимальное значение λ для многошкальной оценки PSF"
+msgstr "Минимальное значение λ для многоступенчатой оценки PSF"
 
 #: src/gui/siril3.glade:6840
 msgid "Scale factor"
 msgstr "Коэф-т масштаба"
 
 #: src/gui/siril3.glade:6851
-#, fuzzy
 msgid "Scale factor between successive scales of multiscale PSF estimation"
 msgstr ""
-"Коэффициент масштаба между последовательными шкалами при многомастабной "
+"Коэффициент масштаба между последовательными масштабами при многоступенчатой "
 "оценке PSF"
 
 #: src/gui/siril3.glade:6866
@@ -1449,7 +1444,6 @@ msgstr ""
 "сути, эта опция должна быть всегда включена."
 
 #: src/gui/siril3.glade:6985
-#, fuzzy
 msgid "ℓ1 gradient parameter"
 msgstr "ℓ1 параметр градиента"
 
@@ -1462,7 +1456,6 @@ msgid "Expert Settings"
 msgstr "Дополнительные параметры"
 
 #: src/gui/siril3.glade:7021
-#, fuzzy
 msgid "ℓ0 Descent Method"
 msgstr "ℓ0 метод спуска"
 
@@ -1487,31 +1480,27 @@ msgstr ""
 "единице, чтобы получить достаточную резкость в PSF."
 
 #: src/gui/siril3.glade:7106
-#, fuzzy
 msgid "Samples per outer loop"
 msgstr "Образцов во внешнем цикле"
 
 #: src/gui/siril3.glade:7118
-#, fuzzy
 msgid "Outer loop iterations"
 msgstr "Повторы внешнего цикла"
 
 #: src/gui/siril3.glade:7129
-#, fuzzy
 msgid ""
 "This parameter sets the number of samples per outer loop. Sufficient samples "
 "must be chosen to ensure the PSF estimate converges: for low noise images a "
 "fairly small number of samples will suffice. For noisy images, the value may "
 "require increasing to as much as around 250."
 msgstr ""
-"Этот параметр задает количество образцов для каждого внешнего цикла. "
+"Этот параметр устанавливает количество образцов для каждого внешнего цикла. "
 "Необходимо выбрать достаточное количество образов, чтобы обеспечить "
-"сходимость оценки PSF: для изображений с низким уровнем шума будет "
-"достаточно небольшого количества образцов. Для зашумленных изображений это "
-"значение может потребоваться увеличить примерно до 250."
+"сходимость оценки PSF: для изображений с низким уровнем шума достаточно "
+"небольшого количества образцов. Для зашумленных изображений это значение "
+"может потребоваться увеличить примерно до 250."
 
 #: src/gui/siril3.glade:7143
-#, fuzzy
 msgid ""
 "Outer loop iterations. This parameter should not generally require "
 "adjustment."
@@ -1520,12 +1509,10 @@ msgstr ""
 "настройки."
 
 #: src/gui/siril3.glade:7158
-#, fuzzy
 msgid "Inner loop iterations"
 msgstr "Повторы внутреннего цикла"
 
 #: src/gui/siril3.glade:7169
-#, fuzzy
 msgid ""
 "This parameter sets the number of iterations in the algorithm inner loop. It "
 "should not usually require adjustment."
@@ -2724,7 +2711,6 @@ msgstr ""
 "последовательности изображений) и вычисляет PSF"
 
 #: src/gui/siril3.glade:11243 src/gui/siril3.glade:13670
-#, fuzzy
 msgid "Average PSF parameters for selected stars"
 msgstr "Усреднить параметры PSF для выбранных звёзд"
 
@@ -3489,13 +3475,16 @@ msgid "Amplitude range"
 msgstr "Диапазон амплитуд"
 
 #: src/gui/siril3.glade:13530
-#, fuzzy
 msgid ""
 "Enable amplitude range (only stars with an amplitude in this range will be "
 "kept from the detection).\n"
 "Note: excluding saturated stars from the list will probably make "
 "registration or astrometry fail."
-msgstr "Включить диапазон амплитуд (только"
+msgstr ""
+"Включить диапазон амплитуд (только звёзды с амплитудами из этого диапазона "
+"будут исключены из определения).\n"
+"Замечание: исключение насыщенных звёзд из этого списка может затруднить "
+"регистрацию или астрометрию."
 
 #: src/gui/siril3.glade:13542
 msgid "Roundness range"
@@ -7979,7 +7968,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:29448
-#, fuzzy
 msgid "AF pixels:"
 msgstr "АФ пиксели:"
 
@@ -8000,9 +7988,8 @@ msgid "y:"
 msgstr "y:"
 
 #: src/gui/siril3.glade:29584
-#, fuzzy
 msgid "Sample pixels:"
-msgstr "пиксель"
+msgstr "Пиксели кадра:"
 
 #: src/gui/siril3.glade:29718
 msgid "Fix Xtrans files"
@@ -9298,7 +9285,7 @@ msgstr "Успешное локальное решение astrometry.net\n"
 
 #: src/algos/astrometry_solver.c:2152
 msgid "Warning: using the current selection to detect stars\n"
-msgstr "Предупреждение: используем текущее выделение для поиска звёзд\n"
+msgstr "Предупреждение: используется текущее выделение для поиска звёзд\n"
 
 #: src/algos/astrometry_solver.c:2196
 msgid "Selection is not used in manual star selection mode\n"
@@ -9544,9 +9531,10 @@ msgid "XTRANS pattern not supported for this feature.\n"
 msgstr "Эта функция не поддерживает матрицы X-Trans.\n"
 
 #: src/algos/extraction.c:249 src/algos/extraction.c:293
-#, fuzzy
 msgid "Extract_Green does not work on non-Bayer filter camera images!\n"
-msgstr "Из\n"
+msgstr ""
+"Извлечение зелёного не работает изображениях, полученных с камер без фильтра "
+"Байера!\n"
 
 #: src/algos/extraction.c:480
 #, c-format
@@ -10509,9 +10497,8 @@ msgstr ""
 
 #: src/core/command.c:563 src/core/command.c:649 src/core/command.c:3220
 #: src/core/command.c:3284
-#, fuzzy
 msgid "Error parsing arguments, aborting.\n"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Ошибка при разборе аргументов, прерывание.\n"
 
 #: src/core/command.c:573 src/core/command.c:660
 msgid ""
@@ -10631,9 +10618,8 @@ msgid "spectral irregularity method\n"
 msgstr ""
 
 #: src/core/command.c:1072
-#, fuzzy
 msgid "multiscale estimation\n"
-msgstr "Оценка шума"
+msgstr "многоступенчатая оценка\n"
 
 #: src/core/command.c:1080 src/core/command.c:1092 src/core/command.c:1213
 #: src/core/command.c:1223 src/core/command.c:1233 src/core/command.c:1243
@@ -14398,9 +14384,9 @@ msgid "Loading sequence `%s' failed.\n"
 msgstr "Не удалось загрузить последовательность `%s'.\n"
 
 #: src/core/initfile.c:72
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot load initfile: %s\n"
-msgstr "Не удалось загрузить файл"
+msgstr "Не удалось загрузить файл конфигурации: %s\n"
 
 #: src/core/initfile.c:79
 #, c-format
@@ -18054,6 +18040,9 @@ msgid ""
 "installation directory.\n"
 "StarNet can process mono and RGB images."
 msgstr ""
+"В директории установки StarNet обнаружены подходящие исполняемые файлы "
+"StarNet v1 для монохромных и RGB изображений.\n"
+"StarNet может обрабатывать монохромные и RGB изображения."
 
 #: src/gui/starnetgui.c:89
 msgid ""
@@ -18061,7 +18050,7 @@ msgid ""
 "directory.\n"
 "Check your StarNet installation and Siril configuration."
 msgstr ""
-"В директории установки не найден необходимый исполняемый файл StarNet.\n"
+"В директории установки не обнаружен необходимый исполняемый файл StarNet.\n"
 "Проверьте установку StarNet и конфигурацию Siril."
 
 #: src/gui/starnetgui.c:93
@@ -18070,6 +18059,9 @@ msgid ""
 "installation directory.\n"
 "StarNet can process mono and RGB images."
 msgstr ""
+"В директории установки StarNet обнаружен подходящий исполняемый файл StarNet "
+"v2, основанный на библиотеке Torch.\n"
+"StarNet может обрабатывать монохромные и RGB изображения."
 
 #: src/gui/starnetgui.c:96
 msgid ""
@@ -18077,6 +18069,9 @@ msgid ""
 "directory.\n"
 "StarNet can process mono and RGB images."
 msgstr ""
+"В директории установки StarNet обнаружен подходящий исполняемый файл StarNet "
+"v2.\n"
+"StarNet может обрабатывать монохромные и RGB изображения."
 
 #: src/gui/starnetgui.c:105
 msgid ""
@@ -18864,9 +18859,9 @@ msgid "Internal error"
 msgstr "Внутренняя ошибка"
 
 #: src/io/path_parse.c:190
-#, fuzzy, c-format
+#, c-format
 msgid "Using most recent matching file: %s\n"
-msgstr "Используется самый новый соответствующий файл: %s\n"
+msgstr "Используется самый последний соответствующий файл: %s\n"
 
 #: src/io/seqfile.c:129
 msgid ""
@@ -19121,9 +19116,10 @@ msgid ""
 "image %d), photometry will probably not be reliable. Check the sequence and "
 "exclude some images\n"
 msgstr ""
-"Предупреждение: последовательность, видимо, имеет изображения с большим "
-"дрейфом (%d пикселей для кадра %d), поэтому фотометрия, возможно, не будет "
-"верной. Проверьте последовательность и исключите некоторые изображения\n"
+"Предупреждение: похоже, что последовательность содержит изображения с "
+"большим дрейфом (%d пикселей для кадра %d), поэтому фотометрия, возможно, не "
+"будет верной. Проверьте последовательность и исключите некоторые "
+"изображения\n"
 
 #: src/io/sequence.c:2091
 #, c-format
