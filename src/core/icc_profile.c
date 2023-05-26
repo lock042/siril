@@ -32,6 +32,7 @@
 #include "core/OS_utils.h"
 #include "icc_profile.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "core/siril_log.h"
@@ -614,6 +615,11 @@ void set_target_information() {
 
 void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
+	GtkLabel* label2 = (GtkLabel*) lookup_widget("icc_target_mfr_label");
+	GtkLabel* label3 = (GtkLabel*) lookup_widget("icc_target_copyright_label");
+	GtkLabel* label4 = (GtkLabel*) lookup_widget("icc_current_profile_label");
+	GtkLabel* label5 = (GtkLabel*) lookup_widget("icc_mfr_label");
+	GtkLabel* label6 = (GtkLabel*) lookup_widget("icc_copyright_label");
 	GtkComboBox* target_combo = (GtkComboBox*) lookup_widget("icc_target_combo");
 	GtkComboBox* operation = (GtkComboBox*) lookup_widget("icc_operation_combo");
 	GtkFileChooser* filechooser = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
@@ -623,8 +629,13 @@ void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
 	if (target) {
 		cmsCloseProfile(target);
 		target = NULL;
-		gtk_label_set_text(label, "");
 	}
+	gtk_label_set_text(label, "");
+	gtk_label_set_text(label2, "");
+	gtk_label_set_text(label3, "");
+	gtk_label_set_text(label4, "");
+	gtk_label_set_text(label5, "");
+	gtk_label_set_text(label6, "");
 	ui_operation = -1;
 	siril_close_dialog("icc_dialog");
 }
@@ -657,6 +668,9 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 			cmsDeleteTransform(transform);
 			notify_gfit_modified();
 			break;
+		default:
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("No operation selected"), _("Choose either \"Assign profile\" or \"Convert to profile\" from the dropdown."));
+			return;
 	}
 	on_icc_cancel_clicked(button, user_data);
 }
