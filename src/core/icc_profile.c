@@ -67,7 +67,6 @@ static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
 
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
-static int ui_operation = -1;
 
 ////// Functions //////
 
@@ -636,11 +635,12 @@ void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
 	gtk_label_set_text(label4, "");
 	gtk_label_set_text(label5, "");
 	gtk_label_set_text(label6, "");
-	ui_operation = -1;
-	siril_close_dialog("icc_dialog");
+siril_close_dialog("icc_dialog");
 }
 
 void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
+	GtkComboBox* operation = (GtkComboBox*) lookup_widget("icc_operation_combo");
+	int ui_operation = gtk_combo_box_get_active(operation);
 	switch(ui_operation) {
 		case 0:
 			// assign profile
@@ -648,7 +648,7 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 				cmsCloseProfile(gfit.icc_profile);
 				gfit.icc_profile = NULL;
 			}
-			gfit.icc_profile = target;
+			gfit.icc_profile = copyICCProfile(target);
 			notify_gfit_modified();
 			break;
 		case 1:
@@ -666,18 +666,20 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 			cmsHTRANSFORM transform = cmsCreateTransform(gfit.icc_profile, type, target, type, gui.icc.rendering_intent, 0);
 			cmsDoTransform(transform, data, data, npixels);
 			cmsDeleteTransform(transform);
+			gfit.icc_profile = copyICCProfile(target);
 			notify_gfit_modified();
 			break;
 		default:
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("No operation selected"), _("Choose either \"Assign profile\" or \"Convert to profile\" from the dropdown."));
 			return;
 	}
-	on_icc_cancel_clicked(button, user_data);
 }
 
 void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
+	GtkFileChooser* filechooser = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
 	int target_index = gtk_combo_box_get_active(combo);
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
+	gtk_file_chooser_unselect_all(filechooser);
 	switch (target_index) {
 		case 0:
 			if (target) {
@@ -714,11 +716,21 @@ void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
 	set_target_information();
 }
 
-void on_icc_operation_combo_clicked(GtkComboBox* combo, gpointer* user_data) {
-	ui_operation = gtk_combo_box_get_active(combo);
+void on_icc_operation_combo_changeded(GtkComboBox* combo, gpointer* user_data) {
 }
 
-void on_icc_target_filechooser_file_set(GtkButton* button, gpointer* user_data) {
+void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* user_data) {
+	GtkComboBox* target_combo = (GtkComboBox*) lookup_widget("icc_target_combo");
+	gtk_combo_box_set_active(target_combo, 0);
+	gchar *filename = gtk_file_chooser_get_filename(filechooser);
+	target = cmsOpenProfileFromFile(filename, "r");
+	if (!target) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error:could not load selected file, or it does not contain a valid ICC profile."));
+		gtk_file_chooser_unselect_all(filechooser);
+	} else {
+		set_target_information();
+	}
+	g_free(filename);
 }
 
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
