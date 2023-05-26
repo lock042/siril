@@ -160,7 +160,33 @@ void initialize_profiles_and_transforms() {
 	}
 }
 
-void refresh_icc_settings() {
+cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16) {
+	if (force_16)
+		t = DATA_USHORT;
+	switch (tgt) {
+		case cmsSigGrayData:
+			return (t == DATA_FLOAT ? TYPE_GRAY_FLT : TYPE_GRAY_16);
+		case cmsSigRgbData:
+			return (t == DATA_FLOAT ? TYPE_RGB_FLT_PLANAR : TYPE_RGB_16_PLANAR);
+		case cmsSigXYZData:
+			return (t == DATA_FLOAT ? TYPE_XYZ_FLT_PLANAR : TYPE_XYZ_16_PLANAR);
+		case cmsSigLabData:
+			return (t == DATA_FLOAT ? TYPE_Lab_FLT_PLANAR : TYPE_Lab_16_PLANAR);
+		case cmsSigLuvData:
+			return (t == DATA_FLOAT ? TYPE_Luv_FLT_PLANAR : TYPE_Luv_16_PLANAR);
+		case cmsSigYCbCrData:
+			return (t == DATA_FLOAT ? TYPE_YCbCr_FLT_PLANAR : TYPE_YCbCr_16_PLANAR);
+		case cmsSigYxyData:
+			return (t == DATA_FLOAT ? TYPE_Yxy_FLT_PLANAR : TYPE_Yxy_16_PLANAR);
+		case cmsSigHsvData:
+			return (t == DATA_FLOAT ? TYPE_HSV_FLT_PLANAR : TYPE_HSV_16_PLANAR);
+		case cmsSigHlsData:
+			return (t == DATA_FLOAT ? TYPE_HLS_FLT_PLANAR : TYPE_HLS_16_PLANAR);
+		case cmsSigCmyData:
+			return (t == DATA_FLOAT ? TYPE_CMY_FLT_PLANAR : TYPE_CMY_16_PLANAR);
+		default:
+			return 0;
+	}
 }
 
 // Loads a custom monitor profile from a path in com.pref.icc_paths
@@ -205,9 +231,11 @@ cmsHTRANSFORM initialize_display_transform() {
 	cmsHTRANSFORM transform = NULL;
 	if (gfit.icc_profile == NULL)
 		return NULL;
-	cmsUInt32Number type = (gfit.naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
+	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit.icc_profile);
+	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
+	cmsUInt32Number desttype = (gfit.naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
 	g_mutex_lock(&monitor_profile_mutex);
-	transform = cmsCreateTransform(gfit.icc_profile, type, (gfit.naxes[2] == 3 ? gui.icc.monitor : com.icc.mono_out), type, gui.icc.rendering_intent, 0);
+	transform = cmsCreateTransform(gfit.icc_profile, srctype, (gfit.naxes[2] == 3 ? gui.icc.monitor : com.icc.mono_out), desttype, gui.icc.rendering_intent, 0);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
@@ -397,6 +425,7 @@ void fits_check_icc(fits *fit) {
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_linear : com.icc.srgb_linear);
 	}
 }
+
 ///// Preferences callbacks
 
 // Being able to alter the monitor and soft_proof profiles and intents from the GTK thread means all operations
@@ -574,7 +603,42 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 }
 
 //////// GUI callbacks for the color management dialog
+void set_source_information() {
+	if (!gfit.icc_profile) {
+		siril_debug_print("Error: target profile is NULL\n");
+		return;
+	}
+	// Set description
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
+	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
+	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
+	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+	char *buffer = NULL;
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+		gtk_label_set_text(label, buffer);
+		free(buffer);
+	}
 
+	// Set manufacturer
+	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", buffer, length);
+		gtk_label_set_text(mfr_label, buffer);
+		free(buffer);
+	}
+
+	// Set copyright
+	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", buffer, length);
+		gtk_label_set_text(copyright_label, buffer);
+		free(buffer);
+	}
+}
 void set_target_information() {
 	if (!target) {
 		siril_debug_print("Error: target profile is NULL\n");
@@ -641,6 +705,14 @@ siril_close_dialog("icc_dialog");
 void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 	GtkComboBox* operation = (GtkComboBox*) lookup_widget("icc_operation_combo");
 	int ui_operation = gtk_combo_box_get_active(operation);
+	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit.icc_profile);
+	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
+	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
+	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
+	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
+		return;
+	}
 	switch(ui_operation) {
 		case 0:
 			// assign profile
@@ -649,25 +721,33 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 				gfit.icc_profile = NULL;
 			}
 			gfit.icc_profile = copyICCProfile(target);
+			set_source_information();
 			notify_gfit_modified();
 			break;
 		case 1:
 			// convert to profile
 			void *data = NULL;
-			cmsUInt32Number type;
+			cmsUInt32Number srctype, desttype;
 			size_t npixels = gfit.rx * gfit.ry;
-			if (gfit.type == DATA_FLOAT) {
-				data = (void*) gfit.fdata;
-				type = (gfit.naxes[2] == 1) ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+			data = (gfit.type == DATA_FLOAT) ? (void *) gfit.fdata : (void *) gfit.data;
+			srctype = get_planar_formatter_type(gfit_colorspace, gfit.type, FALSE);
+			desttype = get_planar_formatter_type(target_colorspace, gfit.type, FALSE);
+			cmsHTRANSFORM transform = NULL;
+			if (gfit_colorspace_channels == target_colorspace_channels) {
+				transform = cmsCreateTransform(gfit.icc_profile, srctype, target, desttype, gui.icc.rendering_intent, 0);
 			} else {
-				data = (void*) gfit.data;
-				type = (gfit.naxes[2] == 1) ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+				siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
+				return;
 			}
-			cmsHTRANSFORM transform = cmsCreateTransform(gfit.icc_profile, type, target, type, gui.icc.rendering_intent, 0);
-			cmsDoTransform(transform, data, data, npixels);
-			cmsDeleteTransform(transform);
-			gfit.icc_profile = copyICCProfile(target);
-			notify_gfit_modified();
+			if (transform) {
+				cmsDoTransform(transform, data, data, npixels);
+				cmsDeleteTransform(transform);
+				gfit.icc_profile = copyICCProfile(target);
+				set_source_information();
+				notify_gfit_modified();
+			} else {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
+			}
 			break;
 		default:
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("No operation selected"), _("Choose either \"Assign profile\" or \"Convert to profile\" from the dropdown."));
@@ -723,7 +803,14 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 	GtkComboBox* target_combo = (GtkComboBox*) lookup_widget("icc_target_combo");
 	gtk_combo_box_set_active(target_combo, 0);
 	gchar *filename = gtk_file_chooser_get_filename(filechooser);
-	target = cmsOpenProfileFromFile(filename, "r");
+	if (filename) {
+		target = cmsOpenProfileFromFile(filename, "r");
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error:could not load selected file, or it does not contain a valid ICC profile."));
+		g_free(filename);
+		gtk_file_chooser_unselect_all(filechooser);
+		return;
+	}
 	if (!target) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error:could not load selected file, or it does not contain a valid ICC profile."));
 		gtk_file_chooser_unselect_all(filechooser);
@@ -735,33 +822,5 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	// Set description
-	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
-	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
-	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
-	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
-	char *buffer = NULL;
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
-		gtk_label_set_text(label, buffer);
-		free(buffer);
-	}
-
-	// Set manufacturer
-	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", buffer, length);
-		gtk_label_set_text(mfr_label, buffer);
-		free(buffer);
-	}
-
-	// Set copyright
-	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", buffer, length);
-		gtk_label_set_text(copyright_label, buffer);
-		free(buffer);
-	}
+	set_source_information();
 }
