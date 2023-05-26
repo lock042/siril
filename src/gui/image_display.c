@@ -405,25 +405,12 @@ static void remap_all_vports() {
 
 	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
 	GVariant *state = g_action_get_state(action_neg);
-	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
-	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || (gui.rendering_mode == STF_DISPLAY && !(gui.use_hd_remap && gfit.type == DATA_FLOAT)));
-	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	state = g_action_get_state(action_color);
-	color_map color = g_variant_get_boolean(state);
-	g_variant_unref(state);
-	// Special modes and mono images are handled one vport at a time
-	if (hd_mode || special_mode || gfit.naxes[2] == 1 || color == RAINBOW_COLOR) {
-		for (int vport = 0 ; vport < gfit.naxes[2] ; vport++) {
-			remap(vport);
-		}
-		return;
-	}
 	// We are now dealing with a 3-channel image
 
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
 	guint y;
-	BYTE *dst[3], *index[3];
+	BYTE *dst[3], *index;
 	WORD *src[3];
 	float *fsrc[3];
 	gboolean inverted;
@@ -459,9 +446,10 @@ static void remap_all_vports() {
 
 	set_viewer_mode_widgets_sensitive(TRUE);
 
+	make_index_for_current_display(0);
+	index = gui.remap_index[0];
+
 	for (int i = 0 ; i < 3 ; i++) {
-		make_index_for_current_display(i);
-		index[i] = gui.remap_index[i];
 		src[i] = gfit.pdata[i];
 		fsrc[i] = gfit.fpdata[i];
 		if (allocate_full_surface(view[i]))
@@ -482,17 +470,23 @@ static void remap_all_vports() {
 		// Set up a buffer so that the color space transform can be carried out on a whole row at a time
 		// This improves memory access and will allow for further optimization via the lcms2 fast float plugin
 		WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
-		WORD *linebuf[3] = { pixelbuf, pixelbuf + gfit.rx, pixelbuf + gfit.ry };
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
 		if (gfit.type == DATA_FLOAT) {
-#pragma omp simd collapse(2)
-			for (int c = 0 ; c < 3 ; c++)
+			for (int c = 0 ; c < 3 ; c++) {
+				WORD *line = linebuf[c];
+				float *source = fsrc[c];
+#pragma omp simd
 				for (x = 0 ; x < gfit.rx ; x++)
-					linebuf[c][x] = roundf_to_WORD(fsrc[c][src_i + x] * USHRT_MAX_SINGLE);
+					line[x] = roundf_to_WORD(source[src_i + x] * USHRT_MAX_SINGLE);
+			}
 		} else if (norm == UCHAR_MAX) {
-#pragma omp simd collapse(2)
-			for (int c = 0 ; c < 3 ; c++)
+			for (int c = 0 ; c < 3 ; c++) {
+				WORD *line = linebuf[c];
+				WORD *source = src[c];
+#pragma omp simd
 				for (x = 0 ; x < gfit.rx ; x++)
-					linebuf[c][x] = src[c][src_i + x] << 8;
+					line[x] = source[src_i + x] << 8;
+			}
 		} else {
 			for (int c = 0 ; c < 3 ; c++)
 // No omp simd here as memcpy should already be highly optimized
@@ -516,14 +510,10 @@ static void remap_all_vports() {
 			for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 				BYTE dst_pixel_value = 0;
 					WORD val = linebuf[c][x];
-					if (gui.rendering_mode == STF_DISPLAY)
-						dst_pixel_value = val;
-					else if (special_mode)	// special case, no lo & hi
-						dst_pixel_value = index[c][val];
-					else if (gui.cut_over && val > gui.hi)	// cut
+					if (gui.cut_over && val > gui.hi)	// cut
 						dst_pixel_value = 0;
 					else {
-						dst_pixel_value = index[c][val - gui.lo < 0 ? 0 : val - gui.lo];
+						dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
 					}
 				dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
 				// Siril's FITS are stored bottom to top, so mapping needs to revert data order
@@ -1762,6 +1752,15 @@ void adjust_vport_size_to_image() {
 void redraw(remap_type doremap) {
 	if (com.script) return;
 //	siril_debug_print("redraw %d\n", doremap);
+	static GtkApplicationWindow *app_win = NULL;
+	if (app_win == NULL) {
+		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	}	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
+	GVariant* state = g_action_get_state(action_color);
+	color_map color = g_variant_get_boolean(state);
+	g_variant_unref(state);
+	gboolean special = (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == HISTEQ_DISPLAY || color == RAINBOW_COLOR || gfit.naxes[2] == 1);
+
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;
@@ -1770,10 +1769,13 @@ void redraw(remap_type doremap) {
 			break;
 		case REMAP_ALL:
 			stf_computed = FALSE;
-/*			for (int i = 0; i < gfit.naxes[2]; i++) {
-				remap(i);
-			}*/
-			remap_all_vports();
+			if (special) {
+				for (int i = 0; i < gfit.naxes[2]; i++) {
+					remap(i);
+				}
+			} else {
+				remap_all_vports();
+			}
 			if (gfit.naxis == 3)
 				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
