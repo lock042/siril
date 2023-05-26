@@ -390,7 +390,7 @@ static int save_dialog() {
 }
 
 // idle function executed at the end of the Save Data processing
-gboolean end_save(gpointer p) {
+static gboolean end_save(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
 	stop_processing_thread();
 
