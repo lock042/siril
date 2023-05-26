@@ -11178,6 +11178,7 @@ Note that luminance based models are not generally invertible.</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Color Management</property>
     <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="on_icc_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_icc_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -11190,7 +11191,7 @@ Note that luminance based models are not generally invertible.</property>
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="icc_cancel">
-                <property name="label" translatable="yes">Cancel</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -11373,7 +11374,6 @@ Note that luminance based models are not generally invertible.</property>
                           <item translatable="yes">Assign ICC profile</item>
                           <item translatable="yes">Convert to ICC profile</item>
                         </items>
-                        <signal name="changed" handler="on_icc_operation_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
