@@ -709,13 +709,18 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
 	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
-	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
+
+/*	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
 		return;
-	}
+	}*/
 	switch(ui_operation) {
 		case 0:
 			// assign profile
+			if (gfit_colorspace_channels != target_colorspace_channels) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
+				return;
+			}
 			if (gfit.icc_profile) {
 				cmsCloseProfile(gfit.icc_profile);
 				gfit.icc_profile = NULL;
