@@ -14745,7 +14745,7 @@ Use only to display optical distorsions or double stars, not for registration or
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="action-name">win.icc-tool</property>
-            <property name="text" translatable="yes">Color Management</property>
+            <property name="text" translatable="yes">Color Management...</property>
           </object>
           <packing>
             <property name="expand">False</property>
