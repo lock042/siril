@@ -274,7 +274,7 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	int target_index = gui.rendering_mode == STF_DISPLAY && !gui.unlink_channels ? 0 :vport;
 
 	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
 	if (hd_mode) {
@@ -397,6 +397,150 @@ static void remap(int vport) {
 
 	test_and_allocate_reference_image(vport);
 }
+static void remap_all_vports() {
+	static GtkApplicationWindow *app_win = NULL;
+	if (app_win == NULL) {
+		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	}
+
+	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+	GVariant *state = g_action_get_state(action_neg);
+	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
+	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || (gui.rendering_mode == STF_DISPLAY && !(gui.use_hd_remap && gfit.type == DATA_FLOAT)));
+	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
+	state = g_action_get_state(action_color);
+	color_map color = g_variant_get_boolean(state);
+	g_variant_unref(state);
+	// Special modes and mono images are handled one vport at a time
+	if (hd_mode || special_mode || gfit.naxes[2] == 1 || color == RAINBOW_COLOR) {
+		for (int vport = 0 ; vport < gfit.naxes[2] ; vport++) {
+			remap(vport);
+		}
+		return;
+	}
+	// We are now dealing with a 3-channel image
+
+	// This function maps fit data with a linear LUT between lo and hi levels
+	// to the buffer to be displayed; display only is modified
+	guint y;
+	BYTE *dst[3], *index[3];
+	WORD *src[3];
+	float *fsrc[3];
+	gboolean inverted;
+
+	if (gfit.type == DATA_UNSUPPORTED) {
+		siril_debug_print("data is not loaded yet\n");
+		return;
+	}
+
+	if (com.icc.available) {
+		// Set the display transform in case it is missing
+		if (gfit.icc_profile == NULL) {
+			// In all cases where the profile should have come from a loaded file or
+			// been assumed, this will be set. So it is safe to assume we should assign
+			// a linear profile if one is missing.
+			assign_linear_icc_profile(&gfit);
+		}
+		if (!gui.icc.display_transform)
+			gui.icc.display_transform = initialize_display_transform();
+
+		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
+			// No need to nullcheck gui.icc.soft_proof because it is done
+			// in the GUI rendering mode setting callback
+			if (!gui.icc.proofing_transform)
+				gui.icc.proofing_transform = initialize_proofing_transform();
+		}
+	}
+
+	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
+
+	inverted = g_variant_get_boolean(state);
+	g_variant_unref(state);
+
+	set_viewer_mode_widgets_sensitive(TRUE);
+
+	for (int i = 0 ; i < 3 ; i++) {
+		make_index_for_current_display(i);
+		index[i] = gui.remap_index[i];
+		src[i] = gfit.pdata[i];
+		fsrc[i] = gfit.fpdata[i];
+		if (allocate_full_surface(view[i]))
+			return;
+		dst[i] = view[i]->buf;
+	}
+
+	int norm = (int) get_normalized_value(&gfit);
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
+#endif
+	for (y = 0; y < gfit.ry; y++) {
+		guint x;
+		guint src_i = y * gfit.rx;
+		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
+
+		// Set up a buffer so that the color space transform can be carried out on a whole row at a time
+		// This improves memory access and will allow for further optimization via the lcms2 fast float plugin
+		WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
+		WORD *linebuf[3] = { pixelbuf, pixelbuf + gfit.rx, pixelbuf + gfit.ry };
+		if (gfit.type == DATA_FLOAT) {
+#pragma omp simd collapse(2)
+			for (int c = 0 ; c < 3 ; c++)
+				for (x = 0 ; x < gfit.rx ; x++)
+					linebuf[c][x] = roundf_to_WORD(fsrc[c][src_i + x] * USHRT_MAX_SINGLE);
+		} else if (norm == UCHAR_MAX) {
+#pragma omp simd collapse(2)
+			for (int c = 0 ; c < 3 ; c++)
+				for (x = 0 ; x < gfit.rx ; x++)
+					linebuf[c][x] = src[c][src_i + x] << 8;
+		} else {
+			for (int c = 0 ; c < 3 ; c++)
+// No omp simd here as memcpy should already be highly optimized
+				memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
+		}
+		if (com.icc.available)
+			cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
+							gui.icc.proofing_transform :
+							gui.icc.display_transform,
+							pixelbuf, pixelbuf, gfit.rx);
+		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
+			for (int c = 0 ; c < 3 ; c++) {
+				WORD *line = linebuf[c];
+#pragma omp simd
+				for (x = 0 ; x < gfit.rx ; x++)
+					line[x] = line[x] >> 8;
+			}
+		}
+
+		for (int c = 0 ; c < 3 ; c++) {
+			for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
+				BYTE dst_pixel_value = 0;
+					WORD val = linebuf[c][x];
+					if (gui.rendering_mode == STF_DISPLAY)
+						dst_pixel_value = val;
+					else if (special_mode)	// special case, no lo & hi
+						dst_pixel_value = index[c][val];
+					else if (gui.cut_over && val > gui.hi)	// cut
+						dst_pixel_value = 0;
+					else {
+						dst_pixel_value = index[c][val - gui.lo < 0 ? 0 : val - gui.lo];
+					}
+				dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
+				// Siril's FITS are stored bottom to top, so mapping needs to revert data order
+				guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
+				*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+			}
+		}
+		free(pixelbuf);
+	}
+	// flush to ensure all writing to the image was done and redraw the surface
+	for (int vport = 0 ; vport < 3 ; vport++) {
+		cairo_surface_flush(view[vport]->full_surface);
+		cairo_surface_mark_dirty(view[vport]->full_surface);
+		invalidate_image_render_cache(vport);
+		test_and_allocate_reference_image(vport);
+	}
+}
 
 static int make_hd_index_for_current_display(int vport) {
 	float slope;
@@ -471,7 +615,7 @@ static int make_index_for_current_display(int vport) {
 
 	/************* Building the remap_index **************/
 	siril_debug_print("Rebuilding gui.remap_index\n");
-	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	int target_index = gui.rendering_mode == STF_DISPLAY && !gui.unlink_channels ? 0 : vport;
 	index = gui.remap_index[target_index];
 
 	for (i = 0; i <= USHRT_MAX; i++) {
@@ -1626,9 +1770,10 @@ void redraw(remap_type doremap) {
 			break;
 		case REMAP_ALL:
 			stf_computed = FALSE;
-			for (int i = 0; i < gfit.naxes[2]; i++) {
+/*			for (int i = 0; i < gfit.naxes[2]; i++) {
 				remap(i);
-			}
+			}*/
+			remap_all_vports();
 			if (gfit.naxis == 3)
 				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
