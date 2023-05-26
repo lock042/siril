@@ -405,6 +405,8 @@ gboolean end_save(gpointer p) {
 	close_dialog();	// is this different from the hide above?
 	update_MenuItem();
 
+	g_free(args->copyright);
+	g_free(args->description);
 	free(args);
 	return FALSE;
 }
@@ -520,8 +522,6 @@ static gpointer mini_save_dialog(gpointer p) {
 			break;
 		}
 	}
-	g_free(args->copyright);
-	g_free(args->description);
 	siril_add_idle(end_save, args);
 	return NULL;
 }
@@ -535,135 +535,6 @@ void set_entry_filename() {
 		char *file_no_ext = remove_ext_from_filename(filename);
 		gtk_entry_set_text(entry, file_no_ext);
 		free(file_no_ext);
-	}
-}
-
-void on_menu_rgb_savefits_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	static GtkNotebook* notebookFormat = NULL;
-	static GtkWidget *savepopup = NULL;
-	GtkWidget *savetxt = lookup_widget("filenameframe");
-
-	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
-		savepopup = lookup_widget("savepopup");
-	}
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		GtkToggleButton *b16bitu = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
-		GtkToggleButton *b32bits = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit32f"));
-		gtk_toggle_button_set_active(b32bits, gfit.type == DATA_FLOAT);
-		gtk_toggle_button_set_active(b16bitu, gfit.type == DATA_USHORT);
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
-		set_entry_filename();
-		type_of_image = TYPEFITS;
-		gtk_notebook_set_current_page(notebookFormat, PAGE_FITS);
-		gtk_widget_set_visible(savetxt, TRUE);
-		gtk_widget_show(savepopup);
-	}
-}
-
-void on_menu_rgb_savetiff_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	static GtkNotebook* notebookFormat = NULL;
-	static GtkWidget *savepopup = NULL;
-	GtkWidget *savetxt = lookup_widget("filenameframe");
-
-	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
-		savepopup = lookup_widget("savepopup");
-	}
-
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		GtkToggleButton *b16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton16bits"));
-		GtkToggleButton *b32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
-		gtk_toggle_button_set_active(b32, gfit.type == DATA_FLOAT);
-		gtk_toggle_button_set_active(b16, gfit.type == DATA_USHORT);
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving TIFF"));
-		set_entry_filename();
-		type_of_image = TYPETIFF;
-		set_copyright_in_TIFF(); //Write "Siril Version X.Y" (or user defined) in Copyright_txt
-		set_description_in_TIFF();
-		gtk_notebook_set_current_page(notebookFormat, PAGE_TIFF);
-		gtk_widget_set_visible(savetxt, TRUE);
-		gtk_widget_show(savepopup);
-	}
-}
-
-void on_menu_rgb_savepng_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	static GtkNotebook* notebookFormat = NULL;
-	static GtkWidget *savepopup = NULL;
-	GtkWidget *savetxt = lookup_widget("filenameframe");
-
-	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
-		savepopup = lookup_widget("savepopup");
-	}
-
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving PNG"));
-		set_entry_filename();
-		type_of_image = TYPEPNG;
-		gtk_notebook_set_current_page(notebookFormat, PAGE_MISC);
-		gtk_widget_set_visible(savetxt, TRUE);
-		gtk_widget_show(savepopup);
-	}
-}
-
-void on_menu_rgb_save8ppm_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	static GtkNotebook* notebookFormat = NULL;
-	static GtkWidget *savepopup = NULL;
-	GtkWidget *savetxt = lookup_widget("filenameframe");
-
-	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
-		savepopup = lookup_widget("savepopup");
-	}
-
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving Netpbm"));
-		set_entry_filename();
-		type_of_image = TYPEPNM;
-		gtk_notebook_set_current_page(notebookFormat, PAGE_MISC);
-		gtk_widget_set_visible(savetxt, TRUE);
-		gtk_widget_show(savepopup);
-	}
-}
-
-void on_menu_rgb_savebmp_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	static GtkNotebook* notebookFormat = NULL;
-	static GtkWidget *savepopup = NULL;
-	GtkWidget *savetxt = lookup_widget("filenameframe");
-
-	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
-		savepopup = lookup_widget("savepopup");
-	}
-
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving BMP"));
-		set_entry_filename();
-		type_of_image = TYPEBMP;
-		gtk_notebook_set_current_page(notebookFormat, PAGE_MISC);
-		gtk_widget_set_visible(savetxt, TRUE);
-		gtk_widget_show(savepopup);
-	}
-}
-
-void on_menu_rgb_savejpg_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	static GtkNotebook* notebookFormat = NULL;
-	static GtkWidget *savepopup = NULL;
-	GtkWidget *savetxt = lookup_widget("filenameframe");
-
-	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
-		savepopup = lookup_widget("savepopup");
-	}
-
-	if (single_image_is_loaded() || sequence_is_loaded()) {
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving JPG"));
-		set_entry_filename();
-		type_of_image = TYPEJPG;
-		gtk_notebook_set_current_page(notebookFormat, PAGE_JPG);
-		gtk_widget_set_visible(savetxt, TRUE);
-		gtk_widget_show(savepopup);
 	}
 }
 
