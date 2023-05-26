@@ -86,7 +86,7 @@ void initialize_icc_profiles_paths() {
 }
 
 void initialize_profiles_and_transforms() {
-	// Enablethe fast float plugin
+	// Enable the fast float plugin
 	cmsPlugin(cmsFastFloatExtensions());
 
 	// Initialize paths to standard ICC profiles

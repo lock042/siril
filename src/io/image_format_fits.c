@@ -2729,6 +2729,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	to->history = NULL;
 	to->date = NULL;
 	to->date_obs = NULL;
+	to->icc_profile = copyICCProfile(from->icc_profile);
 #ifdef HAVE_WCSLIB
 	to->wcslib = NULL;
 #endif
