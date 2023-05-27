@@ -2,13 +2,6 @@ crossroad source msys2
 
 mkdir _deps && cd _deps
 
-# Build lcms2 from github (until 2.16 is released)
-git clone --depth 1 https://github.com/mm2/Little-CMS.git
-cd Little-CMS
-crossroad meson setup _build/ --prefix $CROSSROAD_PREFIX --wrap-mode=nodownload --auto-features=enabled --buildtype=plain -Ddefault_library=both && \
-ninja -C _build install || exit 1
-cd ..
-
 crossroad install gtk3 \
                   fftw \
                   exiv2 \
@@ -22,6 +15,13 @@ crossroad install gtk3 \
 # probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
 # otherwise, it's messing up all the subsequent builds 
 crossroad uninstall crt-git
+
+# Build lcms2 from github (until 2.16 is released)
+git clone --depth 1 https://github.com/mm2/Little-CMS.git
+cd Little-CMS
+crossroad meson setup _build/ --prefix $CROSSROAD_PREFIX --wrap-mode=nodownload --auto-features=enabled --buildtype=plain -Ddefault_library=both && \
+ninja -C _build install || exit 1
+cd ..
 
 # Build LibRaw from github
 git clone --depth 1 https://github.com/LibRaw/LibRaw.git
