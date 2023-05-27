@@ -5,7 +5,7 @@ mkdir _deps && cd _deps
 # Build lcms2 from github (until 2.16 is released)
 git clone --depth 1 https://github.com/mm2/Little-CMS.git
 cd Little-CMS
-crossroad meson setup _build/ --prefix=mingw64 --wrap-mode=nodownload --auto-features=enabled --buildtype=plain -Ddefault_library=both && \
+crossroad meson setup _build/ --prefix $CROSSROAD_PREFIX --wrap-mode=nodownload --auto-features=enabled --buildtype=plain -Ddefault_library=both && \
 ninja -C _build install || exit 1
 cd ..
 
