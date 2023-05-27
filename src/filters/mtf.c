@@ -184,6 +184,9 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 			float normValue = (float)stat[i]->normValue;
 			float median = (float) stat[i]->median / normValue;
 			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
+/* if color management is active we need to transform the median and calculate the MAD in the
+ * display colorspace */
+
 			/* this is a guard to avoid breakdown point */
 			if (mad == 0.f) mad = 0.001f;
 /*

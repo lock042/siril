@@ -1168,10 +1168,10 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
  * for freeing the result.
  */
 
-float *summarize_floatbuf(fits *fit, int channel, int nbuckets, int threads) {
+float *summarize_floatbuf(const fits *fit, const int channel, const int nbuckets, int threads) {
 	g_assert(channel < fit->naxes[2]);
-	size_t npixels = fit->rx * fit->ry;
-	float *input = fit->fpdata[channel];
+	const size_t npixels = fit->rx * fit->ry;
+	const float *input = fit->fpdata[channel];
 	float *cumulative = (float*) malloc(npixels * sizeof(float));
 	float  *output = (float*) malloc(nbuckets * sizeof(float));
 	cumulative[0] = input[0];
@@ -1181,7 +1181,7 @@ float *summarize_floatbuf(fits *fit, int channel, int nbuckets, int threads) {
 		cumulative[i] = cumulative[i-1] + input[i];
 	}
 	const float Cnm1 = cumulative[npixels - 1];
-	if (threads > 1) {
+	if (threads > 1 && npixels > 150000) {
 #pragma omp parallel num_threads(threads)
 		{
 			float *output_private = (float*) calloc(nbuckets, sizeof(float));

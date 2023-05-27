@@ -715,6 +715,7 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}*/
+	void *data = NULL;
 	switch(ui_operation) {
 		case 0:
 			// assign profile
@@ -732,7 +733,6 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 			break;
 		case 1:
 			// convert to profile
-			void *data = NULL;
 			cmsUInt32Number srctype, desttype;
 			size_t npixels = gfit.rx * gfit.ry;
 			data = (gfit.type == DATA_FLOAT) ? (void *) gfit.fdata : (void *) gfit.data;
