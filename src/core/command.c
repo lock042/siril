@@ -3659,12 +3659,6 @@ int process_pm(int nb) {
 				return CMD_INVALID_IMAGE;
 			}
 		}
-		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
-		// This avoids conflicts where characters are permitted in filenames but cannot
-		// be used in pixelmath variable names.
-		// We will amend the expression to match below.
-		g_free(args->varname[j]);
-		args->varname[j] = g_strdup_printf("var_%d", j + 1);
 	}
 
 	/* remove tokens */
@@ -3676,13 +3670,32 @@ int process_pm(int nb) {
 	// This ensures the variable names in the expression passed to pm match the variable names
 	// that are stored in args->varname
 	gchar** chunks = g_strsplit(expression, "$", count + 1);
-	for (int i = 0 ; i < count / 2 ; i++) {
-		g_free(chunks[2*i+1]);
-		chunks[2*i+1] = g_strdup_printf("var_%d", i + 1);
+	int idx;
+	for (int i = 0, j = 1; i < count / 2 ; i++) {
+		int k;
+		for (k = 0; k < args->nb_rows; k++) {
+			if (!g_strcmp0(chunks[2 * i + 1], args->varname[k])) {
+				idx = k + 1;
+				break;
+			}
+		}
+		if (idx != k + 1) idx = j;
+		g_free(chunks[2 * i + 1]);
+		chunks[2 * i + 1] = g_strdup_printf("var_%d", idx);
+		j++;
 	}
 	g_free(expression);
 	expression = g_strjoinv(NULL, chunks);
 	g_strfreev(chunks);
+
+	//		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+	//		// This avoids conflicts where characters are permitted in filenames but cannot
+	//		// be used in pixelmath variable names.
+	//		// We will amend the expression to match below.
+	for (int j = 0; j < args->nb_rows; j++) {
+		g_free(args->varname[j]);
+		args->varname[j] = g_strdup_printf("var_%d", j + 1);
+	}
 
 	remove_spaces_from_str(expression);
 
