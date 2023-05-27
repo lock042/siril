@@ -157,11 +157,13 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 
 	if (com.icc.available) {
 		fits_check_icc(fit);
-		transform = gui.icc.display_transform;
 		if (nb_channels == 1)
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_FLT, com.icc.mono_standard, TYPE_GRAY_FLT, com.icc.save_intent, 0);
+			// This is a bit of a fudge: it should really be using the
+			// display profile and TYPE_RGB_FLT_PLANAR, but only bothering
+			// to use the first channel
+			transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_FLT, com.icc.mono_standard, TYPE_GRAY_FLT, gui.icc.rendering_intent, 0);
 		else
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_FLT_PLANAR, com.icc.srgb_standard, TYPE_RGB_FLT_PLANAR, com.icc.save_intent, 0);
+			transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_FLT_PLANAR, gui.icc.monitor, TYPE_RGB_FLT_PLANAR, gui.icc.rendering_intent, 0);
 	}
 
 	int retval = compute_all_channels_statistics_single_image(fit,
@@ -312,11 +314,11 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 
 	if (com.icc.available) {
 		fits_check_icc(fit);
-		transform = gui.icc.display_transform;
 		if (nb_channels == 1)
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_FLT, com.icc.mono_standard, TYPE_GRAY_FLT, com.icc.save_intent, 0);
+			// Fudge, see the linked version above
+			transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_FLT, com.icc.mono_standard, TYPE_GRAY_FLT, gui.icc.rendering_intent, 0);
 		else
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_FLT_PLANAR, com.icc.srgb_standard, TYPE_RGB_FLT_PLANAR, com.icc.save_intent, 0);
+			transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_FLT_PLANAR, gui.icc.monitor, TYPE_RGB_FLT_PLANAR, gui.icc.rendering_intent, 0);
 	}
 
 	int retval = compute_all_channels_statistics_single_image(fit,
