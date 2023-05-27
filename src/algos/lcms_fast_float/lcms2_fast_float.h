@@ -30,7 +30,7 @@
  * lcms2 version. It can be extended if any other blacklisting is needed.
  */
 
-#if _WIN32 && LCMS2_VERSION == 2150
+#if _WIN32 && LCMS_VERSION == 2150
 #define EXCLUDE_FF
 #endif
 

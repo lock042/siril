@@ -1159,3 +1159,54 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 	}
 	return retval;
 }
+
+/* summarize_floatbuf()
+ *
+ * Takes a float array as input and returns an nbuckets-element float array
+ * containing the nbucketiles of the input (i.e. if nbuckets == 100 it will
+ * return a 100-element array of the percentiles). The caller is responsible
+ * for freeing the result.
+ */
+
+float *summarize_floatbuf(fits *fit, int channel, int nbuckets, int threads) {
+	g_assert(channel < fit->naxes[2]);
+	size_t npixels = fit->rx * fit->ry;
+	float *input = fit->fpdata[channel];
+	float *cumulative = (float*) malloc(npixels * sizeof(float));
+	float  *output = (float*) malloc(nbuckets * sizeof(float));
+	cumulative[0] = input[0];
+
+	// Serial loop, do not parallelize
+	for (size_t i = 1 ; i < npixels ; i++) {
+		cumulative[i] = cumulative[i-1] + input[i];
+	}
+	const float Cnm1 = cumulative[npixels - 1];
+	if (threads > 1) {
+#pragma omp parallel num_threads(threads)
+		{
+			float *output_private = (float*) calloc(nbuckets, sizeof(float));
+#pragma omp for
+			for (size_t i = 0 ; i < npixels - 1 ; i++) {
+				int j = (int) nbuckets * (cumulative[i] / Cnm1);
+				output_private[j] += input[i];
+			}
+#pragma omp critical
+			{
+				for (size_t i = 0 ; i < nbuckets ; i++) {
+					output[i] += output_private[i];
+				}
+			}
+			free(output_private);
+		}
+
+	} else {
+		for (size_t i = 0 ; i < npixels - 1 ; i++) {
+			int j = (int) nbuckets * (cumulative[i] / Cnm1);
+			output[j] += input[i];
+		}
+	}
+	free(cumulative);
+	return output;
+}
+
+
