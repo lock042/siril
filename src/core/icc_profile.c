@@ -716,6 +716,8 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}*/
 	void *data = NULL;
+	cmsUInt32Number srctype, desttype;
+	size_t npixels = gfit.rx * gfit.ry;
 	switch(ui_operation) {
 		case 0:
 			// assign profile
@@ -733,8 +735,6 @@ void on_icc_apply_clicked(GtkButton* button, gpointer* user_data) {
 			break;
 		case 1:
 			// convert to profile
-			cmsUInt32Number srctype, desttype;
-			size_t npixels = gfit.rx * gfit.ry;
 			data = (gfit.type == DATA_FLOAT) ? (void *) gfit.fdata : (void *) gfit.data;
 			srctype = get_planar_formatter_type(gfit_colorspace, gfit.type, FALSE);
 			desttype = get_planar_formatter_type(target_colorspace, gfit.type, FALSE);
