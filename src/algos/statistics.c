@@ -1164,16 +1164,15 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
  *
  * Takes a float array as input and returns an nbuckets-element float array
  * containing the nbucketiles of the input (i.e. if nbuckets == 100 it will
- * return a 100-element array of the percentiles). The caller is responsible
- * for freeing the result.
+ * return a 100-element array of the percentiles). output may be preallocated
+ * to nbuckets * sizeof(float) or if not, it will be allocated here. The
+ * caller is responsible for freeing output.
  */
-
-float *summarize_floatbuf(const fits *fit, const int channel, const int nbuckets, int threads) {
-	g_assert(channel < fit->naxes[2]);
+void summarize_floatbuf(const fits *fit, float* input, const int nbuckets, float *output, int threads) {
 	const size_t npixels = fit->rx * fit->ry;
-	const float *input = fit->fpdata[channel];
 	float *cumulative = (float*) malloc(npixels * sizeof(float));
-	float  *output = (float*) malloc(nbuckets * sizeof(float));
+	if (!output)
+		output = (float*) malloc(nbuckets * sizeof(float));
 	cumulative[0] = input[0];
 
 	// Serial loop, do not parallelize
@@ -1198,15 +1197,14 @@ float *summarize_floatbuf(const fits *fit, const int channel, const int nbuckets
 			}
 			free(output_private);
 		}
-
 	} else {
 		for (size_t i = 0 ; i < npixels - 1 ; i++) {
 			int j = (int) nbuckets * (cumulative[i] / Cnm1);
+			j = (j < nbuckets) ? j : j - 1;
 			output[j] += input[i];
 		}
 	}
 	free(cumulative);
-	return output;
 }
 
 

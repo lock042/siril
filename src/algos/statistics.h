@@ -68,6 +68,6 @@ int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels);
 
 int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise);
 
-float *summarize_floatbuf(const fits *fit, const int channel, const int nbuckets, int threads);
+void summarize_floatbuf(const fits *fit, float *input, const int nbuckets, float* output, int threads);
 
 #endif
