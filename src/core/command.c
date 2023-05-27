@@ -3670,8 +3670,8 @@ int process_pm(int nb) {
 	// This ensures the variable names in the expression passed to pm match the variable names
 	// that are stored in args->varname
 	gchar** chunks = g_strsplit(expression, "$", count + 1);
-	int idx;
 	for (int i = 0, j = 1; i < count / 2 ; i++) {
+		int idx = 0;
 		int k;
 		for (k = 0; k < args->nb_rows; k++) {
 			if (!g_strcmp0(chunks[2 * i + 1], args->varname[k])) {
