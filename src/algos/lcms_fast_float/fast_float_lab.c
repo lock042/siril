@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -21,6 +21,7 @@
 
 #include "fast_float_internal.h"
 
+#ifndef EXCLUDE_FF
 
 #define SIGMOID_POINTS 1024
 
@@ -87,7 +88,7 @@ void tabulateSigmoid(cmsContext ContextID, cmsInt32Number type, cmsFloat32Number
     const cmsFloat64Number sigmoidal_slope = 2.5;
     cmsToneCurve* original;
     cmsInt32Number i;
-    
+
     memset(table, 0, sizeof(cmsFloat32Number) * tablePoints);
     original = cmsBuildParametricToneCurve(ContextID, type, &sigmoidal_slope);
     if (original != NULL)
@@ -98,7 +99,7 @@ void tabulateSigmoid(cmsContext ContextID, cmsInt32Number type, cmsFloat32Number
 
             table[i] = fclamp(cmsEvalToneCurveFloat(original, v));
         }
-     
+
         cmsFreeToneCurve(original);
     }
 }
@@ -109,26 +110,26 @@ static
 LabCLUTdata* LabCLUTAlloc(cmsContext ContextID, const cmsInterpParams* p)
 {
     LabCLUTdata* fd;
-    
+
     fd = (LabCLUTdata*) _cmsMallocZero(ContextID, sizeof(LabCLUTdata));
     if (fd == NULL) return NULL;
-    
+
     fd ->ContextID = ContextID;
     fd ->p = p;
-    
-    tabulateSigmoid(ContextID, +TYPE_SIGMOID, fd->sigmoidIn, SIGMOID_POINTS);     
-    tabulateSigmoid(ContextID, -TYPE_SIGMOID, fd->sigmoidOut, SIGMOID_POINTS);    
+
+    tabulateSigmoid(ContextID, +TYPE_SIGMOID, fd->sigmoidIn, SIGMOID_POINTS);
+    tabulateSigmoid(ContextID, -TYPE_SIGMOID, fd->sigmoidOut, SIGMOID_POINTS);
 
     return fd;
 }
 
 static
 void LabCLUTFree(cmsContext ContextID, void* v)
-{    
+{
     _cmsFree(ContextID, v);
 }
 
-// Sampler implemented by another LUT. 
+// Sampler implemented by another LUT.
 static
 int XFormSampler(CMSREGISTER const cmsFloat32Number In[], CMSREGISTER cmsFloat32Number Out[], CMSREGISTER void* Cargo)
 {
@@ -140,7 +141,7 @@ int XFormSampler(CMSREGISTER const cmsFloat32Number In[], CMSREGISTER cmsFloat32
     linearized[1] = LinLerp1D(In[1], container->data->sigmoidOut);
     linearized[2] = LinLerp1D(In[2], container->data->sigmoidOut);
 
-    cmsPipelineEvalFloat(linearized, Out, container->original);    
+    cmsPipelineEvalFloat(linearized, Out, container->original);
     return TRUE;
 }
 
@@ -201,7 +202,7 @@ void LabCLUTEval(struct _cmstransform_struct* CMMcargo,
 
     cmsUInt32Number nchans, nalpha;
     cmsUInt32Number strideIn, strideOut;
-                                                        
+
     _cmsComputeComponentIncrements(InputFormat, Stride->BytesPerPlaneIn, &nchans, &nalpha, SourceStartingOrder, SourceIncrements);
     _cmsComputeComponentIncrements(OutputFormat, Stride->BytesPerPlaneOut, &nchans, &nalpha, DestStartingOrder, DestIncrements);
 
@@ -239,11 +240,11 @@ void LabCLUTEval(struct _cmstransform_struct* CMMcargo,
             px = l * p->Domain[0];
             py = a * p->Domain[1];
             pz = b * p->Domain[2];
-            
+
             x0 = _cmsQuickFloor(px); rx = (px - (cmsFloat32Number)x0);
             y0 = _cmsQuickFloor(py); ry = (py - (cmsFloat32Number)y0);
             z0 = _cmsQuickFloor(pz); rz = (pz - (cmsFloat32Number)z0);
-            
+
             X0 = p->opta[2] * x0;
             X1 = X0 + (l >= 1.0f ? 0 : p->opta[2]);
 
@@ -351,7 +352,7 @@ int GetGridpoints(cmsUInt32Number dwFlags)
         if (dwFlags & cmsFLAGS_LOWRESPRECALC) {
             return 33;
         }
-        else 
+        else
             return 51;
 
 }
@@ -361,14 +362,14 @@ int GetGridpoints(cmsUInt32Number dwFlags)
 cmsBool OptimizeCLUTLabTransform(_cmsTransform2Fn* TransformFn,
                                   void** UserData,
                                   _cmsFreeUserDataFn* FreeDataFn,
-                                  cmsPipeline** Lut, 
-                                  cmsUInt32Number* InputFormat, 
-                                  cmsUInt32Number* OutputFormat, 
-                                  cmsUInt32Number* dwFlags)      
+                                  cmsPipeline** Lut,
+                                  cmsUInt32Number* InputFormat,
+                                  cmsUInt32Number* OutputFormat,
+                                  cmsUInt32Number* dwFlags)
 {
     cmsPipeline* OriginalLut;
-    int nGridPoints;    
-    cmsPipeline* OptimizedLUT = NULL;    
+    int nGridPoints;
+    cmsPipeline* OptimizedLUT = NULL;
     cmsStage* OptimizedCLUTmpe;
     LabCLUTdata* pfloat;
     cmsContext ContextID;
@@ -389,26 +390,26 @@ cmsBool OptimizeCLUTLabTransform(_cmsTransform2Fn* TransformFn,
     if (T_COLORSPACE(*InputFormat) != PT_Lab) return FALSE;
 
     OriginalLut = *Lut;
-    
+
     ContextID = cmsGetPipelineContextID(OriginalLut);
     nGridPoints = GetGridpoints(*dwFlags);
-             
+
     // Create the result LUT
     OptimizedLUT = cmsPipelineAlloc(cmsGetPipelineContextID(OriginalLut), 3, cmsPipelineOutputChannels(OriginalLut));
     if (OptimizedLUT == NULL) goto Error;
-    
+
     // Allocate the CLUT for result
     OptimizedCLUTmpe = cmsStageAllocCLutFloat(ContextID, nGridPoints, 3, cmsPipelineOutputChannels(OriginalLut), NULL);
 
     // Add the CLUT to the destination LUT
     cmsPipelineInsertStage(OptimizedLUT, cmsAT_BEGIN, OptimizedCLUTmpe);
-    
-    // Set the evaluator, copy parameters   
+
+    // Set the evaluator, copy parameters
     data = (_cmsStageCLutData*) cmsStageData(OptimizedCLUTmpe);
 
     // Allocate data
     pfloat = LabCLUTAlloc(ContextID, data ->Params);
-    if (pfloat == NULL) return FALSE;   
+    if (pfloat == NULL) return FALSE;
 
     container.data = pfloat;
     container.original = OriginalLut;
@@ -427,9 +428,10 @@ cmsBool OptimizeCLUTLabTransform(_cmsTransform2Fn* TransformFn,
     return TRUE;
 
 Error:
-      
+
     if (OptimizedLUT != NULL) cmsPipelineFree(OptimizedLUT);
 
-    return FALSE;    
+    return FALSE;
 }
 
+#endif

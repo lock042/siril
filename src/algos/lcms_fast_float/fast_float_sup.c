@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -22,16 +22,17 @@
 
 #include "fast_float_internal.h"
 
+#ifndef EXCLUDE_FF
 
 // This is the main dispatcher
 static
 cmsBool Floating_Point_Transforms_Dispatcher(_cmsTransform2Fn* TransformFn,
                                   void** UserData,
                                   _cmsFreeUserDataFn* FreeUserData,
-                                  cmsPipeline** Lut, 
-                                  cmsUInt32Number* InputFormat, 
-                                  cmsUInt32Number* OutputFormat, 
-                                  cmsUInt32Number* dwFlags) 
+                                  cmsPipeline** Lut,
+                                  cmsUInt32Number* InputFormat,
+                                  cmsUInt32Number* OutputFormat,
+                                  cmsUInt32Number* dwFlags)
 {
     // Softproofing & gamut check does not use plugin, both are activated via following flag.
     if (*dwFlags & cmsFLAGS_SOFTPROOFING) return FALSE;
@@ -73,7 +74,7 @@ cmsBool Floating_Point_Transforms_Dispatcher(_cmsTransform2Fn* TransformFn,
     // Try to optimize for Lab float as input
     if (OptimizeCLUTLabTransform(TransformFn, UserData, FreeUserData, Lut, InputFormat, OutputFormat, dwFlags)) return TRUE;
 
-    // Cannot optimize, use lcms normal process 
+    // Cannot optimize, use lcms normal process
     return FALSE;
 }
 
@@ -88,16 +89,17 @@ static cmsPluginTransform PluginList = {
 
               { cmsPluginMagicNumber, REQUIRED_LCMS_VERSION, cmsPluginTransformSig, (cmsPluginBase *) &PluginFastFloat },
 
-              // When initializing a union, the initializer list must have only one member, which initializes the first member of 
+              // When initializing a union, the initializer list must have only one member, which initializes the first member of
               // the union unless a designated initializer is used (C99)
 
               { (_cmsTransformFactory) Floating_Point_Transforms_Dispatcher }
 };
 
-// This is the main plug-in installer. 
-// Using a function to retrieve the plug-in entry point allows us to execute initialization data. 
+// This is the main plug-in installer.
+// Using a function to retrieve the plug-in entry point allows us to execute initialization data.
 void* CMSEXPORT cmsFastFloatExtensions(void)
 {
        return (void*)&PluginList;
 }
 
+#endif

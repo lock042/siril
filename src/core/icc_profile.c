@@ -86,9 +86,10 @@ void initialize_icc_profiles_paths() {
 }
 
 void initialize_profiles_and_transforms() {
-	// Enable the fast float plugin
+	// Enable the fast float plugin (as long as the OS / lcms2 version blacklist isn't triggered)
+#ifndef EXCLUDE_FF
 	cmsPlugin(cmsFastFloatExtensions());
-
+#endif
 	// Initialize paths to standard ICC profiles
 	initialize_icc_profiles_paths();
 

@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -21,21 +21,22 @@
 
 #include "fast_float_internal.h"
 
+#ifndef EXCLUDE_FF
 
 //---------------------------------------------------------------------------------
 
-//  The internal photoshop 16 bit format range is 1.15 fixed point, which goes 0..32768 
+//  The internal photoshop 16 bit format range is 1.15 fixed point, which goes 0..32768
 // (NOT 32767) that means:
 //
 //         16 bits encoding            15 bit Photoshop encoding
 //         ================            =========================
-// 
+//
 //              0x0000                       0x0000
 //              0xFFFF                       0x8000
 //
 //  A nice (and fast) way to implement conversions is by using 64 bit values, which are
 // native CPU word size in most today architectures.
-// In CMYK, internal Photoshop format comes inverted, and this inversion happens after 
+// In CMYK, internal Photoshop format comes inverted, and this inversion happens after
 // the resizing, so values 32769 to 65535 are never used in PhotoShop.
 
 //---------------------------------------------------------------------------------
@@ -98,7 +99,7 @@ cmsUInt8Number* Unroll15bitsRGB(CMSREGISTER struct _cmstransform_struct* CMMcarg
        Values[1] = From15To16(*(cmsUInt16Number*)Buffer);
        Buffer += 2;
        Values[2] = From15To16(*(cmsUInt16Number*)Buffer);
-   
+
        return Buffer + 2;
 }
 
@@ -136,7 +137,7 @@ cmsUInt8Number* Unroll15bitsRGBA(CMSREGISTER struct _cmstransform_struct* CMMcar
        Values[1] = From15To16(*(cmsUInt16Number*)Buffer);
        Buffer += 2;
        Values[2] = From15To16(*(cmsUInt16Number*)Buffer);
-   
+
        return Buffer + 4;
 }
 
@@ -289,7 +290,7 @@ cmsUInt8Number* Unroll15bitsPlanar(CMSREGISTER struct _cmstransform_struct* CMMc
        for (i = 0; i < nChan; i++) {
 
               int index = DoSwap ? (nChan - i - 1) : i;
-        
+
               wIn[index] = UnrollOne(*(cmsUInt16Number*)accum, Reverse, SwapEndian);
 
               accum += Stride * 2;
@@ -391,7 +392,7 @@ cmsUInt8Number* Pack15bitsChunky(CMSREGISTER struct _cmstransform_struct* CMMcar
        for (i = 0; i < nChan; i++) {
 
               int index = DoSwap ? (nChan - i - 1) : i;
-  
+
               *(cmsUInt16Number*)Buffer = PackOne(Values[index], Reverse, SwapEndian);
 
               Buffer += 2;
@@ -402,7 +403,7 @@ cmsUInt8Number* Pack15bitsChunky(CMSREGISTER struct _cmstransform_struct* CMMcar
 
 
 
-// Generic N-bytes plus dither 16-to-8 conversion. 
+// Generic N-bytes plus dither 16-to-8 conversion.
 static int err[cmsMAXCHANNELS];
 
 static
@@ -479,7 +480,7 @@ CMSCHECKPOINT cmsFormatter CMSEXPORT Formatter_15Bit_Factory(cmsUInt32Number Typ
 
        switch (Type) {
 
-       // Simple Gray 
+       // Simple Gray
        case TYPE_GRAY_15:
               Result.Fmt16 = (Dir == cmsFormatterInput) ? Unroll15bitsGray : Pack15bitsGray;
               break;
@@ -505,7 +506,7 @@ CMSCHECKPOINT cmsFormatter CMSEXPORT Formatter_15Bit_Factory(cmsUInt32Number Typ
        case TYPE_CMYK_15:
               Result.Fmt16 = (Dir == cmsFormatterInput) ? Unroll15bitsCMYK : Pack15bitsCMYK;
               break;
-  
+
        // Planar versions
        case TYPE_GRAYA_15_PLANAR:
        case TYPE_RGB_15_PLANAR:
@@ -530,7 +531,7 @@ CMSCHECKPOINT cmsFormatter CMSEXPORT Formatter_15Bit_Factory(cmsUInt32Number Typ
        case TYPE_ABGR_15_SE:
        case TYPE_BGRA_15:
        case TYPE_BGRA_15_SE:
-       case TYPE_CMY_15_SE:      
+       case TYPE_CMY_15_SE:
        case TYPE_CMYK_15_REV:
        case TYPE_CMYK_15_SE:
        case TYPE_KYMC_15:
@@ -544,12 +545,12 @@ CMSCHECKPOINT cmsFormatter CMSEXPORT Formatter_15Bit_Factory(cmsUInt32Number Typ
        case TYPE_GRAY_8_DITHER:
        case TYPE_RGB_8_DITHER:
        case TYPE_RGBA_8_DITHER:
-       case TYPE_CMYK_8_DITHER: 
+       case TYPE_CMYK_8_DITHER:
               if (Dir == cmsFormatterOutput) {
                      Result.Fmt16 = PackNBytesDither;
               }
               break;
-       
+
        case TYPE_ABGR_8_DITHER:
        case TYPE_BGR_8_DITHER:
        case TYPE_KYMC_8_DITHER:
@@ -564,5 +565,4 @@ CMSCHECKPOINT cmsFormatter CMSEXPORT Formatter_15Bit_Factory(cmsUInt32Number Typ
        return Result;
 }
 
-
-
+#endif

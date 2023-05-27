@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -21,12 +21,14 @@
 
 #include "fast_float_internal.h"
 
+#ifndef EXCLUDE_FF
+
 // Curves, optimization is valid for 8 bits only
 typedef struct {
 
     cmsContext ContextID;
     int nCurves;
-    cmsUInt8Number Curves[cmsMAXCHANNELS][256];    
+    cmsUInt8Number Curves[cmsMAXCHANNELS][256];
 
 } Curves8Data;
 
@@ -136,7 +138,7 @@ static void FastRGBIdentity8(struct _cmstransform_struct *CMMcargo,
        cmsUInt8Number* aout = NULL;
 
        cmsUInt32Number nalpha, strideIn, strideOut;
-    
+
        _cmsComputeComponentIncrements(cmsGetTransformInputFormat((cmsHTRANSFORM)CMMcargo), Stride->BytesPerPlaneIn, NULL, &nalpha, SourceStartingOrder, SourceIncrements);
        _cmsComputeComponentIncrements(cmsGetTransformOutputFormat((cmsHTRANSFORM)CMMcargo), Stride->BytesPerPlaneOut, NULL, &nalpha, DestStartingOrder, DestIncrements);
 
@@ -195,7 +197,7 @@ static void FastEvaluateGrayCurves8(struct _cmstransform_struct *CMMcargo,
                                     cmsUInt32Number PixelsPerLine,
                                     cmsUInt32Number LineCount,
                                     const cmsStride* Stride)
-{ 
+{
        cmsUInt32Number i, ii;
 
        cmsUInt32Number SourceStartingOrder[cmsMAXCHANNELS];
@@ -221,30 +223,30 @@ static void FastEvaluateGrayCurves8(struct _cmstransform_struct *CMMcargo,
 
        strideIn = strideOut = 0;
        for (i = 0; i < LineCount; i++) {
-             
+
               gin = (const cmsUInt8Number*)Input + SourceStartingOrder[0] + strideIn;
               if (nalpha)
                      ain = (const cmsUInt8Number*)Input + SourceStartingOrder[1] + strideIn;
-              
-              gout = (cmsUInt8Number*)Output + DestStartingOrder[0] + strideOut;              
+
+              gout = (cmsUInt8Number*)Output + DestStartingOrder[0] + strideOut;
               if (nalpha)
                      aout = (cmsUInt8Number*)Output + DestStartingOrder[1] + strideOut;
 
               for (ii = 0; ii < PixelsPerLine; ii++) {
-                     
+
                      *gout = Data->Curves[0][*gin];
-                     
+
                      // Handle alpha
                      if (ain) {
                             *aout = *ain;
                      }
-                     
+
                      gin += SourceIncrements[0];
-                     
+
                      if (ain) ain += SourceIncrements[1];
-                     
+
                      gout += DestIncrements[0];
-                     
+
                      if (aout) aout += DestIncrements[1];
               }
 
@@ -275,7 +277,7 @@ static void FastGrayIdentity8(struct _cmstransform_struct *CMMcargo,
        cmsUInt8Number* aout = NULL;
 
        cmsUInt32Number nalpha, strideIn, strideOut;
-       
+
        _cmsComputeComponentIncrements(cmsGetTransformInputFormat((cmsHTRANSFORM)CMMcargo), Stride->BytesPerPlaneIn, NULL, &nalpha, SourceStartingOrder, SourceIncrements);
        _cmsComputeComponentIncrements(cmsGetTransformOutputFormat((cmsHTRANSFORM)CMMcargo), Stride->BytesPerPlaneOut, NULL, &nalpha, DestStartingOrder, DestIncrements);
 
@@ -348,7 +350,7 @@ Curves8Data* ComputeCompositeCurves(cmsUInt32Number nChan,  cmsPipeline* Src)
     // Create target curves
     for (i=0; i < 256; i++) {
 
-        for (j=0; j <nChan; j++) 
+        for (j=0; j <nChan; j++)
             InFloat[j] = (cmsFloat32Number) ((cmsFloat64Number) i / 255.0);
 
         cmsPipelineEvalFloat(InFloat, OutFloat, Src);
@@ -362,19 +364,19 @@ Curves8Data* ComputeCompositeCurves(cmsUInt32Number nChan,  cmsPipeline* Src)
 
 
 // If the target LUT holds only curves, the optimization procedure is to join all those
-// curves together. That only works on curves and does not work on matrices. 
+// curves together. That only works on curves and does not work on matrices.
 // Any number of channels up to 16
-cmsBool Optimize8ByJoiningCurves(_cmsTransform2Fn* TransformFn,                                  
+cmsBool Optimize8ByJoiningCurves(_cmsTransform2Fn* TransformFn,
                                  void** UserData,
                                  _cmsFreeUserDataFn* FreeUserData,
-                                 cmsPipeline** Lut, 
-                                 cmsUInt32Number* InputFormat, 
-                                 cmsUInt32Number* OutputFormat, 
-                                 cmsUInt32Number* dwFlags)    
+                                 cmsPipeline** Lut,
+                                 cmsUInt32Number* InputFormat,
+                                 cmsUInt32Number* OutputFormat,
+                                 cmsUInt32Number* dwFlags)
 {
- 
+
     cmsPipeline* Src = *Lut;
-    cmsStage* mpe;   
+    cmsStage* mpe;
     Curves8Data* Data;
     cmsUInt32Number nChans;
 
@@ -388,9 +390,9 @@ cmsBool Optimize8ByJoiningCurves(_cmsTransform2Fn* TransformFn,
     nChans = T_CHANNELS(*InputFormat);
     if (nChans != T_CHANNELS(*OutputFormat)) return FALSE;
 
-    // gray and RGB 
+    // gray and RGB
     if (nChans != 1 && nChans != 3) return FALSE;
-   
+
     //  Only curves in this LUT?
     for (mpe = cmsPipelineGetPtrToFirstStage(Src);
         mpe != NULL;
@@ -398,9 +400,9 @@ cmsBool Optimize8ByJoiningCurves(_cmsTransform2Fn* TransformFn,
 
             if (cmsStageType(mpe) != cmsSigCurveSetElemType) return FALSE;
     }
-   
+
     Data = ComputeCompositeCurves(nChans, Src);
-    
+
     *dwFlags |= cmsFLAGS_NOCACHE;
     *dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
     *UserData = Data;
@@ -416,3 +418,4 @@ cmsBool Optimize8ByJoiningCurves(_cmsTransform2Fn* TransformFn,
 
 }
 
+#endif

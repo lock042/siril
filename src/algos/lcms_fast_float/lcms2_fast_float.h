@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -23,6 +23,16 @@
 #define _LCMS2_FAST_FLOAT_H
 
 #include "lcms2_plugin.h"
+
+/* There is an issue with version 2.15 on Windows platforms: some symbols
+ * are unavailable so the plugin won't build properly. The following
+ * preprocessor section disables the plugin for that combination of OS and
+ * lcms2 version. It can be extended if any other blacklisting is needed.
+ */
+
+#if _WIN32 && LCMS2_VERSION == 2150
+#define EXCLUDE_FF
+#endif
 
 #ifndef CMS_USE_CPP_API
 #   ifdef __cplusplus
@@ -47,7 +57,7 @@ extern "C" {
 // you need to place this in some initialization place:
 //
 //  cmsPlugin(cmsFastFloatExtensions());
-// 
+//
 
 CMSAPI void* CMSEXPORT cmsFastFloatExtensions(void);
 

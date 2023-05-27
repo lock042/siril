@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -23,19 +23,20 @@
 
 #include "fast_float_internal.h"
 
+#ifndef EXCLUDE_FF
 
 // This is the private data container used by this optimization
 typedef struct {
 
-   
-    cmsFloat32Number Mat[3][3];     
+
+    cmsFloat32Number Mat[3][3];
     cmsFloat32Number Off[3];
 
-    cmsFloat32Number Shaper1R[MAX_NODES_IN_CURVE]; 
+    cmsFloat32Number Shaper1R[MAX_NODES_IN_CURVE];
     cmsFloat32Number Shaper1G[MAX_NODES_IN_CURVE];
     cmsFloat32Number Shaper1B[MAX_NODES_IN_CURVE];
 
-    cmsFloat32Number Shaper2R[MAX_NODES_IN_CURVE];    
+    cmsFloat32Number Shaper2R[MAX_NODES_IN_CURVE];
     cmsFloat32Number Shaper2G[MAX_NODES_IN_CURVE];
     cmsFloat32Number Shaper2B[MAX_NODES_IN_CURVE];
 
@@ -64,8 +65,8 @@ static
 void  FreeMatShaper(cmsContext ContextID, void* Data)
 {
        VXMatShaperFloatData* d = (VXMatShaperFloatData*)Data;
-    
-       if (d != NULL) 
+
+       if (d != NULL)
               _cmsFree(ContextID, d->real_ptr);
 }
 
@@ -77,7 +78,7 @@ void FillShaper(cmsFloat32Number* Table, cmsToneCurve* Curve)
     cmsFloat32Number R;
 
     for (i = 0; i < MAX_NODES_IN_CURVE; i++) {
-        
+
            R = (cmsFloat32Number) i / (cmsFloat32Number) (MAX_NODES_IN_CURVE - 1);
 
         Table[i] = cmsEvalToneCurveFloat(Curve, R);
@@ -105,15 +106,15 @@ VXMatShaperFloatData* SetMatShaper(cmsContext ContextID, cmsToneCurve* Curve1[3]
     FillShaper(p->Shaper2R, Curve2[0]);
     FillShaper(p->Shaper2G, Curve2[1]);
     FillShaper(p->Shaper2B, Curve2[2]);
- 
-        
+
+
     for (i=0; i < 3; i++) {
-        for (j=0; j < 3; j++) {                     
+        for (j=0; j < 3; j++) {
                p->Mat[i][j] = (cmsFloat32Number) Mat->v[i].n[j];
-        }        
+        }
     }
-    
-  
+
+
     for (i = 0; i < 3; i++) {
 
            if (Off == NULL) {
@@ -128,13 +129,13 @@ VXMatShaperFloatData* SetMatShaper(cmsContext ContextID, cmsToneCurve* Curve1[3]
            }
     }
 
- 
+
     return p;
 }
 
 
 
-// A fast matrix-shaper evaluator for floating point 
+// A fast matrix-shaper evaluator for floating point
 static
 void MatShaperFloat(struct _cmstransform_struct* CMMcargo,
                         const void* Input,
@@ -142,7 +143,7 @@ void MatShaperFloat(struct _cmstransform_struct* CMMcargo,
                         cmsUInt32Number PixelsPerLine,
                         cmsUInt32Number LineCount,
                         const cmsStride* Stride)
-{    
+{
     VXMatShaperFloatData* p = (VXMatShaperFloatData*) _cmsGetTransformUserData(CMMcargo);
     cmsFloat32Number l1, l2, l3;
     cmsFloat32Number r, g, b;
@@ -161,7 +162,7 @@ void MatShaperFloat(struct _cmstransform_struct* CMMcargo,
     cmsUInt8Number* gout;
     cmsUInt8Number* bout;
     cmsUInt8Number* aout = NULL;
-    
+
     cmsUInt32Number nchans, nalpha;
     cmsUInt32Number strideIn, strideOut;
 
@@ -232,13 +233,13 @@ void MatShaperFloat(struct _cmstransform_struct* CMMcargo,
 
 
 
-cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,                                  
+cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,
                                   void** UserData,
                                   _cmsFreeUserDataFn* FreeUserData,
-                                  cmsPipeline** Lut, 
-                                  cmsUInt32Number* InputFormat, 
-                                  cmsUInt32Number* OutputFormat, 
-                                  cmsUInt32Number* dwFlags)    
+                                  cmsPipeline** Lut,
+                                  cmsUInt32Number* InputFormat,
+                                  cmsUInt32Number* OutputFormat,
+                                  cmsUInt32Number* dwFlags)
 {
     cmsStage* Curve1, *Curve2;
     cmsStage* Matrix1, *Matrix2;
@@ -255,19 +256,19 @@ cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,
     // Apply only to floating-point cases
     if (!T_FLOAT(*InputFormat) || !T_FLOAT(*OutputFormat)) return FALSE;
 
-    // Only works on RGB to RGB and gray to gray 
+    // Only works on RGB to RGB and gray to gray
     if ( !( (T_CHANNELS(*InputFormat) == 3 && T_CHANNELS(*OutputFormat) == 3))  &&
          !( (T_CHANNELS(*InputFormat) == 1 && T_CHANNELS(*OutputFormat) == 1))) return FALSE;
-                   
-    // Only works on float 
+
+    // Only works on float
     if (T_BYTES(*InputFormat) != 4 || T_BYTES(*OutputFormat) != 4) return FALSE;
 
     // Seems suitable, proceed
     Src = *Lut;
 
     // Check for shaper-matrix-matrix-shaper structure, that is what this optimizer stands for
-    if (!cmsPipelineCheckAndRetreiveStages(Src, 4, 
-        cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType, 
+    if (!cmsPipelineCheckAndRetreiveStages(Src, 4,
+        cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType,
         &Curve1, &Matrix1, &Matrix2, &Curve2)) return FALSE;
 
     ContextID = cmsGetPipelineContextID(Src);
@@ -282,15 +283,15 @@ cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,
 
     if (cmsStageInputChannels(Matrix1) == 1 && cmsStageOutputChannels(Matrix2) == 1)
     {
-        // This is a gray to gray. Just multiply    
-         factor = Data1->Double[0]*Data2->Double[0] + 
-                  Data1->Double[1]*Data2->Double[1] + 
+        // This is a gray to gray. Just multiply
+         factor = Data1->Double[0]*Data2->Double[0] +
+                  Data1->Double[1]*Data2->Double[1] +
                   Data1->Double[2]*Data2->Double[2];
 
         if (fabs(1 - factor) < (1.0 / 65535.0)) IdentityMat = TRUE;
     }
     else
-    {            
+    {
         // Multiply both matrices to get the result
         _cmsMAT3per(&res, (cmsMAT3*) Data2 ->Double, (cmsMAT3*) Data1 ->Double);
 
@@ -303,22 +304,22 @@ cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,
         }
     }
 
-      // Allocate an empty LUT 
+      // Allocate an empty LUT
     Dest =  cmsPipelineAlloc(ContextID, nChans, nChans);
     if (!Dest) return FALSE;
 
     // Assamble the new LUT
     cmsPipelineInsertStage(Dest, cmsAT_BEGIN, cmsStageDup(Curve1));
-    
+
     if (!IdentityMat) {
 
         if (nChans == 1)
-             cmsPipelineInsertStage(Dest, cmsAT_END, 
+             cmsPipelineInsertStage(Dest, cmsAT_END,
                     cmsStageAllocMatrix(ContextID, 1, 1, (const cmsFloat64Number*) &factor, Data2->Offset));
         else
-            cmsPipelineInsertStage(Dest, cmsAT_END, 
+            cmsPipelineInsertStage(Dest, cmsAT_END,
                     cmsStageAllocMatrix(ContextID, 3, 3, (const cmsFloat64Number*) &res, Data2 ->Offset));
-    } 
+    }
 
 
     cmsPipelineInsertStage(Dest, cmsAT_END, cmsStageDup(Curve2));
@@ -331,16 +332,16 @@ cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,
     else {
         _cmsStageToneCurvesData* mpeC1 = (_cmsStageToneCurvesData*) cmsStageData(Curve1);
         _cmsStageToneCurvesData* mpeC2 = (_cmsStageToneCurvesData*) cmsStageData(Curve2);
-                
-        // In this particular optimization, cache does not help as it takes more time to deal with 
+
+        // In this particular optimization, cache does not help as it takes more time to deal with
         // the cachthat with the pixel handling
         *dwFlags |= cmsFLAGS_NOCACHE;
 
         // Setup the optimizarion routines
         *UserData = SetMatShaper(ContextID, mpeC1 ->TheCurves, &res, (cmsVEC3*) Data2 ->Offset, mpeC2->TheCurves);
-        *FreeUserData = FreeMatShaper; 
+        *FreeUserData = FreeMatShaper;
 
-        *TransformFn = MatShaperFloat;         
+        *TransformFn = MatShaperFloat;
     }
 
     *dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
@@ -349,4 +350,4 @@ cmsBool OptimizeFloatMatrixShaper(_cmsTransform2Fn* TransformFn,
     return TRUE;
 }
 
-
+#endif

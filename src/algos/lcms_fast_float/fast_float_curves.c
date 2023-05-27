@@ -8,12 +8,12 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
@@ -21,9 +21,11 @@
 
 #include "fast_float_internal.h"
 
-// Curves, optimization is valid for floating point curves 
+#ifndef EXCLUDE_FF
+
+// Curves, optimization is valid for floating point curves
 typedef struct {
-   
+
     cmsFloat32Number CurveR[MAX_NODES_IN_CURVE];
     cmsFloat32Number CurveG[MAX_NODES_IN_CURVE];
     cmsFloat32Number CurveB[MAX_NODES_IN_CURVE];
@@ -43,7 +45,7 @@ static CurvesFloatData* malloc_aligned(cmsContext ContextID)
        CurvesFloatData* p = (CurvesFloatData*)aligned;
 
        p->real_ptr = real_ptr;
-       
+
        return p;
 }
 
@@ -63,7 +65,7 @@ static void FastEvaluateFloatRGBCurves(struct _cmstransform_struct *CMMcargo,
                                         cmsUInt32Number PixelsPerLine,
                                         cmsUInt32Number LineCount,
                                         const cmsStride* Stride)
-{   
+{
     cmsUInt32Number i, ii;
 	cmsUInt32Number SourceStartingOrder[cmsMAXCHANNELS];
 	cmsUInt32Number SourceIncrements[cmsMAXCHANNELS];
@@ -147,7 +149,7 @@ static void FastFloatRGBIdentity(struct _cmstransform_struct *CMMcargo,
                                         cmsUInt32Number PixelsPerLine,
                                         cmsUInt32Number LineCount,
                                         const cmsStride* Stride)
-{   
+{
     cmsUInt32Number i, ii;
 	cmsUInt32Number SourceStartingOrder[cmsMAXCHANNELS];
 	cmsUInt32Number SourceIncrements[cmsMAXCHANNELS];
@@ -164,7 +166,7 @@ static void FastFloatRGBIdentity(struct _cmstransform_struct *CMMcargo,
 
     cmsUInt32Number InputFormat  = cmsGetTransformInputFormat((cmsHTRANSFORM) CMMcargo);
     cmsUInt32Number OutputFormat = cmsGetTransformOutputFormat((cmsHTRANSFORM) CMMcargo);
-  
+
     cmsUInt32Number nchans, nalpha;
     cmsUInt32Number strideIn, strideOut;
 
@@ -198,7 +200,7 @@ static void FastFloatRGBIdentity(struct _cmstransform_struct *CMMcargo,
         *(cmsFloat32Number*)rout = *(cmsFloat32Number*)rin;
         *(cmsFloat32Number*)gout = *(cmsFloat32Number*)gin;
         *(cmsFloat32Number*)bout = *(cmsFloat32Number*)bin;
-        
+
         rin += SourceIncrements[0];
         gin += SourceIncrements[1];
         bin += SourceIncrements[2];
@@ -292,7 +294,7 @@ static void FastFloatGrayIdentity(struct _cmstransform_struct* CMMcargo,
                                         cmsUInt32Number PixelsPerLine,
                                         cmsUInt32Number LineCount,
                                         const cmsStride* Stride)
-{   
+{
     cmsUInt32Number i, ii;
     cmsUInt32Number SourceStartingOrder[cmsMAXCHANNELS];
     cmsUInt32Number SourceIncrements[cmsMAXCHANNELS];
@@ -403,7 +405,7 @@ CurvesFloatData* ComputeCompositeCurves(cmsUInt32Number nChan,  cmsPipeline* Src
     // Create target curves
     for (i = 0; i < MAX_NODES_IN_CURVE; i++) {
 
-        for (j=0; j <nChan; j++) 
+        for (j=0; j <nChan; j++)
                InFloat[j] = (cmsFloat32Number)i /  (cmsFloat32Number)(MAX_NODES_IN_CURVE-1);
 
         cmsPipelineEvalFloat(InFloat, OutFloat, Src);
@@ -417,7 +419,7 @@ CurvesFloatData* ComputeCompositeCurves(cmsUInt32Number nChan,  cmsPipeline* Src
                Data->CurveG[i] = OutFloat[1];
                Data->CurveB[i] = OutFloat[2];
         }
-        
+
     }
 
     return Data;
@@ -425,18 +427,18 @@ CurvesFloatData* ComputeCompositeCurves(cmsUInt32Number nChan,  cmsPipeline* Src
 
 
 // If the target LUT holds only curves, the optimization procedure is to join all those
-// curves together. That only works on curves and does not work on matrices. 
-cmsBool OptimizeFloatByJoiningCurves(_cmsTransform2Fn* TransformFn,                                  
+// curves together. That only works on curves and does not work on matrices.
+cmsBool OptimizeFloatByJoiningCurves(_cmsTransform2Fn* TransformFn,
                                   void** UserData,
                                   _cmsFreeUserDataFn* FreeUserData,
-                                  cmsPipeline** Lut, 
-                                  cmsUInt32Number* InputFormat, 
-                                  cmsUInt32Number* OutputFormat, 
-                                  cmsUInt32Number* dwFlags)    
+                                  cmsPipeline** Lut,
+                                  cmsUInt32Number* InputFormat,
+                                  cmsUInt32Number* OutputFormat,
+                                  cmsUInt32Number* dwFlags)
 {
- 
+
     cmsPipeline* Src = *Lut;
-    cmsStage* mpe;   
+    cmsStage* mpe;
     CurvesFloatData* Data;
     cmsUInt32Number nChans;
 
@@ -450,9 +452,9 @@ cmsBool OptimizeFloatByJoiningCurves(_cmsTransform2Fn* TransformFn,
     nChans = T_CHANNELS(*InputFormat);
     if (nChans != T_CHANNELS(*OutputFormat)) return FALSE;
 
-    // gray and RGB 
+    // gray and RGB
     if (nChans != 1 && nChans != 3) return FALSE;
-   
+
     //  Only curves in this LUT?
     for (mpe = cmsPipelineGetPtrToFirstStage(Src);
         mpe != NULL;
@@ -460,9 +462,9 @@ cmsBool OptimizeFloatByJoiningCurves(_cmsTransform2Fn* TransformFn,
 
             if (cmsStageType(mpe) != cmsSigCurveSetElemType) return FALSE;
     }
-   
+
     Data = ComputeCompositeCurves(nChans, Src);
-    
+
     *dwFlags |= cmsFLAGS_NOCACHE;
     *dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
     *UserData = Data;
@@ -478,3 +480,4 @@ cmsBool OptimizeFloatByJoiningCurves(_cmsTransform2Fn* TransformFn,
 
 }
 
+#endif

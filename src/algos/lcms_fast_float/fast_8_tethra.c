@@ -21,6 +21,8 @@
 
 #include "fast_float_internal.h"
 
+#ifndef EXCLUDE_FF
+
 #define PRELINEARIZATION_POINTS 4096
 
 // Optimization for 8 bits, 3 inputs only
@@ -491,3 +493,4 @@ Error:
     return FALSE;
 }
 
+#endif

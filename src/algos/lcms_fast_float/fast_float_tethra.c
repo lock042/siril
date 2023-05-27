@@ -8,18 +8,20 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
 
 #include "fast_float_internal.h"
+
+#ifndef EXCLUDE_FF
 
 // Optimization for floating point tetrahedral interpolation
 typedef struct {
@@ -37,18 +39,18 @@ FloatCLUTData* FloatCLUTAlloc(cmsContext ContextID, const cmsInterpParams* p)
 
     fd = (FloatCLUTData*) _cmsMallocZero(ContextID, sizeof(FloatCLUTData));
     if (fd == NULL) return NULL;
-    
+
     fd ->ContextID = ContextID;
     fd ->p = p;
-    
+
     return fd;
 }
 
 
-// Sampler implemented by another LUT. 
+// Sampler implemented by another LUT.
 static
 int XFormSampler(CMSREGISTER const cmsFloat32Number In[], CMSREGISTER cmsFloat32Number Out[], CMSREGISTER void* Cargo)
-{    
+{
     cmsPipelineEvalFloat(In, Out, (cmsPipeline*) Cargo);
     return TRUE;
 }
@@ -98,7 +100,7 @@ void FloatCLUTEval(struct _cmstransform_struct* CMMcargo,
 
     cmsUInt32Number nchans, nalpha;
     cmsUInt32Number strideIn, strideOut;
-                                                        
+
     _cmsComputeComponentIncrements(InputFormat, Stride->BytesPerPlaneIn, &nchans, &nalpha, SourceStartingOrder, SourceIncrements);
     _cmsComputeComponentIncrements(OutputFormat, Stride->BytesPerPlaneOut, &nchans, &nalpha, DestStartingOrder, DestIncrements);
 
@@ -133,11 +135,11 @@ void FloatCLUTEval(struct _cmstransform_struct* CMMcargo,
             px = r * p->Domain[0];
             py = g * p->Domain[1];
             pz = b * p->Domain[2];
-            
+
             x0 = (int) floorf(px); rx = (px - (cmsFloat32Number)x0);
             y0 = (int) floorf(py); ry = (py - (cmsFloat32Number)y0);
             z0 = (int) floorf(pz); rz = (pz - (cmsFloat32Number)z0);
-            
+
 
             X0 = p->opta[2] * x0;
             X1 = X0 + (r >= 1.0 ? 0 : p->opta[2]);
@@ -231,14 +233,14 @@ void FloatCLUTEval(struct _cmstransform_struct* CMMcargo,
 cmsBool OptimizeCLUTRGBTransform(_cmsTransform2Fn* TransformFn,
                                   void** UserData,
                                   _cmsFreeUserDataFn* FreeDataFn,
-                                  cmsPipeline** Lut, 
-                                  cmsUInt32Number* InputFormat, 
-                                  cmsUInt32Number* OutputFormat, 
-                                  cmsUInt32Number* dwFlags)      
+                                  cmsPipeline** Lut,
+                                  cmsUInt32Number* InputFormat,
+                                  cmsUInt32Number* OutputFormat,
+                                  cmsUInt32Number* dwFlags)
 {
     cmsPipeline* OriginalLut;
-    int nGridPoints;    
-    cmsPipeline* OptimizedLUT = NULL;    
+    int nGridPoints;
+    cmsPipeline* OptimizedLUT = NULL;
     cmsStage* OptimizedCLUTmpe;
     FloatCLUTData* pfloat;
     cmsContext ContextID;
@@ -251,28 +253,28 @@ cmsBool OptimizeCLUTRGBTransform(_cmsTransform2Fn* TransformFn,
     if (!T_FLOAT(*InputFormat) || !T_FLOAT(*OutputFormat)) return FALSE;
 
     // Only on floats
-    if (T_BYTES(*InputFormat) != sizeof(cmsFloat32Number) || 
+    if (T_BYTES(*InputFormat) != sizeof(cmsFloat32Number) ||
         T_BYTES(*OutputFormat) != sizeof(cmsFloat32Number)) return FALSE;
 
     // Input has to be RGB
     if (T_COLORSPACE(*InputFormat) != PT_RGB) return FALSE;
-   
+
     OriginalLut = *Lut;
-   
+
     ContextID        = cmsGetPipelineContextID(OriginalLut);
     nGridPoints      = _cmsReasonableGridpointsByColorspace(cmsSigRgbData, *dwFlags);
-             
+
     // Create the result LUT
     OptimizedLUT = cmsPipelineAlloc(cmsGetPipelineContextID(OriginalLut), 3, cmsPipelineOutputChannels(OriginalLut));
     if (OptimizedLUT == NULL) goto Error;
-    
+
     // Allocate the CLUT for result
     OptimizedCLUTmpe = cmsStageAllocCLutFloat(ContextID, nGridPoints, 3, cmsPipelineOutputChannels(OriginalLut), NULL);
 
     // Add the CLUT to the destination LUT
     cmsPipelineInsertStage(OptimizedLUT, cmsAT_BEGIN, OptimizedCLUTmpe);
 
-    // If output is CMYK, add a conversion stage to get %   
+    // If output is CMYK, add a conversion stage to get %
     if (T_COLORSPACE(*OutputFormat) == PT_CMYK) {
 
         static const cmsFloat64Number mat[] = { 100.0,   0,     0,     0,
@@ -305,17 +307,17 @@ cmsBool OptimizeCLUTRGBTransform(_cmsTransform2Fn* TransformFn,
     // Resample the LUT
     if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSampler, (void*)OriginalLut, 0)) goto Error;
 
-    
+
     if (T_COLORSPACE(*OutputFormat) == PT_CMYK) {
 
         cmsPipelineUnlinkStage(OriginalLut, cmsAT_END, NULL);
     }
 
-    // Set the evaluator, copy parameters   
+    // Set the evaluator, copy parameters
     data = (_cmsStageCLutData*) cmsStageData(OptimizedCLUTmpe);
 
     pfloat = FloatCLUTAlloc(ContextID, data ->Params);
-    if (pfloat == NULL) return FALSE;   
+    if (pfloat == NULL) return FALSE;
 
     // And return the obtained LUT
     cmsPipelineFree(OriginalLut);
@@ -328,9 +330,10 @@ cmsBool OptimizeCLUTRGBTransform(_cmsTransform2Fn* TransformFn,
     return TRUE;
 
 Error:
-      
+
     if (OptimizedLUT != NULL) cmsPipelineFree(OptimizedLUT);
 
-    return FALSE;    
+    return FALSE;
 }
 
+#endif
