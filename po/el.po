@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-13 14:01+0200\n"
+"POT-Creation-Date: 2023-05-27 18:35+0200\n"
 "PO-Revision-Date: 2023-05-08 19:41+0000\n"
 "Last-Translator: kostas <kookoo_gr@yahoo.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -1061,7 +1061,7 @@ msgstr ""
 "επιλέξτε ένα φίλτρο από τη λίστα ή\n"
 "πληκτρολογήστε ένα ορατό μήκος κύματος σε nm"
 
-#: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1176 src/gui/newdeconv.c:1511
+#: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1176 src/gui/newdeconv.c:1546
 msgid "Deconvolution"
 msgstr "Deconvolution"
 
@@ -1191,12 +1191,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6283 src/gui/siril3.glade:13426
-#: src/algos/star_finder.c:1267 src/gui/newdeconv.c:542
+#: src/algos/star_finder.c:1314 src/gui/newdeconv.c:542
 msgid "Gaussian"
 msgstr ""
 
 #: src/gui/siril3.glade:6284 src/gui/siril3.glade:13427
-#: src/algos/star_finder.c:1267 src/gui/newdeconv.c:544
+#: src/algos/star_finder.c:1314 src/gui/newdeconv.c:544
 msgid "Moffat"
 msgstr ""
 
@@ -1851,16 +1851,16 @@ msgstr ""
 "Επιλέξτε τη χρωματική λειτουργία που αντιστοιχεί με τις τρεις εξαγόμενες "
 "εικόνες"
 
-#: src/gui/siril3.glade:8466 src/gui/siril3.glade:19814 src/core/command.c:5322
-#: src/core/command.c:5326
+#: src/gui/siril3.glade:8466 src/gui/siril3.glade:19814 src/core/command.c:5335
+#: src/core/command.c:5339
 msgid "RGB"
 msgstr "RGB"
 
-#: src/gui/siril3.glade:8467 src/core/command.c:5313
+#: src/gui/siril3.glade:8467 src/core/command.c:5326
 msgid "HSL"
 msgstr "HSL"
 
-#: src/gui/siril3.glade:8468 src/core/command.c:5316
+#: src/gui/siril3.glade:8468 src/core/command.c:5329
 msgid "HSV"
 msgstr "HSV"
 
@@ -3407,7 +3407,7 @@ msgstr ""
 msgid "Configuration"
 msgstr "Πληροφορίες"
 
-#: src/gui/siril3.glade:14144 src/livestacking/gui.c:143
+#: src/gui/siril3.glade:14144 src/livestacking/gui.c:144
 msgid "Idle"
 msgstr ""
 
@@ -8717,7 +8717,7 @@ msgstr "Το '%s' φορτώθηκε με επιτυχία\n"
 msgid "Initializing FFTW multithreading support...\n"
 msgstr ""
 
-#: src/main.c:356 src/core/command.c:7045 src/core/command_line_processor.c:617
+#: src/main.c:356 src/core/command.c:7109 src/core/command_line_processor.c:617
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -8739,8 +8739,8 @@ msgstr ""
 msgid "Malformed line: %s\n"
 msgstr ""
 
-#: src/algos/annotate.c:429 src/core/command.c:4457 src/core/command.c:6195
-#: src/core/command.c:6327 src/core/command.c:7148 src/io/path_parse.c:543
+#: src/algos/annotate.c:429 src/core/command.c:4470 src/core/command.c:6243
+#: src/core/command.c:6384 src/core/command.c:7212 src/io/path_parse.c:543
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr "Δεν είναι δυνατή η δημιουργία φακέλου εξόδου: %s\n"
@@ -8856,236 +8856,242 @@ msgstr ""
 msgid "Error loading url: [%s] - %s\n"
 msgstr "Σφάλμα φόρτωσης url: %s: %s\n"
 
-#: src/algos/astrometry_solver.c:456 src/algos/astrometry_solver.c:539
-#: src/core/command.c:8647
+#: src/algos/astrometry_solver.c:428 src/algos/astrometry_solver.c:495
+#: src/algos/astrometry_solver.c:659
+msgid ""
+"Siril was compiled without networking support, cannot do this operation\n"
+msgstr ""
+
+#: src/algos/astrometry_solver.c:460 src/algos/astrometry_solver.c:548
+#: src/core/command.c:8717
 #, fuzzy
 msgid ""
 "This command only works on images that have observation date information\n"
 msgstr "Αυτή η εντολή δεν μπορεί να χρησιμοποιηθεί σε εικόνες rgb.\n"
 
-#: src/algos/astrometry_solver.c:459
+#: src/algos/astrometry_solver.c:463
 #, c-format
 msgid "Solar System Objects search on observation date %s\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:464 src/algos/astrometry_solver.c:565
+#: src/algos/astrometry_solver.c:468 src/algos/astrometry_solver.c:575
 #, fuzzy, c-format
 msgid "URL: %s \n"
 msgstr "Σύνδεσμος: %s\n"
 
-#: src/algos/astrometry_solver.c:498
+#: src/algos/astrometry_solver.c:507
 #, fuzzy, c-format
 msgid "Searching %s in CDSESAME...\n"
 msgstr "Αναζήτηση δεσμών ενεργειών σε: \"%s\"...\n"
 
-#: src/algos/astrometry_solver.c:506
+#: src/algos/astrometry_solver.c:515
 #, fuzzy, c-format
 msgid "Searching %s in VIZIER...\n"
 msgstr "Αναζήτηση δεσμών ενεργειών σε: \"%s\"...\n"
 
-#: src/algos/astrometry_solver.c:515
+#: src/algos/astrometry_solver.c:524
 #, fuzzy, c-format
 msgid "Searching %s in SIMBAD...\n"
 msgstr "Αναζήτηση δεσμών ενεργειών σε: \"%s\"...\n"
 
-#: src/algos/astrometry_solver.c:542
+#: src/algos/astrometry_solver.c:552
 #, c-format
 msgid "Searching for solar system object %s on observation date %s\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:545
+#: src/algos/astrometry_solver.c:555
 msgid "No topocentric data available. Set to geocentric\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:547
+#: src/algos/astrometry_solver.c:557
 #, c-format
 msgid "at LAT: %f, LONG: %f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:558
+#: src/algos/astrometry_solver.c:568
 #, fuzzy, c-format
 msgid "Searching %s in SIMBAD(photo)...\n"
 msgstr "Αναζήτηση δεσμών ενεργειών σε: \"%s\"...\n"
 
-#: src/algos/astrometry_solver.c:679
+#: src/algos/astrometry_solver.c:693
 #, fuzzy
 msgid "Using already downloaded star catalogue\n"
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/algos/astrometry_solver.c:686 src/algos/astrometry_solver.c:715
+#: src/algos/astrometry_solver.c:700 src/algos/astrometry_solver.c:729
 #, fuzzy, c-format
 msgid "Cannot create catalogue file %s for plate solving (%s)\n"
 msgstr "Δεν είναι δυνατή η δημιουργία αρχείου καταγραφής [%s]\n"
 
-#: src/algos/astrometry_solver.c:805
+#: src/algos/astrometry_solver.c:813
 #, c-format
 msgid "Up is %+.2lf deg ClockWise wrt. N%s\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:805
+#: src/algos/astrometry_solver.c:813
 msgid " (flipped)"
 msgstr " (ανεστραμμένο)"
 
-#: src/algos/astrometry_solver.c:809
+#: src/algos/astrometry_solver.c:817
 #, c-format
 msgid "Resolution:%*.3lf arcsec/px\n"
 msgstr "Ανάλυση:%*.3lf arcsec/px\n"
 
-#: src/algos/astrometry_solver.c:811
+#: src/algos/astrometry_solver.c:819
 #, fuzzy, c-format
 msgid "Focal length:%*.2lf mm\n"
 msgstr "Εστιακή: %*.2lf mm\n"
 
-#: src/algos/astrometry_solver.c:812
+#: src/algos/astrometry_solver.c:820
 #, c-format
 msgid "Pixel size:%*.2lf µm\n"
 msgstr "Μέγεθος pixel:%*.2lf µm\n"
 
-#: src/algos/astrometry_solver.c:815
+#: src/algos/astrometry_solver.c:823
 #, c-format
 msgid "Field of view:    %s x %s\n"
 msgstr "Οπτικό πεδίο:    %s x %s\n"
 
-#: src/algos/astrometry_solver.c:821
+#: src/algos/astrometry_solver.c:829
 #, c-format
 msgid "Image center: alpha: %s, delta: %s\n"
 msgstr "Κέντρο εικόνας: άλφα: %s, δέλτα: %s\n"
 
-#: src/algos/astrometry_solver.c:856
+#: src/algos/astrometry_solver.c:864
 #, c-format
 msgid "Catalog NOMAD size: %d objects\n"
 msgstr "Κατάλογος μεγέθους NOMAD: % d αντικείμενα\n"
 
-#: src/algos/astrometry_solver.c:890
+#: src/algos/astrometry_solver.c:898
 #, fuzzy, c-format
 msgid "Local catalogs size: %d objects\n"
 msgstr "Κατάλογος Gaia %s μεγέθος: % d αντικείμενα\n"
 
-#: src/algos/astrometry_solver.c:928
+#: src/algos/astrometry_solver.c:936
 #, c-format
 msgid "Catalog TYCHO-2 size: %d objects\n"
 msgstr "Κατάλογος μεγέθους TYCHO-2: % d αντικείμενα\n"
 
-#: src/algos/astrometry_solver.c:970
+#: src/algos/astrometry_solver.c:978
 #, fuzzy, c-format
 msgid "Catalog Gaia DR3 size: %d objects\n"
 msgstr "Κατάλογος Gaia %s μεγέθος: % d αντικείμενα\n"
 
-#: src/algos/astrometry_solver.c:1012
+#: src/algos/astrometry_solver.c:1020
 #, c-format
 msgid "Catalog PPMXL size: %d objects\n"
 msgstr "Κατάλογος μεγέθους PPMXL: % d αντικείμενα\n"
 
-#: src/algos/astrometry_solver.c:1054
+#: src/algos/astrometry_solver.c:1062
 #, c-format
 msgid "Catalog Bright stars size: %d objects\n"
 msgstr "Κατάλογος μεγέθους Φωτεινών Αστέρων: % d αντικείμενα\n"
 
-#: src/algos/astrometry_solver.c:1096
+#: src/algos/astrometry_solver.c:1104
 #, c-format
 msgid "Catalog APASS size: %d objects\n"
 msgstr "Μέγεθος του καταλόγου APASS: % d αντικείμενα\n"
 
-#: src/algos/astrometry_solver.c:1309 src/algos/astrometry_solver.c:1363
+#: src/algos/astrometry_solver.c:1317 src/algos/astrometry_solver.c:1371
 #, fuzzy
 msgid "Cancelled"
 msgstr "Άκυρο"
 
-#: src/algos/astrometry_solver.c:1319
+#: src/algos/astrometry_solver.c:1327
 #, fuzzy
 msgid "Could not download the online star catalogue."
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/algos/astrometry_solver.c:1339
+#: src/algos/astrometry_solver.c:1347
 msgid "Cannot project the star catalog."
 msgstr "Δεν είναι δυνατή η προβολή του καταλόγου αστεριών."
 
-#: src/algos/astrometry_solver.c:1349 src/algos/astrometry_solver.c:1352
+#: src/algos/astrometry_solver.c:1357 src/algos/astrometry_solver.c:1360
 #, fuzzy, c-format
 msgid "Could not load the star catalog (%s)."
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/algos/astrometry_solver.c:1377
+#: src/algos/astrometry_solver.c:1385
 #, c-format
 msgid ""
 "Plate solving image from local catalogues for a field of view of %.2f "
 "degrees\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1379
+#: src/algos/astrometry_solver.c:1387
 #, c-format
 msgid ""
 "Plate solving image from local catalogues for a field of view of %.2f "
 "degrees%s, using a limit magnitude of %.2f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1382 src/algos/astrometry_solver.c:1387
+#: src/algos/astrometry_solver.c:1390 src/algos/astrometry_solver.c:1395
 #, fuzzy
 msgid " (uncentered)"
 msgstr "Κεντραρισμένο"
 
-#: src/algos/astrometry_solver.c:1384
+#: src/algos/astrometry_solver.c:1392
 #, c-format
 msgid ""
 "Plate solving image from an online catalogue for a field of view of %.2f "
 "degrees%s, using a limit magnitude of %.2f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1408
+#: src/algos/astrometry_solver.c:1416
 #, c-format
 msgid "Down-sampling image for faster star detection by a factor %.2f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1420
+#: src/algos/astrometry_solver.c:1428
 #, fuzzy
 msgid "Failed to downsample image, aborting\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/algos/astrometry_solver.c:1421
+#: src/algos/astrometry_solver.c:1429
 #, fuzzy
 msgid "Not enough memory"
 msgstr "Δεν υπάρχουν αρκετά δείγματα."
 
-#: src/algos/astrometry_solver.c:1475
+#: src/algos/astrometry_solver.c:1483
 #, fuzzy, c-format
 msgid "There are not enough stars picked in the image. At least %d are needed."
 msgstr ""
 "Δεν έχουν επιλεχθεί αρκετά αστέρια στην εικόνα. Απαιτούνται τουλάχιστον% d "
 "αστέρια."
 
-#: src/algos/astrometry_solver.c:1481
+#: src/algos/astrometry_solver.c:1489
 #, fuzzy, c-format
 msgid "Using %d detected stars from image.\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/algos/astrometry_solver.c:1509 src/gui/callbacks.c:1573
+#: src/algos/astrometry_solver.c:1517 src/gui/callbacks.c:1573
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1518
+#: src/algos/astrometry_solver.c:1526
 msgid ""
 "This operation (PCC) relies on the missing WCSLIB software, cannot "
 "continue.\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1529
+#: src/algos/astrometry_solver.c:1537
 #, c-format
 msgid "Getting stars from local catalogues for PCC, limit magnitude %.2f\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1531 src/algos/photometric_cc.c:439
-#: src/core/command.c:8596
+#: src/algos/astrometry_solver.c:1539 src/algos/photometric_cc.c:439
+#: src/core/command.c:8666
 msgid "Failed to get data from the local catalogue, is it installed?\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1539
+#: src/algos/astrometry_solver.c:1547
 msgid ""
 "Using plate solving to identify catalogue stars in the image failed, is "
 "plate solving wrong?\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1557
+#: src/algos/astrometry_solver.c:1565
 #, c-format
 msgid ""
 "An astrometric solution was found but photometry analysis of the %d stars "
@@ -9093,104 +9099,104 @@ msgid ""
 "are too faint to have B-V index information (mag > 18)\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1562 src/algos/photometric_cc.c:487
+#: src/algos/astrometry_solver.c:1570 src/algos/photometric_cc.c:487
 #, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "H Φωτομετρική Βαθμονόμηση Χρώματος απέτυχε"
 
-#: src/algos/astrometry_solver.c:1570
+#: src/algos/astrometry_solver.c:1578
 msgid "Flipping image and updating astrometry data.\n"
 msgstr "Αναστροφή εικόνας και ενημέρωση δεδομένων αστρομετρίας.\n"
 
-#: src/algos/astrometry_solver.c:1601
+#: src/algos/astrometry_solver.c:1609
 #, fuzzy, c-format
 msgid "Photometry failed: %s\n"
 msgstr "Γίνεται αφαίρεση του αποτυχημένου αρχείου SER: %s\n"
 
-#: src/algos/astrometry_solver.c:1603
+#: src/algos/astrometry_solver.c:1611
 #, fuzzy, c-format
 msgid "Plate solving failed: %s\n"
 msgstr "Γίνεται αφαίρεση του αποτυχημένου αρχείου SER: %s\n"
 
-#: src/algos/astrometry_solver.c:1660
+#: src/algos/astrometry_solver.c:1669
 msgid "Transformation matrix is invalid, solve failed"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1702
+#: src/algos/astrometry_solver.c:1711
 #, fuzzy
 msgid "Updating homography failed."
 msgstr "Η ενημέρωση της ομογραφίας απέτυχε.\n"
 
-#: src/algos/astrometry_solver.c:1778 src/algos/photometric_cc.c:475
+#: src/algos/astrometry_solver.c:1787 src/algos/photometric_cc.c:475
 msgid "Photometric CC"
 msgstr "Φωτομετρικό CC"
 
-#: src/algos/astrometry_solver.c:1778
+#: src/algos/astrometry_solver.c:1787
 msgid "Plate Solve"
 msgstr "Επίλυση Εικόνας"
 
-#: src/algos/astrometry_solver.c:1904
+#: src/algos/astrometry_solver.c:1913
 #, fuzzy
 msgid "asnet_ansvr directory is not set - aborting\n"
 msgstr "Ο τρέχων κατάλογος εργασίας δεν έχει οριστεί, γίνεται ακύρωση.\n"
 
-#: src/algos/astrometry_solver.c:1909
+#: src/algos/astrometry_solver.c:1918
 msgid "solve-field was not found, set its path in the preferences\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1926
+#: src/algos/astrometry_solver.c:1935
 #, fuzzy
 msgid "Failed to create the input data for solve-field\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
-#: src/algos/astrometry_solver.c:1972
+#: src/algos/astrometry_solver.c:1981
 #, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius for scales [%s, %s]\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:1976
+#: src/algos/astrometry_solver.c:1985
 #, c-format
 msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2054
+#: src/algos/astrometry_solver.c:2063
 #, fuzzy
 msgid "No astrometric solution found\n"
 msgstr "Εντοπίστηκε αστρομετρική λύση"
 
-#: src/algos/astrometry_solver.c:2086
+#: src/algos/astrometry_solver.c:2095
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2127
+#: src/algos/astrometry_solver.c:2136
 msgid "Local astrometry.net solve succeeded.\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2152
+#: src/algos/astrometry_solver.c:2161
 msgid "Warning: using the current selection to detect stars\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2196
+#: src/algos/astrometry_solver.c:2205
 msgid "Selection is not used in manual star selection mode\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2223 src/core/command.c:8445
+#: src/algos/astrometry_solver.c:2232 src/core/command.c:8514
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2233 src/core/command.c:8469
+#: src/algos/astrometry_solver.c:2242 src/core/command.c:8538
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2266
+#: src/algos/astrometry_solver.c:2277
 #, c-format
 msgid "Image %s did not solve\n"
 msgstr ""
 
-#: src/algos/astrometry_solver.c:2305
+#: src/algos/astrometry_solver.c:2317
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
@@ -9217,7 +9223,7 @@ msgstr "Απέτυχε η δημιουργία του αρχείου εξόδο�
 msgid "Not enough samples."
 msgstr "Δεν υπάρχουν αρκετά δείγματα."
 
-#: src/algos/background_extraction.c:898 src/algos/PSF.c:836
+#: src/algos/background_extraction.c:898 src/algos/PSF.c:838
 #, fuzzy
 msgid "monochrome"
 msgstr "(Μονόχρωμη προεπισκόπηση)"
@@ -9242,8 +9248,9 @@ msgid "Failed to generate background samples for image %d: %s\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
 #: src/algos/background_extraction.c:1019 src/algos/demosaicing.c:1284
-#: src/algos/extraction.c:728 src/algos/statistics.c:912
-#: src/core/preprocess.c:264 src/core/processing.c:421 src/filters/banding.c:85
+#: src/algos/extraction.c:728 src/algos/star_finder.c:1096
+#: src/algos/statistics.c:912 src/core/preprocess.c:264
+#: src/core/processing.c:426 src/filters/banding.c:85
 #: src/filters/cosmetic_correction.c:401
 #, c-format
 msgid ""
@@ -9327,13 +9334,13 @@ msgstr ""
 msgid "Cannot perform debayering on image with more than one channel\n"
 msgstr "Δεν μπορεί να γίνει debayer σε εικόνα με πάνω από ένα κανάλι\n"
 
-#: src/algos/demosaicing.c:1240 src/algos/extraction.c:163 src/io/ser.c:840
-#: src/io/ser.c:1071
+#: src/algos/demosaicing.c:1240 src/algos/extraction.c:163 src/io/ser.c:841
+#: src/io/ser.c:1072
 msgid "No Bayer pattern found in the header file.\n"
 msgstr "Δεν βρέθηκε διάταξη Bayer στην κεφαλίδα του αρχείου.\n"
 
-#: src/algos/demosaicing.c:1243 src/algos/extraction.c:166 src/io/ser.c:844
-#: src/io/ser.c:1075
+#: src/algos/demosaicing.c:1243 src/algos/extraction.c:166 src/io/ser.c:845
+#: src/io/ser.c:1076
 #, c-format
 msgid ""
 "Bayer pattern found in header (%s) is different from Bayer pattern in "
@@ -9853,12 +9860,12 @@ msgid ""
 "Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"
 msgstr ""
 
-#: src/algos/photometric_cc.c:463 src/core/command.c:8605
+#: src/algos/photometric_cc.c:463 src/core/command.c:8675
 #, fuzzy
 msgid "Could not download the online star catalog.\n"
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/algos/photometric_cc.c:467 src/core/command.c:8608
+#: src/algos/photometric_cc.c:467 src/core/command.c:8678
 #, c-format
 msgid "The %s catalog has been successfully downloaded.\n"
 msgstr ""
@@ -9868,39 +9875,39 @@ msgstr ""
 msgid "Can't open catalog file %s for PCC: %s\n"
 msgstr "Δεν είναι δυνατή η δημιουργία αρχείου καταγραφής [%s]\n"
 
-#: src/algos/PSF.c:772
+#: src/algos/PSF.c:774
 msgid "Excellent"
 msgstr "Εξαιρετικό"
 
-#: src/algos/PSF.c:773
+#: src/algos/PSF.c:775
 msgid "Good"
 msgstr "Καλό"
 
-#: src/algos/PSF.c:774
+#: src/algos/PSF.c:776
 msgid "Fair"
 msgstr "Μέτριο"
 
-#: src/algos/PSF.c:775
+#: src/algos/PSF.c:777
 msgid "Poor"
 msgstr "Φτωχό"
 
-#: src/algos/PSF.c:776
+#: src/algos/PSF.c:778
 msgid "Bad"
 msgstr "Κακό"
 
-#: src/algos/PSF.c:777
+#: src/algos/PSF.c:779
 msgid "N/A"
 msgstr "Μη Διαθέσιμο"
 
-#: src/algos/PSF.c:785
+#: src/algos/PSF.c:787
 msgid "true reduced"
 msgstr "πραγματικό μειωμένο"
 
-#: src/algos/PSF.c:787
+#: src/algos/PSF.c:789
 msgid "relative"
 msgstr "σχετικό"
 
-#: src/algos/PSF.c:843
+#: src/algos/PSF.c:845
 #, fuzzy, c-format
 msgid ""
 "PSF fit Result (%s%s):\n"
@@ -10047,27 +10054,27 @@ msgstr "Δεν είναι δυνατή η λήψη στιγμιότυπου: %s\
 msgid "The file %s has been created.\n"
 msgstr "Το αρχείο %s δημιουργήθηκε.\n"
 
-#: src/algos/star_finder.c:1153
+#: src/algos/star_finder.c:1200
 #, fuzzy
 msgid "FindStar"
 msgstr "Εύρεση"
 
-#: src/algos/star_finder.c:1168 src/registration/applyreg.c:241
+#: src/algos/star_finder.c:1215 src/registration/applyreg.c:241
 #: src/registration/comet.c:240 src/registration/global.c:139
 msgid "Could not load reference image\n"
 msgstr "Η εικόνα αναφοράς δεν μπορούσε να φορτωθεί\n"
 
-#: src/algos/star_finder.c:1266
+#: src/algos/star_finder.c:1313
 #, fuzzy, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
 msgstr "Βρέθηκαν %d αστέρια στην εικόνα, κανάλι #%d\n"
 
-#: src/algos/star_finder.c:1268
+#: src/algos/star_finder.c:1315
 #, fuzzy
 msgid "selection"
 msgstr "Επιλογή"
 
-#: src/algos/star_finder.c:1268
+#: src/algos/star_finder.c:1315
 #, fuzzy
 msgid "image"
 msgstr "Εικόνα:"
@@ -10274,12 +10281,12 @@ msgstr ""
 #: src/core/command.c:1326 src/core/command.c:1345 src/core/command.c:1439
 #: src/core/command.c:1569 src/core/command.c:2876 src/core/command.c:2926
 #: src/core/command.c:3035 src/core/command.c:3214 src/core/command.c:3499
-#: src/core/command.c:4495 src/core/command.c:4955 src/core/command.c:5015
-#: src/core/command.c:5121 src/core/command.c:5632 src/core/command.c:5710
-#: src/core/command.c:5757 src/core/command.c:5805 src/core/command.c:5972
-#: src/core/command.c:5982 src/core/command.c:6018 src/core/command.c:6204
-#: src/core/command.c:6336 src/core/command.c:6573 src/core/command.c:6901
-#: src/core/command.c:7693
+#: src/core/command.c:4508 src/core/command.c:4968 src/core/command.c:5028
+#: src/core/command.c:5134 src/core/command.c:5645 src/core/command.c:5723
+#: src/core/command.c:5770 src/core/command.c:5818 src/core/command.c:5985
+#: src/core/command.c:5995 src/core/command.c:6031 src/core/command.c:6254
+#: src/core/command.c:6395 src/core/command.c:6637 src/core/command.c:6965
+#: src/core/command.c:7757
 #, fuzzy, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr "Άγνωστος τύπος μετασχηματισμού %s, γίνεται ακύρωση.\n"
@@ -10288,9 +10295,9 @@ msgstr "Άγνωστος τύπος μετασχηματισμού %s, γίνε�
 #: src/core/command.c:966 src/core/command.c:1627 src/core/command.c:1632
 #: src/core/command.c:2172 src/core/command.c:2688 src/core/command.c:2695
 #: src/core/command.c:2705 src/core/command.c:2713 src/core/command.c:2721
-#: src/core/command.c:2796 src/core/command.c:3875 src/core/command.c:4600
-#: src/core/command.c:4605 src/core/command.c:7772 src/core/command.c:8350
-#: src/core/command.c:8578 src/core/command.c:8791 src/core/command.c:8865
+#: src/core/command.c:2796 src/core/command.c:3888 src/core/command.c:4613
+#: src/core/command.c:4618 src/core/command.c:7836 src/core/command.c:8419
+#: src/core/command.c:8647 src/core/command.c:8861 src/core/command.c:8935
 #, fuzzy, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
@@ -10462,7 +10469,7 @@ msgstr ""
 msgid "Reconstructing GRBG Bayer matrix.\n"
 msgstr ""
 
-#: src/core/command.c:832 src/core/command.c:5670
+#: src/core/command.c:832 src/core/command.c:5683
 msgid "Invalid Bayer matrix specified!\n"
 msgstr ""
 
@@ -10654,22 +10661,22 @@ msgstr ""
 "Είναι αδύνατο να περικόψετε την εικόνα όταν είναι ενεργό ένα φίλτρο ζωντανής "
 "προεπισκόπησης. Παρακαλώ κλείσετε πρώτα το παράθυρο διαλόγου φίλτρου.\n"
 
-#: src/core/command.c:1669 src/core/command.c:4103
+#: src/core/command.c:1669 src/core/command.c:4116
 msgid "Crop: x and y must be positive values.\n"
 msgstr "Περικοπή: το x και το y πρέπει να είναι θετικές τιμές.\n"
 
-#: src/core/command.c:1675 src/core/command.c:4109
+#: src/core/command.c:1675 src/core/command.c:4122
 msgid "Crop: width and height must be greater than 0.\n"
 msgstr "Περικοπή: το πλάτος και το ύψος πρέπει να είναι μεγαλύτερα του 0.\n"
 
-#: src/core/command.c:1679 src/core/command.c:4125
+#: src/core/command.c:1679 src/core/command.c:4138
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
 msgstr ""
 "Περικοπή: το πλάτος και το ύψος, αντίστοιχα, πρέπει να λιγότερα του %d και "
 "%d.\n"
 
-#: src/core/command.c:1684 src/core/command.c:4115
+#: src/core/command.c:1684 src/core/command.c:4128
 msgid "Crop: select a region or provide x, y, width, height\n"
 msgstr "Περικοπή: επιλέξτε μια περιοχή ή δώστε τα x,y, πλάτος, ύψος\n"
 
@@ -10678,26 +10685,26 @@ msgstr "Περικοπή: επιλέξτε μια περιοχή ή δώστε �
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "Περικοπή (x=%d, y=%d, π=%d, υ=%d)"
 
-#: src/core/command.c:1737 src/core/command.c:4422 src/core/command.c:4435
-#: src/core/command.c:4826 src/core/command.c:4844 src/core/command.c:4856
-#: src/core/command.c:8031
+#: src/core/command.c:1737 src/core/command.c:4435 src/core/command.c:4448
+#: src/core/command.c:4839 src/core/command.c:4857 src/core/command.c:4869
+#: src/core/command.c:8100
 msgid "Wrong parameters.\n"
 msgstr "Λάθος παράμετροι.\n"
 
 #: src/core/command.c:1796 src/core/command.c:2864 src/core/command.c:2871
 #: src/core/command.c:2898 src/core/command.c:3003 src/core/command.c:3084
-#: src/core/command.c:4046 src/core/command.c:4145 src/core/command.c:4451
-#: src/core/command.c:4483 src/core/command.c:4734 src/core/command.c:5004
-#: src/core/command.c:5079 src/core/command.c:5205 src/core/command.c:5483
-#: src/core/command.c:5582 src/core/command.c:5622 src/core/command.c:5689
-#: src/core/command.c:5700 src/core/command.c:5748 src/core/command.c:5796
-#: src/core/command.c:5839 src/core/command.c:6190 src/core/command.c:6322
-#: src/core/command.c:6458 src/core/command.c:6503 src/core/command.c:6511
-#: src/core/command.c:6527 src/core/command.c:6542 src/core/command.c:6668
-#: src/core/command.c:6686 src/core/command.c:6705 src/core/command.c:6724
-#: src/core/command.c:6743 src/core/command.c:6761 src/core/command.c:6816
-#: src/core/command.c:6826 src/core/command.c:6859 src/core/command.c:7014
-#: src/core/command.c:7606 src/core/command.c:7635
+#: src/core/command.c:4059 src/core/command.c:4158 src/core/command.c:4464
+#: src/core/command.c:4496 src/core/command.c:4747 src/core/command.c:5017
+#: src/core/command.c:5092 src/core/command.c:5218 src/core/command.c:5496
+#: src/core/command.c:5595 src/core/command.c:5635 src/core/command.c:5702
+#: src/core/command.c:5713 src/core/command.c:5761 src/core/command.c:5809
+#: src/core/command.c:5852 src/core/command.c:6182 src/core/command.c:6237
+#: src/core/command.c:6378 src/core/command.c:6522 src/core/command.c:6567
+#: src/core/command.c:6575 src/core/command.c:6591 src/core/command.c:6606
+#: src/core/command.c:6732 src/core/command.c:6750 src/core/command.c:6769
+#: src/core/command.c:6788 src/core/command.c:6807 src/core/command.c:6825
+#: src/core/command.c:6880 src/core/command.c:6890 src/core/command.c:6923
+#: src/core/command.c:7078 src/core/command.c:7670 src/core/command.c:7699
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
@@ -10751,7 +10758,7 @@ msgstr ""
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr ""
 
-#: src/core/command.c:2074 src/core/command.c:7984 src/filters/wavelets.c:255
+#: src/core/command.c:2074 src/core/command.c:8053 src/filters/wavelets.c:255
 #: src/filters/wavelets.c:325
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
@@ -10818,7 +10825,7 @@ msgstr "Ακολουθία: %s\n"
 msgid "Image: %s\n"
 msgstr "Εικόνα: %s\n"
 
-#: src/core/command.c:2359 src/core/command.c:7903
+#: src/core/command.c:2359 src/core/command.c:7967
 msgid "********* END OF THE LIST *********\n"
 msgstr "********* ΤΕΛΟΣ ΛΙΣΤΑΣ *********\n"
 
@@ -10826,7 +10833,7 @@ msgstr "********* ΤΕΛΟΣ ΛΙΣΤΑΣ *********\n"
 msgid "Merge: no working directory set.\n"
 msgstr "Συγχώνευση: δεν έχει οριστεί κατάλογος εργασίας.\n"
 
-#: src/core/command.c:2373 src/core/command.c:6171 src/core/command.c:6289
+#: src/core/command.c:2373 src/core/command.c:6217 src/core/command.c:6344
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
 msgstr ""
@@ -10875,7 +10882,7 @@ msgstr ""
 "Αυτός ο τύπος ακολουθίας δεν μπορεί να δημιουργηθεί από το Siril, γίνεται "
 "ματαίωση της συγχώνευσης\n"
 
-#: src/core/command.c:2553 src/core/command.c:7490 src/io/single_image.c:199
+#: src/core/command.c:2553 src/core/command.c:7554 src/io/single_image.c:199
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr ""
@@ -10897,8 +10904,8 @@ msgstr ""
 # is the %s value ok where it is? this way it will make more sense in greek
 # Sure, the most important is to keep order if you have
 # %d %s %d in this order then you must keep it.
-#: src/core/command.c:2570 src/core/command.c:2584 src/core/command.c:4622
-#: src/core/command.c:8770 src/pixelMath/pixel_math_runner.c:1092
+#: src/core/command.c:2570 src/core/command.c:2584 src/core/command.c:4635
+#: src/core/command.c:8840 src/pixelMath/pixel_math_runner.c:1092
 #, fuzzy, c-format
 msgid "Could not open file: %s\n"
 msgstr "Το αρχείο TIFF %s δεν μπορούσε να ανοιχτεί\n"
@@ -10919,12 +10926,12 @@ msgstr ""
 msgid "Could not save mirrored image: %s\n"
 msgstr "Το αρχείο TIFF %s δεν μπορούσε να ανοιχτεί\n"
 
-#: src/core/command.c:2634 src/core/command.c:3830 src/core/command.c:3837
-#: src/core/command.c:3842 src/core/command.c:5089 src/core/command.c:5098
-#: src/core/command.c:5107 src/core/command.c:5545 src/core/command.c:6184
-#: src/core/command.c:6316 src/core/command.c:6890 src/core/command.c:8280
-#: src/core/command.c:8291 src/core/command.c:8303 src/core/command.c:8327
-#: src/core/command.c:8568 src/core/command.c:8662
+#: src/core/command.c:2634 src/core/command.c:3843 src/core/command.c:3850
+#: src/core/command.c:3855 src/core/command.c:5102 src/core/command.c:5111
+#: src/core/command.c:5120 src/core/command.c:5558 src/core/command.c:6230
+#: src/core/command.c:6371 src/core/command.c:6954 src/core/command.c:8349
+#: src/core/command.c:8360 src/core/command.c:8372 src/core/command.c:8396
+#: src/core/command.c:8637 src/core/command.c:8732
 #, fuzzy, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
@@ -10971,8 +10978,8 @@ msgstr ""
 msgid "Scale is 1.0. Not doing anything.\n"
 msgstr ""
 
-#: src/core/command.c:2921 src/core/command.c:3026 src/core/command.c:6482
-#: src/core/command.c:6569 src/core/command.c:6853
+#: src/core/command.c:2921 src/core/command.c:3026 src/core/command.c:6546
+#: src/core/command.c:6633 src/core/command.c:6917
 #, c-format
 msgid "Unknown transformation type %s, aborting.\n"
 msgstr "Άγνωστος τύπος μετασχηματισμού %s, γίνεται ακύρωση.\n"
@@ -11018,8 +11025,8 @@ msgstr ""
 msgid "Wrong magnitude value.\n"
 msgstr "Μέγεθος αστέρα (απόλυτο)"
 
-#: src/core/command.c:3131 src/core/command.c:3719 src/core/command.c:3900
-#: src/core/siril_actions.c:649
+#: src/core/command.c:3131 src/core/command.c:3732 src/core/command.c:3913
+#: src/core/siril_actions.c:651
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
 "selection around a single star.\n"
@@ -11027,12 +11034,12 @@ msgstr ""
 "Η τρέχουσα επιλογή είναι πολύ μεγάλη. Για τον καθορισμό του PSF, κάντε μια "
 "επιλογή γύρω από ένα αστέρι.\n"
 
-#: src/core/command.c:3135 src/core/command.c:3723 src/core/command.c:3904
+#: src/core/command.c:3135 src/core/command.c:3736 src/core/command.c:3917
 #: src/io/sequence.c:1897
 msgid "Select an area first\n"
 msgstr "Επιλέξτε πρώτα μια περιοχή\n"
 
-#: src/core/command.c:3147 src/core/command.c:3752
+#: src/core/command.c:3147 src/core/command.c:3765
 #, fuzzy, c-format
 msgid "PSF minimisation failed with error %d\n"
 msgstr "Η δημιουργία διοχέτευσης εισόδου απέτυχε με σφάλμα %d\n"
@@ -11248,23 +11255,23 @@ msgstr "Η τάξη πολυωνιμικού βαθμού πρέπει να εί
 msgid "Image must have same dimension\n"
 msgstr "Οι εικόνες πρέπει να έχουν τις ίδιες διαστάσεις\n"
 
-#: src/core/command.c:3728
+#: src/core/command.c:3741
 #, fuzzy
 msgid ""
 "Please display the channel on which you want to compute the PSF or use -"
 "channel argument\n"
 msgstr "Παρακαλώ εμφανίστε το κανάλι στο οποίο θέλετε να υπολογίσετε το PSF\n"
 
-#: src/core/command.c:3737
+#: src/core/command.c:3750
 msgid "Please provide the channel number starting from 0 for red\n"
 msgstr ""
 
-#: src/core/command.c:3812 src/core/command.c:3852 src/core/command.c:3867
+#: src/core/command.c:3825 src/core/command.c:3865 src/core/command.c:3880
 #, fuzzy
 msgid "The given coordinates are not in the image, aborting\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/core/command.c:3817
+#: src/core/command.c:3830
 #, fuzzy
 msgid ""
 "Selection was not completely inside the first image of the sequence, "
@@ -11273,138 +11280,138 @@ msgstr ""
 "Δεν ήταν δυνατή η φόρτωση της εικόνας αναφοράς της ακολουθίας, γίνεται "
 "ματαίωση.\n"
 
-#: src/core/command.c:3847
+#: src/core/command.c:3860
 msgid ""
 "The reference image of the sequence does not have the WCS information "
 "required for star selection by equatorial coordinates\n"
 msgstr ""
 
-#: src/core/command.c:3870
+#: src/core/command.c:3883
 #, fuzzy, c-format
 msgid "Coordinates of the star: %.1f, %.1f\n"
 msgstr "Συντεταγμένες Χ του πυρήνα της πρώτης εικόνας."
 
-#: src/core/command.c:3885
+#: src/core/command.c:3898
 msgid "Arguments are not optional when called from a script\n"
 msgstr ""
 
-#: src/core/command.c:3889
+#: src/core/command.c:3902
 msgid ""
 "Arguments are optional only if a sequence is already loaded and selection "
 "around a star made\n"
 msgstr ""
 
-#: src/core/command.c:3928 src/core/command.c:3983
+#: src/core/command.c:3941 src/core/command.c:3996
 #, c-format
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 
-#: src/core/command.c:3956
+#: src/core/command.c:3969
 #, fuzzy, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "Γίνεται εκτέλεση του PSF στην φορτωμένη ακολουθία, επίπεδο %d\n"
 
-#: src/core/command.c:3997
+#: src/core/command.c:4010
 #, fuzzy
 msgid "Missing argument to command\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
 
-#: src/core/command.c:4012
+#: src/core/command.c:4025
 #, fuzzy
 msgid "Could not find stars in the first image, aborting.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/core/command.c:4022
+#: src/core/command.c:4035
 #, c-format
 msgid ""
 "Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
 msgstr ""
 
-#: src/core/command.c:4030 src/gui/nina_light_curve.c:108
+#: src/core/command.c:4043 src/gui/nina_light_curve.c:108
 #, c-format
 msgid ""
 "Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
 msgstr ""
 
-#: src/core/command.c:4052
+#: src/core/command.c:4065
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
 "first\n"
 msgstr ""
 
-#: src/core/command.c:4172
+#: src/core/command.c:4185
 #, c-format
 msgid "Background value (channel: #%d): %d (%.3e)\n"
 msgstr "Τιμή υποβάθρου (κανάλι: #%d): %d (%.3e)\n"
 
-#: src/core/command.c:4226
+#: src/core/command.c:4239
 #, c-format
 msgid "The file %s has been created for the %s layer.\n"
 msgstr "Το αρχείο %s έχει δημιουργηθεί για το επίπεδο %s.\n"
 
-#: src/core/command.c:4237
+#: src/core/command.c:4250
 msgid "Clearing tilt information\n"
 msgstr "Καθαρισμός πληροφοριών κλήσης\n"
 
-#: src/core/command.c:4258 src/core/command.c:4263 src/core/command.c:4285
-#: src/core/command.c:4302 src/core/command.c:4327
+#: src/core/command.c:4271 src/core/command.c:4276 src/core/command.c:4298
+#: src/core/command.c:4315 src/core/command.c:4340
 #, fuzzy, c-format
 msgid "Replacement value is out of range (0 - %d)\n"
 msgstr "η τιμή αντικατάστασης είναι εκτός περιοχής (0 - %d)\n"
 
-#: src/core/command.c:4267
+#: src/core/command.c:4280
 msgid "lo must be strictly smaller than hi\n"
 msgstr "Το lo πρέπει να είναια συτηρά χαμηλότερο από το hi\n"
 
-#: src/core/command.c:4343
+#: src/core/command.c:4356
 #, fuzzy
 msgid "Level value is incorrect\n"
 msgstr "Η απαιτούμενη έκδοση δεν είναι σωστή.\n"
 
-#: src/core/command.c:4348
+#: src/core/command.c:4361
 msgid "Coeff value is incorrect\n"
 msgstr ""
 
-#: src/core/command.c:4353
+#: src/core/command.c:4366
 #, fuzzy
 msgid "Sigma value is incorrect\n"
 msgstr "Χωρίς απόρριψη"
 
-#: src/core/command.c:4369
+#: src/core/command.c:4382
 msgid "Number of layers MUST be 1 or 3\n"
 msgstr "Ο αριθμός των επιπέδων ΠΡΕΠΕΙ να είναι 1 ή 3\n"
 
-#: src/core/command.c:4373
+#: src/core/command.c:4386
 #, fuzzy
 msgid "Width and Height must be positive values.\n"
 msgstr "Περικοπή: το x και το y πρέπει να είναι θετικές τιμές.\n"
 
-#: src/core/command.c:4386
+#: src/core/command.c:4399
 msgid "new empty image"
 msgstr "νέα κενή εικόνα"
 
-#: src/core/command.c:4396
+#: src/core/command.c:4409
 #, c-format
 msgid "Values must be positive and less than %d.\n"
 msgstr "Οι τιμές πρέπει να είναι θετικές και μικρότερες του %d.\n"
 
-#: src/core/command.c:4408 src/core/command.c:4839
+#: src/core/command.c:4421 src/core/command.c:4852
 #, fuzzy, c-format
 msgid "Value must be positive and less than %d.\n"
 msgstr "Οι τιμές πρέπει να είναι θετικές και μικρότερες του %d.\n"
 
-#: src/core/command.c:4427
+#: src/core/command.c:4440
 msgid "Fill2: select a region or provide x, y, width, height\n"
 msgstr "Fill2: επιλέξτε μια περιοχή ή δώστε τα x, y, πλάτος, ύψος\n"
 
 #. handling mono case
-#: src/core/command.c:4467 src/core/command.c:6486 src/core/command.c:6882
+#: src/core/command.c:4480 src/core/command.c:6550 src/core/command.c:6946
 msgid "This sequence is mono, ignoring layer number.\n"
 msgstr ""
 "Αυτή η ακολουθία είναι μονόχρωμη, γίνεται αγνόηση του αριθμού επιπέδου.\n"
 
-#: src/core/command.c:4474 src/core/command.c:6494
+#: src/core/command.c:4487 src/core/command.c:6558
 #, c-format
 msgid ""
 "Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
@@ -11413,141 +11420,141 @@ msgstr ""
 "χρησιμοποιήσει πράσινο επίπεδο.\n"
 
 #. limiting values to avoid too long computation or too low number of candidates
-#: src/core/command.c:4490 src/core/command.c:6534
+#: src/core/command.c:4503 src/core/command.c:6598
 #, c-format
 msgid "Max number of stars %s not allowed. Should be between %d and %d.\n"
 msgstr ""
 
-#: src/core/command.c:4580
+#: src/core/command.c:4593
 #, fuzzy
 msgid "Option -out= is not available for sequences, ignoring\n"
 msgstr ""
 "Η επιλογή του ονόματος αρχείου εξόδου δεν επιτρέπεται σε αυτό το γενικό "
 "πλαίσιο, δεν λαμβάνεται υπόψη.\n"
 
-#: src/core/command.c:4590
+#: src/core/command.c:4603
 msgid "find_hot must be applied on an one-channel master-dark frame"
 msgstr "το find_hot πρέπει να εφαρμοστεί σε κυρίως dark καρέ ενός καναλιού"
 
-#: src/core/command.c:4610
+#: src/core/command.c:4623
 #, c-format
 msgid "%ld cold and %ld hot pixels\n"
 msgstr "%ld ψυχρά και %ld θερμά pixel\n"
 
-#: src/core/command.c:4673 src/core/command.c:4712
+#: src/core/command.c:4686 src/core/command.c:4725
 #, c-format
 msgid "File [%s] does not exist.\n"
 msgstr "Το αρχείο [%s] δεν υπάρχει\n"
 
-#: src/core/command.c:4688
+#: src/core/command.c:4701
 msgid "There were some errors, please check your input file.\n"
 msgstr "Υπήρξαν κάποια σφάλματα, παρακαλώ ελέγξτε το αρχείο εισόδου.\n"
 
-#: src/core/command.c:4758
+#: src/core/command.c:4771
 msgid "The size of the kernel MUST be odd and in the range [3, 15].\n"
 msgstr "Το μέγεθος του πυρήνα ΠΡΕΠΕΙ να είναι μονό και στην περιοχή [3, 15].\n"
 
-#: src/core/command.c:4763
+#: src/core/command.c:4776
 msgid "Modulation value MUST be between 0 and 1\n"
 msgstr "Η τιμή διαμόρφωσης πρέπει να είναι ανάμεσα σε 0 και 1\n"
 
-#: src/core/command.c:4781
+#: src/core/command.c:4794
 #, c-format
 msgid "Center of gravity coordinates are (%.3lf, %.3lf)\n"
 msgstr "Οι συντεταγμένες του κέντρου βαρύτητας είναι (%.3lf, %.3lf)\n"
 
-#: src/core/command.c:4883
+#: src/core/command.c:4896
 msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
 msgstr ""
 
-#: src/core/command.c:4894
+#: src/core/command.c:4907
 msgid "Amount can only be [0, 1]\n"
 msgstr ""
 
-#: src/core/command.c:4934 src/core/command.c:4978
+#: src/core/command.c:4947 src/core/command.c:4991
 #, fuzzy
 msgid "Amount value must be in the [0, 4] range.\n"
 msgstr "Η τάξη πολυωνιμικού βαθμού πρέπει να είναι μέσα στην περιοχη [1,4].\n"
 
-#: src/core/command.c:4940 src/core/command.c:4986
+#: src/core/command.c:4953 src/core/command.c:4999
 #, fuzzy
 msgid "1/sigma value must be in the [0, 5] range.\n"
 msgstr "Η τάξη πολυωνιμικού βαθμού πρέπει να είναι μέσα στην περιοχη [1,4].\n"
 
-#: src/core/command.c:5063
+#: src/core/command.c:5076
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
 msgstr "Η τάξη πολυωνιμικού βαθμού πρέπει να είναι μέσα στην περιοχη [1,4].\n"
 
-#: src/core/command.c:5073
+#: src/core/command.c:5086
 msgid "There can be only one prefix argument"
 msgstr ""
 
-#: src/core/command.c:5112
+#: src/core/command.c:5125
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr ""
 
-#: src/core/command.c:5177
+#: src/core/command.c:5190
 #, fuzzy
 msgid "Sigma low must be positive.\n"
 msgstr "Παράγοντας Υποβάθρου"
 
-#: src/core/command.c:5183
+#: src/core/command.c:5196
 #, fuzzy
 msgid "Sigma high must be positive.\n"
 msgstr "Επιλογή: το x και το y πρέπει να είναι θετικές τιμές.\n"
 
-#: src/core/command.c:5235
+#: src/core/command.c:5248
 #, fuzzy
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr ""
 "Το πρώτο όρισμα πρέπει να είναι μεταξύ 1 και του αριθμού των εικόνων.\n"
 
-#: src/core/command.c:5241
+#: src/core/command.c:5254
 #, fuzzy
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr ""
 "Το πρώτο όρισμα πρέπει να είναι μεταξύ 1 και του αριθμού των εικόνων.\n"
 
-#: src/core/command.c:5247
+#: src/core/command.c:5260
 #, fuzzy
 msgid "The third argument is larger than the number of images.\n"
 msgstr ""
 "Το πρώτο όρισμα πρέπει να είναι μεταξύ 1 και του αριθμού των εικόνων.\n"
 
-#: src/core/command.c:5248
+#: src/core/command.c:5261
 #, fuzzy, c-format
 msgid "Re-adjusting to %d.\n"
 msgstr "Γίνεται ανάγνωση %s\n"
 
-#: src/core/command.c:5272 src/gui/sequence_list.c:628
+#: src/core/command.c:5285 src/gui/sequence_list.c:628
 #, c-format
 msgid "Selection update finished, %d images are selected in the sequence\n"
 msgstr ""
 "Η ενημέρωση της επιλογής ολοκληρώθηκε, %d εικόνες επιλέχθηκαν στην "
 "ακολουθία\n"
 
-#: src/core/command.c:5301 src/gui/colors.c:392
+#: src/core/command.c:5314 src/gui/colors.c:392
 msgid "Could not copy the input image, aborting.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/core/command.c:5319
+#: src/core/command.c:5332
 msgid "CieLAB"
 msgstr ""
 
-#: src/core/command.c:5676
+#: src/core/command.c:5689
 #, c-format
 msgid "Reconstructing %s Bayer matrix.\n"
 msgstr ""
 
-#: src/core/command.c:5881
+#: src/core/command.c:5894
 #, fuzzy, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
 
-#: src/core/command.c:5902 src/core/command.c:5907
+#: src/core/command.c:5915 src/core/command.c:5920
 #, fuzzy, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -11556,7 +11563,7 @@ msgstr ""
 "Επίπεδο %s : Μέσος όρος: %0.1lf, Διάμεσος: %0.1lf, Σίγμα: %0.1lf, Απόκλιση "
 "Μέσου Όρου: %0.1lf, Ελάχιστο: %0.1lf, Μέγιστο: %0.1lf\n"
 
-#: src/core/command.c:5919 src/core/command.c:5926
+#: src/core/command.c:5932 src/core/command.c:5939
 #, fuzzy, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -11565,77 +11572,87 @@ msgstr ""
 "Επίπεδο %s : Μέσος όρος: %0.1lf, Διάμεσος: %0.1lf, Σίγμα: %0.1lf, Απόκλιση "
 "Μέσου Όρου: %0.1lf, Ελάχιστο: %0.1lf, Μέγιστο: %0.1lf\n"
 
-#: src/core/command.c:6012
+#: src/core/command.c:6025
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
 msgstr ""
 
-#: src/core/command.c:6115
+#: src/core/command.c:6128
 #, fuzzy, c-format
 msgid "Failed to save the JSON file %s: %s\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
-#: src/core/command.c:6118
+#: src/core/command.c:6131
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
 msgstr ""
 
-#: src/core/command.c:6131
+#: src/core/command.c:6144
 msgid ""
 "json-glib was not found at build time, cannot proceed. Install and rebuild.\n"
 msgstr ""
 
-#: src/core/command.c:6142
+#: src/core/command.c:6163
 #, fuzzy, c-format
 msgid "Image %d, %s = %s\n"
 msgstr "Εικόνα: %s\n"
 
-#: src/core/command.c:6151
+#: src/core/command.c:6172
 #, fuzzy
 msgid "This command can only run for FITS images\n"
 msgstr "Αυτή η εντολή δεν μπορεί να χρησιμοποιηθεί σε εικόνες rgb.\n"
 
-#: src/core/command.c:6167 src/core/command.c:6285
+#: src/core/command.c:6191
+#, fuzzy, c-format
+msgid "Failed to create output file: %s\n"
+msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
+
+#: src/core/command.c:6197
+#, fuzzy
+msgid "Failed to write to output file\n"
+msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
+
+#: src/core/command.c:6213 src/core/command.c:6340
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
 msgstr ""
 
-#: src/core/command.c:6212
+#: src/core/command.c:6263
 #, c-format
 msgid "Link: error opening working directory %s.\n"
 msgstr "Σύνδεση: σφάλμα κατά το άνοιγμα %s καταλόγου εργασίας.\n"
 
-#: src/core/command.c:6234
+#: src/core/command.c:6286
 msgid "No FITS files were found for link\n"
 msgstr "Δεν βρέθηκαν αρχεία FITS για σύνδεση\n"
 
-#: src/core/command.c:6244 src/core/command.c:6384
+#: src/core/command.c:6297 src/core/command.c:6447
 msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
 msgstr ""
 
-#: src/core/command.c:6249
+#: src/core/command.c:6303
 #, c-format
 msgid "Link: processing %d FITS file...\n"
 msgid_plural "Link: processing %d FITS files...\n"
 msgstr[0] "Σύνδεση: γίνεται επεξεργασία %d αρχείου FITS...\n"
 msgstr[1] "Σύνδεση: γίνεται επεξεργασία %d αρχείων FITS...\n"
 
-#: src/core/command.c:6255
+#: src/core/command.c:6309
 msgid "Link: no working directory set.\n"
 msgstr "Σύνδεση: δεν έχει οριστεί κατάλογος εργασίας.\n"
 
-#: src/core/command.c:6280
+#: src/core/command.c:6335
 msgid "Conversion: no working directory set.\n"
 msgstr "Μετατροπή: δεν έχει οριστεί κατάλογος εργασίας.\n"
 
-#: src/core/command.c:6344
+#: src/core/command.c:6404
 #, c-format
 msgid "Conversion: error opening working directory %s.\n"
 msgstr "Μετατροπή: σφάλμα ανοίγματος καταλόγου εργασίας %s.\n"
 
-#: src/core/command.c:6360 src/gui/conversion.c:196
+#: src/core/command.c:6421 src/gui/conversion.c:196
 msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
@@ -11643,68 +11660,68 @@ msgstr ""
 "Οι αισθητήρες FujiFilm XTRANS δεν υποστηρίζονται από το πρότυπο SER v2 "
 "(τύπου CFA). Μπορείτε να χρησιμοποιήσετε ακολουθίες FITS."
 
-#: src/core/command.c:6373
+#: src/core/command.c:6435
 msgid "No RAW files were found for conversion\n"
 msgstr "Δεν βρέθηκαν αρχεία RAW για μετατροπή\n"
 
-#: src/core/command.c:6374
+#: src/core/command.c:6436
 #, fuzzy
 msgid "No files were found for conversion\n"
 msgstr "Δεν βρέθηκαν αρχεία RAW για μετατροπή\n"
 
-#: src/core/command.c:6389
+#: src/core/command.c:6453
 #, fuzzy, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "Μετατροπή: γίνεται επεξεργασία %d αρχείου FITS...\n"
 msgstr[1] "Μετατροπή: γίνεται επεξεργασία %d αρχείων FITS...\n"
 
-#: src/core/command.c:6466 src/registration/registration.c:1455
+#: src/core/command.c:6530 src/registration/registration.c:1455
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "Η εγγραφή μόνο για μετατόπιση είναι δυνατή μόνο με το OpenCV 4.4\n"
 
 #. using absolute min_pairs required by homography
-#: src/core/command.c:6517
+#: src/core/command.c:6581
 #, fuzzy, c-format
 msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr ""
 "%d μικρότερο από τα ελάχιστα επιτρεπόμενα ζεύγη αστεριών: %d, γίνεται "
 "ματαίωση.\n"
 
-#: src/core/command.c:6581 src/registration/registration.c:146
+#: src/core/command.c:6645 src/registration/registration.c:146
 #, fuzzy
 msgid "Two-Pass Global Star Alignment (deep-sky)"
 msgstr "Ευθυγράμμιση Καθολικών Αστεριών (βαθύ ουρανού)"
 
-#: src/core/command.c:6584 src/registration/registration.c:144
+#: src/core/command.c:6648 src/registration/registration.c:144
 msgid "Global Star Alignment (deep-sky)"
 msgstr "Ευθυγράμμιση Καθολικών Αστεριών (βαθύ ουρανού)"
 
-#: src/core/command.c:6592
+#: src/core/command.c:6656
 msgid ""
 "The -nostarlist option has an effect only when -2pass is used, ignoring\n"
 msgstr ""
 
-#: src/core/command.c:6601 src/core/processing.c:141
-#: src/registration/applyreg.c:650 src/registration/registration.c:1491
+#: src/core/command.c:6665 src/core/processing.c:141
+#: src/registration/applyreg.c:652 src/registration/registration.c:1491
 #, fuzzy
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/core/command.c:6608
+#: src/core/command.c:6672
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation\n"
 msgstr ""
 
-#: src/core/command.c:6611
+#: src/core/command.c:6675
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation, is not compatible with "
 "OpenCV below 4.4. Aborting\n"
 msgstr ""
 
-#: src/core/command.c:6617 src/registration/registration.c:1518
+#: src/core/command.c:6681 src/registration/registration.c:1518
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
@@ -11712,47 +11729,47 @@ msgstr ""
 
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
-#: src/core/command.c:6625 src/registration/registration.c:1537
+#: src/core/command.c:6689 src/registration/registration.c:1537
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "Εγγραφή: γίνεται επεξεργασία με την μέθοδο: %s\n"
 
-#: src/core/command.c:6636 src/core/command.c:6914
+#: src/core/command.c:6700 src/core/command.c:6978
 #: src/registration/registration.c:1541
 #, fuzzy
 msgid "Interpolation clamping active\n"
 msgstr "Αλγόριθμος Παρεμβολής:"
 
-#: src/core/command.c:6659 src/core/command.c:6677 src/core/command.c:6696
-#: src/core/command.c:6715 src/core/command.c:6734 src/core/command.c:6752
+#: src/core/command.c:6723 src/core/command.c:6741 src/core/command.c:6760
+#: src/core/command.c:6779 src/core/command.c:6798 src/core/command.c:6816
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
 msgstr ""
 "Δεν ήταν δυνατή η ανάλυση του ορίσματος '%s' στο φίλτρο '%s', γίνεται "
 "ακύρωση.\n"
 
-#: src/core/command.c:6792
+#: src/core/command.c:6856
 #, fuzzy
 msgid "No registration data exists for this sequence, aborting\n"
 msgstr "Δεν αποθηκεύτηκαν δεδομένα εγγραφής για αυτό το επίπεδο"
 
-#: src/core/command.c:6878
+#: src/core/command.c:6942
 #, fuzzy, c-format
 msgid "Unknown framing type %s, aborting.\n"
 msgstr "Άγνωστος τύπος μετασχηματισμού %s, γίνεται ακύρωση.\n"
 
-#: src/core/command.c:6894
+#: src/core/command.c:6958
 #, c-format
 msgid ""
 "Registration data does not exist for layer #%d, will use layer #%d instead.\n"
 msgstr ""
 
-#: src/core/command.c:6916
+#: src/core/command.c:6980
 #, fuzzy
 msgid "Registration: Applying existing data"
 msgstr "Εγγραφή: γίνεται επεξεργασία με την μέθοδο: %s\n"
 
-#: src/core/command.c:6938
+#: src/core/command.c:7002
 #, fuzzy
 msgid ""
 "Output normalization is allowed only with median or mean stacking, "
@@ -11760,31 +11777,31 @@ msgid ""
 msgstr ""
 "Η στάθμιση επιτρέπεται μόνο με τη σώρευση μέσου όρου, γίνεται αγνόηση.\n"
 
-#: src/core/command.c:6944 src/core/command.c:6954 src/core/command.c:6962
-#: src/core/command.c:6970
+#: src/core/command.c:7008 src/core/command.c:7018 src/core/command.c:7026
+#: src/core/command.c:7034
 msgid "Weighting is allowed only with average stacking, ignoring.\n"
 msgstr ""
 "Η στάθμιση επιτρέπεται μόνο με τη σώρευση μέσου όρου, γίνεται αγνόηση.\n"
 
-#: src/core/command.c:6946 src/core/command.c:6972
+#: src/core/command.c:7010 src/core/command.c:7036
 msgid ""
 "Weighting is allowed only if normalization has been activated, ignoring.\n"
 msgstr ""
 "Η στάθμιση επιτρέπεται μόνο εάν έχει ενεργοποιηθεί η ομαλοποίηση, γίνεται "
 "αγνόηση.\n"
 
-#: src/core/command.c:6948 src/core/command.c:6956 src/core/command.c:6964
-#: src/core/command.c:6974
+#: src/core/command.c:7012 src/core/command.c:7020 src/core/command.c:7028
+#: src/core/command.c:7038
 msgid "Only one weighting method can be used\n"
 msgstr ""
 
-#: src/core/command.c:6980
+#: src/core/command.c:7044
 #, fuzzy
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
 msgstr ""
 "Η στάθμιση επιτρέπεται μόνο με τη σώρευση μέσου όρου, γίνεται αγνόηση.\n"
 
-#: src/core/command.c:6982
+#: src/core/command.c:7046
 #, fuzzy
 msgid ""
 "Fast normalization is allowed only if normalization has been activated, "
@@ -11793,19 +11810,19 @@ msgstr ""
 "Η στάθμιση επιτρέπεται μόνο εάν έχει ενεργοποιηθεί η ομαλοποίηση, γίνεται "
 "αγνόηση.\n"
 
-#: src/core/command.c:6988
+#: src/core/command.c:7052
 msgid "Normalization options are not allowed in this context, ignoring.\n"
 msgstr ""
 "Οι επιλογές ομαλοποιησης δεν επιτρέπονται σε αυτό το γενικό πλαίσιο, δεν "
 "λαμβάνονται υπόψη.\n"
 
-#: src/core/command.c:7002
+#: src/core/command.c:7066
 #, fuzzy
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
 msgstr ""
 "Η στάθμιση επιτρέπεται μόνο με τη σώρευση μέσου όρου, γίνεται αγνόηση.\n"
 
-#: src/core/command.c:7004
+#: src/core/command.c:7068
 #, fuzzy
 msgid ""
 "RGB equalization is allowed only if normalization has been activated, "
@@ -11814,19 +11831,19 @@ msgstr ""
 "Η στάθμιση επιτρέπεται μόνο εάν έχει ενεργοποιηθεί η ομαλοποίηση, γίνεται "
 "αγνόηση.\n"
 
-#: src/core/command.c:7020
+#: src/core/command.c:7084
 msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr ""
 "Η επιλογή του ονόματος αρχείου εξόδου δεν επιτρέπεται σε αυτό το γενικό "
 "πλαίσιο, δεν λαμβάνεται υπόψη.\n"
 
-#: src/core/command.c:7024
+#: src/core/command.c:7088
 #, fuzzy
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
 msgstr ""
 "Η στάθμιση επιτρέπεται μόνο με τη σώρευση μέσου όρου, γίνεται αγνόηση.\n"
 
-#: src/core/command.c:7026
+#: src/core/command.c:7090
 #, fuzzy
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
@@ -11835,61 +11852,61 @@ msgstr ""
 "Η στάθμιση επιτρέπεται μόνο εάν έχει ενεργοποιηθεί η ομαλοποίηση, γίνεται "
 "αγνόηση.\n"
 
-#: src/core/command.c:7034
+#: src/core/command.c:7098
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Μη αναμενόμενο όρισμα για σώρευση `%s', γίνεται ακύρωση.\n"
 
-#: src/core/command.c:7053
+#: src/core/command.c:7117
 #, c-format
 msgid "Stacking sequence %s\n"
 msgstr "Γίνεται σώρευση της ακολουθίας %s.\n"
 
-#: src/core/command.c:7067
+#: src/core/command.c:7131
 msgid "Not using rejection for stacking\n"
 msgstr "Δεν γίνεται χρήση απόρριψης στη σώρευση\n"
 
-#: src/core/command.c:7089
+#: src/core/command.c:7153
 #, c-format
 msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
 "shifts. You should apply existing registration before stacking\n"
 msgstr ""
 
-#: src/core/command.c:7154
+#: src/core/command.c:7218
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr "Το αποτέλεσμα της σώρευσης δεν μπορούσε να αποθηκευτεί %s\n"
 
-#: src/core/command.c:7161 src/stacking/stacking.c:605
+#: src/core/command.c:7225 src/stacking/stacking.c:605
 #, fuzzy
 msgid "Saving rejection maps\n"
 msgstr "Χωρίς απόρριψη"
 
-#: src/core/command.c:7190 src/stacking/stacking.c:658
+#: src/core/command.c:7254 src/stacking/stacking.c:658
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr ""
 "Η σώρευση απέτυχε. Παρακαλώ δείτε το αρχείο καταγραφής για να διορθώσετε το "
 "πρόβλημα σας.\n"
 
-#: src/core/command.c:7215
+#: src/core/command.c:7279
 msgid "Looking for sequences in current working directory...\n"
 msgstr "Γίνεται αναζήτηση για ακολουθίες στον τρέχων κατάλογο...\n"
 
-#: src/core/command.c:7217
+#: src/core/command.c:7281
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr "Σφάλμα κατά την αναζήτηση ακολουθιών ή ανοίγματος του καταλόγου.\n"
 
-#: src/core/command.c:7226
+#: src/core/command.c:7290
 msgid "Starting stacking of found sequences...\n"
 msgstr "Γίνεται εκκίνηση σώρευσης των ακολουθιών που βρέθηκαν...\n"
 
-#: src/core/command.c:7238
+#: src/core/command.c:7302
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr "Έγινε σώρευση %d ακολουθιών με επιτυχία.\n"
 
-#: src/core/command.c:7295 src/core/command.c:7421
+#: src/core/command.c:7359 src/core/command.c:7485
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
@@ -11897,7 +11914,7 @@ msgstr ""
 "Η σώρευση μέσου όρου με απόρριψη απαιτεί δυο επιπλέον ορίσματα: κάτω σίγμα "
 "και άνω σίγμα. \n"
 
-#: src/core/command.c:7300 src/core/command.c:7429
+#: src/core/command.c:7364 src/core/command.c:7493
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
@@ -11905,7 +11922,7 @@ msgstr ""
 "Οι πρόσθετες παράμετροι του αλγόριθμου απόρριψης GESDT πρέπει να είναι "
 "μεταξύ 0 και 1, η προεπιλογή είναι 0,3 και 0,05.\n"
 
-#: src/core/command.c:7305 src/core/command.c:7434
+#: src/core/command.c:7369 src/core/command.c:7498
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
@@ -11913,12 +11930,12 @@ msgstr ""
 "Επιπλέον παράμετροι του εκατοστιαίου αλγόριθμου απόρριψης πρέπει να είναι "
 "μεταξύ 0 και 1, η προεπιλογή είναι 0,2 και 0,1.\n"
 
-#: src/core/command.c:7314 src/core/command.c:7443
+#: src/core/command.c:7378 src/core/command.c:7507
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr "Ο τύπος μεθόδου σώρευσης '%s' δεν είναι έγκυρος\n"
 
-#: src/core/command.c:7344 src/stacking/stacking.c:660
+#: src/core/command.c:7408 src/stacking/stacking.c:660
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
@@ -11926,114 +11943,114 @@ msgstr ""
 "Φαίνεται ότι υπάρχει ένα σφάλμα εκχώρησης μνήμης, αλλάξτε τις ρυθμίσεις "
 "μνήμης και προσπαθήστε να το διορθώσετε.\n"
 
-#: src/core/command.c:7347
+#: src/core/command.c:7411
 msgid "Stacked sequence successfully.\n"
 msgstr "Έγινε σώρευση της ακολουθίας με επιτυχία.\n"
 
-#: src/core/command.c:7391
+#: src/core/command.c:7455
 #, fuzzy
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
 
-#: src/core/command.c:7483 src/core/preprocess.c:662 src/core/preprocess.c:987
+#: src/core/command.c:7547 src/core/preprocess.c:662 src/core/preprocess.c:987
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr ""
 "Δεν ήταν δυνατή η φόρτωση της εικόνας αναφοράς της ακολουθίας, γίνεται "
 "ματαίωση.\n"
 
-#: src/core/command.c:7495 src/core/preprocess.c:556
+#: src/core/command.c:7559 src/core/preprocess.c:556
 #, fuzzy
 msgid "Could not load the image, aborting.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας εισόδου, γίνεται ματαίωση\n"
 
-#: src/core/command.c:7520
+#: src/core/command.c:7584
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr ""
 "Δεν ήταν δυνατή η ανάλυση της τιμής offset από την έκφραση: %s, γίνεται "
 "ματαίωση.\n"
 
-#: src/core/command.c:7526 src/core/preprocess.c:685
+#: src/core/command.c:7590 src/core/preprocess.c:685
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr "Συνθετικό offset: Επίπεδο = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:7529
+#: src/core/command.c:7593
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr ""
 "Η τιμή του offset είναι εκτός των επιτρεπόμενων ορίων [-%d,%d], γίνεται "
 "ματαίωση.\n"
 
-#: src/core/command.c:7613
+#: src/core/command.c:7677
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr ""
 "Βελτιστοποίηση dark: Αυτή η διαδικασία δεν μπορεί να εφαρμοστεί σε εικόνες 8 "
 "bit\n"
 
-#: src/core/command.c:7641
+#: src/core/command.c:7705
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
 msgstr ""
 
-#: src/core/command.c:7661
+#: src/core/command.c:7725
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
 msgstr ""
 
-#: src/core/command.c:7663
+#: src/core/command.c:7727
 #, fuzzy
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr "Η κοσμητική διόρθωση δεν μπορεί να εφαρμοστεί σε αρχεία X-Trans.\n"
 
-#: src/core/command.c:7665
+#: src/core/command.c:7729
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
 msgstr ""
 
-#: src/core/command.c:7667
+#: src/core/command.c:7731
 #, fuzzy
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr "Η κοσμητική διόρθωση δεν μπορεί να εφαρμοστεί σε αρχεία X-Trans.\n"
 
-#: src/core/command.c:7674
+#: src/core/command.c:7738
 #, fuzzy, c-format
 msgid "Could not open file %s, aborting.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:7678
+#: src/core/command.c:7742
 #, fuzzy, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
 msgstr "Η κοσμητική διόρθωση δεν μπορεί να εφαρμοστεί σε αρχεία X-Trans.\n"
 
-#: src/core/command.c:7682
+#: src/core/command.c:7746
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:7687
+#: src/core/command.c:7751
 #, fuzzy, c-format
 msgid "Unknown argument %s, aborting.\n"
 msgstr "Άγνωστος τύπος μετασχηματισμού %s, γίνεται ακύρωση.\n"
 
-#: src/core/command.c:7725 src/core/command.c:7743 src/core/preprocess.c:924
+#: src/core/command.c:7789 src/core/command.c:7807 src/core/preprocess.c:924
 msgid "Preprocessing...\n"
 msgstr "Γίνεται προ-επεξεργασία...\n"
 
-#: src/core/command.c:7764
+#: src/core/command.c:7828
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr ""
 "Η λειτουργία 16-bit ανά κανάλι των επεξεργασμένων εικόνων είναι ενεργή\n"
 
-#: src/core/command.c:7765
+#: src/core/command.c:7829
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr ""
 "Η λειτουργία 32-bit ανά κανάλι των επεξεργασμένων εικόνων είναι ενεργή\n"
 
-#: src/core/command.c:7781
+#: src/core/command.c:7845
 msgid "Please specify the type of compression and quantization value.\n"
 msgstr "Παρακαλώ ορίστε τον τύπο συμπίεσης και την τιμή κβαντοποίησης.\n"
 
@@ -12050,21 +12067,21 @@ msgstr "Παρακαλώ ορίστε τον τύπο συμπίεσης και 
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:7808
+#: src/core/command.c:7872
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr "Λάθος τύπος συμπίεσης. Οι επιλογές είναι rice, gzip1, gzip2\n"
 
-#: src/core/command.c:7812
+#: src/core/command.c:7876
 msgid "Please specify the value of quantization.\n"
 msgstr "Παρακαλώ ορίστε την τιμή της κβαντοποίησης.\n"
 
-#: src/core/command.c:7819
+#: src/core/command.c:7883
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr ""
 "Η κβαντοποίηση μπορεί να είναι ίση με 0 για τους αλγόριθμους GZIP1 και "
 "GZIP2\n"
 
-#: src/core/command.c:7822
+#: src/core/command.c:7886
 #, c-format
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
@@ -12072,11 +12089,11 @@ msgstr ""
 "Η συμπίεση είναι ενεργοποιημένη με τον αλγόριθμο %s και με τιμή "
 "κβαντοποίησης %.2lf\n"
 
-#: src/core/command.c:7825
+#: src/core/command.c:7889
 msgid "No compression enabled.\n"
 msgstr "Δεν έχει ενεργοποιηθεί συμπίεση.\n"
 
-#: src/core/command.c:7843
+#: src/core/command.c:7907
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
@@ -12085,14 +12102,14 @@ msgstr ""
 "Ο αριθμός των λογικών επεξεργαστών ΠΡΕΠΕΙ να είναι μεγαλύτερος του 0 και "
 "μικρότερος ή ίσος με %d.\n"
 
-#: src/core/command.c:7854
+#: src/core/command.c:7918
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] "Γίνεται χρήση %d λογικού επεξεργαστή\n"
 msgstr[1] "Γίνεται χρήση %d λογικών επεξεργαστών\n"
 
-#: src/core/command.c:7871
+#: src/core/command.c:7935
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
@@ -12100,7 +12117,7 @@ msgstr ""
 "Το αποδεκτό εύρος για το λόγο της μνήμης που χρησιμοποιείται για την σωρευση "
 "είναι [0.05, 4], με τιμές κάτω από τη διαθέσιμη μνήμη που συνιστάται\n"
 
-#: src/core/command.c:7875
+#: src/core/command.c:7939
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -12111,53 +12128,53 @@ msgstr ""
 "θα απαιτήσει τη χρήση μνήμης στο δίσκο, η οποία είναι πολύ αργή και δεν "
 "συνιστάται (%g ζητήθηκε)\n"
 
-#: src/core/command.c:7880
+#: src/core/command.c:7944
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr "Η χρησιμοποιήσιμη μνήμη για την σώρεσυη άλλαξε σε %g\n"
 
-#: src/core/command.c:7887
+#: src/core/command.c:7951
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr "********* ΛΙΣΤΑ ΔΙΑΘΕΣΙΜΩΝ ΕΝΤΟΛΩΝ *********\n"
 
-#: src/core/command.c:7895
+#: src/core/command.c:7959
 #, fuzzy, c-format
 msgid "Can be used in a script: %s\n"
 msgstr "Μπορεί να χρησιμοποιηθεί σε μια δέσμη ενεργειών: "
 
-#: src/core/command.c:7895 src/core/command_line_processor.c:442
+#: src/core/command.c:7959 src/core/command_line_processor.c:442
 msgid "YES"
 msgstr "ΝΑΙ"
 
-#: src/core/command.c:7895 src/core/command_line_processor.c:445
+#: src/core/command.c:7959 src/core/command_line_processor.c:445
 msgid "NO"
 msgstr "ΟΧΙ"
 
-#: src/core/command.c:7905
+#: src/core/command.c:7969
 #, c-format
 msgid "Error: command %s is not available\n"
 msgstr ""
 
-#: src/core/command.c:7919 src/core/OS_utils.c:488 src/core/OS_utils.c:502
+#: src/core/command.c:7983 src/core/OS_utils.c:488 src/core/OS_utils.c:502
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "επεξεργαστής"
 msgstr[1] "επεξεργαστές"
 
-#: src/core/command.c:8013
+#: src/core/command.c:8082
 msgid "Required version is not correct.\n"
 msgstr "Η απαιτούμενη έκδοση δεν είναι σωστή.\n"
 
-#: src/core/command.c:8044
+#: src/core/command.c:8113
 msgid "The required version of Siril is ok.\n"
 msgstr "Η απαιτούμενη έκδοση του Siril είναι εντάξει.\n"
 
-#: src/core/command.c:8049
+#: src/core/command.c:8118
 msgid "A newer version of Siril is required, please update your version.\n"
 msgstr ""
 "Απαιτείται νεότερη έκδοση του Siril, παρακαλώ ενημερώστε την έκδοση σας.\n"
 
-#: src/core/command.c:8051
+#: src/core/command.c:8120
 #, c-format
 msgid ""
 "The script you are executing requires a newer version of Siril to run (%s), "
@@ -12166,168 +12183,168 @@ msgstr ""
 "Η δέσμη ενεργειών που εκτελείτε απαιτεί μια νεότερη έκδοση του Siril για να "
 "εκτελέστεί (%s), γίνεται ματαίωση.\n"
 
-#: src/core/command.c:8061 src/core/command.c:8112
+#: src/core/command.c:8130 src/core/command.c:8181
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr "Τρέχουσα επιλογή [x, y, w, h]: %d %d %d %d\n"
 
-#: src/core/command.c:8064
+#: src/core/command.c:8133
 #, fuzzy
 msgid "No current selection in image\n"
 msgstr "Η τρέχουσα επιλογή είναι πολύ μεγάλη"
 
-#: src/core/command.c:8071
+#: src/core/command.c:8140
 msgid ""
 "Too many arguments to boxselect, use either -clear or the coordinates, not "
 "both.\n"
 msgstr ""
 
-#: src/core/command.c:8075
+#: src/core/command.c:8144
 #, fuzzy
 msgid "Selected area in image was cleared\n"
 msgstr "Επιλέξτε πρώτα μια περιοχή στην εικόνα"
 
-#: src/core/command.c:8081 src/core/command.c:8097
+#: src/core/command.c:8150 src/core/command.c:8166
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr "Παρακαλώ ορίστε τα x, y, w και h, γίνεται ακύρωση.\n"
 
-#: src/core/command.c:8101
+#: src/core/command.c:8170
 #, c-format
 msgid ""
 "The provided coordinates are outside the dimension of the currently loaded "
 "image (%d x %d).\n"
 msgstr ""
 
-#: src/core/command.c:8106
+#: src/core/command.c:8175
 #, fuzzy
 msgid "Overriding previous selection\n"
 msgstr "Γίνεται περικοπή με βάση την επιλογή"
 
-#: src/core/command.c:8158 src/core/command.c:8189
+#: src/core/command.c:8227 src/core/command.c:8258
 #, fuzzy
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "Οι εικόνες πρέπει να έχουν τις ίδιες διαστάσεις\n"
 
-#: src/core/command.c:8251 src/core/command.c:8263 src/core/command.c:8843
-#: src/core/command.c:8855
+#: src/core/command.c:8320 src/core/command.c:8332 src/core/command.c:8913
+#: src/core/command.c:8925
 #, fuzzy
 msgid "Could not parse target coordinates\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:8333
+#: src/core/command.c:8402
 msgid "Catalog can only be NOMAD or APASS for photometric usage\n"
 msgstr ""
 
-#: src/core/command.c:8341
+#: src/core/command.c:8410
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr ""
 
-#: src/core/command.c:8343
+#: src/core/command.c:8412
 msgid ""
 "Astrometry.net interaction relies on the missing WCSLIB software, cannot "
 "continue.\n"
 msgstr ""
 
-#: src/core/command.c:8361
+#: src/core/command.c:8430
 #, fuzzy, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr "Απέτυχε η δημιουργία του αρχείου εξόδου SER '%s'\n"
 
-#: src/core/command.c:8398
+#: src/core/command.c:8467
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
 msgstr ""
 
-#: src/core/command.c:8403
+#: src/core/command.c:8472
 #, fuzzy, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/core/command.c:8411
+#: src/core/command.c:8480
 msgid "Photometric color correction will use plate solving first\n"
 msgstr ""
 
-#: src/core/command.c:8412
+#: src/core/command.c:8481
 msgid ""
 "Photometric color correction will use WCS information and bypass internal "
 "plate solver\n"
 msgstr ""
 
-#: src/core/command.c:8414
+#: src/core/command.c:8483
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr ""
 
-#: src/core/command.c:8435 src/core/command.c:8459
+#: src/core/command.c:8504 src/core/command.c:8528
 msgid ""
 "Focal length and pixel size are only used for plate solving, ignored now\n"
 msgstr ""
 
-#: src/core/command.c:8438
+#: src/core/command.c:8507
 #, fuzzy, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/core/command.c:8452
+#: src/core/command.c:8521
 #, fuzzy, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/core/command.c:8454
+#: src/core/command.c:8523
 #, fuzzy, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/core/command.c:8462
+#: src/core/command.c:8531
 #, fuzzy, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/core/command.c:8476
+#: src/core/command.c:8545
 #, fuzzy, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/core/command.c:8478
+#: src/core/command.c:8547
 #, fuzzy, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr "Η φωτομετρική ανάλυση για την εικόνα %d απέτυχε\n"
 
-#: src/core/command.c:8483 src/core/command.c:8495
+#: src/core/command.c:8552 src/core/command.c:8564
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
 
-#: src/core/command.c:8548 src/core/command.c:8642 src/core/command.c:8697
-#: src/core/command.c:8815
+#: src/core/command.c:8617 src/core/command.c:8712 src/core/command.c:8767
+#: src/core/command.c:8885
 #, fuzzy
 msgid "This command only works on plate solved images\n"
 msgstr "Αυτή η εντολή δεν μπορεί να χρησιμοποιηθεί σε εικόνες rgb.\n"
 
-#: src/core/command.c:8674
+#: src/core/command.c:8744
 #, fuzzy
 msgid "Could not compute image resolution\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:8748
+#: src/core/command.c:8818
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr ""
 
-#: src/core/command.c:8759 src/core/command.c:8780
+#: src/core/command.c:8829 src/core/command.c:8850
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 
-#: src/core/command.c:8763
+#: src/core/command.c:8833
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 
-#: src/core/command.c:8805
+#: src/core/command.c:8875
 #, fuzzy, c-format
 msgid "String in: %s\n"
 msgstr "Εκκίνηση δέσμης ενεργειών %s\n"
 
-#: src/core/command.c:8806
+#: src/core/command.c:8876
 #, fuzzy, c-format
 msgid "String out: %s\n"
 msgstr "Εκκίνηση δέσμης ενεργειών %s\n"
@@ -15277,7 +15294,7 @@ msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ ΤΟΥ OFFSET: το αρχείο δεν
 msgid "NOT USING DARK: could not parse the expression"
 msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ ΤΟΥ DARK: το αρχείο δεν μπορεί να ανοιχτεί"
 
-#: src/core/preprocess.c:749 src/livestacking/gui.c:209
+#: src/core/preprocess.c:749 src/livestacking/gui.c:210
 msgid "Opening dark image..."
 msgstr "Γίνεται άνοιγμα της εικόνας dark..."
 
@@ -15289,7 +15306,7 @@ msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ ΤΟΥ DARK: ο αριθμός των �
 msgid "NOT USING DARK: image dimensions are different"
 msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ DARK: οι διαστάσεις της εικόνας είναι διαφορετικές"
 
-#: src/core/preprocess.c:765 src/livestacking/gui.c:214
+#: src/core/preprocess.c:765 src/livestacking/gui.c:215
 msgid "NOT USING DARK: cannot open the file"
 msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ ΤΟΥ DARK: το αρχείο δεν μπορεί να ανοιχτεί"
 
@@ -15302,7 +15319,7 @@ msgstr "Αυτή η εντολή δεν μπορεί να χρησιμοποιη
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ ΤΟΥ FLAT: το αρχείο δεν μπορεί να ανοιχτεί"
 
-#: src/core/preprocess.c:858 src/livestacking/gui.c:280
+#: src/core/preprocess.c:858 src/livestacking/gui.c:281
 msgid "Opening flat image..."
 msgstr "Γίνεται άνοιγμα της εικόνας flat..."
 
@@ -15314,7 +15331,7 @@ msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ ΤΟΥ FLAT: ο αριθμός των �
 msgid "NOT USING FLAT: image dimensions are different"
 msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ FLAT: οι διαστάσεις της εικόνας είναι διαφορετικές"
 
-#: src/core/preprocess.c:871 src/livestacking/gui.c:285
+#: src/core/preprocess.c:871 src/livestacking/gui.c:286
 msgid "NOT USING FLAT: cannot open the file"
 msgstr "ΔΕΝ ΓΙΝΕΤΑΙ ΧΡΗΣΗ ΤΟΥ FLAT: το αρχείο δεν μπορεί να ανοιχτεί"
 
@@ -15368,43 +15385,43 @@ msgid ""
 "aborting\n"
 msgstr ""
 
-#: src/core/processing.c:321
+#: src/core/processing.c:326
 #, c-format
 msgid "%s. Processing image %d (%s)"
 msgstr "%s. Γίνεται επεξεργασία της εικόνας %d (%s)"
 
-#: src/core/processing.c:329 src/core/processing.c:361
+#: src/core/processing.c:334 src/core/processing.c:366
 msgid "Finalizing sequence processing failed.\n"
 msgstr "Η οριστικοποίηση επεξεργασίας της ακολουθίας απέτυχε.\n"
 
-#: src/core/processing.c:333
+#: src/core/processing.c:338
 msgid "Sequence processing failed. Check the log."
 msgstr "Η επεξεργασία της ακολουθίας απέτυχε. Δείτε το αρχείο καταγραφής."
 
-#: src/core/processing.c:334
+#: src/core/processing.c:339
 msgid "Sequence processing failed.\n"
 msgstr "Η επεξεργασία της ακολουθίας απέτυχε.\n"
 
-#: src/core/processing.c:341
+#: src/core/processing.c:346
 msgid "Sequence processing partially succeeded. Check the log."
 msgstr ""
 "Η επεξεργασία της ακολουθίας πέτυχε μερικώς. Δείτε το αρχείο καταγραφής."
 
-#: src/core/processing.c:342
+#: src/core/processing.c:347
 #, fuzzy, c-format
 msgid "Sequence processing partially succeeded, with %d images that failed.\n"
 msgstr ""
 "Η επεξεργασία της ακολουθίας πέτυχε μερικώς. Δείτε το αρχείο καταγραφής."
 
-#: src/core/processing.c:344
+#: src/core/processing.c:349
 msgid "Sequence processing succeeded."
 msgstr "Επιτυχής επεξεργασία της ακολουθίας."
 
-#: src/core/processing.c:345
+#: src/core/processing.c:350
 msgid "Sequence processing succeeded.\n"
 msgstr "Επιτυχής επεξεργασία της ακολουθίας.\n"
 
-#: src/core/processing.c:713
+#: src/core/processing.c:719
 msgid "Process aborted by user\n"
 msgstr "Η διαδικασία ακυρώθηκε από τον χρήστη\n"
 
@@ -16093,20 +16110,24 @@ msgstr "Η τιμή γεμίσματος πρέπει να βρίσκεται σ
 msgid "Another task is already in progress, ignoring new request.\n"
 msgstr "Μια άλλη λειτουργία είναι σε εξέλιξη, το νέο αίτημα αγνοείται.\n"
 
-#: src/core/siril_actions.c:345 src/gui/PSF_list.c:795
+#: src/core/siril_actions.c:132
+msgid "Cannot check for updates with this version, missing dependency\n"
+msgstr ""
+
+#: src/core/siril_actions.c:347 src/gui/PSF_list.c:803
 msgid "Current selection is too large"
 msgstr "Η τρέχουσα επιλογή είναι πολύ μεγάλη"
 
-#: src/core/siril_actions.c:346 src/gui/PSF_list.c:796
+#: src/core/siril_actions.c:348 src/gui/PSF_list.c:804
 msgid "To determine the PSF, please make a selection around a star."
 msgstr ""
 "Για να προσδιορίσετε τοPSF, παρακαλώ κάντε μια επιλογή γύρω από ένα αστέρι."
 
-#: src/core/siril_actions.c:438
+#: src/core/siril_actions.c:440
 msgid "Save your changes before loading a frame of the sequence."
 msgstr "Αποθηκεύστε τις αλλαγές σας πριν φορτώσετε ένα καρέ της ακολουθίας."
 
-#: src/core/siril_actions.c:439
+#: src/core/siril_actions.c:441
 msgid ""
 "The image currently displayed is the result of the previous stack. If you "
 "load an image from the sequence, you might lose the entire process you "
@@ -16118,15 +16139,15 @@ msgstr ""
 "χάσετε ολόκληρη τη διαδικασία που εκτελέσατε στην εικόνα, αλλά όχι την ίδια "
 "την εικόνα. Πρέπει να αποθηκεύσετε τα δεδομένα σας πριν το κάνετε αυτό."
 
-#: src/core/siril_actions.c:442
+#: src/core/siril_actions.c:444
 msgid "Load another image"
 msgstr "Φόρτωση άλλης εικόνας"
 
-#: src/core/siril_actions.c:642
+#: src/core/siril_actions.c:644
 msgid "RGB alignment (DFT)"
 msgstr "Ευθυγράμμιση RGB (DFT)"
 
-#: src/core/siril_actions.c:647
+#: src/core/siril_actions.c:649
 msgid "RGB alignment (PSF)"
 msgstr "Ευθυγράμμιση RGB (PSF)"
 
@@ -16292,14 +16313,14 @@ msgid "Filename is too long, not expanding it\n"
 msgstr "Το όνομα του αρχείου είναι πολύ μεγάλο, δεν γίνεται επέκταση του\n"
 
 #: src/core/utils.c:1189 src/io/image_format_fits.c:3167
-#: src/io/image_format_fits.c:3172 src/io/ser.c:1364
+#: src/io/image_format_fits.c:3172 src/io/ser.c:1365
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "pixel"
 msgstr[1] "pixels"
 
 #: src/core/utils.c:1190 src/io/image_format_fits.c:3168
-#: src/io/image_format_fits.c:3173 src/io/ser.c:1365
+#: src/io/image_format_fits.c:3173 src/io/ser.c:1366
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "κανάλι"
@@ -16365,11 +16386,11 @@ msgstr "Μετασχηματισμός Fourier: γίνεται επεξεργα�
 msgid "There is something wrong in your files\n"
 msgstr "Υπάρχει κάτι λάθος με τα αρχεία σας\n"
 
-#: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1287
+#: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1286
 msgid "Siril FFT wisdom updated successfully...\n"
 msgstr ""
 
-#: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1290
+#: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1289
 msgid "Siril FFT wisdom update failed...\n"
 msgstr ""
 
@@ -16381,8 +16402,8 @@ msgstr "Το FFT δεν λειτουργεί με ακολουθίες!/n\n"
 #: src/filters/fft.c:592 src/filters/fft.c:598 src/filters/fft.c:619
 #: src/gui/nina_light_curve.c:83 src/gui/nina_light_curve.c:120
 #: src/gui/open_dialog.c:382 src/gui/plot.c:829 src/gui/preferences.c:391
-#: src/gui/preferences.c:409 src/gui/preferences.c:447 src/gui/PSF_list.c:302
-#: src/gui/PSF_list.c:307 src/gui/PSF_list.c:312 src/gui/save_dialog.c:398
+#: src/gui/preferences.c:409 src/gui/preferences.c:447 src/gui/PSF_list.c:305
+#: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:398
 msgid "Error"
 msgstr "Σφάλμα"
 
@@ -16425,6 +16446,54 @@ msgstr ""
 #, c-format
 msgid "Applying MTF to channel %d with values %f, %f, %f\n"
 msgstr ""
+
+#: src/filters/nlbayes/call_nlbayes.cpp:119
+#, fuzzy
+msgid "NL-Bayes denoising..."
+msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
+
+#. Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
+#: src/filters/nlbayes/call_nlbayes.cpp:140
+msgid "Error: SOS is not converging. Try a smaller value of rho.\n"
+msgstr ""
+
+#: src/filters/nlbayes/call_nlbayes.cpp:145
+#, c-format
+msgid ""
+"NL-Bayes auto parametrisation: measured background noise level is %.3e\n"
+msgstr ""
+
+#: src/filters/nlbayes/call_nlbayes.cpp:148
+msgid "Applying Anscombe VST\n"
+msgstr ""
+
+#: src/filters/nlbayes/call_nlbayes.cpp:175
+msgid "Applying exact unbiased inverse Anscombe VST\n"
+msgstr ""
+
+#: src/filters/nlbayes/call_nlbayes.cpp:199
+#, fuzzy, c-format
+msgid "SOS iteration %d of %d complete\n"
+msgstr "Η εγγραφή ολοκληρώθηκε."
+
+#: src/filters/nlbayes/call_nlbayes.cpp:211
+#, fuzzy
+msgid "DA3D final-stage denoising...\n"
+msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
+
+#: src/filters/nlbayes/call_nlbayes.cpp:213
+msgid "OpenMP not available. The DA3D algorithm will run in a single thread.\n"
+msgstr ""
+
+#: src/filters/nlbayes/call_nlbayes.cpp:219
+msgid ""
+"Warning: input color image has monochromatic noise! Converting to monochrome."
+msgstr ""
+
+#: src/filters/nlbayes/call_nlbayes.cpp:234
+#, fuzzy, c-format
+msgid "NL-Bayes output: measured background noise level is %.3e\n"
+msgstr "Επιστροφή του επιπέδου θορύβου του υποβάθρου"
 
 #: src/filters/rgradient.c:69
 msgid "Rotational gradient: processing...\n"
@@ -16699,23 +16768,30 @@ msgstr ""
 msgid "StarNet: job completed.\n"
 msgstr "Η σώρευση ολοκληρώθηκε."
 
-#: src/filters/starnet.c:851
+#: src/filters/starnet.c:855
+msgid ""
+"Note: the StarNet sequence memory limit calculation is based on system RAM "
+"only. If you are using GPU TensorFlow libraries and have insufficient GPU "
+"memory, StarNet may still fail.\n"
+msgstr ""
+
+#: src/filters/starnet.c:862
 msgid ""
 "Warning: some images in the sequence were smaller than 512x512. Some "
 "versions of StarNet may fail to process these images.\n"
 msgstr ""
 
-#: src/filters/starnet.c:913
+#: src/filters/starnet.c:924
 #, fuzzy, c-format
 msgid "Starnet: Processing image %d\n"
 msgstr "Γίνεται προ-επεξεργασία της εικόνας %s"
 
-#: src/filters/starnet.c:968
+#: src/filters/starnet.c:979
 #, fuzzy
 msgid "StarNet"
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/filters/starnet.c:978
+#: src/filters/starnet.c:989
 #, fuzzy
 msgid "StarNet: Processing..."
 msgstr "Έναρξη προ-επεξεργασίας"
@@ -16836,46 +16912,46 @@ msgstr ""
 msgid "No object found\n"
 msgstr "Δεν υπάρχει προβολή"
 
-#: src/gui/astrometry_solver.c:521
+#: src/gui/astrometry_solver.c:522
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr ""
 "Δεν υπάρχουν διαθέσιμες συντεταγμένες με αυτό το όνομα, δοκιμάστε με άλλο "
 "όνομα\n"
 
-#: src/gui/astrometry_solver.c:522 src/gui/astrometry_solver.c:616
+#: src/gui/astrometry_solver.c:523 src/gui/astrometry_solver.c:617
 msgid "No coordinates"
 msgstr "Δεν υπάρχουν συντεταγμένες"
 
-#: src/gui/astrometry_solver.c:532
+#: src/gui/astrometry_solver.c:533
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr "Δεν υπάρχουν λέξεις κλειδιά αποθηκευμένα στην κεφαλίδα FITS.\n"
 
-#: src/gui/astrometry_solver.c:533
+#: src/gui/astrometry_solver.c:534
 msgid "No metadata"
 msgstr "Δεν υπάρχουν μετα-δεδομένα"
 
-#: src/gui/astrometry_solver.c:617
+#: src/gui/astrometry_solver.c:618
 msgid "Please enter object coordinates."
 msgstr "Παρακαλώ εισάγετε τις συντεταγμένες του αντικειμένου."
 
-#: src/gui/astrometry_solver.c:629
+#: src/gui/astrometry_solver.c:630
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:678
+#: src/gui/astrometry_solver.c:679
 msgid "No catalog"
 msgstr "Δεν υπάρχει κατάλογος"
 
-#: src/gui/astrometry_solver.c:678
+#: src/gui/astrometry_solver.c:679
 msgid "Cannot download the online star catalog."
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/gui/astrometry_solver.c:690
+#: src/gui/astrometry_solver.c:691
 msgid "Astrometric solution detected"
 msgstr "Εντοπίστηκε αστρομετρική λύση"
 
-#: src/gui/astrometry_solver.c:691
+#: src/gui/astrometry_solver.c:692
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
@@ -16883,7 +16959,7 @@ msgstr ""
 "Η αστρομετρική λύση που υπάρχει στην εικόνα θα διαγραφεί από τον γεωμετρικό "
 "μετασχηματισμό και η αναίρεση δεν θα είναι δυνατή."
 
-#: src/gui/astrometry_solver.c:693
+#: src/gui/astrometry_solver.c:694
 msgid "Process"
 msgstr "Επεξεργασία"
 
@@ -17736,7 +17812,7 @@ msgstr "Έγινε εφαρμογή Deconvolution"
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
-#: src/gui/newdeconv.c:1129 src/gui/newdeconv.c:1460
+#: src/gui/newdeconv.c:1129 src/gui/newdeconv.c:1495
 msgid ""
 "Error: trying to use previous PSF but no PSF has been generated. "
 "Aborting...\n"
@@ -17752,27 +17828,27 @@ msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 msgid "Starting non-blind deconvolution..."
 msgstr "Γίνεται εκκίνηση της σώρευσης...\n"
 
-#: src/gui/newdeconv.c:1225
+#: src/gui/newdeconv.c:1219
 #, fuzzy
 msgid "Wiener deconvolution..."
 msgstr "Γίνεται Deconvolution..."
 
-#: src/gui/newdeconv.c:1226
+#: src/gui/newdeconv.c:1220
 msgid "Richardson-Lucy halted early by the stopping criterion after iteration"
 msgstr ""
 
-#: src/gui/newdeconv.c:1227
+#: src/gui/newdeconv.c:1221
 #, fuzzy
 msgid "Richardson-Lucy deconvolution..."
 msgstr "Lucy-Richardson deconvolution: γίνεται επεξεργασία...\n"
 
-#: src/gui/newdeconv.c:1403
+#: src/gui/newdeconv.c:1402
 msgid ""
 "Image row order has changed since PSF was generated. The PSF orientation "
 "will be updated to match before applying to this image."
 msgstr ""
 
-#: src/gui/newdeconv.c:1455
+#: src/gui/newdeconv.c:1490
 #, fuzzy
 msgid "Deconvolution. Processing sequence..."
 msgstr "Lucy-Richardson deconvolution: γίνεται επεξεργασία...\n"
@@ -18116,19 +18192,19 @@ msgstr ""
 msgid "Clear the Log"
 msgstr "Καθαρισμός του αρχείου καταγραφής"
 
-#: src/gui/PSF_list.c:303
+#: src/gui/PSF_list.c:306
 msgid "Stars FWHM must have the same units."
 msgstr "Το FWHM των αστεριών πρέπει να έχει τις ίδιες μονάδες."
 
-#: src/gui/PSF_list.c:308
+#: src/gui/PSF_list.c:311
 msgid "Stars properties must all be computed on the same layer"
 msgstr ""
 
-#: src/gui/PSF_list.c:313
+#: src/gui/PSF_list.c:316
 msgid "Stars must all be modeled with the same profile type"
 msgstr ""
 
-#: src/gui/PSF_list.c:341
+#: src/gui/PSF_list.c:344
 #, fuzzy, c-format
 msgid ""
 "Average Gaussian PSF\n"
@@ -18153,7 +18229,7 @@ msgstr ""
 "Γωνία:\t%.2f μοίρες\n"
 "rmse:\t%.3e\n"
 
-#: src/gui/PSF_list.c:347
+#: src/gui/PSF_list.c:350
 #, fuzzy, c-format
 msgid ""
 "Average Moffat PSF\n"
@@ -18179,35 +18255,40 @@ msgstr ""
 "Γωνία:\t%.2f μοίρες\n"
 "rmse:\t%.3e\n"
 
-#: src/gui/PSF_list.c:353
+#: src/gui/PSF_list.c:356
 msgid "Average Star Data"
 msgstr "Μέσος Όρος Δεδομένων Αστεριών"
 
-#: src/gui/PSF_list.c:382
+#: src/gui/PSF_list.c:385
 #, c-format
 msgid "%d star"
 msgid_plural "%d stars"
 msgstr[0] "%d αστέρι"
 msgstr[1] "%d αστέρια"
 
-#: src/gui/PSF_list.c:388
+#: src/gui/PSF_list.c:391
 #, c-format
 msgid "Star %d of %d"
 msgstr "Αστέρι %d από %d"
 
-#: src/gui/PSF_list.c:517
+#: src/gui/PSF_list.c:520
 msgid "Star list file (*.lst)"
 msgstr "Αρχείο λίστας αστεριών (*.lst)"
 
-#: src/gui/PSF_list.c:814
+#: src/gui/PSF_list.c:607
+#, fuzzy
+msgid "Error: error writing the CSV.\n"
+msgstr "Σφάλμα κατά τη μετατροπή, άγνωστη έξοδος\n"
+
+#: src/gui/PSF_list.c:822
 msgid "PSF and quick photometry results"
 msgstr "PSF και αποτελέσματα γρήγορης φωτομετρίας"
 
-#: src/gui/PSF_list.c:903
+#: src/gui/PSF_list.c:911
 msgid "Nothing to export"
 msgstr "Δεν υπάρχει κάτι για εξαγωγή"
 
-#: src/gui/PSF_list.c:904
+#: src/gui/PSF_list.c:912
 msgid "There are no stars in the list."
 msgstr "Δεν υπάρχουν αστέρια στη λίστα."
 
@@ -18304,27 +18385,27 @@ msgstr "Αρχεία TIFF (*.tif, *.tiff)"
 msgid "Supported Image Files"
 msgstr "Υποστηριζόμενα αρχεία εικόνας"
 
-#: src/gui/save_dialog.c:232 src/gui/save_dialog.c:639
+#: src/gui/save_dialog.c:232
 msgid "Saving BMP"
 msgstr "Γίνεται αποθήκευση του ΒΜΡ"
 
-#: src/gui/save_dialog.c:236 src/gui/save_dialog.c:599
+#: src/gui/save_dialog.c:236
 msgid "Saving PNG"
 msgstr "Γίνεται αποθήκευση του PNG"
 
-#: src/gui/save_dialog.c:240 src/gui/save_dialog.c:619
+#: src/gui/save_dialog.c:240
 msgid "Saving Netpbm"
 msgstr "Γίνεται αποθήκευση του Netpbm"
 
-#: src/gui/save_dialog.c:244 src/gui/save_dialog.c:659
+#: src/gui/save_dialog.c:244
 msgid "Saving JPG"
 msgstr "Γίνεται αποθήκευση του JPG"
 
-#: src/gui/save_dialog.c:248 src/gui/save_dialog.c:577
+#: src/gui/save_dialog.c:248
 msgid "Saving TIFF"
 msgstr "Γίνεται αποθήκευση του TIFF"
 
-#: src/gui/save_dialog.c:255 src/gui/save_dialog.c:553
+#: src/gui/save_dialog.c:255
 msgid "Saving FITS"
 msgstr "Γίνεται αποθήκευση του FITS"
 
@@ -18334,11 +18415,11 @@ msgstr ""
 "Δεν ήταν δυνατή η αποθήκευση του αρχείου: Δείτε τα αρχεία καταγραφής για "
 "περισσότερες πληροφορίες."
 
-#: src/gui/save_dialog.c:415
+#: src/gui/save_dialog.c:417
 msgid "Viewer mode is not linear"
 msgstr "Η λειτουργία προβολής δεν είναι γραμμική"
 
-#: src/gui/save_dialog.c:416
+#: src/gui/save_dialog.c:418
 msgid ""
 "You are saving an image that is displayed in a non linear mode. What you see "
 "is not what you will get. Switch the viewer mode to linear to save what you "
@@ -18348,20 +18429,20 @@ msgstr ""
 "βλέπετε δεν είναι αυτό που θα πάρετε. Αλλάξτε τη λειτουργία προβολής σε "
 "γραμμική για να αποθηκεύσετε αυτό που βλέπετε."
 
-#: src/gui/save_dialog.c:417
+#: src/gui/save_dialog.c:419
 msgid "Save Anyway"
 msgstr "Αποθήκευση ούτως ή άλλως"
 
-#: src/gui/save_dialog.c:742
+#: src/gui/save_dialog.c:621
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
 msgstr "Το στιγμιότυπο <b>%s</b> αποθηκεύτηκε στον κατάλογο εργασίας."
 
-#: src/gui/save_dialog.c:744
+#: src/gui/save_dialog.c:623
 msgid "Snapshot was saved into the clipboard."
 msgstr "Το στιγμιότυπο αποθηκεύτηκε στο clipboard."
 
-#: src/gui/save_dialog.c:760
+#: src/gui/save_dialog.c:639
 #, c-format
 msgid "Cannot take snapshot: %s\n"
 msgstr "Δεν είναι δυνατή η λήψη στιγμιότυπου: %s\n"
@@ -18874,26 +18955,26 @@ msgstr ""
 msgid "Error opening %s: file type not supported.\n"
 msgstr "Σφάλμα στο άνοιγμα του %s: ο τύπος του αρχείου δεν υποστηρίζεται .\n"
 
-#: src/io/conversion.c:586
+#: src/io/conversion.c:587
 msgid "disabling incompatible multiple output option in conversion\n"
 msgstr ""
 "απενεργοποίηση μη συμβατής επιλογής πολλαπλής εξόδου κατά τη μετατροπή\n"
 
-#: src/io/conversion.c:594
+#: src/io/conversion.c:595
 msgid "Converting files"
 msgstr "Γίνεται μετατροπή αρχείων"
 
-#: src/io/conversion.c:649
+#: src/io/conversion.c:650
 msgid "Failed to queue image conversion task, aborting"
 msgstr ""
 "Απέτυχε η τοποθέτηση σε ουρά εργασίας μετατροπής εικόνας, γίνεται ματαίωση"
 
-#: src/io/conversion.c:675
+#: src/io/conversion.c:676
 #, c-format
 msgid "Conversion ended with error, %d/%d input files converted\n"
 msgstr "Η μετατροπή τελείωσε με σφάλμα, %d/%d αρχεία εσόδου μετατράπηκαν\n"
 
-#: src/io/conversion.c:678 src/io/conversion.c:688
+#: src/io/conversion.c:679 src/io/conversion.c:689
 #, c-format
 msgid ""
 "Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) "
@@ -18902,7 +18983,7 @@ msgstr ""
 "Η μετατροπή πέτυχε, %d αρχείο(α) δημιουργήθηκε(καν) για %d αρχείο(α) εισόδου "
 "(%d εικόνα(ες) μετατράπηκε(καν), %d απέτυχαν)\n"
 
-#: src/io/conversion.c:679
+#: src/io/conversion.c:680
 #, c-format
 msgid ""
 "Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) "
@@ -18911,26 +18992,26 @@ msgstr ""
 "Η μετατροπή ματαιώθηκε, %d αρχείο(α) δημιουργήθηκε(αν) για %d αρχείο(α) "
 "εισόδου (%d εικόνα(ες) μετατράπηκε(αν) , %d απέτυχαν)\n"
 
-#: src/io/conversion.c:684
+#: src/io/conversion.c:685
 #, fuzzy, c-format
 msgid "Conversion ended with error, %d output files created\n"
 msgstr "Η μετατροπή τελείωσε με σφάλμα, %d/%d αρχεία εσόδου μετατράπηκαν\n"
 
-#: src/io/conversion.c:690
+#: src/io/conversion.c:691
 #, fuzzy, c-format
 msgid "Conversion succeeded, %d file(s) created for %d input file(s)\n"
 msgstr ""
 "Η μετατροπή πέτυχε, %d αρχείο(α) δημιουργήθηκε(καν) για %d αρχείο(α) εισόδου "
 "(%d εικόνα(ες) μετατράπηκε(καν), %d απέτυχαν)\n"
 
-#: src/io/conversion.c:692
+#: src/io/conversion.c:693
 #, fuzzy, c-format
 msgid "Conversion aborted, %d file(s) created for %d input file(s)\n"
 msgstr ""
 "Η μετατροπή ματαιώθηκε, %d αρχείο(α) δημιουργήθηκε(αν) για %d αρχείο(α) "
 "εισόδου (%d εικόνα(ες) μετατράπηκε(αν) , %d απέτυχαν)\n"
 
-#: src/io/conversion.c:834
+#: src/io/conversion.c:835
 #, c-format
 msgid ""
 "Ignoring an image file '%s' in the inputs as multiple outputs is enabled\n"
@@ -18938,19 +19019,19 @@ msgstr ""
 "Παράβλεψη ενός αρχείου εικόνας '%s' στις εισόδους, καθώς είναι "
 "ενεργοποιημένες οι πολλαπλές έξοδοι\n"
 
-#: src/io/conversion.c:845
+#: src/io/conversion.c:846
 #, c-format
 msgid "Skipping input file %s (failed to be opened)\n"
 msgstr "Παράλειψη %s αρχείου εισόδου (απέτυχε το άνοιγμά του)\n"
 
-#: src/io/conversion.c:857
+#: src/io/conversion.c:858
 #, c-format
 msgid "File %s was not recognised as readable by Siril, skipping\n"
 msgstr ""
 "Το αρχείο %s δεν αναγνωρίστηκε ως αναγνώσιμο από το Siril, γίνεται "
 "παράλειψη\n"
 
-#: src/io/conversion.c:877 src/io/conversion.c:1238
+#: src/io/conversion.c:878 src/io/conversion.c:1239
 #, c-format
 msgid ""
 "Converting 32 bits images (from %s) to 16 bits is not supported, ignoring "
@@ -18959,56 +19040,56 @@ msgstr ""
 "Η μετατροπή εικόνων 32 bit (από %s) σε 16 bit δεν υποστηρίζεται, το αρχείο "
 "αγνοείται.\n"
 
-#: src/io/conversion.c:1064 src/io/conversion.c:1134
+#: src/io/conversion.c:1065 src/io/conversion.c:1135
 #, c-format
 msgid "Creating the SER file `%s' failed, aborting.\n"
 msgstr "Η δημιουργία του αρχείου SER '%s' απέτυχε, γίνεται ματαίωση.\n"
 
-#: src/io/conversion.c:1085 src/io/conversion.c:1148
+#: src/io/conversion.c:1086 src/io/conversion.c:1149
 #, c-format
 msgid "Creating the FITS sequence file `%s' failed, aborting.\n"
 msgstr ""
 "Η δημιουργία του αρχείου ακολουθίας FITS '%s' απέτυχε, γίνεται ματαίωση.\n"
 
-#: src/io/conversion.c:1181 src/io/conversion.c:1206 src/io/conversion.c:1227
+#: src/io/conversion.c:1182 src/io/conversion.c:1207 src/io/conversion.c:1228
 #, c-format
 msgid "Reading %s\n"
 msgstr "Γίνεται ανάγνωση %s\n"
 
-#: src/io/conversion.c:1183
+#: src/io/conversion.c:1184
 #, c-format
 msgid "Error while opening film %s, aborting.\n"
 msgstr "Σφάλμα κατά το άνοιγμα της ταινίας %s, γίνεται ακύρωση.\n"
 
-#: src/io/conversion.c:1208
+#: src/io/conversion.c:1209
 #, c-format
 msgid "Error while opening ser file %s, aborting.\n"
 msgstr "Σφάλμα κατά το άνοιγμα του αρχείου ser %s, γίνεται ακύρωση.\n"
 
-#: src/io/conversion.c:1229
+#: src/io/conversion.c:1230
 #, c-format
 msgid "Error while opening ser file %s, ignoring file.\n"
 msgstr ""
 "Παρουσιάστηκε σφάλμα κατά το άνοιγμα του αρχείου ser %s, παράβλεψη του "
 "αρχείου.\n"
 
-#: src/io/conversion.c:1267
+#: src/io/conversion.c:1268
 msgid "output sequence type unknown, aborting\n"
 msgstr "άγνωστος τύπος ακολουθίας εξόδου, γίνεται ματαίωση\n"
 
-#: src/io/conversion.c:1282
+#: src/io/conversion.c:1283
 msgid "Error while converting to SER (no space left?)\n"
 msgstr "Σφάλμα κατά την μετατροπή σε SER (δεν υπάρχει χώρος;)\n"
 
-#: src/io/conversion.c:1289
+#: src/io/conversion.c:1290
 msgid "Error while converting to FITSEQ (no space left?)\n"
 msgstr "Σφάλμα κατά τη μετατροπή σε FITSEQ (δεν έχει απομείνει χώρος;)\n"
 
-#: src/io/conversion.c:1296
+#: src/io/conversion.c:1297
 msgid "Error while converting to FITS (no space left?)\n"
 msgstr "Σφάλμα κατά την μετατροπή σε FITS (δεν υπάρχει χώρος;)\n"
 
-#: src/io/conversion.c:1307
+#: src/io/conversion.c:1308
 msgid "Error while converting, unknown output\n"
 msgstr "Σφάλμα κατά τη μετατροπή, άγνωστη έξοδος\n"
 
@@ -19069,7 +19150,7 @@ msgstr ""
 "Δεν είναι δυνατή η αποθήκευση της εικόνας σε μια ακολουθία που δεν ανοίχθηκε "
 "για γράψιμο\n"
 
-#: src/io/fits_sequence.c:400
+#: src/io/fits_sequence.c:401
 #, c-format
 msgid "Removing failed FITS sequence file: %s\n"
 msgstr "Γίνεται αφαίρεση του αποτυχημένου αρχείου της ακολουθίας FITS: %s\n"
@@ -19476,14 +19557,14 @@ msgstr ""
 "Η επιλογή της κυρίως κεφαλίδας απέτυχε, είναι το αρχείο FITS '%s' "
 "αλλοιωμένο;\n"
 
-#: src/io/image_format_fits.c:3169 src/io/ser.c:1366
+#: src/io/image_format_fits.c:3169 src/io/ser.c:1367
 msgid "frame"
 msgid_plural "frames"
 msgstr[0] "καρέ"
 msgstr[1] "καρέ"
 
 #: src/io/image_format_fits.c:3169 src/io/image_format_fits.c:3174
-#: src/io/ser.c:1366
+#: src/io/ser.c:1367
 msgid "(Monochrome Preview)"
 msgstr "(Μονόχρωμη προεπισκόπηση)"
 
@@ -20068,12 +20149,12 @@ msgstr "Γίνεται αφαίρεση του αποτυχημένου αρχε
 msgid "The SER sequence is being created with no image in it.\n"
 msgstr "Η ακολουθία SER δημιουργείται χωρίς εικόνα σε αυτή.\n"
 
-#: src/io/ser.c:632
+#: src/io/ser.c:633
 #, c-format
 msgid "Created SER file %s\n"
 msgstr "Το αρχείο SER δημιουργήθηκε %s\n"
 
-#: src/io/ser.c:802
+#: src/io/ser.c:803
 msgid ""
 "Forcing SER frame as CFA instead of monochrome, because Bayer information "
 "from file has been overridden in preferences\n"
@@ -20081,23 +20162,23 @@ msgstr ""
 "Γίνετε εξαναγκασμός καρέ SER ως CFA αντί για μονόχρωμο, επειδή οι "
 "πληροφορίες Bayer από το αρχείο έχουν παρακαμφθεί στις προτιμήσεις\n"
 
-#: src/io/ser.c:803
+#: src/io/ser.c:804
 #, c-format
 msgid "Forcing SER Bayer pattern to %s as configured in the preferences\n"
 msgstr ""
 "Αναγκάζοντας το μοτίβο SER Bayer να %s όπως έχει ρυθμιστεί στις προτιμήσεις\n"
 
-#: src/io/ser.c:888 src/io/ser.c:1137
+#: src/io/ser.c:889 src/io/ser.c:1138
 msgid "This type of Bayer pattern is not handled yet.\n"
 msgstr "Αυτή η διάταξη Bayer δεν υποστηρίζεται ακόμα.\n"
 
-#: src/io/ser.c:1085
+#: src/io/ser.c:1086
 msgid "For a demosaiced image, layer has to be R, G or B (0 to 2).\n"
 msgstr ""
 "Για μια εικόνα που έχει γίνει demosaic, το επίπεδο πρέπει να είναι R, G ή B "
 "(0 έως 2).\n"
 
-#: src/io/ser.c:1184
+#: src/io/ser.c:1185
 msgid "Trying to add an image of different size in a SER\n"
 msgstr ""
 "Γίνεται προσπάθεια προσθήκης μιας εικόνας διαφορετικού μεγέθους σε ένα SER\n"
@@ -20167,16 +20248,16 @@ msgid ""
 "%d %s of cumulative exposure"
 msgstr ""
 
-#: src/livestacking/gui.c:136
+#: src/livestacking/gui.c:137
 msgid "Paused ..."
 msgstr ""
 
-#: src/livestacking/gui.c:255
+#: src/livestacking/gui.c:256
 msgid ""
 "COSMETIC CORRECTION: can only use masterdark in livestacking mode - disabling"
 msgstr ""
 
-#: src/livestacking/gui.c:262
+#: src/livestacking/gui.c:263
 msgid "COSMETIC CORRECTION: could not read the inputs - disabling"
 msgstr ""
 
@@ -21620,6 +21701,11 @@ msgstr "H σώρευση Διαμέσου ολοκληρώθηκε."
 #, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "H σώρευση Διαμέσου ολοκληρώθηκε. %d εικόνες έχουν σωρευτεί.\n"
+
+#: src/stacking/normalization.c:45
+#, fuzzy
+msgid "Normalization computation time"
+msgstr "Η ομαλοποίηση απέτυχε."
 
 #: src/stacking/normalization.c:151
 #, c-format
@@ -23189,9 +23275,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Εξισώνει το ιστόγραμμα μιας εικόνας χρησιμοποιώντας Προσαρμοστκή Εξίσωση "
 #~ "Ιστογράμματος με χρηση Περιορισμού-Αντίθεσης"
-
-#~ msgid "Returns the background noise level"
-#~ msgstr "Επιστροφή του επιπέδου θορύβου του υποβάθρου"
 
 #~ msgid ""
 #~ "Convert DSLR RAW files into Siril's FITS images. The argument "

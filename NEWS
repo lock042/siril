@@ -40,6 +40,7 @@ siril 1.2.0-rc1
 * Fixed console logs output on Windows when messages contained widechars
 * Fixed networking detection at build-time and made it and exiv2 optional
 * Fixed bug in NetPBM file import
+* Fixed pause button in livestacking
 
 v1.2.0-beta2 March 12, 2023
 

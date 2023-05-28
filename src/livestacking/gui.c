@@ -130,9 +130,10 @@ void on_livestacking_playpause_clicked(GtkToolButton *button, gpointer user_data
 	GtkWidget *label = lookup_widget("livest_label1");
 	widget_set_class(label, "record", "");
 	gtk_tool_button_set_icon_name(button, pause_play_button[get_paused_status()]);
-	if (!livestacking_is_started())
+	if (!livestacking_is_started()) {
+		if (get_paused_status()) pause_live_stacking_engine();
 		on_livestacking_start();
-	else {
+	} else {
 		gtk_label_set_text(GTK_LABEL(label), _("Paused ..."));
 		pause_live_stacking_engine();
 	}
