@@ -1213,6 +1213,9 @@ void summarize_floatbuf(const fits *fit, float* input, const int nbuckets, float
 			output[j] += input[i];
 		}
 	}
+	for (int i = 0 ; i < nbuckets ; i++) {
+		printf("%f\n", output[i]);
+	}
 	free(cumulative);
 }
 

@@ -4,7 +4,6 @@
 #include <config.h>
 #endif
 
-#include <stdlib.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>
@@ -35,15 +34,6 @@
 #endif
 
 #define GLADE_FILE "siril3.glade"
-
-// Ensure malloced memory is aligned to 32 byte boundaries.
-// This should never be harmful, but may aid in optimizing vectorizable
-// functions (up to 256-bit vectors) on large slabs of allocated memory
-// such as fdata
-
-// Experimental for the time being
-
-#define malloc(x) aligned_alloc(32, x)
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
 #define siril_debug_print(fmt, ...) \

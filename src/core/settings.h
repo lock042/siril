@@ -1,8 +1,18 @@
 #ifndef _SIRIL_SETTING_H
 #define _SIRIL_SETTING_H
 
+#include <stdlib.h>
 #include <glib.h>
 #include <lcms2.h>
+
+// Ensure malloced memory is aligned to 32 byte boundaries.
+// This should never be harmful, but may aid in optimizing vectorizable
+// functions (up to 256-bit vectors) on large slabs of allocated memory
+// such as fdata
+
+// Experimental for the time being
+
+#define malloc(x) aligned_alloc(32, x)
 
 /********************* S E T T I N G S *********************
  * Settings are variables used at runtime but kept across several lunches of
