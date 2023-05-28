@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-05-28 02:00+0000\n"
+"PO-Revision-Date: 2023-05-29 12:35+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -2215,11 +2215,11 @@ msgstr "Преобразование Фурье"
 
 #: src/gui/siril3.glade:9231
 msgid "Name of the magnitude file: "
-msgstr "Файл с величиной: "
+msgstr "Файл амплитуды: "
 
 #: src/gui/siril3.glade:9243
 msgid "Name of the phase file: "
-msgstr "Название файла фазы: "
+msgstr "Файл фазы: "
 
 #: src/gui/siril3.glade:9255
 msgid "Order: "
@@ -6510,15 +6510,15 @@ msgstr "Без нормализации"
 
 #: src/gui/siril3.glade:24093
 msgid "Additive"
-msgstr "Аддитивная"
+msgstr "Аддитивный"
 
 #: src/gui/siril3.glade:24095
 msgid "Additive with scaling"
-msgstr "Аддитивная с масштабированием"
+msgstr "Аддитивный с масштабированием"
 
 #: src/gui/siril3.glade:24096
 msgid "Multiplicative with scaling"
-msgstr "Мультипликативная с масштабированием"
+msgstr "Мультипликативный с масштабированием"
 
 #: src/gui/siril3.glade:24108
 msgid "Recompute"
@@ -6531,7 +6531,7 @@ msgid ""
 "stacking."
 msgstr ""
 "По умолчанию Siril использует коэффициенты нормализации из файла *.seq, если "
-"они уже рассчитаны. Однако, они могут быть принудительно пересчитаны перед "
+"они уже рассчитаны. Однако они могут быть принудительно пересчитаны перед "
 "укладкой."
 
 #: src/gui/siril3.glade:24125
@@ -6557,7 +6557,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:24148
 msgid "Normalisation:"
-msgstr "Нормализация:"
+msgstr "Способ нормализации:"
 
 #: src/gui/siril3.glade:24239 src/stacking/stacking.c:835
 msgid "Sigma low: "
@@ -6739,7 +6739,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:24386
 msgid "Merge L+H"
-msgstr "Слить L+H"
+msgstr "Объединить L+H"
 
 #: src/gui/siril3.glade:24391
 msgid ""
@@ -9041,7 +9041,7 @@ msgstr "Команда работает только на изображения
 #: src/algos/astrometry_solver.c:463
 #, c-format
 msgid "Solar System Objects search on observation date %s\n"
-msgstr "Поиск объекта Солнечной системы на дату %s\n"
+msgstr "Поиск объектов Солнечной системы на дату %s\n"
 
 #: src/algos/astrometry_solver.c:468 src/algos/astrometry_solver.c:575
 #, c-format
@@ -11446,7 +11446,7 @@ msgstr ""
 
 #: src/core/command.c:4366
 msgid "Sigma value is incorrect\n"
-msgstr "Значение σ некорректно\n"
+msgstr "Неверное значение σ\n"
 
 #: src/core/command.c:4382
 msgid "Number of layers MUST be 1 or 3\n"
@@ -12773,7 +12773,7 @@ msgid ""
 "b> and <b>phase</b> given in argument are saved in FITS files"
 msgstr ""
 "Применяет быстрое преобразование Фурье к изображению, загруженному в память. "
-"Величина (<b>modulus</b>) и фаза (<b>phase</b>), указываемые в аргументе, "
+"Амплитуда (<b>modulus</b>) и фаза (<b>phase</b>), указываемые в аргументе, "
 "сохраняются в файлах FITS"
 
 #: src/core/command_def.h:46
@@ -15936,7 +15936,7 @@ msgstr "Сначала откройте изображение!\n"
 
 #: src/filters/fft.c:618
 msgid "Select magnitude and phase before !\n"
-msgstr "Сначала выберите величину и фазу!\n"
+msgstr "Сначала выберите амплитуду и фазу!\n"
 
 #: src/filters/ght.c:390 src/filters/ght.c:450
 msgid "Error: no channels selected. Doing nothing.\n"
@@ -15999,9 +15999,8 @@ msgid "SOS iteration %d of %d complete\n"
 msgstr "Регистрация завершена."
 
 #: src/filters/nlbayes/call_nlbayes.cpp:211
-#, fuzzy
 msgid "DA3D final-stage denoising...\n"
-msgstr "Будет выполнен заключительный шаг шумоподавления DA3D.\n"
+msgstr "Заключительный шаг шумоподавления DA3D...\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:213
 msgid "OpenMP not available. The DA3D algorithm will run in a single thread.\n"
@@ -20168,13 +20167,12 @@ msgid "Incompatible parameters"
 msgstr "Несовместимые параметры"
 
 #: src/pixelMath/pixel_math_runner.c:917
-#, fuzzy
 msgid ""
 "3 channel images are incompatible with the \"Use single RGB/K expression\" "
 "unchecked."
 msgstr ""
-"Трёхканальные изображения несовместимы с опцией \"Использовать одно "
-"выражение RGB/K\", отмена."
+"Трёхканальные изображения несовместимы с отключённой опцией \"Использовать "
+"одно выражение RGB/K\"."
 
 #: src/pixelMath/pixel_math_runner.c:924
 msgid "No images loaded"
