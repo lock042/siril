@@ -521,6 +521,16 @@ free_and_reset_progress_bar:
 	switch (args->output) {
 		case EXPORT_FITSEQ:
 			if (fitseq_file) {
+				if (com.icc.available) {
+					// If there is no ICC profile, assign a linear one
+					if (!fitseq_file->icc_profile) {
+						assign_linear_icc_profile_to_fitseq(fitseq_file);
+					}
+					// Write the ICC profile into the FITSEQ file
+					if (fitseq_file->icc_profile) {
+						write_icc_profile_to_fptr(fitseq_file->fptr, &fitseq_file->icc_profile);
+					}
+				}
 				fitseq_close_file(fitseq_file);
 				free(fitseq_file);
 			}

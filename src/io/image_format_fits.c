@@ -1779,22 +1779,22 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	return 0;
 }
 
-int write_icc_profile_to_fits(fits *fit) {
+int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE* icc_profile) {
 	int status = 0;     // CFITSIO status variable
 	cmsUInt32Number profile_length;
 	cmsUInt8Number *profile = NULL;
-	status = cmsSaveProfileToMem(fit->icc_profile, NULL, &profile_length);
+	status = cmsSaveProfileToMem(*icc_profile, NULL, &profile_length);
 	if (profile_length > 0) {
 		profile = malloc(profile_length * sizeof(cmsUInt8Number));
-		cmsBool ret = cmsSaveProfileToMem(fit->icc_profile, (void*) profile, &profile_length);
+		cmsBool ret = cmsSaveProfileToMem(*icc_profile, (void*) profile, &profile_length);
 		status = !ret;
 	}
 
 	// Move to the last HDU
 	int nhdus;
-	fits_get_num_hdus(fit->fptr, &nhdus, &status);
+	fits_get_num_hdus(fptr, &nhdus, &status);
 
-	if (fits_movabs_hdu(fit->fptr, nhdus, NULL, &status)) {
+	if (nhdus && fits_movabs_hdu(fptr, nhdus, NULL, &status)) {
 		fits_report_error(stderr, status);
 		goto ERROR_MESSAGE_AND_RETURN;
 	}
@@ -1802,26 +1802,26 @@ int write_icc_profile_to_fits(fits *fit) {
 	// Create the image extension
 	long naxis = 1, naxes = profile_length;  // Image dimensions
 	long fpixel = 1;       // First pixel to write
-	if (fits_create_img(fit->fptr, BYTE_IMG, naxis, &naxes, &status)) {
+	if (fits_create_img(fptr, BYTE_IMG, naxis, &naxes, &status)) {
 		fits_report_error(stderr, status);
 		goto ERROR_MESSAGE_AND_RETURN;
 	}
 	int bitpix = 8, pcount = 0, gcount = 1;
 	// Populate the header with the field values
-	status = (fits_update_key(fit->fptr, TSTRING, "XTENSION", "IMAGE", NULL, &status));
-	if (!status) status = (fits_update_key(fit->fptr, TINT, "BITPIX", &bitpix, NULL, &status));
-	if (!status) status = (fits_update_key(fit->fptr, TINT, "NAXIS", &naxis, NULL, &status));
-	if (!status) status = (fits_update_key(fit->fptr, TINT, "NAXIS1", &profile_length, NULL, &status));
-	if (!status) status = (fits_update_key(fit->fptr, TINT, "PCOUNT", &pcount, NULL, &status));
-	if (!status) status = (fits_update_key(fit->fptr, TINT, "GCOUNT", &gcount, NULL, &status));
-	if (!status) status = (fits_update_key(fit->fptr, TSTRING, "EXTNAME", "ICCProfile", NULL, &status));
+	status = (fits_update_key(fptr, TSTRING, "XTENSION", "IMAGE", NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "BITPIX", &bitpix, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "NAXIS", &naxis, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "NAXIS1", &profile_length, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "PCOUNT", &pcount, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "GCOUNT", &gcount, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TSTRING, "EXTNAME", "ICCProfile", NULL, &status));
 	if (status) {
 		fits_report_error(stderr, status);
 		goto ERROR_MESSAGE_AND_RETURN;
 	}
 
 	// Write the ICC profile data to the image extension
-	if (fits_write_img(fit->fptr, TBYTE, fpixel, profile_length, profile, &status)) {
+	if (fits_write_img(fptr, TBYTE, fpixel, profile_length, profile, &status)) {
 		fits_report_error(stderr, status);
 		goto ERROR_MESSAGE_AND_RETURN;
 	}
@@ -1837,15 +1837,20 @@ ERROR_MESSAGE_AND_RETURN:
 	return status;
 }
 
+int write_icc_profile_to_fits(fits *fit) {
+	int retval = write_icc_profile_to_fptr(fit->fptr, &fit->icc_profile);
+	return retval;
+}
+
 /* Look for a HDU containing an ICC profile; if one is found, open it */
-int read_icc_profile_from_fits(fits *fit) {
+int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE* icc_profile) {
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype;
-	fits_get_num_hdus(fit->fptr, &nhdus, &status);
+	fits_get_num_hdus(fptr, &nhdus, &status);
 	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
-		fits_movabs_hdu(fit->fptr,ihdu, &hdutype, &status);
-		fits_read_key(fit->fptr, TSTRING, "EXTNAME", &extname, comment, &status);
+		fits_movabs_hdu(fptr,ihdu, &hdutype, &status);
+		fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status);
 		if (status) {
 			status = 0;
 			continue; /* next HDU */
@@ -1866,15 +1871,15 @@ int read_icc_profile_from_fits(fits *fit) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-	status = copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength);
+	status = copy_header_from_hdu(fptr, &header, &strsize, &strlength);
 	if (status) {
 		free(header);
 		return 1;
 	}
 	// Get the ICC Profile length
 	uint32_t profile_length, bitpix;
-	fits_read_key(fit->fptr, TUINT, "NAXIS1", &profile_length, comment, &status);
-	fits_read_key(fit->fptr, TUINT, "BITPIX", &bitpix, comment, &status);
+	fits_read_key(fptr, TUINT, "NAXIS1", &profile_length, comment, &status);
+	fits_read_key(fptr, TUINT, "BITPIX", &bitpix, comment, &status);
 	if (bitpix != 8 || status != 0) {
 		free(header);
 		return 1;
@@ -1885,18 +1890,23 @@ int read_icc_profile_from_fits(fits *fit) {
 		PRINT_ALLOC_ERR;
 		free(header);
 	}
-	fits_read_img(fit->fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
+	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
 		free(profile);
 		free(header);
 		return 1;
 	}
-	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
-	if (fit->icc_profile)
+	*icc_profile = cmsOpenProfileFromMem(profile, profile_length);
+	if (*icc_profile)
 		siril_log_message("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
 	return 0;
+}
+
+int read_icc_profile_from_fits(fits *fit) {
+	int retval = read_icc_profile_from_fptr(fit->fptr, &fit->icc_profile);
+	return retval;
 }
 
 /* from bitpix, depending on BZERO, bitpix and orig_bitpix are set.

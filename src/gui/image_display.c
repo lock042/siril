@@ -274,7 +274,7 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	int target_index = gui.rendering_mode == STF_DISPLAY && !gui.unlink_channels ? 0 :vport;
+	int target_index = gui.rendering_mode == STF_DISPLAY && !gui.unlink_channels ? vport : 0;
 
 	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
 	if (hd_mode) {
@@ -397,6 +397,7 @@ static void remap(int vport) {
 
 	test_and_allocate_reference_image(vport);
 }
+
 static void remap_all_vports() {
 	static GtkApplicationWindow *app_win = NULL;
 	if (app_win == NULL) {
@@ -605,7 +606,7 @@ static int make_index_for_current_display(int vport) {
 
 	/************* Building the remap_index **************/
 	siril_debug_print("Rebuilding gui.remap_index\n");
-	int target_index = gui.rendering_mode == STF_DISPLAY && !gui.unlink_channels ? 0 : vport;
+	int target_index = gui.rendering_mode == STF_DISPLAY && !gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[target_index];
 
 	for (i = 0; i <= USHRT_MAX; i++) {

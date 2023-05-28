@@ -3,6 +3,7 @@
 
 #include <fitsio.h>
 #include <glib.h>
+#include <lcms2.h>
 #include "core/siril.h"
 #include "io/seqwriter.h"
 
@@ -19,6 +20,8 @@ struct fits_sequence {
 	gboolean is_mt_capable;	// cfitsio has the option to use multi-threading
 	fitsfile **thread_fptr;	// cfitsio file descriptor for each thread read only
 	guint num_threads;	// size of thread_fptr
+	cmsHPROFILE icc_profile;	// ICC profile for the sequence
+								// all FITS must have the same profile
 
 	struct seqwriter_data *writer;
 };
@@ -27,6 +30,7 @@ typedef struct fits_sequence fitseq;
 
 void fitseq_init_struct(fitseq *fitseq);
 int fitseq_is_fitseq(const char *filename, int *frames);
+void assign_linear_icc_profile_to_fitseq(fitseq *fitseq);
 
 int fitseq_open(const char *filename, fitseq *fitseq);
 int fitseq_read_frame(fitseq *fitseq, int index, fits *dest, gboolean force_float, int thread);

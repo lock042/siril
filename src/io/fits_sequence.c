@@ -25,7 +25,7 @@
  */
 
 #include "core/siril.h"
-
+#include "core/icc_profile.h"
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "core/siril_log.h"
@@ -35,6 +35,13 @@
 static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index);
 static int fitseq_prepare_for_multiple_read(fitseq *fitseq);
 static int fitseq_multiple_close(fitseq *fitseq);
+
+void assign_linear_icc_profile_to_fitseq(fitseq *fitseq) {
+	if (fitseq->icc_profile) {
+		cmsCloseProfile(fitseq->icc_profile);
+	}
+	fitseq->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.srgb_linear);
+}
 
 static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	int status = 0;
@@ -64,6 +71,15 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 
 		if (type != IMAGE_HDU) continue;
 
+		// Skip image HDUs named as ICC profiles or thumbnails
+		char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+		int status2 = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status2);
+		if (g_str_has_prefix(extname, "ICCProfile")
+			|| g_str_has_prefix(extname, "Thumbnail")) {
+			continue; /* next HDU */
+		}
+
 		long naxes[3];
 		int naxis;
 		int bitpix;
@@ -81,6 +97,10 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
 				if (naxes[2] != ref_naxes[2]) {
+					char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+					fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status);
+					if (!g_str_has_prefix(extname, "ICCProfile"))
+						continue;
 					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
 					status = 1;
 					break;
@@ -118,7 +138,6 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	return status;
 }
 
-
 // test if a file is a multi-extension FITS, a.k.a FITS cube or FITS sequence
 int fitseq_is_fitseq(const char *filename, int *frames) {
 	fitsfile *fptr;
@@ -147,6 +166,7 @@ void fitseq_init_struct(fitseq *fitseq) {
 	fitseq->thread_fptr = NULL;
 	fitseq->num_threads = 0;
 	fitseq->writer = NULL;
+	fitseq->icc_profile = NULL;
 }
 
 int fitseq_open(const char *filename, fitseq *fitseq) {
@@ -166,6 +186,15 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 	if (_find_hdus(fitseq->fptr, &fitseq->hdu_index, &fitseq->frame_count) || fitseq->frame_count <= 1) {
 		siril_log_color_message(_("Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"), "red", filename);
 		return -1;
+	}
+
+	if (com.icc.available) {
+		// Attempt to read an embedded ICC profile, if one is present
+		if (!read_icc_profile_from_fptr(fitseq->fptr, &fitseq->icc_profile)) {
+			if (fitseq->icc_profile) {
+				siril_log_message(_("ICC profile read from FITS cube\n"));
+			}
+		}
 	}
 
 	if (fits_movabs_hdu(fitseq->fptr, fitseq->hdu_index[0], NULL, &status)) {
@@ -241,6 +270,15 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	if (read_fits_with_convert(dest, fitseq->filename, force_float)) {
 		return -1;
 	}
+	// Attempt to add the FITSEQ ICC profile if one exists, otherwise
+	// assign a linear profile.
+	if (com.icc.available && !status) {
+		if (fitseq->icc_profile) {
+			read_icc_profile_from_fptr(fptr, &dest->icc_profile);
+		} else {
+			assign_linear_icc_profile(dest);
+		}
+	}
 
 	return 0;
 }
@@ -282,6 +320,16 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
+	// Attempt to add the FITSEQ ICC profile if one exists, otherwise
+	// assign a linear profile.
+	if (com.icc.available && !status) {
+		if (fitseq->icc_profile) {
+			read_icc_profile_from_fptr(fptr, &dest->icc_profile);
+		} else {
+			assign_linear_icc_profile(dest);
+			assign_linear_icc_profile_to_fitseq(fitseq);
+		}
+	}
 	return status;
 }
 
