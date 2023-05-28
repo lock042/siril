@@ -182,7 +182,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->highlights = 1.0f;
 		return -1;
 	}
-	cmsUInt32Number n = 100;
+	cmsUInt32Number n = 1000;
 	float* normValue = malloc(nb_channels * sizeof(float));
 	float* median = malloc(nb_channels * sizeof(float));
 	float* mad = malloc(nb_channels * sizeof(float));
@@ -337,7 +337,7 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 	if (retval)
 		return -1;
 
-	cmsUInt32Number n = 100;
+	cmsUInt32Number n = 1000;
 	float* normValue = malloc(nb_channels * sizeof(float));
 	float* median = malloc(nb_channels * sizeof(float));
 	float* mad = malloc(nb_channels * sizeof(float));

@@ -2437,8 +2437,12 @@ int savefits(const char *name, fits *f) {
 
 	save_opened_fits(f);
 
-	if (com.pref.fits_save_icc)
+	if (com.pref.fits_save_icc) {
+		if (!(f->icc_profile)) {
+			assign_linear_icc_profile(f);
+		}
 		write_icc_profile_to_fits(f);
+	}
 
 	status = 0;
 	fits_close_file(f->fptr, &status);
