@@ -1164,7 +1164,8 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
  *
  * Takes a float array as input and returns an nbuckets-element float array
  * containing the nbucketiles of the input (i.e. if nbuckets == 100 it will
- * return a 100-element array of the percentiles). output may be preallocated
+ * return a 100-element array of the percentiles). Pixels with zero value are
+ *ignored so that black bordersdon't throw off the stats. output may be preallocated
  * to nbuckets * sizeof(float) or if not, it will be allocated here. The
  * caller is responsible for freeing output.
  */
@@ -1173,19 +1174,27 @@ void summarize_floatbuf(const fits *fit, float* input, const int nbuckets, float
 	float *cumulative = (float*) malloc(npixels * sizeof(float));
 	if (!output)
 		output = (float*) malloc(nbuckets * sizeof(float));
-	cumulative[0] = input[0];
-
+	// Find the first non-zero pixel
+	size_t start_i = 0;
+	while (!input[start_i])
+		start_i++;
+	cumulative[0] = input[start_i];
+	size_t count = 1;
 	// Serial loop, do not parallelize
-	for (size_t i = 1 ; i < npixels ; i++) {
-		cumulative[i] = cumulative[i-1] + input[i];
+	for (size_t i = start_i + 1 ; i < npixels ; i++) {
+		// Reject zero pixels so that black borders don't throw the stats
+		if (input[i] != 0.f) {
+			cumulative[count] = cumulative[count-1] + input[i];
+			count++;
+		}
 	}
-	const float Cnm1 = cumulative[npixels - 1];
+	const float Cnm1 = cumulative[count - 1];
 	if (threads > 1 && npixels > 150000) {
 #pragma omp parallel num_threads(threads)
 		{
 			float *output_private = (float*) calloc(nbuckets, sizeof(float));
 #pragma omp for
-			for (size_t i = 0 ; i < npixels - 1 ; i++) {
+			for (size_t i = 0 ; i < count - 1 ; i++) {
 				int j = (int) nbuckets * (cumulative[i] / Cnm1);
 				output_private[j] += input[i];
 			}
@@ -1198,7 +1207,7 @@ void summarize_floatbuf(const fits *fit, float* input, const int nbuckets, float
 			free(output_private);
 		}
 	} else {
-		for (size_t i = 0 ; i < npixels - 1 ; i++) {
+		for (size_t i = 0 ; i < count - 1 ; i++) {
 			int j = (int) nbuckets * (cumulative[i] / Cnm1);
 			j = (j < nbuckets) ? j : j - 1;
 			output[j] += input[i];
