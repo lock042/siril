@@ -158,13 +158,9 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 
 	if (com.icc.available) {
 		fits_check_icc(fit);
-		if (nb_channels == 1)
-			// This is a bit of a fudge: it should really be using the
-			// display profile and TYPE_RGB_FLT_PLANAR, but only bothering
-			// to use the first channel
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_FLT, com.icc.mono_standard, TYPE_GRAY_FLT, gui.icc.rendering_intent, 0);
-		else
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_FLT_PLANAR, gui.icc.monitor, TYPE_RGB_FLT_PLANAR, gui.icc.rendering_intent, 0);
+		cmsUInt32Number sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number src_type = get_planar_formatter_type(sig, fit->type, FALSE);
+		transform = cmsCreateTransform(fit->icc_profile, src_type, gui.icc.monitor, TYPE_RGB_FLT_PLANAR, gui.icc.rendering_intent, 0);
 	}
 	int retval = 0;
 	if (gui.icc.available)
@@ -187,10 +183,10 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		return -1;
 	}
 
-	float *invnormValue = malloc(nb_channels * sizeof(float));
-	float *median = malloc(nb_channels * sizeof(float));
-	float *mad = malloc(nb_channels * sizeof(float));
-	float *percentiles = malloc(nb_channels * NBUCKETS * sizeof(float));
+	float *invnormValue = calloc(nb_channels, sizeof(float));
+	float median[3] = { 0 };
+	float mad[3] = { 0 };
+	float *percentiles = calloc(3 * NBUCKETS, sizeof(float));
 	for (i = 0; i < nb_channels; ++i) {
 		invnormValue[i] = 1.f / (float)stat[i]->normValue;
 		median[i] = (float) stat[i]->median * invnormValue[i];
@@ -199,10 +195,10 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		if (gui.icc.available) {
 			int start = i * NBUCKETS;
 			for (int j = 0; j < NBUCKETS; j++)
-				percentiles[start + j] = stat[i]->cdf[j] * invnormValue[i]; 
+				percentiles[start + j] = stat[i]->cdf[j] * invnormValue[i];
 
 		} else {
-			mad[i] = stat[i]->mad * invnormValue[i]; 
+			mad[i] = stat[i]->mad * invnormValue[i];
 		}
 	}
 	if (gui.icc.available) {
@@ -246,9 +242,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->highlights = c1;
 	}
 	free(percentiles);
-	free(median);
 	free(invnormValue);
-	free(mad);
 
 	for (i = 0; i < nb_channels; i++)
 		free_stats(stat[i]);
@@ -354,10 +348,10 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 		if (gui.icc.available) {
 			int start = i * NBUCKETS;
 			for (int j = 0; j < NBUCKETS; j++)
-				percentiles[start + j] = stat[i]->cdf[j] * invnormValue[i]; 
+				percentiles[start + j] = stat[i]->cdf[j] * invnormValue[i];
 
 		} else {
-			mad[i] = stat[i]->mad * invnormValue[i]; 
+			mad[i] = stat[i]->mad * invnormValue[i];
 		}
 	}
 	if (gui.icc.available) {
