@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-05-29 12:35+0000\n"
+"PO-Revision-Date: 2023-05-31 00:40+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -1945,7 +1945,7 @@ msgstr "Красный: "
 
 #: src/gui/siril3.glade:8438 src/gui/colors.c:333
 msgid "Green: "
-msgstr "Зеленый: "
+msgstr "Зелёный: "
 
 #: src/gui/siril3.glade:8450 src/gui/colors.c:334
 msgid "Blue: "
@@ -3318,7 +3318,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:13128
 msgid "Beta"
-msgstr "Бета"
+msgstr "β"
 
 #: src/gui/siril3.glade:13148
 msgid "r"
@@ -10610,9 +10610,8 @@ msgid "Unsaved Bayer pattern merge"
 msgstr "Несохранённое слияние шаблона Байера"
 
 #: src/core/command.c:844
-#, fuzzy
 msgid "Bayer pattern merge"
-msgstr "Узор матрицы: "
+msgstr "Слияние шаблона Байера"
 
 #: src/core/command.c:874
 msgid "Could not understand the requested operator\n"
@@ -18397,7 +18396,7 @@ msgstr "Ошибка: кол-во трикселей сообщённое фай
 #: src/io/catalogues.c:702
 #, c-format
 msgid "Can't open temporary file %s for output. [%s]\n"
-msgstr "Не открывается временный файл %s для вывода. [%s]\n"
+msgstr "Не удалось открыть временный файл %s для вывода. [%s]\n"
 
 #: src/io/catalogues.c:750
 msgid "Error writing output...\n"
