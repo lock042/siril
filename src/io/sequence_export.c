@@ -23,6 +23,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "sequence.h"
 #include "ser.h"
 #include "stacking/stacking.h"
@@ -398,6 +399,18 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
+		if (com.icc.available) {
+			if (destfit->icc_profile) {
+				cmsCloseProfile(destfit->icc_profile);
+			}
+			// Copy the ICC profile from fit if available
+			destfit->icc_profile = copyICCProfile(fit.icc_profile);
+			// Last resort, if the user is exporting as an 8 bit movie
+			// and we have no other guesses for color space, assume sRGB
+			if (!destfit->icc_profile) {
+				destfit->icc_profile = copyICCProfile(destfit->naxes[2] == 3 ? com.icc.srgb_standard : com.icc.mono_standard);
+			}
+		}
 		/* we copy the header */
 		copy_fits_metadata(&fit, destfit);
 
@@ -463,6 +476,30 @@ static gpointer export_sequence(gpointer ptr) {
 			crop(destfit, &args->crop_area);
 		}
 
+// Apply colorspace conversion to sRGB if required
+		cmsHTRANSFORM *transform = NULL;
+		if (com.icc.available) {
+			// Fallthrough is intentional
+			switch (args->output) {
+				case EXPORT_AVI:
+#ifdef HAVE_FFMPEG
+				case EXPORT_MP4:
+				case EXPORT_MP4_H265:
+				case EXPORT_WEBM_VP9:
+#endif
+					transform = initialize_export8_transform(destfit);
+					size_t npixels = destfit->rx * destfit->ry;
+					if (destfit->type == DATA_USHORT) {
+						cmsDoTransform(transform, destfit->data, destfit->data, npixels);
+					} else {
+						cmsDoTransform(transform, destfit->fdata, destfit->fdata, npixels);
+					}
+					cmsDeleteTransform(transform);
+					transform = NULL;
+					break;
+				default:
+			}
+		}
 		switch (args->output) {
 			case EXPORT_FITS:
 				snprintf(dest, 255, "%s%05d%s", args->basename, i + 1, com.pref.ext);
@@ -527,8 +564,14 @@ free_and_reset_progress_bar:
 						assign_linear_icc_profile_to_fitseq(fitseq_file);
 					}
 					// Write the ICC profile into the FITSEQ file
-					if (fitseq_file->icc_profile) {
-						write_icc_profile_to_fptr(fitseq_file->fptr, &fitseq_file->icc_profile);
+					int status = 0, nhdus = -1;
+					fits_get_num_hdus(fitseq_file->fptr, &nhdus, &status);
+					if (!fits_movabs_hdu(fitseq_file->fptr, nhdus, NULL, &status)) {
+						if (fitseq_file->icc_profile) {
+							write_icc_profile_to_fptr(fitseq_file->fptr, &fitseq_file->icc_profile);
+						}
+					} else {
+						report_fits_error(status);
 					}
 				}
 				fitseq_close_file(fitseq_file);

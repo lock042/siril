@@ -49,6 +49,7 @@ void initialize_icc_preferences_widgets();
 void assign_linear_icc_profile(fits *fit);
 cmsHTRANSFORM initialize_display_transform();
 cmsHTRANSFORM initialize_proofing_transform();
+cmsHTRANSFORM initialize_export8_transform(fits* fit);
 void refresh_icc_transforms();
 int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);

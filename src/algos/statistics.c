@@ -346,13 +346,16 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	}
 
 	/* Calculation of median */
-	if (compute_median && stat->median == NULL_STATS) {
+	if ((compute_median && stat->median == NULL_STATS) || ((option & STATS_CDF) && stat->cdf[0] == NULL_STATSF)) {
 		if (!data) {
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
-		stat->median = histogram_median(data, stat->ngoodpix, threads);
+		if (option & STATS_CDF)
+			stat->median = histogram_percentiles(data, stat->ngoodpix, stat->cdf, NBUCKETS, threads);
+		else
+			stat->median = histogram_median(data, stat->ngoodpix, threads);
 	}
 
 	/* Calculation of average absolute deviation from the median */
@@ -670,6 +673,7 @@ static void stats_set_default_values(imstats *stat) {
 	stat->total = -1L;
 	stat->ngoodpix = -1L;
 	stat->mean = stat->avgDev = stat->median = stat->sigma = stat->bgnoise = stat->min = stat->max = stat->normValue = stat->mad = stat->sqrtbwmv = stat->location = stat->scale = NULL_STATS;
+	stat->cdf[0] = NULL_STATSF;
 }
 
 /* allocates an imstat structure and initializes it with default values that
@@ -1160,63 +1164,5 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 	return retval;
 }
 
-/* summarize_floatbuf()
- *
- * Takes a float array as input and returns an nbuckets-element float array
- * containing the nbucketiles of the input (i.e. if nbuckets == 100 it will
- * return a 100-element array of the percentiles). Pixels with zero value are
- *ignored so that black bordersdon't throw off the stats. output may be preallocated
- * to nbuckets * sizeof(float) or if not, it will be allocated here. The
- * caller is responsible for freeing output.
- */
-void summarize_floatbuf(const fits *fit, float* input, const int nbuckets, float *output, int threads) {
-	const size_t npixels = fit->rx * fit->ry;
-	float *cumulative = (float*) malloc(npixels * sizeof(float));
-	if (!output)
-		output = (float*) malloc(nbuckets * sizeof(float));
-	// Find the first non-zero pixel
-	size_t start_i = 0;
-	while (!input[start_i])
-		start_i++;
-	cumulative[0] = input[start_i];
-	size_t count = 1;
-	// Serial loop, do not parallelize
-	for (size_t i = start_i + 1 ; i < npixels ; i++) {
-		// Reject zero pixels so that black borders don't throw the stats
-		if (input[i] != 0.f) {
-			cumulative[count] = cumulative[count-1] + input[i];
-			count++;
-		}
-	}
-	const float Cnm1 = cumulative[count - 1];
-	if (threads > 1 && npixels > 150000) {
-#pragma omp parallel num_threads(threads)
-		{
-			float *output_private = (float*) calloc(nbuckets, sizeof(float));
-#pragma omp for
-			for (size_t i = 0 ; i < count - 1 ; i++) {
-				int j = (int) nbuckets * (cumulative[i] / Cnm1);
-				output_private[j] += input[i];
-			}
-#pragma omp critical
-			{
-				for (size_t i = 0 ; i < nbuckets ; i++) {
-					output[i] += output_private[i];
-				}
-			}
-			free(output_private);
-		}
-	} else {
-		for (size_t i = 0 ; i < count - 1 ; i++) {
-			int j = (int) nbuckets * (cumulative[i] / Cnm1);
-			j = (j < nbuckets) ? j : j - 1;
-			output[j] += input[i];
-		}
-	}
-	for (int i = 0 ; i < nbuckets ; i++) {
-		printf("%f\n", output[i]);
-	}
-	free(cumulative);
-}
 
 

@@ -18,14 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This file includes some code taken from Elle Stone's
-// "make-elles-profiles.c" program (https://github.com/ellelstone/elles_icc_profiles/blob/master/code/make-elles-profiles.c)
-// Particularly important is the definitions of the pre-quantized
-// sRGB primaries which avoid issues with lcms
-// This is licenced under the GPL (version 2 or any later version)
-// Therefore it is included here and relicenced under the terms of the
-// GPL (version 3 or any later version to align with the rest of Siril.
-
 #include <glib.h>
 #include "algos/lcms_fast_float/lcms2_fast_float.h"
 #include "core/siril.h"
@@ -227,6 +219,8 @@ void assign_linear_icc_profile(fits *fit) {
 	fit->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.srgb_linear);
 }
 
+// Even for mono images with a Gray profile, the display datatype is always RGB;
+// lcms2 takes care of populating all 3 output channels for us.
 cmsHTRANSFORM initialize_display_transform() {
 	g_assert(gui.icc.monitor);
 	cmsHTRANSFORM transform = NULL;
@@ -234,12 +228,25 @@ cmsHTRANSFORM initialize_display_transform() {
 		return NULL;
 	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit.icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
-	cmsUInt32Number desttype = (gfit.naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
 	g_mutex_lock(&monitor_profile_mutex);
-	transform = cmsCreateTransform(gfit.icc_profile, srctype, (gfit.naxes[2] == 3 ? gui.icc.monitor : com.icc.mono_out), desttype, gui.icc.rendering_intent, 0);
+	transform = cmsCreateTransform(gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, gui.icc.rendering_intent, 0);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
+	return transform;
+}
+
+cmsHTRANSFORM initialize_export8_transform(fits* fit) {
+	g_assert(com.icc.srgb_standard);
+	cmsHTRANSFORM transform = NULL;
+	if (fit->icc_profile == NULL)
+		return NULL;
+	cmsUInt32Number fit_signature = cmsGetColorSpace(fit->icc_profile);
+	cmsUInt32Number srctype = get_planar_formatter_type(fit_signature, fit->type, TRUE);
+	cmsUInt32Number desttype = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
+	transform = cmsCreateTransform(fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.srgb_standard : com.icc.mono_standard), desttype, gui.icc.rendering_intent, 0);
+	if (transform == NULL)
+		siril_log_message("Error: failed to create export colorspace transform!\n");
 	return transform;
 }
 
@@ -430,7 +437,7 @@ void fits_check_icc(fits *fit) {
 ///// Preferences callbacks
 
 // Being able to alter the monitor and soft_proof profiles and intents from the GTK thread means all operations
-// that use the profiles need to go inside mutexes to prevent the profiles being ripped out from under them.
+// that use these profiles need to go inside mutexes to prevent the profiles being ripped out from under them.
 // This is not required for profiles in FITS structures as these are not subject to thread contention issues in
 // the same way.
 

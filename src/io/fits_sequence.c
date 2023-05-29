@@ -390,6 +390,29 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index) {
 	fitseq *fitseq = (struct fits_sequence *)writer->sequence;
 	int status = 0;
+	// Check for any ICC profile mismatch
+	if (com.icc.available) {
+		if (fitseq->icc_profile && image->icc_profile) {
+			char *fitseq_buffer = NULL, *image_buffer = NULL;
+			int length = cmsGetProfileInfoASCII(fitseq->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+			if (length) {
+				fitseq_buffer = (char*) malloc(length * sizeof(char));
+				cmsGetProfileInfoASCII(fitseq->icc_profile, cmsInfoDescription, "en", "US", fitseq_buffer, length);
+			}
+			length = cmsGetProfileInfoASCII(image->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+			if (length) {
+				image_buffer = (char*) malloc(length * sizeof(char));
+				cmsGetProfileInfoASCII(image->icc_profile, cmsInfoDescription, "en", "US", image_buffer, length);
+			}
+			int diff = strcmp(fitseq_buffer, image_buffer);
+			free(fitseq_buffer);
+			free(image_buffer);
+			if (diff) {
+				siril_log_color_message(_("Error: frame ICC profile is inconsistent with sequence ICC profile. Ensure all frames are allocated the same ICC profile.\n"), "red");
+				return 1;
+			}
+		}
+	}
 	if (fits_create_img(fitseq->fptr, image->bitpix,
 				image->naxis, image->naxes, &status)) {
 		report_fits_error(status);

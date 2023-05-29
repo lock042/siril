@@ -355,15 +355,7 @@ static void remap(int vport) {
 				linebuf[x] = linebuf[x] >> 8;
 			}
 		}
-		// Mono transform is gray to gray: it only populates the first element
-		// of pixelbuf; we need to set them all the same so they will show as
-		// shades of grey not shades of red
-		if (gfit.naxes[2] == 1) {
-#pragma omp simd
-			for (x = 0 ; x < gfit.rx ; x++) {
-				pixelbuf[x + 2 * gfit.rx] = pixelbuf[x + gfit.rx] = linebuf[x];
-			}
-		}
+
 		for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 			BYTE dst_pixel_value = 0;
 				WORD val = linebuf[x];
@@ -399,13 +391,18 @@ static void remap(int vport) {
 }
 
 static void remap_all_vports() {
+	gboolean inverted;
+	int vport = 0;
 	static GtkApplicationWindow *app_win = NULL;
 	if (app_win == NULL) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	}
-
+	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
 	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *state = g_action_get_state(action_neg);
+	GVariant *state_neg = g_action_get_state(action_neg);
+	inverted = g_variant_get_boolean(state_neg);
+	g_variant_unref(state_neg);
+	state_neg = NULL;
 	// We are now dealing with a 3-channel image
 
 	// This function maps fit data with a linear LUT between lo and hi levels
@@ -414,7 +411,6 @@ static void remap_all_vports() {
 	BYTE *dst[3], *index;
 	WORD *src[3];
 	float *fsrc[3];
-	gboolean inverted;
 
 	if (gfit.type == DATA_UNSUPPORTED) {
 		siril_debug_print("data is not loaded yet\n");
@@ -440,14 +436,19 @@ static void remap_all_vports() {
 		}
 	}
 
-	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
+	if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
+		if (gui.unlink_channels)
+			find_unlinked_midtones_balance_default(&gfit, stf);
+		else find_linked_midtones_balance_default(&gfit, stf);
+		stf_computed = TRUE;
+	}
+	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
+		make_hd_index_for_current_display(vport);
+	}
+	else
+		make_index_for_current_display(vport);
+	set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 
-	inverted = g_variant_get_boolean(state);
-	g_variant_unref(state);
-
-	set_viewer_mode_widgets_sensitive(TRUE);
-
-	make_index_for_current_display(0);
 	index = gui.remap_index[0];
 
 	for (int i = 0 ; i < 3 ; i++) {
@@ -1760,7 +1761,7 @@ void redraw(remap_type doremap) {
 	GVariant* state = g_action_get_state(action_color);
 	color_map color = g_variant_get_boolean(state);
 	g_variant_unref(state);
-	gboolean special = (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == HISTEQ_DISPLAY || color == RAINBOW_COLOR || gfit.naxes[2] == 1);
+	gboolean special = (/*gui.rendering_mode == STF_DISPLAY ||*/ gui.rendering_mode == HISTEQ_DISPLAY || color == RAINBOW_COLOR || gfit.naxes[2] == 1);
 
 	switch (doremap) {
 		case REDRAW_OVERLAY:
