@@ -22,6 +22,9 @@
 #ifndef _LCMS2_FAST_FLOAT_H
 #define _LCMS2_FAST_FLOAT_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "lcms2_plugin.h"
 
 /* There is an issue with version 2.15 on Windows platforms: some symbols
