@@ -498,6 +498,7 @@ static gpointer export_sequence(gpointer ptr) {
 					transform = NULL;
 					break;
 				default:
+					break;
 			}
 		}
 		switch (args->output) {

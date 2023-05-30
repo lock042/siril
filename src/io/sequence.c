@@ -866,6 +866,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 						index, seq->seqname);
 				return 1;
 			}
+			// TODO: review color management. Currently readfits_partial returns a NULL icc_profile
 			break;
 		case SEQ_SER:
 			assert(seq->ser_file);
@@ -882,6 +883,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 						index, seq->seqname);
 				return 1;
 			}
+			// TODO: review color management. Currently readfits_partial returns a NULL icc_profile
 			break;
 
 #ifdef HAVE_FFMS2
@@ -900,6 +902,11 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
 			extract_region_from_fits(seq->internal_fits[index], 0, dest, area);
+			// Set the ICC profile to Gray-g22 to preserve gamma, on the assumption that 8-bit films
+			// will be presented by FFMPEG in a sRGB / Gray g22 colorspace
+			if (com.icc.available) {
+				dest->icc_profile = copyICCProfile(com.icc.mono_standard);
+			}
 			break;
 	}
 

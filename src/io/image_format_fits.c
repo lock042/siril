@@ -2160,6 +2160,19 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
 
+	/* Note: reading one channel of a multi-channel FITS poses a color management challenge:
+	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
+	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
+	 * If we copy the ICC profile from the source FITS and a transform is done, the program
+	 * will crash. However if we don't copy the ICC profile, we lose track of color management
+	 * of the data.
+	 * In practice, currently I think this function is only used for processing that expects 
+	 * to be handling linear data, and won't need to be transformed for display. For now we
+	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
+	 * needed.
+	 */
+	fit->icc_profile = NULL;
+
 	status = 0;
 	fits_close_file(fit->fptr, &status);
 	fprintf(stdout, _("Loaded partial FITS file %s\n"), filename);
@@ -2743,7 +2756,18 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	to->history = NULL;
 	to->date = NULL;
 	to->date_obs = NULL;
-	to->icc_profile = copyICCProfile(from->icc_profile);
+	/* Note: extracting one channel of a multi-channel FITS poses a color management challenge:
+	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
+	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
+	 * If we copy the ICC profile from the source FITS and a transform is done, the program
+	 * will crash. However if we don't copy the ICC profile, we lose track of color management
+	 * of the data.
+	 * In practice, currently I think this function is only used for processing that expects 
+	 * to be handling linear data, and won't need to be transformed for display. For now we
+	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
+	 * needed.
+	 */
+	to->icc_profile = NULL;
 #ifdef HAVE_WCSLIB
 	to->wcslib = NULL;
 #endif
@@ -2811,6 +2835,19 @@ void keep_only_first_channel(fits *fit) {
 		fit->fpdata[1] = fit->fdata;
 		fit->fpdata[2] = fit->fdata;
 	}
+	/* Note: keeping one channel of a multi-channel FITS poses a color management challenge:
+	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
+	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
+	 * If we copy the ICC profile from the source FITS and a transform is done, the program
+	 * will crash. However if we don't copy the ICC profile, we lose track of color management
+	 * of the data.
+	 * In practice, currently I think this function is only used for processing that expects 
+	 * to be handling linear data, and won't need to be transformed for display. For now we
+	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
+	 * needed.
+	 */
+	fit->icc_profile = NULL;
+
 }
 
 /* copy non-mandatory keywords from 'from' to 'to' */
@@ -2892,6 +2929,7 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
+	// TODO: work out what to do about color management here
 	return savefits(filename, fit);
 }
 
@@ -2902,6 +2940,8 @@ int save1fits32(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
+	// TODO: work out what to do about color management here
+
 	return savefits(filename, fit);
 }
 
@@ -3056,6 +3096,8 @@ static void extract_region_from_fits_ushort(fits *from, int layer, fits *to,
 	to->pdata[2] = to->data;
 	to->bitpix = from->bitpix;
 	to->type = DATA_USHORT;
+	// TODO: review color management behaviour in this case
+	to->icc_profile = NULL;
 }
 
 static void extract_region_from_fits_float(fits *from, int layer, fits *to,
@@ -3084,6 +3126,14 @@ static void extract_region_from_fits_float(fits *from, int layer, fits *to,
 	to->fpdata[2] = to->fdata;
 	to->bitpix = from->bitpix;
 	to->type = DATA_FLOAT;
+	/* TODO: review color management behaviour in this case
+	 * Note this is used to extract partial frames from films where the 
+	 * 3-channel data is sRGB
+	 * Currently, icc_profile is NULL and the caller is responsible
+	 * for setting it
+	 */
+	to->icc_profile = NULL;
+
 }
 
 void extract_region_from_fits(fits *from, int layer, fits *to,
@@ -3166,6 +3216,8 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 			(*fit)->fpdata[BLAYER] = (*fit)->fdata;
 		}
 	}
+	// TODO: consider ICC profile assignment for this function. Currently fit->icc_profile
+	// will be left NULL and lazy-populated to linear if needed, but is this correct in all cases?
 	return 0;
 }
 

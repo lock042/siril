@@ -320,16 +320,9 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
-	// Attempt to add the FITSEQ ICC profile if one exists, otherwise
-	// assign a linear profile.
-	if (com.icc.available && !status) {
-		if (fitseq->icc_profile) {
-			read_icc_profile_from_fptr(fptr, &dest->icc_profile);
-		} else {
-			assign_linear_icc_profile(dest);
-			assign_linear_icc_profile_to_fitseq(fitseq);
-		}
-	}
+	// TODO: review how color management is handled here. Currently we leave dest->icc_profile
+	// NULL and it is the responsibility of the caller to set it if required.
+	dest->icc_profile = NULL;
 	return status;
 }
 
@@ -355,6 +348,9 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 	if (internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix, buffer, layer, area))
 		return 1;
 	flip_buffer(fitseq->bitpix, buffer, area);
+	// No color management is carried out here. It is expected this would normally be used with
+	// linear data in a FITSEQ, however in any case it is the responsibility of the caller to 
+	// carry out any color management.
 	return 0;
 }
 
