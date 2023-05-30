@@ -34,10 +34,6 @@
 #define EXCLUDE_FF
 #endif
 
-#ifdef HAVE_ANCIENT_LCMS2
-#define EXCLUDE_FF
-#endif
-
 #ifndef CMS_USE_CPP_API
 #   ifdef __cplusplus
 extern "C" {

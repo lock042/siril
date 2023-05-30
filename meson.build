@@ -240,7 +240,7 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
-lcms_dep = dependency('lcms2', required : true)
+lcms_dep = dependency('lcms2', required : true, version: '>= 2.12')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -493,12 +493,6 @@ if opencv4_dep.version().version_compare('>=4.4.0')
   conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
 else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
-endif
-
-if lcms_dep.version().version_compare('<2.12')
-  siril_c_flag += '-DEXCLUDE_FF=TRUE'
-  siril_cpp_flag += '-DEXCLUDE_FF=TRUE'
-  warning('Little CMS is very old: the Fast Float plugin will be disabled.')
 endif
 
 if libconfig_dep.found()
