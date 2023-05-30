@@ -36,14 +36,21 @@ RUN apt-get update -qyy \
         libjson-glib-dev \
     && python3 -m pip install cmake==3.22.6 \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* 
+    && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/LibRaw/LibRaw.git \
     && cd LibRaw \
     && autoreconf -fi \
     && ./configure --disable-examples --disable-static --prefix /usr \
     && make install \
     && cd .. \
-    && rm -rf LibRaw \
+    && rm -rf LibRaw
+RUN git clone https://github.com/mm2/Little-CMS \
+    && cd Little-CMS \
+    && git checkout lcms2.14 \
+    && ./configure --with-fastfloat --with-threaded --prefix /usr \
+    && make install \
+    && cd .. \
+    && rm -rf Little-CMS \
     && wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && unzip opencv.zip && cd opencv-4.5.3 \
     && mkdir -p build && cd build \
