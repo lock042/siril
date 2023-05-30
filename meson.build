@@ -500,6 +500,7 @@ if lcms_dep.version().version_compare('>=2.12')
 else
   conf_data.set('EXCLUDE_FF', 1, description : 'Disabling Little CMS fast float plugin.')
   warning('Little CMS is very old: the Fast Float plugin will be disabled.')
+  siril_c_flag += '-DEXCLUDE_FF'
 endif
 
 if libconfig_dep.found()
