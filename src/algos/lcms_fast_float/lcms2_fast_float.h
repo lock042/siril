@@ -22,12 +22,6 @@
 #ifndef _LCMS2_FAST_FLOAT_H
 #define _LCMS2_FAST_FLOAT_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#else
-#define SIRIL_UNSTABLE 1
-#endif
-
 #include "lcms2_plugin.h"
 
 /* There is an issue with version 2.15 on Windows platforms: some symbols
@@ -37,6 +31,10 @@
  */
 
 #if _WIN32 && LCMS_VERSION == 2150
+#define EXCLUDE_FF
+#endif
+
+#ifdef HAVE_ANCIENT_LCMS2
 #define EXCLUDE_FF
 #endif
 
