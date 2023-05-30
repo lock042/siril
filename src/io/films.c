@@ -33,6 +33,7 @@
 #include "gui/progress_and_log.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
+#include "core/icc_profile.h"
 
 static int pixfmt_gray, pixfmt_rgb, pixfmt_gray16, pixfmt_rgb48;
 

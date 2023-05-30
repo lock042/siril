@@ -43,6 +43,7 @@
 #include "core/initfile.h"
 #include "core/undo.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
