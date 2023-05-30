@@ -326,9 +326,9 @@ static void remap_all_vports() {
 	// We are now dealing with a 3-channel image
 	
 	// Check if we need a rainbow color map
-	rainbow_index[UCHAR_MAX + 1][3];
+	BYTE rainbow_index[UCHAR_MAX + 1][3];
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	rainbow_state = g_action_get_state(action_color);
+	GVariant* rainbow_state = g_action_get_state(action_color);
 	color_map color = g_variant_get_boolean(rainbow_state);
 	g_variant_unref(rainbow_state);
 	rainbow_state = NULL;
