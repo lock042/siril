@@ -673,7 +673,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	float norm;
 	gchar *filename = g_strdup(name);
 	uint32_t profile_len = 0;
-	unsigned char *profile;
+	unsigned char *profile = NULL;
 	gboolean write_ok = TRUE;
 
 	if (!g_str_has_suffix(filename, ".tif") && (!g_str_has_suffix(filename, ".tiff"))) {
@@ -746,26 +746,32 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		// Transform the data
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
-		size_t nchans = fit->naxes[2];
 		cmsUInt32Number trans_type;
 		if (src_is_float) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+			trans_type = nsamples == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
 		} else {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+			trans_type = nsamples == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, buf, dest, npixels);
-		cmsDeleteTransform(save_transform);
+		// If we are exporting in 8-bit, we save as sRGB; for higher bit depths we save in the native colorspace
+		if (bitspersample == 8) {
+			cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+			cmsDoTransform(save_transform, buf, dest, npixels);
+			cmsDeleteTransform(save_transform);
+		}
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
 		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
 		gbuff[0] = (float *) dest;
 		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
 		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
-		// Embed the profile
-		profile = get_icc_profile_data(&com.icc.srgb_out, &profile_len);
+		// Generate the correct profile and assign it to the TIFF
+		if (bitspersample == 8) {
+			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : &com.icc.srgb_out), &profile_len);
+		} else {
+			profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+		}
 		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
 
