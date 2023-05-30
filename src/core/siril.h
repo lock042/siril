@@ -35,15 +35,6 @@
 
 #define GLADE_FILE "siril3.glade"
 
-// Ensure malloced memory is aligned to 32 byte boundaries.
-// This should never be harmful, but may aid in optimizing vectorizable
-// functions (up to 256-bit vectors) on large slabs of allocated memory
-// such as fdata
-
-// Experimental for the time being
-#ifndef _WIN32
-#define malloc(x) aligned_alloc(32, x)
-#endif
 #define NBUCKETS 101
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */

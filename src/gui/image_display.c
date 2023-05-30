@@ -218,9 +218,10 @@ static void remap(int vport) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	}
 	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *state = g_action_get_state(action_neg);
-	inverted = g_variant_get_boolean(state);
-	g_variant_unref(state);
+	GVariant *neg_state = g_action_get_state(action_neg);
+	inverted = g_variant_get_boolean(neg_state);
+	g_variant_unref(neg_state);
+	neg_state = NULL;
 
 	double hist_sum, nb_pixels;
 	size_t i, hist_nb_bins;
@@ -246,9 +247,10 @@ static void remap(int vport) {
 	dst = view->buf;
 
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant rainbow_state = g_action_get_state(action_color);
+	GVariant *rainbow_state = g_action_get_state(action_color);
 	color_map color = g_variant_get_boolean(rainbow_state);
 	g_variant_unref(rainbow_state);
+	rainbow_state = NULL;
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
