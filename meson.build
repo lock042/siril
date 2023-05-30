@@ -495,10 +495,9 @@ else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
 endif
 
-if lcms_dep.version().version_compare('>=2.12')
-  conf_data.set('HAVE_ANCIENT_LCMS2', 0, description : 'Little CMS version >= 2.12: enabling fast float plugin.')
-else
-  conf_data.set('HAVE_ANCIENT_LCMS2', 1, description : 'Disabling Little CMS fast float plugin.')
+if lcms_dep.version().version_compare('<2.12')
+  siril_c_flag += '-DEXCLUDE_FF=TRUE'
+  siril_cpp_flag += '-DEXCLUDE_FF=TRUE'
   warning('Little CMS is very old: the Fast Float plugin will be disabled.')
 endif
 
