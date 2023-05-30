@@ -495,6 +495,11 @@ else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
 endif
 
+if lcms_dep.version().version_compare('<2.1.12')
+  conf_data.set('EXCLUDE_FF', 1, description : 'Disabling Little CMS fast float plugin.')
+  warning('Little CMS is very old: the Fast Float plugin will be disabled.')
+endif
+
 if libconfig_dep.found()
   conf_data.set('HAVE_LIBCONFIG', true, description : 'Using libconfig.')
 else
