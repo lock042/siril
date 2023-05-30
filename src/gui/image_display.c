@@ -254,7 +254,7 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	
+
 	index = gui.remap_index[0];
 
 	int norm = (int) get_normalized_value(&gfit);
@@ -324,7 +324,7 @@ static void remap_all_vports() {
 	g_variant_unref(state_neg);
 	state_neg = NULL;
 	// We are now dealing with a 3-channel image
-	
+
 	// Check if we need a rainbow color map
 	BYTE rainbow_index[UCHAR_MAX + 1][3];
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
@@ -446,7 +446,7 @@ static void remap_all_vports() {
 					WORD val = linebuf[c][x];
 					// STF mode does not use the sliders
 					if (gui.rendering_mode == STF_DISPLAY)
-						dst_pixel_value = val;
+						dst_pixel_value = index[val];
 					else if (gui.cut_over && val > gui.hi)	// cut
 						dst_pixel_value = 0;
 					else {

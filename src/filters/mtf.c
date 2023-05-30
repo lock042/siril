@@ -203,7 +203,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 	}
 	if (gui.icc.available) {
 		cmsDoTransform(transform, (void *) median, (void *) median, 1);
-		cmsDoTransform(transform, (void*) percentiles, (void*) percentiles, NBUCKETS);
+		cmsDoTransform(transform, (void *) percentiles, (void*) percentiles, NBUCKETS);
 	}
 	for (i = 0 ; i < nb_channels ; i++) {
 		if (gui.icc.available) {
@@ -220,7 +220,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 	}
 	if (invertedChannels < nb_channels) {
 		for (i = 0 ; i < nb_channels ; i++) {
-			c0 += median[i] + shadows_clipping * mad[i];
+			c0 += median[i] + (shadows_clipping * 2.f) * mad[i];
 			m += median[i];
 		}
 		c0 /= (float) nb_channels;

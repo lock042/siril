@@ -364,7 +364,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					}
 					xr = i; // we've reached the Western border
 					// we move SE or E
-					while ((xx - i > areaX0 + 1) && (yy + j < areaY1 - 1)
+					while ((xx + i > areaX0 + 1) && (yy + j < areaY1 - 1)
 						&& (smooth_image[yy + j + 1][xx + i - 1] > sat
 						||  smooth_image[yy + j    ][xx + i - 1] > sat)) {
 						if (smooth_image[yy + j + 1][xx + i - 1] > sat) j++;
@@ -372,7 +372,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					}
 					yd = j; // we've reached the Southern border
 					// we move NE or N
-					while ((xx - i > areaX0 + 1) && (yy + j > areaY0 + 1)
+					while ((xx + i > areaX0 + 1) && (yy + j > areaY0 + 1)
 						&& (smooth_image[yy + j - 1][xx + i - 1] > sat
 						||  smooth_image[yy + j - 1][xx + i    ] > sat)) {
 						if (smooth_image[yy + j - 1][xx + i - 1] > sat) i--;
