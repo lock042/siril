@@ -176,7 +176,11 @@ static void compute_compositor_mem_limits(fits* fit) {
 	for (int layer = MAX_LAYERS ; layer > limit ; layer--) {
 		remove_layer(layer);
 	}
-	gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
+	int count = 0;
+	while (layers[count])
+		count++;
+	if (count == maximum_layers)
+		gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
 
 }
 
