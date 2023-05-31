@@ -3688,10 +3688,10 @@ int process_pm(int nb) {
 	expression = g_strjoinv(NULL, chunks);
 	g_strfreev(chunks);
 
-	//		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
-	//		// This avoids conflicts where characters are permitted in filenames but cannot
-	//		// be used in pixelmath variable names.
-	//		// We will amend the expression to match below.
+	// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+	// This avoids conflicts where characters are permitted in filenames but cannot
+	// be used in pixelmath variable names.
+	// We will amend the expression to match below.
 	for (int j = 0; j < args->nb_rows; j++) {
 		g_free(args->varname[j]);
 		args->varname[j] = g_strdup_printf("var_%d", j + 1);

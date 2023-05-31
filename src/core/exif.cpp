@@ -111,7 +111,7 @@ int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, c
 		//std::cerr << "[exiv2] "<< path << ": found thumbnail "<< preview.width() << "x" << preview.height() << std::endl;
 		memcpy(*buffer, tmp, _size);
 		return 0;
-	} catch (Exiv2::AnyError &e) {
+	} catch (Exiv2::Error &e) {
 		std::string s(e.what());
 		std::cerr << "[exiv2]: " << s << std::endl;
 		return 1;
@@ -147,7 +147,7 @@ gchar* siril_get_date_from_exif(const char *filename) {
 		std::string date_str = iter->value().toString();
 
 		return g_strdup(date_str.c_str());
-	} catch (Exiv2::AnyError &e) {
+	} catch (Exiv2::Error& e) {
 		std::string s(e.what());
 		std::cerr << "[exiv2]: " << s << std::endl;
 		return NULL;
