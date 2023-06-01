@@ -63,5 +63,6 @@ float float_pixel_icc_tx(float in, int channel, int nchans, cmsHTRANSFORM displa
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
 void fits_check_icc(fits *fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
+cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
 unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len);
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

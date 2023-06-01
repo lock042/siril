@@ -19,11 +19,8 @@
  */
 
 #include <glib.h>
-#include <math.h>
 #include "mtf.h"
-#include "algos/sorting.h"
 #include "core/proto.h"
-#include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
 
@@ -152,22 +149,10 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 	float m = 0.0;
 	int i, invertedChannels = 0;
 	imstats *stat[3];
-	cmsHTRANSFORM transform = NULL;
 
 	int nb_channels = (int)fit->naxes[2];
-
-	if (com.icc.available) {
-		fits_check_icc(fit);
-		cmsUInt32Number sig = cmsGetColorSpace(fit->icc_profile);
-		cmsUInt32Number src_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		transform = cmsCreateTransform(fit->icc_profile, src_type, gui.icc.monitor, TYPE_RGB_FLT_PLANAR, gui.icc.rendering_intent, 0);
-	}
-	int retval = 0;
-	if (gui.icc.available)
-		retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_CDF, MULTI_THREADED, stat);
-	else
-		retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_MAD, MULTI_THREADED, stat);
-
+	int retval = compute_all_channels_statistics_single_image(fit,
+			STATS_BASIC | STATS_MAD, MULTI_THREADED, stat);
 	for (i = 0; i < nb_channels; i++) {
 		if (stat[i]) {
 			if (retval)
@@ -183,45 +168,16 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		return -1;
 	}
 
-	float *invnormValue = calloc(nb_channels, sizeof(float));
-	float median[3] = { 0 };
-	float mad[3] = { 0 };
-	float *percentiles = calloc(3 * NBUCKETS, sizeof(float));
-	for (i = 0; i < nb_channels; ++i) {
-		invnormValue[i] = 1.f / (float)stat[i]->normValue;
-		median[i] = (float) stat[i]->median * invnormValue[i];
-		// if color management is active we need to transform the median
-		// and calculate the MAD in the display colorspace
-		if (gui.icc.available) {
-			int start = i * NBUCKETS;
-			for (int j = 0; j < NBUCKETS; j++)
-				percentiles[start + j] = stat[i]->cdf[j] * invnormValue[i];
-
-		} else {
-			mad[i] = stat[i]->mad * invnormValue[i];
-		}
-	}
-	if (gui.icc.available) {
-		cmsDoTransform(transform, (void *) median, (void *) median, 1);
-		cmsDoTransform(transform, (void *) percentiles, (void*) percentiles, NBUCKETS);
-	}
-	for (i = 0 ; i < nb_channels ; i++) {
-		if (gui.icc.available) {
-			float *devs = malloc(NBUCKETS * sizeof(float));
-			for (int j = 0 ; j < NBUCKETS ; j++) {
-				devs[j] = fabsf(*(percentiles + (i * NBUCKETS) + j) - median[i]);
-			}
-			mad[i] = quickmedian_float(devs, NBUCKETS);
-			free(devs);
-		}
-		/* this is a guard to avoid breakdown point */
-		if (mad[i] == 0.f) mad[i] = 0.001f;
-		printf("layer:%d - median: %8.6f - mad: %8.6f\n", i, median[i], mad[i]);
-	}
 	if (invertedChannels < nb_channels) {
-		for (i = 0 ; i < nb_channels ; i++) {
-			c0 += median[i] + (shadows_clipping * 2.f) * mad[i];
-			m += median[i];
+		for (i = 0; i < nb_channels; ++i) {
+			float normValue = (float)stat[i]->normValue;
+			float median = (float) stat[i]->median / normValue;
+			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
+			/* this is a guard to avoid breakdown point */
+			if (mad == 0.f) mad = 0.001f;
+
+			c0 += median + shadows_clipping * mad;
+			m += median;
 		}
 		c0 /= (float) nb_channels;
 		if (c0 < 0.f) c0 = 0.f;
@@ -229,10 +185,19 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->midtones = MTF(m2, target_bg, 0.f, 1.f);
 		result->shadows = c0;
 		result->highlights = 1.0f;
+
+		siril_debug_print("autostretch: (%f, %f, %f)\n",
+				result->shadows, result->midtones, result->highlights);
 	} else {
-		for (i = 0 ; i < nb_channels ; ++i) {
-			c1 += median[i] - shadows_clipping * mad[i];
-			m += median[i];
+		for (i = 0; i < nb_channels; ++i) {
+			float normValue = (float)stat[i]->normValue;
+			float median = (float) stat[i]->median / normValue;
+			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
+			/* this is a guard to avoid breakdown point */
+			if (mad == 0.f) mad = 0.001f;
+
+			m += median;
+			c1 += median - shadows_clipping * mad;
 		}
 		c1 /= (float) nb_channels;
 		if (c1 > 1.f) c1 = 1.f;
@@ -240,14 +205,11 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->midtones = 1.f - MTF(m2, target_bg, 0.f, 1.f);
 		result->shadows = 0.f;
 		result->highlights = c1;
-	}
-	free(percentiles);
-	free(invnormValue);
 
+	}
 	for (i = 0; i < nb_channels; i++)
 		free_stats(stat[i]);
 	return 0;
-
 }
 
 int find_linked_midtones_balance_default(fits *fit, struct mtf_params *result) {
@@ -300,28 +262,13 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 }
 
 int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float target_bg, struct mtf_params *results) {
-	float c0 = 0.0, c1 = 0.0;
-	float m = 0.0;
 	int i, invertedChannels = 0;
 	imstats *stat[3];
-	cmsHTRANSFORM transform = NULL;
 
 	int nb_channels = (int)fit->naxes[2];
 
-	if (com.icc.available) {
-		fits_check_icc(fit);
-		if (nb_channels == 1)
-			// Fudge, see the linked version above
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_FLT, com.icc.mono_standard, TYPE_GRAY_FLT, gui.icc.rendering_intent, 0);
-		else
-			transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_FLT_PLANAR, gui.icc.monitor, TYPE_RGB_FLT_PLANAR, gui.icc.rendering_intent, 0);
-	}
-
-	int retval = 0;
-	if (gui.icc.available)
-		retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_CDF, MULTI_THREADED, stat);
-	else
-		retval = compute_all_channels_statistics_single_image(fit, STATS_BASIC | STATS_MAD, MULTI_THREADED, stat);
+	int retval = compute_all_channels_statistics_single_image(fit,
+			STATS_BASIC | STATS_MAD, MULTI_THREADED, stat);
 	for (i = 0; i < nb_channels; ++i) {
 		if (retval) {
 			results[i].shadows = 0.0f;
@@ -336,66 +283,43 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 	if (retval)
 		return -1;
 
-	float *invnormValue = malloc(nb_channels * sizeof(float));
-	float* median = malloc(nb_channels * sizeof(float));
-	float* mad = malloc(nb_channels * sizeof(float));
-	float *percentiles = malloc(nb_channels * NBUCKETS * sizeof(float));
-	for (i = 0; i < nb_channels; ++i) {
-		invnormValue[i] = 1.f / (float)stat[i]->normValue;
-		median[i] = (float) stat[i]->median * invnormValue[i];
-		// if color management is active we need to transform the median
-		// and calculate the MAD in the display colorspace
-		if (gui.icc.available) {
-			int start = i * NBUCKETS;
-			for (int j = 0; j < NBUCKETS; j++)
-				percentiles[start + j] = stat[i]->cdf[j] * invnormValue[i];
+	if (invertedChannels < nb_channels) {
+		for (i = 0; i < nb_channels; ++i) {
+			float normValue = (float)stat[i]->normValue;
+			float median = (float) stat[i]->median / normValue;
+			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
+			/* this is a guard to avoid breakdown point */
+			if (mad == 0.f) mad = 0.001f;
 
-		} else {
-			mad[i] = stat[i]->mad * invnormValue[i];
-		}
-	}
-	if (gui.icc.available) {
-		cmsDoTransform(transform, (void *) median, (void *) median, 1);
-		cmsDoTransform(transform, (void*) percentiles, (void*) percentiles, NBUCKETS);
-	}
-	for (i = 0 ; i < nb_channels ; ++i) {
-		if (gui.icc.available) {
-			float *devs = malloc(NBUCKETS * sizeof(float));
-			for (int j = 0 ; j < NBUCKETS ; j++) {
-				devs[j] = fabsf(*(percentiles + (i * NBUCKETS) + j) - median[i]);
-			}
-			mad[i] = quickmedian_float(devs, NBUCKETS);
-			free(devs);
-		}
-		/* this is a guard to avoid breakdown point */
-		if (mad[i] == 0.f) mad[i] = 0.001f;
-		printf("layer:%d - median: %8.6f - mad: %8.6f\n", i, median[i], mad[i]);
-		if (invertedChannels < nb_channels) {
-			c0 = median[i] + shadows_clipping * mad[i];
-			m = median[i];
-			c0 /= (float) nb_channels;
+			float c0 = median + shadows_clipping * mad;
 			if (c0 < 0.f) c0 = 0.f;
-			float m2 = m / (float) nb_channels - c0;
+			float m2 = median - c0;
 			results[i].midtones = MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = c0;
-			results[i].highlights = 1.0f;
-		} else {
-			c1 = median[i] - shadows_clipping * mad[i];
-			m = median[i];
-			c1 /= (float) nb_channels;
+			results[i].highlights = 1.0;
+			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+					results[i].shadows, results[i].midtones, results[i].highlights);
+		}
+	} else {
+		for (i = 0; i < nb_channels; ++i) {
+			float normValue = (float) stat[i]->normValue;
+			float median = (float) stat[i]->median / normValue;
+			float mad = (float) stat[i]->mad / normValue * (float)MAD_NORM;
+			/* this is a guard to avoid breakdown point */
+			if (mad == 0.f) mad = 0.001f;
+
+			float c1 = median - shadows_clipping * mad;
 			if (c1 > 1.f) c1 = 1.f;
-			float m2 = c1 - m / (float) nb_channels;
+			float m2 = c1 - median;
 			results[i].midtones = 1.f - MTF(m2, target_bg, 0.f, 1.f);
 			results[i].shadows = 0.f;
 			results[i].highlights = c1;
+			siril_debug_print("autostretch for channel %d: (%f, %f, %f)\n", i,
+					results[i].shadows, results[i].midtones, results[i].highlights);
 		}
-	}
-	free(percentiles);
-	free(median);
-	free(invnormValue);
-	free(mad);
 
-	for (i = 0; i < nb_channels; i++)
+	}
+	for (i = 0; i < nb_channels; ++i)
 		free_stats(stat[i]);
 	return 0;
 }

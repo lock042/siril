@@ -395,7 +395,7 @@ unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len) {
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	cmsUInt32Number length = 0;
 	cmsUInt8Number* block = NULL;
-	cmsBool ret;
+	cmsBool ret = FALSE;
 	cmsHPROFILE retval = NULL;
 	if (profile) {
 		ret = cmsSaveProfileToMem(profile, NULL, &length);
@@ -432,6 +432,64 @@ void fits_check_icc(fits *fit) {
 		// If there is no embedded profile we assume the usual sRGB D65 g22
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_linear : com.icc.srgb_linear);
 	}
+}
+
+/* Compares two profiles. Returns TRUE if the profiles are identical or
+ * FALSE if they are not. Note, this is a conservative check and requires
+ * the profiles to be exactly identical in all respects. Even something
+ * that makes no difference to the colorspace described by the profile, such
+ * as the description tag, can trigger a FALSE return. This is not intended
+ * as a rigorous check of the colorspaces described by two profiles, only as
+ * an opportunistic means of avoiding unnecessary transforms if the profiles
+ * are guaranteed to be the same.
+ */
+cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
+	if (!a || !b)
+		return FALSE;
+	cmsUInt8Number *block_a = NULL, *block_b = NULL;
+	cmsUInt32Number length_a, length_b;
+	cmsBool ret_a, ret_b, retval;
+	if (a) {
+		ret_a = cmsSaveProfileToMem(a, NULL, &length_a);
+	}
+	if (b) {
+		ret_b = cmsSaveProfileToMem(b, NULL, &length_b);
+	}
+	// If a profile can't be saved to a buffer or the lengths don't match
+	// we can already return FALSE
+	if (!ret_a || !ret_b || length_a != length_b)
+		return FALSE;
+	if (length_a > 0) {
+		block_a = malloc(length_a * sizeof(BYTE));
+		if (!block_a) {
+			PRINT_ALLOC_ERR;
+			return FALSE;
+		}
+		ret_a = cmsSaveProfileToMem(a, (void*) block_a, &length_a);
+	}
+	if (ret_a) {
+		if (length_b > 0) {
+			block_b = malloc(length_a * sizeof(BYTE));
+			if (!block_b) {
+				PRINT_ALLOC_ERR;
+				free(block_a);
+				return FALSE;
+			}
+			ret_b = cmsSaveProfileToMem(a, (void*) block_b, &length_b);
+		}
+		if (!ret_b) {
+			free(block_a);
+			free(block_b);
+			return FALSE;
+		}
+	} else {
+		free(block_a);
+		return FALSE;
+	}
+	retval = (memcmp(block_a, block_b, length_a) == 0) ? TRUE : FALSE;
+	free(block_a);
+	free(block_b);
+	return retval;
 }
 
 ///// Preferences callbacks
@@ -819,21 +877,54 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 	if (filename) {
 		target = cmsOpenProfileFromFile(filename, "r");
 	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error:could not load selected file, or it does not contain a valid ICC profile."));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error: could not load selected file, or it does not contain a valid ICC profile."));
 		g_free(filename);
 		gtk_file_chooser_unselect_all(filechooser);
 		return;
 	}
 	if (!target) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error:could not load selected file, or it does not contain a valid ICC profile."));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not load file"), _("Error: could not load selected file, or it does not contain a valid ICC profile."));
 		gtk_file_chooser_unselect_all(filechooser);
 	} else {
-		set_target_information();
+		cmsColorSpaceSignature target_signature = cmsGetColorSpace(target);
+		if (target_signature == cmsSigRgbData) {
+			set_target_information();
+		} else {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Profile error"), _("Error: profile does not describe a RGB color space. Using non-RGB color spaces (e.g. CIE La*b*, XYZ, HSL) as image working spaces is not supported, though these color spaces may be used internally for some operations."));
+			cmsCloseProfile(target);
+			target = NULL;
+			gtk_file_chooser_unselect_all(filechooser);
+		}
 	}
 	g_free(filename);
+}
+
+void on_enable_icc_toggled(GtkToggleButton* button, gpointer user_data) {
+	gboolean status = gtk_toggle_button_get_active(button);
+	if (!status) {
+		if (siril_confirm_dialog(_("Are you sure?"), _("Disabling color management will result in an inconsistent appearance of your images when viewed in Siril and in other applications!"), _("Accept"))) {
+		gui.icc.available = FALSE;
+		com.icc.available = FALSE;
+		siril_log_color_message(_("Warning: color management disabled.\n"), "salmon");
+		} else {
+			gtk_toggle_button_set_active(button, TRUE);
+		}
+	} else {
+		com.icc.available = (com.icc.srgb_linear && com.icc.mono_linear && com.icc.srgb_out && com.icc.mono_out);
+		gui.icc.available = (com.icc.available); // && gui.icc_profile_rgb && gui.icc_profile_mono);
+		if (!com.icc.available)
+			siril_log_color_message(_("Error: could not enable color management.\n"), "red");
+		else if (!gui.icc.available)
+			siril_log_color_message(_("Warning: could not enable display color management.\n"), "red");
+		else
+			siril_log_color_message(_("Color management enabled...\n"), "green");
+	}
+	notify_gfit_modified();
 }
 
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	// Set description
 	set_source_information();
+	GtkToggleButton* active_button = (GtkToggleButton*) lookup_widget("enable_icc");
+	gtk_toggle_button_set_active(active_button, com.icc.available);
 }

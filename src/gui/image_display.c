@@ -426,7 +426,7 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 				memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 		}
-		if (com.icc.available)
+		if (com.icc.available && gui.rendering_mode != STF_DISPLAY)
 			cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
 							gui.icc.proofing_transform :
 							gui.icc.display_transform,
