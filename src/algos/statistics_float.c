@@ -298,8 +298,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	imstats* stat = stats;
 	// median is included in STATS_BASIC but required to compute other data
 	int compute_median = (option & STATS_BASIC) || (option & STATS_AVGDEV) ||
-		(option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS)
-		|| (option & STATS_CDF);
+		(option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS);
 
 	gboolean valid_selection = selection && selection->h > 0 && selection->w > 0;
 	if (!fit && (layer < 0 || valid_selection))
@@ -431,20 +430,14 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	}
 
 
-	/* Calculation of median (and histo if required)*/
-	if ((compute_median && stat->median == NULL_STATS) || ((option & STATS_CDF) && stat->cdf[0] == NULL_STATSF)) {
+	/* Calculation of median */
+	if (compute_median && stat->median == NULL_STATS) {
 		if (!data) {
 			if (stat_is_local) free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
-		if (option & STATS_CDF) {
-			stat->median = histogram_percentiles_float(data, stat->ngoodpix, stat->cdf, NBUCKETS, threads) * stat->normValue;
-			for (int i = 0; i < NBUCKETS; i++)
-				stat->cdf[i] *= stat->normValue;
-		} else {
-			stat->median = histogram_median_float(data, stat->ngoodpix, threads) * stat->normValue;
-		}
+		stat->median = histogram_median_float(data, stat->ngoodpix, threads) * stat->normValue;
 	}
 
 	/* Calculation of average absolute deviation from the median */

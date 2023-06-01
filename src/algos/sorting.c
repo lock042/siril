@@ -24,7 +24,6 @@
 
 #include <string.h>
 #include <math.h>
-#include <assert.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -642,115 +641,11 @@ double histogram_median(WORD *a, size_t n, threading_type threading) {
 	return (n % 2 == 0) ? (double) (i + j - 2) / 2.0 : (double) (i - 1);
 }
 
-// This is a modified version of histogram_median to return an array of percentiles instead of just the median
-double histogram_percentiles(WORD *a, size_t n, float *valprct, int nprct, threading_type threading) {
-
-	assert(nprct % 2 == 1); // we need to have an odd number of buckets to have the median
-	float *Prct = malloc(nprct * sizeof(float));
-	float pace = 1.f / (float)(nprct - 1);
-	if (nprct == 1)
-		Prct[0] = 0.5;
-	else {
-		for (int i = 0; i < nprct; i++)
-			Prct[i] = (float)i * pace;
-	}
-
-	threading = limit_threading(&threading, 2000000, n);
-#ifndef _OPENMP
-	threading = SINGLE_THREADED;
-#endif
-	const size_t s = sizeof(unsigned int);
-	unsigned int *h = (unsigned int*) calloc(USHRT_MAX + 1, s);
-	if (!h) {
-		PRINT_ALLOC_ERR;
-		return -1.;
-	}
-
-	if (threading == SINGLE_THREADED) {
-		for (size_t i = 0; i < n; i++) {
-			h[a[i]]++;
-		}
-	}
-#ifdef _OPENMP
-	else {
-		/* parallel version */
-#pragma omp parallel num_threads(threading) if (threading > 1)
-		{
-			unsigned int *hthr = (unsigned int*) calloc(USHRT_MAX + 1, s);
-			if (!hthr) {
-				PRINT_ALLOC_ERR;
-			}
-			else {
-#pragma omp for schedule(static) nowait
-				for (size_t i = 0; i < n; i++) {
-					hthr[a[i]]++;
-				}
-				/* this critical block doesn't only apply to this parallel group,
-				 * but to the callers as well, so it prevents this function from
-				 * running in parallel with one thread for each call */
-#pragma omp critical
-				{
-					// add per-thread histogram to main histogram
-#pragma omp simd
-					for (int ii = 0; ii <= USHRT_MAX; ++ii) {
-						h[ii] += hthr[ii];
-					}
-				}
-				free(hthr);
-			}
-		}
-	}
-#endif
-	
-    size_t k = 0;
-    size_t count = 0;
-    for (int i = 0; i < n; i++) {
-        // find (Prct*size) smallest value
-        const float thresh = Prct[i] * n;
-        while (count < thresh) {
-            count += h[k++];
-        }
-
-        if (k > 0) { // interpolate
-            const size_t count_ = count - h[k - 1];
-            const float c0 = count - thresh;
-            const float c1 = thresh - count_;
-            *(valprct + i) = (c1 * k + c0 * (k - 1)) / (c0 + c1);
-        } else {
-            *(valprct + i) = k;
-        }
-    }
-
-	free(h);
-	return *(valprct + (nprct - 1) / 2);
-}
-
 double histogram_median_float(float *a, size_t n, threading_type threading) {
 	float median;
 	int threads = check_threading(&threading);
 	findMinMaxPercentile(a, n, 0.5f, &median, 0.5f, &median, threads);
 	return median;
-}
-
-// This is a modified version of histogram_median_float to return an array of percentiles instead of just the median
-double histogram_percentiles_float(float *a, size_t n, float *valprct, int nprct, threading_type threading) {
-	assert(nprct % 2 == 1); // we need to have an odd number of buckets to have the median
-	float median;
-	int threads = check_threading(&threading);
-	if (nprct == 1) {
-		float f = 0.5f;
-		if(!findPercentiles(a, n, &f, &median, 1, threads))
-			return (double)median;
-		else
-			return -1.0;
-	}
-	float *Prct = malloc(nprct * sizeof(float));
-	float pace = 1.f / (float)(nprct - 1);
-	for (int i = 0; i < nprct; i++)
-		Prct[i] = (float)i * pace;
-	if(!findPercentiles(a, n, Prct, valprct, nprct, threads))
-		return (double)valprct[(nprct - 1) / 2];
-	return -1.0;
 }
 
 /**

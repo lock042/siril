@@ -17,8 +17,6 @@ double quickmedian_int(int *a, size_t n);
 /* Histogram median for very large array of unsigned short */
 double histogram_median(WORD *a, size_t n, threading_type threading);
 double histogram_median_float(float *a, size_t n, threading_type threading);
-double histogram_percentiles(WORD *a, size_t n, float *valprct, int nprct, threading_type threading);
-double histogram_percentiles_float(float *a, size_t n, float *valprct, int nprct, threading_type threading);
 
 /* Sorting netnork */
 double sortnet_median(WORD *a, size_t n);

@@ -284,7 +284,6 @@ typedef struct {
 	     ngoodpix;	// number of non-zero pixels
 	double mean, median, sigma, avgDev, mad, sqrtbwmv,
 	       location, scale, min, max, normValue, bgnoise;
-	float cdf[NBUCKETS];
 	atomic_int* _nb_refs;	// reference counting for data management
 } imstats;
 

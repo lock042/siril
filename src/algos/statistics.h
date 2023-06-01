@@ -13,7 +13,6 @@ struct stat_data {
 };
 
 #define NULL_STATS -999999.0
-#define NULL_STATSF -999999.F
 
 #define STATS_MINMAX	(1 << 0)    // min, max
 #define STATS_SIGMEAN	(1 << 1)    // noise, mean, sigma
@@ -24,7 +23,6 @@ struct stat_data {
 #define STATS_IKSS	(1 << 6)    // IKSS, used for normalisation
 
 #define STATS_FOR_CFA	(1 << 7)    // work on CFA channels
-#define STATS_CDF (1 << 8)
 
 #define STATS_MAIN	(STATS_BASIC | STATS_AVGDEV | STATS_MAD | STATS_BWMV)
 #define STATS_EXTRA	(STATS_MAIN | STATS_IKSS)
@@ -69,5 +67,7 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels);
 
 int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise);
+
+void summarize_floatbuf(const fits *fit, float *input, const int nbuckets, float* output, int threads);
 
 #endif

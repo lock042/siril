@@ -25,7 +25,6 @@ namespace rtengine {
 }
 #endif
 void findMinMaxPercentile(const float* data, size_t size, float minPrct, float* minOut, float maxPrct, float* maxOut, int threads);
-int findPercentiles(const float* data, size_t size, float *Prct, float *minOut, int n, int threads);
 #ifdef __cplusplus
 }
 #endif
