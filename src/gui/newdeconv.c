@@ -1216,15 +1216,15 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			set_progress_bar_data(_("Starting non-blind deconvolution..."), 0);
 		gettimeofday(&t_start, NULL);
+		msg_wiener = g_strdup_printf("%s", _("Wiener deconvolution..."));
+		msg_earlystop = g_strdup_printf("%s", _("Richardson-Lucy halted early by the stopping criterion after iteration"));
+		msg_rl = g_strdup_printf("%s", _("Richardson-Lucy deconvolution..."));
 		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
 			case DECONV_SB:
 				split_bregman(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, fftw_max_thread);
 				break;
 			case DECONV_RL:
-				msg_wiener = g_strdup_printf("%s", _("Wiener deconvolution..."));
-				msg_earlystop = g_strdup_printf("%s", _("Richardson-Lucy halted early by the stopping criterion after iteration"));
-				msg_rl = g_strdup_printf("%s", _("Richardson-Lucy deconvolution..."));
 				if (args.rl_method == RL_MULT) {
 					if (args.regtype == REG_TV_GRAD)
 						args.regtype = REG_TV_MULT;
@@ -1232,23 +1232,22 @@ gpointer deconvolve(gpointer p) {
 						args.regtype = REG_FH_MULT;
 					else args.regtype = REG_NONE_MULT;
 				}
-
 				if (args.ks < com.pref.fftw_conf.fft_cutoff)
 					naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 				else
 					fft_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 
-				free(msg_rl);
-				msg_rl = NULL;
-				free(msg_wiener);
-				msg_wiener = NULL;
-				free(msg_earlystop);
-				msg_earlystop = NULL;
 				break;
 			case DECONV_WIENER:
 				wienerdec(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, fftw_max_thread);
 				break;
 		}
+		g_free(msg_rl);
+		msg_rl = NULL;
+		g_free(msg_wiener);
+		msg_wiener = NULL;
+		g_free(msg_earlystop);
+		msg_earlystop = NULL;
 		gettimeofday(&t_end, NULL);
 		if (sequence_is_running == 0) {
 			show_time(t_start, t_end);
@@ -1418,12 +1417,48 @@ static void DrawPSF() {
 
 ///////// ****** SEQUENCE PROCESSING ****** //////////
 
-static int deconvolution_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gboolean for_writer) {
 // The deconvolution routines use FFTW which optimises its planning on the basis of the virtual
 // memory model and available threads. It is therefore pragmatic to allow FFTW to optimise itself
-// and run the sequence sequentially rather than in parallel.
-	return 1;
+// and run the sequence sequentially rather than in parallel. The memory hook therefore only checks
+// that at least one image can be processed.
+
+// Allocations table
+// Assume kernel size is small c/w image size
+// All: allocate float whc (fdata)
+// Color images - allocate float whc (xyzdata) but then free fdata
+// c == 1 when passed to deconvolve.cpp
+// Allocate float wh (img_t<float> f)
+// Wiener: 8 x wh (3 x complex float buffers) + 1 x complex buffer used by fftw as the transform is not in-place
+// RL (FFT): 13 x wh (4 x complex float buffers, 3 x float buffers) + 1 x complex buffer used by fftw as the transform is not in-place
+// RL (naive): 6 x wh (6 x float buffers)
+// SB: 16 x wh (!) (6 x complex float buffers + 3 x float buffers) + 1 x complex buffer used by fftw as the transform is not in-place
+	unsigned int MB_per_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(seqargs->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	if (limit > 0) {
+		int is_float = get_data_type(seqargs->seq->bitpix) == DATA_FLOAT;
+		int float_multiplier = (is_float) ? 1 : 2;
+		int MB_per_float_image = MB_per_image * float_multiplier;
+		int required = MB_per_float_image * 2;
+		int MB_per_float_chan = float_multiplier * ceil(MB_per_image / seqargs->seq->nb_layers);
+		if (args.nonblindtype == DECONV_SB) {
+			required += MB_per_float_chan * 16;
+		} else if (args.nonblindtype == DECONV_RL) {
+			if (args.ks < com.pref.fftw_conf.fft_cutoff) {
+				required += MB_per_float_chan * 6; // Naive deconvolution
+			} else {
+				required += MB_per_float_chan * 13; // FFT deconvolution
+			}
+		} else if (args.nonblindtype == DECONV_WIENER) {
+			required += MB_per_float_chan * 8;
+		}
+		limit = MB_avail / required;
+	}
+	// Limit to 1 image at a time anyway, to support FFTW planning optimizations
+	limit = (limit >= 1 ? 1 : 0);
+	return limit;
 }
+
 int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
 	int retval = seq_finalize_hook(seqargs);

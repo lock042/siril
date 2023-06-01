@@ -80,7 +80,12 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				memcpy(ref_naxes, naxes, sizeof naxes);
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
-				if (naxis != ref_naxis || naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
+				if (naxes[2] != ref_naxes[2]) {
+					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
+					status = 1;
+					break;
+				}
+				if (naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
 					if (com.pref.allow_heterogeneous_fitseq)
 						homogeneous = FALSE;
 					else {
@@ -105,7 +110,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	else {
 		if (!homogeneous)
 			siril_log_message(_("Several images were found in the FITS file but they have different parameters.\n"));
-		// this ^ is printed too often, maybe we can add a verbose flag?
+		// this is printed too often, maybe we can add a verbose flag?
 		*nb_im = nb_images;
 		siril_debug_print("found %d images in the FITS sequence\n", nb_images);
 		// we could realloc *hdus, but it's not much useful
@@ -325,6 +330,7 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 	fitseq->writer = malloc(sizeof(struct seqwriter_data));
 	fitseq->writer->write_image_hook = fitseq_write_image_for_writer;
 	fitseq->writer->sequence = fitseq;
+	fitseq->writer->output_type = SEQ_FITSEQ;
 	siril_debug_print("Successfully created the FITS sequence file %s, for %d images, waiting for data\n",
 			fitseq->filename, fitseq->frame_count);
 
@@ -378,6 +384,9 @@ static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 	retval |= fitseq_multiple_close(fitseq);
 	int status = 0;
 	fits_close_file(fitseq->fptr, &status);
+	if (retval && fitseq->filename)
+		if (g_unlink(fitseq->filename))
+			siril_debug_print("g_unlink() failed\n");
 	if (fitseq->filename)
 		free(fitseq->filename);
 	if (fitseq->hdu_index)

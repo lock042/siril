@@ -581,7 +581,7 @@ int set_seq(const char *name){
 		adjust_refimage(seq->current);	// check or uncheck reference image checkbox
 		update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
 		update_reg_interface(FALSE);	// change the registration prereq message
-		//	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
+		update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
 		adjust_reginfo();		// change registration displayed/editable values
 		update_gfit_histogram_if_needed();
 		adjust_sellabel();
@@ -832,6 +832,11 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			}
 			else return 1;
 			break;
+	}
+	if (seq->nb_layers > 0 &&  seq->nb_layers != dest->naxes[2]) {
+		siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"), "red", 
+			index, dest->naxes[2], seq->nb_layers);
+		return 1;
 	}
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
@@ -1461,7 +1466,7 @@ int sequence_find_refimage(sequence *seq) {
 		return 1; // green channel
 	int layer, image, best = -1;
 	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam[layer]) {
+		if (seq->regparam && seq->regparam[layer]) {
 			gboolean use_fwhm;
 			double best_val;
 			if (seq->regparam[layer][0].fwhm > 0.0) {

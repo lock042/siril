@@ -55,6 +55,7 @@ src/filters/fft.c
 src/filters/ght.c
 src/filters/median.c
 src/filters/mtf.c
+src/filters/nlbayes/call_nlbayes.cpp
 src/filters/rgradient.c
 src/filters/saturation.c
 src/filters/scnr.c

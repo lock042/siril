@@ -21,6 +21,7 @@
 #define SRC_CORE_SIRIL_DATE_H_
 
 #include <glib.h>
+#include <stdint.h>
 
 gchar *build_timestamp_filename();
 GDateTime *ser_timestamp_to_date_time(guint64 timestamp);
@@ -30,5 +31,6 @@ GDateTime *FITS_date_to_date_time(gchar *date);
 gchar *date_time_to_FITS_date(GDateTime *date);
 gchar *date_time_to_date(GDateTime *datetime);
 gchar *date_time_to_date_time(GDateTime *datetime);
+GDateTime *julian_sec_to_date(uint32_t jsecs, uint32_t ms);
 
 #endif /* SRC_CORE_SIRIL_DATE_H_ */

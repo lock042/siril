@@ -18,6 +18,12 @@ option('json_glib',
  description: 'build with json glib support'
 )
 
+option('exiv2',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with exiv2 support'
+)
+
 option('libraw',
  type : 'boolean',
  value : 'true',

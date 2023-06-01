@@ -230,3 +230,13 @@ gchar *date_time_to_date_time(GDateTime *datetime) {
 	return g_date_time_format(datetime, format);
 }
 
+// jsecs is the number of seconds since julian day 2450000.5: 00:00:00 UT on October 10, 1995
+GDateTime *julian_sec_to_date(uint32_t jsecs, uint32_t us) {
+	//double day = jsecs / 86400.0 - 2440587.5;
+	GDateTime *JD245 = g_date_time_new_utc(1995, 10, 10, 0, 0, 0.0);
+	GDateTime *date1 = g_date_time_add_seconds(JD245, jsecs);
+	GDateTime *date = g_date_time_add_seconds(date1, us / 1000000.0);
+	g_date_time_unref(JD245);
+	g_date_time_unref(date1);
+	return date;
+}

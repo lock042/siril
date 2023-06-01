@@ -171,14 +171,6 @@ deps-debian:
     - export PATH="${INSTALL_PREFIX}/bin:$PATH"
   needs: ["deps-debian"]
 
-siril-deb-autotools:
-  extends: .siril-debian/testing-base
-  script:
-    - NOCONFIGURE=1 ./autogen.sh
-    - mkdir ${BUILD_DIR} && cd ${BUILD_DIR}
-    - ../configure --prefix=${INSTALL_PREFIX}
-    - make -j "$(nproc)" all install
-
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
@@ -265,12 +257,12 @@ siril-win64:
 ################################################################################
 # macOS CI
 
-siril-macos:
+macos:
   stage: packaging
   image: macos-12-xcode-13
   parallel:
     matrix:
-      - RUNNER: [ "macosarm", "shared-macos-amd64" ]
+      - RUNNER: [ "macosarm", "macosintel" ]
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
@@ -278,18 +270,17 @@ siril-macos:
       variables:
         ARCHITECTURE: arm64
         SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
-    - if: $RUNNER == "shared-macos-amd64"
+    - if: $RUNNER == "macosintel"
       variables:
         ARCHITECTURE: x86_64
         MACOSX_DEPLOYMENT_TARGET: "10.13"
-        SYS_USRLOCAL_IGNORE: "true"
   tags:
     - ${RUNNER}
   variables:
     REP_DIR: /Users/Shared/data
     SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.30_$ARCHITECTURE.dmg
-    RELEASE_TAG: r9
+    RELEASE_ARCHIVE: jhb-0.32_$ARCHITECTURE.dmg
+    RELEASE_TAG: r10
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename

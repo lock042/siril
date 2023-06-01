@@ -303,14 +303,24 @@ gboolean end_plate_solver(gpointer p) {
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {
-		char *title = siril_log_color_message(_("Plate Solving failed. "
-				"The image could not be aligned with the reference stars.\n"), "red");
-		if (!args->message) {
-			args->message = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
-					"are too far from the real metadata of the image.\n\n"
-					"You could also try to look into another catalogue, or try to click on the \"Downsampling\" button, especially for image done with Drizzle.\n\n"
-					"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
+		char *title;
+		if (args->ret == ERROR_PHOTOMETRY) {
+			title = siril_log_color_message(_("Photometry failed.\n"), "red");
+			if (!args->message) {
+				args->message = g_strdup(_("Photometry could not be performed. "
+						"You can try to adjust the settings in the Siril preferences."));
+			}
+		} else {
+			title = siril_log_color_message(_("Plate Solving failed. "
+					"The image could not be aligned with the reference stars.\n"), "red");
+			if (!args->message) {
+				args->message = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
+						"are too far from the real metadata of the image.\n\n"
+						"You could also try to look into another catalogue, or try to click on the \"Downsampling\" button, especially for image done with Drizzle.\n\n"
+						"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
+			}
 		}
+
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 		g_free(args->message);
 	} else {
@@ -437,6 +447,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			g_signal_emit_by_name(GTK_TREE_VIEW(GtkTreeViewIPS), "cursor-changed");
 		}
 	}
+	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_cursor_waiting(FALSE);
 }
 

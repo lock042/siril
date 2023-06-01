@@ -116,7 +116,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     imSize.wh = width * height;
     imSize.whc = width * height * nchans;
 
-    set_progress_bar_data("NL-Bayes denoising...", 0.0);
+    set_progress_bar_data(_("NL-Bayes denoising..."), 0.0);
 
     if(!get_thread_run()) {
       return EXIT_FAILURE;

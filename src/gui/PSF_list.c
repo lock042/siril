@@ -133,6 +133,8 @@ static void gdouble_ra_cell_data_function(GtkTreeViewColumn *col,
 		} else {
 			buf = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
 		}
+		siril_world_cs_unref(world_cs);
+
 	}
 	g_object_set(renderer, "text", buf, NULL);
 
@@ -155,6 +157,7 @@ static void gdouble_dec_cell_data_function(GtkTreeViewColumn *col,
 		} else {
 			buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 		}
+		siril_world_cs_unref(world_cs);
 	}
 	g_object_set(renderer, "text", buf, NULL);
 
@@ -522,8 +525,9 @@ static void set_filter(GtkFileChooser *dialog) {
 
 static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 	GError *error = NULL;
-    GFile *file = g_file_new_for_path(filename);
-    GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+	gboolean ret = TRUE;
+	GFile *file = g_file_new_for_path(filename);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 	if (output_stream == NULL) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
@@ -534,72 +538,76 @@ static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 		return;
 	}
 
-    GDataOutputStream *data_stream = g_data_output_stream_new(G_OUTPUT_STREAM(output_stream));
+	GDataOutputStream *data_stream = g_data_output_stream_new(
+			G_OUTPUT_STREAM(output_stream));
 
-    // Write header
-    gint n_columns = gtk_tree_view_get_n_columns(treeview);
-    for (gint i = 0; i < n_columns; i++) {
-        if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
-            const gchar *column_name = gtk_tree_view_column_get_title(gtk_tree_view_get_column(treeview, i));
-            g_data_output_stream_put_string(data_stream, column_name, NULL, NULL);
-            if (i < n_columns - 1) {
-                gint next_column = i + 1;
-                while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
-                    next_column++;
-                    if (next_column >= n_columns) {
-                        break;
-                    }
-                }
-                if (next_column < n_columns) {
-                    g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
-                }
-            }
-        }
-    }
-    g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+	// Write header
+	gint n_columns = gtk_tree_view_get_n_columns(treeview);
+	for (gint i = 0; i < n_columns; i++) {
+		if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
+			const gchar *column_name = gtk_tree_view_column_get_title(gtk_tree_view_get_column(treeview, i));
+			ret &= g_data_output_stream_put_string(data_stream, column_name, NULL, NULL);
+			if (i < n_columns - 1) {
+				gint next_column = i + 1;
+				while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+					next_column++;
+					if (next_column >= n_columns) {
+						break;
+					}
+				}
+				if (next_column < n_columns) {
+					ret &= g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+				}
+			}
+		}
+	}
+	ret &= g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
 
-    // Write row data
-    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
-    GtkTreeIter iter;
-    gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
-    while (valid) {
-        for (gint i = 0; i < n_columns; i++) {
-            if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
-                GValue value = G_VALUE_INIT;
-                gtk_tree_model_get_value(model, &iter, i, &value);
-                if (G_VALUE_TYPE(&value) == G_TYPE_DOUBLE) {
-                    gdouble dbl_value = g_value_get_double(&value);
-                    gchar *str_value = g_strdup_printf("%g", dbl_value);
-                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
-                    g_free(str_value);
-                } else if (G_VALUE_TYPE(&value) == G_TYPE_INT) {
-                    gint int_value = g_value_get_int(&value);
-                    gchar *str_value = g_strdup_printf("%d", int_value);
-                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
-                    g_free(str_value);
-                }
-                if (i < n_columns - 1) {
-                    gint next_column = i + 1;
-                    while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
-                        next_column++;
-                        if (next_column >= n_columns) {
-                            break;
-                        }
-                    }
-                    if (next_column < n_columns && gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
-                        g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
-                    }
-                }
-                g_value_unset(&value);
-            }
-        }
-        g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+	// Write row data
+	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+	GtkTreeIter iter;
+	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+	while (valid) {
+		for (gint i = 0; i < n_columns; i++) {
+			if (gtk_tree_view_column_get_visible(
+					gtk_tree_view_get_column(treeview, i))) {
+				GValue value = G_VALUE_INIT;
+				gtk_tree_model_get_value(model, &iter, i, &value);
+				if (G_VALUE_TYPE(&value) == G_TYPE_DOUBLE) {
+					gdouble dbl_value = g_value_get_double(&value);
+					gchar *str_value = g_strdup_printf("%g", dbl_value);
+					ret &= g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+					g_free(str_value);
+				} else if (G_VALUE_TYPE(&value) == G_TYPE_INT) {
+					gint int_value = g_value_get_int(&value);
+					gchar *str_value = g_strdup_printf("%d", int_value);
+					ret &= g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+					g_free(str_value);
+				}
+				if (i < n_columns - 1) {
+					gint next_column = i + 1;
+					while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+						next_column++;
+						if (next_column >= n_columns) {
+							break;
+						}
+					}
+					if (next_column < n_columns && gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+						ret &= g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+					}
+				}
+				g_value_unset(&value);
+			}
+		}
+		ret &= g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
 
-        valid = gtk_tree_model_iter_next(model, &iter);
-    }
-    g_object_unref(data_stream);
-    g_object_unref(output_stream);
-    g_object_unref(file);
+		valid = gtk_tree_model_iter_next(model, &iter);
+	}
+	if (!ret)
+		siril_log_color_message(_("Error: error writing the CSV.\n"), "red");
+	g_object_unref(data_stream);
+	g_object_unref(output_stream);
+	g_object_unref(file);
 }
 
 
@@ -631,12 +639,14 @@ static void save_stars_dialog() {
 static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
 	if (has_wcs(&gfit)) {
-		double world_x, world_y;
-		SirilWorldCS *world_cs;
+		// coordinates of the star in FITS/WCS coordinates
+		double fx, fy;
+		display_to_fits(star->xpos, star->ypos, &fx, &fy, gfit.ry);
 
-		pix2wcs(&gfit, star->xpos, (double) gfit.ry - star->ypos, &world_x, &world_y);
-		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
-
+		double ra, dec;
+		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		// *alpha = ra would work too instead of all this?
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
 			double a = siril_world_cs_get_alpha(world_cs);
 			double d = siril_world_cs_get_delta(world_cs);
@@ -806,112 +816,9 @@ void pick_a_star() {
 	redraw(REDRAW_OVERLAY);
 }
 
-static gchar *build_wcs_url(gchar *ra, gchar *dec) {
-	if (!has_wcs(&gfit)) return NULL;
-
-	double resolution = get_wcs_image_resolution(&gfit);
-
-	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
-
-	GString *url = g_string_new("https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=");
-	url = g_string_append(url, ra);
-	url = g_string_append(url, dec);
-	url = g_string_append(url, "&Radius=");
-	url = g_string_append(url, tol);
-	url = g_string_append(url, "&Radius.unit=arcsec");
-	url = g_string_append(url, "#lab_basic");
-
-	gchar *simbad_url = g_string_free(url, FALSE);
-	gchar *cleaned_url = url_cleanup(simbad_url);
-
-	g_free(tol);
-	g_free(simbad_url);
-
-	return cleaned_url;
-}
-
-static const char *SNR_quality(double SNR) {
-	if (SNR > 40.0) return _("Excellent");
-	if (SNR > 25.0) return _("Good");
-	if (SNR > 15.0) return _("Fair");
-	if (SNR > 10.0) return _("Poor");
-	if (SNR > 0.0) return _("Bad");
-	else return _("N/A");
-}
-
 void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
-	gchar *msg, *coordinates, *url = NULL;
-	char buffer2[50];
-	const char *str;
-	if (com.magOffset > 0.0)
-		str = _("true reduced");
-	else
-		str = _("relative");
-
-	double x = result->x0 + area->x;
-	double y = area->y + area->h - result->y0;
-	if (has_wcs(&gfit)) {
-		double world_x, world_y;
-		SirilWorldCS *world_cs;
-
-		pix2wcs(&gfit, x, (double) gfit.ry - y, &world_x, &world_y);
-		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
-		if (world_cs) {
-			gchar *ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
-			gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
-
-			url = build_wcs_url(ra, dec);
-			// TODO: change with vizier
-			// TODO: use box size as radius
-
-			g_free(ra);
-			g_free(dec);
-
-			if (com.pref.gui.show_deciasec) {
-				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.1lfs");
-				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
-			} else {
-				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
-				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
-			}
-
-			coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
-
-			g_free(ra);
-			g_free(dec);
-			siril_world_cs_unref(world_cs);
-		} else {
-			coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
-		}
-	} else {
-		coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
-	}
-
-	double fwhmx, fwhmy;
-	char *unts;
-	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
-	const gchar *chan = isrgb(fit) ? channel_number_to_name(result->layer) : _("monochrome");
-	if (result->beta > 0.0) {
-		g_snprintf(buffer2, 50, ", beta=%0.1f, %s channel", result->beta, chan);
-	}
-	else {
-		g_snprintf(buffer2, 50, "%s, %s channel", "", chan);
-	}
-	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
-				"Centroid Coordinates:\n\t\t%s\n\n"
-				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
-				"Angle:\n\t\t%0.2fdeg\n\n"
-				"Background Value:\n\t\tB=%.6f\n\n"
-				"Maximal Intensity:\n\t\tA=%.6f\n\n"
-				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
-				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
-				"RMSE:\n\t\tRMSE=%.3e"),
-			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
-			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
-			result->angle, result->B, result->A, str,
-			result->mag + com.magOffset, result->s_mag, result->SNR,
-			SNR_quality(result->SNR), result->rmse);
-	g_free(coordinates);
+	gchar *url = NULL;
+	gchar *msg = format_psf_result(result, area, fit, &url);
 	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(msg);
 	g_free(url);
