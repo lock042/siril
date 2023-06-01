@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-05-19 22:43+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"PO-Revision-Date: 2023-06-02 07:56+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1658,7 +1658,7 @@ msgstr "Vollständige Variation"
 
 #: src/gui/siril3.glade:7596
 msgid "Frobenius norm of Hessian"
-msgstr "Frobenius norm of Hessian"
+msgstr "Frobeniusnorm"
 
 #: src/gui/siril3.glade:7610
 msgid "Alpha (α)"
@@ -1679,7 +1679,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:7636
 msgid "Regularization"
-msgstr "Regularization"
+msgstr "Regulierung"
 
 #: src/gui/siril3.glade:7648
 msgid "Gradient descent step size"
@@ -2898,7 +2898,7 @@ msgstr "S"
 
 #: src/gui/siril3.glade:11819
 msgid "This button is checked for negative declination (southern hemisphere)."
-msgstr "Button für negative Deklination (Süd-Hemisphäre)"
+msgstr "Button für negative Deklination (Süd-Hemisphäre)."
 
 #: src/gui/siril3.glade:11832
 msgid ""
@@ -3344,7 +3344,7 @@ msgstr "Ra"
 
 #: src/gui/siril3.glade:13055
 msgid "Dec"
-msgstr ""
+msgstr "Dek"
 
 #: src/gui/siril3.glade:13069
 msgid "FWHMx"
@@ -3813,7 +3813,7 @@ msgid ""
 "This research has made use of IMCCE's SkyBoT VO tool."
 msgstr ""
 "Objekte des Sonnensystems mit mag<20.0 suchen und anzeigen.\n"
-"Diese  Forschung nutzt das IMCCE SkyBoT VO Tool."
+"Diese Forschung nutzt das IMCCE SkyBoT VO Tool."
 
 #: src/gui/siril3.glade:14685
 msgid "Solar System Objects"
@@ -4012,7 +4012,7 @@ msgid ""
 msgstr ""
 "Präfix für die CFA-Nummern in den aufgetrennten CFA-Kanalbildern. Dies "
 "sollte auf das Präfix gesetzt werden welches genutzt wurde um den Split-CFA-"
-"Prozess auszuführen. (Standard: CFA_)"
+"Prozess auszuführen. (Standard: CFA_)."
 
 #: src/gui/siril3.glade:15322
 msgid "Prefix of the image names resulting from the merge CFA process."
@@ -4324,7 +4324,7 @@ msgstr ""
 "Ausdrücken verwendet werden.\n"
 "Wenn z.B Parameter gesetzt werden mit dem Ausdruck <i>factor=0.8, K=0.2,</"
 "i>, jedes Vorkommen der Parameter <i>factor</i> und <i>K</i> in der obigen "
-"Formel werden jeweils mit 0.8 and 0.2 ersetzt.\n"
+"Formel werden jeweils mit 0.8 und 0.2 ersetzt.\n"
 "<i>Ha * factor + OIII * K</i> wird deswegen zu <i>Ha * 0.8 + OIII * 0.2</i>"
 
 #: src/gui/siril3.glade:17211
@@ -4342,7 +4342,7 @@ msgid ""
 msgstr ""
 "Aktivieren Sie dies Option, um die Pixelwerte des resultierenden Bildes auf "
 "den angegebenen Ausgabebereich neu zu skalieren (siehe die Parameter Untere "
-"Begrenzung und Obere Begrenzung  weiter unten)."
+"Begrenzung und Obere Begrenzung weiter unten)"
 
 #: src/gui/siril3.glade:17256
 msgid ""
@@ -4621,7 +4621,7 @@ msgid ""
 msgstr ""
 "Erstellt eine synthetische Gauß/Moffat-Sternmaske mit perfekten Profilen für "
 "jeden Stern, der von Sirils Sternerkennungsroutine erkannt wird, indem "
-"Parameter verwendet werden, die in den Originaldaten gemessen wurden.  Die "
+"Parameter verwendet werden, die in den Originaldaten gemessen wurden. Die "
 "Sternmaske kann mit einem sternlosen Bild neu kombiniert werden um "
 "Aberrationen/Verzerrungen zu korrigieren.\n"
 "Die Sternsynthese sollte <i>vor</i> auf ungestreckte Bilder angewendet "
@@ -4646,7 +4646,7 @@ msgstr "Farbkalibrierung..."
 
 #: src/gui/siril3.glade:18095
 msgid "Open the photometric color calibration dialog"
-msgstr "Öffnet den photometrischen Farbkalibrierungsdialog"
+msgstr "Photometrischen Farb-Kalibrierungsdialog öffnen"
 
 #: src/gui/siril3.glade:18097
 msgid "Photometric Color Calibration..."
@@ -5242,7 +5242,7 @@ msgstr "Breite des ausgegebenen Videos"
 
 #: src/gui/siril3.glade:20786
 msgid "x"
-msgstr ""
+msgstr "x"
 
 #: src/gui/siril3.glade:20799
 msgid "Height of output video"
@@ -5485,8 +5485,8 @@ msgstr ""
 "<i>find_hot</i> erstellt, der auf ein Dunkelbild oder ein Master-Dark "
 "angewendet wird. Die Datei ist wie folgt aufgebaut:\n"
 "\n"
-"* Die Angabe <i>P x y type</i> repariert die Pixel an den Koordinaten (x, "
-"y), type ist ein optionaler Wert  (<i>C</i>or <i>H</i>) und spezifiert für "
+"* Die Angabe <i>P x y type</i> repariert die Pixel an den Koordinaten (x, y)"
+", type ist ein optionaler Wert (<i>C</i>or <i>H</i>) und spezifiert für "
 "SIRIL ob der aktuelle Pixel ein kalter oder heißer Pixel ist.\n"
 "* Die Angabe <i>C x 0 type</i> repariert die schlechte Spalte an den "
 "Koordinaten <i>x</i>.\n"
@@ -5499,7 +5499,7 @@ msgid ""
 "extension."
 msgstr ""
 "Laden Sie die fehlerhafte Pixelmap-Datei. Diese Datei muss die Dateiendung "
-"<i>*.lst</>  haben."
+"<i>*.lst</> haben."
 
 #: src/gui/siril3.glade:21494
 msgid "Bad Pixel Map"
@@ -6051,8 +6051,8 @@ msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
 msgstr ""
-"Wählen Sie zwischen  % and k-σ , um einen bestimmten Teil der Bilder "
-"beizubehalten odern den zulässigen Schwellenwert des k-σ Clippings beim "
+"Wählen Sie zwischen % and k-σ , um einen bestimmten Teil der Bilder "
+"beizubehalten oder den zulässigen Schwellenwert des k-σ Clippings beim "
 "anzugeben."
 
 #: src/gui/siril3.glade:22735 src/gui/siril3.glade:22862
@@ -6472,7 +6472,7 @@ msgid ""
 msgstr ""
 "Zeichne eine Kurve des Veränderlichen Sterns. Der Veränderliche muß "
 "natürlich zunächst analysiert werden, erst danach werden weitere PSF auf "
-"Referenzsterne angewandt. Es sind maximal 6 Referenzsterne erlaubt.  Wählen "
+"Referenzsterne angewandt. Es sind maximal 6 Referenzsterne erlaubt. Wählen "
 "Sie 'Magnitude' in der angzeigten Grafik um diese Funktion zu aktivieren.\n"
 "ACHTUNG: Gnuplot muß installiert sein."
 
@@ -7533,7 +7533,7 @@ msgstr "Qualität der X-Trans-Demosaikierung"
 
 #: src/gui/siril3.glade:27913
 msgid "1"
-msgstr ""
+msgstr "1"
 
 #: src/gui/siril3.glade:27948
 msgid "FITS/SER Debayer"
@@ -7938,7 +7938,7 @@ msgstr ""
 "\n"
 "<b>USNO-NOMAD-1e8.dat</b>: ein Auszug aus dem riesigen NOMAD-Katalog, der "
 "sich auf photometrische B-V-Informationen und die Eigenbewegung von Sternen "
-"in kompakter Form bis zur Helligkeit  18 beschränkt."
+"in kompakter Form bis zur Helligkeit 18 beschränkt."
 
 #: src/gui/siril3.glade:28814
 msgid ""
@@ -8125,7 +8125,7 @@ msgid ""
 msgstr ""
 "Wählen Sie ein Master-Bias, dass als allgemeines Master-Bias verwendet "
 "werden kann, indem Sie auf die Schaltfläche \"Als Standard verwenden\" "
-"klicken."
+"klicken"
 
 #: src/gui/siril3.glade:29259
 msgid ""
@@ -9015,7 +9015,7 @@ msgstr "Zum Sequenz-Reiter wechseln"
 #: src/gui/siril-shortcuts.ui:246
 msgctxt "shortcut window"
 msgid "Switch to the Pre-Processing page"
-msgstr "Zum  Pre-Processing-Reiter wechseln"
+msgstr "Zum Pre-Processing-Reiter wechseln"
 
 #: src/gui/siril-shortcuts.ui:253
 msgctxt "shortcut window"
@@ -9279,12 +9279,11 @@ msgstr "Fehler beim Laden der URL: [%s] - %s\n"
 
 #: src/algos/astrometry_solver.c:428 src/algos/astrometry_solver.c:495
 #: src/algos/astrometry_solver.c:659
-#, fuzzy
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
-"Diese Version von Siril wurde ohne die libtiff-Bibliothek erstellt: Die PSF "
-"im FITS-Format gespeichert.\n"
+"Siril wurde ohne Netzwerkunterstützung kompiliert und kann diese Operation "
+"nicht durchführen.\n"
 
 #: src/algos/astrometry_solver.c:460 src/algos/astrometry_solver.c:548
 #: src/core/command.c:8717
@@ -9573,7 +9572,7 @@ msgstr "Astrometrie / Plate Solving"
 
 #: src/algos/astrometry_solver.c:1913
 msgid "asnet_ansvr directory is not set - aborting\n"
-msgstr "Aktuelles asnet_ansvr  Arbeitsverzeichnis nicht festgelegt. Abbruch.\n"
+msgstr "Aktuelles asnet_ansvr Arbeitsverzeichnis nicht festgelegt. Abbruch.\n"
 
 #: src/algos/astrometry_solver.c:1918
 msgid "solve-field was not found, set its path in the preferences\n"
@@ -9798,7 +9797,7 @@ msgstr "XTRANS Sensor detektiert. Benutze speziellen Algorithmus.\n"
 #: src/algos/demosaicing.c:1256 src/algos/extraction.c:178
 #, c-format
 msgid "Filter Pattern: %s\n"
-msgstr "Filter Pattern: %s\n"
+msgstr "Filtermuster: %s\n"
 
 #: src/algos/demosaicing.c:1262
 msgid "Cannot perform debayering\n"
@@ -9862,9 +9861,7 @@ msgstr "Nicht alle Kanäle sind monochrome\n"
 
 #: src/algos/demosaicing.c:1447
 msgid "Input files not all the same bit depth\n"
-msgstr ""
-"Die Eingabedateien haben nicht alle die gleiche Bittiefe\n"
-"\n"
+msgstr "Die Eingabedateien haben nicht alle die gleiche Bit-Tiefe\n"
 
 #: src/algos/demosaicing.c:1454
 msgid "Error creating output image\n"
@@ -10175,7 +10172,7 @@ msgstr "Stern %s als Referenzstern hinzugefügt\n"
 #: src/algos/photometry.c:606 src/algos/photometry.c:632
 #, c-format
 msgid "Star %s ignored because it was too close to another\n"
-msgstr "Stern %s wird ignoriert, weil  er zu nahe an einem anderen Stern ist\n"
+msgstr "Stern %s wird ignoriert, weil er zu nahe an einem anderen Stern ist\n"
 
 #: src/algos/photometry.c:608 src/algos/photometry.c:634
 #, c-format
@@ -10302,7 +10299,6 @@ msgid ""
 msgstr ""
 "Ermittle Sterne aus lokalen Katalogen für die PCC, mit einem Radius von %.2f "
 "Grad und einer Grenzgröße von %.2f\n"
-"\n"
 
 #: src/algos/photometric_cc.c:454
 msgid "No valid catalog found.\n"
@@ -10756,7 +10752,7 @@ msgstr "Unbekannter Parameter %s, Abbruch.\n"
 #: src/core/command.c:8647 src/core/command.c:8861 src/core/command.c:8935
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
-msgstr "Ungültiges Argument  %s. Abbruch.\n"
+msgstr "Ungültiges Argument %s. Abbruch.\n"
 
 #: src/core/command.c:230
 msgid "Background factor must be positive\n"
@@ -10835,7 +10831,7 @@ msgstr ""
 
 #: src/core/command.c:483
 msgid "Error: SOS iterations must be >= 1. Defaulting to 1.\n"
-msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
+msgstr "Fehler: SOS Wiederholungen müssen >=1 sein. Setze Default 1.\n"
 
 #: src/core/command.c:486
 msgid ""
@@ -10887,7 +10883,7 @@ msgstr ""
 #: src/core/command.c:563 src/core/command.c:649 src/core/command.c:3220
 #: src/core/command.c:3284
 msgid "Error parsing arguments, aborting.\n"
-msgstr "Falsche Argumente,  Abbruch.\n"
+msgstr "Falsche Argumente, Abbruch.\n"
 
 #: src/core/command.c:573 src/core/command.c:660
 msgid ""
@@ -11365,7 +11361,7 @@ msgstr "Kann gespiegeltes Bild nicht speichern: %s\n"
 #: src/core/command.c:8637 src/core/command.c:8732
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
-msgstr "Ungültiges Argument  %s. Abbruch.\n"
+msgstr "Ungültiges Argument %s. Abbruch.\n"
 
 #: src/core/command.c:2749
 #, c-format
@@ -11446,9 +11442,7 @@ msgstr ""
 #: src/core/command.c:2994
 #, c-format
 msgid "Angle %lf not allowed. Should be between 0.0 and 360.0.\n"
-msgstr ""
-"Winkel %lf nicht erlaubt. Sollte zwischen 0,0 und 360,0 liegen.\n"
-"\n"
+msgstr "Winkel %lf nicht erlaubt. Sollte zwischen 0,0 und 360,0 liegen.\n"
 
 #: src/core/command.c:3032
 msgid "-nocrop option is not valid if a selection is active. Ignoring\n"
@@ -11579,8 +11573,7 @@ msgstr ""
 msgid ""
 "Wrong parameter values. Convergence must be between 1 and 3, aborting.\n"
 msgstr ""
-"Falsche Parameterwerte. Die Konvergenz muss zwischen 1 und 3 liegen, "
-"Abbruch.\n"
+"Falsche Parameterwerte. Die Konvergenz muss zwischen 1 und 3 liegen, Abbruch."
 "\n"
 
 #: src/core/command.c:3467 src/core/command.c:3474 src/core/command.c:3481
@@ -11785,9 +11778,7 @@ msgstr "Die Datei %s wurde für Layer %s generiert.\n"
 
 #: src/core/command.c:4250
 msgid "Clearing tilt information\n"
-msgstr ""
-"Lösche die Kippinformationen\n"
-"\n"
+msgstr "Lösche die Kippinformationen\n"
 
 #: src/core/command.c:4271 src/core/command.c:4276 src/core/command.c:4298
 #: src/core/command.c:4315 src/core/command.c:4340
@@ -11797,9 +11788,7 @@ msgstr "Wert zum Ersetzen ist ausserhalb des Wertebereiches (0 - %d)\n"
 
 #: src/core/command.c:4280
 msgid "lo must be strictly smaller than hi\n"
-msgstr ""
-"lo muss unbedingt kleiner als hi sein\n"
-"\n"
+msgstr "lo muss unbedingt kleiner als hi sein\n"
 
 #: src/core/command.c:4356
 msgid "Level value is incorrect\n"
@@ -11833,9 +11822,7 @@ msgstr "Werte müssen positiv und kleiner sein als %d.\n"
 #: src/core/command.c:4421 src/core/command.c:4852
 #, c-format
 msgid "Value must be positive and less than %d.\n"
-msgstr ""
-"Der Wert muss positiv und kleiner als %d sein.\n"
-"\n"
+msgstr "Der Wert muss positiv und kleiner als %d sein.\n"
 
 #: src/core/command.c:4440
 msgid "Fill2: select a region or provide x, y, width, height\n"
@@ -11852,7 +11839,7 @@ msgstr "Diese Sequenz ist Mono, Layernummer wird ignoriert.\n"
 msgid ""
 "Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
 msgstr ""
-"Unbekannte Ebenennummer %s, muss zwischen 0 und 2 liegen,  grüne Ebene wird "
+"Unbekannte Ebenennummer %s, muss zwischen 0 und 2 liegen, grüne Ebene wird "
 "verwendet.\n"
 
 #. limiting values to avoid too long computation or too low number of candidates
@@ -11917,9 +11904,7 @@ msgstr "Der Wert des Betrages muss im Bereich [0, 4] liegen.\n"
 
 #: src/core/command.c:4953 src/core/command.c:4999
 msgid "1/sigma value must be in the [0, 5] range.\n"
-msgstr ""
-"Der Wert von 1/sigma muss im Bereich [0, 5] liegen.\n"
-"\n"
+msgstr "Der Wert von 1/sigma muss im Bereich [0, 5] liegen.\n"
 
 #: src/core/command.c:5076
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
@@ -11942,15 +11927,11 @@ msgstr "Sigma low muss positiv sein.\n"
 
 #: src/core/command.c:5196
 msgid "Sigma high must be positive.\n"
-msgstr ""
-"Sigma high muss positiv sein.\n"
-"\n"
+msgstr "Sigma high muss positiv sein.\n"
 
 #: src/core/command.c:5248
 msgid "The second argument must be between 1 and the number of images.\n"
-msgstr ""
-"Das zweite Argument muss zwischen 1 und der Anzahl der Bilder liegen.\n"
-"\n"
+msgstr "Das zweite Argument muss zwischen 1 und der Anzahl der Bilder liegen.\n"
 
 #: src/core/command.c:5254
 msgid ""
@@ -12021,9 +12002,7 @@ msgstr "Es scheint kein Bild geladen zu sein, Neuladen von '%s'\n"
 #: src/core/command.c:6128
 #, c-format
 msgid "Failed to save the JSON file %s: %s\n"
-msgstr ""
-"Speichern der JSON-Datei %s fehlgeschlagen: %s\n"
-"\n"
+msgstr "Speichern der JSON-Datei %s fehlgeschlagen: %s\n"
 
 #: src/core/command.c:6131
 #, c-format
@@ -12040,23 +12019,20 @@ msgstr ""
 #: src/core/command.c:6163
 #, c-format
 msgid "Image %d, %s = %s\n"
-msgstr ""
-"Bild: %d, %s = %s\n"
-"\n"
+msgstr "Bild: %d, %s = %s\n"
 
 #: src/core/command.c:6172
 msgid "This command can only run for FITS images\n"
 msgstr "Dieser Befehl funktioniert nur mit FITS Bildern\n"
 
 #: src/core/command.c:6191
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create output file: %s\n"
-msgstr "Erstellung der SER-Ausgabedatei `%s' fehlgeschlagen\n"
+msgstr "Erstellung der Ausgabedatei %s fehlgeschlagen\n"
 
 #: src/core/command.c:6197
-#, fuzzy
 msgid "Failed to write to output file\n"
-msgstr "Erstellung der SER-Ausgabedatei `%s' fehlgeschlagen\n"
+msgstr "Erstellung der Ausgabedatei fehlgeschlagen\n"
 
 #: src/core/command.c:6213 src/core/command.c:6340
 msgid ""
@@ -12229,7 +12205,6 @@ msgid ""
 msgstr ""
 "Die Ausgabennormalisierung ist nur bei Median- oder Mittelwert-Stacking "
 "zulässig und wird ignoriert.\n"
-"\n"
 
 #: src/core/command.c:7008 src/core/command.c:7018 src/core/command.c:7026
 #: src/core/command.c:7034
@@ -12295,7 +12270,6 @@ msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
 msgstr ""
 "Ausschlusskarten (Rejection Maps) können nur mit einem Stackingverfahren mit "
 "Ausschluss (Rejection) erstellt werden, Auswahl wird ignoriert.\n"
-"\n"
 
 #: src/core/command.c:7090
 msgid ""
@@ -12304,7 +12278,6 @@ msgid ""
 msgstr ""
 "Ausschlusskarten (RejectionMaps) können nur erstellt werden, wenn Rejection "
 "aktiviert wurde. Auswahl wird ignoriert.\n"
-"\n"
 
 #: src/core/command.c:7098
 #, c-format
@@ -12376,7 +12349,6 @@ msgid ""
 msgstr ""
 "Die zusätzlichen Parameter des GESDT Ausschlussalgorithmus müssen zwischen 0 "
 "und 1 liegen, die Standardeinstellung ist 0,3 und 0,05.\n"
-"\n"
 
 #: src/core/command.c:7369 src/core/command.c:7498
 msgid ""
@@ -12642,7 +12614,7 @@ msgstr "Aktuelle Auswahl [x, y, w, h]: %d %d %d %d\n"
 
 #: src/core/command.c:8133
 msgid "No current selection in image\n"
-msgstr "Keine  aktuelle Auswahl im Bild\n"
+msgstr "Keine aktuelle Auswahl im Bild\n"
 
 #: src/core/command.c:8140
 msgid ""
@@ -12658,9 +12630,7 @@ msgstr "Ausgewählter Bildbereich wurde bereinigt\n"
 
 #: src/core/command.c:8150 src/core/command.c:8166
 msgid "Please specify x, y, w and h, aborting\n"
-msgstr ""
-"Bitte geben Sie den Wert für x,y,w un h an, Abbruch\n"
-"\n"
+msgstr "Bitte geben Sie den Wert für x,y,w und h an, Abbruch\n"
 
 #: src/core/command.c:8170
 #, c-format
@@ -12864,10 +12834,10 @@ msgid ""
 "1], default is 0.25"
 msgstr ""
 "Streckt das aktuell geladene Bild automatisch, mit unterschiedlichen "
-"Parametern für jeden Kanal, es sei denn, <b>-linked</b> wird übergeben. \n"
+"Parametern für jeden Kanal, es sei denn, <b>-linked</b> wird übergeben.\n"
 "Argumente sind optional, <b>shadowclip</b> ist der Beschneidungspunkt des "
-"Schattens, gemessen in Sigma-Einheiten von der Spitze des Haupthistogramms "
-"(Standardwert ist -2,8), <b>targetbg</b> ist der Ziel-Hintergrundwert, der "
+"Schattens, gemessen in Sigma-Einheiten von der Spitze des Haupthistogramms ("
+"Standardwert ist -2,8), <b>targetbg</b> ist der Ziel-Hintergrundwert, der "
 "dem Bild eine endgültige Helligkeit verleiht, Bereich [0, 1], Standardwert "
 "ist 0,25"
 
@@ -13658,7 +13628,7 @@ msgstr ""
 "Teilt das Bild im Speicher durch das im Argument angegebene Bild "
 "<b>filename</b>.\n"
 "Das Ergebnis wird pro Kanal 32 Bit haben, falls in den Einstellungen "
-"erlaubt.  Siehe auch FDIV"
+"erlaubt. Siehe auch FDIV"
 
 #: src/core/command_def.h:68
 msgid ""
@@ -13948,8 +13918,8 @@ msgstr ""
 "aktuell geladene Bild handelt und wenn die Option <b>-stats_from_loaded</b> "
 "angegeben wird. Die Statistik kann mit der Option <b>-nostats</b> "
 "deaktiviert werden. Eine Datei, die JSON-Daten enthält, wird mit dem "
-"Standard-Dateinamen'$(FITS_file_without_ext).json'  erstellt und kann mit "
-"der Option <b>-out=</b> geändert werden"
+"Standard-Dateinamen'$(FITS_file_without_ext).json' erstellt und kann mit der "
+"Option <b>-out=</b> geändert werden"
 
 #: src/core/command_def.h:86
 msgid ""
@@ -14645,8 +14615,8 @@ msgstr ""
 "Optional kann eine PSF mit dem Argument <b>-loadpsf=<i>Dateiname</i></b> "
 "geladen werden.\n"
 "\n"
-"Die Anzahl der Iterationen wird mit dem Argument <b>-iters</b> angegeben "
-"(der Standardwert beträgt 10).\n"
+"Die Anzahl der Iterationen wird mit dem Argument <b>-iters</b> angegeben ("
+"der Standardwert beträgt 10).\n"
 "\n"
 "Die Regularisierungsmethode kann mit dem Argument <b>-tv</b> (für Total "
 "Variation), <b>-fh</b> (für die Frobenius norm of the Hessian Matrix) "
@@ -14659,7 +14629,7 @@ msgstr ""
 "<b>-mul</b> kann die multiplikative Methode erzwungen werden.\n"
 "\n"
 "Das Abbruchkriterium kann durch Angabe einer Abbruchgrenze mit <b>-stop=</b> "
-"aktiviert werden."
+"aktiviert werden"
 
 #: src/core/command_def.h:115
 msgid ""
@@ -14771,7 +14741,7 @@ msgid ""
 "<b>filename</b>.bmp (BMP 24-bit)"
 msgstr ""
 "Speichert das aktuelle Bild als Bitmap mit 8-Bit je Kanal ab: <b>Dateiname</"
-"b>.bmp (BMP 24-Bit)."
+"b>.bmp (BMP 24-Bit)"
 
 #: src/core/command_def.h:122
 msgid ""
@@ -14868,7 +14838,7 @@ msgstr ""
 "\n"
 "Der Regularisierungsfaktor <b>-alpha=</b> stellt die Stärke der "
 "Regularisierung ein (kleiner Wert = stärkere Regularisierung, Standardwert = "
-"3000)."
+"3000)"
 
 #: src/core/command_def.h:129
 msgid ""
@@ -14978,7 +14948,7 @@ msgid ""
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Gleicher Befehl wie EXTRACT_HA  aber für die Sequenz <b>sequencename</b>.\n"
+"Gleicher Befehl wie EXTRACT_HA aber für die Sequenz <b>sequencename</b>.\n"
 "\n"
 "Der Ausgabename der Sequenz beginnt mit dem Prefix \"Ha_\", sofern nicht mit "
 "der Option <b>-prefix=</b> ein anderer Prefix vorgegeben wird"
@@ -14990,7 +14960,7 @@ msgid ""
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Gleicher Befehl wie EXTRACT_HA  aber für die Sequenz <b>sequencename</b>. \n"
+"Gleicher Befehl wie EXTRACT_HA aber für die Sequenz <b>sequencename</b>. \n"
 "\n"
 "Der Ausgabename der Sequenz beginnt mit dem Prefix \"Ha_\", sofern nicht mit "
 "der Option <b>-prefix=</b> ein anderer Prefix vorgegeben wird"
@@ -15007,8 +14977,8 @@ msgstr ""
 "Schneidet die im Argument <b>sequencename</b> angegebene Sequenz.\n"
 "\n"
 "Die Auswahl des Ausschnitts wird durch die Position der oberen linken Ecke "
-"bestimmt <b>x</b> und <b>y</b> und der Auswahl  <b>width</b> und <b>height</"
-"b>.\n"
+"bestimmt <b>x</b> und <b>y</b> und der Auswahl <b>width</b> und "
+"<b>height</b>.\n"
 "Der Name der Ausgabesequenz beginnt mit dem Präfix \"cropped_\", sofern "
 "nicht mit der Option <b>-prefix=</b> anders angegeben"
 
@@ -15019,7 +14989,7 @@ msgid ""
 "The output sequence name starts with the prefix \"Ha_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Gleicher Befehl wie EXTRACT_HA  aber für die Sequenz <b>sequencename</b>.\n"
+"Gleicher Befehl wie EXTRACT_HA aber für die Sequenz <b>sequencename</b>.\n"
 "\n"
 "Der Ausgabename der Sequenz beginnt mit dem Prefix \"Ha_\", sofern nicht mit "
 "der Option <b>-prefix=</b> ein anderer Prefix vorgegeben wird"
@@ -15512,7 +15482,7 @@ msgid ""
 msgstr ""
 "Legt die Erweiterung fest, die von Sequenzen verwendet und erkannt wird.\n"
 "\n"
-"Das Argument <b>extension</b> kann \"fit\", \"fts\" oder \"fits\" sein."
+"Das Argument <b>extension</b> kann \"fit\", \"fts\" oder \"fits\" sein"
 
 #: src/core/command_def.h:168
 msgid ""
@@ -15992,8 +15962,8 @@ msgid ""
 "Allows easy mass unselection of images in the sequence <b>sequencename</b> "
 "(from <b>from</b> to <b>to</b> included). See SELECT"
 msgstr ""
-"Ermöglicht die einfache Massenabwahl von Bildern in der geladenen Sequenz  "
-"(von <b>from</b> bis <b>to</b> einschließlich). Siehe SELECT"
+"Ermöglicht die einfache Massenabwahl von Bildern in der geladenen Sequenz ("
+"von <b>from</b> bis <b>to</b> einschließlich). Siehe SELECT"
 
 #: src/core/command_def.h:191
 msgid "Reset the magnitude calibration to 0. See SETMAG"
@@ -16045,7 +16015,7 @@ msgstr ""
 "geladen werden.\n"
 "\n"
 "Der Parameter <b>-alpha</b> stellt den Regularisierungsfaktor des Gauß'schen "
-"Rauschmodells ein."
+"Rauschmodells ein"
 
 #: src/core/command_def.h:198
 msgid ""
@@ -16736,7 +16706,7 @@ msgstr "Verwendung aller Bilder mit Stern-FWHM < %f\n"
 #: src/core/sequence_filtering.c:251
 #, c-format
 msgid "Using star weighted FWHM images filter (below %f)\n"
-msgstr "Verwende alle Bilder mit Stern-FWHM  (kleiner %f)\n"
+msgstr "Verwende alle Bilder mit Stern-FWHM (kleiner %f)\n"
 
 #: src/core/sequence_filtering.c:259
 #, c-format
@@ -16746,7 +16716,7 @@ msgstr "Verwendung aller Bilder mit Stern-Rundheit > %f\n"
 #: src/core/sequence_filtering.c:267
 #, c-format
 msgid "Using image background filter (below %f)\n"
-msgstr "Verwende Bild Hintergrundfilter (unter  %f)\n"
+msgstr "Verwende Bild Hintergrundfilter (unter %f)\n"
 
 #: src/core/sequence_filtering.c:275
 #, c-format
@@ -16830,7 +16800,7 @@ msgid ""
 "Processing images of the sequence with a quality higher or equal than %g "
 "(%d)\n"
 msgstr ""
-"Verarbeiten von Bildern in der Sequenz mit einer Qualität größer/gleich  %g "
+"Verarbeiten von Bildern in der Sequenz mit einer Qualität größer/gleich %g "
 "(%d)\n"
 
 #: src/core/sequence_filtering.c:542
@@ -17117,7 +17087,7 @@ msgstr "Flat Kanäle ausgleichen"
 
 #: src/core/settings.c:330
 msgid "enable correction for X-Trans sensor"
-msgstr "aktiviert Korrektur für  X-Trans-Sensor"
+msgstr "aktiviert Korrektur für X-Trans-Sensor"
 
 #: src/core/settings.c:331 src/core/settings.c:332 src/core/settings.c:333
 #: src/core/settings.c:334 src/core/settings.c:335 src/core/settings.c:336
@@ -17352,6 +17322,8 @@ msgstr ""
 #: src/core/siril_actions.c:132
 msgid "Cannot check for updates with this version, missing dependency\n"
 msgstr ""
+"Mit dieser Version kann nicht nach Updates gesucht werden, fehlende "
+"Abhängigkeit\n"
 
 #: src/core/siril_actions.c:347 src/gui/PSF_list.c:803
 msgid "Current selection is too large"
@@ -17514,21 +17486,17 @@ msgstr "Unbekannter Fehler\n"
 #: src/core/utils.c:1007
 #, c-format
 msgid "'%s' No such file or directory\n"
-msgstr "‚%s‘  Unbekannter Datei- oder Verzeichnis-Name\n"
+msgstr "‚%s‘ Unbekannter Datei- oder Verzeichnis-Name\n"
 
 #: src/core/utils.c:1010
 #, c-format
 msgid "'%s' is not a directory\n"
-msgstr ""
-"\"%s\" ist kein Verzeichnis\n"
-" \n"
+msgstr "\"%s\" ist kein Verzeichnis\n"
 
 #: src/core/utils.c:1013
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
-msgstr ""
-"Sie haben keine Schreib-Berechtigung im Verzeichnis: %s\n"
-" \n"
+msgstr "Sie haben keine Schreib-Berechtigung im Verzeichnis: %s\n"
 
 #: src/core/utils.c:1035
 #, c-format
@@ -17687,7 +17655,6 @@ msgid "Applying MTF to channel %d with values %f, %f, %f\n"
 msgstr "MTF für den Kanal %d wird mit den Werte %f, %f, %f angewendet\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:119
-#, fuzzy
 msgid "NL-Bayes denoising..."
 msgstr "Starte NL-Bayes Entrauschung..."
 
@@ -17695,44 +17662,49 @@ msgstr "Starte NL-Bayes Entrauschung..."
 #: src/filters/nlbayes/call_nlbayes.cpp:140
 msgid "Error: SOS is not converging. Try a smaller value of rho.\n"
 msgstr ""
+"Fehler: SOS konvergiert nicht. Versuchen Sie einen kleineren Wert für rho.\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:145
 #, c-format
 msgid ""
 "NL-Bayes auto parametrisation: measured background noise level is %.3e\n"
 msgstr ""
+"NL-Bayes-Autoparametrisierung: gemessener Hintergrundrauschepegel ist %.3e\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:148
 msgid "Applying Anscombe VST\n"
-msgstr ""
+msgstr "Anwendung von Anscombe VST\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:175
 msgid "Applying exact unbiased inverse Anscombe VST\n"
-msgstr ""
+msgstr "Anwendung der exakten unverzerrten inversen Anscombe VST\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:199
-#, fuzzy, c-format
+#, c-format
 msgid "SOS iteration %d of %d complete\n"
-msgstr "Registrierung abgeschlossen."
+msgstr "SOS Iteration %d von %d abgeschlossen\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:211
-#, fuzzy
 msgid "DA3D final-stage denoising...\n"
-msgstr "Werde die letzte Stufe der DA3D-Entrauschung durchführen.\n"
+msgstr "Letzte Stufe der DA3D-Entrauschung durchführen...\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:213
 msgid "OpenMP not available. The DA3D algorithm will run in a single thread.\n"
 msgstr ""
+"OpenMP nicht verfügbar. Der DA3D-Algorithmus wird in einem einzigen Thread "
+"ausgeführt.\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:219
 msgid ""
 "Warning: input color image has monochromatic noise! Converting to monochrome."
 msgstr ""
+"Warnung: Das eingegebene Farbbild hat monochromes Rauschen! Konvertierung in "
+"Monochrom."
 
 #: src/filters/nlbayes/call_nlbayes.cpp:234
-#, fuzzy, c-format
+#, c-format
 msgid "NL-Bayes output: measured background noise level is %.3e\n"
-msgstr "Gibt den Hintergrund-Rauschpegel aus"
+msgstr "NL-Bayes-Ausgang: gemessener Hintergrundrauschpegel ist %.3e\n"
 
 #: src/filters/rgradient.c:69
 msgid "Rotational gradient: processing...\n"
@@ -18015,6 +17987,9 @@ msgid ""
 "only. If you are using GPU TensorFlow libraries and have insufficient GPU "
 "memory, StarNet may still fail.\n"
 msgstr ""
+"Hinweis: Die Berechnung des StarNet Sequenzspeicherlimits basiert nur auf "
+"dem System-RAM. Wenn Sie GPU-TensorFlow-Bibliotheken verwenden und nicht "
+"genügend GPU-Speicher haben, kann StarNet trotzdem fehlschlagen.\n"
 
 #: src/filters/starnet.c:862
 msgid ""
@@ -18065,9 +18040,7 @@ msgstr "Sternsynthese: Entsättige Sterne im Kanal %u...\n"
 #: src/filters/synthstar.c:761
 #, c-format
 msgid "Star synthesis: %d stars desaturated\n"
-msgstr ""
-"Starsynthese: %d Sterne ungesättigt\n"
-"\n"
+msgstr "Starsynthese: %d Sterne ungesättigt\n"
 
 #: src/filters/synthstar.c:773
 msgid "Remapping output to floating point range 0.0 to 1.0\n"
@@ -18368,12 +18341,12 @@ msgstr "B&W"
 #: src/gui/callbacks.c:1258
 #, c-format
 msgid "Binning %d x %d is not supported\n"
-msgstr "Das Binning %d x %d  wird nicht unterstützt\n"
+msgstr "Das Binning %d x %d wird nicht unterstützt\n"
 
 #: src/gui/callbacks.c:1398
 #, c-format
 msgid "Default FITS extension is set to %s\n"
-msgstr "Die Standard-FITS-Erweiterung ist eingestellt auf  %s\n"
+msgstr "Die Standard-FITS-Erweiterung ist eingestellt auf %s\n"
 
 #: src/gui/callbacks.c:1415
 #, c-format
@@ -18571,14 +18544,14 @@ msgstr ""
 #, c-format
 msgid "%d file loaded"
 msgid_plural "%d files loaded"
-msgstr[0] "%d Dateien geladen"
+msgstr[0] "%d Datei geladen"
 msgstr[1] "%d Dateien geladen"
 
 #: src/gui/conversion.c:505
 #, c-format
 msgid "%d file selected"
 msgid_plural "%d files selected"
-msgstr[0] "%d Dateien ausgewählt"
+msgstr[0] "%d Datei ausgewählt"
 msgstr[1] "%d Dateien ausgewählt"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
@@ -19038,7 +19011,6 @@ msgstr "PSF in der Ausrichtung von oben nach unten erstellt.\n"
 msgid "No stars detected. Finding suitable non-saturated stars...\n"
 msgstr ""
 "Keine Sterne gefunden. Suche nach geeigneten, nicht gesättigten Sternen...\n"
-"\n"
 
 #: src/gui/newdeconv.c:1003 src/gui/newdeconv.c:1151
 msgid "No suitable stars detectable in this image. Aborting..."
@@ -19552,7 +19524,7 @@ msgstr "Durchschnittliche Stern Daten"
 #, c-format
 msgid "%d star"
 msgid_plural "%d stars"
-msgstr[0] "%d Sterne"
+msgstr[0] "%d Stern"
 msgstr[1] "%d Sterne"
 
 #: src/gui/PSF_list.c:391
@@ -19565,9 +19537,8 @@ msgid "Star list file (*.lst)"
 msgstr "Datei mit Stern-Liste (*.lst)"
 
 #: src/gui/PSF_list.c:607
-#, fuzzy
 msgid "Error: error writing the CSV.\n"
-msgstr "Fehler beim Schreiben der Ausgabe...\n"
+msgstr "Fehler beim Schreiben der CSV-Datei.\n"
 
 #: src/gui/PSF_list.c:822
 msgid "PSF and quick photometry results"
@@ -19726,7 +19697,7 @@ msgstr "Trotzdem Speichern"
 #: src/gui/save_dialog.c:621
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
-msgstr "Snapshot <b>%s</b> was saved into the working directory."
+msgstr "Snapshot <b>%s</b> wurde im Arbeitsverzeichnis gespeichert."
 
 #: src/gui/save_dialog.c:623
 msgid "Snapshot was saved into the clipboard."
@@ -20345,7 +20316,7 @@ msgid ""
 "Converting 32 bits images (from %s) to 16 bits is not supported, ignoring "
 "file.\n"
 msgstr ""
-"Konvertiere 32-bit Bilder (von %s)  in 16-bit Bilder wird nicht unterstützt. "
+"Konvertiere 32-Bit Bilder (von %s) in 16-Bit Bilder wird nicht unterstützt. "
 "Datei wird ignoriert.\n"
 
 #: src/io/conversion.c:1065 src/io/conversion.c:1135
@@ -20364,7 +20335,7 @@ msgstr ""
 #: src/io/conversion.c:1182 src/io/conversion.c:1207 src/io/conversion.c:1228
 #, c-format
 msgid "Reading %s\n"
-msgstr "Lade  %s\n"
+msgstr "Lade %s\n"
 
 #: src/io/conversion.c:1184
 #, c-format
@@ -22128,8 +22099,8 @@ msgid ""
 "Less than two stars were found in the reference image, try setting another "
 "as reference?\n"
 msgstr ""
-"Es wurden weniger als zwei Sterne im Referenzbild gefunden,  soll ein "
-"anderes als Referenz gesetzt werden?\n"
+"Es wurden weniger als zwei Sterne im Referenzbild gefunden, soll ein anderes "
+"als Referenz gesetzt werden?\n"
 
 #: src/registration/3stars.c:537
 msgid ""
@@ -23011,9 +22982,8 @@ msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "Median Stacking abgeschlossen. %d Bilder wurden gestackt.\n"
 
 #: src/stacking/normalization.c:45
-#, fuzzy
 msgid "Normalization computation time"
-msgstr "Normalisierung fehlgeschlagen."
+msgstr "Berechnungszeit für die Normalisierung"
 
 #: src/stacking/normalization.c:151
 #, c-format
