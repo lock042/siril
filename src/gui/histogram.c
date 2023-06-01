@@ -240,13 +240,13 @@ static void histo_recompute() {
 	if (invocation == HISTO_STRETCH) {
 		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
-		if (autostretch_notify) {
+		if (com.icc.available && autostretch_notify) {
 			// Assign the monitor profile to gfit
 			if (gfit.icc_profile) {
 				cmsCloseProfile(gfit.icc_profile);
 			}
-			gfit.icc_profile = copyICCProfile(gui.icc.monitor);
-			autostretch_notify = FALSE;
+			gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_standard);
+//			autostretch_notify = FALSE;
 		}
 
 	// com.layers_hist should be good, update_histo_mtf() is always called before
@@ -809,6 +809,7 @@ static void reset_cursors_and_values() {
 	_initialize_clip_text();
 	_update_entry_text();
 	update_gfit_histogram_if_needed();
+	autostretch_notify = FALSE;
 }
 
 static void queue_window_redraw() {

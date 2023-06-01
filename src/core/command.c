@@ -44,6 +44,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/initfile.h"
 #include "core/preprocess.h"
@@ -2822,7 +2823,13 @@ int process_autostretch(int nb) {
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
 		apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 	}
-
+	if (com.icc.available) {
+		// Assign the monitor profile to gfit
+		if (gfit.icc_profile) {
+			cmsCloseProfile(gfit.icc_profile);
+		}
+		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_standard);
+	}
 	char log[90];
 	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
 			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
