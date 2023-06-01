@@ -482,6 +482,15 @@ uint16_t be16_to_cpu(uint16_t x) {
     return cpu_to_be16(x);
 }
 
+uint32_t be24_to_cpu(BYTE x[3]) {
+#ifdef __BIG_ENDIAN__
+	uint32_t r = ((x[2] << 16) | (x[1] << 8) | x[0]);
+#else
+	uint32_t r = ((x[0] << 16) | (x[1] << 8) | x[2]);
+#endif
+	return r;
+}
+
 /**
  * change endianness of a 32 bit unsigned int
  * @param x value to convert
