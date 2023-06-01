@@ -30,9 +30,13 @@
  * lcms2 version. It can be extended if any other blacklisting is needed.
  */
 
-#if _WIN32 && LCMS_VERSION == 2150
-#define EXCLUDE_FF
-#endif
+// (Commented out now as it is believed that mingw64 has fixed their
+// repository; it is left here as a record in case any users compiling
+// their own build run into a problem with this combination.)
+
+//#if _WIN32 && LCMS_VERSION == 2150
+//#define EXCLUDE_FF
+//#endif
 
 #ifndef CMS_USE_CPP_API
 #   ifdef __cplusplus
