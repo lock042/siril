@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-05-31 00:40+0000\n"
+"PO-Revision-Date: 2023-06-01 07:21+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -8076,7 +8076,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:29911
 msgid "Automatically Calculated with PSF"
-msgstr "Рассчитано автоматически с помощью PSF"
+msgstr "Автоматически рассчитать с помощью PSF"
 
 #: src/gui/siril3.glade:29915
 msgid ""
@@ -9271,7 +9271,7 @@ msgid ""
 "are too faint to have B-V index information (mag > 18)\n"
 msgstr ""
 "Найдено астрономическое решение, но фотометрический анализ %d звёзд не "
-"удался. Обычно это происходит, если эти звёзды насыщены на изображении или "
+"удался. Обычно это происходит, если эти звёзды на изображении насыщены или "
 "если они слишком тусклы, чтобы иметь информацию о показателе цвета B-V ("
 "блеск > 18)\n"
 
@@ -12500,8 +12500,8 @@ msgstr ""
 #: src/core/command_def.h:18
 msgid "Lists Siril capabilities, based on compilation and runtime"
 msgstr ""
-"Команда показывает список возможностей Siril на основе данных о компиляции и "
-"среде, в которой исполняется программа"
+"Отображает список возможностей Siril на основе данных о компиляции и среде, "
+"в которой исполняется программа"
 
 #: src/core/command_def.h:19
 msgid ""
@@ -12912,7 +12912,7 @@ msgstr ""
 
 #: src/core/command_def.h:63
 msgid "Lists the available commands or help for one command"
-msgstr ""
+msgstr "Отображает список доступных команд или помощь для одной команды"
 
 #: src/core/command_def.h:64
 msgid ""
@@ -13094,7 +13094,7 @@ msgstr ""
 
 #: src/core/command_def.h:82
 msgid "Lists files and directories in the working directory"
-msgstr ""
+msgstr "Отображает список файлов и директорий в рабочей директории"
 
 #: src/core/command_def.h:84
 msgid ""
@@ -14400,7 +14400,7 @@ msgstr "неверные аргументы"
 
 #: src/core/command_line_processor.c:62
 msgid "invalid image area selection"
-msgstr "неверная выделение области изображения"
+msgstr "неверное выделение области изображения"
 
 #: src/core/command_line_processor.c:64
 msgid "command succeeded"
@@ -15269,9 +15269,8 @@ msgid "use pattern from the file header"
 msgstr "шаблон из заголовка файла"
 
 #: src/core/settings.c:292
-#, fuzzy
 msgid "index of the Bayer pattern"
-msgstr "Выберите узор матрицы вашей камеры"
+msgstr "индекс шаблона Байера"
 
 #: src/core/settings.c:293
 msgid "type of interpolation"
@@ -15441,38 +15440,32 @@ msgid "use preferred stack name"
 msgstr "использовать предпочитаемое название стека"
 
 #: src/core/settings.c:348
-#, fuzzy
 msgid "index of the selected registration method"
-msgstr "Удалить выбранный файл"
+msgstr "индекс выбранного метода регистрации"
 
 #: src/core/settings.c:349
-#, fuzzy
 msgid "index of the selected interpolation method"
-msgstr "Удалить выбранный файл"
+msgstr "индекс выбранного метода интерполяции"
 
 #: src/core/settings.c:350
 msgid "use clamping method with Lanczos and Cubic interpolation"
 msgstr ""
 
 #: src/core/settings.c:352
-#, fuzzy
 msgid "index of the selected method"
-msgstr "Удалить выбранный файл"
+msgstr "индекс выбранного метода"
 
 #: src/core/settings.c:353
-#, fuzzy
 msgid "index of the normalization method"
-msgstr "Загрузка способа выравнивания: %s\n"
+msgstr "индекс метода нормализации"
 
 #: src/core/settings.c:354
-#, fuzzy
 msgid "index of the rejection method"
-msgstr "Способ защиты: "
+msgstr "индекс метода выбраковки"
 
 #: src/core/settings.c:355
-#, fuzzy
 msgid "index of the weighting method"
-msgstr "Способ защиты: "
+msgstr "индекс метода присвоения веса"
 
 #: src/core/settings.c:356
 msgid "sigma low value for rejection"
@@ -15532,9 +15525,8 @@ msgid "main window is maximized"
 msgstr "главное окно развёрнуто"
 
 #: src/core/settings.c:374
-#, fuzzy
 msgid "index of the selected theme"
-msgstr "Удалить выбранный файл"
+msgstr "индекс выбранной темы"
 
 #: src/core/settings.c:375
 msgid "font scale in percent"
@@ -15578,7 +15570,7 @@ msgstr "режим показа гистограмы по умолчанию"
 
 #: src/core/settings.c:386
 msgid "index of the compass position over grid"
-msgstr ""
+msgstr "индекс положения компаса над сеткой"
 
 #: src/core/settings.c:387
 msgid "show Messier objects in annotations"
