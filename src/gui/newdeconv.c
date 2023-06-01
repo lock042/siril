@@ -1440,7 +1440,7 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gb
 		int float_multiplier = (is_float) ? 1 : 2;
 		int MB_per_float_image = MB_per_image * float_multiplier;
 		int required = MB_per_float_image * 2;
-		int MB_per_float_chan = float_multiplier * ceil(MB_per_image / seqargs->seq->nb_layers);
+		int MB_per_float_chan = float_multiplier * ceil((float) MB_per_image / seqargs->seq->nb_layers);
 		if (args.nonblindtype == DECONV_SB) {
 			required += MB_per_float_chan * 16;
 		} else if (args.nonblindtype == DECONV_RL) {

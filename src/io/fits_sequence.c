@@ -349,7 +349,7 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 		return 1;
 	flip_buffer(fitseq->bitpix, buffer, area);
 	// No color management is carried out here. It is expected this would normally be used with
-	// linear data in a FITSEQ, however in any case it is the responsibility of the caller to 
+	// linear data in a FITSEQ, however in any case it is the responsibility of the caller to
 	// carry out any color management.
 	return 0;
 }
@@ -389,21 +389,7 @@ static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *im
 	// Check for any ICC profile mismatch
 	if (com.icc.available) {
 		if (fitseq->icc_profile && image->icc_profile) {
-			char *fitseq_buffer = NULL, *image_buffer = NULL;
-			int length = cmsGetProfileInfoASCII(fitseq->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
-			if (length) {
-				fitseq_buffer = (char*) malloc(length * sizeof(char));
-				cmsGetProfileInfoASCII(fitseq->icc_profile, cmsInfoDescription, "en", "US", fitseq_buffer, length);
-			}
-			length = cmsGetProfileInfoASCII(image->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
-			if (length) {
-				image_buffer = (char*) malloc(length * sizeof(char));
-				cmsGetProfileInfoASCII(image->icc_profile, cmsInfoDescription, "en", "US", image_buffer, length);
-			}
-			int diff = strcmp(fitseq_buffer, image_buffer);
-			free(fitseq_buffer);
-			free(image_buffer);
-			if (diff) {
+			if (!profiles_identical(fitseq->icc_profile, image->icc_profile)) {
 				siril_log_color_message(_("Error: frame ICC profile is inconsistent with sequence ICC profile. Ensure all frames are allocated the same ICC profile.\n"), "red");
 				return 1;
 			}

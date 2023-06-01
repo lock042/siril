@@ -1889,6 +1889,7 @@ int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE* icc_profile) {
 	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
 		PRINT_ALLOC_ERR;
 		free(header);
+		return 1;
 	}
 	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
@@ -2166,7 +2167,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	 * If we copy the ICC profile from the source FITS and a transform is done, the program
 	 * will crash. However if we don't copy the ICC profile, we lose track of color management
 	 * of the data.
-	 * In practice, currently I think this function is only used for processing that expects 
+	 * In practice, currently I think this function is only used for processing that expects
 	 * to be handling linear data, and won't need to be transformed for display. For now we
 	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
 	 * needed.
@@ -2762,7 +2763,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	 * If we copy the ICC profile from the source FITS and a transform is done, the program
 	 * will crash. However if we don't copy the ICC profile, we lose track of color management
 	 * of the data.
-	 * In practice, currently I think this function is only used for processing that expects 
+	 * In practice, currently I think this function is only used for processing that expects
 	 * to be handling linear data, and won't need to be transformed for display. For now we
 	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
 	 * needed.
@@ -2841,7 +2842,7 @@ void keep_only_first_channel(fits *fit) {
 	 * If we copy the ICC profile from the source FITS and a transform is done, the program
 	 * will crash. However if we don't copy the ICC profile, we lose track of color management
 	 * of the data.
-	 * In practice, currently I think this function is only used for processing that expects 
+	 * In practice, currently I think this function is only used for processing that expects
 	 * to be handling linear data, and won't need to be transformed for display. For now we
 	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
 	 * needed.
@@ -3127,7 +3128,7 @@ static void extract_region_from_fits_float(fits *from, int layer, fits *to,
 	to->bitpix = from->bitpix;
 	to->type = DATA_FLOAT;
 	/* TODO: review color management behaviour in this case
-	 * Note this is used to extract partial frames from films where the 
+	 * Note this is used to extract partial frames from films where the
 	 * 3-channel data is sRGB
 	 * Currently, icc_profile is NULL and the caller is responsible
 	 * for setting it

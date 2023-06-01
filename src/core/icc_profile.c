@@ -633,7 +633,7 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 
 void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
-	gboolean no_file;
+	gboolean no_file = FALSE;
 	gboolean active = gtk_toggle_button_get_active(button);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	if (gui.icc.soft_proof) {
