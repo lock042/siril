@@ -89,10 +89,28 @@ int test_julian_date() {
 	return 0;
 }
 
+int test_julian_seconds() {
+	GDateTime *ref = g_date_time_new_utc(1995, 10, 10, 0, 0, 0.0);
+	GDateTime *test = julian_sec_to_date(0, 0);
+	CHECK(g_date_time_equal(ref, test), "Julian seconds base is wrong");
+	g_date_time_unref(test);
+	g_date_time_unref(ref);
+
+	// 2023-05-31T17:01:56
+	ref = g_date_time_new_utc(2023, 5, 31, 17, 1, 56.42);
+	test = julian_sec_to_date(872269316, 420000);
+	CHECK(g_date_time_equal(ref, test), "Julian seconds conversion failed");
+	printf("converted truncated Julian seconds: %s\n", g_date_time_format_iso8601(ref));
+	g_date_time_unref(test);
+	g_date_time_unref(ref);
+	return 0;
+}
+
 #ifdef WITH_MAIN
 int main() {
 	int retval = test_ser_date();
 	retval += test_julian_date();
+	retval += test_julian_seconds();
 	if (retval)
 		fprintf(stderr, "TESTS FAILED\n");
 	else fprintf(stderr, "ALL TESTS PASSED\n");
@@ -100,5 +118,6 @@ int main() {
 }
 #else // with criterion
 Test(check_date, test_ser) { cr_assert(!test_ser_date()); }
-Test(check_date, test_julian) { cr_assert(!test_julian_date()); }
+Test(check_date, test_julian_date) { cr_assert(!test_julian_date()); }
+Test(check_date, test_julian_secs) { cr_assert(!test_julian_seconds()); }
 #endif

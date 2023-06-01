@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-05-26 13:18+0000\n"
-"Last-Translator: Yi Cao <caoyi06@qq.com>\n"
+"PO-Revision-Date: 2023-06-01 07:21+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -1667,7 +1667,7 @@ msgstr "不会使用二阶段降噪处理。主要算法本身通常表现良好
 
 #: src/gui/siril3.glade:8076
 msgid "Anscombe VST with exact unbiased inverse"
-msgstr "具有精确无偏逆的安斯科姆VST"
+msgstr "精确无偏逆的 Anscombe VST"
 
 #: src/gui/siril3.glade:8080
 msgid ""
@@ -1676,7 +1676,7 @@ msgid ""
 "Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: "
 "https://ieeexplore.ieee.org/document/5278406"
 msgstr ""
-"安斯科姆 VST在降噪光子限制图像时很有用，其中噪声特性不是高斯的，而是主要是泊"
+"Anscombe VST在降噪光子限制图像时很有用，其中噪声特性不是高斯的，而是主要是泊"
 "松或泊松-高斯混合的。它不能与DA3D或SOS一起使用。参考： https://ieeexplore."
 "ieee.org/document/527"
 
@@ -8505,12 +8505,9 @@ msgstr "加载网址时出错： [%s] - %s\n"
 
 #: src/algos/astrometry_solver.c:428 src/algos/astrometry_solver.c:495
 #: src/algos/astrometry_solver.c:659
-#, fuzzy
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
-msgstr ""
-"这个 Siril 的副本是在没有 libtiff 支持的情况下编译的：以 FITS 格式保存 "
-"PSF。\n"
+msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
 
 #: src/algos/astrometry_solver.c:460 src/algos/astrometry_solver.c:548
 #: src/core/command.c:8717
@@ -9951,9 +9948,7 @@ msgstr "注意：SOS 迭代次数很多。处理时间可能很长...\n"
 msgid ""
 "Error: will not carry out DA3D or SOS iterations with Anscombe transform VST "
 "selected. aborting.\n"
-msgstr ""
-"错误：在选择了安斯科姆变换 VST 的情况下，不会执行 DA3D 或 SOS 迭代。异常中"
-"止。\n"
+msgstr "错误：在选择了Anscombe VST 的情况下，不会执行 DA3D 或 SOS 迭代。异常中止。\n"
 
 #: src/core/command.c:498
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
@@ -11034,14 +11029,13 @@ msgid "This command can only run for FITS images\n"
 msgstr "此命令只能用于FITS图像\n"
 
 #: src/core/command.c:6191
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create output file: %s\n"
-msgstr "创建SER文件“%s”失败\n"
+msgstr "无法创建输出文件： %s\n"
 
 #: src/core/command.c:6197
-#, fuzzy
 msgid "Failed to write to output file\n"
-msgstr "创建SER文件“%s”失败\n"
+msgstr "无法写入输出文件\n"
 
 #: src/core/command.c:6213 src/core/command.c:6340
 msgid ""
@@ -12449,9 +12443,7 @@ msgstr ""
 msgid ""
 "Prints information about the reference image of the sequence given in "
 "argument. First image has index 0"
-msgstr ""
-"Prints information about the reference image of the sequence given in "
-"argument. First image has index 0"
+msgstr "打印有关参数中给定队列的参考图像的信息。第一个图像的索引为 0"
 
 #: src/core/command_def.h:60
 msgid ""
@@ -13408,8 +13400,8 @@ msgid ""
 msgstr ""
 "Create an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
-"or a color image. Result image is called composed_rgb.fit or composed_lrgb."
-"fit unless another name is provided in the optional argument"
+"or a color image. Result image is called composed_rgb.fit or "
+"composed_lrgb.fit unless another name is provided in the optional argument"
 
 #: src/core/command_def.h:113
 msgid ""
@@ -16031,7 +16023,7 @@ msgstr "另一个任务已在进行中，忽略新请求。\n"
 
 #: src/core/siril_actions.c:132
 msgid "Cannot check for updates with this version, missing dependency\n"
-msgstr ""
+msgstr "无法检查此版本的更新，缺少依赖项\n"
 
 #: src/core/siril_actions.c:347 src/gui/PSF_list.c:803
 msgid "Current selection is too large"
@@ -16350,52 +16342,50 @@ msgid "Applying MTF to channel %d with values %f, %f, %f\n"
 msgstr "应用MTF于通道 %d 值 %f, %f, %f\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:119
-#, fuzzy
 msgid "NL-Bayes denoising..."
-msgstr "开始NL-Bayes降噪..."
+msgstr "NL-Bayes 降噪..."
 
 #. Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
 #: src/filters/nlbayes/call_nlbayes.cpp:140
 msgid "Error: SOS is not converging. Try a smaller value of rho.\n"
-msgstr ""
+msgstr "错误：SOS 未收敛。尝试较小的 rho 值。\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:145
 #, c-format
 msgid ""
 "NL-Bayes auto parametrisation: measured background noise level is %.3e\n"
-msgstr ""
+msgstr "NL-Bayes 自动参数化：测量的背景噪声水平为 %.3e\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:148
 msgid "Applying Anscombe VST\n"
-msgstr ""
+msgstr "应用 Anscombe VST\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:175
 msgid "Applying exact unbiased inverse Anscombe VST\n"
-msgstr ""
+msgstr "应用精确无偏逆 Anscombe VST\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:199
-#, fuzzy, c-format
+#, c-format
 msgid "SOS iteration %d of %d complete\n"
-msgstr "对齐完成。"
+msgstr "SOS迭代 %d 的 %d 完成\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:211
-#, fuzzy
 msgid "DA3D final-stage denoising...\n"
-msgstr "将进行最后阶段的DA3D降噪。\n"
+msgstr "DA3D最后阶段降噪...\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:213
 msgid "OpenMP not available. The DA3D algorithm will run in a single thread.\n"
-msgstr ""
+msgstr "OpenMP 不可用。DA3D 算法将在单个线程中运行。\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:219
 msgid ""
 "Warning: input color image has monochromatic noise! Converting to monochrome."
-msgstr ""
+msgstr "警告：输入的彩色图像有单色噪声！转换为单色。"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:234
-#, fuzzy, c-format
+#, c-format
 msgid "NL-Bayes output: measured background noise level is %.3e\n"
-msgstr "Returns the background noise level"
+msgstr "NL-Bayes 输出：测量的背景噪声水平为 %.3e\n"
 
 #: src/filters/rgradient.c:69
 msgid "Rotational gradient: processing...\n"
@@ -16660,6 +16650,8 @@ msgid ""
 "only. If you are using GPU TensorFlow libraries and have insufficient GPU "
 "memory, StarNet may still fail.\n"
 msgstr ""
+"注意：StarNet 队列内存限制的计算仅基于系统 RAM。如果您使用的是 GPU "
+"TensorFlow 库并且 GPU 内存不足，StarNet 可能仍会失败。\n"
 
 #: src/filters/starnet.c:862
 msgid ""
@@ -18074,9 +18066,8 @@ msgid "Star list file (*.lst)"
 msgstr "星表文件 (*.lst)"
 
 #: src/gui/PSF_list.c:607
-#, fuzzy
 msgid "Error: error writing the CSV.\n"
-msgstr "写入输出时出错...\n"
+msgstr "错误：写入 CSV 时出错。\n"
 
 #: src/gui/PSF_list.c:822
 msgid "PSF and quick photometry results"
@@ -21248,9 +21239,8 @@ msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "中位数叠加完成。共%d帧图像被叠加。\n"
 
 #: src/stacking/normalization.c:45
-#, fuzzy
 msgid "Normalization computation time"
-msgstr "归一化失败。"
+msgstr "归一化计算时间"
 
 #: src/stacking/normalization.c:151
 #, c-format

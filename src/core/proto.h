@@ -111,6 +111,7 @@ uint32_t cpu_to_le32(uint32_t x);
 uint32_t cpu_to_be32(uint32_t x);
 uint32_t le32_to_cpu(uint32_t x);
 uint32_t be32_to_cpu(uint32_t x);
+uint32_t be24_to_cpu(BYTE x[3]);
 uint64_t change_endianness64(uint64_t x);
 uint64_t cpu_to_le64(uint64_t x);
 uint64_t cpu_to_be64(uint64_t x);
