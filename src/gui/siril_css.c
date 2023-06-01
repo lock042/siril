@@ -70,7 +70,7 @@ void load_css_style_sheet () {
 
 			gtk_css_provider_load_from_data(css_provider, updated_css, -1, NULL);
 
-			g_fprintf(stdout, _("Successfully loaded '%s'\n"), CSSFile);
+			g_print(_("Successfully loaded '%s'\n"), CSSFile);
 			g_free(first_line);
 			g_free(css_buffer);
 			g_free(updated_css);

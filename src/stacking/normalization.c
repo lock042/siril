@@ -42,7 +42,7 @@ int do_normalization(struct stacking_args *args) {
 		writeseqfile(args->seq);
 
 	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, "Normalization computation time");
+	show_time_msg(t_start, t_end, _("Normalization computation time"));
 	return ST_OK;
 }
 

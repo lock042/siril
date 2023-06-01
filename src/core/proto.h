@@ -111,6 +111,7 @@ uint32_t cpu_to_le32(uint32_t x);
 uint32_t cpu_to_be32(uint32_t x);
 uint32_t le32_to_cpu(uint32_t x);
 uint32_t be32_to_cpu(uint32_t x);
+uint32_t be24_to_cpu(BYTE x[3]);
 uint64_t change_endianness64(uint64_t x);
 uint64_t cpu_to_le64(uint64_t x);
 uint64_t cpu_to_be64(uint64_t x);
@@ -155,6 +156,9 @@ void replace_spaces_from_str(gchar *s, char c);
 gchar *build_string_from_words(char **words);
 void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
+
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
+int display_to_fits(double dx, double dy, double *fx, double *fy, int ry);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,

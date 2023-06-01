@@ -364,7 +364,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					}
 					xr = i; // we've reached the Western border
 					// we move SE or E
-					while ((xx - i > areaX0 + 1) && (yy + j < areaY1 - 1)
+					while ((xx + i > areaX0 + 1) && (yy + j < areaY1 - 1)
 						&& (smooth_image[yy + j + 1][xx + i - 1] > sat
 						||  smooth_image[yy + j    ][xx + i - 1] > sat)) {
 						if (smooth_image[yy + j + 1][xx + i - 1] > sat) j++;
@@ -372,7 +372,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					}
 					yd = j; // we've reached the Southern border
 					// we move NE or N
-					while ((xx - i > areaX0 + 1) && (yy + j > areaY0 + 1)
+					while ((xx + i > areaX0 + 1) && (yy + j > areaY0 + 1)
 						&& (smooth_image[yy + j - 1][xx + i - 1] > sat
 						||  smooth_image[yy + j - 1][xx + i    ] > sat)) {
 						if (smooth_image[yy + j - 1][xx + i - 1] > sat) i--;
@@ -1063,6 +1063,52 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 	return retval;
 }
 
+static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required = 0;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+
+	if (limit > 0) {
+		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+		int float_multiplier = (is_float) ? 1 : 2;
+		int chan_multiplier = (args->seq->nb_layers == 3) ? 3 : 1;
+		int MB_per_float_image = MB_per_image * float_multiplier;
+		int MB_per_float_chan = MB_per_float_image / chan_multiplier;
+
+		// Allocations:
+		// ------------
+		// * extract_fits() allocates 1 * float_channel in all cases.
+		// * As the 1-channel fits populated by extract_fits() is DATA_FLOAT no
+		//   memory is required for the Gaussian blur as the in-place RT algorithm is
+		//   used;
+		// * Also allow MAX_STARS * sizeof(psf_star) + 1MB margin for gslsolver data;
+		//   and the indexing arrays e.g. smooth_array (ry * sizeof(float*)).
+		int stars_and_overhead = 1 + (int) ceilf(((float) MAX_STARS * (float) sizeof(psf_star)) / (float) BYTES_IN_A_MB);
+		required = MB_per_image + MB_per_float_chan + stars_and_overhead;
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+				thread_limit = com.max_thread;
+		limit = thread_limit;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		limit = 1;
+#endif
+	}
+	return limit;
+}
+
 int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
@@ -1149,6 +1195,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	}
 	args->image_hook = findstar_image_hook;
 	args->finalize_hook = findstar_finalize_hook;
+	args->compute_mem_limits_hook = findstar_compute_mem_limits;
 	args->stop_on_error = FALSE;
 	args->description = _("FindStar");
 	args->has_output = FALSE;
@@ -1220,11 +1267,14 @@ gpointer findstar_worker(gpointer p) {
 
 			if (args->starfile && args->save_eqcoords) {
 				sequence *seq = args->im.from_seq;
-				double x = stars[i]->xpos, y = stars[i]->ypos;
+				double dx = stars[i]->xpos, dy = stars[i]->ypos;
 				if (has_wcs(args->im.fit)) {
 					double ra = 0.0, dec = 0.0;
 #ifdef HAVE_WCSLIB
-					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+					// coordinates of the star in FITS/WCS coordinates
+					double fx, fy;
+					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 #endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
@@ -1235,10 +1285,13 @@ gpointer findstar_worker(gpointer p) {
 					// image was not registered, ignore
 				}
 				else {
-					cvTransfPoint(&x, &y, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
+					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
 					double ra = 0.0, dec = 0.0;
 #ifdef HAVE_WCSLIB
-					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+					// coordinates of the star in FITS/WCS coordinates
+					double fx, fy;
+					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 #endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;

@@ -1,56 +1,114 @@
-.\" Manpage for Siril 1.2
-.TH SIRIL "1" "February 2023" "siril 1.2" "User Commands"
+.TH SIRIL 1 "May 2023" @PACKAGE_STRING@ "General Commands Manual"
+
 .SH NAME
-siril \- image processing tool for astronomy and others
+siril - image processing tool for astronomy and other applications
+
 .SH SYNOPSIS
-Siril GUI
- siril [options] [file]             Start Siril.
-  
-Siril CLI
- siril-cli [-i conf_file] [-f] [-v] [-c] [-h] [-p] [-d working_directory] [-s script_file] [-r input_pipe_path] [-w output_pipe_path] [image_file_to_open]
+.B siril
+[\fIoptions\fR] [\fIfile\fR]
+.br
+.B siril-cli
+[\fIoptions\fR] [\fIfile\fR]
+
+
 .SH DESCRIPTION
-\fBSiril\fP is an image processing tool specially tailored for noise reduction and improving the signal/noise ratio of an image from multiple captures, as required in astronomy. It provides powerful tools to align, stack and enhance pictures from various file formats, even image sequences (movies and SER files). It is optimized to run quickly with parallelism, supports all the cameras supported by libraw, and carries out its calculations with a high precision 32-bit floating point engine.
+\fBSiril\fP is a powerful image processing tool designed for improving the signal-to-noise ratio of astronomical images. It offers a wide range of tools for aligning, stacking, and enhancing images from various file formats, including image sequences. It features a high-precision 32-bit floating-point engine and supports parallel processing to run quickly.
+.br
+The application is divided into 2 binaries. The first one, siril, launches the program in graphic mode. The second one, siril-cli, is a command line interface allowing to execute the following options.
+
 .SH OPTIONS
-.IP -i
-Starts \fBSiril\fP with the configuration file which path is passed in argument
-.IP -f
-(or \fB\-\-format\fR) Prints all supported image input formats, depending on the libraries detected at compile-time
-.IP -v
-(or \fB\-\-version\fR) Prints program name and version and exits
-.IP -c
-(or \fB\-\-copyright\fR) Prints copyright and exits
-.IP -h
-(or \fB\-\-help\fR) Short usage help
-.IP -p
-Starts \fBSiril\fP without the graphical user interface and use the named pipes to accept commands and print logs and status information. On POSIX systems, the named pipes are created in /tmp/siril_commands.in and /tmp/siril_commands.out
-.IP -r
-(or \fB\-\-inpipe\fR) Provide an alternative path for the input pipe that receives the commands, if \fB\-p\fR is passed. The pipe can be create by an external program with the mkfifo(1) command
-.IP -w
-(or \fB\-\-outpipe\fR) Provide an alternative path for the output pipe that prints logs and status updates, if \fB\-p\fR is passed. The pipe can be create by an external program with the mkfifo(1) command
-.IP -d
-(or \fB\-\-directory\fR) Setting the path provided in argument in current working directory
-.IP -s
-(or \fB\-\-script\fR) Starts \fBSiril\fP without the graphical user interface and run a script instead. Scripts are text files that contain a list of commands to be executed sequentially. In these files, lines starting with a # are considered as comments. If this option is not passed, pipe operation is assumed as if \fB-p\fR had been passed.
-.IP image_file_to_open
-Open an image or sequence file right after start-up.
+.TP
+.B -v, --version
+Prints the program name and version, then exits.
+
+.TP
+.B -i \fIconf_file\fR
+Starts \fBSiril\fP with the specified configuration file.
+
+.TP
+.B -f, --format
+Prints all supported input image formats, depending on the libraries detected at compile-time.
+
+.TP
+.B -c, --copyright
+Prints copyright information, then exits.
+
+.TP
+.B -h, --help
+Displays a brief usage summary.
+
+.TP
+.B -p
+Starts \fBSiril\fP without the graphical user interface and uses named pipes to accept commands and print logs and status information. On POSIX systems, the named pipes are created in /tmp/siril_commands.in and /tmp/siril_commands.out.
+
+.TP
+.B -r \fIinput_pipe_path\fR, --inpipe=\fIinput_pipe_path\fR
+Provides an alternative path for the input pipe that receives the commands if \fB-p\fR is passed. The pipe can be created by an external program with the mkfifo(1) command.
+
+.TP
+.B -w \fIoutput_pipe_path\fR, --outpipe=\fIoutput_pipe_path\fR
+Provides an alternative path for the output pipe that prints logs and status updates if \fB-p\fR is passed. The pipe can be created by an external program with the mkfifo(1) command.
+
+.TP
+.B -d \fIworking_directory\fR, --directory=\fIworking_directory\fR
+Sets the specified path as the current working directory.
+
+.TP
+.B -s \fIscript_file\fR, --script=\fIscript_file\fR
+Starts \fBSiril\fP without the graphical user interface and runs the specified script instead. Scripts are text files that contain a list of commands to be executed sequentially. In these files, lines starting with a # are considered as comments. If this option is not passed, pipe operation is assumed as if \fB-p\fR had been passed.
+
+.TP
+.B -s -
+Redirects inputs written after \fB-\fP to \fBstdin\fP.
+
+.TP
+.B \fIfile\fR
+Opens the specified image or sequence file immediately after startup.
+
+
 .SH FILES
-.I ~/.config/siril/siril.cfg
-.RS
-User preferences. Overridden by the
-.B -i
-option.
-.RE
-.I ~/.siril/siril.css
-.RS
-The style sheet used to change colors of the graphical user interface. This is useful for customization or if a GTK theme is incompatible with some colored elements of \fBSiril\fP.
+.TP
+@MAN_CONFIG_PATH@
+User preferences that can be overridden by the \fB-i\fR option.
+
+.TP
+@MAN_CSS_PATH@
+The style sheet used to change the look of the graphical user interface. This is useful for customization or if a GTK theme is incompatible with some colored elements of \fBSiril\fP.
+
 .SH LINKS
- Website with news, tutorials, FAQ and more: https://www.siril.org/
- Forum: https://discuss.pixls.us/siril
- Command reference and script/pipe operation: https://siril.readthedocs.io/en/latest/genindex.html
- Documentation: https://siril.rtfd.io
- Code and bug reports: https://gitlab.com/free-astro/siril/issues
-.SH AUTHOR
- Vincent Hourdin <vh at free-astro.org>
- Cyril Richard <cyril at free-astro.org>
- Cécile Melis <cissou8 at gmail.com>
- Adrian Knagg-Baugh (aje dot baugh plus astro at gmail dot com)
+.IP " 1." 4
+Website with news, tutorials, FAQ, and more
+.RS 4
+https://siril.org
+.RE
+
+.IP " 2." 4
+Forum for \fBSiril\fP
+.RS 4
+https://discuss.pixls.us/siril
+.RE
+
+.IP " 3." 4
+Official documentation
+.RS 4
+https://siril.readthedocs.io/en
+.RE
+
+.IP " 4." 4
+Bug tracker
+.RS 4
+https://gitlab.com/free-astro/siril/-/issues
+.RE
+
+.SH AUTHORS
+ Vincent Hourdin <vh at free-astro dot org>
+ Cyril Richard <cyril at free-astro dot org>
+ Cécile Melis <cissou8 at gmail dot com>
+ Adrian Knagg-Baugh <aje dot baugh plus astro at gmail dot com>
+
+.SH COPYRIGHT
+Copyright \(co 2021 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.

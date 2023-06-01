@@ -21,7 +21,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#ifdef HAVE_JSON_GLIB
+#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
 #include <json-glib/json-glib.h>
 
 #ifdef HAVE_LIBCURL
@@ -365,7 +365,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 	return msg;
 }
 
-// TODO: For now, to fix this bug https://gitlab.com/free-astro/siril/-/issues/604() we need to use GIO for Windows
+// TODO: For now, to fix this bug https://gitlab.com/free-astro/siril/-/issues/604 we need to use GIO for Windows
 #if defined HAVE_LIBCURL && !defined _WIN32
 
 struct _update_data {
@@ -641,7 +641,7 @@ void siril_check_updates(gboolean verbose) {
 	g_thread_new("siril-update", fetch_url, args);
 }
 
-#else
+#else // libcurl above, glib-networking below
 
 static gchar *get_changelog(gchar *str) {
 	GError *error = NULL;
@@ -669,7 +669,7 @@ static gchar *get_changelog(gchar *str) {
 static void siril_check_updates_callback(GObject *source, GAsyncResult *result,
 		gpointer user_data) {
 	gboolean verbose = GPOINTER_TO_INT(user_data);
-	char *file_contents = NULL;
+	gchar *file_contents = NULL;
 	gsize file_length = 0;
 	GError *error = NULL;
 	gchar *msg = NULL;
@@ -733,4 +733,4 @@ void siril_check_updates(gboolean verbose) {
 	g_object_unref(siril_versions);
 }
 #endif
-#endif
+#endif // HAVE_JSON_GLIB

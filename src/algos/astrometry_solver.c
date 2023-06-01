@@ -209,7 +209,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	mag = g_strdup_printf("%2.2lf", mag_limit);
 	fov = g_strdup_printf("%2.1lf", radius);
 
-	url = g_string_new("http://vizier.u-strasbg.fr/viz-bin/asu-tsv?-source=");
+	url = g_string_new("https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=");
 	switch (type) {
 	case CAT_NOMAD:
 		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
@@ -287,7 +287,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	return g_string_free(url, FALSE);
 }
 
-#if defined HAVE_LIBCURL
+#ifdef HAVE_LIBCURL
 /*****
  * HTTP functions
  ****/
@@ -406,7 +406,7 @@ retrieve:
 
 	return result;
 }
-#else
+#elif defined HAVE_NETWORKING
 static gchar *fetch_url(const gchar *url) {
 	GFile *file = g_file_new_for_uri(url);
 	GError *error = NULL;
@@ -424,6 +424,10 @@ static gchar *fetch_url(const gchar *url) {
 #endif
 
 gpointer search_in_online_conesearch(gpointer p) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	return GINT_TO_POINTER(1);
+#else
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	if (!args->fit->date_obs) {
 		free(args);
@@ -483,10 +487,15 @@ gpointer search_in_online_conesearch(gpointer p) {
 	}
 
 	return GINT_TO_POINTER(retval);
+#endif
 }
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
-	GString *string_url;
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	return NULL;
+#else
+	GString *string_url = NULL;
 	gchar *name = g_utf8_strdown(object, -1);
 	switch(server) {
 	case QUERY_SERVER_CDS:
@@ -537,6 +546,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-from=Siril;");
 		if (!gfit.date_obs) {
 			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+			g_string_free(string_url, TRUE);
 			return NULL;
 		}
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
@@ -569,6 +579,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	g_free(name);
 
 	return result;
+#endif
 }
 
 /* parse the result from search_in_catalogs(), for object name to coordinates conversion */
@@ -644,6 +655,9 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 }
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+#else
 	gchar *buffer = NULL;
 	GError *error = NULL;
 	/* ------------------- get Vizier catalog in catalog.dat -------------------------- */
@@ -715,6 +729,7 @@ download_error:
 	siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
 	g_clear_error(&error);
 	g_object_unref(file);
+#endif
 	return NULL;
 }
 
@@ -750,13 +765,13 @@ gboolean has_any_keywords() {
 }
 
 SirilWorldCS *get_eqs_from_header(fits *fit) {
-	if (fit->wcsdata.ra != 0.0 && fit->wcsdata.dec != 0.0)
+	if (fit->wcsdata.ra != 0.0 || fit->wcsdata.dec != 0.0)
 		return siril_world_cs_new_from_a_d(fit->wcsdata.ra, fit->wcsdata.dec);
 
 	else if (fit->wcsdata.objctra[0] != '\0' && fit->wcsdata.objctdec[0] != '\0')
 		return siril_world_cs_new_from_objct_ra_dec(fit->wcsdata.objctra, fit->wcsdata.objctdec);
 
-	else if (fit->wcsdata.crval[0] != 0.0 && fit->wcsdata.crval[1] != 0.0)
+	else if (fit->wcsdata.crval[0] != 0.0 || fit->wcsdata.crval[1] != 0.0)
 		return siril_world_cs_new_from_a_d(fit->wcsdata.crval[0], fit->wcsdata.crval[1]);
 	return NULL;
 }
@@ -779,25 +794,18 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 	char field_x[256] = "";
 	char field_y[256] = "";
 
-	/* rotation from eq(191) of WCS Paper II*/
 	double cd[2][2];
 	wcs_pc_to_cd(args->fit->wcsdata.pc, args->fit->wcsdata.cdelt, cd);
-	if (cd[1][0] > 0)
-		rotationa = atan2(cd[1][0], cd[0][0]);
-	else
-		rotationa = atan2(-cd[1][0], -cd[0][0]);
-	if (cd[0][1] > 0)
-		rotationb = atan2(cd[0][1], -cd[1][1]);
-	else
-		rotationb = atan2(-cd[0][1], cd[1][1]);
+	rotationa = atan2(-args->fit->wcsdata.pc[1][0], args->fit->wcsdata.pc[0][0]);
+	rotationb = atan2(args->fit->wcsdata.pc[0][1], args->fit->wcsdata.pc[1][1]);
 	rotation = 0.5 * (rotationa + rotationb) * RADTODEG;
 
 	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
 	/* If the determinant of the top-left 2x2 rotation matrix is < 0
 	 * the transformation is orientation-preserving. */
 
-	if (det > 0)
-		rotation *= -1.;
+	if (det > 0 && args->flip_image)
+		rotation = 180.0 - rotation;
 	if (rotation < -180.0)
 		rotation += 360.0;
 	if (rotation > 180.0)
@@ -1368,7 +1376,7 @@ gpointer plate_solver(gpointer p) {
 	psf_star **stars = NULL;	// image stars
 	int nb_stars = 0;	// number of image and catalogue stars
 
-	args->ret = 1;
+	args->ret = ERROR_PLATESOLVE;
 	args->message = NULL;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
@@ -1419,7 +1427,7 @@ gpointer plate_solver(gpointer p) {
 				clearfits(&tmp);
 				siril_log_color_message(_("Failed to downsample image, aborting\n"), "red");
 				args->message = g_strdup(_("Not enough memory"));
-				args->ret = 1;
+				args->ret = ERROR_PLATESOLVE;
 				goto clearup;
 			}
 			memcpy(&fit_backup, args->fit, sizeof(fits));
@@ -1427,13 +1435,15 @@ gpointer plate_solver(gpointer p) {
 
 			// TODO: should we average x and y or even better separate scales on x and y?
 			args->scalefactor = (double)fit_backup.rx / (double)args->fit->rx;
-			args->scale *= args->scalefactor;
 			detection_layer = 0;
 		}
 
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 		// capping the detection to max usable number of stars
+		if (args->n_cat == 0)
+				args->n_cat = BRIGHTEST_STARS;
 		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
+
 #ifdef _WIN32
 		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
 		int nthreads = (!args->for_sequence || args->onlineCatalog == CAT_ASNET) ? com.max_thread : 1;
@@ -1443,12 +1453,22 @@ gpointer plate_solver(gpointer p) {
 #endif
 
 		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
-				&(args->solvearea), FALSE, args->onlineCatalog != CAT_ASNET,
+				&(args->solvearea), FALSE, TRUE,
 				max_stars, com.pref.starfinder_conf.profile, nthreads);
 
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
+			// we go back to original scale by multiplying stars x/y pos by scalefactor
+			if (stars) {
+				for (int i = 0; i < nb_stars; i++) {
+					stars[i]->xpos *= args->scalefactor;
+					stars[i]->ypos *= args->scalefactor;
+				}
+			}
+			args->rx_solver = args->fit->rx;
+			args->ry_solver = args->fit->ry;
+			args->scalefactor = 1.0;
 		}
 	} else {
 		stars = args->stars ? args->stars : com.stars;
@@ -1462,7 +1482,7 @@ gpointer plate_solver(gpointer p) {
 	if (!stars || nb_stars < AT_MATCH_STARTN_LINEAR) {
 		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
 				"At least %d are needed."), AT_MATCH_STARTN_LINEAR);
-		args->ret = 1;
+		args->ret = ERROR_PLATESOLVE;
 		goto clearup;
 	}
 	if (args->verbose)
@@ -1478,9 +1498,13 @@ gpointer plate_solver(gpointer p) {
 			com.child_is_running = EXT_ASNET;
 			g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 		}
-		args->ret = local_asnet_platesolve(stars, nb_stars, args, &solution);
+		if (local_asnet_platesolve(stars, nb_stars, args, &solution)) {
+			args->ret = ERROR_PLATESOLVE;
+		}
 	} else
-		match_catalog(stars, nb_stars, args, &solution);
+		if (match_catalog(stars, nb_stars, args, &solution)) {
+			args->ret = ERROR_PLATESOLVE;
+		}
 	if (args->ret)
 		goto clearup;
 
@@ -1500,7 +1524,7 @@ gpointer plate_solver(gpointer p) {
 		int nb_pcc_stars;
 #ifndef HAVE_WCSLIB
 		siril_log_color_message(_("This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"), "red");
-		args->ret = 1;
+		args->ret = ERROR_PLATESOLVE;
 		goto clearup;
 #endif
 		if (args->use_local_cat) {
@@ -1513,7 +1537,7 @@ gpointer plate_solver(gpointer p) {
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
 			if (get_photo_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-				args->ret = 1;
+				args->ret = ERROR_PHOTOMETRY;
 			}
 		} else {
 			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit, TRUE,
@@ -1521,6 +1545,7 @@ gpointer plate_solver(gpointer p) {
 		}
 		if (args->ret) {
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
+			args->ret = ERROR_PHOTOMETRY;
 			goto clearup;
 		}
 		args->pcc->stars = pcc_stars;
@@ -1529,7 +1554,9 @@ gpointer plate_solver(gpointer p) {
 		if (args->downsample)
 			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
 
-		args->ret = photometric_cc(args->pcc);
+		if (photometric_cc(args->pcc)) {
+			args->ret = ERROR_PHOTOMETRY;
+		}
 
 		args->pcc = NULL; // freed in PCC code
 		free(pcc_stars);
@@ -1578,12 +1605,17 @@ clearup:
 
 	int retval = args->ret;
 	if (com.script && retval) {
-		siril_log_message(_("Plate solving failed: %s\n"), args->message);
+		if (retval == ERROR_PHOTOMETRY) {
+			siril_log_message(_("Photometry failed: %s\n"), args->message);
+		} else {
+			siril_log_message(_("Plate solving failed: %s\n"), args->message);
+		}
 		g_free(args->message);
 	}
 	if (!args->for_sequence) {
 		com.child_is_running = EXT_NONE;
-		g_unlink("stop");
+		if (g_unlink("stop"))
+			siril_debug_print("g_unlink() failed");
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
@@ -1611,7 +1643,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		free_stars(&star_list_A);
 		free_stars(&star_list_B);
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
-				scale_min, scale_max, &H,
+				scale_min, scale_max, &H, TRUE,
 				FALSE, NULL, NULL,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
@@ -1675,7 +1707,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		double focal = RADCONV * solution->pixel_size / resolution;
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
-		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, FALSE, NULL, NULL, AFFINE_TRANSFORMATION)){
+		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, TRUE, FALSE, NULL, NULL, AFFINE_TRANSFORMATION)){
 			args->message = g_strdup(_("Updating homography failed."));
 			args->ret = 1;
 			break;
@@ -1683,7 +1715,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		trans = H_to_linear_TRANS(H);
 		apply_match(solution->px_cat_center, solution->crpix, &trans, &ra0, &dec0);
 
-		conv = fabs((dec0 - orig_dec0) / orig_dec0) + fabs((ra0 - orig_ra0) / orig_ra0);
+		conv = fabs((dec0 - orig_dec0) / args->used_fov / 60.) + fabs((ra0 - orig_ra0) / args->used_fov / 60.);
 
 		trial++;
 		CHECK_FOR_CANCELLATION;
@@ -1759,6 +1791,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	/**** Fill wcsdata fit structure ***/
 	args->fit->wcsdata.equinox = 2000.0;
 
+	solution->crpix[0] = args->rx_solver * 0.5;
+	solution->crpix[1] = args->ry_solver * 0.5;
+
 	solution->crpix[0] *= args->scalefactor;
 	solution->crpix[1] *= args->scalefactor;
 
@@ -1829,17 +1864,18 @@ clearup:
 /*********************** finding asnet bash first **********************/
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
+	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
+		return g_build_filename(com.pref.asnet_dir, NULL);
+	}
 	const gchar *localappdata = g_get_user_data_dir();
 	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
 		siril_debug_print("cygwin_ansvr found at %s\n", testdir);
 		g_free(testdir);
-		return g_build_filename(localappdata, "cygwin_ansvr", "bin", "bash", NULL);;
+		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	}
 	g_free(testdir);
-	if (!com.pref.asnet_dir || com.pref.asnet_dir[0] == '\0')
-		return NULL;
-	return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
+	return NULL;
 }
 #else
 static gboolean solvefield_is_in_path = FALSE;
@@ -1913,13 +1949,15 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	char *sfargs[50] = {
 #ifdef _WIN32
-		asnet_shell, "--login", "-i", "solve-field",
+		"solve-field", "-C", "\"$c\"",
+		// the stop file must be passed in asnet.sh to be properly quoted and called
+		// in case there are spaces in cwd
 #else
-		asnet_path,
+		asnet_path, "-C", stopfile,
 		"--temp-axy",	// not available in the old version of ansvr
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "-S", "none", "-C", stopfile, "--crpix-center", "-l", time_limit,
+		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
 	char order[12];	// referenced in sfargs, needs the same scope
@@ -1938,19 +1976,50 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		sprintf(start_dec, "%f", siril_world_cs_get_delta(args->cat_center));
 		sprintf(radius, "%.1f", com.pref.astrometry.radius_degrees);
 		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec,
-			"--radius", radius, (char*)table_filename, NULL };
+			"--radius", radius, NULL};
 		append_elements_to_array(sfargs, additional_args);
 		siril_log_message(_("Astrometry.net solving with a search field at RA: %s, Dec: %s,"
-				       " within a %s degrees radius for scales [%s, %s]\n"),
+					" within a %s degrees radius for scales [%s, %s]\n"),
 				start_ra, start_dec, radius, low_scale, high_scale);
 	} else {
-		char *additional_args[] = { (char*)table_filename, NULL };
-		append_elements_to_array(sfargs, additional_args);
 		siril_log_message(_("Astrometry.net solving blindly for scales [%s, %s]\n"),
 				low_scale, high_scale);
 	}
+#ifdef _WIN32
+	char *file_args[] = { "\"$p\"", NULL };
+#else
+	char *file_args[] = { (char*)table_filename, NULL };
+#endif
+	append_elements_to_array(sfargs, file_args);
+
 	gchar *command = build_string_from_words(sfargs);
 	siril_debug_print("Calling solve-field:\n%s\n", command);
+
+#ifdef _WIN32
+	// in order to be compatible with different asnet cygwin builds
+	// we need to send the command through a bash script
+	// the script is written to the /tmp folder (in cygwin env)
+	// and called with: /path/to/cygwin/bin/bash -l -c /tmp/asnet.sh
+	gchar *asnetscript = g_build_filename(asnet_shell, "tmp", "asnet.sh", NULL);
+	g_unlink(asnetscript);
+	FILE* tmpfd = g_fopen(asnetscript, "wb+");
+	if (tmpfd == NULL) {
+		fprintf(stderr,"cannot create temporary file: exiting solve-field");
+		g_free(asnetscript);
+		g_free(command);
+		return 1;
+	}
+	/* Write data to this file  */
+	fprintf(tmpfd, "p=\"%s\"\n", (char*)table_filename);
+	fprintf(tmpfd, "c=\"%s\"\n", (char*)stopfile);
+	fprintf(tmpfd, "%s\n", command);
+	fclose(tmpfd);
+	g_free(asnetscript);
+	gchar *asnet_bash = g_build_filename(asnet_shell, "bin", "bash", NULL);
+	memset(sfargs, '\0', sizeof(sfargs));
+	char *newargs[] = {asnet_bash, "-l", "-c", "/tmp/asnet.sh", NULL};
+	append_elements_to_array(sfargs, newargs);
+#endif
 	g_free(command);
 
 	/* call solve-field */
@@ -2058,6 +2127,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		reframe_astrometry_data(args->fit, S);
 	}
 	// we need to reload here to make sure everything in fit->wcslib is updated
+	// TODO: this is where we loose the SIP info, will need to be smarter than this
 	load_WCS_from_memory(args->fit);
 
 	args->fit->wcsdata.pltsolvd = TRUE;
@@ -2074,6 +2144,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	if (args->verbose)
 		print_platesolving_results_from_wcs(args);
+	args->ret = 0;
 	return 0;
 }
 
@@ -2189,6 +2260,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
 	aargs = copy_astrometry_args(aargs);
+	if (!aargs)
+		return 1;
 	aargs->fit = fit;
 
 	char root[256];
@@ -2213,7 +2286,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		g_object_unref(aargs->catalog_file);
 	free (aargs);
 	com.child_is_running = EXT_NONE;
-	g_unlink("stop");
+	if (g_unlink("stop"))
+		siril_debug_print("g_unlink() failed\n");
 	return 0;
 }
 
