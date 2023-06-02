@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-06-02 07:56+0000\n"
+"PO-Revision-Date: 2023-06-02 22:41+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -17054,7 +17054,7 @@ msgstr "Default-Brennweite und -Pixelgröße durch das Ergebnis aktualisieren"
 
 #: src/core/settings.c:319
 msgid "panel size of aberration inspector"
-msgstr "Panelgröße des Aberrationsprüfung"
+msgstr "Panelgröße der Aberrationsprüfung"
 
 #: src/core/settings.c:320
 msgid "window size of aberration inspector"
@@ -17262,7 +17262,7 @@ msgstr "Index der Kompassposition über dem Raster"
 
 #: src/core/settings.c:387
 msgid "show Messier objects in annotations"
-msgstr "Zeige Messier-Objekte in Bemerkungen"
+msgstr "Zeige Messierobjekte in Bemerkungen"
 
 #: src/core/settings.c:388
 msgid "show NGC objects in annotations"
@@ -21838,7 +21838,7 @@ msgstr "Abgeschnittener ganzzahliger Teil von x."
 
 #: src/pixelMath/pixel_math_runner.c:109
 msgid "Average absolute deviation of the image."
-msgstr "Durchschnittliche absolute Abweichung (absolute Deviation) des Bildes."
+msgstr "Durchschnittliche absolute Abweichung des Bildes."
 
 #: src/pixelMath/pixel_math_runner.c:110
 msgid "Biweight midvariance of the image."
@@ -21886,11 +21886,11 @@ msgstr "Pixel Umkehr Operator."
 
 #: src/pixelMath/pixel_math_runner.c:126
 msgid "Unary Minus operator (sign change)."
-msgstr "Vorzeichenwechel."
+msgstr "Unärer Minus-Operator (Vorzeichenwechsel)."
 
 #: src/pixelMath/pixel_math_runner.c:127
 msgid "Unary Plus operator."
-msgstr "Plus Operator."
+msgstr "Unärer Plus-Operator."
 
 #: src/pixelMath/pixel_math_runner.c:128
 msgid "Logical NOT operator."
