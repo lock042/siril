@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-06-01 07:21+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"PO-Revision-Date: 2023-06-02 07:56+0000\n"
+"Last-Translator: Yi Cao <caoyi06@qq.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
-"siril-application/zh_Hans/>\n"
+"siril-application-1-2/zh_Hans/>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15541,7 +15541,7 @@ msgstr "当前工作目录"
 
 #: src/core/settings.c:255
 msgid "FITS file extension"
-msgstr "FITS 文件扩展名"
+msgstr "FITS扩展名"
 
 #: src/core/settings.c:256
 msgid "don't use 32 bits for pixel depth"
