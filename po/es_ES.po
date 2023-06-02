@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-03-27 08:39+0000\n"
-"Last-Translator: Pablo Cesar Campos <pcamposs@live.com>\n"
-"Language-Team: Spanish <https://weblate.pixls.us/projects/siril/siril-"
-"application/es/>\n"
+"PO-Revision-Date: 2023-06-02 08:04+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Spanish <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/es/>\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -390,8 +390,7 @@ msgstr "Desplazamiento radial"
 
 #: src/gui/siril3.glade:1898
 msgid "Radial shift used to compute rotational gradient."
-msgstr ""
-"Desplazamiento radial utilizado para calcular el gradiente de rotación."
+msgstr "Desplazamiento radial utilizado para calcular el gradiente de rotación."
 
 #: src/gui/siril3.glade:1921
 msgid "Rotational shift"
@@ -2466,8 +2465,7 @@ msgstr "Cerrar el diálogo."
 
 #: src/gui/siril3.glade:10919
 msgid "Computes a linear function between a reference image and a target."
-msgstr ""
-"Calcula una función lineal entre la imagen de referencia y un objetivo."
+msgstr "Calcula una función lineal entre la imagen de referencia y un objetivo."
 
 #: src/gui/siril3.glade:10953
 msgid "Reference: "
@@ -4941,8 +4939,8 @@ msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
 msgstr ""
-"Todas las secuencias de imágenes se dividirán por la imagen plana maestra "
-"(el valor de cada píxel)."
+"Todas las secuencias de imágenes se dividirán por la imagen plana maestra ("
+"el valor de cada píxel)."
 
 #: src/gui/siril3.glade:20939
 msgid ""
@@ -4950,8 +4948,8 @@ msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
 msgstr ""
-"Introduzca el nombre del fichero maestro plano, o use el botón de "
-"navegación.\n"
+"Introduzca el nombre del fichero maestro plano, o use el botón de navegación."
+"\n"
 "Todas las imágenes de la secuencia se dividirán por el fichero maestro plano "
 "(el valor de cada píxel)."
 
@@ -5383,8 +5381,8 @@ msgid ""
 msgstr ""
 "<b>Cambio</b> es un mapeo rígido con dos grados de libertad (x/y), muy "
 "adecuado para imágenes sin distorsión, sin escala y sin rotación de campo. "
-"Necesita que al menos dos estrellas coincidan para definir la "
-"transformación.\n"
+"Necesita que al menos dos estrellas coincidan para definir la transformación."
+"\n"
 "\n"
 "<b>Similaridady</b> es un mapeo de 4 grados de libertad (una escala, una "
 "rotación, x e y) más rígido que la homografía, muy últil en imágenes sin "
@@ -5404,8 +5402,8 @@ msgstr ""
 "\n"
 "<b>AVISO</b>: El emparejado inicial usa el algoritmo de triángulos "
 "similares, por ello el mínimo de pares de estrellas ha de ser 3 para "
-"<b>Cambio</b>, <b>Similaridad</b> y <b>Afinidad</b> y 4 para <b>Homografía</"
-"b>."
+"<b>Cambio</b>, <b>Similaridad</b> y <b>Afinidad</b> y 4 para "
+"<b>Homografía</b>."
 
 #: src/gui/siril3.glade:21954
 msgid "Shift"
@@ -6648,8 +6646,8 @@ msgid ""
 "Instead of keeping pixels with values above the \"hi\" value white, put them "
 "in black to see in which part of the image the threshold is exceeded."
 msgstr ""
-"En lugar de mantener los píxeles con valores por encima del valor blanco "
-"\"hi\" , ponerlos en negro para ver qué parte de la imagen excede el umbral."
+"En lugar de mantener los píxeles con valores por encima del valor blanco \"hi"
+"\" , ponerlos en negro para ver qué parte de la imagen excede el umbral."
 
 #: src/gui/siril3.glade:25586
 msgid "High value"
@@ -7255,8 +7253,8 @@ msgid ""
 "however, it preserves too much of the noise (or even amplifies the noise) in "
 "the pixel values, resulting in poor compression."
 msgstr ""
-"Mientras que las imágenes de punto flotante pueden comprimirse sin pérdida "
-"(usando gzip, ya que Rice y Hcompress sólo comprimen matrices de números "
+"Mientras que las imágenes de punto flotante pueden comprimirse sin pérdida ("
+"usando gzip, ya que Rice y Hcompress sólo comprimen matrices de números "
 "enteros), estas imágenes a menudo no se comprimen muy bien porque los "
 "valores de píxeles son demasiado ruidosos; los bits menos significativos en "
 "la mantisa de los valores de los píxeles contienen efectivamente patrones de "
@@ -7410,8 +7408,7 @@ msgstr "Anotaciones"
 #: src/gui/siril3.glade:28596
 msgid ""
 "Choose the position of the compass being displayed with the celestial grid."
-msgstr ""
-"Elegir la posición de la brújula que se muestra con la rejilla celeste."
+msgstr "Elegir la posición de la brújula que se muestra con la rejilla celeste."
 
 #: src/gui/siril3.glade:28602
 msgid "Center"
@@ -7859,8 +7856,8 @@ msgstr "Rango de valores de píxel"
 #: src/gui/siril3.glade:30067
 msgid "A/D converter gain in electrons per ADU. Default value is 2.300."
 msgstr ""
-"Ganancia del conversor A/D en electrones por ADU. El valor por defecto es "
-"2.300."
+"Ganancia del conversor A/D en electrones por ADU. El valor por defecto es 2."
+"300."
 
 #: src/gui/siril3.glade:30088
 msgid "ADC gain:"
@@ -9216,8 +9213,8 @@ msgid ""
 "Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-"
 "axis aberration[FWHM]: %.2f\n"
 msgstr ""
-"Estrellas: %d, Media truncada[FWHM]: %.2f, inclinación de sensor[FWHM]: "
-"%.2f(%.0f%%), aberración fuera del eje[FWHM]: %.2f\n"
+"Estrellas: %d, Media truncada[FWHM]: %.2f, inclinación de sensor[FWHM]: %."
+"2f(%.0f%%), aberración fuera del eje[FWHM]: %.2f\n"
 
 #: src/algos/ccd-inspector.c:283
 #, fuzzy
@@ -9366,8 +9363,7 @@ msgstr "Extracción del canal"
 #: src/algos/demosaicing.c:1447
 #, fuzzy
 msgid "Input files not all the same bit depth\n"
-msgstr ""
-"Los ficheros SER de entrada deben tener el mismo tamaño para unirlos.\n"
+msgstr "Los ficheros SER de entrada deben tener el mismo tamaño para unirlos.\n"
 
 #: src/algos/demosaicing.c:1454
 #, fuzzy
@@ -9376,8 +9372,7 @@ msgstr "Error al leer una de las áreas de imagen\n"
 
 #: src/algos/extraction.c:60 src/algos/extraction.c:110
 msgid "Extract_Ha does not work on non-Bayer filter camera images!\n"
-msgstr ""
-"La extracción HA no funciona con imágenes de cámaras sin filtro Bayer\n"
+msgstr "La extracción HA no funciona con imágenes de cámaras sin filtro Bayer\n"
 
 #: src/algos/extraction.c:173
 msgid "XTRANS pattern not supported for this feature.\n"
@@ -10598,8 +10593,7 @@ msgstr "Recortar: ancho y alto deben ser mayores que 0.\n"
 #: src/core/command.c:1679 src/core/command.c:4138
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
-msgstr ""
-"Recortar: ancho y alto deben ser menores que %d y %d respectivamente.\n"
+msgstr "Recortar: ancho y alto deben ser menores que %d y %d respectivamente.\n"
 
 #: src/core/command.c:1684 src/core/command.c:4128
 msgid "Crop: select a region or provide x, y, width, height\n"
@@ -10971,8 +10965,8 @@ msgstr "La creación de la tubería de entrada ha fallado con error %d\n"
 msgid ""
 "Relative magnitude: %.3lf, True reduced magnitude: %.3lf, Offset: %.3lf\n"
 msgstr ""
-"Magnitud relativa: %.3lf, Magnidud real reducida: %.3lf, Compensación: "
-"%.3lf\n"
+"Magnitud relativa: %.3lf, Magnidud real reducida: %.3lf, Compensación: %."
+"3lf\n"
 
 #: src/core/command.c:3229 src/core/command.c:3236 src/core/command.c:3245
 msgid "Inner radius value must be less than outer. Please change the value."
@@ -11588,8 +11582,8 @@ msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
 msgstr ""
-"Los sensores FujiFilm XTRANS no están soportados en el estándar SER v2 "
-"(estilo CFA). Debe usar secuencias FITS en su lugar."
+"Los sensores FujiFilm XTRANS no están soportados en el estándar SER v2 ("
+"estilo CFA). Debe usar secuencias FITS en su lugar."
 
 #: src/core/command.c:6435
 msgid "No RAW files were found for conversion\n"
@@ -11984,8 +11978,7 @@ msgstr "Por favor especifique el tipo de compresión y valor de cuantización.\n
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
 #: src/core/command.c:7872
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
-msgstr ""
-"Tipo de compresión incorrecto. Las opciones son  rice, gzip1 y, gzip2\n"
+msgstr "Tipo de compresión incorrecto. Las opciones son  rice, gzip1 y, gzip2\n"
 
 #: src/core/command.c:7876
 msgid "Please specify the value of quantization.\n"
@@ -12027,8 +12020,8 @@ msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
 msgstr ""
-"El rango aceptado para el ratio de memoria usado para el apilado es [0.05, "
-"4], con valores recomendados por debajo de la memoria disponible\n"
+"El rango aceptado para el ratio de memoria usado para el apilado es [0.05, 4]"
+", con valores recomendados por debajo de la memoria disponible\n"
 
 #: src/core/command.c:7939
 #, c-format
@@ -12385,8 +12378,8 @@ msgstr ""
 "proporcionados como argumentos. \n"
 "\n"
 "Para bias, se puede especificar un valor uniforme en lugar de una imagen, "
-"introduciendo una expresión entrecomillada que empiece por un signo =, como -"
-"bias=\"=256\" o bias=\"=64*$OFFSET\".\n"
+"introduciendo una expresión entrecomillada que empiece por un signo =, como "
+"-bias=\"=256\" o bias=\"=64*$OFFSET\".\n"
 "Es posible especificar si las imágenes son CFA para correcciones cosméticas "
 "con la opción <b>-cfa</b> y también hacerles demosaico al final del proceso "
 "con <b>-debayer</b>.\n"
@@ -12441,8 +12434,8 @@ msgstr ""
 "proporcionados como argumentos. \n"
 "\n"
 "Para bias, se puede especificar un valor uniforme en lugar de una imagen, "
-"introduciendo una expresión entrecomillada que empiece por un signo =, como -"
-"bias=\"=256\" o bias=\"=64*$OFFSET\".\n"
+"introduciendo una expresión entrecomillada que empiece por un signo =, como "
+"-bias=\"=256\" o bias=\"=64*$OFFSET\".\n"
 "Es posible especificar si las imágenes son CFA para correcciones cosméticas "
 "con la opción <b>-cfa</b> y también hacerles demosaico al final del proceso "
 "con <b>-debayer</b>.\n"
@@ -12567,8 +12560,8 @@ msgstr ""
 "La opción </b>-debayer</b> aplica el demosaico a las imágenes. En este caso "
 "no se crean enlaces simbólicos.\n"
 "La opción </b>-start=index</b> establece el parámetro del índice del "
-"comienzo y la opción </b>-out=</b> convierte los ficheros en el directorio </"
-"b>out</b>"
+"comienzo y la opción </b>-out=</b> convierte los ficheros en el directorio "
+"</b>out</b>"
 
 #: src/core/command_def.h:28
 msgid ""
@@ -12577,8 +12570,8 @@ msgid ""
 "file]. COSME is adapted to correct residual hot and cold pixels after "
 "preprocessing"
 msgstr ""
-"Aplica la media local a un set de píxeles en la imagen en memoria "
-"(corrección cosmética). Las coordenadas de los píxeles están en un fichero "
+"Aplica la media local a un set de píxeles en la imagen en memoria ("
+"corrección cosmética). Las coordenadas de los píxeles están en un fichero "
 "ASCII [fichero .lst]. Se adapta COSME para corregir los píxeles residuales, "
 "fríos y calientes después del procesado"
 
@@ -12619,8 +12612,8 @@ msgid ""
 "32-bit images in which case it will be scaled automatically"
 msgstr ""
 "Realiza un DPP (proceso de desarrollo digital) como describió por primera "
-"vez Kunihiko Okano. Esta implementación se describe por primera vez en "
-"IRIS.\n"
+"vez Kunihiko Okano. Esta implementación se describe por primera vez en IRIS."
+"\n"
 "\n"
 "Combina una distribución lineal en los niveles bajos (abajo <b>nivel</b>) y "
 "una no lineal en los niveles altos.\n"
@@ -13506,8 +13499,8 @@ msgstr ""
 "bandera que procederá al escalado al alza durante el apilado si se usa la "
 "opción <b>-rorot</b>\n"
 "La opción <b>-transf=</b> especifica el uso de cualquiera de estas "
-"transformaciones respectivamente <b>\"shift\"</b>, <b>\"similarity\"</b>, "
-"<b>\"affine\"</b> or <b>\"homography\"</b>, usando por defecto homografía a "
+"transformaciones respectivamente <b>\"shift\"</b>, <b>\"similarity\"</b>, <b>"
+"\"affine\"</b> or <b>\"homography\"</b>, usando por defecto homografía a "
 "menos que se pase <b>-norot</b>,que usa cambio por defecto.\n"
 "La opción <b>-minpairs=</b> especificará el mínimo número de pares de "
 "estrellas que puede tener un frame con respecto al frame de referencia, de "
@@ -13817,8 +13810,8 @@ msgstr ""
 "bandera que procederá al escalado al alza durante el apilado si se usa la "
 "opción <b>-rorot</b>\n"
 "La opción <b>-transf=</b> especifica el uso de cualquiera de estas "
-"transformaciones respectivamente <b>\"shift\"</b>, <b>\"similarity\"</b>, "
-"<b>\"affine\"</b> or <b>\"homography\"</b>, usando por defecto homografía a "
+"transformaciones respectivamente <b>\"shift\"</b>, <b>\"similarity\"</b>, <b>"
+"\"affine\"</b> or <b>\"homography\"</b>, usando por defecto homografía a "
 "menos que se pase <b>-norot</b>,que usa cambio por defecto.\n"
 "La opción <b>-minpairs=</b> especificará el mínimo número de pares de "
 "estrellas que puede tener un frame con respecto al frame de referencia, de "
@@ -13942,8 +13935,8 @@ msgid ""
 "The output sequence name starts with the prefix \"cc_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Mismo comando que FIND_COSME_CFA pero para la secuencia <b>sequencename</"
-"b>.\n"
+"Mismo comando que FIND_COSME_CFA pero para la secuencia <b>sequencename</b>."
+"\n"
 "\n"
 "El nombre de la secuencia de salida empezará con \"cc_\" a menos que se "
 "especifique otra con la opción <b>-prefix=</b>"
@@ -14376,8 +14369,8 @@ msgid ""
 "provided, the extraction is of RGB type"
 msgstr ""
 "Divide el color de la imagen en distintos ficheros (uno por cada color) y "
-"los guarda en los ficheros <b>fileR</b>.fit <b>fileG</b>.fit, <b>fileB</b>."
-"fit respectivamente"
+"los guarda en los ficheros <b>fileR</b>.fit <b>fileG</b>.fit, <b>fileB</"
+"b>.fit respectivamente"
 
 #: src/core/command_def.h:175
 msgid ""
@@ -14462,9 +14455,9 @@ msgstr ""
 "Para tipos de apilado media|mediana y rechazo|mediana se permiten diferentes "
 "tipos de normalización: <b>-norm=add</b> para aditiva, <b>-norm=mul</b> para "
 "multiplicativa. Las opciones <b>-norm=addscale</b> y <b>-norm=mulscale</b> "
-"aplican las mismas normalizaciones pero con operaciones de escalado. <b>-"
-"output_norm</b> desactiva el normalizado. De lo contrario se usa por defecto "
-"el método aditivo con escalas.\n"
+"aplican las mismas normalizaciones pero con operaciones de escalado. "
+"<b>-output_norm</b> desactiva el normalizado. De lo contrario se usa por "
+"defecto el método aditivo con escalas.\n"
 "\n"
 "Otras opciones para el apliado de rechazo:\n"
 "<b>-weighted</b> es una opación para añadir mayor peso a los frames con "
@@ -14479,8 +14472,8 @@ msgstr ""
 "Filtado de imágenes:\n"
 "\n"
 "Las imágenes apiladas se pueden seleccionar basándose en algunos filtros, "
-"como la selección manual del mejor FWHM, mediante las opciones <b>-filter-*</"
-"b>.\n"
+"como la selección manual del mejor FWHM, mediante las opciones "
+"<b>-filter-*</b>.\n"
 "Consulte la referencia de comandos para una documentación completa de este "
 "comando"
 
@@ -15231,8 +15224,7 @@ msgstr "SIN USAR DARK: no se puede abrir el fichero"
 
 #: src/core/preprocess.c:786
 msgid "Dark optimization: This process cannot be applied to 8b images"
-msgstr ""
-"Optimización oscura: Este comando no puede usarse en imágenes de 8 bits"
+msgstr "Optimización oscura: Este comando no puede usarse en imágenes de 8 bits"
 
 #: src/core/preprocess.c:855
 #, fuzzy
@@ -15411,8 +15403,8 @@ msgid ""
 "selection, using only available data (%d images on %d).\n"
 msgstr ""
 "Precaución: algunas imágenes no tienen información disponible para una mejor "
-"selección de imágenes, usando sólo los datos disponibles (%d imágenes de "
-"%d).\n"
+"selección de imágenes, usando sólo los datos disponibles (%d imágenes de %d)."
+"\n"
 
 #: src/core/sequence_filtering.c:522
 #, c-format
@@ -15454,8 +15446,8 @@ msgid ""
 "Processing images of the sequence with a quality higher or equal than %g "
 "(%d)\n"
 msgstr ""
-"Procesando imágenes de la secuencia con una calidad mayor o igual que %g "
-"(%d)\n"
+"Procesando imágenes de la secuencia con una calidad mayor o igual que %g (%d)"
+"\n"
 
 #: src/core/sequence_filtering.c:542
 #, fuzzy, c-format
@@ -16098,8 +16090,8 @@ msgstr ""
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
 msgstr ""
-"Hay una nueva versión disponible. Puede descargarla en <a href=\"%s\">%s</"
-"a>\n"
+"Hay una nueva versión disponible. Puede descargarla en <a href=\"%s\">%s</a>"
+"\n"
 
 #: src/core/siril_update.c:358
 msgid "No update check: this is a development version\n"
@@ -16250,8 +16242,7 @@ msgstr "Reducción de bandas Canon (cantidad=%.2lf)"
 #: src/filters/banding.c:410
 #, c-format
 msgid "Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
-msgstr ""
-"Reducción de banding Canon (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
+msgstr "Reducción de banding Canon (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
 
 #: src/filters/clahe.c:59
 #, c-format
@@ -16805,8 +16796,8 @@ msgstr ""
 "longitud focal y coordenadas iniciales) están muy lejos de los metadatos "
 "reales de la imagen.\n"
 "\n"
-"También puedes intentar usar otro catálogo, o pulsar el botón "
-"\"Submuestreo\", especialmente para imágenes hechas con Drizzle.\n"
+"También puedes intentar usar otro catálogo, o pulsar el botón \"Submuestreo\""
+", especialmente para imágenes hechas con Drizzle.\n"
 "\n"
 "Finalmente, ten en cuenta que el algoritmo de resolución de platos sólo "
 "puede aplicarse a imágenes lineales."
@@ -18562,8 +18553,7 @@ msgstr ""
 
 #: src/gui/siril_intro.c:48
 msgid "Save your work as many times as needed by choosing a new name ..."
-msgstr ""
-"Guarda tu trabajo cuantas veces necesites eligiendo un nombre nuevo ..."
+msgstr "Guarda tu trabajo cuantas veces necesites eligiendo un nombre nuevo ..."
 
 #: src/gui/siril_intro.c:49
 msgid "... or save the current FITS image with the same name"
@@ -18864,8 +18854,8 @@ msgid ""
 "Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) "
 "converted, %d failed)\n"
 msgstr ""
-"Conversión correcta, creado(s) %d fichero(s) de /%d fichero(s) de entrada "
-"(%d imágen(es) convertida(s), fallaron %d)\n"
+"Conversión correcta, creado(s) %d fichero(s) de /%d fichero(s) de entrada ("
+"%d imágen(es) convertida(s), fallaron %d)\n"
 
 #: src/io/conversion.c:680
 #, c-format
@@ -18873,8 +18863,8 @@ msgid ""
 "Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) "
 "converted, %d failed)\n"
 msgstr ""
-"Conversión cancelada, creado(s) %d fichero(s) de /%d fichero(s) de entrada "
-"(%d imágen(es) convertida(s), fallaron %d)\n"
+"Conversión cancelada, creado(s) %d fichero(s) de /%d fichero(s) de entrada ("
+"%d imágen(es) convertida(s), fallaron %d)\n"
 
 #: src/io/conversion.c:685
 #, fuzzy, c-format
@@ -18885,15 +18875,15 @@ msgstr "La conversión finalizó con error, %d/%d ficheros comvertidos\n"
 #, fuzzy, c-format
 msgid "Conversion succeeded, %d file(s) created for %d input file(s)\n"
 msgstr ""
-"Conversión correcta, creado(s) %d fichero(s) de /%d fichero(s) de entrada "
-"(%d imágen(es) convertida(s), fallaron %d)\n"
+"Conversión correcta, creado(s) %d fichero(s) de /%d fichero(s) de entrada ("
+"%d imágen(es) convertida(s), fallaron %d)\n"
 
 #: src/io/conversion.c:693
 #, fuzzy, c-format
 msgid "Conversion aborted, %d file(s) created for %d input file(s)\n"
 msgstr ""
-"Conversión cancelada, creado(s) %d fichero(s) de /%d fichero(s) de entrada "
-"(%d imágen(es) convertida(s), fallaron %d)\n"
+"Conversión cancelada, creado(s) %d fichero(s) de /%d fichero(s) de entrada ("
+"%d imágen(es) convertida(s), fallaron %d)\n"
 
 #: src/io/conversion.c:835
 #, c-format
@@ -19656,8 +19646,7 @@ msgstr "No se puede cargar la imagen parcial %d de la secuencia %s\n"
 
 #: src/io/sequence.c:1017
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
-msgstr ""
-"Esta operación no está soportada para secuencias AVI (seq_open_image)\n"
+msgstr "Esta operación no está soportada para secuencias AVI (seq_open_image)\n"
 
 #: src/io/sequence.c:1021
 msgid ""
@@ -19690,8 +19679,8 @@ msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
 "area?)\n"
 msgstr ""
-"No se han encontrado estrellas en la zona de imagen %d en torno a %d,%d "
-"(¿usar un area mayor?)\n"
+"No se han encontrado estrellas en la zona de imagen %d en torno a %d,%d (¿"
+"usar un area mayor?)\n"
 
 #: src/io/sequence.c:1709
 #, fuzzy, c-format
@@ -19699,8 +19688,8 @@ msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
 "option?)\n"
 msgstr ""
-"No se han encontrado estrellas en la zona de imagen %d en torno a %d,%d "
-"(¿usar la opción 'seguimiento de estrellas'?)\n"
+"No se han encontrado estrellas en la zona de imagen %d en torno a %d,%d (¿"
+"usar la opción 'seguimiento de estrellas'?)\n"
 
 #: src/io/sequence.c:1778
 msgid ""
@@ -20027,8 +20016,7 @@ msgstr "Este tipo de patrón Bayer todavía no se maneja.\n"
 
 #: src/io/ser.c:1086
 msgid "For a demosaiced image, layer has to be R, G or B (0 to 2).\n"
-msgstr ""
-"Para una imagen con demosaico, la capa tiene que ser R,G o B (0 a 2).\n"
+msgstr "Para una imagen con demosaico, la capa tiene que ser R,G o B (0 a 2).\n"
 
 #: src/io/ser.c:1185
 msgid "Trying to add an image of different size in a SER\n"
@@ -20056,8 +20044,7 @@ msgstr "Error abriendo fichero"
 #: src/io/single_image.c:279
 msgid ""
 "There was an error when opening this image. See the log for more information."
-msgstr ""
-"Hubo un error al abrir esta imagen. Revise el log para más información."
+msgstr "Hubo un error al abrir esta imagen. Revise el log para más información."
 
 #: src/livestacking/gui.c:88
 #, fuzzy, c-format
@@ -20580,8 +20567,8 @@ msgstr ""
 #, fuzzy, c-format
 msgid "A maximum of %d images can be used in a single expression.\n"
 msgstr ""
-"Solo pueden usarse imágenes FITS de Siril con la lectura parcial de "
-"imágenes.\n"
+"Solo pueden usarse imágenes FITS de Siril con la lectura parcial de imágenes."
+"\n"
 
 #: src/pixelMath/pixel_math_runner.c:916
 #, fuzzy
@@ -21896,8 +21883,8 @@ msgstr "Apilando %d imágenes de %d de la secuencia"
 #: src/stacking/stackminmax.c:65
 msgid "No frame selected for stacking (select at least 2). Aborting.\n"
 msgstr ""
-"No se ha seleccionado frame para apilar (seleccione al menos 2). "
-"Cancelando.\n"
+"No se ha seleccionado frame para apilar (seleccione al menos 2). Cancelando."
+"\n"
 
 #: src/stacking/stackminmax.c:94
 msgid "Stacking: could not read frame, aborting\n"
