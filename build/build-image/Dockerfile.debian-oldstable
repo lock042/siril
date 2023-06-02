@@ -18,7 +18,8 @@ RUN apt-get update -qyy \
         librsvg2-dev \
         libffms2-dev \
         libtiff-dev \
-        libjpeg-dev \
+        libjpeg-turbo8 \
+        libjpeg-turbo8-dev \
         libheif-dev \
         libpng-dev \
         libavformat-dev \
