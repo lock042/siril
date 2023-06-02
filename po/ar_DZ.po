@@ -8,16 +8,17 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2016-11-20 10:20+0100\n"
-"Last-Translator: زنادي أمين <amine-zennadi@hotmail.com>\n"
-"Language-Team: \n"
+"PO-Revision-Date: 2023-06-02 08:01+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Arabic (Algeria) <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/ar_DZ/>\n"
 "Language: ar_DZ\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.11\n"
-"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
-"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7996
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -2476,8 +2477,8 @@ msgid ""
 "are the translation relative to the reference image."
 msgstr ""
 "قائمة من الصور في تسلسل ، مع دولتهم و نوعية المعلومات . نوعية FWHM عند "
-"استخدام تسجيل PSF ، وذلك أقل من الأفضل ، و مقدر التدرج للتسجيل تجهيز "
-"الدوائر ، أعلى و أفضل. X و Y الأعمدة هي الترجمة المتعلقة صورة المرجعية."
+"استخدام تسجيل PSF ، وذلك أقل من الأفضل ، و مقدر التدرج للتسجيل تجهيز الدوائر "
+"، أعلى و أفضل. X و Y الأعمدة هي الترجمة المتعلقة صورة المرجعية."
 
 #: src/gui/siril3.glade:11329
 #, fuzzy
@@ -4570,8 +4571,8 @@ msgid ""
 "Colour image target also applies to the debayer result for conversion."
 msgstr ""
 "ديبايير قناة واحدة الصور (فرنكات الجماعة المالية الأفريقية تنسيق) باستخدام "
-"تخطيط مصفوفة باير في الإعدادات. ينطبق أيضا على صورة فتح، ليس فقط من "
-"التحويل.\n"
+"تخطيط مصفوفة باير في الإعدادات. ينطبق أيضا على صورة فتح، ليس فقط من التحويل."
+"\n"
 "فقط للصور RAW ويناسب الإدخال والأفلام SER.\n"
 "لون الصورة الهدف ينطبق أيضا على النتيجة دبير للتحويل."
 
@@ -4866,9 +4867,8 @@ msgid ""
 msgstr ""
 "الطرح الظلام يمكن أن يكون الأمثل اختياريا بحيث يتم التقليل من الضوضاء في "
 "الصورة الناتجة (ضوء إطار ناقص إطار الظلام) عن طريق تطبيق معامل إلى الإطار "
-"الظلام. هذا الخيار مفيد عندما لم تتخذ الإطارات الداكنة في أفضل الظروف. "
-"تحذير: لا ينطبق الأمثل الظلام على سيد الظلام إذا لم يتم طرح السيد والتحيز "
-"سابقا."
+"الظلام. هذا الخيار مفيد عندما لم تتخذ الإطارات الداكنة في أفضل الظروف. تحذير:"
+" لا ينطبق الأمثل الظلام على سيد الظلام إذا لم يتم طرح السيد والتحيز سابقا."
 
 #: src/gui/siril3.glade:21101
 msgid "Equalize CFA"
@@ -4889,8 +4889,8 @@ msgid ""
 "This value is the mean of the master flat calibrated with the master offset."
 msgstr ""
 "إذا تم تحديد هذا المربع، Siril لصناعة السيارات في تقييم القيمة التطبيع. هذه "
-"القيمة هي متوسط ​​شقة سيد معايرة مع سيد الإزاحة. إذا حدث هذا يعطي تجاوزات يجب "
-"عليك اختيار يدويا."
+"القيمة هي متوسط ​​شقة سيد معايرة مع سيد الإزاحة. إذا حدث هذا يعطي تجاوزات "
+"يجب عليك اختيار يدويا."
 
 #: src/gui/siril3.glade:21139
 msgid "Choose your own normalisation value."
@@ -5098,8 +5098,8 @@ msgid ""
 "parallelized, it will run on one CPU core only."
 msgstr ""
 "استخدم هذا الخيار لاستخدام موقف النجم الموجود في الصورة السابقة كمركز جديد "
-"لتسجيل الصورة الحالية. وهذا يسمح للمنطقة التحديد ليكون أصغر حجما، تسجيل "
-"أسرع، وتمثل الانجراف أو الصور مع عدد كبير من النجوم. تحذير: تمكين هذا الخيار "
+"لتسجيل الصورة الحالية. وهذا يسمح للمنطقة التحديد ليكون أصغر حجما، تسجيل أسرع،"
+" وتمثل الانجراف أو الصور مع عدد كبير من النجوم. تحذير: تمكين هذا الخيار "
 "يتطلب التسجيل للا أن يكون بشكل متوازي، فستعمل على حدة المعالجة المركزية "
 "الأساسية واحدة فقط."
 
@@ -6517,8 +6517,8 @@ msgid ""
 "will equalize the sky background in a neutral grey.\n"
 "This step should be run before any attempt of color calibration."
 msgstr ""
-"سوف تحييد خلفية بحساب متوسط ​​كل قناة لون وسوف بمعادلة خلفية السماء في الرمادي "
-"المحايد. يجب تشغيل هذه الخطوة قبل أي محاولة لمعايرة اللون."
+"سوف تحييد خلفية بحساب متوسط ​​كل قناة لون وسوف بمعادلة خلفية السماء في "
+"الرمادي المحايد. يجب تشغيل هذه الخطوة قبل أي محاولة لمعايرة اللون."
 
 #: src/gui/siril3.glade:27085
 msgid "Background reference"
@@ -6558,8 +6558,8 @@ msgid ""
 "reference.\n"
 "If the selection is empty, the whole image will be used as reference."
 msgstr ""
-"يجب تحديد مجموعة مختارة تمثل في المتوسط ​​إشارة بيضاء مناسبة. إذا كان التحديد "
-"فارغة، سيتم استخدام الصورة كاملة كمرجع."
+"يجب تحديد مجموعة مختارة تمثل في المتوسط ​​إشارة بيضاء مناسبة. إذا كان "
+"التحديد فارغة، سيتم استخدام الصورة كاملة كمرجع."
 
 #: src/gui/siril3.glade:27456
 msgid ""
@@ -9338,10 +9338,9 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
-"الاحداثيات النقطه الوسطى: X0 =% 2fpx Y0 =% 2fpx كاملة العرض نصف الحد "
-"الأقصى:. FWHMx =% 2F% الصورة FWHMy =% 2F% الصورة زاوية:.% القيمة 0.2fdeg "
-"الخلفية: B =% 6F الكثافة القصوى: A = % .6f حجم (% ق): م =% 2F RMSE:. RMSE =% "
-"3E"
+"الاحداثيات النقطه الوسطى: X0 =% 2fpx Y0 =% 2fpx كاملة العرض نصف الحد الأقصى:"
+". FWHMx =% 2F% الصورة FWHMy =% 2F% الصورة زاوية:.% القيمة 0.2fdeg الخلفية: B "
+"=% 6F الكثافة القصوى: A = % .6f حجم (% ق): م =% 2F RMSE:. RMSE =% 3E"
 
 #: src/algos/quality.c:349 src/algos/quality.c:400
 #, c-format
@@ -16804,8 +16803,8 @@ msgid ""
 "Angle:\t%.2f deg\n"
 "rmse:\t%.3e\n"
 msgstr ""
-"متوسط ​​جاوس PSFN:% د النجوم ب:% .6f A:% .6f FWHMx:% .2f% الصورة FWHMy:% .2f% "
-"ق ص:% زاوية .3f:% .2f درجة RMSE:% .3e\n"
+"متوسط ​​جاوس PSFN:% د النجوم ب:% .6f A:% .6f FWHMx:% .2f% الصورة FWHMy:% ."
+"2f% ق ص:% زاوية .3f:% .2f درجة RMSE:% .3e\n"
 
 #: src/gui/PSF_list.c:350
 #, fuzzy, c-format
@@ -16822,8 +16821,8 @@ msgid ""
 "Angle:\t%.2f deg\n"
 "rmse:\t%.3e\n"
 msgstr ""
-"متوسط ​​جاوس PSFN:% د النجوم ب:% .6f A:% .6f FWHMx:% .2f% الصورة FWHMy:% .2f% "
-"ق ص:% زاوية .3f:% .2f درجة RMSE:% .3e\n"
+"متوسط ​​جاوس PSFN:% د النجوم ب:% .6f A:% .6f FWHMx:% .2f% الصورة FWHMy:% ."
+"2f% ق ص:% زاوية .3f:% .2f درجة RMSE:% .3e\n"
 
 #: src/gui/PSF_list.c:356
 #, fuzzy
@@ -17735,8 +17734,8 @@ msgid ""
 "Wrong magic cookie in PNM file, ASCII types and b&w bitmaps are not "
 "supported.\n"
 msgstr ""
-"غير معتمدة الخطأ الكعكة السحر في ملف PNM، وأنواع ASCII وB & W الصور "
-"النقطية.\n"
+"غير معتمدة الخطأ الكعكة السحر في ملف PNM، وأنواع ASCII وB & W الصور النقطية."
+"\n"
 
 #: src/io/image_formats_internal.c:515
 msgid "Error reading 8-bit PPM image data.\n"
@@ -17773,8 +17772,8 @@ msgstr "تسجيل NetBMP: الملف%s، طبقة% دينار (ق)، و% %ux%u 
 #: src/io/image_formats_internal.c:790
 msgid "Wrong magic cookie in PIC file. This image is not supported.\n"
 msgstr ""
-"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه "
-"الصورة.\n"
+"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه الصورة."
+"\n"
 
 #: src/io/image_formats_internal.c:831
 #, c-format
@@ -18208,8 +18207,8 @@ msgid ""
 "The sequence %s doesn't start at the frame number %d with the specified "
 "fixed size index (%d). Cannot load.\n"
 msgstr ""
-"لا يبدأ تسلسل%s في الإطار رقم %d مع مؤشر حجم ثابت محدد (%d). لا يمكن "
-"التحميل.\n"
+"لا يبدأ تسلسل%s في الإطار رقم %d مع مؤشر حجم ثابت محدد (%d). لا يمكن التحميل."
+"\n"
 
 #: src/io/sequence.c:229
 #, fuzzy, c-format
@@ -18572,8 +18571,8 @@ msgstr "تم إصلاح ملف SER ...\n"
 #, fuzzy
 msgid "Writing a 32-bit image to SER files is not supported.\n"
 msgstr ""
-"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه "
-"الصورة.\n"
+"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه الصورة."
+"\n"
 
 #: src/io/ser.c:514
 msgid "Warning: no timestamps stored in the SER file.\n"
