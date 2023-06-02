@@ -916,7 +916,7 @@ int readjpg(const char* name, fits *fit){
 	// Check for an ICC profile
 	JOCTET *EmbedBuffer = NULL;
 	unsigned int EmbedLen = 0;
-#ifdef LIBJPEG_TURBO_VERSION
+#if LIBJPEG_TURBO_VERSION_NUMBER >= 2.0
 	if (com.icc.available) {
 		jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
 	}
@@ -1077,7 +1077,7 @@ int savejpg(const char *name, fits *fit, int quality){
 	jpeg_start_compress(&cinfo, TRUE);
 	// Write the ICC profile
 	JOCTET *EmbedBuffer = NULL;
-#ifdef LIBJPEG_TURBO_VERSION
+#if LIBJPEG_TURBO_VERSION_NUMBER >= 2.0
 	if (com.icc.available) {
 		unsigned int EmbedLen;
 		if (cinfo.input_components == 3) {
