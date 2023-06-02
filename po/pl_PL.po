@@ -8,16 +8,17 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2018-12-21 14:06+0100\n"
-"Last-Translator: \n"
-"Language-Team: \n"
+"PO-Revision-Date: 2023-06-02 08:06+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Polish <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/pl/>\n"
 "Language: pl_PL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.2\n"
-"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
-"|| n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7996
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -2080,8 +2081,7 @@ msgstr "Rejestracja jednej gwiazdy (głębokie niebo)"
 
 #: src/gui/siril3.glade:9111
 msgid "For LRGB composition, the reference layer should be luminance."
-msgstr ""
-"W przypadku kompozycji LRGB warstwą odniesienia powinna być luminancja."
+msgstr "W przypadku kompozycji LRGB warstwą odniesienia powinna być luminancja."
 
 #: src/gui/siril3.glade:9113 src/gui/callbacks.c:715
 msgid "Luminance"
@@ -4683,9 +4683,8 @@ msgid ""
 "processed together."
 msgstr ""
 "Zaznacz to, aby utworzyć kilka plików SER zamiast pojedynczego pliku SER dla "
-"wszystkich elementów wejściowych. Użyj tego, jeśli elementy wejściowe "
-"(filmy) nie mają tego samego rozmiaru obrazu lub nie mogą być przetwarzane "
-"razem."
+"wszystkich elementów wejściowych. Użyj tego, jeśli elementy wejściowe (filmy)"
+" nie mają tego samego rozmiaru obrazu lub nie mogą być przetwarzane razem."
 
 #: src/gui/siril3.glade:20206
 msgid "Symbolic Link"
@@ -5715,8 +5714,8 @@ msgstr ""
 "powstanie obrazów o wyższej rozdzielczości.\n"
 "Ta opcja jest dostosowana do obrazów o niepełnym próbkowaniu, gdy długość "
 "ogniskowej teleskopu jest zbyt krótka dla rozmiaru piksela. Można uznać, że "
-"system jest niedostatecznie próbkowany, gdy FWHM jest mniejszy niż 2 "
-"piksele.\n"
+"system jest niedostatecznie próbkowany, gdy FWHM jest mniejszy niż 2 piksele."
+"\n"
 "Prawidłowa nazwa tej metody powinna być stackowanie z \"super-"
 "rozdzielczością\", ale dla lepszego zrozumienia nazywamy ją \"Uproszczonym "
 "Drizzle x2\".\n"
@@ -6071,8 +6070,8 @@ msgid ""
 "intensity is lower."
 msgstr ""
 "Suma: To jest najprostsza metoda.\n"
-"Wartości pikseli są dodawane w obrazie znormalizowanym do wartości 16-"
-"bitowych.\n"
+"Wartości pikseli są dodawane w obrazie znormalizowanym do wartości "
+"16-bitowych.\n"
 "Zwiększa stosunek sygnału do szumu (SNR) jako pierwiastek kwadratowy z "
 "liczby obrazów.\n"
 "\n"
@@ -11114,23 +11113,23 @@ msgstr "Przytnij: wartości x i y muszą być wartościami dodatnimi.\n"
 #, fuzzy
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr ""
-"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus "
-"jeden.\n"
+"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus jeden."
+"\n"
 
 #: src/core/command.c:5254
 #, fuzzy
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr ""
-"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus "
-"jeden.\n"
+"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus jeden."
+"\n"
 
 #: src/core/command.c:5260
 #, fuzzy
 msgid "The third argument is larger than the number of images.\n"
 msgstr ""
-"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus "
-"jeden.\n"
+"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus jeden."
+"\n"
 
 #: src/core/command.c:5261
 #, fuzzy, c-format
@@ -18741,8 +18740,8 @@ msgstr "Ta operacja nie jest obsługiwana w sekwencjach AVI (seq_open_image)\n"
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
-"Ta operacja nie jest obsługiwana w wewnętrznych sekwencjach "
-"(seq_open_image)\n"
+"Ta operacja nie jest obsługiwana w wewnętrznych sekwencjach (seq_open_image)"
+"\n"
 
 #: src/io/sequence.c:1445
 #, c-format
@@ -19054,8 +19053,7 @@ msgstr "Ostrzeżenie: brak znaczników czasowych w sekwencji SER.\n"
 #: src/io/ser.c:516
 #, fuzzy
 msgid "Warning: timestamps in the SER file are all identical.\n"
-msgstr ""
-"Ostrzeżenie: wszystkie znaczniki czasu w sekwencji SER są identyczne.\n"
+msgstr "Ostrzeżenie: wszystkie znaczniki czasu w sekwencji SER są identyczne.\n"
 
 #: src/io/ser.c:518
 #, fuzzy
@@ -20247,8 +20245,8 @@ msgid ""
 "each image. A new sequence is created with the prefix of your choice (r_ by "
 "default)."
 msgstr ""
-"Globalne wyrównanie gwiazd: Jest to potężniejszy i dokładniejszy algorytm "
-"(ale także wolniejszy) do wykonywania zdjęć głębokiego nieba. Dopasowanie "
+"Globalne wyrównanie gwiazd: Jest to potężniejszy i dokładniejszy algorytm ("
+"ale także wolniejszy) do wykonywania zdjęć głębokiego nieba. Dopasowanie "
 "globalne opiera się na metodzie podobieństwa trójkąta, która automatycznie "
 "identyfikuje wspólne gwiazdy w każdym obrazie. Nowa sekwencja jest tworzona "
 "z prefiksem do wyboru (domyślnie r_)."
@@ -20461,8 +20459,7 @@ msgstr "Najpierw otwórz obraz !\n"
 
 #: src/stacking/median_and_mean.c:158
 msgid "Super-pixel is not handled yet for on the fly SER stacking\n"
-msgstr ""
-"Super-piksel nie jest jeszcze obsługiwany dla stackowania SER w locie\n"
+msgstr "Super-piksel nie jest jeszcze obsługiwany dla stackowania SER w locie\n"
 
 #: src/stacking/median_and_mean.c:173
 msgid ""
