@@ -113,6 +113,15 @@ static void remaprgb(void) {
 	if (!isrgb(&gfit))
 		return;
 
+
+	cmsHTRANSFORM stf_transform = NULL;
+	if (com.icc.available && gui.rendering_mode == STF_DISPLAY) {
+		cmsHPROFILE temp = adjust_primaries(gfit.icc_profile, gui.icc.monitor);
+		stf_transform = cmsCreateTransform(temp, TYPE_RGBA_8, gfit.icc_profile, TYPE_RGBA_8, gui.icc.rendering_intent, 0);
+		cmsCloseProfile(temp);
+	}
+
+
 	struct image_view *rgbview = &gui.view[RGB_VPORT];
 	if (allocate_full_surface(rgbview))
 		return;
@@ -136,7 +145,14 @@ static void remaprgb(void) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
-	// flush to ensure all writing to the image was done and redraw the surface
+
+	if (com.icc.available&& gui.rendering_mode == STF_DISPLAY) {
+		cmsDoTransform(stf_transform, (void*) dst, (void*) dst, nbdata);
+		cmsDeleteTransform(stf_transform);
+	}
+
+
+// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
 	invalidate_image_render_cache(RGB_VPORT);
@@ -199,8 +215,9 @@ static void remap(int vport) {
 			// a linear profile if one is missing.
 			assign_linear_icc_profile(&gfit);
 		}
-		if (!gui.icc.display_transform)
+		if (!gui.icc.display_transform) {
 			gui.icc.display_transform = initialize_display_transform();
+		}
 
 		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
 			// No need to nullcheck gui.icc.soft_proof because it is done
@@ -355,8 +372,9 @@ static void remap_all_vports() {
 			// a linear profile if one is missing.
 			assign_linear_icc_profile(&gfit);
 		}
-		if (!gui.icc.display_transform)
+		if (!gui.icc.display_transform) {
 			gui.icc.display_transform = initialize_display_transform();
+		}
 
 		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
 			// No need to nullcheck gui.icc.soft_proof because it is done
@@ -426,11 +444,12 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 				memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 		}
-		if (com.icc.available && gui.rendering_mode != STF_DISPLAY)
+		if (com.icc.available && gui.rendering_mode != STF_DISPLAY) {
 			cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
 							gui.icc.proofing_transform :
 							gui.icc.display_transform,
 							pixelbuf, pixelbuf, gfit.rx);
+		}
 		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
 			for (int c = 0 ; c < 3 ; c++) {
 				WORD *line = linebuf[c];

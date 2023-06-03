@@ -668,6 +668,50 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	refresh_icc_transforms();
 }
 
+/* This function is used for compensating for differences
+ * between themonitor profile and working profile XYZ primaries,
+ * white point and colorants following an auto histogram
+ * stretch. It is unlikely to be useful for anything else. */
+
+cmsHPROFILE adjust_primaries (cmsHPROFILE working, cmsHPROFILE disp) {
+	/* Copy the display profile to the primary adjustment temporary profile
+	 * (this ensures the TRC is the same) */
+	cmsHPROFILE temp = copyICCProfile(disp);
+
+	/* Get and set the black and white points */
+	cmsCIEXYZ  *white = cmsReadTag(working, cmsSigMediaWhitePointTag);
+	if (white) {
+		cmsCIEXYZ white_tag = *white;
+		cmsWriteTag (temp, cmsSigMediaWhitePointTag, &white_tag);
+	}
+	cmsCIEXYZ  *black = cmsReadTag(working, cmsSigMediaBlackPointTag);
+	if (black) {
+		cmsCIEXYZ black_tag = *black;
+		cmsWriteTag (temp, cmsSigMediaBlackPointTag, &black_tag);
+	}
+
+	/* Get and set the colorants */
+	cmsCIEXYZ  *red = cmsReadTag(working, cmsSigRedColorantTag);
+	if (red) {
+		cmsCIEXYZ red_tag = *red;
+		cmsWriteTag (temp, cmsSigRedColorantTag, &red_tag);
+	}
+
+	cmsCIEXYZ  *green = cmsReadTag(working, cmsSigGreenColorantTag);
+	if (green) {
+		cmsCIEXYZ green_tag = *green;
+		cmsWriteTag (temp, cmsSigGreenColorantTag, &green_tag);
+	}
+
+	cmsCIEXYZ  *blue = cmsReadTag(working, cmsSigBlueColorantTag);
+	if (blue) {
+		cmsCIEXYZ blue_tag = *blue;
+		cmsWriteTag (temp, cmsSigBlueColorantTag, &blue_tag);
+	}
+
+	return temp;
+}
+
 //////// GUI callbacks for the color management dialog
 void set_source_information() {
 	if (!gfit.icc_profile) {

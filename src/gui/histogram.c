@@ -241,12 +241,50 @@ static void histo_recompute() {
 		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
 		if (com.icc.available && autostretch_notify) {
-			// Assign the monitor profile to gfit
-			if (gfit.icc_profile) {
+			if (gfit.naxes[2] == 3) {
+				/* This code compensates for any difference in CIEXYZ primaries between the
+				monitor and the working profile. It creates a temporary profile with the
+				TRC characteristics of the monitor (so no change to overall gamma) but the
+				CIEXYZ primaries, white point, colorants from the working space profile.
+				This is used to convert gfit from the temporary profile back to its working
+				space.
+				*/
+				cmsHPROFILE temp = adjust_primaries(gfit.icc_profile, gui.icc.monitor);
+				cmsUInt32Number tgt = cmsGetColorSpace(temp);
+				cmsUInt32Number type = get_planar_formatter_type(tgt, gfit.type, FALSE);
+				cmsHTRANSFORM transform = cmsCreateTransform(temp, type, gfit.icc_profile, type, gui.icc.rendering_intent, 0);
+				void *buf = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
+				int norm = (int) get_normalized_value(&gfit);
+				size_t ndata = gfit.rx * gfit.ry * gfit.naxes[2];
+
+				/* If gfit.data contans 8-bit data in the least significant byte, right shift
+				* it to look like a proper 16-bit value; we left-shift it again after the
+				* transform */
+				if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
+	#ifdef _OPENMP
+	#pragma omp parallel for simd schedule(static) num_threads(com.max_thread) if (ndata > 250000)
+	#endif
+					for (size_t i = 0 ; i < ndata ; i++) {
+						gfit.data[i] = gfit.data[i] << 8;
+					}
+				}
+
+				cmsDoTransform(transform, buf, buf, gfit.rx * gfit.ry);
+				if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
+	#ifdef _OPENMP
+	#pragma omp parallel for simd schedule(static) num_threads(com.max_thread) if (ndata > 250000)
+	#endif
+					for (size_t i = 0 ; i < ndata ; i++) {
+						gfit.data[i] = gfit.data[i] >> 8;
+					}
+				}
+				cmsCloseProfile(temp);
+				cmsDeleteTransform(transform);
+			} else {
+				// No compensation needed for mono images, we just assign the g22 Gray profile
 				cmsCloseProfile(gfit.icc_profile);
+				gfit.icc_profile = copyICCProfile(gui.icc.monitor);
 			}
-			gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_standard);
-//			autostretch_notify = FALSE;
 		}
 
 	// com.layers_hist should be good, update_histo_mtf() is always called before

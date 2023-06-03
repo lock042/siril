@@ -64,5 +64,6 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 void fits_check_icc(fits *fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
+cmsHPROFILE adjust_primaries (cmsHPROFILE working, cmsHPROFILE disp);
 unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len);
 #endif /* SRC_CORE_ICC_PROFILE_H_ */
