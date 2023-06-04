@@ -38,6 +38,8 @@ struct xisf_data {
     uint64_t sampleFormat;
 
     char *fitsHeader;
+	const char *icc_buffer;
+	uint32_t icc_length;
 };
 
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata);

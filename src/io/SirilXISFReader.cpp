@@ -75,6 +75,14 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 			return -1;
 		}
 
+		// Retrieve the ICC profile, if there is one
+		const LibXISF::ByteArray profile = image.iccProfile();
+		xdata->icc_length = profile.size();
+		if (xdata->icc_length > 0)
+			xdata->icc_buffer = profile.data();
+		else
+			xdata->icc_buffer = nullptr;
+
 		std::ostringstream fitsHeaderStream;
 		xdata->fitsHeader = NULL;
 
