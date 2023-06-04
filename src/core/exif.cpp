@@ -121,10 +121,12 @@ int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, c
 #endif
 }
 
+#ifdef HAVE_EXIV2
 #if EXIV2_TEST_VERSION(0,28,0)
-	typedef Exiv2::Image::UniquePtr ImagePtr;
+typedef Exiv2::Image::UniquePtr ImagePtr;
 #else
-    typedef Exiv2::Image::AutoPtr ImagePtr;
+typedef Exiv2::Image::AutoPtr ImagePtr;
+#endif
 #endif
 
 gchar* siril_get_date_from_exif(const char *filename) {
