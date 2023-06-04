@@ -8021,6 +8021,9 @@ int process_capabilities(int nb) {
 #ifdef HAVE_LIBTIFF
 	siril_log_message("Can read and write TIFF and Astro-TIFF files\n");
 #endif
+#ifdef HAVE_LIBXISF
+	siril_log_message("Can read XISF files\n");
+#endif
 #ifdef HAVE_LIBHEIF
 	siril_log_message("Can read HEIF files\n");
 #endif

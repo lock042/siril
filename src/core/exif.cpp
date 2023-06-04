@@ -121,10 +121,16 @@ int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, c
 #endif
 }
 
+#if EXIV2_TEST_VERSION(0,28,0)
+	typedef Exiv2::Image::UniquePtr ImagePtr;
+#else
+    typedef Exiv2::Image::AutoPtr ImagePtr;
+#endif
+
 gchar* siril_get_date_from_exif(const char *filename) {
 #ifdef HAVE_EXIV2
 	try {
-		Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(WIDEN(filename));
+		ImagePtr image = Exiv2::ImageFactory::open(WIDEN(filename));
 		if (image.get() == 0) {
 			fprintf(stderr, "Error Cannot open the file.\n");
 			return NULL;

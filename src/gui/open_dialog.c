@@ -132,7 +132,12 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 
 #ifdef HAVE_LIBTIFF
 		s_supported_graph = g_string_append(s_supported_graph, ", *.tif, *.tiff");
-		s_pattern = g_string_append(s_pattern, "*.tif;*.TIF;*.tiff;*.TIFF");
+		s_pattern = g_string_append(s_pattern, "*.tif;*.TIF;*.tiff;*.TIFF;");
+#endif
+
+#ifdef HAVE_LIBXISF
+		s_supported_graph = g_string_append(s_supported_graph, ", *.xisf");
+		s_pattern = g_string_append(s_pattern, "*.xisf;*.XISF");
 #endif
 		s_supported_graph = g_string_append(s_supported_graph, ")");
 
@@ -141,7 +146,8 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, graphics_supported, graphics_filter,
 					gui.file_ext_filter == TYPEBMP || gui.file_ext_filter == TYPEJPG ||
-					gui.file_ext_filter == TYPEPNG || gui.file_ext_filter == TYPETIFF);
+					gui.file_ext_filter == TYPEPNG || gui.file_ext_filter == TYPETIFF ||
+					gui.file_ext_filter == TYPEXISF);
 
 			/* NETPBM FILES */
 			gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
