@@ -47,11 +47,15 @@
 #ifdef HAVE_LIBHEIF
 #include <libheif/heif.h>
 #endif
+#ifdef HAVE_LIBXISF
+#include "io/SirilXISFWraper.h"
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "core/siril_date.h"
 #include "core/exif.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
@@ -599,6 +603,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		if (g_str_has_prefix(description, "SIMPLE  =")) {
 			// It is FITS header, copy it
 			siril_debug_print("ASTRO-TIFF detected.\n");
+			if (fit->header) free(fit->header);
 			fit->header = description;
 			int ret = fits_parse_header_string(fit, description);
 			if (ret) {
@@ -840,6 +845,113 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 }
 #endif	// HAVE_LIBTIFF
 
+/********************* XISF IMPORT *********************/
+
+#ifdef HAVE_LIBXISF
+
+int readxisf(const char* name, fits *fit, gboolean force_float) {
+	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
+
+	siril_get_xisf_buffer(name, xdata);
+	size_t npixels = xdata->width * xdata->height;
+
+	clearfits(fit);
+	if (xdata->channelCount == 1)
+		fit->naxis = 2;
+	else
+		fit->naxis = 3;
+	fit->rx = xdata->width;
+	fit->ry = xdata->height;
+	fit->naxes[0] = xdata->width;
+	fit->naxes[1] = xdata->height;
+	fit->naxes[2] = xdata->channelCount;
+
+	uint32_t *buffer32;
+	double *buffer64;
+
+	switch (xdata->sampleFormat) {
+	case BYTE_IMG:
+		fit->data = (WORD *)xdata->data;
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + npixels;
+		fit->pdata[BLAYER] = fit->data + npixels * 2;
+		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+		fit->type = DATA_USHORT;
+		if (force_float) {
+			fit_replace_buffer(fit, ushort8_buffer_to_float(fit->data, npixels * fit->naxes[2]), DATA_FLOAT);
+		}
+		break;
+	case USHORT_IMG:
+		fit->data = (WORD *)xdata->data;
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + npixels;
+		fit->pdata[BLAYER] = fit->data + npixels * 2;
+		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
+		fit->type = DATA_USHORT;
+		if (force_float) {
+			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, npixels * fit->naxes[2]), DATA_FLOAT);
+		}
+		break;
+	case LONG_IMG:
+		buffer32 = (uint32_t *)xdata->data;
+		fit->fdata = (float *)xdata->data;
+		for (int i = 0; i < npixels * fit->naxes[2]; i++)
+			fit->fdata[i] = (float)buffer32[i] / 4294967295.f;
+
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + npixels;
+		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
+		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
+		fit->type = DATA_FLOAT;
+		break;
+	case FLOAT_IMG:
+		fit->fdata = (float *)xdata->data;
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + npixels;
+		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
+		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
+		fit->type = DATA_FLOAT;
+		break;
+	case DOUBLE_IMG:
+		buffer64 = (double *)xdata->data;
+		fit->fdata = (float *)xdata->data;
+		for (int i = 0; i < npixels * fit->naxes[2]; i++)
+			fit->fdata[i] = (float)buffer64[i];
+
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + npixels;
+		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
+		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
+		fit->type = DATA_FLOAT;
+		break;
+	default:
+		siril_log_message(_("This image type is not handled.\n"));
+		return -1;
+	}
+
+	/* let's do it before header parsing. */
+	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+
+	if (xdata->fitsHeader) {
+		if (fit->header) free(fit->header);
+		fit->header = strdup(xdata->fitsHeader);
+		int ret = fits_parse_header_string(fit, xdata->fitsHeader);
+		if (ret) {
+			siril_debug_print("XISF Header cannot be read.\n");
+		}
+		}
+	fits_flip_top_to_bottom(fit);
+	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
+			name, fit->naxes[2], fit->rx, fit->ry);
+
+	/* free data */
+	if (xdata->fitsHeader) free(xdata->fitsHeader);
+	free(xdata);
+
+	return 0;
+}
+
+#endif
 
 /********************* JPEG IMPORT AND EXPORT *********************/
 

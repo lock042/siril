@@ -128,6 +128,7 @@ typedef enum {
 	TYPEPNM = (1 << 8),
 	TYPEPIC = (1 << 9),
 	TYPERAW = (1 << 10),
+	TYPEXISF = (1 << 11),
 	TYPEAVI = (1 << 20),
 	TYPESER = (1 << 21),
 } image_type;

@@ -36,4 +36,11 @@ RUN apt-get update -qyy \
         libjson-glib-dev \
         gcovr \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* 
+    && rm -rf /var/lib/apt/lists/*
+RUN git clone --branch v0.2.5 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
+    && cd libXISF \
+    && mkdir -p build && cd build \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. \
+    && make install \
+    && cd ../.. \
+    && rm -rf libXISF

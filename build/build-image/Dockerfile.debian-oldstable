@@ -44,6 +44,13 @@ RUN git clone https://github.com/LibRaw/LibRaw.git \
     && make install \
     && cd .. \
     && rm -rf LibRaw \
+    && git clone --branch v0.2.5 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
+    && cd libXISF \
+    && mkdir -p build && cd build \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. \
+    && make install \
+    && cd ../.. \
+    && rm -rf libXISF \
     && wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && unzip opencv.zip && cd opencv-4.5.3 \
     && mkdir -p build && cd build \

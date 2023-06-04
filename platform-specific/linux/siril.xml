@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
 	<mime-type type="image/fits">
+	  <icon name="siril"/>
 		<glob pattern="*.fit"/>
 		<glob pattern="*.fits"/>
 		<glob pattern="*.fts"/>
@@ -8,6 +9,11 @@
 		<glob pattern="*.fits.fz"/>
 		<glob pattern="*.fts.fz"/>
 	</mime-type>
+  <mime-type type="image/x-xisf">
+     <icon name="siril"/>
+     <comment>Extensible Image Serialization Format</comment>
+     <glob pattern="*.xisf"/>
+  </mime-type>
 	<mime-type type="video/ser">
 		<glob pattern="*.ser"/>
 	</mime-type>
