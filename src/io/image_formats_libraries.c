@@ -926,8 +926,8 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	case BYTE_IMG:
 		fit->data = (WORD *)xdata->data;
 		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + npixels;
-		fit->pdata[BLAYER] = fit->data + npixels * 2;
+		fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + npixels : fit->data;
+		fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + npixels * 2 : fit->data;
 		fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 		fit->type = DATA_USHORT;
 		if (force_float) {
@@ -952,16 +952,16 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			fit->fdata[i] = (float)buffer32[i] / 4294967295.f;
 
 		fit->fpdata[RLAYER] = fit->fdata;
-		fit->fpdata[GLAYER] = fit->fdata + npixels;
-		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
+		fit->fpdata[GLAYER] = fit->naxes[2] == 3 ? fit->fdata + npixels : fit->fdata;
+		fit->fpdata[BLAYER] = fit->naxes[2] == 3 ? fit->fdata + npixels * 2 : fit->fdata;
 		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
 		fit->type = DATA_FLOAT;
 		break;
 	case FLOAT_IMG:
 		fit->fdata = (float *)xdata->data;
 		fit->fpdata[RLAYER] = fit->fdata;
-		fit->fpdata[GLAYER] = fit->fdata + npixels;
-		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
+		fit->fpdata[GLAYER] = fit->naxes[2] == 3 ? fit->fdata + npixels : fit->fdata;
+		fit->fpdata[BLAYER] = fit->naxes[2] == 3 ? fit->fdata + npixels * 2 : fit->fdata;
 		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
 		fit->type = DATA_FLOAT;
 		break;
@@ -972,8 +972,8 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			fit->fdata[i] = (float)buffer64[i];
 
 		fit->fpdata[RLAYER] = fit->fdata;
-		fit->fpdata[GLAYER] = fit->fdata + npixels;
-		fit->fpdata[BLAYER] = fit->fdata + npixels * 2;
+		fit->fpdata[GLAYER] = fit->naxes[2] == 3 ? fit->fdata + npixels : fit->fdata;
+		fit->fpdata[BLAYER] = fit->naxes[2] == 3 ? fit->fdata + npixels * 2 : fit->fdata;
 		fit->bitpix = fit->orig_bitpix = FLOAT_IMG;
 		fit->type = DATA_FLOAT;
 		break;
