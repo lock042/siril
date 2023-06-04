@@ -243,7 +243,7 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 		WORD *buf = fit->data + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
-		for (int row = 0, nrow = 0; row < height ; row += bin_factor, nrow++) {
+		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
 				int c = 0;
 				int tmp = 0;
