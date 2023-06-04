@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "icc_profile.h"
+#include "icc_default_profiles.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
@@ -96,14 +97,20 @@ void initialize_profiles_and_transforms() {
 	gui.icc.proofing_intent = com.pref.proofing_intent;
 
 	// Linear working profiles
-	com.icc.srgb_linear = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G10], "r");
-	com.icc.mono_linear = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G10], "r");
-	com.icc.mono_standard = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV4G22], "r");
-	com.icc.srgb_standard = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV4G22], "r");
+	com.icc.srgb_linear = cmsOpenProfileFromMem(sRGB_elle_V4_g10_icc, sRGB_elle_V4_g10_icc_len);
+	com.icc.mono_linear = cmsOpenProfileFromMem(Gray_elle_V4_g10_icc, Gray_elle_V4_g10_icc_len);
+	// com.icc.rec2020_linear = cmsOpenProfileFromMem(Rec2020_V4_g10_icc, Rec2020_V4_g10_icc_len);
 
-	// Target profile for embedding in saved RGB and mono files
-	com.icc.srgb_out = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_SRGBV2G22], "r");
-	com.icc.mono_out = cmsOpenProfileFromFile(com.pref.icc_paths[INDEX_GV2G22], "r");
+	//Native TRC working profiles
+	com.icc.srgb_standard = cmsOpenProfileFromMem(sRGB_elle_V4_srgbtrc_icc, sRGB_elle_V4_srgbtrc_icc_len);
+	com.icc.mono_standard = cmsOpenProfileFromMem(Gray_elle_V4_srgbtrc_icc, Gray_elle_V4_srgbtrc_icc_len);
+	// com.icc.rec2020_linear = cmsOpenProfileFromMem(Rec2020_V4_g10_icc, Rec2020_V4_g10_icc_len);
+
+	// Target profile for embedding in saved files (use V2 profiles for
+	// wider compatibility)
+	com.icc.srgb_out = cmsOpenProfileFromMem(sRGB_elle_V2_srgbtrc_icc, Gray_elle_V2_srgbtrc_icc_len);
+	com.icc.mono_out = cmsOpenProfileFromMem(Gray_elle_V2_srgbtrc_icc, Gray_elle_V2_srgbtrc_icc_len);
+	// com.icc.rec2020_out = cmsOpenProfileFromMem(Rec2020_V2_rec709_icc, Rec2020_V2_rec709_icc_len);
 
 	// ICC availability
 	com.icc.available = (com.icc.srgb_linear && com.icc.mono_linear && com.icc.srgb_out && com.icc.mono_out);
@@ -712,6 +719,16 @@ cmsHPROFILE adjust_primaries (cmsHPROFILE working, cmsHPROFILE disp) {
 	return temp;
 }
 
+const char* default_system_icc_path() {
+#ifdef _WIN32
+	return "C:\\Windows\\System32\\spool\\drivers\\color";
+#endif
+#ifdef _MACOS
+	return "/Library/ColorSync/Profiles";
+#endif
+	return "/usr/share/color/icc";
+}
+
 //////// GUI callbacks for the color management dialog
 void set_source_information() {
 	if (!gfit.icc_profile) {
@@ -971,4 +988,16 @@ void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_source_information();
 	GtkToggleButton* active_button = (GtkToggleButton*) lookup_widget("enable_icc");
 	gtk_toggle_button_set_active(active_button, com.icc.available);
+}
+
+void on_icc_gamut_visualisation_clicked() {
+	GtkWidget *win = lookup_widget("icc_gamut_dialog");
+	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
+	/* Here this is wanted that we do not use siril_open_dialog */
+	gtk_widget_show(win);
+}
+
+void on_icc_gamut_close_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *win = lookup_widget("icc_gamut_dialog");
+	gtk_widget_hide(win);
 }

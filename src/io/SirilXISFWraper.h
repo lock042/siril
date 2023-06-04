@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -17,20 +17,36 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_CORE_SIRIL_DATE_H_
-#define SRC_CORE_SIRIL_DATE_H_
+#ifndef SRC_IO_SIRILXISFWRAPER_H_
+#define SRC_IO_SIRILXISFWRAPER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "config.h"
+
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
-#include <stdint.h>
 
-gchar *build_timestamp_filename();
-GDateTime *ser_timestamp_to_date_time(guint64 timestamp);
-guint64 date_time_to_ser_timestamp(GDateTime *dt);
-double date_time_to_Julian(GDateTime *dt);
-GDateTime *FITS_date_to_date_time(gchar *date);
-gchar *date_time_to_FITS_date(GDateTime *date);
-gchar *date_time_to_date(GDateTime *datetime);
-gchar *date_time_to_date_time(GDateTime *datetime);
-GDateTime *julian_sec_to_date(uint32_t jsecs, uint32_t ms);
+#ifdef HAVE_LIBXISF
 
-#endif /* SRC_CORE_SIRIL_DATE_H_ */
+struct xisf_data {
+	uint8_t *data;
+    uint64_t width;
+    uint64_t height;
+    uint64_t channelCount;
+    uint64_t sampleFormat;
+
+    char *fitsHeader;
+};
+
+int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata);
+GdkPixbuf* get_thumbnail_from_xisf(char *filename, gchar **descr);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* HAVE_LIBXISF */
+
+#endif /* SRC_IO_SIRILXISFWRAPER_H_ */

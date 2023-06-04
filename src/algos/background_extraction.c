@@ -817,6 +817,7 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 		if (radius == min_radius) {
 			orig = g_slist_remove(orig, sample);
 			g_free((background_sample *) sample);
+			break;
 		}
 	}
 	free(image);

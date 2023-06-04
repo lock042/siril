@@ -163,6 +163,7 @@ src_files = [
   'io/seqwriter.c',
   'io/ser.c',
   'io/single_image.c',
+  'io/SirilXISFReader.cpp',
 
   'livestacking/gui.c',
   'livestacking/livestacking.c',

@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [1])
-m4_define([siril_minor_version], [2])
+m4_define([siril_minor_version], [3])
 m4_define([siril_micro_version], [0])
-m4_define([siril_prerelease_version], [rc2dev])
+m4_define([siril_prerelease_version], [alpha-dev])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -54,7 +54,7 @@ if test "x$remember_set_CFLAGS" = "x"; then
 fi
 
 CFLAGS="-D_FILE_OFFSET_BITS=64 -Werror=unknown-pragmas -Werror=unused-label -fno-common -ftree-vectorize -fno-math-errno $CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CFLAGS -std=c++14"
+CXXFLAGS="$CFLAGS -std=c++17"
 
 if test "x$SIRIL_UNSTABLE" = "xyes"; then
   AC_DEFINE(SIRIL_UNSTABLE, 1,
@@ -247,6 +247,11 @@ dnl check heif lib
 PKG_CHECK_MODULES(LIBHEIF, [libheif],
 		  [AC_DEFINE([HAVE_LIBHEIF], [1], [Using HEIF images])],
 		  AC_MSG_WARN([libheif not found. Not using HEIF importer and exporter.]))
+
+dnl check heif lib
+PKG_CHECK_MODULES(LIBXISF, [libxisf],
+		  [AC_DEFINE([HAVE_LIBXISF], [1], [Using XISF images >= 0.2.5])],
+		  AC_MSG_WARN([libxisf not found. Not using XISF importer and exporter.]))
 
 dnl check ffms2
 PKG_CHECK_MODULES(FFMS2, [ffms2],

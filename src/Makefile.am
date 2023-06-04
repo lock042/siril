@@ -382,6 +382,7 @@ siril_common_LDADD = \
 	$(LIBHEIF_LIBS) \
 	$(LIBTIFF_LIBS) \
 	$(LIBPNG_LIBS) \
+	$(LIBXISF_LIBS) \
 	$(FFTW_LIBS) \
 	$(CFITSIO_LIBS) \
 	$(LCMS2_LIBS) \
@@ -408,6 +409,9 @@ siril_common_SOURCES += \
 	io/avi_pipp/pipp_video_write.h \
 	io/avi_pipp/avi_writer.cpp \
 	io/avi_pipp/avi_writer.h \
+	io/SirilXISFReader.cpp \
+	io/SirilXISFReader.h \
+	io/SirilXISFWraper.h \
 	opencv/opencv.cpp \
 	opencv/opencv.h \
 	opencv/kombat/kombat.cpp \

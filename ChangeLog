@@ -1,3 +1,11 @@
+siril 1.4.0
+xx/xx/xx
+
+siril 1.2.0
+xx/xx/xx
+* Fixed crash in background extraction samples removing
+* Fixed crash in binning with ushort images
+
 siril 1.2.0-rc1
 06/01/23
 

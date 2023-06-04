@@ -51,6 +51,13 @@ RUN git clone https://github.com/mm2/Little-CMS \
     && make install \
     && cd .. \
     && rm -rf Little-CMS
+RUN git clone --branch v0.2.5 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
+    && cd libXISF \
+    && mkdir -p build && cd build \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. \
+    && make install \
+    && cd ../.. \
+    && rm -rf libXISF
 RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && unzip opencv.zip && cd opencv-4.5.3 \
     && mkdir -p build && cd build \

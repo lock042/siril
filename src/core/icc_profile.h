@@ -22,8 +22,7 @@
 #include <stdint.h>
 #include <lcms2.h>
 
-//#include <lcms2_fast_float.h>
-
+// Define some additional formatters that aren't defined in lcms2.h
 #define TYPE_RGB_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_RGB)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
 #define TYPE_XYZ_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_XYZ)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
 #define TYPE_Lab_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_Lab)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
@@ -51,6 +50,7 @@ cmsHTRANSFORM initialize_display_transform();
 cmsHTRANSFORM initialize_proofing_transform();
 cmsHTRANSFORM initialize_export8_transform(fits* fit);
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);
+const char* default_system_icc_path();
 void refresh_icc_transforms();
 int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);
