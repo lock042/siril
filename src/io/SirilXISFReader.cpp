@@ -35,6 +35,7 @@ extern "C" {
 #include <math.h>
 #include <libintl.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <cstdint>
 
 #include "io/SirilXISFWraper.h"
 #include "io/SirilXISFReader.h"
