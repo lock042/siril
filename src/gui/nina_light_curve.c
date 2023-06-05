@@ -1,11 +1,33 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <gtk/gtk.h>
+#include "core/siril.h"
+#include "core/siril_log.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
+#include "algos/comparison_stars.h"
 #include "nina_light_curve.h"
 #include "io/sequence.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
-#include "core/siril_log.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *file_chooser = NULL;
@@ -83,6 +105,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
 		return;
 	}
+	purge_temp_user_catalogue();
 	int layer = -1;
 	if (com.seq.regparam) {
 		for (int i = 0; i < com.seq.nb_layers; i++) {

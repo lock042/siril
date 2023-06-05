@@ -35,7 +35,8 @@
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
 #include "gui/registration_preview.h"
-#include "io/catalogues.h"
+#include "io/remote_catalogues.h"
+#include "io/local_catalogues.h"
 #include "photometric_cc.h"
 
 static rectangle get_bkg_selection();

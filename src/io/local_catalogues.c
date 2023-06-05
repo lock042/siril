@@ -37,7 +37,7 @@
 #include "algos/astrometry_solver.h"
 #include "registration/matching/degtorad.h"
 #include "registration/matching/misc.h"
-#include "catalogues.h"
+#include "local_catalogues.h"
 #include <stdio.h>
 #include <stdlib.h>
 
