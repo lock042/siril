@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-06-05 00:13+0000\n"
+"PO-Revision-Date: 2023-06-06 08:53+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -7608,7 +7608,9 @@ msgstr "Каталог звёзд"
 msgid ""
 "Purge Solar Sys\n"
 "user Catalog"
-msgstr "Очистить каталог Солнечной системы"
+msgstr ""
+"Очистить каталог\n"
+"Солнечной системы"
 
 #: src/gui/siril3.glade:28530
 msgid ""
@@ -7622,7 +7624,9 @@ msgstr ""
 msgid ""
 "Purge Deep Sky\n"
 "user Catalog"
-msgstr "Очистить каталог глубокого космоса"
+msgstr ""
+"Очистить каталог\n"
+"глубокого космоса"
 
 #: src/gui/siril3.glade:28547
 msgid ""
@@ -9262,7 +9266,7 @@ msgid ""
 "are too faint to have B-V index information (mag > 18)\n"
 msgstr ""
 "Найдено астрономическое решение, но фотометрический анализ %d звёзд не "
-"удался. Обычно это происходит, если эти звёзды насыщены на изображении или "
+"удался. Обычно это происходит, если эти звёзды на изображении насыщены или "
 "если они слишком тусклы, чтобы иметь информацию о показателе цвета B-V ("
 "блеск > 18)\n"
 
@@ -11881,7 +11885,7 @@ msgstr "Укладка последовательности %s\n"
 
 #: src/core/command.c:7131
 msgid "Not using rejection for stacking\n"
-msgstr "Выбраковка при укладке не используется\n"
+msgstr "Укладка без выбраковки\n"
 
 #: src/core/command.c:7153
 #, c-format
@@ -14381,7 +14385,7 @@ msgstr "неверные аргументы"
 
 #: src/core/command_line_processor.c:62
 msgid "invalid image area selection"
-msgstr "неверная выделение области изображения"
+msgstr "неверное выделение области изображения"
 
 #: src/core/command_line_processor.c:64
 msgid "command succeeded"
@@ -21012,7 +21016,7 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1009
 msgid "No registration layer passed, ignoring registration data!\n"
-msgstr "Не указан слой с регистрацией, игнорирование данных регистрации!\n"
+msgstr "Не указан слой с регистрацией; данные регистрации проигнорированы!\n"
 
 #. no image has been loaded
 #: src/stacking/median_and_mean.c:1023
