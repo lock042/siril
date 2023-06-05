@@ -40,7 +40,7 @@ void assign_linear_icc_profile_to_fitseq(fitseq *fitseq) {
 	if (fitseq->icc_profile) {
 		cmsCloseProfile(fitseq->icc_profile);
 	}
-	fitseq->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.srgb_linear);
+	fitseq->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
 }
 
 static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {

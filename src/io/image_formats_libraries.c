@@ -761,7 +761,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		}
 		// If we are exporting in 8-bit, we save as sRGB; for higher bit depths we save in the native colorspace
 		if (bitspersample == 8) {
-			cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
 			cmsDoTransform(save_transform, buf, dest, npixels);
 			cmsDeleteTransform(save_transform);
 		}
@@ -773,7 +773,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
 		// Generate the correct profile and assign it to the TIFF
 		if (bitspersample == 8) {
-			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : &com.icc.srgb_out), &profile_len);
+			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : &com.icc.working_out), &profile_len);
 		} else {
 			profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 		}
@@ -986,6 +986,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	if (xdata->icc_buffer && xdata->icc_length > 0) {
 		fit->icc_profile = cmsOpenProfileFromMem(xdata->icc_buffer, xdata->icc_length);
 	}
+	free(xdata->icc_buffer);
 
 	/* let's do it before header parsing. */
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
@@ -1140,7 +1141,7 @@ int savejpg(const char *name, fits *fit, int quality){
 			dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
 		cmsDoTransform(save_transform, buf, dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD*) dest;
@@ -1559,9 +1560,9 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		// Apply ICC transform
 			cmsHTRANSFORM save_transform;
 			if (samples_per_pixel == 1)
-				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_16, com.icc.mono_out, TYPE_GRAY_16, com.icc.save_intent, 0);
+				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_GRAY_16, com.icc.mono_out, TYPE_GRAY_16, com.icc.save_intent, 0);
 			else
-				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_16, com.icc.srgb_out, TYPE_RGB_16, com.icc.save_intent, 0);
+				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_RGB_16, com.icc.working_out, TYPE_RGB_16, com.icc.save_intent, 0);
 			cmsDoTransform(save_transform, data, data, fit->rx * fit->ry);
 			cmsDeleteTransform(save_transform);
 		}
@@ -1573,9 +1574,9 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		// Apply ICC transform
 			cmsHTRANSFORM save_transform;
 			if (samples_per_pixel == 1)
-				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_GRAY_8, com.icc.mono_out, TYPE_GRAY_8, com.icc.save_intent, 0);
+				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_GRAY_8, com.icc.mono_out, TYPE_GRAY_8, com.icc.save_intent, 0);
 			else
-				save_transform = cmsCreateTransform(fit->icc_profile, TYPE_RGB_8, com.icc.mono_out, TYPE_RGB_8,com.icc.save_intent, 0);
+				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_RGB_8, com.icc.working_out, TYPE_RGB_8,com.icc.save_intent, 0);
 
 			cmsDoTransform(save_transform, data8, data8, fit->rx * fit->ry);
 			cmsDeleteTransform(save_transform);

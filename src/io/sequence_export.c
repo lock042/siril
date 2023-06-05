@@ -408,7 +408,7 @@ static gpointer export_sequence(gpointer ptr) {
 			// Last resort, if the user is exporting as an 8 bit movie
 			// and we have no other guesses for color space, assume sRGB
 			if (!destfit->icc_profile) {
-				destfit->icc_profile = copyICCProfile(destfit->naxes[2] == 3 ? com.icc.srgb_standard : com.icc.mono_standard);
+				destfit->icc_profile = copyICCProfile(destfit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard);
 			}
 		}
 		/* we copy the header */

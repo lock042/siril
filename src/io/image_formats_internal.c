@@ -332,7 +332,7 @@ int savebmp(const char *name, fits *fit) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
 		cmsDoTransform(save_transform, buf, dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
@@ -686,7 +686,7 @@ static int saveppm(const char *name, fits *fit) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
 		cmsDoTransform(save_transform, buf, dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
@@ -760,7 +760,7 @@ static int savepgm(const char *name, fits *fit) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		cmsHTRANSFORM save_transform = cmsCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.icc.save_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
 		cmsDoTransform(save_transform, buf, dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf = (WORD *) dest;

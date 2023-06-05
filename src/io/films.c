@@ -359,7 +359,7 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 
 	if (com.icc.available) {
 		// Assume that after conversion films are in gamma 2.2 sRGB or the Gray equivalent.
-		fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_standard);
+		fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
 	}
 
 	return FILM_SUCCESS;

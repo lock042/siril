@@ -38,7 +38,7 @@ struct xisf_data {
     uint64_t sampleFormat;
 
     char *fitsHeader;
-	const char *icc_buffer;
+	uint8_t *icc_buffer;
 	uint32_t icc_length;
 };
 

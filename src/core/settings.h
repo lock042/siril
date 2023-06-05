@@ -240,6 +240,23 @@ typedef struct fftw_params {
 	int fft_cutoff;
 } fftw_params;
 
+typedef enum {
+	TYPE_SRGB,
+	TYPE_REC2020,
+	TYPE_CUSTOM
+} working_gamut_type;
+
+typedef struct icc_params {
+	gchar *icc_paths[10]; // local ICC profile paths for color management
+	cmsUInt32Number rendering_intent;
+	cmsUInt32Number proofing_intent;
+	cmsUInt32Number export_intent;
+	gboolean use_extra_mem;
+	working_gamut_type working_gamut;
+	gchar* custom_icc_linear;
+	gchar* custom_icc_trc;
+	gchar* custom_icc_gray;
+} icc_params;
 
 /**
  * This is the preference structure.
@@ -274,10 +291,6 @@ struct pref_struct {
 
 	int wcs_formalism;	// formalism used in FITS header
 	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
-	gchar *icc_paths[10]; // local ICC profile paths for color management
-	cmsUInt32Number rendering_intent;
-	cmsUInt32Number proofing_intent;
-	cmsUInt32Number export_intent;
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
@@ -297,6 +310,7 @@ struct pref_struct {
 	struct stack_config stack;
 	struct comp_config comp;
 	fftw_params fftw_conf;
+	icc_params icc;
 };
 typedef struct pref_struct preferences;
 /**

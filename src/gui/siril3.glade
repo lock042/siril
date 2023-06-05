@@ -11175,8 +11175,10 @@ Note that luminance based models are not generally invertible.</property>
     <property name="pixbuf">pixmaps/r.svg</property>
   </object>
   <object class="GtkDialog" id="icc_dialog">
+    <property name="width-request">650</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Color Management</property>
+    <property name="default-width">650</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="on_icc_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_icc_dialog_show" swapped="no"/>
@@ -11204,17 +11206,33 @@ Note that luminance based models are not generally invertible.</property>
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="icc_apply">
-                <property name="label" translatable="yes">Apply</property>
+              <object class="GtkButton" id="icc_assign">
+                <property name="label" translatable="yes">Assign</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_icc_apply_clicked" swapped="no"/>
+                <property name="tooltip-text" translatable="yes">Assigns the selected ICC profile to the current image without performing any color space transform. This is useful if the image has an incorrect ICC profile.</property>
+                <signal name="clicked" handler="on_icc_assign_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="icc_convertto">
+                <property name="label" translatable="yes">Convert</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Converts the image to a different color space. This can be useful for exporting an image to sRGB for WWW use, for example.</property>
+                <signal name="clicked" handler="on_icc_convertto_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -11242,46 +11260,7 @@ Note that luminance based models are not generally invertible.</property>
                     <property name="can-focus">False</property>
                     <property name="left-padding">12</property>
                     <child>
-                      <object class="GtkCheckButton" id="enable_icc">
-                        <property name="label" translatable="yes">Enable color management</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Enable color management. Warning: with this setting disabled, your images will display inconsistently in other applications. You will need to assign color profiles etc. yourself to resolve the issues that occur. It is strongly recommended to leave this setting enabled.</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_enable_icc_toggled" swapped="no"/>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-                <child type="label">
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">&lt;b&gt;Color Management Activation&lt;/b&gt;</property>
-                    <property name="use-markup">True</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkFrame">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label-xalign">0</property>
-                <property name="shadow-type">none</property>
-                <child>
-                  <object class="GtkAlignment">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="left-padding">12</property>
-                    <child>
-                      <!-- n-columns=3 n-rows=10 -->
+                      <!-- n-columns=2 n-rows=10 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -11292,7 +11271,8 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
-                            <property name="label" translatable="yes">Current ICC profile</property>
+                            <property name="label" translatable="yes">&lt;b&gt;&lt;i&gt;Current ICC profile&lt;/i&gt;&lt;/b&gt;</property>
+                            <property name="use-markup">True</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -11311,58 +11291,6 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">0</property>
-                            <property name="width">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkFileChooserButton" id="icc_target_filechooser">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="title" translatable="yes"/>
-                            <signal name="file-set" handler="on_icc_target_filechooser_file_set" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">5</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkComboBoxText" id="icc_target_combo">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="active">0</property>
-                            <items>
-                              <item translatable="yes">None selected</item>
-                              <item translatable="yes">Linear</item>
-                              <item translatable="yes">Gray / sRGB (gamma 2.2)</item>
-                            </items>
-                            <signal name="changed" handler="on_icc_target_combo_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">5</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">Built-in profile</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">4</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">Load profile from file</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">4</property>
                           </packing>
                         </child>
                         <child>
@@ -11373,7 +11301,7 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">0</property>
                             <property name="top-attach">3</property>
-                            <property name="width">3</property>
+                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
@@ -11384,7 +11312,7 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">0</property>
                             <property name="top-attach">6</property>
-                            <property name="width">3</property>
+                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
@@ -11392,7 +11320,8 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
-                            <property name="label" translatable="yes">Target ICC profile</property>
+                            <property name="label" translatable="yes">&lt;b&gt;&lt;i&gt;Target ICC profile&lt;/i&gt;&lt;/b&gt;</property>
+                            <property name="use-markup">True</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -11408,21 +11337,6 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">7</property>
-                            <property name="width">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkComboBoxText" id="icc_operation_combo">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <items>
-                              <item translatable="yes">Assign ICC profile</item>
-                              <item translatable="yes">Convert to ICC profile</item>
-                            </items>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">5</property>
                           </packing>
                         </child>
                         <child>
@@ -11461,7 +11375,6 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">1</property>
-                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
@@ -11476,7 +11389,6 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">2</property>
-                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
@@ -11516,7 +11428,6 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">8</property>
-                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
@@ -11530,11 +11441,64 @@ Note that luminance based models are not generally invertible.</property>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">9</property>
-                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
-                          <placeholder/>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Built-in profile</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="icc_target_combo">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Select a built-in ICC profile. This tool is only for converting the profile of an image, not its type, so you cannot convert a RGB image to a Gray profile or vice versa.</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">None selected</item>
+                              <item translatable="yes">sRGB (linear TRC)</item>
+                              <item translatable="yes">sRGB (standard sRGB TRC)</item>
+                              <item translatable="yes">Rec2020 (linear TRC)</item>
+                              <item translatable="yes">Rec2020 (standard Rec709 TRC)</item>
+                              <item translatable="yes">Gray (linear TRC)</item>
+                              <item translatable="yes">Gray (sRGB TRC)</item>
+                              <item translatable="yes">Gray (Rec709 TRC)</item>
+                            </items>
+                            <signal name="changed" handler="on_icc_target_combo_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">5</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Load profile from file</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkFileChooserButton" id="icc_target_filechooser">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="title" translatable="yes"/>
+                            <signal name="file-set" handler="on_icc_target_filechooser_file_set" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">5</property>
+                          </packing>
                         </child>
                       </object>
                     </child>
@@ -11552,7 +11516,7 @@ Note that luminance based models are not generally invertible.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">0</property>
               </packing>
             </child>
           </object>
@@ -31235,6 +31199,26 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="orientation">vertical</property>
+                                <property name="spacing">6</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="enable_icc">
+                                    <property name="label" translatable="yes">Enable color management</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-markup" translatable="yes">Enable color management. &lt;b&gt;Warning&lt;/b&gt;: with this setting disabled, your images will display inconsistently in other applications. You will need to assign color profiles etc. yourself to resolve the issues that occur. It is strongly recommended to leave this setting enabled.</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
+                                    <signal name="show" handler="update_icc_enabled_widget" swapped="no"/>
+                                    <signal name="toggled" handler="on_enable_icc_toggled" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
                                 <child>
                                   <object class="GtkCheckButton" id="icc_use_extra_mem">
                                     <property name="label" translatable="yes">Use additional memory to speed up display transform</property>
@@ -31242,12 +31226,14 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
                                     <property name="tooltip-text" translatable="yes">When checked, this option enables optimization of the display color space transform by allowing the transform to process the entire image at once, rather than one pixel row at a time. This requires additional memory equal to one 16-bit copy of the image. Usually it should be enabled unless you are working with extremely large images on low-memory systems.</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">0</property>
+                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                               </object>
@@ -31281,16 +31267,18 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=1 -->
+                              <!-- n-columns=3 n-rows=5 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="row-spacing">6</property>
                                 <property name="column-spacing">6</property>
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-text" translatable="yes">This selects the family of RGB profiles that will be used throughout most of the workflow. For a discussion of which gamut to pick, see the Color Management section of the manual.</property>
+                                    <property name="halign">start</property>
                                     <property name="label" translatable="yes">Working RGB Gamut</property>
                                   </object>
                                   <packing>
@@ -31299,17 +31287,17 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkComboBoxText">
+                                  <object class="GtkComboBoxText" id="working_gamut">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-markup" translatable="yes">This sets the family of color spaces used as image working spaces. Note, for copyright reasons the name of one gamut has been substituted: LargeRGB is the well-known profile for &lt;b&gt;Pro&lt;/b&gt;fessional &lt;b&gt;Photo&lt;/b&gt;graphers.</property>
                                     <property name="active">0</property>
                                     <items>
                                       <item translatable="yes">sRGB</item>
-                                      <item translatable="yes">Adobe RGB 1998</item>
                                       <item translatable="yes">Rec2020</item>
-                                      <item translatable="yes">LargeRGB</item>
+                                      <item translatable="yes">Custom</item>
                                     </items>
+                                    <signal name="changed" handler="on_working_gamut_changed" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -31329,6 +31317,114 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="left-attach">2</property>
                                     <property name="top-attach">0</property>
                                   </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Thesse options apply if the Working RGB Gamut is set to Custom above.</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Custom Gamut</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSeparator">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                    <property name="width">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">ICC profile with linear TRC</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">ICC profile with nonlinear TRC</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Gray ICC profile</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">4</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="custom_icc_linear_trc">
+                                    <property name="name">custom_gamut_linear</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
+                                    <property name="title" translatable="yes"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="custom_icc_standard_trc">
+                                    <property name="name">custom_gamut_trc</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
+                                    <property name="title" translatable="yes"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="custom_gray_icc_matching_trc">
+                                    <property name="name">custom_gamut_gray_trc</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
+                                    <property name="title" translatable="yes"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">4</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                                <child>
+                                  <placeholder/>
                                 </child>
                               </object>
                             </child>
@@ -31590,43 +31686,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="row-spacing">6</property>
                                 <property name="column-spacing">6</property>
                                 <child>
-                                  <object class="GtkCheckButton">
-                                    <property name="label" translatable="yes">Always save 8 bit RGB images as sRGB</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">If this option is checked, 8 bit RGB files will always be converted to sRGB on saving. Where the format allows they will have an ICC profile embedded. If the option is not checked, files will be saved in their working color space.
-&lt;b&gt;This option should be checked if you are exporting images for use on the web or in programs that are not color managed, as these always expect sRGB.&lt;/b&gt;
-
-Note: 8-bit mono images are always saved with a Gray ICC profile with gamma = 2.2</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton">
-                                    <property name="label" translatable="yes">Embed ICC profiles in FITS images and FITSEQ sequences</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">When this option is checked, the working color space ICC profile will be embedded in saved FITS files using the same method as other major astrophotography processing softwares.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -31639,14 +31698,15 @@ Note: 8-bit mono images are always saved with a Gray ICC profile with gamma = 2.
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkComboBoxText">
+                                  <object class="GtkComboBoxText" id="export_profile_16bit">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Selects which color space to export to: select either the current working color space or sRGB (with gamma = 2.2). The ICC color profile will be embedded in the file.</property>
+                                    <property name="tooltip-text" translatable="yes">Selects which color space to export 16 bit images to: select either the current working color space or sRGB. The ICC color profile will be embedded in the file.
+Note: if the format does not support ICC profile embedding, images will always be exported as sRGB.</property>
                                     <property name="active">0</property>
                                     <items>
-                                      <item translatable="yes">Working gamut</item>
                                       <item translatable="yes">sRGB</item>
+                                      <item translatable="yes">Working gamut</item>
                                     </items>
                                   </object>
                                   <packing>
@@ -31682,6 +31742,52 @@ Note: 8-bit mono images are always saved with a Gray ICC profile with gamma = 2.
                                   <packing>
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton">
+                                    <property name="label" translatable="yes">Embed ICC profiles in FITS images and FITSEQ sequences</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">When this option is checked, the working color space ICC profile will be embedded in saved FITS files using the same method as other major astrophotography processing softwares.</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Export 8-bit images using:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBoxText" id="export_profile_8bit">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Selects which color space to export 8-bit images to, if the format supports ICC profiles: either the current working color space or sRGB. The ICC color profile will be embedded in the file.
+Note: if the format does not support ICC profile embedding, images will always be exported as sRGB.</property>
+                                    <property name="active">0</property>
+                                    <items>
+                                      <item translatable="yes">sRGB</item>
+                                      <item translatable="yes">Working gamut</item>
+                                    </items>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                               </object>

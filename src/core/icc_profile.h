@@ -41,7 +41,16 @@
 unsigned char* get_sRGB_profile_data(guint32 *len, gboolean linear);
 unsigned char* get_gray_profile_data(guint32 *len, gboolean linear);
 
-//unsigned char* get_profile_buf(cmsHPROFILE* profile, uint32_t* profile_len);
+typedef enum {
+	NONE,
+	SRGB_LINEAR,
+	SRGB_TRC,
+	REC2020_LINEAR,
+	REC2020_TRC,
+	GRAY_LINEAR,
+	GRAY_SRGBTRC,
+	GRAY_REC709TRC
+} internal_icc;
 
 void initialize_profiles_and_transforms();
 void initialize_icc_preferences_widgets();
@@ -66,4 +75,6 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
 cmsHPROFILE adjust_primaries (cmsHPROFILE working, cmsHPROFILE disp);
 unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len);
+cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
+
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

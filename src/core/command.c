@@ -2824,11 +2824,21 @@ int process_autostretch(int nb) {
 		apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 	}
 	if (com.icc.available) {
-		// Assign the monitor profile to gfit
-		if (gfit.icc_profile) {
-			cmsCloseProfile(gfit.icc_profile);
-		}
-		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_standard);
+		/* This code compensates for any difference in CIEXYZ primaries between the
+		embedded profile and the standard working profile. It creates a temporary profile
+		with the TRC characteristics of the monitor (so no change to overall gamma) but
+		the CIEXYZ primaries, white point, colorants from the working space profile.
+		This is used to convert gfit from the temporary profile back to its working
+		space.
+		*/
+		// TODO: is this consistent with the cde in histogram.c:244?
+		cmsHPROFILE temp = adjust_primaries(gfit.icc_profile, com.icc.working_standard);
+		cmsUInt32Number tgt = cmsGetColorSpace(temp);
+		cmsUInt32Number type = get_planar_formatter_type(tgt, gfit.type, FALSE);
+		cmsHTRANSFORM transform = cmsCreateTransform(temp, type, gfit.icc_profile, type, gui.icc.rendering_intent, 0);
+		void *buf = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
+		cmsDoTransform(transform, buf, buf, gfit.rx * gfit.ry);
+		cmsDeleteTransform(transform);
 	}
 	char log[90];
 	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",

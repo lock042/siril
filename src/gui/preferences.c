@@ -203,17 +203,17 @@ static void update_user_interface_preferences() {
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	gchar *newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile")));
 	if (newpath && newpath[6] != '\0') {
-		g_free(com.pref.icc_paths[6]);
-		com.pref.icc_paths[6] = newpath;
+		g_free(com.pref.icc.icc_paths[6]);
+		com.pref.icc.icc_paths[6] = newpath;
 	}
 	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile")));
 	if (newpath && newpath[7] != '\0') {
-		g_free(com.pref.icc_paths[7]);
-		com.pref.icc_paths[7] = newpath;
+		g_free(com.pref.icc.icc_paths[7]);
+		com.pref.icc.icc_paths[7] = newpath;
 	}
-	com.pref.rendering_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")));
-	com.pref.proofing_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")));
-	com.pref.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
+	com.pref.icc.rendering_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")));
+	com.pref.icc.proofing_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")));
+	com.pref.icc.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
 }
 
 static void update_FITS_options_preferences() {
@@ -643,16 +643,16 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
-	if (pref->icc_paths[6] && (g_file_test(pref->icc_paths[6], G_FILE_TEST_EXISTS))) {
+	if (pref->icc.icc_paths[6] && (g_file_test(pref->icc.icc_paths[6], G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile"));
-		gtk_file_chooser_set_filename(button, pref->icc_paths[6]);
+		gtk_file_chooser_set_filename(button, pref->icc.icc_paths[6]);
 	}
-	if (pref->icc_paths[7] && (g_file_test(pref->icc_paths[7], G_FILE_TEST_EXISTS))) {
+	if (pref->icc.icc_paths[7] && (g_file_test(pref->icc.icc_paths[7], G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile"));
-		gtk_file_chooser_set_filename(button, pref->icc_paths[7]);
+		gtk_file_chooser_set_filename(button, pref->icc.icc_paths[7]);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")), pref->rendering_intent);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")), pref->proofing_intent);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")), pref->icc.rendering_intent);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")), pref->icc.proofing_intent);
 	initialize_icc_preferences_widgets();
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
