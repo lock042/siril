@@ -252,12 +252,13 @@ typedef enum {
 } export_icc_type;
 
 typedef struct icc_params {
-	gchar *icc_paths[10]; // local ICC profile paths for color management
 	cmsUInt32Number rendering_intent;
 	cmsUInt32Number proofing_intent;
 	cmsUInt32Number export_intent;
 	gboolean use_extra_mem;
 	working_gamut_type working_gamut;
+	gchar *icc_path_monitor;
+	gchar *icc_path_soft_proof;
 	gchar* custom_icc_linear;
 	gchar* custom_icc_trc;
 	gchar* custom_icc_gray;

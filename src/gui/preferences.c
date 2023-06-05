@@ -203,13 +203,13 @@ static void update_user_interface_preferences() {
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	gchar *newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile")));
 	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.icc.icc_paths[6]);
-		com.pref.icc.icc_paths[6] = newpath;
+		g_free(com.pref.icc.icc_path_monitor);
+		com.pref.icc.icc_path_monitor = newpath;
 	}
 	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile")));
 	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.icc.icc_paths[7]);
-		com.pref.icc.icc_paths[7] = newpath;
+		g_free(com.pref.icc.icc_path_soft_proof);
+		com.pref.icc.icc_path_soft_proof = newpath;
 	}
 	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("custom_icc_linear_trc")));
 	if (newpath && newpath[0] != '\0') {
@@ -662,13 +662,13 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
-	if (pref->icc.icc_paths[6] && (g_file_test(pref->icc.icc_paths[6], G_FILE_TEST_EXISTS))) {
+	if (pref->icc.icc_path_monitor && (g_file_test(pref->icc.icc_path_monitor, G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile"));
-		gtk_file_chooser_set_filename(button, pref->icc.icc_paths[6]);
+		gtk_file_chooser_set_filename(button, pref->icc.icc_path_monitor);
 	}
-	if (pref->icc.icc_paths[7] && (g_file_test(pref->icc.icc_paths[7], G_FILE_TEST_EXISTS))) {
+	if (pref->icc.icc_path_soft_proof && (g_file_test(pref->icc.icc_path_soft_proof, G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile"));
-		gtk_file_chooser_set_filename(button, pref->icc.icc_paths[7]);
+		gtk_file_chooser_set_filename(button, pref->icc.icc_path_soft_proof);
 	}
 	if (pref->icc.custom_icc_linear && (g_file_test(pref->icc.custom_icc_linear, G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("custom_icc_linear_trc"));
@@ -783,6 +783,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			refresh_found_objects();
 		save_main_window_state();
 		writeinitfile();
+		validate_custom_profiles(); // Validate and load custom ICC profiles
 
 		siril_close_dialog("settings_window");
 	}

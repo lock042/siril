@@ -204,14 +204,18 @@ preferences pref_init = {
 	},
 	.fits_save_icc = TRUE,
 	.icc = {
-		.icc_paths = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
 		.rendering_intent = INTENT_PERCEPTUAL,
 		.proofing_intent = INTENT_RELATIVE_COLORIMETRIC,
 		.export_intent = INTENT_PERCEPTUAL,
 		.working_gamut = TYPE_SRGB,
+		.icc_path_monitor = NULL,
+		.icc_path_soft_proof = NULL,
 		.custom_icc_linear = NULL,
 		.custom_icc_trc = NULL,
 		.custom_icc_gray = NULL,
+		.use_extra_mem = TRUE,
+		.export_8bit_method = EXPORT_SRGB,
+		.export_16bit_method = EXPORT_WORKING
 	}
 };
 
@@ -254,7 +258,6 @@ void initialize_default_settings() {
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
-	initialize_icc_profiles_paths();
 }
 
 void update_gain_from_gfit() {
@@ -395,12 +398,11 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
-	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc.icc_paths[6] },
-	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc.icc_paths[7] },
+	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc.icc_path_monitor },
+	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc.icc_path_soft_proof },
 	{ "gui", "custom linear ICC profile", STYPE_STR, N_("path to custom linear ICC profile"), &com.pref.icc.custom_icc_linear },
 	{ "gui", "custom nonlinear ICC profile", STYPE_STR, N_("path to custom nonlinear ICC profile"), &com.pref.icc.custom_icc_trc },
 	{ "gui", "custom gray ICC profile", STYPE_STR, N_("path to custom grayscale ICC profile"), &com.pref.icc.custom_icc_gray },
-	{ "gui", "export_profile", STYPE_STR, N_("path to export ICC profile"), &com.pref.icc.icc_paths[8] },
 	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.icc.rendering_intent },
 	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
 	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },
