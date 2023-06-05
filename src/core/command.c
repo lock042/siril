@@ -57,7 +57,8 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "io/catalogues.h"
+#include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -109,6 +110,7 @@
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
 #include "algos/annotate.h"
+#include "algos/comparison_stars.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -3982,6 +3984,7 @@ int process_light_curve(int nb) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
+		init_plot_colors();
 	}
 	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
 	int refimage = 0;
@@ -8771,26 +8774,92 @@ int process_catsearch(int nb){
 		return CMD_FOR_PLATE_SOLVED;
 	}
 	set_cursor_waiting(TRUE);
-
-	gchar *result;
+	gchar *name = NULL;
 	if (nb > 2) {
-		// replace with build_string_from_words(word+1);
-		GString *str = g_string_new(word[1]);
-		int i = 2;
-		while (i < nb && word[i]) {
-			g_string_append_printf(str, " %s", word[i]);
-			i++;
-		}
-		gchar *name = g_string_free(str, FALSE);
-		result = search_object(name);
-		g_free(name);
+		name = build_string_from_words(word + 1);
 	} else {
-		result = search_object(word[1]);
+		name = g_strdup(word[1]);
 	}
 
-	if (result && !parse_buffer(result, 20.0)) {
+	gboolean found_it = cached_object_lookup(name, NULL) == 0;
+	if (found_it)
 		siril_add_idle(end_process_catsearch, NULL);
+	else siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
+	g_free(name);
+
+	return CMD_OK;
+}
+
+int process_findcompstars(int nb) {
+	// findcompstars star_name [-narrow] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-out=nina_file.csv]
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
 	}
+	const char *target = word[1];
+	gboolean narrow = FALSE;
+	online_catalog used_cat = CAT_APASS;
+	double delta_Vmag = 3.0, delta_BV = 0.5;
+	const char *nina_file = NULL;
+
+	int arg_idx = 2;
+	while (arg_idx < nb) {
+		if (!g_strcmp0(word[arg_idx], "-narrow"))
+			narrow = TRUE;
+		else if (!g_strcmp0(word[arg_idx], "-wide"))
+			narrow = FALSE;
+		else if (g_str_has_prefix(word[arg_idx], "-catalog=")) {
+			const char *cat = word[arg_idx] + 9;
+			if (!g_ascii_strcasecmp(cat, "nomad"))
+				used_cat = CAT_NOMAD;
+			else if (!g_ascii_strcasecmp(cat, "apass"))
+				used_cat = CAT_APASS;
+			else {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strncasecmp(word[arg_idx], "-dvmag=", 7)) {
+			const char *val = word[arg_idx] + 7;
+			gchar *end;
+			delta_Vmag = g_ascii_strtod(val, &end);
+			if (end == val || delta_Vmag < 0.0 || delta_Vmag > 6.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strncasecmp(word[arg_idx], "-dbv=", 5)) {
+			const char *val = word[arg_idx] + 5;
+			gchar *end;
+			delta_BV = g_ascii_strtod(val, &end);
+			if (end == val || delta_BV < 0.0 || delta_BV > 0.7) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[arg_idx], "-out=")) {
+			nina_file = word[arg_idx] + 5;
+			if (nina_file[0] == '\0') {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Unknown option provided: %s\n"), word[arg_idx]);
+			return CMD_ARG_ERROR;
+		}
+		arg_idx++;
+	}
+
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	args->target_name = g_strdup(target);
+	args->narrow_fov = narrow;
+	args->cat = used_cat;
+	args->delta_Vmag = delta_Vmag;
+	args->delta_BV = delta_BV;
+	args->nina_file = g_strdup(nina_file);
+
+	start_in_new_thread(compstars_worker, args);
 	return CMD_OK;
 }
 
@@ -8939,7 +9008,7 @@ parse_coords:
 		return CMD_ARG_ERROR;
 	}
 
-	add_object_in_catalogue(name, coords, TRUE, TRUE);	// with the first TRUE, it's in tmp
+	add_object_in_catalogue(name, coords, FALSE, USER_TEMP_CAT_INDEX);
 
 display:
 	/* display the new 'found_object' */
@@ -8950,6 +9019,7 @@ display:
 		refresh_found_objects();
 		redraw(REDRAW_OVERLAY);
 	}
-	siril_world_cs_unref(coords);
+	if (coords)
+		siril_world_cs_unref(coords);
 	return CMD_OK;
 }

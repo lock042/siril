@@ -120,6 +120,7 @@ void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

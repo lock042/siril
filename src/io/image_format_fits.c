@@ -3390,7 +3390,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 		// average exposure
 		exposure += current->exposure;
 
-		/* to add if one day we keep FITS comments: discrepencies in
+		/* to add if one day we keep FITS comments: discrepancies in
 		 * various fields like exposure, instrument, observer,
 		 * telescope, ... */
 		image_count++;

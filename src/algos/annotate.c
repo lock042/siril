@@ -19,6 +19,7 @@
  */
 
 #include <math.h>
+#include <string.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -36,7 +37,7 @@
 
 static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
 
-static gboolean show_catalog(int catalog);
+static gboolean show_catalog(annotations_cat catalog);
 
 static const gchar *cat[] = {
 	"messier.txt",
@@ -56,21 +57,23 @@ static const gchar *cat[] = {
 
 struct _CatalogObjects {
 	gchar *code;	// displayed name
+	gchar *pretty_code;	// name with greek characters
 	gdouble ra;	// in degrees, but in the files it's in hours...
 	gdouble dec;	// degrees
 	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
 			// negative for no accurate size
 	gchar *name;
 	gchar *alias;
-	gint catalogue;	// index from the list of catalogues above
+	annotations_cat catalogue; // index from the list of catalogues above
 };
 
 static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 		gdouble dec, gdouble radius, const gchar *name, const gchar *alias,
-		gint catalogue) {
+		annotations_cat catalogue) {
 	CatalogObjects *object = g_new(CatalogObjects, 1);
 
 	object->code = g_strdup(code);
+	object->pretty_code = NULL;
 	object->ra = ra;
 	object->dec = dec;
 	object->radius = radius;
@@ -80,33 +83,29 @@ static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 	return object;
 }
 
-static const char *cat_index_to_name(int index) {
+const char *cat_index_to_name(annotations_cat index) {
 	switch (index) {
-		case 0:
+		case ANCAT_MESSIER:
 			return "Messier";
-		case 1:
+		case ANCAT_NGC:
 			return "NGC";
-		case 2:
+		case ANCAT_IC:
 			return "IC";
-		case 3:
+		case ANCAT_LDN:
 			return "LDN";
-		case 4:
+		case ANCAT_SH2:
 			return "Sh2";
-		case 5:
+		case ANCAT_STARS:
 			return "stars";
-		case 6:
+		case USER_DSO_CAT_INDEX:
 			return "user-DSO";
-		case 7:
+		case USER_SSO_CAT_INDEX:
 			return "user-SSO";
-		case 8:
+		case USER_TEMP_CAT_INDEX:
 			return "user-temp";
 		default:
 			return "(undefined)";
 	}
-}
-
-gboolean is_inside(fits *fit, double ra, double dec) {
-	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
 }
 
 /* compare two objects, looking for duplicates based on the alias names againts the code of the object to search */
@@ -130,6 +129,36 @@ static gint object_compare(gconstpointer *a, gconstpointer *b) {
 	}
 	g_strfreev(token);
 	return 1;
+}
+
+// returns true if it was added
+static gboolean add_alias_to_object(CatalogObjects *obj, gchar *code) {
+	if (obj->code && !strcasecmp(obj->code, code))
+		return FALSE;
+	if (obj->name && !strcasecmp(obj->name, code))
+		return FALSE;
+	if (obj->alias && obj->alias[0] != '\0') {
+		if (!strchr(obj->alias, '/')) {
+			if (!strcasecmp(obj->alias, code))
+				return FALSE;
+		} else {
+			gchar **token = g_strsplit(obj->alias, "/", -1);
+			guint i = 0;
+			while (token[i]) {
+				if (!strcasecmp(token[i], code))
+					return FALSE;
+			}
+			g_strfreev(token);
+		}
+
+		gchar *oldalias = obj->alias;
+		obj->alias = g_strjoin("/", obj->alias, code, NULL);
+		g_free(oldalias);
+		siril_debug_print("new alias: '%s'\n", obj->alias);
+		return TRUE;
+	}
+	obj->alias = g_strdup(code);
+	return TRUE;
 }
 
 /**
@@ -216,7 +245,7 @@ int load_csv_targets_to_temp(const gchar *filename) {
 	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
 					NULL, NULL))) {
 		if (line[0] == '\0' || line[0] == '\r' || line[0] == '\n' || line[0] == '#') {
-			first_line = FALSE;
+			first_line = TRUE;
 			g_free(line);
 			continue;
 		}
@@ -230,6 +259,7 @@ int load_csv_targets_to_temp(const gchar *filename) {
 			// this could be a NINA stars type CSV file, it's easy to
 			// also support it in this function
 			if (!strcasecmp(token[0], "type") && token[1]) {
+				// first non-comment line must start with 'Type,'
 				siril_debug_print("header from the NINA file: %s\n", line);
 				name_index = -1; ra_index = -1; dec_index = -1;
 				for (int i = 1; token[i]; i++) {
@@ -268,6 +298,7 @@ int load_csv_targets_to_temp(const gchar *filename) {
 		/* mandatory tokens */
 		const gchar *code = token[name_index];
 		double ra, dec;
+		if (!code) code = "";
 		if (strchr(token[ra_index], ' ') || strchr(token[ra_index], ':')) {
 			ra = parse_hms(token[ra_index]);	// in hours
 			dec = parse_dms(token[dec_index]);
@@ -378,7 +409,7 @@ static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
 	}
 
 	// Making new string of enough length
-	result = malloc(i + cnt * (newlen - oldlen) + 1);
+	result = g_malloc(i + cnt * (newlen - oldlen) + 1);
 
 	i = 0;
 	while (*s) {
@@ -395,26 +426,27 @@ static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
 	return result;
 }
 
-gchar *retrieve_site_coord(fits *fit) {
-	//  In case no localisation data is available, set the reference to geocentric, ie @500 in the request
-	if (!fit->sitelat || !fit->sitelong)
-		return g_strdup("@500");
-
-	GString *formatted_site_coord = g_string_new("");
-
-	if (fit->sitelat < 0.)
-		formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
-	else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
-	g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelat));
-
-	if (fit->sitelong < 0.)
-		formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
-	else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
-	g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelong));
-
-	g_string_append_printf(formatted_site_coord, "%f", fabs(fit->siteelev));
-
-	return g_string_free(formatted_site_coord, FALSE);
+gchar *get_catalogue_object_code_pretty(CatalogObjects *object) {
+	gboolean found = FALSE;
+	int i = 0;
+	if (!object->pretty_code) {
+		/* in case of stars we want to convert to Greek letter */
+		while (convert_to_greek[i].latin) {
+			gchar *latin_code = g_strstr_len(object->code, -1, convert_to_greek[i].latin);
+			if (latin_code) {
+				found = TRUE;
+				break;
+			}
+			i++;
+		}
+		if (found) {
+			object->pretty_code = replace_str(object->code,
+					convert_to_greek[i].latin, convert_to_greek[i].greek);
+		} else {
+			object->pretty_code = g_strdup(object->code);
+		}
+	}
+	return object->pretty_code;
 }
 
 static void write_in_user_catalogue(CatalogObjects *object, int cat_index) {
@@ -459,9 +491,17 @@ static void write_in_user_catalogue(CatalogObjects *object, int cat_index) {
 	g_object_unref(file);
 }
 
+gboolean is_inside(fits *fit, double ra, double dec) {
+	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
+}
+
+gboolean is_inside2(fits *fit, double ra, double dec, double *x, double *y) {
+	return wcs2pix(fit, ra, dec, x, y) == 0;
+}
+
 /* get a list of objects from all catalogues (= from siril_catalogue_list) that
  * are framed in the passed plate solved image */
-GSList *find_objects(fits *fit) {
+GSList *find_objects_in_field(fits *fit) {
 	if (!has_wcs(fit)) return NULL;
 	GSList *targets = NULL;
 
@@ -487,80 +527,145 @@ GSList *find_objects(fits *fit) {
 	return targets;
 }
 
-void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system, gboolean is_in_field) {
-	int cat_index;
-
+void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean check_duplicates, annotations_cat cat_idx) {
 	if (!is_catalogue_loaded())
 		reload_all_catalogues();
-	/* check for the object first to avoid duplicates, not for solar system objects */
-	if (!is_solar_system) {
+	if (check_duplicates) {	// duplicate check based on coordinates within 1"
 		GSList *cur = siril_catalogue_list;
 		double ra = siril_world_cs_get_alpha(wcs);
 		double dec = siril_world_cs_get_delta(wcs);
 		while (cur) {
 			CatalogObjects *obj = cur->data;
 			if (fabs(obj->ra - ra) < CATALOG_DIST_EPSILON && fabs(obj->dec - dec) < CATALOG_DIST_EPSILON) {
-				siril_log_message(_("The object was already found in the %s catalog under the name %s, not adding it again\n"), cat_index_to_name(obj->catalogue), obj->code);
+				siril_log_message(_("The object was already found in the %s catalog "
+							"under the name '%s', not adding it again\n"),
+						cat_index_to_name(obj->catalogue), obj->code);
+				if (add_alias_to_object(obj, code)) {
+					siril_debug_print("alias %s added to %s in the runtime catalogue\n",
+							code, obj->code);
+					/* we add it to the catalogue in memory, but it will be lost on
+					 * purge/reload or when restarting siril. It's a bit complicated
+					 * to modify existing entries from user catalogues and siril
+					 * catalogues should not be considered writeable.
+					 * at least it will help for consecutive requests
+					 */
+				}
 				return;
 			}
 			cur = cur->next;
 		}
 	}
 
-	if (is_in_field) cat_index = USER_TEMP_CAT_INDEX;
-	else {
-		if (is_solar_system) cat_index = USER_SSO_CAT_INDEX;
-		else cat_index = USER_DSO_CAT_INDEX;
-	}
-
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
-			NULL, NULL, cat_index);
+			NULL, NULL, cat_idx);
 
 	siril_catalogue_list = g_slist_prepend(siril_catalogue_list, new_object);
-	write_in_user_catalogue(new_object, cat_index);
+	write_in_user_catalogue(new_object, cat_idx);
 }
 
-gchar *get_catalogue_object_code(CatalogObjects *object) {
-	gboolean found = FALSE;
-	int i = 0;
+// search DSO by name in all annotation catalogues, but remember the result does not
+// contain magnitudes, only name and J2000 equatorial coordinates
+// the caller doesn't own the result, don't free!
+const CatalogObjects *search_in_annotations_by_name(const char *input) {
+	if (!is_catalogue_loaded())
+		reload_all_catalogues();
+	if (!input || input[0] == '\0') return NULL;
+	int len = strlen(input);
+	gchar *target;
+	// no space in our catalogues' codes
+	if (len >= 3 && !g_ascii_strncasecmp(input, "M ", 2) && input[2] >= '0' && input[2] <= '9')
+		target = g_strdup_printf("M%s", input+2);
+	else if (len >= 4 && !g_ascii_strncasecmp(input, "IC ", 3) && input[3] >= '0' && input[3] <= '9')
+		target = g_strdup_printf("IC%s", input+3);
+	else if (len >= 5 && !g_ascii_strncasecmp(input, "NGC ", 4) && input[4] >= '0' && input[4] <= '9')
+		target = g_strdup_printf("NGC%s", input+4);
+	else {
+		target = g_strdup(input);
+		target[0] = g_ascii_toupper(target[0]);	// in the catalogues, they're all starting with a caps
+	}
+	siril_debug_print("target name after transformation: %s\n", target);
 
-	/* in case of stars we want to convert to Greek letter */
-	while (convert_to_greek[i].latin) {
-		gchar *latin_code = g_strstr_len(object->code, -1, convert_to_greek[i].latin);
-		if (latin_code) {
-			found = TRUE;
+	CatalogObjects *found = NULL, *probable = NULL;
+	GSList *cur = siril_catalogue_list;
+	while (cur) {
+		CatalogObjects *obj = cur->data;
+		if (obj->catalogue == USER_SSO_CAT_INDEX ||
+				obj->catalogue == USER_TEMP_CAT_INDEX) {
+			cur = cur->next;
+			continue;
+		}
+		// same code (the only available from user catalogues)
+		if (obj->code && !strcasecmp(obj->code, target)) {
+			found = obj;
 			break;
 		}
-		i++;
+		// aliases are alternative codes, given for NGC and such
+		if (obj->alias) {
+			if (!strchr(obj->alias, '/')) {
+				if (!strcasecmp(obj->alias, target)) {
+					found = obj;
+					break;
+				}
+			} else {
+				gchar **token = g_strsplit(obj->alias, "/", -1);
+				guint i = 0;
+				while (token[i]) {
+					if (!strcasecmp(token[i], target)) {
+						g_strfreev(token);
+						found = obj;
+						break;
+					}
+					i++;
+				}
+				g_strfreev(token);
+			}
+		}
+		// name are 'given names' like trifid, sunflower, vega...
+		if (obj->name) {
+			if (!strcasecmp(obj->name, target)) {
+				found = obj;
+				break;
+			}
+			// TODO: strcasestr, but it's not standard
+			if (!probable && strstr(obj->name, target)) {
+				probable = obj;
+			}
+		}
+		cur = cur->next;
 	}
+	g_free(target);
 	if (found) {
-		gchar *tmp = replace_str(object->code, convert_to_greek[i].latin, convert_to_greek[i].greek);
-		gchar *code = g_strdup(tmp);
-		g_free(tmp);
-		g_free(object->code);
-		object->code = code;
+		siril_debug_print("object found in annotation catalogues: %s\n", found->code);
+		return found;
 	}
-	return object->code;
+	if (probable)
+		siril_debug_print("probable object found in annotation catalogues: %s\n", probable->code);
+	else siril_debug_print("object %s not found in annotation catalogues\n", input);
+	return probable;
 }
 
-gchar *get_catalogue_object_name(CatalogObjects *object) {
+gchar *get_catalogue_object_name(const CatalogObjects *object) {
 	return object->name;
 }
 
-guint get_catalogue_object_cat(CatalogObjects *object) {
+gchar *get_catalogue_object_code(const CatalogObjects *object) {
+	return object->code;
+}
+
+annotations_cat get_catalogue_object_cat(const CatalogObjects *object) {
 	return object->catalogue;
 }
 
-gdouble get_catalogue_object_ra(CatalogObjects *object) {
+gdouble get_catalogue_object_ra(const CatalogObjects *object) {
 	return object->ra;
 }
 
-gdouble get_catalogue_object_dec(CatalogObjects *object) {
+gdouble get_catalogue_object_dec(const CatalogObjects *object) {
 	return object->dec;
 }
 
-gdouble get_catalogue_object_radius(CatalogObjects *object) {
+gdouble get_catalogue_object_radius(const CatalogObjects *object) {
 	return object->radius;
 }
 
@@ -576,11 +681,11 @@ void refresh_found_objects() {
 		if (com.found_object) {
 			g_slist_free(com.found_object);
 		}
-		com.found_object = find_objects(&gfit);
+		com.found_object = find_objects_in_field(&gfit);
 	}
 }
 
-static gboolean show_catalog(int catalog) {
+static gboolean show_catalog(annotations_cat catalog) {
 	if (catalog >= G_N_ELEMENTS(com.pref.gui.catalog) || catalog < 0) {
 		siril_debug_print("BAD ANNOTATION CATALOGUE ENTRY DETECTED\n");
 		return FALSE;
@@ -641,7 +746,7 @@ void on_purge_SSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 		gboolean was_displayed = com.found_object != NULL;
 		reload_all_catalogues();
 		if (was_displayed) {
-			com.found_object = find_objects(&gfit);
+			com.found_object = find_objects_in_field(&gfit);
 			redraw(REDRAW_OVERLAY);
 		}
 	}
@@ -668,7 +773,7 @@ void on_purge_DSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 		gboolean was_displayed = com.found_object != NULL;
 		reload_all_catalogues();
 		if (was_displayed) {
-			com.found_object = find_objects(&gfit);
+			com.found_object = find_objects_in_field(&gfit);
 			redraw(REDRAW_OVERLAY);
 		}
 	}

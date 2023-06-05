@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 #include "core/siril_actions.h"
 #include "gui/nina_light_curve.h"
+#include "gui/compstars.h"
 
 static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
@@ -134,7 +135,8 @@ static GActionEntry none_processing_entries[] = {
 	{ "star-remix-processing", star_remix_activate },
 	{ "merge-cfa-processing", merge_cfa_activate },
 	{ "pixel-math", pixel_math_activate },
-	{ "nina_light_curve", nina_lc_activate }
+	{ "nina_light_curve", nina_lc_activate },
+	{ "compstars", compstars_activate }
 };
 
 static void _siril_window_enable_action_group(GActionMap *map,
