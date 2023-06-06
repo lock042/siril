@@ -96,6 +96,76 @@ cmsHPROFILE gray_rec709trcv2() {
 	return cmsOpenProfileFromMem(Gray_elle_V2_rec709_icc, Gray_elle_V2_rec709_icc_len);
 }
 
+void export_profile(cmsHPROFILE profile) {
+	char *filename = NULL;
+	int length;
+	length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
+	if (length) {
+		filename = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", filename, length);
+	}
+	if (!g_str_has_suffix(filename, ".icc")) {
+		gchar* temp = g_strdup_printf("%s.icc", filename);
+		free(filename);
+		filename = strdup(temp);
+		g_free(temp);
+	}
+	if (cmsSaveProfileToFile(profile, filename))
+		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", filename);
+	else
+		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", filename);
+	free(filename);
+}
+
+void export_elle_stone_profiles() {
+	cmsHPROFILE profile;
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	profile = srgb_linear();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = srgb_trc();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = srgb_trcv2();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = rec2020_linear();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = rec2020_trc();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = rec2020_trcv2();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = gray_linear();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = gray_srgbtrc();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = gray_srgbtrcv2();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = gray_rec709trc();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+
+	profile = gray_rec709trcv2();
+	export_profile(profile);
+	cmsCloseProfile(profile);
+}
+
 gboolean validate_profile(gchar* filename) {
 	if (!filename)
 		return FALSE;
@@ -1129,4 +1199,30 @@ void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data) {
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_source_information();
 	set_target_information();
+}
+
+void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	if (!gfit.icc_profile) {
+		siril_log_color_message(_("Error: no ICC profile associated with the current image. Cannot export.\n"), "red");
+		return;
+	}
+	char *filename = NULL;
+	if (com.uniq->filename && com.uniq->filename[0] != '\0')
+		filename = remove_ext_from_filename(com.uniq->filename);
+	else
+		filename = strdup("image");
+	gchar* temp = g_strdup_printf("%s.icc", filename);
+	free(filename);
+	filename = strdup(temp);
+	g_free(temp);
+	if (cmsSaveProfileToFile(gfit.icc_profile, filename))
+		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", filename);
+	else
+		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", filename);
+	free(filename);
+}
+
+void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {
+	export_elle_stone_profiles();
 }
