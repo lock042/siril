@@ -281,9 +281,9 @@ static void histo_recompute() {
 				cmsCloseProfile(temp);
 				cmsDeleteTransform(transform);
 			} else {
-				// No compensation needed for mono images, we just assign the g22 Gray profile
+				// No compensation needed for mono images, we just assign the Gray working profile
 				cmsCloseProfile(gfit.icc_profile);
-				gfit.icc_profile = copyICCProfile(gui.icc.monitor);
+				gfit.icc_profile = copyICCProfile(com.icc.mono_standard);
 			}
 		}
 

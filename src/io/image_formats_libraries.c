@@ -751,20 +751,25 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		// Transform the data
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
-		cmsUInt32Number trans_type;
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		if (src_is_float) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-			trans_type = nsamples == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
 		} else {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-			trans_type = nsamples == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		// If we are exporting in 8-bit, we save as sRGB; for higher bit depths we save in the native colorspace
+		// Check what is the appropriate color space to save in
 		if (bitspersample == 8) {
-			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
+			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
+			cmsDoTransform(save_transform, buf, dest, npixels);
+			cmsDeleteTransform(save_transform);
+		} else if (bitspersample == 16) {
+			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : (com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
 			cmsDoTransform(save_transform, buf, dest, npixels);
 			cmsDeleteTransform(save_transform);
 		}
+		// 32 bit files are always saved in the working color space with the ICC profile
+		// embedded. If you want 32-bit sRGB output you need to convert the color space yourself.
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
 		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
@@ -773,9 +778,16 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
 		// Generate the correct profile and assign it to the TIFF
 		if (bitspersample == 8) {
-			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : &com.icc.working_out), &profile_len);
-		} else {
-			profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+		} else if (bitspersample == 16) {
+			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+		}
+		else {
+			if (fit->icc_profile) {
+				profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+			} else {
+				profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear, &profile_len);
+			}
 		}
 		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
@@ -1133,15 +1145,14 @@ int savejpg(const char *name, fits *fit, int quality){
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
 		size_t nchans = fit->naxes[2];
-		cmsUInt32Number trans_type;
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		if (src_is_float) {
 			dest = (float*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
 		} else {
 			dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
 		cmsDoTransform(save_transform, buf, dest, npixels);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD*) dest;
@@ -1198,11 +1209,7 @@ int savejpg(const char *name, fits *fit, int quality){
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
 	if (com.icc.available) {
 		unsigned int EmbedLen;
-		if (cinfo.input_components == 3) {
-			EmbedBuffer = get_sRGB_profile_data(&EmbedLen, FALSE);
-		} else {
-			EmbedBuffer = get_gray_profile_data(&EmbedLen, FALSE);
-		}
+		EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &EmbedLen);
 		if (EmbedBuffer)
 			jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
 		else
@@ -1516,21 +1523,31 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	 * currently be PNG_COMPRESSION_TYPE_BASE and PNG_FILTER_TYPE_BASE. REQUIRED
 	 */
 	uint32_t profile_len = 0;
-	const unsigned char *profile;
+	unsigned char *profile = NULL;
 
 	if (is_colour) {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
 				PNG_COLOR_TYPE_RGB,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 				PNG_FILTER_TYPE_DEFAULT);
-		profile = get_sRGB_profile_data(&profile_len, FALSE);
-
 	} else {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
 				PNG_COLOR_TYPE_GRAY,
 				PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 				PNG_FILTER_TYPE_DEFAULT);
-		profile = get_gray_profile_data(&profile_len, FALSE);
+	}
+
+	int samples_per_pixel;
+	if (is_colour) {
+		samples_per_pixel = 3;
+	} else {
+		samples_per_pixel = 1;
+	}
+
+	if (bytes_per_sample == 1) {
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+	} else {
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
 	}
 
 	if (profile_len > 0) {
@@ -1542,13 +1559,6 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	png_bytep *row_pointers = malloc((size_t) height * sizeof(png_bytep));
 
-	int samples_per_pixel;
-	if (is_colour) {
-		samples_per_pixel = 3;
-	} else {
-		samples_per_pixel = 1;
-	}
-
 	WORD *data = NULL;
 	uint8_t *data8 = NULL;
 
@@ -1558,12 +1568,12 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		data = convert_data(fit);
 		if (com.icc.available) {
 		// Apply ICC transform
-			cmsHTRANSFORM save_transform;
-			if (samples_per_pixel == 1)
-				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_GRAY_16, com.icc.mono_out, TYPE_GRAY_16, com.icc.save_intent, 0);
-			else
-				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_RGB_16, com.icc.working_out, TYPE_RGB_16, com.icc.save_intent, 0);
-			cmsDoTransform(save_transform, data, data, fit->rx * fit->ry);
+			if (!fit->icc_profile)
+				fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
+			cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+			cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, TRUE);
+			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (samples_per_pixel == 1 ? com.icc.mono_out : (com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
+			cmsDoTransform(save_transform, data, data, width * height);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)
@@ -1576,9 +1586,9 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			if (samples_per_pixel == 1)
 				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_GRAY_8, com.icc.mono_out, TYPE_GRAY_8, com.icc.save_intent, 0);
 			else
-				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_RGB_8, com.icc.working_out, TYPE_RGB_8,com.icc.save_intent, 0);
+				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_RGB_8, (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), TYPE_RGB_8, com.icc.save_intent, 0);
 
-			cmsDoTransform(save_transform, data8, data8, fit->rx * fit->ry);
+			cmsDoTransform(save_transform, data8, data8, width * height);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)
@@ -1599,6 +1609,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	if (data) free(data);
 	if (data8) free(data8);
 	free(row_pointers);
+	free(profile);
 	free(filename);
 	return 0;
 }

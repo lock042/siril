@@ -61,6 +61,7 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit);
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);
 const char* default_system_icc_path();
 void refresh_icc_transforms();
+void validate_custom_profiles();
 int load_display_icc_profile(const char* filename);
 int load_proof_icc_profile(const char* filename);
 void initialize_icc_profiles_paths();
