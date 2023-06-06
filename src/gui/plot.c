@@ -33,6 +33,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
+#include "core/siril_world_cs.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -43,11 +44,14 @@
 #include "registration/registration.h"
 #include "kplot.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "io/gnuplot_i.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
+#include "algos/astrometry_solver.h"
+#include "algos/comparison_stars.h"
 
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
 
@@ -60,7 +64,7 @@ static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
-		*buttonNINA = NULL;
+		*buttonNINA = NULL, *buttonCompStars = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -991,6 +995,7 @@ static void fill_plot_statics() {
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
 		buttonNINA = lookup_widget("nina_button");
+		buttonCompStars = lookup_widget("comp_stars_button");
 	}
 }
 
@@ -1002,8 +1007,12 @@ static void validate_combos() {
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
-	gtk_widget_set_visible(varCurve, use_photometry);
-	gtk_widget_set_visible(buttonNINA, sequence_is_loaded());
+	gtk_widget_set_visible(varCurve, TRUE);
+	gtk_widget_set_sensitive(varCurve, use_photometry);
+	gtk_widget_set_visible(buttonNINA, TRUE);
+	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
+	gtk_widget_set_visible(buttonCompStars, TRUE);
+	gtk_widget_set_sensitive(buttonCompStars, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, TRUE);
 	gtk_widget_set_visible(buttonSavePrt, TRUE);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
@@ -1076,6 +1085,7 @@ void reset_plot() {
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
 		gtk_widget_set_visible(buttonNINA, FALSE);
+		gtk_widget_set_visible(buttonCompStars, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
 		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
@@ -1221,6 +1231,34 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 		g_free(file);
 	}
 	siril_widget_destroy(widgetdialog);
+}
+
+void on_ButtonCompStars_clicked(GtkButton *button, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return;
+	}
+
+	/* TODO
+	if (!com.target_star) {
+		siril_log_color_message(_("You have to identify the Variable star (Search in GUI or catsearch in ClI)\n"), "red");
+		return;
+	}
+
+	com.wide_field = FALSE;
+	com.used_cat = CAT_AAVSO;
+	get_compstars();
+
+	double dmag = 6.0;
+	do {		// This is the auto-sort process for GUI use
+		dmag = dmag * 0.9;
+	} while (sort_compstars (dmag, 0.5) > 8);
+
+	chk_compstars();
+	*/
+	set_cursor_waiting(FALSE);
 }
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {

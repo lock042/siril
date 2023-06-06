@@ -3,57 +3,19 @@
 
 #include "core/siril.h"
 #include "core/siril_world_cs.h"
-
+#include "io/remote_catalogues.h"
+#include "algos/search_objects.h"
 #include "registration/matching/degtorad.h"
 
 #define BRIGHTEST_STARS 2500
-#define AT_MATCH_CATALOG_NBRIGHT   60
+#define AT_MATCH_CATALOG_NBRIGHT 60
 //#define CROP_ALLOWANCE 1.20
 
-#define RADtoASEC (3600.0 * 180.0 / M_PI)
-
-#define CDSSESAME "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame"
-#define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
-#define SIMBADSESAME "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
-#define SIMBADPHOTO "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT B, V, R ,I , J from allfluxes JOIN ident USING(oidref) WHERE id ='"
-#define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?"
-#define SKYBOT "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?"
 
 typedef enum {
 	ERROR_PLATESOLVE = 1,
 	ERROR_PHOTOMETRY = 10,
 } platesolve_error_type;
-
-
-typedef enum {
-	CAT_TYCHO2,
-	CAT_NOMAD,
-	CAT_GAIADR3,
-	CAT_PPMXL,
-	CAT_BRIGHT_STARS,
-	CAT_APASS,
-	CAT_AUTO = 98,
-	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
-	CAT_ASNET = 100,	// solve-field local (astrometry.net)
-} online_catalog;	// TODO: rename
-
-typedef enum {
-	RESOLVER_UNSET = -1,
-	RESOLVER_NED = 0,
-	RESOLVER_SIMBAD,
-	RESOLVER_VIZIER,
-	RESOLVER_NUMBER,
-} resolver_t;
-
-
-typedef enum {
-	QUERY_SERVER_CDS,
-	QUERY_SERVER_VIZIER,
-	QUERY_SERVER_SIMBAD,
-	QUERY_SERVER_EPHEMCC,
-	QUERY_SERVER_SIMBAD_PHOTO,
-	QUERY_SERVER_SKYBOT, // In case of adding other items, leave this one at the end of the list
-} query_server;
 
 typedef enum {
 	LIMIT_MAG_AUTO,
@@ -91,7 +53,6 @@ struct astrometry_data {
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
 	GFile *catalog_file;	// downloaded file containing raw catalog data
-	//gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
 
@@ -106,25 +67,13 @@ struct astrometry_data {
 	SirilWorldCS *new_center; // the image center found by the solve, for GUI update
 };
 
-struct sky_object {
-	gchar *name;
-	double radius;
-	int maxRecords;
-	SirilWorldCS *world_cs;
-	point imageCenter;
-	gboolean south;
-};
-
-const char *catalog_to_str(online_catalog cat);
 void open_astrometry_dialog();
-gchar *search_in_online_catalogs(const gchar *object, query_server server);
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer plate_solver(gpointer p);
 double compute_mag_limit_from_fov(double fov_degrees);
-
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void flip_bottom_up_astrometry_data(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
@@ -138,15 +87,12 @@ gboolean asnet_is_available();
 /* for the GUI */
 double get_resolution(double focal, double pixel);
 double get_radius_deg(double resolution, int rx, int ry);
-void free_Platedobject();
-int parse_content_buffer(char *buffer, struct sky_object *obj);
-gpointer search_in_online_conesearch(gpointer p);
-gboolean has_nonzero_coords();
+
 gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
-GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
 double get_fov_arcmin(double resolution, int rx, int ry);
+
+const char *catalog_to_str(online_catalog cat);
 
 /* from the GUI */
 gboolean end_process_sso(gpointer p);

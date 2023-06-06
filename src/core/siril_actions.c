@@ -32,6 +32,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
+#include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
 #include "compositing/compositing.h"
@@ -383,7 +384,7 @@ void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gp
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		if (has_wcs(&gfit)) {
-			com.found_object = find_objects(&gfit);
+			com.found_object = find_objects_in_field(&gfit);
 		}
 	} else {
 		g_slist_free(com.found_object);
@@ -618,6 +619,10 @@ void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("nina_light_curve");
+}
+
+void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("compstars");
 }
 
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

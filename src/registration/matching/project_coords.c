@@ -34,7 +34,6 @@
 #include "misc.h"
 #include "project_coords.h"
 #include "degtorad.h"
-#define RADtoASEC (3600.*180./M_PI)
 
 enum COORD_COL {
 	RACOL = 1, DECCOL = 2

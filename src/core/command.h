@@ -73,6 +73,7 @@ int	process_fdiv(int nb);
 int	process_fft(int nb);
 int	process_fill(int nb);
 int	process_ffill(int nb);
+int	process_findcompstars(int nb);
 int	process_findcosme(int nb);
 int	process_findhot(int nb);
 int	process_findstar(int nb);
@@ -155,6 +156,7 @@ int	process_starnet(int nb);
 #endif
 int	process_sb(int nb);
 int	process_scnr(int nb);
+int	process_search_fct(int nb);
 int	process_select(int nb);
 int	process_seq_applyreg(int nb);
 int	process_seq_clean(int nb);

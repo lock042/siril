@@ -23843,6 +23843,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
+                                                    <property name="halign">end</property>
                                                     <property name="action-name">win.nina_light_curve</property>
                                                   </object>
                                                   <packing>
@@ -23850,6 +23851,23 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="fill">True</property>
                                                     <property name="pack-type">end</property>
                                                     <property name="position">4</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="comp_stars_button">
+                                                    <property name="label" translatable="yes">Comparison stars</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
+Output is a csv file compatible with NINA Exoplanet</property>
+                                                    <property name="action-name">win.compstars</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">5</property>
                                                   </packing>
                                                 </child>
                                               </object>

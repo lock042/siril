@@ -28,3 +28,10 @@ autoreconf -fi && \
 make install -j$(nproc) || exit 1
 cd ..
 
+# Build libXISF from git rep
+git clone https://gitea.nouspiro.space/nou/libXISF.git
+cd libXISF
+mkdir -p build && cd build
+cmake -G "MSYS Makefiles" -DCMAKE_INSTALL_PREFIX="$MSYSTEM_PREFIX" -DCMAKE_BUILD_TYPE="Release" ..
+make install || exit 1
+cd ..

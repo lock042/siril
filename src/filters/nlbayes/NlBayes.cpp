@@ -175,7 +175,7 @@ vector<float> sanitize(vector<float> input, const ImageSize size) {
 				input[i] = input[i-size.width];
 		}
 		if (input[i] < 0.0) {
-			input[i] = max(EPSILON, input[i]);
+			input[i] = fmaxf(EPSILON, input[i]);
 		}
 	}
 	siril_debug_print("\n");

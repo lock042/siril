@@ -42,7 +42,8 @@
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
 #define PRINT_ANOTHER_THREAD_RUNNING siril_log_message(_("Another task is already in progress, ignoring new request.\n"))
 
-#ifndef RT_INCLUDE
+#ifndef __cplusplus
+// excluding from C++ because it conflicts with stl
 #undef max
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -54,6 +55,7 @@
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+
 
 #define SWAPD(a,b) { double temp = (a); (a) = (b); (b) = temp; }
 
@@ -168,10 +170,10 @@ typedef enum {
 #define SCALED_IMAGE -3		// the single image has a different size than
 				// the loaded sequence
 
-#define MAX_STARS 200000		// maximum length of com.stars
+#define MAX_STARS 200000	// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
 #define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
-#define DEF_BOX_RADIUS 5 // default radius of the box in starfinder_conf
+#define DEF_BOX_RADIUS 5	// default radius of the box in starfinder_conf
 
 #define INDEX_MAX 65535		// maximum index for images
 
@@ -181,6 +183,7 @@ typedef struct guiinf guiinfo;
 typedef struct cominf cominfo;
 typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
+typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
 /* global structures */
