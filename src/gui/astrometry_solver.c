@@ -23,6 +23,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
 #include "algos/annotate.h"
+#include "algos/search_objects.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
@@ -36,7 +37,8 @@
 #include "gui/photometric_cc.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
-#include "io/catalogues.h"
+#include "io/remote_catalogues.h"
+#include "io/local_catalogues.h"
 
 enum {
 	COLUMN_RESOLVER,// string
@@ -395,6 +397,13 @@ static void add_object_to_list() {
 		anyobject = TRUE;
 	}
 
+	if (platedObject[RESOLVER_LOCAL].name) {
+		gtk_list_store_append(list_IPS, &iter);
+		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "Local",
+				COLUMN_NAME, platedObject[RESOLVER_LOCAL].name, -1);
+		anyobject = TRUE;
+	}
+
 	if (!anyobject) {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "N/A",
@@ -411,34 +420,47 @@ static void unselect_all_items() {
 }
 
 static void add_object_in_tree_view(const gchar *object) {
-	struct sky_object obj;
 	GtkTreeView *GtkTreeViewIPS;
 	GtkTreeViewIPS = GTK_TREE_VIEW(lookup_widget("GtkTreeViewIPS"));
 	if (!object || object[0] == '\0')
 		return;
 
 	set_cursor_waiting(TRUE);
+	gboolean found = FALSE;
 
-	query_server server = get_server_from_combobox();
-	gchar *result = search_in_online_catalogs(object, server);
-	if (result) {
-		free_Platedobject();
-		parse_content_buffer(result, &obj);
-		if (!has_nonzero_coords()) {
-			g_free(result);
-			set_cursor_waiting(FALSE);
-			// the list is empty, it will just write "No object found" as the first entry
-			g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
-			add_object_to_list();
-			g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
-			siril_log_color_message(_("No object found\n"), "red");
-			return;
-		}
+	const CatalogObjects *local_obj = search_in_annotations_by_name(object);
+	if (local_obj) {	// always search for local first
+		add_plated_from_annotations(local_obj);
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		add_object_to_list();
 		g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
-		g_free(result);
+		found = TRUE;
+	} else {
+		query_server server = get_server_from_combobox();
+		gchar *result = search_in_online_catalogs(object, server);
+		if (result) {
+			free_Platedobject();
+			struct sky_object obj;
+			parse_resolver_buffer(result, &obj);
+			if (!has_nonzero_coords()) {
+				free_fetch_result(result);
+				set_cursor_waiting(FALSE);
+				// the list is empty, it will just write "No object found" as the first entry
+				g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
+				add_object_to_list();
+				g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
+				siril_log_color_message(_("No object found\n"), "red");
+				return;
+			}
+			g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
+			add_object_to_list();
+			g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
+			free_fetch_result(result);
+			found = TRUE;
+		}
+	}
 
+	if (found) {
 		/* select first object found in the list */
 		GtkTreeIter iter;
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(GtkTreeViewIPS);
@@ -511,6 +533,8 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 			selected_item = 1;
 		} else if (!g_strcmp0(res, "VizieR")) {
 			selected_item = 2;
+		} else if (!g_strcmp0(res, "Local")) {
+			selected_item = 3;
 		} else {
 			selected_item = -1;
 		}

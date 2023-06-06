@@ -2,6 +2,7 @@
 #define ATPMATCH_H
 
 #include "core/siril.h"
+#include "algos/photometry.h"
 #include "registration/registration.h"
 #include "misc.h"
 
