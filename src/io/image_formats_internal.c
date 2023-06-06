@@ -333,7 +333,10 @@ int savebmp(const char *name, fits *fit) {
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
 		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, buf, dest, npixels);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
@@ -678,16 +681,18 @@ static int saveppm(const char *name, fits *fit) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
 		size_t nchans = fit->naxes[2];
-		cmsUInt32Number trans_type;
 		if (src_is_float) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
 		} else {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, buf, dest, npixels);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
@@ -752,16 +757,18 @@ static int savepgm(const char *name, fits *fit) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
 		size_t nchans = fit->naxes[2];
-		cmsUInt32Number trans_type;
 		if (src_is_float) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
 		} else {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, buf, dest, npixels);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		gbuf = (WORD *) dest;
 		gbuff = (float *) dest;

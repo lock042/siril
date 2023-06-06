@@ -241,7 +241,8 @@ static void histo_recompute() {
 		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
 		if (com.icc.available && autostretch_notify) {
-			cmsCloseProfile(gfit.icc_profile);
+			if (gfit.icc_profile)
+				cmsCloseProfile(gfit.icc_profile);
 			gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
 		}
 

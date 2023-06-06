@@ -761,11 +761,17 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		// Check what is the appropriate color space to save in
 		if (bitspersample == 8) {
 			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
-			cmsDoTransform(save_transform, buf, dest, npixels);
+			cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+			cmsUInt32Number bytesperline = width * datasize;
+			cmsUInt32Number bytesperplane = npixels * datasize;
+			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		} else if (bitspersample == 16) {
 			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : (com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
-			cmsDoTransform(save_transform, buf, dest, npixels);
+			cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+			cmsUInt32Number bytesperline = width * datasize;
+			cmsUInt32Number bytesperplane = npixels * datasize;
+			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		}
 		// 32 bit files are always saved in the working color space with the ICC profile
@@ -1153,7 +1159,10 @@ int savejpg(const char *name, fits *fit, int quality){
 			dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
 		cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
-		cmsDoTransform(save_transform, buf, dest, npixels);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD*) dest;
 		gbuf[1] = (WORD*) dest + npixels;
@@ -1573,7 +1582,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 			cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, TRUE);
 			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (samples_per_pixel == 1 ? com.icc.mono_out : (com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.icc.save_intent, 0);
-			cmsDoTransform(save_transform, data, data, width * height);
+			cmsUInt32Number datasize = sizeof(WORD);
+			cmsUInt32Number bytesperline = gfit.rx * datasize;
+			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
+			cmsDoTransformLineStride(save_transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)
@@ -1588,7 +1600,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			else
 				save_transform = sirilCreateTransform(fit->icc_profile, TYPE_RGB_8, (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), TYPE_RGB_8, com.icc.save_intent, 0);
 
-			cmsDoTransform(save_transform, data8, data8, width * height);
+			cmsUInt32Number datasize = sizeof(BYTE);
+			cmsUInt32Number bytesperline = gfit.rx * datasize;
+			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
+			cmsDoTransformLineStride(save_transform, data8, data8, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		}
 		for (unsigned i = 0, j = height - 1; i < height; i++)

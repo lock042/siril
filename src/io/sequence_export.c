@@ -488,12 +488,12 @@ static gpointer export_sequence(gpointer ptr) {
 				case EXPORT_WEBM_VP9:
 #endif
 					transform = initialize_export8_transform(destfit);
+					void *data = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
 					size_t npixels = destfit->rx * destfit->ry;
-					if (destfit->type == DATA_USHORT) {
-						cmsDoTransform(transform, destfit->data, destfit->data, npixels);
-					} else {
-						cmsDoTransform(transform, destfit->fdata, destfit->fdata, npixels);
-					}
+					cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+					cmsUInt32Number bytesperline = gfit.rx * datasize;
+					cmsUInt32Number bytesperplane = npixels * datasize;
+					cmsDoTransformLineStride(transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 					cmsDeleteTransform(transform);
 					transform = NULL;
 					break;

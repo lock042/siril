@@ -935,8 +935,12 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 	if (transform) {
-		cmsDoTransform(transform, data, data, npixels);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
+		cmsCloseProfile(gfit.icc_profile);
 		gfit.icc_profile = copyICCProfile(target);
 		set_source_information();
 		notify_gfit_modified();
