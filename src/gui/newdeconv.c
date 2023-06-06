@@ -1289,7 +1289,7 @@ ENDDECONV:
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
 	if (stars_need_clearing) {
-		free(com.stars);
+		clear_stars_list(TRUE);
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}
