@@ -394,59 +394,57 @@ static void remap_all_vports() {
 	}
 
 	int norm = (int) get_normalized_value(&gfit);
-
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
-#endif
-	for (y = 0; y < gfit.ry; y++) {
-		guint x;
-		guint src_i = y * gfit.rx;
-		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
-
-		// Set up a buffer so that the color space transform can be carried out on a whole row at a time
-		// This improves memory access and will allow for further optimization via the lcms2 fast float plugin
-		WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
-		WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
+	if (com.pref.icc.use_extra_mem) {
+		size_t npixels = gfit.rx * gfit.ry;
+		size_t size = npixels * sizeof(WORD);
+		WORD *pixelbuf = calloc(gfit.rx * gfit.ry * 3, sizeof(WORD));
 		if (gfit.type == DATA_FLOAT) {
-			for (int c = 0 ; c < 3 ; c++) {
-				WORD *line = linebuf[c];
-				float *source = fsrc[c];
-#pragma omp simd
-				for (x = 0 ; x < gfit.rx ; x++)
-					line[x] = roundf_to_WORD(source[src_i + x] * USHRT_MAX_SINGLE);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+			for (int n = 0 ; n < npixels * gfit.naxes[2]; n++) {
+				pixelbuf[n] = roundf_to_WORD(gfit.fdata[n] * USHRT_MAX_SINGLE);
 			}
 		} else if (norm == UCHAR_MAX) {
-			for (int c = 0 ; c < 3 ; c++) {
-				WORD *line = linebuf[c];
-				WORD *source = src[c];
-#pragma omp simd
-				for (x = 0 ; x < gfit.rx ; x++)
-					line[x] = source[src_i + x] << 8;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+			for (int n = 0 ; n < npixels * gfit.naxes[2] ; n++) {
+				pixelbuf[n] = gfit.data[n] << 8;
 			}
 		} else {
-			for (int c = 0 ; c < 3 ; c++)
-// No omp simd here as memcpy should already be highly optimized
-				memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
+			memcpy(pixelbuf, gfit.data, npixels * gfit.naxes[2] * sizeof(WORD));
+		}
+		if (gfit.naxes[2] == 1) {
+			memcpy(pixelbuf + npixels + 1, pixelbuf, size);
+			memcpy(pixelbuf + (2 * npixels) + 1, pixelbuf, size);
 		}
 		if (com.icc.available && gui.rendering_mode != STF_DISPLAY) {
-			cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
+			cmsUInt32Number datasize = sizeof(WORD);
+			cmsUInt32Number bytesperline = gfit.rx * datasize;
+			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
+			cmsDoTransformLineStride(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
 							gui.icc.proofing_transform :
 							gui.icc.display_transform,
-							pixelbuf, pixelbuf, gfit.rx);
+							pixelbuf, pixelbuf, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		}
 		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
-			for (int c = 0 ; c < 3 ; c++) {
-				WORD *line = linebuf[c];
-#pragma omp simd
-				for (x = 0 ; x < gfit.rx ; x++)
-					line[x] = line[x] >> 8;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+			for (int n = 0 ; n < npixels * gfit.naxes[2] ; n++) {
+				pixelbuf[n] = gfit.data[n] << 8;
 			}
 		}
-
+#ifdef _OPENMP
+#pragma omp parallel for simd collapse(3) num_threads(com.max_thread) schedule(static)
+#endif
 		for (int c = 0 ; c < 3 ; c++) {
-			for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
-				BYTE dst_pixel_value = 0;
-					WORD val = linebuf[c][x];
+			for (int x = 0; x < gfit.rx; ++x) {
+				for (int y = 0; y < gfit.ry; ++y) {
+					BYTE dst_pixel_value = 0;
+					size_t n = x + y * gfit.rx;
+					WORD val = *(pixelbuf + c * npixels + n);
 					// STF mode does not use the sliders
 					if (gui.rendering_mode == STF_DISPLAY)
 						dst_pixel_value = index[val];
@@ -455,20 +453,100 @@ static void remap_all_vports() {
 					else {
 						dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
 					}
-				dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
-				// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-				guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
-				switch (color) {
-					default:
-					case NORMAL_COLOR:
-						*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
-						break;
-					case RAINBOW_COLOR:
-						*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
+					dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
+					// Siril's FITS are stored bottom to top, so mapping needs to revert data order
+					guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
+					switch (color) {
+						default:
+						case NORMAL_COLOR:
+							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+							break;
+						case RAINBOW_COLOR:
+							*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
+					}
 				}
 			}
 		}
 		free(pixelbuf);
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
+#endif
+		for (y = 0; y < gfit.ry; y++) {
+			guint x;
+			guint src_i = y * gfit.rx;
+			guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
+
+			// Set up a buffer so that the color space transform can be carried out on
+			//a whole row at a time.
+			// This improves memory access and will allow for a degree of optimization
+			// via the lcms2 fast float plugin, but not as much as if extra memory is
+			// used and the entire image is transformed using cmsDoTransformLineStride
+			WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
+			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
+			if (gfit.type == DATA_FLOAT) {
+				for (int c = 0 ; c < 3 ; c++) {
+					WORD *line = linebuf[c];
+					float *source = fsrc[c];
+#pragma omp simd
+					for (x = 0 ; x < gfit.rx ; x++)
+						line[x] = roundf_to_WORD(source[src_i + x] * USHRT_MAX_SINGLE);
+				}
+			} else if (norm == UCHAR_MAX) {
+				for (int c = 0 ; c < 3 ; c++) {
+					WORD *line = linebuf[c];
+					WORD *source = src[c];
+#pragma omp simd
+					for (x = 0 ; x < gfit.rx ; x++)
+						line[x] = source[src_i + x] << 8;
+				}
+			} else {
+				for (int c = 0 ; c < 3 ; c++)
+// No omp simd here as memcpy should already be highly optimized
+					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
+			}
+			if (com.icc.available && gui.rendering_mode != STF_DISPLAY) {
+				cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
+								gui.icc.proofing_transform :
+								gui.icc.display_transform,
+								pixelbuf, pixelbuf, gfit.rx);
+			}
+			if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
+				for (int c = 0 ; c < 3 ; c++) {
+					WORD *line = linebuf[c];
+#pragma omp simd
+					for (x = 0 ; x < gfit.rx ; x++)
+						line[x] = line[x] >> 8;
+				}
+			}
+
+			for (int c = 0 ; c < 3 ; c++) {
+				for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
+					BYTE dst_pixel_value = 0;
+						WORD val = linebuf[c][x];
+						// STF mode does not use the sliders
+						if (gui.rendering_mode == STF_DISPLAY)
+							dst_pixel_value = index[val];
+						else if (gui.cut_over && val > gui.hi)	// cut
+							dst_pixel_value = 0;
+						else {
+							dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
+						}
+					dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
+					// Siril's FITS are stored bottom to top, so mapping needs to revert data order
+					guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
+					switch (color) {
+						default:
+						case NORMAL_COLOR:
+							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+							break;
+						case RAINBOW_COLOR:
+							*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
+					}
+				}
+			}
+			free(pixelbuf);
+		}
 	}
 	// flush to ensure all writing to the image was done and redraw the surface
 	for (int vport = 0 ; vport < 3 ; vport++) {
