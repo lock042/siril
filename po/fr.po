@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-06 10:21+0200\n"
-"PO-Revision-Date: 2023-05-27 21:38+0000\n"
+"PO-Revision-Date: 2023-06-07 21:35+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -6472,15 +6472,17 @@ msgstr ""
 "exoplanète NINA"
 
 #: src/gui/siril3.glade:23858
-#, fuzzy
 msgid "Comparison stars"
-msgstr "Facteur de compensation"
+msgstr "Étoiles de comparaison"
 
 #: src/gui/siril3.glade:23862
 msgid ""
 "Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.\n"
 "Output is a csv file compatible with NINA Exoplanet"
 msgstr ""
+"Génère une liste d'étoiles de comparaison (AAVSO, APASS) contenues dans le "
+"champs.\n"
+"La sortie est un fichier csv compatible avec NINA Exoplanet"
 
 #: src/gui/siril3.glade:23887
 msgid "Julian Date"
@@ -9225,13 +9227,13 @@ msgstr ""
 "Erreur : échec de l'écriture de la sortie dans le catalogue utilisateur.\n"
 
 #: src/algos/annotate.c:540
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "The object was already found in the %s catalog under the name '%s', not "
 "adding it again\n"
 msgstr ""
-"L'objet a déjà été trouvé dans le catalogue %s sous le nom %s, ne pas "
-"l'ajouter à nouveau.\n"
+"L'objet a déjà été trouvé dans le catalogue %s sous le nom '%s', ne pas "
+"l'ajouter à nouveau\n"
 
 #: src/algos/annotate.c:731
 msgid "Catalog deletion"
@@ -9694,29 +9696,27 @@ msgstr ""
 "l'extérieur\n"
 
 #: src/algos/comparison_stars.c:317
-#, fuzzy
 msgid "Not enough stars available\n"
-msgstr "Pas assez d'étoiles. Image %d écartée\n"
+msgstr "Pas assez d'étoiles disponibles\n"
 
 #: src/algos/comparison_stars.c:320
 #, c-format
 msgid "Sort parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf\n"
-msgstr ""
+msgstr "Tri des paramètres : delta_Vmag : %1.2lf, delta_BV : %1.2lf\n"
 
 #: src/algos/comparison_stars.c:322
 #, c-format
 msgid "Target star: Vmag=%2.2lf, Bmag=%2.2lf\n"
-msgstr ""
+msgstr "Étoile cible : Vmag=%2.2lf, Bmag=%2.2lf\n"
 
 #: src/algos/comparison_stars.c:348
 #, c-format
 msgid "%d comparison stars after sort.\n"
-msgstr ""
+msgstr "%d étoiles de comparaison après le tri.\n"
 
 #: src/algos/comparison_stars.c:355 src/algos/comparison_stars.c:444
-#, fuzzy
 msgid "No variable star selected\n"
-msgstr "Aucune étoile sélectionnée"
+msgstr "Aucune étoile variable sélectionnée\n"
 
 #: src/algos/comparison_stars.c:359 src/core/command.c:8623
 #: src/core/command.c:8718 src/core/command.c:8773 src/core/command.c:8796
@@ -9737,38 +9737,36 @@ msgid "The %s catalog has been successfully downloaded.\n"
 msgstr "Le catalogue %s a été téléchargé avec succès.\n"
 
 #: src/algos/comparison_stars.c:409
-#, fuzzy, c-format
+#, c-format
 msgid "Creating csv output file %s\n"
-msgstr "Impossible de créer le dossier de sortie : %s\n"
+msgstr "Création du fichier de sortie csv %s\n"
 
 #: src/algos/comparison_stars.c:449
 #, c-format
 msgid "e_Vmag and e_Bmag are intrinsec errors supplied from %s\n"
-msgstr ""
+msgstr "e_Vmag et e_Bmag sont des erreurs intrinsèques fournies par %s\n"
 
 #: src/algos/comparison_stars.c:451
 #, c-format
 msgid "Target star: %2.2lf, %2.2lf, 0, %1.3lf, %1.3lf, %1.3lf\n"
-msgstr ""
+msgstr "Étoile cible : %2.2lf, %2.2lf, 0, %1.3lf, %1.3lf, %1.3lf\n"
 
 #: src/algos/comparison_stars.c:461
 #, c-format
 msgid "%s  %d: %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
-msgstr ""
+msgstr "%s  %d : %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
 
 #: src/algos/comparison_stars.c:471
 msgid "No csv output file to create\n"
-msgstr ""
+msgstr "Pas de fichier de sortie csv à créer\n"
 
 #: src/algos/comparison_stars.c:483
-#, fuzzy
 msgid "Target star invalid.\n"
-msgstr "Étoile cible identifiée : %s\n"
+msgstr "Étoile cible invalide.\n"
 
 #: src/algos/comparison_stars.c:488
-#, fuzzy
 msgid "Target star photometric information not available.\n"
-msgstr "Afficher les noms d'objets si les informations WCS sont disponibles"
+msgstr "L'information photométrique de l'étoile cible n'est pas disponible.\n"
 
 #: src/algos/demosaicing.c:949
 msgid ""
@@ -10407,13 +10405,12 @@ msgid "Unknown transform\n"
 msgstr "Transformation inconnue\n"
 
 #: src/algos/search_objects.c:98
-#, fuzzy
 msgid "No photometric data available for this object.\n"
-msgstr "Aucune donnée topocentrique disponible. Définir en géocentrique\n"
+msgstr "Aucune donnée photométrique n'est disponible pour cet objet.\n"
 
 #: src/algos/search_objects.c:109
 msgid "Object not in the field of view...\n"
-msgstr ""
+msgstr "Objet hors du champ de vision...\n"
 
 # #################################################
 #: src/algos/search_objects.c:142
@@ -10426,13 +10423,13 @@ msgstr "Type d'objet non supporté dans la réponse : %s\n"
 #: src/algos/search_objects.c:202
 #, c-format
 msgid "Failure in name resolution: %s\n"
-msgstr ""
+msgstr "Échec dans la résolution du nom : %s\n"
 
 #. unsupported response format, should not happen
 #: src/algos/search_objects.c:207
-#, fuzzy, c-format
+#, c-format
 msgid "Error in name resolution: %s\n"
-msgstr "Erreur à la ligne %d ('%s') : %s.\n"
+msgstr "Erreur dans la résolution du nom : %s\n"
 
 #: src/algos/search_objects.c:215
 #, c-format
@@ -10450,11 +10447,9 @@ msgid "Found %d Solar System Objects with mag < %0.1lf\n"
 msgstr "%d objets du système solaire trouvés avec mag < %0.1lf\n"
 
 #: src/algos/search_objects.c:341
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s was found in the %s catalogue, RA = %f, Dec = %f\n"
-msgstr ""
-"L'objet a déjà été trouvé dans le catalogue %s sous le nom %s, ne pas "
-"l'ajouter à nouveau.\n"
+msgstr "L'objet %s a été trouvé dans le catalogue %s, RA = %f, Dec = %f\n"
 
 #: src/algos/search_objects.c:380 src/core/command.c:8787
 #, c-format
@@ -10507,12 +10502,12 @@ msgstr "Aucune donnée topocentrique disponible. Définir en géocentrique\n"
 #: src/algos/search_objects.c:583
 #, c-format
 msgid "at lat: %f, long: %f, alt: %f\n"
-msgstr ""
+msgstr "à lat : %f, long : %f, alt : %f\n"
 
 #: src/algos/search_objects.c:594
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in SIMBAD\n"
-msgstr "Recherche de %s dans SIMBAD...\n"
+msgstr "Recherche de %s dans SIMBAD\n"
 
 #: src/algos/star_finder.c:190 src/algos/star_finder.c:193
 #, c-format
@@ -13496,6 +13491,22 @@ msgid ""
 "provided name is the special value <b>auto</b>, it is generated using the "
 "input parameters"
 msgstr ""
+"Trouve automatiquement les étoiles de comparaison dans le champ pour "
+"l'analyse photométrique de la courbe de lumière d'une étoile selon\n"
+"- le nom fourni de l'étoile\n"
+"- le champ de vision de l'image, réduit à un diamètre de sa hauteur si "
+"<b>-narrow</b> est passé, en évitant les étoiles dans les coins\n"
+"- le catalogue choisi (APASS par défaut), peut être modifié avec "
+"<b>-catalog={NOMAD|APASS}</b>\n"
+"- la différence de magnitude visuelle par rapport à l'étoile variable, dans "
+"la plage [0, 6] avec un défaut de 3, changer avec <b>-dvmag=</b>\n"
+"- la différence de couleur avec l'étoile variable, dans l'intervalle [0.0, 0."
+"7] de leurs indices B-V avec un défaut de 0.5, change avec <b>-dbv=</b>.\n"
+"\n"
+"La liste peut éventuellement être enregistrée sous forme de fichier CSV "
+"compatible avec la liste d'étoiles de comparaison NINA, en spécifiant le nom "
+"du fichier avec <b>-out=</b>. Si le nom fourni est la valeur spéciale "
+"<b>auto</b>, il est généré à l'aide des paramètres d'entrée"
 
 #: src/core/command_def.h:49
 msgid ""
@@ -17658,7 +17669,7 @@ msgstr "Reduction de trame (qté=%.2lf, Protection=TRUE, invsigma=%.2lf)"
 #: src/filters/clahe.c:59
 #, c-format
 msgid "CLAHE (size=%d, clip=%.2f)"
-msgstr "CLAHE (size=%d, clip=%.2f)"
+msgstr "CLAHE (taille=%d, clip=%.2f)"
 
 #: src/filters/cosmetic_correction.c:366
 #, c-format
@@ -18550,7 +18561,7 @@ msgstr "Les données demandées de la séquence ont été nettoyées."
 
 #: src/gui/compstars.c:39
 msgid "Create a comparison stars list"
-msgstr ""
+msgstr "Créer une liste d'étoiles de comparaison"
 
 #: src/gui/compstars.c:40 src/gui/nina_light_curve.c:42
 #: src/io/image_formats_libraries.c:1869
@@ -18558,69 +18569,71 @@ msgid "_OK"
 msgstr "_OK"
 
 #: src/gui/compstars.c:40
-#, fuzzy
 msgid "_Close"
-msgstr "Fermer"
+msgstr "_Fermer"
 
 #: src/gui/compstars.c:47
 msgid ""
 "Find comparison stars for the currently loaded image and the given star name"
 msgstr ""
+"Recherche des étoiles de comparaison pour l'image actuellement chargée et le "
+"nom d'étoile donné"
 
 #: src/gui/compstars.c:53
 msgid "Enter the target star name to search in cataloges"
-msgstr ""
+msgstr "Entrez le nom de l'étoile cible à rechercher dans les catalogues"
 
 #: src/gui/compstars.c:56
 msgid "Allowed visual magnitude range:"
-msgstr ""
+msgstr "Plage d'amplitude visuelle autorisée :"
 
 #: src/gui/compstars.c:64
 msgid ""
 "Allowed range of visual magnitude between the target star and the comparison "
 "stars"
 msgstr ""
+"Plage autorisée de magnitude visuelle entre l'étoile cible et les étoiles de "
+"comparaison"
 
 #: src/gui/compstars.c:68
 msgid "Allowed B-V index range:"
-msgstr ""
+msgstr "Plage d'indice B-V autorisée :"
 
 #: src/gui/compstars.c:76
 msgid ""
 "Allowed range of B-V index (color) between the target star and the "
 "comparison stars"
 msgstr ""
+"Plage autorisée de l'indice B-V (couleur) entre l'étoile cible et les "
+"étoiles de comparaison"
 
 #: src/gui/compstars.c:84
 msgid "Recommended catalogue for this feature is APASS"
-msgstr ""
+msgstr "Le catalogue recommandé pour cette fonctionnalité est APASS"
 
 #: src/gui/compstars.c:86
-#, fuzzy
 msgid "APASS catalogue"
-msgstr "Catalogue"
+msgstr "Catalogue APASS"
 
 #: src/gui/compstars.c:88
-#, fuzzy
 msgid "NOMAD catalogue"
-msgstr "Aucun catalogue"
+msgstr "Catalogue NOMAD"
 
 #: src/gui/compstars.c:119 src/gui/nina_light_curve.c:105
 msgid "The currently loaded image must be plate solved"
 msgstr "L'image actuellement chargée doit être résolue par astrométrie"
 
 #: src/gui/compstars.c:128
-#, fuzzy
 msgid "Enter the name of the target star"
-msgstr "Entrer le numéro de l'image que vous voulez atteindre."
+msgstr "Saisir le nom de l'étoile cible"
 
 #: src/gui/compstars.c:136
 msgid "Vmag range not accepted (should be ]0, 6])"
-msgstr ""
+msgstr "La plage Vmag n'est pas acceptée (devrait être ]0, 6])"
 
 #: src/gui/compstars.c:142
 msgid "BV range not accepted (should be ]0, 0.7]"
-msgstr ""
+msgstr "La plage BV n'est pas acceptée (devrait être ]0, 0.7])"
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
@@ -20357,9 +20370,8 @@ msgid "TIFF images"
 msgstr "Images TIFF"
 
 #: src/io/conversion.c:221
-#, fuzzy
 msgid "XISF images"
-msgstr "Images TIFF"
+msgstr "Images XISF"
 
 #: src/io/conversion.c:228
 msgid "JPG images"
@@ -20792,14 +20804,13 @@ msgstr ""
 "Fichier TIFF enregistré : %d-bit fichier %s, %ld canal(aux), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:928
-#, fuzzy
 msgid "This image type is not handled.\n"
-msgstr "Ce type de motif de Bayer n'est pas pris en charge.\n"
+msgstr "Ce type d'image n'est pas géré.\n"
 
 #: src/io/image_formats_libraries.c:944
-#, fuzzy, c-format
+#, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Lecture du fichier HEIF : %s, %ld canal(aux), %ux%u pixels\n"
+msgstr "Lecture du fichier WISF : %s, %ld canal(aux), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:965 src/io/image_formats_libraries.c:1130
 #, c-format
@@ -21158,7 +21169,7 @@ msgstr "étoiles brillantes"
 
 #: src/io/remote_catalogues.c:89
 msgid "AAVSO"
-msgstr ""
+msgstr "AAVSO"
 
 #: src/io/remote_catalogues.c:91
 msgid "local Tycho-2+NOMAD"
@@ -21238,9 +21249,9 @@ msgstr ""
 "%s\n"
 
 #: src/io/remote_catalogues.c:718
-#, fuzzy, c-format
+#, c-format
 msgid "URL: %s\n"
-msgstr "URL : %s \n"
+msgstr "URL : %s\n"
 
 #: src/io/remote_catalogues.c:780
 msgid "Using already downloaded star catalogue\n"
@@ -21261,6 +21272,8 @@ msgstr "Impossible d'ouvrir le fichier catalogue %s pour PCC : %s\n"
 msgid ""
 "name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
 msgstr ""
+"nom : %s, ra : %lf, dec : %lf, Vmag : %lf, e_Vmag, %lf, Bmag : %lf, e_Bmag : "
+"%lf\n"
 
 #: src/io/seqfile.c:129
 msgid ""
