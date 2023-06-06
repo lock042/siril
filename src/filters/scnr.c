@@ -66,11 +66,27 @@ gpointer scnr(gpointer p) {
 	gettimeofday(&t_start, NULL);
 
 	int error = 0;
+
+	cmsHPROFILE cielab_profile = NULL;
+	cmsColorSpaceSignature sig;
+	cmsUInt32Number src_type, dest_type;
+//	cmsUInt32Number datasize, bytesperline, bytesperplane;
+	cmsHTRANSFORM transform = NULL, invtransform = NULL;
+	if (com.icc.available) {
+		cielab_profile = cmsCreateLab4Profile(NULL);
+		sig = cmsGetColorSpace(args->fit->icc_profile);
+		src_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
+		dest_type = get_planar_formatter_type(cmsSigLabData, args->fit->type, FALSE);
+		transform = cmsCreateTransform(args->fit->icc_profile, src_type, cielab_profile, dest_type, INTENT_PERCEPTUAL, 0);
+		invtransform = cmsCreateTransform(cielab_profile, dest_type, args->fit->icc_profile, src_type, INTENT_PERCEPTUAL, 0);
+		cmsCloseProfile(cielab_profile);
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; i++) {
-		double red, green, blue;
+		float red, green, blue;
 		switch (args->fit->type) {
 			case DATA_USHORT:
 				red = args->fit->pdata[RLAYER][i] * invnorm;
@@ -78,23 +94,34 @@ gpointer scnr(gpointer p) {
 				blue = args->fit->pdata[BLAYER][i] * invnorm;
 				break;
 			case DATA_FLOAT:
-				red = (double)args->fit->fpdata[RLAYER][i];
-				green = (double)args->fit->fpdata[GLAYER][i];
-				blue = (double)args->fit->fpdata[BLAYER][i];
+				red = args->fit->fpdata[RLAYER][i];
+				green = args->fit->fpdata[GLAYER][i];
+				blue = args->fit->fpdata[BLAYER][i];
 				break;
 			default: // Default needs to be included in the switch to avoid warning about omitting DATA_UNSUPPORTED
 				break;
 		}
 
-		double x, y, z, L, a, b, m;
+		float x, y, z, L, a, b, m;
 		if (args->preserve) {
-			rgb_to_xyz(red, green, blue, &x, &y, &z);
-			xyz_to_LAB(x, y, z, &L, &a, &b);
+			if (com.icc.available) {
+				// This is horribly un-optimized! Only saving grace is it isn't worse than the original.
+				// TODO: rewrite this code so that the La*b* transform is done in one hit (needs additional memory though)
+				float in[3] = { red, green, blue };
+				float out[3];
+				cmsDoTransform(transform, (void*) &in, (void*) &out, 1);
+				x = out[0];
+				y = out[1];
+				z = out[2];
+			} else {
+				rgb_to_xyzf(red, green, blue, &x, &y, &z);
+				xyz_to_LABf(x, y, z, &L, &a, &b);
+			}
 		}
 
 		switch (args->type) {
 			case SCNR_AVERAGE_NEUTRAL:
-				m = 0.5 * (red + blue);
+				m = 0.5f * (red + blue);
 				green = min(green, m);
 				break;
 			case SCNR_MAXIMUM_NEUTRAL:
@@ -103,20 +130,31 @@ gpointer scnr(gpointer p) {
 				break;
 			case SCNR_MAXIMUM_MASK:
 				m = max(red, blue);
-				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
+				green = (green * (1.0f - args->amount) * (1.0f - m)) + (m * green);
 				break;
 			case SCNR_ADDITIVE_MASK:
-				m = min(1.0, red + blue);
-				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
+				m = min(1.0f, red + blue);
+				green = (green * (1.0f - args->amount) * (1.0f - m)) + (m * green);
 		}
 
 		if (args->preserve) {
-			double tmp;
-			rgb_to_xyz(red, green, blue, &x, &y, &z);
-			xyz_to_LAB(x, y, z, &tmp, &a, &b);
-			LAB_to_xyz(L, a, b, &x, &y, &z);
-			xyz_to_rgb(x, y, z, &red, &green, &blue);
-			if (red > 1.000001 || green > 1.000001 || blue > 1.000001)
+			if (com.icc.available) {
+				float in[3] = { red, green, blue };
+				float out[3];
+				cmsDoTransform(transform, (void*) &in, (void*) &out, 1);
+				out[0] = L;
+				cmsDoTransform(invtransform, (void*) &out, (void*) &in, 1);
+				red = in[0];
+				green = in[1];
+				blue = in[2];
+			} else {
+				float tmp;
+				rgb_to_xyzf(red, green, blue, &x, &y, &z);
+				xyz_to_LABf(x, y, z, &tmp, &a, &b);
+				LAB_to_xyzf(L, a, b, &x, &y, &z);
+				xyz_to_rgbf(x, y, z, &red, &green, &blue);
+			}
+			if (red > 1.000001f || green > 1.000001f || blue > 1.000001f)
 				g_atomic_int_inc(&nb_above_1);
 		}
 
@@ -138,6 +176,8 @@ gpointer scnr(gpointer p) {
 		}
 	}
 
+	cmsDeleteTransform(transform);
+	cmsDeleteTransform(invtransform);
 	/* normalize in case of preserve, it can under/overshoot */
 	if (args->preserve && nb_above_1)
 		siril_log_message("%d pixels were truncated to a maximum value of 1\n", nb_above_1);

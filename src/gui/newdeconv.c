@@ -23,6 +23,7 @@
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_date.h"
 #include "core/command.h"
@@ -1198,14 +1199,31 @@ gpointer deconvolve(gpointer p) {
 
 	next_psf_is_previous = (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) ? TRUE : FALSE;
 
+	cmsHPROFILE cielab_profile = NULL;
+	cmsColorSpaceSignature sig;
+	cmsUInt32Number src_type, dest_type;
 	float *xyzdata = NULL;
+	cmsUInt32Number datasize, bytesperline, bytesperplane;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
 		int npixels = the_fit->rx * the_fit->ry;
 		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
-		for (int i = 0 ; i < npixels ; i++) {
-			rgb_to_xyzf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
-			xyz_to_LABf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+		if (com.icc.available) {
+			cielab_profile = cmsCreateLab4Profile(NULL);
+			sig = cmsGetColorSpace(the_fit->icc_profile);
+			src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
+			dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
+			cmsHTRANSFORM transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, INTENT_PERCEPTUAL, 0);
+			datasize = sizeof(float);
+			bytesperline = the_fit->rx * datasize;
+			bytesperplane = npixels * datasize;
+			cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			cmsDeleteTransform(transform);
+		} else {
+			for (int i = 0 ; i < npixels ; i++) {
+				rgb_to_xyzf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+				xyz_to_LABf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+			}
 		}
 		args.nchans = 1;
 		free(args.fdata);
@@ -1256,13 +1274,25 @@ gpointer deconvolve(gpointer p) {
 
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Put things back as they were
-		int npixels = the_fit->rx * the_fit->ry;
-		args.nchans = 3;
-		args.fdata = malloc(npixels * args.nchans * sizeof(float));
-		for (int i = 0 ; i < npixels ; i++) {
-			LAB_to_xyzf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
-			xyz_to_rgbf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
+		if (com.icc.available) {
+			int npixels = the_fit->rx * the_fit->ry;
+			args.nchans = 3;
+			args.fdata = malloc(npixels * args.nchans * sizeof(float));
+			cielab_profile = cmsCreateLab4Profile(NULL);
+			cmsHTRANSFORM inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, INTENT_PERCEPTUAL, 0);
+			cmsCloseProfile(cielab_profile);
+			cmsDoTransformLineStride(inverse_transform, (void*) xyzdata, (void*) args.fdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			cmsDeleteTransform(inverse_transform);
+		} else {
+			int npixels = the_fit->rx * the_fit->ry;
+			args.nchans = 3;
+			args.fdata = malloc(npixels * args.nchans * sizeof(float));
+			for (int i = 0 ; i < npixels ; i++) {
+				LAB_to_xyzf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+				xyz_to_rgbf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
+			}
 		}
+		free(xyzdata);
 	}
 
 	// Update the_fit with the result
@@ -1289,7 +1319,7 @@ ENDDECONV:
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
 	if (stars_need_clearing) {
-		free(com.stars);
+		clear_stars_list(TRUE);
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}
@@ -1314,7 +1344,6 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* seq = GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_seqapply"));
 	deconvolution_sequence_data* seqargs = NULL;
 	GtkEntry* deconvolutionSeqEntry = GTK_ENTRY(lookup_widget("bdeconv_seq_prefix"));
-//	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
 	set_cursor_waiting(TRUE);
