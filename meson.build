@@ -597,7 +597,7 @@ conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is 
 # Check for GLib Networking
 
 glib_networking_works_run=false
-if meson.is_cross_build() and not meson.has_exe_wrapper()
+if meson.is_cross_build() and not meson.can_run_host_binaries()
     # Cross-compilation without run capability: we won't be able to
     # check networking support.
     glib_networking_works = true
@@ -611,17 +611,11 @@ if meson.is_cross_build() and not meson.has_exe_wrapper()
     '''
     warning(glib_warning)
     warnings += glib_warning
-else # not meson.is_cross_build() or meson.has_exe_wrapper()
+else # not meson.is_cross_build() or meson.can_run_host_binaries()
     glib_networking_works_run = cc.run(
       '''#include <gio/gio.h>
       int main() {
-        if (!g_tls_backend_supports_tls (g_tls_backend_get_default ()))
-	  return 1;
-	GFile *file = g_file_new_for_uri("https://localhost/test");
-	GError *error = NULL;
-	gchar *content = NULL;
-	g_file_load_contents(file, NULL, &content, NULL, NULL, &error);
-	return error->code == G_IO_ERROR_NOT_SUPPORTED;
+        return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
       }''',
       dependencies: gio_dep,
     )
