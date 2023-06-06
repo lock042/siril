@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-06-02 12:28+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2023-06-06 08:53+0000\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/fr/>\n"
 "Language: fr\n"
@@ -17655,7 +17655,7 @@ msgstr "Reduction de trame (qté=%.2lf, Protection=TRUE, invsigma=%.2lf)"
 #: src/filters/clahe.c:59
 #, c-format
 msgid "CLAHE (size=%d, clip=%.2f)"
-msgstr "CLAHE (size=%d, clip=%.2f)"
+msgstr "CLAHE (taille=%d, clip=%.2f)"
 
 #: src/filters/cosmetic_correction.c:366
 #, c-format
