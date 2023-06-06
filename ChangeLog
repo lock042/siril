@@ -29,7 +29,6 @@ siril 1.2.0-rc1
 * Improved astrometry.net handling on Windows to support more recent cygwin builds
 * Updated URLs to query online catalogs
 * Fixed handling of special characters in sequence name during conversion
->>>>>>> master
 * Fixed crash in seqstarnet when processing single-file sequences (SER, FITSEQ)
 * Fixed hang in seqstarnet when processing a single-file sequence with no star mask
 * Fixed using default masters names in calibrate (GUI)

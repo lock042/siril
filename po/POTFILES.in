@@ -10,6 +10,7 @@ src/algos/astrometry_solver.c
 src/algos/background_extraction.c
 src/algos/ccd-inspector.c
 src/algos/colors.c
+src/algos/comparison_stars.c
 src/algos/demosaicing.c
 src/algos/extraction.c
 src/algos/fix_xtrans_af.c
@@ -66,6 +67,7 @@ src/gui/about_dialog.c
 src/gui/astrometry_solver.c
 src/gui/background_extraction.c
 src/gui/callbacks.c
+src/gui/compstars.c 
 src/gui/conversion.c
 src/gui/colors.c
 src/gui/dialog_preview.c
@@ -99,7 +101,6 @@ src/gui/star_finder.c
 src/gui/starnetgui.c
 src/gui/utils.c
 src/io/Astro-TIFF.c
-src/io/catalogues.c
 src/io/conversion.c
 src/io/films.c
 src/io/fits_sequence.c
@@ -107,8 +108,10 @@ src/io/FITS_symlink.c
 src/io/image_formats_internal.c
 src/io/image_formats_libraries.c
 src/io/image_format_fits.c
+src/io/local_catalogues.c
 src/io/mp4_output.c
 src/io/path_parse.c
+src/io/remote_catalogues.c
 src/io/seqfile.c
 src/io/sequence.c
 src/io/sequence_export.c
