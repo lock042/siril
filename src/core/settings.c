@@ -27,7 +27,6 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
-#include "io/catalogues.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "stacking/stacking.h"
