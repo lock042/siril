@@ -113,15 +113,6 @@ static void remaprgb(void) {
 	if (!isrgb(&gfit))
 		return;
 
-
-	cmsHTRANSFORM stf_transform = NULL;
-	if (com.icc.available && gui.rendering_mode == STF_DISPLAY) {
-		cmsHPROFILE temp = adjust_primaries(gfit.icc_profile, gui.icc.monitor);
-		stf_transform = cmsCreateTransform(temp, TYPE_RGBA_8, gfit.icc_profile, TYPE_RGBA_8, gui.icc.rendering_intent, 0);
-		cmsCloseProfile(temp);
-	}
-
-
 	struct image_view *rgbview = &gui.view[RGB_VPORT];
 	if (allocate_full_surface(rgbview))
 		return;
@@ -144,13 +135,6 @@ static void remaprgb(void) {
 	for (i = 0; i < nbdata; ++i) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
-
-
-	if (com.icc.available&& gui.rendering_mode == STF_DISPLAY) {
-		cmsDoTransform(stf_transform, (void*) dst, (void*) dst, nbdata);
-		cmsDeleteTransform(stf_transform);
-	}
-
 
 // flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
