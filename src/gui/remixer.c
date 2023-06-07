@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "io/single_image.h"
@@ -79,6 +80,10 @@ static gboolean remixer_show_preview;
 static gboolean left_loaded = FALSE;
 static gboolean right_loaded = FALSE;
 static gboolean remix_log_scale = FALSE;
+
+static cmsHTRANSFORM *to_lab = NULL;
+static cmsHTRANSFORM *from_lab = NULL;
+static cmsHPROFILE *lab_profile = NULL;
 
 ////////////////////////////////////////////
 // Remixer histogram functionality        //
@@ -526,39 +531,47 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 				for (size_t i = 0 ; i < npixels ; i++) {
-					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
-					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+					float inl[3], inr[3], xyzl[3], xyzr[3], labl[3], labr[3], xyzo[3], labo[3], rgbo[3];
 					if (left_loaded) {
-						rinl = fit_left_calc.fpdata[0][i];
-						ginl = fit_left_calc.fpdata[1][i];
-						binl = fit_left_calc.fpdata[2][i];
+						inl[0] = fit_left_calc.fpdata[0][i];
+						inl[1] = fit_left_calc.fpdata[1][i];
+						inl[2] = fit_left_calc.fpdata[2][i];
 					} else {
-						rinl = 0.f;
-						ginl = 0.f;
-						binl = 0.f;
+						inl[0] = 0.f;
+						inl[1] = 0.f;
+						inl[2] = 0.f;
 					}
 					if (right_loaded) {
-						rinr = fit_right_calc.fpdata[0][i];
-						ginr = fit_right_calc.fpdata[1][i];
-						binr = fit_right_calc.fpdata[2][i];
+						inr[0] = fit_right_calc.fpdata[0][i];
+						inr[1] = fit_right_calc.fpdata[1][i];
+						inr[2] = fit_right_calc.fpdata[2][i];
 					} else {
-						rinr = 0.f;
-						ginr = 0.f;
-						binr = 0.f;
+						inr[0] = 0.f;
+						inr[1] = 0.f;
+						inr[2] = 0.f;
 					}
-					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
-					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
-					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-					float ao = (Ll * Al + Lr * Ar) / divisor;
-					float bo = (Ll * Bl + Lr * Br) / divisor;
-					float Lo = Ll + Lr - Ll * Lr * 0.01f;
-					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
-					gfit.fpdata[0][i] = rout;
-					gfit.fpdata[1][i] = gout;
-					gfit.fpdata[2][i] = bout;
+					if (com.icc.available) {
+						cmsDoTransform(to_lab, inl, labl, 1);
+						cmsDoTransform(to_lab, inr, labr, 1);
+					} else {
+						rgb_to_xyzf(inl[0], inl[1], inl[2], &xyzl[0], &xyzl[1], &xyzl[2]);
+						xyz_to_LABf(xyzl[0], xyzl[1], xyzl[2], &labl[0], &labl[1], &labl[2]);
+						rgb_to_xyzf(inr[0], inr[1], inr[2], &xyzr[0], &xyzr[1], &xyzr[2]);
+						xyz_to_LABf(xyzr[0], xyzr[1], xyzr[2], &labr[0], &labr[1], &labr[2]);
+					}
+					float divisor = (labl[0] + labr[0] == 0.f) ? 1.f : labl[0] + labr[0];
+					labo[0] = labl[0] + labr[0] - labl[0] * labr[0] * 0.01f;
+					labo[1] = (labl[0] * labl[1] + labr[0] * labr[1]) / divisor;
+					labo[2] = (labl[0] * labl[2] + labr[0] * labr[2]) / divisor;
+					if (com.icc.available) {
+						cmsDoTransform(from_lab, labo, rgbo, 1);
+					} else {
+						LAB_to_xyzf(labo[0], labo[1], labo[2], &xyzo[0], &xyzo[1], &xyzo[2]);
+						xyz_to_rgbf(xyzo[0], xyzo[1], xyzo[2], &rgbo[0], &rgbo[1], &rgbo[2]);
+					}
+					gfit.fpdata[0][i] = rgbo[0];
+					gfit.fpdata[1][i] = rgbo[1];
+					gfit.fpdata[2][i] = rgbo[2];
 				}
 				break;
 			case DATA_USHORT:
@@ -566,39 +579,47 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 				for (size_t i = 0 ; i < npixels ; i++) {
-					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
-					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+					float inl[3], inr[3], xyzl[3], xyzr[3], labl[3], labr[3], xyzo[3], labo[3], rgbo[3];
 					if (left_loaded) {
-						rinl = fit_left_calc.pdata[0][i] * invnorm;
-						ginl = fit_left_calc.pdata[1][i] * invnorm;
-						binl = fit_left_calc.pdata[2][i] * invnorm;
+						inl[0] = fit_left_calc.pdata[0][i] * invnorm;
+						inl[0] = fit_left_calc.pdata[1][i] * invnorm;
+						inl[0] = fit_left_calc.pdata[2][i] * invnorm;
 					} else {
-						rinl = 0.f;
-						ginl = 0.f;
-						binl = 0.f;
+						inl[0] = 0.f;
+						inl[0] = 0.f;
+						inl[0] = 0.f;
 					}
 					if (right_loaded) {
-						rinr = fit_right_calc.pdata[0][i] * invnorm;
-						ginr = fit_right_calc.pdata[1][i] * invnorm;
-						binr = fit_right_calc.pdata[2][i] * invnorm;
+						inr[0] = fit_right_calc.pdata[0][i] * invnorm;
+						inr[1] = fit_right_calc.pdata[1][i] * invnorm;
+						inr[2] = fit_right_calc.pdata[2][i] * invnorm;
 					} else {
-						rinr = 0.f;
-						ginr = 0.f;
-						binr = 0.f;
+						inr[0] = 0.f;
+						inr[1] = 0.f;
+						inr[2] = 0.f;
 					}
-					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
-					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
-					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-					float ao = (Ll * Al + Lr * Ar) / divisor;
-					float bo = (Ll * Bl + Lr * Br) / divisor;
-					float Lo = Ll + Lr - Ll * Lr * 0.01f;
-					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
-					gfit.pdata[0][i] = roundf_to_WORD(rout * norm);
-					gfit.pdata[1][i] = roundf_to_WORD(gout * norm);
-					gfit.pdata[2][i] = roundf_to_WORD(bout * norm);
+					if (com.icc.available) {
+						cmsDoTransform(to_lab, inl, labl, 1);
+						cmsDoTransform(to_lab, inr, labr, 1);
+					} else {
+						rgb_to_xyzf(inl[0], inl[1], inl[2], &xyzl[0], &xyzl[1], &xyzl[2]);
+						xyz_to_LABf(xyzl[0], xyzl[1], xyzl[2], &labl[0], &labl[1], &labl[2]);
+						rgb_to_xyzf(inr[0], inr[1], inr[2], &xyzr[0], &xyzr[1], &xyzr[2]);
+						xyz_to_LABf(xyzr[0], xyzr[1], xyzr[2], &labr[0], &labr[1], &labr[2]);
+					}
+					float divisor = (labl[0] + labr[0] == 0.f) ? 1.f : labl[0] + labr[0];
+					labo[0] = labl[0] + labr[0] - labl[0] * labr[0] * 0.01f;
+					labo[1] = (labl[0] * labl[1] + labr[0] * labr[1]) / divisor;
+					labo[2] = (labl[0] * labl[2] + labr[0] * labr[2]) / divisor;
+					if (com.icc.available) {
+						cmsDoTransform(from_lab, labo, rgbo, 1);
+					} else {
+						LAB_to_xyzf(labo[0], labo[1], labo[2], &xyzo[0], &xyzo[1], &xyzo[2]);
+						xyz_to_rgbf(xyzo[0], xyzo[1], xyzo[2], &rgbo[0], &rgbo[1], &rgbo[2]);
+					}
+					gfit.pdata[0][i] = roundf_to_WORD(rgbo[0] * norm);
+					gfit.pdata[1][i] = roundf_to_WORD(rgbo[1] * norm);
+					gfit.pdata[2][i] = roundf_to_WORD(rgbo[2] * norm);
 				}
 				break;
 			default:
@@ -713,6 +734,25 @@ void apply_remix_cancel() {
 	set_cursor_waiting(FALSE);
 }
 
+void initialize_remixer_transforms(fits* fit) {
+	cmsColorSpaceSignature sig, ref_sig;
+	cmsUInt32Number src_type, dest_type;
+	cmsUInt32Number intent = com.script ? INTENT_PERCEPTUAL : gui.icc.rendering_intent;
+	sig = cmsGetColorSpace(fit->icc_profile);
+	if(!lab_profile) {
+		lab_profile = cmsCreateLab4Profile(NULL);
+	}
+	ref_sig = cmsGetColorSpace(lab_profile);
+	src_type = get_planar_formatter_type(sig, fit->type, FALSE);
+	dest_type = get_planar_formatter_type(ref_sig, fit->type, FALSE);
+	if (to_lab)
+		cmsDeleteTransform(to_lab);
+	to_lab = cmsCreateTransform(fit->icc_profile, src_type, lab_profile, dest_type, intent, 0);
+	if (from_lab)
+		cmsDeleteTransform(from_lab);
+	from_lab = cmsCreateTransform(lab_profile, dest_type, fit->icc_profile, src_type, intent, 0);
+}
+
 /*** callbacks **/
 
 void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
@@ -732,6 +772,14 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();
+		if (to_lab) {
+			cmsCloseProfile(to_lab);
+			to_lab = NULL;
+		}
+		if (from_lab) {
+			cmsCloseProfile(from_lab);
+			from_lab = NULL;
+		}
 		remixer_close();
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("dialog_star_remix");
@@ -1124,6 +1172,14 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 		else {
 			left_loaded = TRUE;
+			if (com.icc.available) {
+				/* We are the second image to be loaded so we convert to the first
+				* image's color profile */
+				if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
+					convert_fit_colorspace_to_reference_fit(&fit_left, &fit_right);
+					siril_log_message(_("Color profiles did not match: left-hand image has been converted to right-hand image color profile.\n"));
+				}
+			}
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
 			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
@@ -1149,10 +1205,18 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 			  // value to use as the image is probably being combined from 2 different stacks
 		}
 	} else {
+		if (com.icc.available) {
+			fits_check_icc(&fit_left);
+			initialize_remixer_transforms( &fit_left);
+		}
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_left, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+		siril_log_message(_("Setting the output image ICC profile to the working color space.\n"));
 		initialise_image();
 		left_loaded = TRUE;
 		clearfits(&fit_right_calc);
@@ -1202,6 +1266,14 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 		else {
 			right_loaded = TRUE;
+			if (com.icc.available) {
+				/* We are the second image to be loaded so we convert to the first
+				* image's color profile */
+				if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
+					convert_fit_colorspace_to_reference_fit(&fit_right, &fit_left);
+					siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
+				}
+			}
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
 			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
@@ -1227,10 +1299,18 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 			  // value to use as the image is probably being combined from 2 different stacks
 		}
 	} else {
+		if (com.icc.available) {
+			fits_check_icc(&fit_right);
+			initialize_remixer_transforms(&fit_right);
+		}
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_right, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+		siril_log_message(_("Setting the output image ICC profile to the working color space.\n"));
 		initialise_image();
 		right_loaded = TRUE;
 		clearfits(&fit_left_calc);

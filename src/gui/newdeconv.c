@@ -1212,8 +1212,9 @@ gpointer deconvolve(gpointer p) {
 			cielab_profile = cmsCreateLab4Profile(NULL);
 			sig = cmsGetColorSpace(the_fit->icc_profile);
 			src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
+			cmsUInt32Number intent = (com.script ? INTENT_PERCEPTUAL : gui.icc.rendering_intent);
 			dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
-			cmsHTRANSFORM transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, INTENT_PERCEPTUAL, 0);
+			cmsHTRANSFORM transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, intent, 0);
 			datasize = sizeof(float);
 			bytesperline = the_fit->rx * datasize;
 			bytesperplane = npixels * datasize;
@@ -1279,7 +1280,8 @@ gpointer deconvolve(gpointer p) {
 			args.nchans = 3;
 			args.fdata = malloc(npixels * args.nchans * sizeof(float));
 			cielab_profile = cmsCreateLab4Profile(NULL);
-			cmsHTRANSFORM inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, INTENT_PERCEPTUAL, 0);
+			cmsUInt32Number intent = (com.script ? INTENT_PERCEPTUAL : gui.icc.rendering_intent);
+			cmsHTRANSFORM inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, intent, 0);
 			cmsCloseProfile(cielab_profile);
 			cmsDoTransformLineStride(inverse_transform, (void*) xyzdata, (void*) args.fdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(inverse_transform);

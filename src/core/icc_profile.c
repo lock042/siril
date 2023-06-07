@@ -498,6 +498,7 @@ void fits_check_icc(fits *fit) {
 	if (!fit->icc_profile) {
 		// If there is no embedded profile we assume the usual sRGB D65 g22
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_linear : com.icc.working_linear);
+		siril_log_message(_("FITS did not contain an ICC profile: assigning a linear profile. If you stretched this image using an older version of Siril you may need to reassign the correct color space using the Color Management dialog.\n"));
 	}
 }
 
@@ -557,6 +558,36 @@ cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
 	free(block_a);
 	free(block_b);
 	return retval;
+}
+
+/* Converts the color space of one fits to match a reference fits */
+void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
+	if (!reference->icc_profile) {
+		siril_log_color_message(_("Warning: reference image has no color profile. Cannot convert input to reference profile.\n"), "salmon");
+		return;
+	}
+	if(!input->icc_profile) {
+		input->icc_profile = copyICCProfile(reference->icc_profile);
+		return;
+	}
+	cmsColorSpaceSignature sig, ref_sig;
+	cmsUInt32Number src_type, dest_type;
+	cmsUInt32Number datasize, bytesperline, bytesperplane;
+	int npixels = input->rx * input->ry;
+	sig = cmsGetColorSpace(input->icc_profile);
+	ref_sig = cmsGetColorSpace(reference->icc_profile);
+	if (sig != ref_sig) {
+		siril_log_color_message(_("Warning: color spaces of the images are not the same. Will not convert input to reference profile.\n"), "salmon");
+		return;
+	}
+	void *buffer = input->type == DATA_FLOAT ? (void*) input->fdata : (void*) input->data;
+	src_type = get_planar_formatter_type(sig, input->type, FALSE);
+	cmsHTRANSFORM transform = cmsCreateTransform(input->icc_profile, src_type, reference->icc_profile, src_type, gui.icc.rendering_intent, 0);
+	datasize = input->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	bytesperline = input->rx * datasize;
+	bytesperplane = npixels * datasize;
+	cmsDoTransformLineStride(transform, buffer, buffer, input->rx, input->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+	cmsDeleteTransform(transform);
 }
 
 ///// Preferences callbacks

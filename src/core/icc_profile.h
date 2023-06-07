@@ -68,5 +68,6 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
 unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len);
 cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
+void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */
