@@ -42,6 +42,7 @@
 
 #include "git-version.h"
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/siril_actions.h"
 #include "core/initfile.h"
@@ -166,6 +167,8 @@ static void siril_app_activate(GApplication *application) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
 		exit(EXIT_FAILURE);
 	}
+
+	initialize_profiles_and_transforms(); // color management
 
 	if (com.pref.lang)
 		language_init(com.pref.lang);
@@ -350,6 +353,8 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+
+	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);

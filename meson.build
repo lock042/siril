@@ -242,7 +242,7 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
-lcms_dep = dependency('lcms2', required : true, version: '>= 2.12')
+lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f

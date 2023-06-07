@@ -20,6 +20,7 @@
 
 #include <glib.h>
 #include "algos/lcms_acceleration/lcms2_fast_float.h"
+#include "algos/lcms_acceleration/lcms2_threaded.h"
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "icc_profile.h"
@@ -240,6 +241,10 @@ void initialize_profiles_and_transforms() {
 	// Enable the fast float plugin (as long as the OS / lcms2 version blacklist isn't triggered)
 #ifndef EXCLUDE_FF
 	cmsPlugin(cmsFastFloatExtensions());
+	siril_log_message(_("lcms2 fast floating point plugin active.\n"));
+	cmsPlugin(cmsThreadedExtensions(com.max_thread, 0));
+	siril_log_message(_("lcms2 multithreading plugin active.\n"));
+
 #endif
 
 	// Set alarm codes for soft proof out-of-gamut warning

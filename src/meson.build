@@ -61,6 +61,10 @@ src_files = [
   'algos/lcms_acceleration/fast_float_separate.c',
   'algos/lcms_acceleration/fast_float_sup.c',
   'algos/lcms_acceleration/fast_float_tethra.c',
+  'algos/lcms_acceleration/threaded_core.c',
+  'algos/lcms_acceleration/threaded_main.c',
+  'algos/lcms_acceleration/threaded_scheduler.c',
+  'algos/lcms_acceleration/threaded_split.c',
 
   'compositing/align_rgb.c',
   'compositing/compositing.c',
