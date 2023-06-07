@@ -19,7 +19,7 @@
  */
 
 #include <glib.h>
-#include "algos/lcms_fast_float/lcms2_fast_float.h"
+#include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "icc_profile.h"

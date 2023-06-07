@@ -26,7 +26,7 @@
 #define CMS_DONT_USE_SSE2
 #endif
 
-#include "algos/lcms_fast_float/lcms2_fast_float.h"
+#include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include <stdint.h>
 
 #define REQUIRED_LCMS_VERSION 2120
