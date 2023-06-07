@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-06 10:21+0200\n"
-"PO-Revision-Date: 2023-06-07 08:52+0000\n"
+"PO-Revision-Date: 2023-06-07 21:35+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -14721,7 +14721,7 @@ msgstr "обработка уже запущена"
 #: src/core/command_line_processor.c:142
 #, c-format
 msgid "Unknown command: '%s' or not implemented yet\n"
-msgstr "Неизвестная команда: '%s' или ещё не реализована\n"
+msgstr "Неизвестная или ещё не реализованная команда: '%s'\n"
 
 #: src/core/command_line_processor.c:149
 #, c-format
