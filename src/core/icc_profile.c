@@ -571,7 +571,7 @@ void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
 		return;
 	}
 	cmsColorSpaceSignature sig, ref_sig;
-	cmsUInt32Number src_type, dest_type;
+	cmsUInt32Number src_type;
 	cmsUInt32Number datasize, bytesperline, bytesperplane;
 	int npixels = input->rx * input->ry;
 	sig = cmsGetColorSpace(input->icc_profile);

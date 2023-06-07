@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/undo.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"

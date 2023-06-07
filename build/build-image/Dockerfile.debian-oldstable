@@ -27,6 +27,8 @@ RUN apt-get update -qyy \
         libavcodec-dev \
         libswscale-dev \
         libswresample-dev \
+        zstd \
+        libzstd-dev \
         wget \
         libtool \
         libcurl4-gnutls-dev \
