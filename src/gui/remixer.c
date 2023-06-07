@@ -531,24 +531,16 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 				for (size_t i = 0 ; i < npixels ; i++) {
-					float inl[3], inr[3], xyzl[3], xyzr[3], labl[3], labr[3], xyzo[3], labo[3], rgbo[3];
+					float inl[3] = { 0.f }, inr[3] = { 0.f }, xyzl[3], xyzr[3], labl[3], labr[3], xyzo[3], labo[3], rgbo[3];
 					if (left_loaded) {
 						inl[0] = fit_left_calc.fpdata[0][i];
 						inl[1] = fit_left_calc.fpdata[1][i];
 						inl[2] = fit_left_calc.fpdata[2][i];
-					} else {
-						inl[0] = 0.f;
-						inl[1] = 0.f;
-						inl[2] = 0.f;
 					}
 					if (right_loaded) {
 						inr[0] = fit_right_calc.fpdata[0][i];
 						inr[1] = fit_right_calc.fpdata[1][i];
 						inr[2] = fit_right_calc.fpdata[2][i];
-					} else {
-						inr[0] = 0.f;
-						inr[1] = 0.f;
-						inr[2] = 0.f;
 					}
 					if (com.icc.available) {
 						cmsDoTransform(to_lab, inl, labl, 1);
@@ -579,24 +571,16 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 				for (size_t i = 0 ; i < npixels ; i++) {
-					float inl[3], inr[3], xyzl[3], xyzr[3], labl[3], labr[3], xyzo[3], labo[3], rgbo[3];
+					float inl[3] = { 0.f }, inr[3] = { 0.f }, xyzl[3], xyzr[3], labl[3], labr[3], xyzo[3], labo[3], rgbo[3];
 					if (left_loaded) {
 						inl[0] = fit_left_calc.pdata[0][i] * invnorm;
 						inl[0] = fit_left_calc.pdata[1][i] * invnorm;
 						inl[0] = fit_left_calc.pdata[2][i] * invnorm;
-					} else {
-						inl[0] = 0.f;
-						inl[0] = 0.f;
-						inl[0] = 0.f;
 					}
 					if (right_loaded) {
 						inr[0] = fit_right_calc.pdata[0][i] * invnorm;
 						inr[1] = fit_right_calc.pdata[1][i] * invnorm;
 						inr[2] = fit_right_calc.pdata[2][i] * invnorm;
-					} else {
-						inr[0] = 0.f;
-						inr[1] = 0.f;
-						inr[2] = 0.f;
 					}
 					if (com.icc.available) {
 						cmsDoTransform(to_lab, inl, labl, 1);

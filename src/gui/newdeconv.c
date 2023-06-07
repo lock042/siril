@@ -1202,11 +1202,12 @@ gpointer deconvolve(gpointer p) {
 	cmsHPROFILE cielab_profile = NULL;
 	cmsColorSpaceSignature sig;
 	cmsUInt32Number src_type, dest_type;
+	cmsHTRANSFORM transform = NULL, inverse_transform = NULL;
 	float *xyzdata = NULL;
-	cmsUInt32Number datasize, bytesperline, bytesperplane;
+	int npixels = the_fit->rx * the_fit->ry;
+	cmsUInt32Number datasize = sizeof(float), bytesperline = the_fit->rx * datasize, bytesperplane = npixels * datasize;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
-		int npixels = the_fit->rx * the_fit->ry;
 		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
 		if (com.icc.available) {
 			cielab_profile = cmsCreateLab4Profile(NULL);
@@ -1214,10 +1215,9 @@ gpointer deconvolve(gpointer p) {
 			src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
 			cmsUInt32Number intent = (com.script ? INTENT_PERCEPTUAL : gui.icc.rendering_intent);
 			dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
-			cmsHTRANSFORM transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, intent, 0);
-			datasize = sizeof(float);
-			bytesperline = the_fit->rx * datasize;
-			bytesperplane = npixels * datasize;
+			transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, intent, 0);
+			inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, intent, 0);
+			cmsCloseProfile(cielab_profile);
 			cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(transform);
 		} else {
@@ -1276,17 +1276,9 @@ gpointer deconvolve(gpointer p) {
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Put things back as they were
 		if (com.icc.available) {
-			int npixels = the_fit->rx * the_fit->ry;
-			args.nchans = 3;
-			args.fdata = malloc(npixels * args.nchans * sizeof(float));
-			cielab_profile = cmsCreateLab4Profile(NULL);
-			cmsUInt32Number intent = (com.script ? INTENT_PERCEPTUAL : gui.icc.rendering_intent);
-			cmsHTRANSFORM inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, intent, 0);
-			cmsCloseProfile(cielab_profile);
 			cmsDoTransformLineStride(inverse_transform, (void*) xyzdata, (void*) args.fdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(inverse_transform);
 		} else {
-			int npixels = the_fit->rx * the_fit->ry;
 			args.nchans = 3;
 			args.fdata = malloc(npixels * args.nchans * sizeof(float));
 			for (int i = 0 ; i < npixels ; i++) {
