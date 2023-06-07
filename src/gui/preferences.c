@@ -230,6 +230,7 @@ static void update_user_interface_preferences() {
 	com.pref.icc.proofing_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")));
 	com.pref.icc.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
 	com.pref.icc.use_extra_mem = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("icc_use_extra_mem")));
+	com.pref.icc.no_lin_disp_tx = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("icc_no_lin_disp_tx")));
 	com.pref.icc.working_gamut = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("working_gamut")));
 	com.pref.icc.export_8bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
 	com.pref.icc.export_16bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
@@ -686,6 +687,7 @@ void update_preferences_from_model() {
 	initialize_icc_preferences_widgets();
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("icc_use_extra_mem")), pref->icc.use_extra_mem);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("icc_no_lin_disp_tx")), pref->icc.no_lin_disp_tx);
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->mem_mode == AMOUNT);

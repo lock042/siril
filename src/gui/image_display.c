@@ -347,7 +347,7 @@ static void remap_all_vports() {
 		siril_debug_print("data is not loaded yet\n");
 		return;
 	}
-
+	gboolean gfit_icc_is_linear = TRUE;
 	if (com.icc.available) {
 		// Set the display transform in case it is missing
 		if (gfit.icc_profile == NULL) {
@@ -356,6 +356,8 @@ static void remap_all_vports() {
 			// a linear profile if one is missing.
 			assign_linear_icc_profile(&gfit);
 		}
+		gfit_icc_is_linear = fit_icc_is_linear(&gfit);
+
 		if (!gui.icc.display_transform) {
 			gui.icc.display_transform = initialize_display_transform();
 		}
@@ -419,7 +421,8 @@ static void remap_all_vports() {
 			memcpy(pixelbuf + npixels + 1, pixelbuf, size);
 			memcpy(pixelbuf + (2 * npixels) + 1, pixelbuf, size);
 		}
-		if (com.icc.available && gui.rendering_mode != STF_DISPLAY) {
+		gboolean linear_and_really_do_it = !(gfit_icc_is_linear && com.pref.icc.no_lin_disp_tx);
+		if (com.icc.available && gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it) {
 			cmsUInt32Number datasize = sizeof(WORD);
 			cmsUInt32Number bytesperline = gfit.rx * datasize;
 			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;

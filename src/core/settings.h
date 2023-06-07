@@ -264,6 +264,7 @@ typedef struct icc_params {
 	gchar* custom_icc_gray;
 	export_icc_type export_8bit_method;
 	export_icc_type export_16bit_method;
+	gboolean no_lin_disp_tx;
 } icc_params;
 
 /**

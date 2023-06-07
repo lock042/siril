@@ -216,7 +216,8 @@ preferences pref_init = {
 		.custom_icc_gray = NULL,
 		.use_extra_mem = TRUE,
 		.export_8bit_method = EXPORT_SRGB,
-		.export_16bit_method = EXPORT_WORKING
+		.export_16bit_method = EXPORT_WORKING,
+		.no_lin_disp_tx = TRUE
 	}
 };
 
@@ -408,6 +409,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
 	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },
 	{ "gui", "icc_use_extra_mem", STYPE_BOOL, N_("optimize color management by using extra memory"), &com.pref.icc.use_extra_mem },
+	{ "gui", "icc_no_lin_disp_tx", STYPE_BOOL, N_("avoid expensive display transforms from linear ICC profiles"), &com.pref.icc.no_lin_disp_tx },
 	{ "gui", "working_gamut", STYPE_INT, N_("color mangement working gamut"), &com.pref.icc.working_gamut },
 	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
 	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },

@@ -464,6 +464,16 @@ unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len) {
 	return block;
 }
 
+cmsBool fit_icc_is_linear(fits *fit) {
+	cmsToneCurve *tonecurve;
+	if (fit->naxes[2] == 1) {
+		tonecurve = cmsReadTag(fit->icc_profile, cmsSigGrayTRCTag);
+	} else {
+		tonecurve = cmsReadTag(fit->icc_profile, cmsSigRedTRCTag);
+	}
+	return cmsIsToneCurveLinear(tonecurve);
+}
+
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	cmsUInt32Number length = 0;
 	cmsUInt8Number* block = NULL;
