@@ -11544,6 +11544,15 @@ Note that luminance based models are not generally invertible.</property>
       </object>
     </child>
   </object>
+  <object class="GtkFileFilter" id="icc_filter">
+    <mime-types>
+      <mime-type>application/vnd.iccprofile</mime-type>
+    </mime-types>
+    <patterns>
+      <pattern>*.icc</pattern>
+      <pattern>*.icm</pattern>
+    </patterns>
+  </object>
   <object class="GtkDialog" id="icc_gamut_dialog">
     <property name="can-focus">False</property>
     <property name="type-hint">dialog</property>
@@ -31436,6 +31445,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
+                                    <property name="filter">icc_filter</property>
                                     <property name="title" translatable="yes"/>
                                   </object>
                                   <packing>
@@ -31449,6 +31459,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
+                                    <property name="filter">icc_filter</property>
                                     <property name="title" translatable="yes"/>
                                   </object>
                                   <packing>
@@ -31462,6 +31473,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
+                                    <property name="filter">icc_filter</property>
                                     <property name="title" translatable="yes"/>
                                   </object>
                                   <packing>
@@ -31530,6 +31542,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="tooltip-text" translatable="yes">To use a custom monitor ICC profile, set it here. If no custom profile is set, sRGB with D65 white point and gamma = 2.2 will be used.</property>
+                                <property name="filter">icc_filter</property>
                                 <property name="title" translatable="yes"/>
                                 <signal name="file-set" handler="on_pref_custom_monitor_profile_file_set" swapped="no"/>
                               </object>
@@ -31543,6 +31556,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="tooltip-text" translatable="yes">To use a custom proofing ICC profile, set it here. As the result of soft proofing is heavily dependent on having the correct profile for your printer and paper type, if no profile is set here soft proofing will be unavailable.</property>
+                                <property name="filter">icc_filter</property>
                                 <property name="title" translatable="yes"/>
                                 <signal name="file-set" handler="on_pref_soft_proofing_profile_file_set" swapped="no"/>
                               </object>

@@ -218,13 +218,13 @@ static void update_user_interface_preferences() {
 	}
 	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("custom_gray_icc_matching_trc")));
 	if (newpath && newpath[0] != '\0') {
-		g_free(com.pref.icc.custom_icc_trc);
-		com.pref.icc.custom_icc_trc = newpath;
-	}
-	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile")));
-	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.icc.custom_icc_gray);
 		com.pref.icc.custom_icc_gray = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("custom_icc_standard_trc")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.icc.custom_icc_trc);
+		com.pref.icc.custom_icc_trc = newpath;
 	}
 	com.pref.icc.rendering_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")));
 	com.pref.icc.proofing_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")));
@@ -717,6 +717,20 @@ void update_preferences_from_model() {
 #endif
 }
 
+static void set_icc_filechooser_directories() {
+	GtkFileChooser* fc1 = (GtkFileChooser*) lookup_widget("custom_icc_linear_trc");
+	GtkFileChooser* fc2 = (GtkFileChooser*) lookup_widget("custom_icc_standard_trc");
+	GtkFileChooser* fc3 = (GtkFileChooser*) lookup_widget("custom_gray_icc_matching_trc");
+	GtkFileChooser* fc4 = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
+	GtkFileChooser* fc5 = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
+
+	gtk_file_chooser_set_current_folder(fc1, default_system_icc_path());
+	gtk_file_chooser_set_current_folder(fc2, default_system_icc_path());
+	gtk_file_chooser_set_current_folder(fc3, default_system_icc_path());
+	gtk_file_chooser_set_current_folder(fc4, default_system_icc_path());
+	gtk_file_chooser_set_current_folder(fc5, default_system_icc_path());
+}
+
 static void dump_ui_to_global_var() {
 	siril_debug_print("updating settings from preferences GUI\n");
 	/* tab 1 */
@@ -743,6 +757,7 @@ static void dump_ui_to_global_var() {
 
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
+	set_icc_filechooser_directories();
 	update_preferences_from_model();
 }
 
