@@ -1263,6 +1263,9 @@ void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data) {
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_source_information();
 	set_target_information();
+	GtkFileChooser* fc = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
+	gtk_file_chooser_set_current_folder(fc, default_system_icc_path());
+
 }
 
 void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
