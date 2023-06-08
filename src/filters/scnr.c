@@ -78,8 +78,8 @@ gpointer scnr(gpointer p) {
 		sig = cmsGetColorSpace(args->fit->icc_profile);
 		src_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 		dest_type = get_planar_formatter_type(cmsSigLabData, args->fit->type, FALSE);
-		transform = cmsCreateTransform(args->fit->icc_profile, src_type, cielab_profile, dest_type, INTENT_PERCEPTUAL, 0);
-		invtransform = cmsCreateTransform(cielab_profile, dest_type, args->fit->icc_profile, src_type, INTENT_PERCEPTUAL, 0);
+		transform = cmsCreateTransform(args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
+		invtransform = cmsCreateTransform(cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 		cmsCloseProfile(cielab_profile);
 	}
 

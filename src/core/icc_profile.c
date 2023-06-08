@@ -254,18 +254,12 @@ void initialize_profiles_and_transforms() {
 	cmsSetAlarmCodes(alarmcodes); // Out of gamut colours will be shown in magenta
 	int error = 0;
 
-	// Intents
-	com.icc.save_intent = com.pref.icc.export_intent;
-	gui.icc.rendering_intent = com.pref.icc.rendering_intent;
-	gui.icc.proofing_intent = com.pref.icc.proofing_intent;
-
 	// Working profiles
 	com.icc.mono_linear = gray_linear();
 	validate_custom_profiles();
 
 	// Target profiles for embedding in saved files
 	com.icc.srgb_out = srgb_trcv2();
-	com.icc.working_out = srgb_trcv2();
 	com.icc.mono_out = gray_srgbtrcv2();
 
 	// ICC availability
@@ -392,7 +386,7 @@ cmsHTRANSFORM initialize_display_transform() {
 	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit.icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
 	g_mutex_lock(&monitor_profile_mutex);
-	transform = cmsCreateTransform(gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, gui.icc.rendering_intent, 0);
+	transform = cmsCreateTransform(gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, 0);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
@@ -407,7 +401,7 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit) {
 	cmsUInt32Number fit_signature = cmsGetColorSpace(fit->icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(fit_signature, fit->type, TRUE);
 	cmsUInt32Number desttype = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
-	transform = sirilCreateTransform(fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, gui.icc.rendering_intent, 0);
+	transform = sirilCreateTransform(fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, 0);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create export colorspace transform!\n");
 	return transform;
@@ -430,8 +424,8 @@ cmsHTRANSFORM initialize_proofing_transform() {
 						gui.icc.monitor,
 						type,
 						gui.icc.soft_proof,
-						gui.icc.rendering_intent,
-						gui.icc.proofing_intent,
+						com.pref.icc.rendering_intent,
+						com.pref.icc.proofing_intent,
 						flags);
 	g_mutex_unlock(&monitor_profile_mutex);
 	g_mutex_unlock(&soft_proof_profile_mutex);
@@ -599,7 +593,7 @@ void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
 	}
 	void *buffer = input->type == DATA_FLOAT ? (void*) input->fdata : (void*) input->data;
 	src_type = get_planar_formatter_type(sig, input->type, FALSE);
-	cmsHTRANSFORM transform = cmsCreateTransform(input->icc_profile, src_type, reference->icc_profile, src_type, gui.icc.rendering_intent, 0);
+	cmsHTRANSFORM transform = cmsCreateTransform(input->icc_profile, src_type, reference->icc_profile, src_type, com.pref.icc.rendering_intent, 0);
 	datasize = input->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	bytesperline = input->rx * datasize;
 	bytesperplane = npixels * datasize;
@@ -812,7 +806,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
 	cmsHTRANSFORM transform = NULL;
 	if (fit_colorspace_channels == target_colorspace_channels) {
-		transform = cmsCreateTransform(fit->icc_profile, srctype, profile, desttype, gui.icc.rendering_intent, 0);
+		transform = cmsCreateTransform(fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, 0);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
 		return;

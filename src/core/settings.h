@@ -255,6 +255,7 @@ typedef struct icc_params {
 	cmsUInt32Number rendering_intent;
 	cmsUInt32Number proofing_intent;
 	cmsUInt32Number export_intent;
+	cmsUInt32Number processing_intent;
 	gboolean use_extra_mem;
 	working_gamut_type working_gamut;
 	gchar *icc_path_monitor;

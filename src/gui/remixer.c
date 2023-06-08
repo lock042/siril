@@ -721,7 +721,6 @@ void apply_remix_cancel() {
 void initialize_remixer_transforms(fits* fit) {
 	cmsColorSpaceSignature sig, ref_sig;
 	cmsUInt32Number src_type, dest_type;
-	cmsUInt32Number intent = com.script ? INTENT_PERCEPTUAL : gui.icc.rendering_intent;
 	sig = cmsGetColorSpace(fit->icc_profile);
 	if(!lab_profile) {
 		lab_profile = cmsCreateLab4Profile(NULL);
@@ -731,10 +730,10 @@ void initialize_remixer_transforms(fits* fit) {
 	dest_type = get_planar_formatter_type(ref_sig, fit->type, FALSE);
 	if (to_lab)
 		cmsDeleteTransform(to_lab);
-	to_lab = cmsCreateTransform(fit->icc_profile, src_type, lab_profile, dest_type, intent, 0);
+	to_lab = cmsCreateTransform(fit->icc_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, 0);
 	if (from_lab)
 		cmsDeleteTransform(from_lab);
-	from_lab = cmsCreateTransform(lab_profile, dest_type, fit->icc_profile, src_type, intent, 0);
+	from_lab = cmsCreateTransform(lab_profile, dest_type, fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 }
 
 /*** callbacks **/

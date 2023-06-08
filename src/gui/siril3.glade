@@ -31514,7 +31514,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=4 n-rows=4 -->
+                          <!-- n-columns=4 n-rows=5 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -31652,7 +31652,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <object class="GtkComboBoxText" id="combo_proofing_intent">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Select the display intent. The default is relative colorimetric. To account for the paper type, choose absolute colorimetric.</property>
+                                <property name="tooltip-text" translatable="yes">Select the soft proofing intent. The default is relative colorimetric. To account for the paper type, choose absolute colorimetric.</property>
                                 <property name="active">1</property>
                                 <items>
                                   <item translatable="yes">Perceptual</item>
@@ -31695,6 +31695,42 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="left-attach">3</property>
                                 <property name="top-attach">2</property>
                               </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Processing intent</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">4</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="combo_processing_intent">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Select the intent to use for non-display color space transforms (including scripts). The default is relative colorimetric.</property>
+                                <property name="active">1</property>
+                                <items>
+                                  <item translatable="yes">Perceptual</item>
+                                  <item translatable="yes">Relative Colorimetric</item>
+                                  <item translatable="yes">Saturation</item>
+                                  <item translatable="yes">Absolute Colorimetric</item>
+                                </items>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">4</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                            <child>
+                              <placeholder/>
                             </child>
                             <child>
                               <placeholder/>

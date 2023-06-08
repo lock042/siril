@@ -563,8 +563,6 @@ struct gui_icc {
 	gboolean available;
 	cmsHTRANSFORM display_transform;
 	cmsHTRANSFORM proofing_transform;
-	cmsUInt32Number rendering_intent;
-	cmsUInt32Number proofing_intent;
 };
 
 /* The global data structure of siril gui */
@@ -639,7 +637,6 @@ struct common_icc {
 	cmsHPROFILE working_out;
 	cmsHPROFILE mono_out;
 	gboolean available;
-	cmsUInt32Number save_intent;
 };
 
 /* The global data structure of siril core */

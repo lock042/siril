@@ -1213,10 +1213,9 @@ gpointer deconvolve(gpointer p) {
 			cielab_profile = cmsCreateLab4Profile(NULL);
 			sig = cmsGetColorSpace(the_fit->icc_profile);
 			src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
-			cmsUInt32Number intent = (com.script ? INTENT_PERCEPTUAL : gui.icc.rendering_intent);
 			dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
-			transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, intent, 0);
-			inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, intent, 0);
+			transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
+			inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 			cmsCloseProfile(cielab_profile);
 			cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(transform);
