@@ -541,18 +541,17 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	return retval;
 }
 
-// This function is for initializing the profile during file import, hence the fallback assumption of
-// a sRGB profile
+// This function is for initializing the profile during file
+// import from non-FITS formats, hence the fallback assumption
+// of a sRGB profile
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen) {
-	if (com.icc.available) {
-		if (EmbedBuffer) {
-			// If there is an embedded profile we will use it
-			fit->icc_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
-			check_profile_correct(fit);
-		} else {
-			// If there is no embedded profile we assume the usual sRGB D65 g22
-			fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_out : com.icc.srgb_out);
-		}
+	if (EmbedBuffer) {
+		// If there is an embedded profile we will use it
+		fit->icc_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
+		check_profile_correct(fit);
+	} else {
+		// If there is no embedded profile we assume the usual sRGB D65 g22
+		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_out : com.icc.srgb_out);
 	}
 }
 

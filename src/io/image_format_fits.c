@@ -1838,7 +1838,7 @@ ERROR_MESSAGE_AND_RETURN:
 }
 
 int write_icc_profile_to_fits(fits *fit) {
-	int retval = write_icc_profile_to_fptr(fit->fptr, &fit->icc_profile);
+	int retval = write_icc_profile_to_fptr(fit->fptr, fit->icc_profile);
 	return retval;
 }
 

@@ -559,21 +559,19 @@ free_and_reset_progress_bar:
 	switch (args->output) {
 		case EXPORT_FITSEQ:
 			if (fitseq_file) {
-				if (com.icc.available) {
-					// If there is no ICC profile, assign a linear one
-					if (!fitseq_file->icc_profile) {
-						assign_linear_icc_profile_to_fitseq(fitseq_file);
+				// If there is no ICC profile, assign a linear one
+				if (!fitseq_file->icc_profile) {
+					assign_linear_icc_profile_to_fitseq(fitseq_file);
+				}
+				// Write the ICC profile into the FITSEQ file
+				int status = 0, nhdus = -1;
+				fits_get_num_hdus(fitseq_file->fptr, &nhdus, &status);
+				if (!fits_movabs_hdu(fitseq_file->fptr, nhdus, NULL, &status)) {
+					if (fitseq_file->icc_profile) {
+						write_icc_profile_to_fptr(fitseq_file->fptr, &fitseq_file->icc_profile);
 					}
-					// Write the ICC profile into the FITSEQ file
-					int status = 0, nhdus = -1;
-					fits_get_num_hdus(fitseq_file->fptr, &nhdus, &status);
-					if (!fits_movabs_hdu(fitseq_file->fptr, nhdus, NULL, &status)) {
-						if (fitseq_file->icc_profile) {
-							write_icc_profile_to_fptr(fitseq_file->fptr, &fitseq_file->icc_profile);
-						}
-					} else {
-						report_fits_error(status);
-					}
+				} else {
+					report_fits_error(status);
 				}
 				fitseq_close_file(fitseq_file);
 				free(fitseq_file);

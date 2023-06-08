@@ -1155,6 +1155,10 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
+	/* The image is no longer mono so we assign it the working colorspace linear gamma profile */
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(working_linear);
 	return 0;
 }
 
@@ -1190,6 +1194,10 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
+	/* The image is no longer mono so we assign it the working colorspace linear gamma profile */
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(working_linear);
 	return 0;
 }
 

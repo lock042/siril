@@ -277,8 +277,7 @@ int readbmp(const char *name, fits *fit) {
 	free(buf);
 	// Initialize ICC profile. As the buffer is set to NULL, this sets the
 	// profile as sRGB (or Gray g22) which is what we want for 8-bit BMPs
-	if (com.icc.available)
-		fits_initialize_icc(fit, NULL, 0);
+	fits_initialize_icc(fit, NULL, 0);
 
 	char *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading BMP: file %s, %ld layer(s), %ux%u pixels\n"),
@@ -643,8 +642,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 	// Initialize ICC profile. As the buffer is set to NULL, this sets the
 	// profile as sRGB (or Gray g22) which is what we want
-	if (com.icc.available)
-		fits_initialize_icc(fit, NULL, 0);
+	fits_initialize_icc(fit, NULL, 0);
 
 	fclose(file);
 	char *basename = g_path_get_basename(filename);
@@ -1024,8 +1022,7 @@ int readpic(const char *name, fits *fit) {
 	// profile as sRGB (or Gray g22) which *I think* is what we want for
 	// PIC files. If anyone is still using them, please correct me if I'm
 	// wrong!
-	if (com.icc.available)
-		fits_initialize_icc(fit, NULL, 0);
+	fits_initialize_icc(fit, NULL, 0);
 
 	_pic_close_file(pic_file);
 	g_free(basename);

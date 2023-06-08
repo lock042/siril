@@ -469,9 +469,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	// Try to read embedded ICC profile data
 	cmsUInt32Number EmbedLen;
 	cmsUInt8Number* EmbedBuffer = NULL;
-	if (com.icc.available) {
-		TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
-	}
+	gboolean has_icc = TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
 
 	// Retrieve Description field
 	char *desc = NULL;
@@ -517,7 +515,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		g_time_zone_unref(tz);
 	}
 
-	if (com.icc.available)
+	if (has_icc)
 		fits_initialize_icc(fit, EmbedBuffer, EmbedLen);
 
 	TIFFClose(tif);
@@ -792,9 +790,18 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 			if (fit->icc_profile) {
 				profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 			} else {
+				// This is a weird situation. I don't think we can reach this case but
+				// better safe than sorry.
 				profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear, &profile_len);
 			}
 		}
+		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
+	} else {
+		// If color management is disabled we revert to the old Siril behaviour and
+		// assume the user has edited the file on a sRGB monitor, and that is therefore
+		// how it should be saved. This is not guaranteed to look right in all
+		// software but it's the best we can do.
+		profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_out : com.icc.srgb_out, &profile_len);
 		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
 
@@ -1053,11 +1060,9 @@ int readjpg(const char* name, fits *fit){
 	JOCTET *EmbedBuffer = NULL;
 	unsigned int EmbedLen = 0;
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
-	if (com.icc.available) {
-		jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
-	}
+	jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
 #endif
-	if (com.icc.available)
+	if (EmbedLen > 0)
 		fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
 
 	size_t npixels = cinfo.output_width * cinfo.output_height;
@@ -1328,7 +1333,7 @@ int readpng(const char *name, fits* fit) {
 #else
     png_bytepp EmbedBuffer = NULL;
 #endif
-	png_uint_32 EmbedLen;
+	png_uint_32 EmbedLen = 0;
 	png_get_iCCP(png, info, ProfileName, PNG_COMPRESSION_TYPE_BASE, EmbedBuffer, &EmbedLen);
 
 	png_read_image(png, row_pointers);
@@ -1399,7 +1404,8 @@ int readpng(const char *name, fits* fit) {
 		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 		fill_date_obs_if_any(fit, name);
 		// Initialize ICC profile and display transform
-		fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
+		if (EmbedLen > 0)
+			fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
 	}
 
 	gchar *basename = g_path_get_basename(name);
@@ -1553,11 +1559,14 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		samples_per_pixel = 1;
 	}
 
-	if (bytes_per_sample == 1) {
-		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
-	} else {
-		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
-	}
+	if (com.icc.available) {
+		if (bytes_per_sample == 1) {
+			profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+		} else {
+			profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+		}
+	} else // if color management is disabled we assume the sRGB TRC, either mono or RGB
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : &com.icc.srgb_out, &profile_len);
 
 	if (profile_len > 0) {
 		png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
@@ -1848,6 +1857,8 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	fit->pdata[GLAYER] = fit->data;
 	fit->pdata[BLAYER] = fit->data;
 	fit->binning_x = fit->binning_y = 1;
+	// RAW files are always mono, and always linear: they should have the mono_linear ICC profile
+	fit->icc_profile = copyICCProfile(com.icc.mono_linear);
 	if (pitch > 0.f)
 		fit->pixel_size_x = fit->pixel_size_y = pitch;
 	if (raw->other.focal_len > 0.f)
@@ -2201,7 +2212,8 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 
 	int has_alpha = heif_image_handle_has_alpha_channel(handle);
 
-
+	// Note: the HEIF library does not appear to provide good grayscale support at present
+	// so imported HEIF images will always be 3-channel
 	struct heif_image *img = 0;
 	err = heif_decode_image(handle, &img, heif_colorspace_RGB,
 			has_alpha ? heif_chroma_interleaved_32bit :
@@ -2264,8 +2276,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 
 	// Initialize ICC profile. As the buffer is set to NULL, this sets the
 	// profile as sRGB which is the target colorspace set in heif_decode_image()
-	if (com.icc.available)
-		fits_initialize_icc(fit, NULL, 0);
+	fits_initialize_icc(fit, NULL, 0);
 
 	return OPEN_IMAGE_OK;
 }

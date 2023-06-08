@@ -907,9 +907,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 			extract_region_from_fits(seq->internal_fits[index], 0, dest, area);
 			// Set the ICC profile to Gray-g22 to preserve gamma, on the assumption that 8-bit films
 			// will be presented by FFMPEG in a sRGB / Gray g22 colorspace
-			if (com.icc.available) {
-				dest->icc_profile = copyICCProfile(com.icc.mono_standard);
-			}
+			dest->icc_profile = copyICCProfile(com.icc.mono_standard);
 			break;
 	}
 
