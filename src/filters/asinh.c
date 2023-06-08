@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
 #include "io/single_image.h"
@@ -203,6 +204,8 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
+
+	check_linear_and_convert_with_approval(&gfit);
 
 	asinh_startup();
 	asinh_stretch_value = 0.0f;

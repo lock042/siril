@@ -27,6 +27,7 @@
 #include "icc_default_profiles.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "core/siril_log.h"
@@ -52,6 +53,7 @@
 
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
+void set_source_information();
 
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
@@ -791,6 +793,58 @@ const char* default_system_icc_path() {
 	return "/usr/share/color/icc";
 }
 
+void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
+	cmsUInt32Number fit_colorspace = cmsGetColorSpace(fit->icc_profile);
+	cmsUInt32Number fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
+	cmsUInt32Number target_colorspace = cmsGetColorSpace(profile);
+	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
+
+	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
+		return;
+	}
+	void *data = NULL;
+	cmsUInt32Number srctype, desttype;
+	size_t npixels = fit->rx * fit->ry;
+	// convert to profile
+	data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
+	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
+	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
+	cmsHTRANSFORM transform = NULL;
+	if (fit_colorspace_channels == target_colorspace_channels) {
+		transform = cmsCreateTransform(fit->icc_profile, srctype, profile, desttype, gui.icc.rendering_intent, 0);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
+		return;
+	}
+	if (transform) {
+		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = fit->rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(transform, data, data, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(transform);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(profile);
+		if (!com.script && fit == &gfit) {
+			set_source_information();
+			notify_gfit_modified();
+		}
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
+	}
+}
+
+// To be used by stretching functions to recommend converting to the nonlinear working profile
+void check_linear_and_convert_with_approval(fits *fit) {
+	if (!fit_icc_is_linear(fit))
+		return;
+	if (siril_confirm_dialog(_("Recommend color space conversion"), _("The current image has a linear ICC profile. It looks like you're about to stretch the image: do you want to convert it to your nonlinear working color space now? (Recommended!)"), _("Convert"))) {
+		set_cursor_waiting(TRUE);
+		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		set_cursor_waiting(FALSE);
+	}
+}
+
 void error_loading_profile() {
 	siril_message_dialog(GTK_MESSAGE_ERROR, _("Error loading profile"),
 						 _("The selected profile could not be loaded or did not contain a valid ICC profile. Defaulting to sRGB."));
@@ -1027,43 +1081,7 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
-	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit.icc_profile);
-	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
-	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
-	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
-
-	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
-		return;
-	}
-	void *data = NULL;
-	cmsUInt32Number srctype, desttype;
-	size_t npixels = gfit.rx * gfit.ry;
-	// convert to profile
-	data = (gfit.type == DATA_FLOAT) ? (void *) gfit.fdata : (void *) gfit.data;
-	srctype = get_planar_formatter_type(gfit_colorspace, gfit.type, FALSE);
-	desttype = get_planar_formatter_type(target_colorspace, gfit.type, FALSE);
-	cmsHTRANSFORM transform = NULL;
-	if (gfit_colorspace_channels == target_colorspace_channels) {
-		transform = cmsCreateTransform(gfit.icc_profile, srctype, target, desttype, gui.icc.rendering_intent, 0);
-	} else {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
-		return;
-	}
-	if (transform) {
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(transform);
-		cmsCloseProfile(gfit.icc_profile);
-		gfit.icc_profile = copyICCProfile(target);
-		set_source_information();
-		notify_gfit_modified();
-	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
-	}
-
+	siril_colorspace_transform(&gfit, target);
 }
 
 void icc_channels_mismatch() {
