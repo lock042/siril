@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-05-27 18:35+0200\n"
-"PO-Revision-Date: 2023-06-06 08:53+0000\n"
+"PO-Revision-Date: 2023-06-09 10:40+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -11587,7 +11587,7 @@ msgstr ""
 #: src/core/command.c:8617 src/core/command.c:8712 src/core/command.c:8767
 #: src/core/command.c:8885
 msgid "This command only works on plate solved images\n"
-msgstr "This command only works on plate solved images\n"
+msgstr "此命令仅适用于已解析的图像\n"
 
 #: src/core/command.c:8744
 msgid "Could not compute image resolution\n"
