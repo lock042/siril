@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/command.h"
 #include "core/siril_log.h"
@@ -1158,7 +1159,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	/* The image is no longer mono so we assign it the working colorspace linear gamma profile */
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(working_linear);
+	fit->icc_profile = copyICCProfile(com.icc.working_linear);
 	return 0;
 }
 
@@ -1197,7 +1198,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	/* The image is no longer mono so we assign it the working colorspace linear gamma profile */
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(working_linear);
+	fit->icc_profile = copyICCProfile(com.icc.working_linear);
 	return 0;
 }
 

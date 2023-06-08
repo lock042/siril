@@ -1566,7 +1566,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
 		}
 	} else // if color management is disabled we assume the sRGB TRC, either mono or RGB
-		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : &com.icc.srgb_out, &profile_len);
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : &com.icc.srgb_out), &profile_len);
 
 	if (profile_len > 0) {
 		png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
