@@ -1779,14 +1779,14 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	return 0;
 }
 
-int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE* icc_profile) {
+int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
 	int status = 0;     // CFITSIO status variable
 	cmsUInt32Number profile_length;
 	cmsUInt8Number *profile = NULL;
-	status = cmsSaveProfileToMem(*icc_profile, NULL, &profile_length);
+	status = cmsSaveProfileToMem(icc_profile, NULL, &profile_length);
 	if (profile_length > 0) {
 		profile = malloc(profile_length * sizeof(cmsUInt8Number));
-		cmsBool ret = cmsSaveProfileToMem(*icc_profile, (void*) profile, &profile_length);
+		cmsBool ret = cmsSaveProfileToMem(icc_profile, (void*) profile, &profile_length);
 		status = !ret;
 	}
 
@@ -1843,7 +1843,7 @@ int write_icc_profile_to_fits(fits *fit) {
 }
 
 /* Look for a HDU containing an ICC profile; if one is found, open it */
-int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE* icc_profile) {
+int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype;
@@ -1897,8 +1897,8 @@ int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE* icc_profile) {
 		free(header);
 		return 1;
 	}
-	*icc_profile = cmsOpenProfileFromMem(profile, profile_length);
-	if (*icc_profile)
+	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
+	if (icc_profile)
 		siril_log_message("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
@@ -1906,7 +1906,7 @@ int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE* icc_profile) {
 }
 
 int read_icc_profile_from_fits(fits *fit) {
-	int retval = read_icc_profile_from_fptr(fit->fptr, &fit->icc_profile);
+	int retval = read_icc_profile_from_fptr(fit->fptr, fit->icc_profile);
 	return retval;
 }
 
