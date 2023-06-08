@@ -463,8 +463,7 @@ unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len) {
 
 /* Intended for use if a fits has no profile, to decide what to assign.
  * This is not definitive, but it checks the FITS header HISTORY for signs of
- * GHT or Histogram stretches having been carried out. NOTE: asinh stretches
- * don't get recorded in history so they will not be detected. */
+ * GHT, Asinh or Histogram stretches having been carried out. */
 gboolean fit_appears_stretched(fits* fit) {
 	GSList* entry = NULL;
 	if (fit->history) {
@@ -472,6 +471,13 @@ gboolean fit_appears_stretched(fits* fit) {
 		while (entry) {
 			if (strstr(entry->data, "Histogram Transf."))
 				return TRUE;
+			if (strstr(entry->data, "Asinh"))
+				return TRUE;
+			if (strstr(entry->data, "Midtones"))
+				return TRUE;
+			if (strstr(entry->data, "Autostretch"))
+				return TRUE;
+			// this catches AutoGHS too
 			if (strstr(entry->data, "GHS") && !strstr(entry->data, "LINEAR BP"))
 				return TRUE;
 			entry = entry->next;
