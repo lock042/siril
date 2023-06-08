@@ -244,9 +244,10 @@ void initialize_profiles_and_transforms() {
 #ifndef EXCLUDE_FF
 	cmsPlugin(cmsFastFloatExtensions());
 	siril_log_message(_("lcms2 fast floating point plugin active.\n"));
-	cmsPlugin(cmsThreadedExtensions(com.max_thread, 0));
-	siril_log_message(_("lcms2 multithreading plugin active.\n"));
-
+	if (!com.headless) {
+		cmsPlugin(cmsThreadedExtensions(com.max_thread, 0));
+		siril_log_message(_("lcms2 multithreading plugin active.\n"));
+	}
 #endif
 
 	// Set alarm codes for soft proof out-of-gamut warning
@@ -460,6 +461,25 @@ unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len) {
 	return block;
 }
 
+/* Intended for use if a fits has no profile, to decide what to assign.
+ * This is not definitive, but it checks the FITS header HISTORY for signs of
+ * GHT or Histogram stretches having been carried out. NOTE: asinh stretches
+ * don't get recorded in history so they will not be detected. */
+gboolean fit_appears_stretched(fits* fit) {
+	GSList* entry = NULL;
+	if (fit->history) {
+		entry = fit->history;
+		while (entry) {
+			if (strstr(entry->data, "Histogram Transf."))
+				return TRUE;
+			if (strstr(entry->data, "GHS") && !strstr(entry->data, "LINEAR BP"))
+				return TRUE;
+			entry = entry->next;
+		}
+	}
+	return FALSE;
+}
+
 cmsBool fit_icc_is_linear(fits *fit) {
 	cmsToneCurve *tonecurve;
 	if (fit->naxes[2] == 1) {
@@ -467,7 +487,33 @@ cmsBool fit_icc_is_linear(fits *fit) {
 	} else {
 		tonecurve = cmsReadTag(fit->icc_profile, cmsSigRedTRCTag);
 	}
+	// If we fail to read a tonecurve then cmsIsToneCurveLinear will crash
+	// Return FALSE as a conservative result - remapping will be done
+	if (!tonecurve)
+		return FALSE;
 	return cmsIsToneCurveLinear(tonecurve);
+}
+
+void check_profile_correct(fits* fit) {
+	if (!fit->icc_profile) {
+		if (fit_appears_stretched(fit)) {
+			siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile: if this is wrong you can assign the correct color space using the Color Management dialog.\n"));
+			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+		} else {
+			siril_log_message(_("FITS did not contain an ICC profile: assigning a linear profile.\n"));
+		}
+	} else {
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number chans = cmsChannelsOf(sig);
+		if (chans != fit->naxes[2]) {
+			cmsCloseProfile(fit->icc_profile);
+			fit->icc_profile = NULL;
+			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Defaulting to a linear profile. If this is incorrect, you should assign the correct profile using the Color Management tool.\n"), "salmon");
+		}
+	}
+	if (!fit->icc_profile) {
+		fit->icc_profile =  copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
+	}
 }
 
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
@@ -496,6 +542,7 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 		if (EmbedBuffer) {
 			// If there is an embedded profile we will use it
 			fit->icc_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
+			check_profile_correct(fit);
 		} else {
 			// If there is no embedded profile we assume the usual sRGB D65 g22
 			fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_out : com.icc.srgb_out);

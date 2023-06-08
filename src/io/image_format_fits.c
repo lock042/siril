@@ -1987,6 +1987,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	}
 
 	read_icc_profile_from_fits(fit);
+	check_profile_correct(fit);
 
 close_readfits:
 	status = 0;

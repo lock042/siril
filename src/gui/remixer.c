@@ -1189,7 +1189,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 	} else {
 		if (com.icc.available) {
-			fits_check_icc(&fit_left);
+			check_profile_correct(&fit_left);
 			initialize_remixer_transforms( &fit_left);
 		}
 		close_single_image();
@@ -1283,7 +1283,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 	} else {
 		if (com.icc.available) {
-			fits_check_icc(&fit_right);
+			check_profile_correct(&fit_right);
 			initialize_remixer_transforms(&fit_right);
 		}
 		close_single_image();

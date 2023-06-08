@@ -418,8 +418,8 @@ static void remap_all_vports() {
 			memcpy(pixelbuf, gfit.data, npixels * gfit.naxes[2] * sizeof(WORD));
 		}
 		if (gfit.naxes[2] == 1) {
-			memcpy(pixelbuf + npixels + 1, pixelbuf, size);
-			memcpy(pixelbuf + (2 * npixels) + 1, pixelbuf, size);
+			memcpy(pixelbuf + npixels, pixelbuf, size);
+			memcpy(pixelbuf + (2 * npixels), pixelbuf, size);
 		}
 		gboolean linear_and_really_do_it = !(gfit_icc_is_linear && com.pref.icc.no_lin_disp_tx);
 		if (com.icc.available && gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it) {

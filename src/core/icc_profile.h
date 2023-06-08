@@ -49,6 +49,9 @@ typedef enum {
 	GRAY_REC709TRC
 } internal_icc;
 
+cmsHPROFILE gray_srgbtrc();
+cmsHPROFILE srgb_trc();
+
 void initialize_profiles_and_transforms();
 void initialize_icc_preferences_widgets();
 void assign_linear_icc_profile(fits *fit);
@@ -64,6 +67,7 @@ int load_proof_icc_profile(const char* filename);
 void initialize_icc_profiles_paths();
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
 cmsBool fit_icc_is_linear(fits *fit);
+void check_profile_correct(fits* fit);
 void fits_check_icc(fits *fit);
 void check_linear_and_convert_with_approval(fits *fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);

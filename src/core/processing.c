@@ -41,6 +41,8 @@
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
+#include "algos/lcms_acceleration/lcms2_fast_float.h"
+#include "algos/lcms_acceleration/lcms2_threaded.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -54,6 +56,11 @@ gpointer generic_sequence_worker(gpointer p) {
 	int abort = 0;	// variable for breaking out of loop
 	int* threads_per_image = NULL;
 	gboolean have_seqwriter = FALSE;
+
+#ifndef EXCLUDE_FF
+	cmsUnregisterPlugins();
+	cmsPlugin(cmsFastFloatExtensions());
+#endif
 
 	assert(args);
 	assert(args->seq);
@@ -367,6 +374,13 @@ the_end:
 		args->retval = 1;
 	}
 	int retval = args->retval;	// so we can free args if needed in the idle
+
+#ifndef EXCLUDE_FF
+	if (!com.headless) {
+		cmsPlugin(cmsThreadedExtensions(com.max_thread, 0));
+	}
+#endif
+
 
 	if (!args->already_in_a_thread) {
 		gboolean run_idle;

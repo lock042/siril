@@ -134,7 +134,7 @@ void populate_seqcombo(const gchar *realname) {
 }
 
 /* normalizes sequence name
- * takes a string and 
+ * takes a string and
  * - removes the extension if known
  * - appends _ at the end if required and add_underscore is TRUE
  * also calls get_locale_filename() to solve Windows localized string problems
@@ -835,10 +835,12 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			break;
 	}
 	if (seq->nb_layers > 0 &&  seq->nb_layers != dest->naxes[2]) {
-		siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"), "red", 
+		siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"), "red",
 			index, dest->naxes[2], seq->nb_layers);
 		return 1;
 	}
+	check_profile_correct(dest);
+
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
 	seq->imgparam[index].rx = dest->rx;
