@@ -66,8 +66,8 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
+cominfo com = { 0 };	// the core data struct
+guiinfo gui = { 0 };	// the gui data struct
 fits gfit;	// currently loaded image
 
 static gchar *main_option_directory = NULL;

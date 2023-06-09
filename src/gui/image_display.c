@@ -633,7 +633,7 @@ static int make_index_for_current_display(int vport) {
 
 	/************* Building the remap_index **************/
 	siril_debug_print("Rebuilding gui.remap_index\n");
-	int target_index = gui.rendering_mode == STF_DISPLAY && !gui.unlink_channels ? vport : 0;
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[target_index];
 
 	for (i = 0; i <= USHRT_MAX; i++) {
