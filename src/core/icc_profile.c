@@ -966,7 +966,7 @@ void update_profiles_after_gamut_change() {
 			com.icc.mono_out = gray_rec709trcv2();
 			break;
 		case TYPE_CUSTOM:
-			if (!(com.pref.icc.custom_icc_linear && com.pref.icc.custom_icc_trc && com.pref.icc.custom_gray_icc_matching_trc)) {
+			if (!(com.pref.icc.custom_icc_linear && com.pref.icc.custom_icc_trc && com.pref.icc.custom_icc_gray)) {
 				reset_custom_to_srgb();
 				break;
 			}

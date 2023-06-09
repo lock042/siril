@@ -71,13 +71,12 @@ gpointer scnr(gpointer p) {
 	cmsHPROFILE cielab_profile = NULL;
 	cmsColorSpaceSignature sig;
 	cmsUInt32Number src_type, dest_type;
-//	cmsUInt32Number datasize, bytesperline, bytesperplane;
 	cmsHTRANSFORM transform = NULL, invtransform = NULL;
 	if (com.icc.available) {
 		cielab_profile = cmsCreateLab4Profile(NULL);
 		sig = cmsGetColorSpace(args->fit->icc_profile);
-		src_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
-		dest_type = get_planar_formatter_type(cmsSigLabData, args->fit->type, FALSE);
+		src_type = TYPE_RGB_FLT_PLANAR;
+		dest_type = TYPE_Lab_FLT_PLANAR;
 		transform = cmsCreateTransform(args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
 		invtransform = cmsCreateTransform(cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 		cmsCloseProfile(cielab_profile);
@@ -106,14 +105,10 @@ gpointer scnr(gpointer p) {
 		float x, y, z, L, a, b, m;
 		if (args->preserve) {
 			if (com.icc.available) {
-				// This is horribly un-optimized! Only saving grace is it isn't worse than the original.
-				// TODO: rewrite this code so that the La*b* transform is done in one hit (needs additional memory though)
 				float in[3] = { red, green, blue };
 				float out[3];
 				cmsDoTransform(transform, (void*) &in, (void*) &out, 1);
-				x = out[0];
-				y = out[1];
-				z = out[2];
+				L = out[0];
 			} else {
 				rgb_to_xyzf(red, green, blue, &x, &y, &z);
 				xyz_to_LABf(x, y, z, &L, &a, &b);
