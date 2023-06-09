@@ -354,8 +354,10 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
-	redraw(REMAP_ALL);
-	redraw_previews();
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		redraw(REMAP_ALL);
+		redraw_previews();
+	}
 }
 
 void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
