@@ -11206,6 +11206,21 @@ Note that luminance based models are not generally invertible.</property>
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="icc_export">
+                <property name="label" translatable="yes">Export</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Export the profile currently assigned to the image to the working directory. It will be saved with the filename {imagename}.icc</property>
+                <signal name="clicked" handler="on_icc_export_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="icc_assign">
                 <property name="label" translatable="yes">Assign</property>
                 <property name="visible">True</property>
@@ -11213,11 +11228,14 @@ Note that luminance based models are not generally invertible.</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Assigns the selected ICC profile to the current image without performing any color space transform. This is useful if the image has an incorrect ICC profile.</property>
                 <signal name="clicked" handler="on_icc_assign_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -11228,21 +11246,9 @@ Note that luminance based models are not generally invertible.</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Converts the image to a different color space. This can be useful for exporting an image to sRGB for WWW use, for example.</property>
                 <signal name="clicked" handler="on_icc_convertto_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="icc_export">
-                <property name="label" translatable="yes">Export</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Export the profile currently assigned to the image to the working directory. It will be saved with the filename {imagename}.icc</property>
-                <signal name="clicked" handler="on_icc_export_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -11286,6 +11292,7 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
+                            <property name="valign">start</property>
                             <property name="label" translatable="yes">&lt;b&gt;&lt;i&gt;Current ICC profile&lt;/i&gt;&lt;/b&gt;</property>
                             <property name="use-markup">True</property>
                           </object>
@@ -11335,6 +11342,7 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
+                            <property name="valign">start</property>
                             <property name="label" translatable="yes">&lt;b&gt;&lt;i&gt;Target ICC profile&lt;/i&gt;&lt;/b&gt;</property>
                             <property name="use-markup">True</property>
                           </object>
@@ -11359,6 +11367,7 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
+                            <property name="valign">start</property>
                             <property name="label" translatable="yes">Manufacturer</property>
                           </object>
                           <packing>
@@ -11371,6 +11380,7 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
+                            <property name="valign">start</property>
                             <property name="label" translatable="yes">Copyright</property>
                           </object>
                           <packing>
@@ -11411,6 +11421,7 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
+                            <property name="valign">start</property>
                             <property name="label" translatable="yes">Manufacturer</property>
                           </object>
                           <packing>
@@ -11423,6 +11434,7 @@ Note that luminance based models are not generally invertible.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
+                            <property name="valign">start</property>
                             <property name="label" translatable="yes">Copyright</property>
                           </object>
                           <packing>
@@ -28078,6 +28090,7 @@ If the selection is empty, the whole image will be used as reference.</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_settings_window_hide" swapped="no"/>
     <signal name="show" handler="on_settings_window_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -31204,744 +31217,759 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">6</property>
+                    <property name="can-focus">True</property>
+                    <property name="hscrollbar-policy">never</property>
+                    <property name="shadow-type">in</property>
                     <child>
-                      <object class="GtkLabel" id="label27">
+                      <object class="GtkViewport">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Color Management</property>
-                        <property name="xalign">0</property>
-                        <style>
-                          <class name="title"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkAlignment">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">6</property>
                             <child>
-                              <object class="GtkBox">
+                              <object class="GtkLabel" id="label27">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                                <property name="spacing">6</property>
-                                <child>
-                                  <object class="GtkCheckButton" id="icc_use_extra_mem">
-                                    <property name="label" translatable="yes">Use additional memory to speed up display transform</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">When checked, this option enables optimization of the display color space transform by allowing the transform to process the entire image at once, rather than one pixel row at a time. This requires additional memory equal to one 16-bit copy of the image. Usually it should be enabled unless you are working with extremely large images on low-memory systems.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="icc_no_lin_disp_tx">
-                                    <property name="label" translatable="yes">Disable display transform for images with linear ICC profiles</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-markup" translatable="yes">When active, the display color space transform will not be done for images with a linear color profile. This avoids transformations where the optimisation plugins don't apply, which makes display updates a lot faster. This is usually fine to activate but if you do, you should ensure you convert to a nonlinear working profile &lt;b&gt;before&lt;/b&gt; stretching your image so that the display looks correct during stretching.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
+                                <property name="label" translatable="yes">Color Management</property>
+                                <property name="xalign">0</property>
+                                <style>
+                                  <class name="title"/>
+                                </style>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
                             </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">&lt;b&gt;General Settings&lt;/b&gt;</property>
-                            <property name="use-markup">True</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkAlignment">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=3 n-rows=5 -->
-                              <object class="GtkGrid">
+                              <object class="GtkFrame">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">6</property>
-                                <property name="column-spacing">6</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
                                 <child>
+                                  <object class="GtkAlignment">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="left-padding">12</property>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">6</property>
+                                        <child>
+                                          <object class="GtkCheckButton" id="icc_use_extra_mem">
+                                            <property name="label" translatable="yes">Use additional memory to speed up display transform</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">When checked, this option enables optimization of the display color space transform by allowing the transform to process the entire image at once, rather than one pixel row at a time. This requires additional memory equal to one 16-bit copy of the image. Usually it should be enabled unless you are working with extremely large images on low-memory systems.</property>
+                                            <property name="halign">start</property>
+                                            <property name="active">True</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="icc_no_lin_disp_tx">
+                                            <property name="label" translatable="yes">Disable display transform for images with linear ICC profiles</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-markup" translatable="yes">When active, the display color space transform will not be done for images with a linear color profile. This avoids transformations where the optimisation plugins don't apply, which makes display updates a lot faster. This is usually fine to activate but if you do, you should ensure you convert to a nonlinear working profile &lt;b&gt;before&lt;/b&gt; stretching your image so that the display looks correct during stretching.</property>
+                                            <property name="halign">start</property>
+                                            <property name="active">True</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">This selects the family of RGB profiles that will be used throughout most of the workflow. For a discussion of which gamut to pick, see the Color Management section of the manual.</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Working RGB Gamut</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;General Settings&lt;/b&gt;</property>
+                                    <property name="use-markup">True</property>
                                   </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
                                 </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkComboBoxText" id="working_gamut">
+                                  <object class="GtkAlignment">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-markup" translatable="yes">This sets the family of color spaces used as image working spaces. Note, for copyright reasons the name of one gamut has been substituted: LargeRGB is the well-known profile for &lt;b&gt;Pro&lt;/b&gt;fessional &lt;b&gt;Photo&lt;/b&gt;graphers.</property>
-                                    <property name="active">0</property>
-                                    <items>
-                                      <item translatable="yes">sRGB</item>
-                                      <item translatable="yes">Rec2020</item>
-                                      <item translatable="yes">Custom</item>
-                                    </items>
-                                    <signal name="changed" handler="on_working_gamut_changed" swapped="no"/>
+                                    <property name="left-padding">12</property>
+                                    <child>
+                                      <!-- n-columns=3 n-rows=5 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This selects the family of RGB profiles that will be used throughout most of the workflow. For a discussion of which gamut to pick, see the Color Management section of the manual.</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Working RGB Gamut</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="working_gamut">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-markup" translatable="yes">This sets the family of color spaces used as image working spaces. Note, for copyright reasons the name of one gamut has been substituted: LargeRGB is the well-known profile for &lt;b&gt;Pro&lt;/b&gt;fessional &lt;b&gt;Photo&lt;/b&gt;graphers.</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">sRGB</item>
+                                              <item translatable="yes">Rec2020</item>
+                                              <item translatable="yes">Custom</item>
+                                            </items>
+                                            <signal name="changed" handler="on_working_gamut_changed" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="icc_gamut_visualisation">
+                                            <property name="label" translatable="yes">Gamut visualisation</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Show the CIE1931 xy space and a representation of various color gamuts within it.</property>
+                                            <signal name="clicked" handler="on_icc_gamut_visualisation_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Thesse options apply if the Working RGB Gamut is set to Custom above.</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Custom Gamut</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSeparator">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">1</property>
+                                            <property name="width">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">ICC profile with linear TRC</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">ICC profile with nonlinear TRC</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Gray ICC profile</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkFileChooserButton" id="custom_icc_linear_trc">
+                                            <property name="name">custom_gamut_linear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
+                                            <property name="filter">icc_filter</property>
+                                            <property name="title" translatable="yes"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkFileChooserButton" id="custom_icc_standard_trc">
+                                            <property name="name">custom_gamut_trc</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
+                                            <property name="filter">icc_filter</property>
+                                            <property name="title" translatable="yes"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkFileChooserButton" id="custom_gray_icc_matching_trc">
+                                            <property name="name">custom_gamut_gray_trc</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
+                                            <property name="filter">icc_filter</property>
+                                            <property name="title" translatable="yes"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                      </object>
+                                    </child>
                                   </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
                                 </child>
-                                <child>
-                                  <object class="GtkButton" id="icc_gamut_visualisation">
-                                    <property name="label" translatable="yes">Gamut visualisation</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Show the CIE1931 xy space and a representation of various color gamuts within it.</property>
-                                    <signal name="clicked" handler="on_icc_gamut_visualisation_clicked" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
+                                <child type="label">
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Thesse options apply if the Working RGB Gamut is set to Custom above.</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Custom Gamut</property>
+                                    <property name="tooltip-text" translatable="yes">This section contains options relating to working color spaces</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;Working Color Spaces&lt;/b&gt;</property>
+                                    <property name="use-markup">True</property>
                                   </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
                                 </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkSeparator">
+                                  <!-- n-columns=4 n-rows=5 -->
+                                  <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="margin-left">12</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="row-spacing">6</property>
+                                    <property name="column-spacing">6</property>
+                                    <property name="row-homogeneous">True</property>
+                                    <property name="column-homogeneous">True</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">&lt;b&gt;Custom monitor profile&lt;/b&gt;</property>
+                                        <property name="use-markup">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="pref_custom_monitor_profile">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">To use a custom monitor ICC profile, set it here. If no custom profile is set, sRGB with D65 white point and gamma = 2.2 will be used.</property>
+                                        <property name="filter">icc_filter</property>
+                                        <property name="title" translatable="yes"/>
+                                        <signal name="file-set" handler="on_pref_custom_monitor_profile_file_set" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="pref_soft_proofing_profile">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">To use a custom proofing ICC profile, set it here. As the result of soft proofing is heavily dependent on having the correct profile for your printer and paper type, if no profile is set here soft proofing will be unavailable.</property>
+                                        <property name="filter">icc_filter</property>
+                                        <property name="title" translatable="yes"/>
+                                        <signal name="file-set" handler="on_pref_soft_proofing_profile_file_set" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">&lt;b&gt;Soft proofing profile&lt;/b&gt;</property>
+                                        <property name="use-markup">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Rendering intent</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Soft proofing intent</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">3</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="monitor_profile_clear">
+                                        <property name="label" translatable="yes">Clear</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
+                                        <signal name="clicked" handler="on_monitor_profile_clear_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="proofing_profile_clear">
+                                        <property name="label" translatable="yes">Clear</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
+                                        <signal name="clicked" handler="on_proofing_profile_clear_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="combo_rendering_intent">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Select the display intent. The default is perceptual rendering.</property>
+                                        <property name="active">0</property>
+                                        <items>
+                                          <item translatable="yes">Perceptual</item>
+                                          <item translatable="yes">Relative Colorimetric</item>
+                                          <item translatable="yes">Saturation</item>
+                                          <item translatable="yes">Absolute Colorimetric</item>
+                                        </items>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="combo_proofing_intent">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Select the soft proofing intent. The default is relative colorimetric. To account for the paper type, choose absolute colorimetric.</property>
+                                        <property name="active">1</property>
+                                        <items>
+                                          <item translatable="yes">Perceptual</item>
+                                          <item translatable="yes">Relative Colorimetric</item>
+                                          <item translatable="yes">Saturation</item>
+                                          <item translatable="yes">Absolute Colorimetric</item>
+                                        </items>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">3</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="custom_monitor_profile_active">
+                                        <property name="label" translatable="yes">active</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                        <property name="draw-indicator">True</property>
+                                        <signal name="toggled" handler="on_custom_monitor_profile_active_toggled" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">3</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="custom_proofing_profile_active">
+                                        <property name="label" translatable="yes">active</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                        <property name="draw-indicator">True</property>
+                                        <signal name="toggled" handler="on_custom_proofing_profile_active_toggled" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">3</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Processing intent</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">4</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="combo_processing_intent">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Select the intent to use for non-display color space transforms (including scripts). The default is relative colorimetric.</property>
+                                        <property name="active">1</property>
+                                        <items>
+                                          <item translatable="yes">Perceptual</item>
+                                          <item translatable="yes">Relative Colorimetric</item>
+                                          <item translatable="yes">Saturation</item>
+                                          <item translatable="yes">Absolute Colorimetric</item>
+                                        </items>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">4</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
                                   </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                    <property name="width">3</property>
-                                  </packing>
                                 </child>
-                                <child>
+                                <child type="label">
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">ICC profile with linear TRC</property>
+                                    <property name="tooltip-text" translatable="yes">This section allows you to define custom monitor and soft proofing profiles, and the corresponding color space transform intents.</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">Custom Profiles</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
                                   </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
                                 </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">4</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkLabel">
+                                  <object class="GtkAlignment">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">ICC profile with nonlinear TRC</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Gray ICC profile</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkFileChooserButton" id="custom_icc_linear_trc">
-                                    <property name="name">custom_gamut_linear</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
-                                    <property name="filter">icc_filter</property>
-                                    <property name="title" translatable="yes"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkFileChooserButton" id="custom_icc_standard_trc">
-                                    <property name="name">custom_gamut_trc</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
-                                    <property name="filter">icc_filter</property>
-                                    <property name="title" translatable="yes"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkFileChooserButton" id="custom_gray_icc_matching_trc">
-                                    <property name="name">custom_gamut_gray_trc</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
-                                    <property name="filter">icc_filter</property>
-                                    <property name="title" translatable="yes"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">This section contains options relating to working color spaces</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Working Color Spaces&lt;/b&gt;</property>
-                            <property name="use-markup">True</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <!-- n-columns=4 n-rows=5 -->
-                          <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-left">12</property>
-                            <property name="margin-start">12</property>
-                            <property name="row-spacing">6</property>
-                            <property name="column-spacing">6</property>
-                            <property name="row-homogeneous">True</property>
-                            <property name="column-homogeneous">True</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">&lt;b&gt;Custom monitor profile&lt;/b&gt;</property>
-                                <property name="use-markup">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="pref_custom_monitor_profile">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">To use a custom monitor ICC profile, set it here. If no custom profile is set, sRGB with D65 white point and gamma = 2.2 will be used.</property>
-                                <property name="filter">icc_filter</property>
-                                <property name="title" translatable="yes"/>
-                                <signal name="file-set" handler="on_pref_custom_monitor_profile_file_set" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="pref_soft_proofing_profile">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">To use a custom proofing ICC profile, set it here. As the result of soft proofing is heavily dependent on having the correct profile for your printer and paper type, if no profile is set here soft proofing will be unavailable.</property>
-                                <property name="filter">icc_filter</property>
-                                <property name="title" translatable="yes"/>
-                                <signal name="file-set" handler="on_pref_soft_proofing_profile_file_set" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">&lt;b&gt;Soft proofing profile&lt;/b&gt;</property>
-                                <property name="use-markup">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Rendering intent</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Soft proofing intent</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkButton" id="monitor_profile_clear">
-                                <property name="label" translatable="yes">Clear</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
-                                <signal name="clicked" handler="on_monitor_profile_clear_clicked" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkButton" id="proofing_profile_clear">
-                                <property name="label" translatable="yes">Clear</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
-                                <signal name="clicked" handler="on_proofing_profile_clear_clicked" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkComboBoxText" id="combo_rendering_intent">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Select the display intent. The default is perceptual rendering.</property>
-                                <property name="active">0</property>
-                                <items>
-                                  <item translatable="yes">Perceptual</item>
-                                  <item translatable="yes">Relative Colorimetric</item>
-                                  <item translatable="yes">Saturation</item>
-                                  <item translatable="yes">Absolute Colorimetric</item>
-                                </items>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkComboBoxText" id="combo_proofing_intent">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Select the soft proofing intent. The default is relative colorimetric. To account for the paper type, choose absolute colorimetric.</property>
-                                <property name="active">1</property>
-                                <items>
-                                  <item translatable="yes">Perceptual</item>
-                                  <item translatable="yes">Relative Colorimetric</item>
-                                  <item translatable="yes">Saturation</item>
-                                  <item translatable="yes">Absolute Colorimetric</item>
-                                </items>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="custom_monitor_profile_active">
-                                <property name="label" translatable="yes">active</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                <property name="draw-indicator">True</property>
-                                <signal name="toggled" handler="on_custom_monitor_profile_active_toggled" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">3</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="custom_proofing_profile_active">
-                                <property name="label" translatable="yes">active</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                <property name="draw-indicator">True</property>
-                                <signal name="toggled" handler="on_custom_proofing_profile_active_toggled" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">3</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Processing intent</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">4</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkComboBoxText" id="combo_processing_intent">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Select the intent to use for non-display color space transforms (including scripts). The default is relative colorimetric.</property>
-                                <property name="active">1</property>
-                                <items>
-                                  <item translatable="yes">Perceptual</item>
-                                  <item translatable="yes">Relative Colorimetric</item>
-                                  <item translatable="yes">Saturation</item>
-                                  <item translatable="yes">Absolute Colorimetric</item>
-                                </items>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">4</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">This section allows you to define custom monitor and soft proofing profiles, and the corresponding color space transform intents.</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Custom Profiles</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkAlignment">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
-                            <child>
-                              <!-- n-columns=2 n-rows=4 -->
-                              <object class="GtkGrid">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="row-spacing">6</property>
-                                <property name="column-spacing">6</property>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Export 16-bit TIFF and PNG using:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBoxText" id="export_profile_16bit">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Selects which color space to export 16 bit images to: select either the current working color space or sRGB. The ICC color profile will be embedded in the file.
+                                    <property name="left-padding">12</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=4 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Export 16-bit TIFF and PNG using:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="export_profile_16bit">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Selects which color space to export 16 bit images to: select either the current working color space or sRGB. The ICC color profile will be embedded in the file.
 Note: if the format does not support ICC profile embedding, images will always be exported as sRGB.</property>
-                                    <property name="active">0</property>
-                                    <items>
-                                      <item translatable="yes">sRGB</item>
-                                      <item translatable="yes">Working gamut</item>
-                                    </items>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Export intent</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBoxText" id="combo_export_intent">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Select the color management intent for export file formats.</property>
-                                    <property name="active">0</property>
-                                    <items>
-                                      <item translatable="yes">Perceptual</item>
-                                      <item translatable="yes">Relative Colorimetric</item>
-                                      <item translatable="yes">Saturation</item>
-                                      <item translatable="yes">Absolute Colorimetric</item>
-                                    </items>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton">
-                                    <property name="label" translatable="yes">Embed ICC profiles in FITS images and FITSEQ sequences</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">When this option is checked, the working color space ICC profile will be embedded in saved FITS files using the same method as other major astrophotography processing softwares.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Export 8-bit images using:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBoxText" id="export_profile_8bit">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Selects which color space to export 8-bit images to, if the format supports ICC profiles: either the current working color space or sRGB. The ICC color profile will be embedded in the file.
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">sRGB</item>
+                                              <item translatable="yes">Working gamut</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Export intent</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combo_export_intent">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Select the color management intent for export file formats.</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">Perceptual</item>
+                                              <item translatable="yes">Relative Colorimetric</item>
+                                              <item translatable="yes">Saturation</item>
+                                              <item translatable="yes">Absolute Colorimetric</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton">
+                                            <property name="label" translatable="yes">Embed ICC profiles in FITS images and FITSEQ sequences</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">When this option is checked, the working color space ICC profile will be embedded in saved FITS files using the same method as other major astrophotography processing softwares.</property>
+                                            <property name="halign">start</property>
+                                            <property name="active">True</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                            <property name="width">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Export 8-bit images using:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="export_profile_8bit">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">Selects which color space to export 8-bit images to, if the format supports ICC profiles: either the current working color space or sRGB. The ICC color profile will be embedded in the file.
 Note: if the format does not support ICC profile embedding, images will always be exported as sRGB.</property>
-                                    <property name="active">0</property>
-                                    <items>
-                                      <item translatable="yes">sRGB</item>
-                                      <item translatable="yes">Working gamut</item>
-                                    </items>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">sRGB</item>
+                                              <item translatable="yes">Working gamut</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
                                   </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">This section contains settings affecting how color spaces are applied to saved files</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;File Import / Export Options&lt;/b&gt;</property>
+                                    <property name="use-markup">True</property>
+                                  </object>
                                 </child>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">5</property>
+                              </packing>
                             </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">This section contains settings affecting how color spaces are applied to saved files</property>
-                            <property name="label" translatable="yes">&lt;b&gt;File Import / Export Options&lt;/b&gt;</property>
-                            <property name="use-markup">True</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkAlignment">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
                             <child>
-                              <object class="GtkButtonBox">
+                              <object class="GtkFrame">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="orientation">vertical</property>
-                                <property name="layout-style">start</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkButton" id="icc_export_builtin">
-                                    <property name="label" translatable="yes">Export built-in profiles</property>
+                                  <object class="GtkAlignment">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Export the built-in profiles to the working directory. Elle Stone's profiles are distributed with the CC BY-SA-3.0 licence. As they are built into the Siril binary, this export function serves to comply with the "share-alike" provision of the licence.</property>
-                                    <signal name="clicked" handler="on_icc_export_builtin_clicked" swapped="no"/>
+                                    <property name="can-focus">False</property>
+                                    <property name="top-padding">6</property>
+                                    <property name="left-padding">12</property>
+                                    <child>
+                                      <object class="GtkButtonBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="layout-style">start</property>
+                                        <child>
+                                          <object class="GtkButton" id="icc_export_builtin">
+                                            <property name="label" translatable="yes">Export built-in profiles</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Export the built-in profiles to the working directory. Elle Stone's profiles are distributed with the CC BY-SA-3.0 licence. As they are built into the Siril binary, this export function serves to comply with the "share-alike" provision of the licence.</property>
+                                            <signal name="clicked" handler="on_icc_export_builtin_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
                                   </object>
-                                  <packing>
-                                    <property name="expand">True</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;Built-in Profiles&lt;/b&gt;</property>
+                                    <property name="use-markup">True</property>
+                                  </object>
                                 </child>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">6</property>
+                              </packing>
                             </child>
                           </object>
                         </child>
-                        <child type="label">
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Built-in Profiles&lt;/b&gt;</property>
-                            <property name="use-markup">True</property>
-                          </object>
-                        </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">5</property>
-                      </packing>
                     </child>
                   </object>
                   <packing>

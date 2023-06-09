@@ -82,7 +82,6 @@ gpointer scnr(gpointer p) {
 		cmsCloseProfile(cielab_profile);
 		bytesperline = args->fit->rx * sizeof(float);
 		bytesperplane = nbdata * sizeof(float);
-
 	}
 	if (com.icc.available && com.pref.icc.use_extra_mem) {
 		float *lab = malloc(nbdatac * sizeof(float));

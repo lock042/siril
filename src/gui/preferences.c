@@ -51,6 +51,8 @@ static gchar *sw_dir = NULL;
 static gchar *st_exe = NULL;
 static gchar *st_weights = NULL;
 static starnet_version st_version = NIL;
+static gboolean update_custom_gamut = FALSE;
+void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
@@ -807,12 +809,17 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		save_main_window_state();
 		writeinitfile();
 		validate_custom_profiles(); // Validate and load custom ICC profiles
+		if (update_custom_gamut) {
+			update_profiles_after_gamut_change();
+			update_custom_gamut = FALSE;
+		}
 
 		siril_close_dialog("settings_window");
 	}
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	update_custom_gamut = FALSE;
 	siril_close_dialog("settings_window");
 }
 
@@ -823,7 +830,23 @@ void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	if (confirm) {
 		initialize_default_settings();
 		update_preferences_from_model();
+		update_custom_gamut = FALSE;
 	}
+}
+
+void on_settings_window_hide(GtkWidget *widget, gpointer user_data) {
+	update_custom_gamut = FALSE;
+}
+
+void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data) {
+	int choice = gtk_combo_box_get_active(combo);
+	GtkWidget *lin = lookup_widget("custom_icc_linear_trc");
+	GtkWidget *std = lookup_widget("custom_icc_standard_trc");
+	GtkWidget *gray = lookup_widget("custom_gray_icc_matching_trc");
+	gtk_widget_set_sensitive(lin, (choice == 2));
+	gtk_widget_set_sensitive(std, (choice == 2));
+	gtk_widget_set_sensitive(gray, (choice == 2));
+	update_custom_gamut = TRUE;
 }
 
 gchar *get_swap_dir() {

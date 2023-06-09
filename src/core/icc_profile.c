@@ -928,6 +928,7 @@ static void reset_custom_to_srgb() {
 }
 
 void update_profiles_after_gamut_change() {
+	siril_log_message(_("Updating working profiles.\n"));
 	working_gamut_type working_gamut = com.pref.icc.working_gamut;
 	g_mutex_lock(&default_profiles_mutex);
 	switch (working_gamut) {
@@ -1315,16 +1316,6 @@ void on_icc_gamut_visualisation_clicked() {
 void on_icc_gamut_close_clicked(GtkButton *button, gpointer user_data) {
 	GtkWidget *win = lookup_widget("icc_gamut_dialog");
 	gtk_widget_hide(win);
-}
-
-void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data) {
-	int choice = gtk_combo_box_get_active(combo);
-	GtkWidget *lin = lookup_widget("custom_icc_linear_trc");
-	GtkWidget *std = lookup_widget("custom_icc_standard_trc");
-	GtkWidget *gray = lookup_widget("custom_gray_icc_matching_trc");
-	gtk_widget_set_sensitive(lin, (choice == 2));
-	gtk_widget_set_sensitive(std, (choice == 2));
-	gtk_widget_set_sensitive(gray, (choice == 2));
 }
 
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
