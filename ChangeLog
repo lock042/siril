@@ -10,6 +10,7 @@ xx/xx/xx
 * Fixed crash in binning with ushort images
 * Fixed crash in findstar when a large saturated patch was close to border
 * Fixed memory leaks in deconvolution code
+* Added logging typed command in stdout
 
 siril 1.2.0-rc1
 06/01/23
