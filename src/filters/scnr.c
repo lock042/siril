@@ -69,12 +69,12 @@ gpointer scnr(gpointer p) {
 	int error = 0;
 
 	cmsHPROFILE cielab_profile = NULL;
-	cmsColorSpaceSignature sig;
+//	cmsColorSpaceSignature sig;
 	cmsUInt32Number src_type, dest_type;
 	cmsHTRANSFORM transform = NULL, invtransform = NULL;
 	if (com.icc.available) {
 		cielab_profile = cmsCreateLab4Profile(NULL);
-		sig = cmsGetColorSpace(args->fit->icc_profile);
+//		sig = cmsGetColorSpace(args->fit->icc_profile);
 		src_type = TYPE_RGB_FLT_PLANAR;
 		dest_type = TYPE_Lab_FLT_PLANAR;
 		transform = cmsCreateTransform(args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
