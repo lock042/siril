@@ -56,6 +56,7 @@ gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
 	g_assert(args->fit->type == DATA_USHORT || args->fit->type == DATA_FLOAT);
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
+	size_t nbdatac = nbdata * args->fit->naxes[2];
 	gint nb_above_1 = 0;
 	struct timeval t_start, t_end;
 	double norm = get_normalized_value(args->fit);
@@ -69,106 +70,205 @@ gpointer scnr(gpointer p) {
 	int error = 0;
 
 	cmsHPROFILE cielab_profile = NULL;
-//	cmsColorSpaceSignature sig;
 	cmsUInt32Number src_type, dest_type;
 	cmsHTRANSFORM transform = NULL, invtransform = NULL;
+	cmsUInt32Number bytesperline, bytesperplane;
 	if (com.icc.available) {
 		cielab_profile = cmsCreateLab4Profile(NULL);
-//		sig = cmsGetColorSpace(args->fit->icc_profile);
 		src_type = TYPE_RGB_FLT_PLANAR;
 		dest_type = TYPE_Lab_FLT_PLANAR;
 		transform = cmsCreateTransform(args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
 		invtransform = cmsCreateTransform(cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 		cmsCloseProfile(cielab_profile);
+		bytesperline = args->fit->rx * sizeof(float);
+		bytesperplane = nbdata * sizeof(float);
+
 	}
-
+	if (com.icc.available && com.pref.icc.use_extra_mem) {
+		float *lab = malloc(nbdatac * sizeof(float));
+		if (!lab) {
+			PRINT_ALLOC_ERR;
+			return GINT_TO_POINTER(1);
+		}
+		float *l = malloc(nbdata * sizeof(float));
+		if (!l) {
+			PRINT_ALLOC_ERR;
+			return GINT_TO_POINTER(1);
+		}		float* rgbfloat = malloc(nbdatac * sizeof(float));
+		if (!rgbfloat) {
+			PRINT_ALLOC_ERR;
+			return GINT_TO_POINTER(1);
+		}
+		float* prgbfloat[3] = { rgbfloat, rgbfloat + nbdata, rgbfloat + 2 * nbdata };
+		if (args->fit->type == DATA_USHORT) {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
-	for (i = 0; i < nbdata; i++) {
-		float red, green, blue;
-		switch (args->fit->type) {
-			case DATA_USHORT:
-				red = args->fit->pdata[RLAYER][i] * invnorm;
-				green = args->fit->pdata[GLAYER][i] * invnorm;
-				blue = args->fit->pdata[BLAYER][i] * invnorm;
-				break;
-			case DATA_FLOAT:
-				red = args->fit->fpdata[RLAYER][i];
-				green = args->fit->fpdata[GLAYER][i];
-				blue = args->fit->fpdata[BLAYER][i];
-				break;
-			default: // Default needs to be included in the switch to avoid warning about omitting DATA_UNSUPPORTED
-				break;
+			for (i = 0 ; i < nbdata * args->fit->naxes[2] ; i++)
+				rgbfloat[i] = args->fit->data[i] * invnorm;
+		} else {
+			memcpy(rgbfloat, args->fit->fdata, nbdatac * sizeof(float));
 		}
-
-		float x, y, z, L, a, b, m;
-		if (args->preserve) {
-			if (com.icc.available) {
-				float in[3] = { red, green, blue };
-				float out[3];
-				cmsDoTransform(transform, (void*) &in, (void*) &out, 1);
-				L = out[0];
-			} else {
-				rgb_to_xyzf(red, green, blue, &x, &y, &z);
-				xyz_to_LABf(x, y, z, &L, &a, &b);
-			}
-		}
-
+		cmsDoTransformLineStride(transform, rgbfloat, lab, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		memcpy(l, lab, nbdata * sizeof(float));
+		float m;
 		switch (args->type) {
 			case SCNR_AVERAGE_NEUTRAL:
-				m = 0.5f * (red + blue);
-				green = min(green, m);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (i = 0 ; i < nbdata ; i++) {
+					m = 0.5f * (prgbfloat[RLAYER][i] + prgbfloat[BLAYER][i]);
+					prgbfloat[GLAYER][i] = min(prgbfloat[GLAYER][i], m);
+				}
 				break;
 			case SCNR_MAXIMUM_NEUTRAL:
-				m = max(red, blue);
-				green = min(green, m);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (i = 0 ; i < nbdata ; i++) {
+					m = max(prgbfloat[RLAYER][i], prgbfloat[BLAYER][i]);
+					prgbfloat[GLAYER][i] = min(prgbfloat[GLAYER][i], m);
+				}
 				break;
 			case SCNR_MAXIMUM_MASK:
-				m = max(red, blue);
-				green = (green * (1.0f - args->amount) * (1.0f - m)) + (m * green);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (i = 0 ; i < nbdata ; i++) {
+					m = max(prgbfloat[RLAYER][i], prgbfloat[BLAYER][i]);
+					prgbfloat[GLAYER][i] = (prgbfloat[GLAYER][i] * (1.0f - args->amount) * (1.0f - m)) + (m * prgbfloat[GLAYER][i]);
+				}
 				break;
 			case SCNR_ADDITIVE_MASK:
-				m = min(1.0f, red + blue);
-				green = (green * (1.0f - args->amount) * (1.0f - m)) + (m * green);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (i = 0 ; i < nbdata ; i++) {
+					m = min(1.0f, prgbfloat[RLAYER][i] + prgbfloat[BLAYER][i]);
+					prgbfloat[GLAYER][i] = (prgbfloat[GLAYER][i] * (1.0f - args->amount) * (1.0f - m)) + (m * prgbfloat[GLAYER][i]);
+				}
 		}
-
 		if (args->preserve) {
-			if (com.icc.available) {
-				float in[3] = { red, green, blue };
-				float out[3];
-				cmsDoTransform(transform, (void*) &in, (void*) &out, 1);
-				out[0] = L;
-				cmsDoTransform(invtransform, (void*) &out, (void*) &in, 1);
-				red = in[0];
-				green = in[1];
-				blue = in[2];
-			} else {
-				float tmp;
-				rgb_to_xyzf(red, green, blue, &x, &y, &z);
-				xyz_to_LABf(x, y, z, &tmp, &a, &b);
-				LAB_to_xyzf(L, a, b, &x, &y, &z);
-				xyz_to_rgbf(x, y, z, &red, &green, &blue);
-			}
-			if (red > 1.000001f || green > 1.000001f || blue > 1.000001f)
+			cmsDoTransformLineStride(transform, rgbfloat, lab, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			memcpy(lab, l, nbdata * sizeof(float));
+			cmsDoTransformLineStride(invtransform, lab, rgbfloat, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		}
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (i = 0 ; i < nbdata ; i++) {
+			if (prgbfloat[RLAYER][i] > 1.000001f || prgbfloat[GLAYER][i] > 1.000001f || prgbfloat[BLAYER][i] > 1.000001f)
 				g_atomic_int_inc(&nb_above_1);
-		}
-
-		if (args->fit->type == DATA_USHORT) {
-			if (args->fit->orig_bitpix == BYTE_IMG) {
-				args->fit->pdata[RLAYER][i] = round_to_BYTE(red * norm);
-				args->fit->pdata[GLAYER][i] = round_to_BYTE(green * norm);
-				args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * norm);
-			} else {
-				args->fit->pdata[RLAYER][i] = round_to_WORD(red * norm);
-				args->fit->pdata[GLAYER][i] = round_to_WORD(green * norm);
-				args->fit->pdata[BLAYER][i] = round_to_WORD(blue * norm);
+			if (args->fit->type == DATA_USHORT) {
+				if (args->fit->orig_bitpix == BYTE_IMG) {
+					args->fit->pdata[RLAYER][i] = round_to_BYTE(prgbfloat[RLAYER][i] * norm);
+					args->fit->pdata[GLAYER][i] = round_to_BYTE(prgbfloat[GLAYER][i] * norm);
+					args->fit->pdata[BLAYER][i] = round_to_BYTE(prgbfloat[BLAYER][i] * norm);
+				} else {
+					args->fit->pdata[RLAYER][i] = round_to_WORD(prgbfloat[RLAYER][i] * norm);
+					args->fit->pdata[GLAYER][i] = round_to_WORD(prgbfloat[GLAYER][i] * norm);
+					args->fit->pdata[BLAYER][i] = round_to_WORD(prgbfloat[BLAYER][i] * norm);
+				}
+			}
+			else if (args->fit->type == DATA_FLOAT) {
+				args->fit->fpdata[RLAYER][i] = set_float_in_interval(prgbfloat[RLAYER][i], 0.0f, 1.0f);
+				args->fit->fpdata[GLAYER][i] = set_float_in_interval(prgbfloat[GLAYER][i], 0.0f, 1.0f);
+				args->fit->fpdata[BLAYER][i] = set_float_in_interval(prgbfloat[BLAYER][i], 0.0f, 1.0f);
 			}
 		}
-		else if (args->fit->type == DATA_FLOAT) {
-			args->fit->fpdata[RLAYER][i] = set_float_in_interval(red, 0.0f, 1.0f);
-			args->fit->fpdata[GLAYER][i] = set_float_in_interval(green, 0.0f, 1.0f);
-			args->fit->fpdata[BLAYER][i] = set_float_in_interval(blue, 0.0f, 1.0f);
+		free(lab);
+		free(l);
+		free(rgbfloat);
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (i = 0; i < nbdata; i++) {
+			float red, green, blue;
+			switch (args->fit->type) {
+				case DATA_USHORT:
+					red = args->fit->pdata[RLAYER][i] * invnorm;
+					green = args->fit->pdata[GLAYER][i] * invnorm;
+					blue = args->fit->pdata[BLAYER][i] * invnorm;
+					break;
+				case DATA_FLOAT:
+					red = args->fit->fpdata[RLAYER][i];
+					green = args->fit->fpdata[GLAYER][i];
+					blue = args->fit->fpdata[BLAYER][i];
+					break;
+				default: // Default needs to be included in the switch to avoid warning about omitting DATA_UNSUPPORTED
+					break;
+			}
+
+			float x, y, z, L, a, b, m;
+			if (args->preserve) {
+				if (com.icc.available) {
+					float in[3] = { red, green, blue };
+					float out[3];
+					cmsDoTransform(transform, (void*) &in, (void*) &out, 1);
+					L = out[0];
+				} else {
+					rgb_to_xyzf(red, green, blue, &x, &y, &z);
+					xyz_to_LABf(x, y, z, &L, &a, &b);
+				}
+			}
+
+			switch (args->type) {
+				case SCNR_AVERAGE_NEUTRAL:
+					m = 0.5f * (red + blue);
+					green = min(green, m);
+					break;
+				case SCNR_MAXIMUM_NEUTRAL:
+					m = max(red, blue);
+					green = min(green, m);
+					break;
+				case SCNR_MAXIMUM_MASK:
+					m = max(red, blue);
+					green = (green * (1.0f - args->amount) * (1.0f - m)) + (m * green);
+					break;
+				case SCNR_ADDITIVE_MASK:
+					m = min(1.0f, red + blue);
+					green = (green * (1.0f - args->amount) * (1.0f - m)) + (m * green);
+			}
+
+			if (args->preserve) {
+				if (com.icc.available) {
+					float in[3] = { red, green, blue };
+					float out[3];
+					cmsDoTransform(transform, (void*) &in, (void*) &out, 1);
+					out[0] = L;
+					cmsDoTransform(invtransform, (void*) &out, (void*) &in, 1);
+					red = in[0];
+					green = in[1];
+					blue = in[2];
+				} else {
+					float tmp;
+					rgb_to_xyzf(red, green, blue, &x, &y, &z);
+					xyz_to_LABf(x, y, z, &tmp, &a, &b);
+					LAB_to_xyzf(L, a, b, &x, &y, &z);
+					xyz_to_rgbf(x, y, z, &red, &green, &blue);
+				}
+				if (red > 1.000001f || green > 1.000001f || blue > 1.000001f)
+					g_atomic_int_inc(&nb_above_1);
+			}
+
+			if (args->fit->type == DATA_USHORT) {
+				if (args->fit->orig_bitpix == BYTE_IMG) {
+					args->fit->pdata[RLAYER][i] = round_to_BYTE(red * norm);
+					args->fit->pdata[GLAYER][i] = round_to_BYTE(green * norm);
+					args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * norm);
+				} else {
+					args->fit->pdata[RLAYER][i] = round_to_WORD(red * norm);
+					args->fit->pdata[GLAYER][i] = round_to_WORD(green * norm);
+					args->fit->pdata[BLAYER][i] = round_to_WORD(blue * norm);
+				}
+			}
+			else if (args->fit->type == DATA_FLOAT) {
+				args->fit->fpdata[RLAYER][i] = set_float_in_interval(red, 0.0f, 1.0f);
+				args->fit->fpdata[GLAYER][i] = set_float_in_interval(green, 0.0f, 1.0f);
+				args->fit->fpdata[BLAYER][i] = set_float_in_interval(blue, 0.0f, 1.0f);
+			}
 		}
 	}
 
