@@ -31243,25 +31243,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">6</property>
                                 <child>
-                                  <object class="GtkCheckButton" id="enable_icc">
-                                    <property name="label" translatable="yes">Enable color management</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-markup" translatable="yes">Enable color management. &lt;b&gt;Warning&lt;/b&gt;: with this setting disabled, your images will display inconsistently in other applications. You will need to assign color profiles etc. yourself to resolve the issues that occur. It is strongly recommended to leave this setting enabled.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                    <signal name="show" handler="update_icc_enabled_widget" swapped="no"/>
-                                    <signal name="toggled" handler="on_enable_icc_toggled" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkCheckButton" id="icc_use_extra_mem">
                                     <property name="label" translatable="yes">Use additional memory to speed up display transform</property>
                                     <property name="visible">True</property>
@@ -31275,7 +31256,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">1</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -31285,13 +31266,14 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
                                     <property name="tooltip-markup" translatable="yes">When active, the display color space transform will not be done for images with a linear color profile. This avoids transformations where the optimisation plugins don't apply, which makes display updates a lot faster. This is usually fine to activate but if you do, you should ensure you convert to a nonlinear working profile &lt;b&gt;before&lt;/b&gt; stretching your image so that the display looks correct during stretching.</property>
+                                    <property name="halign">start</property>
                                     <property name="active">True</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">2</property>
+                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                               </object>

@@ -1091,10 +1091,8 @@ void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
 	GtkLabel* label5 = (GtkLabel*) lookup_widget("icc_mfr_label");
 	GtkLabel* label6 = (GtkLabel*) lookup_widget("icc_copyright_label");
 	GtkComboBox* target_combo = (GtkComboBox*) lookup_widget("icc_target_combo");
-	GtkComboBox* operation = (GtkComboBox*) lookup_widget("icc_operation_combo");
 	GtkFileChooser* filechooser = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
 	gtk_combo_box_set_active(target_combo, 0);
-	gtk_combo_box_set_active(operation, 0);
 	gtk_file_chooser_unselect_all(filechooser);
 	if (target) {
 		cmsCloseProfile(target);
@@ -1260,6 +1258,7 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 	g_free(filename);
 }
 
+/*
 void on_enable_icc_toggled(GtkToggleButton* button, gpointer user_data) {
 	gboolean status = gtk_toggle_button_get_active(button);
 	if (!status) {
@@ -1282,6 +1281,7 @@ void on_enable_icc_toggled(GtkToggleButton* button, gpointer user_data) {
 	}
 	notify_gfit_modified();
 }
+*/
 
 void update_icc_enabled_widget(GtkWidget *dialog, gpointer user_data) {
 	// Set description
