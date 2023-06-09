@@ -574,8 +574,8 @@ int remixer() {
 					float inl[3] = { 0.f }, inr[3] = { 0.f }, xyzl[3], xyzr[3], labl[3], labr[3], xyzo[3], labo[3], rgbo[3];
 					if (left_loaded) {
 						inl[0] = fit_left_calc.pdata[0][i] * invnorm;
-						inl[0] = fit_left_calc.pdata[1][i] * invnorm;
-						inl[0] = fit_left_calc.pdata[2][i] * invnorm;
+						inl[1] = fit_left_calc.pdata[1][i] * invnorm;
+						inl[2] = fit_left_calc.pdata[2][i] * invnorm;
 					}
 					if (right_loaded) {
 						inr[0] = fit_right_calc.pdata[0][i] * invnorm;

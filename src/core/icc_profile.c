@@ -897,9 +897,7 @@ void check_linear_and_convert_with_approval(fits *fit) {
 	}
 }
 
-void error_loading_profile() {
-	siril_message_dialog(GTK_MESSAGE_ERROR, _("Error loading profile"),
-						 _("The selected profile could not be loaded or did not contain a valid ICC profile. Defaulting to sRGB."));
+static void reset_working_profile_to_srgb() {
 	if (com.icc.working_linear)
 		cmsCloseProfile(com.icc.working_linear);
 	com.icc.working_linear = srgb_linear();
@@ -915,6 +913,18 @@ void error_loading_profile() {
 	if (com.icc.mono_out)
 		cmsCloseProfile(com.icc.mono_out);
 	com.icc.mono_out = gray_srgbtrcv2();
+	com.pref.icc.working_gamut = TYPE_SRGB;
+}
+
+void error_loading_profile() {
+	siril_message_dialog(GTK_MESSAGE_ERROR, _("Error loading profile"),
+						 _("The selected profile could not be loaded or did not contain a valid ICC profile. Defaulting to sRGB."));
+	reset_working_profile_to_srgb();
+}
+
+static void reset_custom_to_srgb() {
+	siril_log_color_message(_("Error: the custom workspace profiles are not all set and / or valid. Defaulting to sRGB.\n"), "red");
+	reset_working_profile_to_srgb();
 }
 
 void update_profiles_after_gamut_change() {
@@ -956,28 +966,34 @@ void update_profiles_after_gamut_change() {
 			com.icc.mono_out = gray_rec709trcv2();
 			break;
 		case TYPE_CUSTOM:
+			if (!(com.pref.icc.custom_icc_linear && com.pref.icc.custom_icc_trc && com.pref.icc.custom_gray_icc_matching_trc)) {
+				reset_custom_to_srgb();
+				break;
+			}
 			if (com.icc.working_linear)
 				cmsCloseProfile(com.icc.working_linear);
 			if (!(com.pref.icc.custom_icc_linear && (com.icc.working_linear = cmsOpenProfileFromFile(com.pref.icc.custom_icc_linear, "r")))) {
 				error_loading_profile();
+				break;
 			}
-			break;
 			// Custom profiles will also be used for the output profile
 			if (com.icc.working_standard)
 				cmsCloseProfile(com.icc.working_standard);
 			if (!(com.pref.icc.custom_icc_trc && (com.icc.working_standard =
 						cmsOpenProfileFromFile(com.pref.icc.custom_icc_trc, "r")))) {
 				error_loading_profile();
+				break;
 			} else {
+				// copy to working_out as we don't require a separate profile for embedding in a custom profile set
 				if (com.icc.working_out)
 					cmsCloseProfile(com.icc.working_out);
 				com.icc.working_out = copyICCProfile(com.icc.working_standard);
 			}
-			break;
+
 			// Custom profiles will also be used for the output profile
 			if (com.icc.mono_standard)
 				cmsCloseProfile(com.icc.mono_standard);
-			if (!(com.pref.icc.custom_icc_gray && (com.icc.working_standard =
+			if (!(com.pref.icc.custom_icc_gray && (com.icc.mono_standard =
 						cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r")))) {
 				error_loading_profile();
 			} else {
@@ -985,7 +1001,6 @@ void update_profiles_after_gamut_change() {
 					cmsCloseProfile(com.icc.mono_out);
 				com.icc.mono_out = copyICCProfile(com.icc.mono_standard);
 			}
-			break;
 	}
 	g_mutex_unlock(&default_profiles_mutex);
 }
