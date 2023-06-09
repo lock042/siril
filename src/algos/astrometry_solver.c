@@ -980,16 +980,29 @@ clearup:
 /*********************** finding asnet bash first **********************/
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
+	// searching user-defined path if any
 	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
-		return g_build_filename(com.pref.asnet_dir, NULL);
+		gchar *testdir = g_build_filename(com.pref.asnet_dir, "bin", NULL);
+		// only testing for dir existence, which will catch most path defintion errors
+		// this is lighter than testing for existence of bash.exe with G_FILE_TEST_IS_EXECUTABLE flag
+		if (!g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
+			siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
+			g_free(testdir);
+		} else {
+			siril_debug_print("cygwin/bin found at %s\n", testdir);
+			g_free(testdir);
+			return g_build_filename(com.pref.asnet_dir, NULL);
+		}
 	}
+	// searching default location %localappdata%/cygwin_ansvr
 	const gchar *localappdata = g_get_user_data_dir();
-	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", NULL);
+	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", "bin", NULL);
 	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
-		siril_debug_print("cygwin_ansvr found at %s\n", testdir);
+		siril_debug_print("cygwin/bin found at %s\n", testdir);
 		g_free(testdir);
 		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	}
+	siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
 	g_free(testdir);
 	return NULL;
 }
@@ -1026,7 +1039,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #ifdef _WIN32
 	gchar *asnet_shell = siril_get_asnet_bash();
 	if (!asnet_shell) {
-		siril_log_color_message(_("asnet_ansvr directory is not set - aborting\n"), "red");
 		return 1;
 	}
 #else
