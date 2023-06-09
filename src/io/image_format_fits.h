@@ -14,7 +14,7 @@ typedef struct {
 	char *value;
 } header_record;
 GSList *read_header_keyvals_strings(fitsfile *fptr);
-int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE icc_profile);
+cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr);
 int read_icc_profile_from_fits(fits *fit);
 int write_icc_profile_to_fits(fits *fit);
 int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile);

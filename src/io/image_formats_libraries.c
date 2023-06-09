@@ -782,9 +782,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
 		// Generate the correct profile and assign it to the TIFF
 		if (bitspersample == 8) {
-			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+			profile = get_icc_profile_data((nsamples == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 		} else if (bitspersample == 16) {
-			profile = get_icc_profile_data((nsamples == 1 ? &com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+			profile = get_icc_profile_data((nsamples == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 		}
 		else {
 			if (fit->icc_profile) {
@@ -1223,7 +1223,7 @@ int savejpg(const char *name, fits *fit, int quality){
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
 	if (com.icc.available) {
 		unsigned int EmbedLen;
-		EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &EmbedLen);
+		EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &EmbedLen);
 		if (EmbedBuffer)
 			jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
 		else
@@ -1561,12 +1561,12 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	if (com.icc.available) {
 		if (bytes_per_sample == 1) {
-			profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+			profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 		} else {
-			profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? &com.icc.srgb_out : &com.icc.working_out), &profile_len);
+			profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 		}
 	} else // if color management is disabled we assume the sRGB TRC, either mono or RGB
-		profile = get_icc_profile_data((samples_per_pixel == 1 ? &com.icc.mono_out : &com.icc.srgb_out), &profile_len);
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.icc.srgb_out), &profile_len);
 
 	if (profile_len > 0) {
 		png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);

@@ -72,9 +72,10 @@ void fits_check_icc(fits *fit);
 void check_linear_and_convert_with_approval(fits *fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
-unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len);
+unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len);
 cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
 void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference);
+void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to);
 void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

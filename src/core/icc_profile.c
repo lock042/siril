@@ -445,13 +445,13 @@ void refresh_icc_transforms() {
 	}
 }
 
-unsigned char* get_icc_profile_data(cmsHPROFILE *profile, guint32 *len) {
+unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
 	unsigned char* block = NULL;
 	cmsUInt32Number length;
-	cmsBool ret = cmsSaveProfileToMem(*profile, NULL, &length);
+	cmsBool ret = cmsSaveProfileToMem(profile, NULL, &length);
 	if (length > 0) {
 		block = malloc(length * sizeof(BYTE));
-		ret = cmsSaveProfileToMem(*profile, (void*) block, &length);
+		ret = cmsSaveProfileToMem(profile, (void*) block, &length);
 	}
 	if (!ret) {
 		siril_debug_print("Error preparing ICC profile for embedding...\n");
@@ -575,6 +575,8 @@ void fits_check_icc(fits *fit) {
  * are guaranteed to be the same.
  */
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
+	if (!a && !b)
+		return TRUE;
 	if (!a || !b)
 		return FALSE;
 	cmsUInt8Number *block_a = NULL, *block_b = NULL;
@@ -623,34 +625,38 @@ cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
 	return retval;
 }
 
-/* Converts the color space of one fits to match a reference fits */
-void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
-	if (!reference->icc_profile) {
+void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
+	if (!to) {
 		siril_log_color_message(_("Warning: reference image has no color profile. Cannot convert input to reference profile.\n"), "salmon");
 		return;
 	}
-	if(!input->icc_profile) {
-		input->icc_profile = copyICCProfile(reference->icc_profile);
+	if(!from) {
+		from = copyICCProfile(to);
 		return;
 	}
 	cmsColorSpaceSignature sig, ref_sig;
 	cmsUInt32Number src_type;
 	cmsUInt32Number datasize, bytesperline, bytesperplane;
-	int npixels = input->rx * input->ry;
-	sig = cmsGetColorSpace(input->icc_profile);
-	ref_sig = cmsGetColorSpace(reference->icc_profile);
+	int npixels = fit->rx * fit->ry;
+	sig = cmsGetColorSpace(from);
+	ref_sig = cmsGetColorSpace(to);
 	if (sig != ref_sig) {
 		siril_log_color_message(_("Warning: color spaces of the images are not the same. Will not convert input to reference profile.\n"), "salmon");
 		return;
 	}
-	void *buffer = input->type == DATA_FLOAT ? (void*) input->fdata : (void*) input->data;
-	src_type = get_planar_formatter_type(sig, input->type, FALSE);
-	cmsHTRANSFORM transform = cmsCreateTransform(input->icc_profile, src_type, reference->icc_profile, src_type, com.pref.icc.rendering_intent, 0);
-	datasize = input->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	bytesperline = input->rx * datasize;
+	void *buffer = fit->type == DATA_FLOAT ? (void*) fit->fdata : (void*) fit->data;
+	src_type = get_planar_formatter_type(sig, fit->type, FALSE);
+	cmsHTRANSFORM transform = cmsCreateTransform(from, src_type, to, src_type, com.pref.icc.processing_intent, 0);
+	datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	bytesperline = fit->rx * datasize;
 	bytesperplane = npixels * datasize;
-	cmsDoTransformLineStride(transform, buffer, buffer, input->rx, input->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+	cmsDoTransformLineStride(transform, buffer, buffer, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 	cmsDeleteTransform(transform);
+}
+
+/* Converts the color space of one fits to match a reference fits */
+void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
+	convert_fit_colorspace(input, input->icc_profile, reference->icc_profile);
 }
 
 ///// Preferences callbacks

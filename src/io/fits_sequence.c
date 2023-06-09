@@ -190,10 +190,9 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 
 	if (com.icc.available) {
 		// Attempt to read an embedded ICC profile, if one is present
-		if (!read_icc_profile_from_fptr(fitseq->fptr, &fitseq->icc_profile)) {
-			if (fitseq->icc_profile) {
-				siril_log_message(_("ICC profile read from FITS cube\n"));
-			}
+		fitseq->icc_profile = read_icc_profile_from_fptr(fitseq->fptr);
+		if (fitseq->icc_profile) {
+			siril_log_message(_("ICC profile read from FITS cube\n"));
 		}
 	}
 
@@ -274,7 +273,7 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	// assign a linear profile.
 	if (com.icc.available && !status) {
 		if (fitseq->icc_profile) {
-			read_icc_profile_from_fptr(fptr, &dest->icc_profile);
+			dest->icc_profile = copyICCProfile(fitseq->icc_profile);
 		} else {
 			assign_linear_icc_profile(dest);
 		}
@@ -386,15 +385,6 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index) {
 	fitseq *fitseq = (struct fits_sequence *)writer->sequence;
 	int status = 0;
-	// Check for any ICC profile mismatch
-	if (com.icc.available) {
-		if (fitseq->icc_profile && image->icc_profile) {
-			if (!profiles_identical(fitseq->icc_profile, image->icc_profile)) {
-				siril_log_color_message(_("Error: frame ICC profile is inconsistent with sequence ICC profile. Ensure all frames are allocated the same ICC profile.\n"), "red");
-				return 1;
-			}
-		}
-	}
 	if (fits_create_img(fitseq->fptr, image->bitpix,
 				image->naxis, image->naxes, &status)) {
 		report_fits_error(status);
@@ -422,6 +412,13 @@ int fitseq_write_image(fitseq *fitseq, fits *image, int index) {
 	if (!fitseq->fptr) {
 		siril_log_color_message(_("Cannot save image in sequence not opened for writing\n"), "red");
 		return 1;
+	}
+	// Check for any ICC profile mismatch
+	if (fitseq->icc_profile && image->icc_profile) {
+		if (!profiles_identical(fitseq->icc_profile, image->icc_profile)) {
+			siril_log_color_message(_("Error: frame ICC profile is inconsistent with sequence ICC profile. Ensure all frames are allocated the same ICC profile.\n"), "red");
+			return 1;
+		}
 	}
 	siril_debug_print("FITS sequence %s pending image save %d\n", fitseq->filename, index);
 	return seqwriter_append_write(fitseq->writer, image, index);

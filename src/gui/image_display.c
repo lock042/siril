@@ -436,7 +436,7 @@ static void remap_all_vports() {
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 			for (int n = 0 ; n < npixels * gfit.naxes[2] ; n++) {
-				pixelbuf[n] = gfit.data[n] << 8;
+				pixelbuf[n] = pixelbuf[n] >> 8;
 			}
 		}
 #ifdef _OPENMP

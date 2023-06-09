@@ -305,6 +305,9 @@ static gpointer export_sequence(gpointer ptr) {
 	size_t nbpix = 0;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
+	gboolean first_profile_read = FALSE;
+	cmsHPROFILE master_profile;
+
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
@@ -338,6 +341,29 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 
+		if (fit.icc_profile) {
+			if (!first_profile_read) {
+				master_profile = copyICCProfile(fit.icc_profile);
+				first_profile_read = TRUE;
+			} else {
+				cmsHPROFILE profile = copyICCProfile(fit.icc_profile);
+				if (!profiles_identical(master_profile, profile)) {
+					if (profile && master_profile) {
+						siril_log_color_message(_("An image of the sequence doesn't have the same ICC profile. Converting...\n"), "salmon");
+						convert_fit_colorspace(&fit, profile, master_profile);
+					} else {
+						siril_log_color_message(_("Mismatch of ICC profiles within the sequence. Can't decide what to do. Aborting..."), "red");
+						if (master_profile)
+							cmsCloseProfile(master_profile);
+						if (profile)
+							cmsCloseProfile(profile);
+						seqwriter_release_memory();
+						retval = -3;
+						goto free_and_reset_progress_bar;
+					}
+				}
+			}
+		}
 		/* destfit is allocated to the full size. Data will be copied from fit,
 		 * image buffers are duplicated. It will be cropped after the copy if
 		 * needed */
@@ -348,7 +374,7 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 			else {
 				if (memcmp(naxes, fit.naxes, sizeof naxes)) {
-					fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
+					siril_log_color_message(_("An image of the sequence doesn't have the same dimensions\n"), "red");
 					retval = -3;
 					clearfits(&fit);
 					seqwriter_release_memory();
@@ -399,17 +425,15 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
-		if (com.icc.available) {
-			if (destfit->icc_profile) {
-				cmsCloseProfile(destfit->icc_profile);
-			}
-			// Copy the ICC profile from fit if available
-			destfit->icc_profile = copyICCProfile(fit.icc_profile);
-			// Last resort, if the user is exporting as an 8 bit movie
-			// and we have no other guesses for color space, assume sRGB
-			if (!destfit->icc_profile) {
-				destfit->icc_profile = copyICCProfile(destfit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard);
-			}
+		if (destfit->icc_profile) {
+			cmsCloseProfile(destfit->icc_profile);
+		}
+		// Copy the ICC profile from fit if available
+		destfit->icc_profile = copyICCProfile(fit.icc_profile);
+		// Last resort, if the user is exporting as an 8 bit movie
+		// and we have no other guesses for color space, assume sRGB
+		if (!destfit->icc_profile) {
+			destfit->icc_profile = copyICCProfile(destfit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard);
 		}
 		/* we copy the header */
 		copy_fits_metadata(&fit, destfit);
@@ -568,7 +592,7 @@ free_and_reset_progress_bar:
 				fits_get_num_hdus(fitseq_file->fptr, &nhdus, &status);
 				if (!fits_movabs_hdu(fitseq_file->fptr, nhdus, NULL, &status)) {
 					if (fitseq_file->icc_profile) {
-						write_icc_profile_to_fptr(fitseq_file->fptr, &fitseq_file->icc_profile);
+						write_icc_profile_to_fptr(fitseq_file->fptr, fitseq_file->icc_profile);
 					}
 				} else {
 					report_fits_error(status);

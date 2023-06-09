@@ -1843,7 +1843,8 @@ int write_icc_profile_to_fits(fits *fit) {
 }
 
 /* Look for a HDU containing an ICC profile; if one is found, open it */
-int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
+cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
+	cmsHPROFILE icc_profile;
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype;
@@ -1851,6 +1852,68 @@ int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
 	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
 		fits_movabs_hdu(fptr,ihdu, &hdutype, &status);
 		fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status);
+		if (status) {
+			status = 0;
+			continue; /* next HDU */
+		}
+		if (!g_str_has_prefix(extname, "ICCProfile"))
+			continue; /* next HDU */
+		break; /* current HDU matches */
+	}
+	if (ihdu > nhdus) {
+		/* no matching HDU */
+		status = BAD_HDU_NUM;
+		return NULL;
+	}
+	int strsize = 1620;
+	int strlength = 0;
+	char *header = NULL;
+	if (!(header = malloc(strsize))) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	status = copy_header_from_hdu(fptr, &header, &strsize, &strlength);
+	if (status) {
+		free(header);
+		return NULL;
+	}
+	// Get the ICC Profile length
+	uint32_t profile_length, bitpix;
+	fits_read_key(fptr, TUINT, "NAXIS1", &profile_length, comment, &status);
+	fits_read_key(fptr, TUINT, "BITPIX", &bitpix, comment, &status);
+	if (bitpix != 8 || status != 0) {
+		free(header);
+		return NULL;
+	}
+	int zero = 0;
+	BYTE *profile = NULL;
+	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
+		PRINT_ALLOC_ERR;
+		free(header);
+		return NULL;
+	}
+	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
+	if (status) {
+		free(profile);
+		free(header);
+		return NULL;
+	}
+	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
+	if (icc_profile)
+		siril_log_message("Embedded ICC profile read from FITS\n");
+	free(profile);
+	free(header);
+	return icc_profile;
+}
+
+int read_icc_profile_from_fits(fits *fit) {
+	int status = 0;
+	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+	int ihdu, nhdus, hdutype;
+	fits_get_num_hdus(fit->fptr, &nhdus, &status);
+	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
+		fits_movabs_hdu(fit->fptr,ihdu, &hdutype, &status);
+		fits_read_key(fit->fptr, TSTRING, "EXTNAME", &extname, comment, &status);
 		if (status) {
 			status = 0;
 			continue; /* next HDU */
@@ -1871,15 +1934,15 @@ int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-	status = copy_header_from_hdu(fptr, &header, &strsize, &strlength);
+	status = copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength);
 	if (status) {
 		free(header);
 		return 1;
 	}
 	// Get the ICC Profile length
 	uint32_t profile_length, bitpix;
-	fits_read_key(fptr, TUINT, "NAXIS1", &profile_length, comment, &status);
-	fits_read_key(fptr, TUINT, "BITPIX", &bitpix, comment, &status);
+	fits_read_key(fit->fptr, TUINT, "NAXIS1", &profile_length, comment, &status);
+	fits_read_key(fit->fptr, TUINT, "BITPIX", &bitpix, comment, &status);
 	if (bitpix != 8 || status != 0) {
 		free(header);
 		return 1;
@@ -1891,24 +1954,18 @@ int read_icc_profile_from_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
 		free(header);
 		return 1;
 	}
-	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
+	fits_read_img(fit->fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
 		free(profile);
 		free(header);
 		return 1;
 	}
-	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
-	if (icc_profile)
+	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
+	if (fit->icc_profile)
 		siril_log_message("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
-	return 0;
-}
-
-int read_icc_profile_from_fits(fits *fit) {
-	int retval = read_icc_profile_from_fptr(fit->fptr, fit->icc_profile);
-	return retval;
-}
+	return 0;}
 
 /* from bitpix, depending on BZERO, bitpix and orig_bitpix are set.
  *
