@@ -154,16 +154,16 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 			free(fit->data);
 		fit->data = (WORD *)newbuf;
 		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + nbdata;
-		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+		fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + nbdata : fit->data;
+		fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + nbdata * 2 : fit->data;
 	}
 	else if (fit->type == DATA_FLOAT) {
 		if (fit->fdata)
 			free(fit->fdata);
 		fit->fdata = (float *)newbuf;
 		fit->fpdata[RLAYER] = fit->fdata;
-		fit->fpdata[GLAYER] = fit->fdata + nbdata;
-		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
+		fit->fpdata[GLAYER] = fit->naxes[2] == 3 ? fit->fdata + nbdata : fit->fdata;
+		fit->fpdata[BLAYER] = fit->naxes[2] == 3 ? fit->fdata + nbdata * 2 : fit->fdata;
 	}
 	/* update size */
 	fit->naxes[0] = width;
