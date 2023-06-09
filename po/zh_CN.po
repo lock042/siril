@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-06 10:21+0200\n"
-"PO-Revision-Date: 2023-06-09 10:40+0000\n"
+"PO-Revision-Date: 2023-06-09 22:23+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -17098,41 +17098,39 @@ msgstr "查找当前载入的图像和给定恒星名称的比较星"
 
 #: src/gui/compstars.c:53
 msgid "Enter the target star name to search in cataloges"
-msgstr ""
+msgstr "输入要在星表中搜索的目标星名"
 
 #: src/gui/compstars.c:56
 msgid "Allowed visual magnitude range:"
-msgstr ""
+msgstr "允许的视星等范围："
 
 #: src/gui/compstars.c:64
 msgid ""
 "Allowed range of visual magnitude between the target star and the comparison "
 "stars"
-msgstr ""
+msgstr "目标星和比较星之间允许的视星等范围"
 
 #: src/gui/compstars.c:68
 msgid "Allowed B-V index range:"
-msgstr ""
+msgstr "允许的 B-V 指标范围："
 
 #: src/gui/compstars.c:76
 msgid ""
 "Allowed range of B-V index (color) between the target star and the "
 "comparison stars"
-msgstr ""
+msgstr "目标星和比较星之间允许的B-V指标（色彩）范围"
 
 #: src/gui/compstars.c:84
 msgid "Recommended catalogue for this feature is APASS"
-msgstr ""
+msgstr "此功能的推荐星表是 APASS"
 
 #: src/gui/compstars.c:86
-#, fuzzy
 msgid "APASS catalogue"
-msgstr "星表"
+msgstr "APASS 星表"
 
 #: src/gui/compstars.c:88
-#, fuzzy
 msgid "NOMAD catalogue"
-msgstr "无星表"
+msgstr "NOMAD 星表"
 
 #: src/gui/compstars.c:119 src/gui/nina_light_curve.c:105
 msgid "The currently loaded image must be plate solved"
