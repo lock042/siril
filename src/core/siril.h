@@ -526,10 +526,9 @@ typedef struct _GNUPLOT_CTRL_ {
 typedef struct {
 	/* widgets data */
 	GtkButton *remove_button;
-	GtkDrawingArea *color_w;	// the simulated color chooser
-	GtkButton *chooser;	// the file choosers
-	gchar* filename; // the filename
-	GtkLabel *label;		// the labels
+	GtkDrawingArea *color_w;		// the simulated color chooser
+	GtkFileChooserButton *chooser;	// the file choosers
+	GtkLabel *label;				// the labels
 	GtkSpinButton *spinbutton_x;	// the X spin button
 	GtkSpinButton *spinbutton_y;	// the Y spin button
 	GtkSpinButton *spinbutton_r;	// the rotation spin button
@@ -538,9 +537,9 @@ typedef struct {
 	double spinbutton_y_value;
 	double spinbutton_r_value;
 	/* useful data */
-	GdkRGBA color;			// real color of the layer
-	GdkRGBA saturated_color;	// saturated color of the layer
-	fits the_fit;			// the fits for layers
+	GdkRGBA color;					// real color of the layer
+	GdkRGBA saturated_color;		// saturated color of the layer
+	fits the_fit;					// the fits for layers
 	point center;
 } layer;
 
