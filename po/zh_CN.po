@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-06 10:21+0200\n"
-"PO-Revision-Date: 2023-06-09 22:23+0000\n"
+"PO-Revision-Date: 2023-06-10 20:59+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -17142,11 +17142,11 @@ msgstr "输入目标恒星的名称"
 
 #: src/gui/compstars.c:136
 msgid "Vmag range not accepted (should be ]0, 6])"
-msgstr ""
+msgstr "不接受 Vmag 范围（应为 [0， 6]）"
 
 #: src/gui/compstars.c:142
 msgid "BV range not accepted (should be ]0, 0.7]"
-msgstr ""
+msgstr "不接受 BV 范围（应为 [0， 0.7]）"
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
@@ -18742,9 +18742,8 @@ msgid "TIFF images"
 msgstr "TIFF图像"
 
 #: src/io/conversion.c:221
-#, fuzzy
 msgid "XISF images"
-msgstr "TIFF图像"
+msgstr "XISF 图像"
 
 #: src/io/conversion.c:228
 msgid "JPG images"
@@ -19132,14 +19131,13 @@ msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "保存TIFF：%d-bit 文件名 %s, %ld layer(s), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:928
-#, fuzzy
 msgid "This image type is not handled.\n"
-msgstr "这个类型的拜耳滤镜排列模式尚未被支持。\n"
+msgstr "该图像类型无法处理。\n"
 
 #: src/io/image_formats_libraries.c:944
-#, fuzzy, c-format
+#, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "读取HEIF：文件名 %s, %ld 图层， %ux%u 像素\n"
+msgstr "读取XISF：文件名 %s, %ld 图层， %ux%u 像素\n"
 
 #: src/io/image_formats_libraries.c:965 src/io/image_formats_libraries.c:1130
 #, c-format
@@ -19477,7 +19475,7 @@ msgstr "亮星"
 
 #: src/io/remote_catalogues.c:89
 msgid "AAVSO"
-msgstr ""
+msgstr "AAVSO"
 
 #: src/io/remote_catalogues.c:91
 msgid "local Tycho-2+NOMAD"
@@ -19555,9 +19553,9 @@ msgid "Solar System Objects search on observation date %s\n"
 msgstr "搜索观测日期%s的太阳系天体\n"
 
 #: src/io/remote_catalogues.c:718
-#, fuzzy, c-format
+#, c-format
 msgid "URL: %s\n"
-msgstr "网址：%s. \n"
+msgstr "网址：%s\n"
 
 #: src/io/remote_catalogues.c:780
 msgid "Using already downloaded star catalogue\n"
@@ -19578,6 +19576,7 @@ msgstr "无法打开星表文件 %s 以用于PCC： %s\n"
 msgid ""
 "name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
 msgstr ""
+"name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
 
 #: src/io/seqfile.c:129
 msgid ""
