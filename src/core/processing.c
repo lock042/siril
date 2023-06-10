@@ -325,7 +325,7 @@ gpointer generic_sequence_worker(gpointer p) {
 				clearfits(fit);
 				free(fit);
 			} else {
-				clearfits_keepdata(fit);
+				clearfits_header(fit);
 				free(fit);
 			}
 		}
@@ -561,7 +561,7 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 		// We re-copy the pointers back, because they are set to NULL in copyfits
 		// We then set the pointers in fit to NULL so that the memory doesn't get freed
 		// by the generic sequence worker
-		clearfits_keepdata(args->seq->internal_fits[in_index]);
+		clearfits_header(args->seq->internal_fits[in_index]);
 		copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
 		if (fit->type == DATA_USHORT) {
 			args->seq->internal_fits[in_index]->data = fit->data;
