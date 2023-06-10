@@ -527,7 +527,9 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	cmsUInt8Number* block = NULL;
 	cmsBool ret = FALSE;
 	cmsHPROFILE retval = NULL;
-	if (profile) {
+	if (!profile) {
+		return NULL;
+	} else {
 		ret = cmsSaveProfileToMem(profile, NULL, &length);
 	}
 	if (length > 0) {

@@ -1910,6 +1910,9 @@ int read_icc_profile_from_fits(fits *fit) {
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype;
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
 	fits_get_num_hdus(fit->fptr, &nhdus, &status);
 	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
 		fits_movabs_hdu(fit->fptr,ihdu, &hdutype, &status);
@@ -1965,7 +1968,8 @@ int read_icc_profile_from_fits(fits *fit) {
 		siril_log_message("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
-	return 0;}
+	return 0;
+}
 
 /* from bitpix, depending on BZERO, bitpix and orig_bitpix are set.
  *
@@ -2292,7 +2296,7 @@ static int read_fits_metadata_from_path_internal(const char *filename, fits *fit
 	}
 
 	read_fits_metadata(fit);
-
+	read_icc_profile_from_fits(fit);
 	status = 0;
 	fits_close_file(fit->fptr, &status);
 

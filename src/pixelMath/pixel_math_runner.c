@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/initfile.h"
@@ -874,6 +875,7 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
 		return 1;
 	}
+
 	if (readfits(var, &var_fit[index], NULL, TRUE)) {
 		*w = *h = *c = -1;
 		return 1;
@@ -898,6 +900,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	int height = -1;
 	int channel = -1;
 
+	gboolean icc_warning_given = FALSE;
 	gboolean single_rgb = is_pm_use_rgb_button_checked();
 	gboolean rescale = is_pm_rescale_checked();
 	float min = get_min_rescale_value();
@@ -906,6 +909,19 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
 		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) return -1;
+
+		// Check ICC profiles are defined and the same
+		if (nb_rows > 0) {
+			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
+				if (!icc_warning_given) {
+					siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), _("ICC profiles do not match. The mismatched images will be converted to the same color profile as the first image. If this is not what you want, correct the color profiles of the input images and reload them into PixelMath."));
+					icc_warning_given = TRUE;
+				}
+				siril_log_color_message(_("ICC profile of image %d does not match the first image. Converting it to match...\n"), "salmon");
+				convert_fit_colorspace_to_reference_fit(&var_fit[nb_rows], &var_fit[0]);
+			}
+		}
+		// Check channels are compatible
 		if (channel == - 1) {
 			width = var_fit[nb_rows].rx;
 			height = var_fit[nb_rows].ry;
