@@ -52,7 +52,9 @@ gpointer generic_sequence_worker(gpointer p) {
 	int *index_mapping = NULL;
 	int nb_frames, excluded_frames = 0, progress = 0;
 	int abort = 0;	// variable for breaking out of loop
+#ifdef _OPENMP
 	int* threads_per_image = NULL;
+#endif
 	gboolean have_seqwriter = FALSE;
 
 	assert(args);
