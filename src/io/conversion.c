@@ -121,6 +121,9 @@ void list_format_available() {
 #ifdef HAVE_LIBTIFF
 	puts("TIFF\t(*.tif, *.tiff)");
 #endif
+#ifdef HAVE_LIBXISF
+	puts("XISF\t(*.xisf)");
+#endif
 #ifdef HAVE_LIBJPEG
 	puts("JPEG\t(*.jpg, *.jpeg)");
 #endif
@@ -212,6 +215,13 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".tiff";
 #endif
 
+#ifdef HAVE_LIBXISF
+	supported_filetypes |= TYPEXISF;
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("XISF images"));
+	supported_extensions[count_ext++] = ".xisf";
+#endif
+
 #ifdef HAVE_LIBJPEG
 	supported_filetypes |= TYPEJPG;
 	string = g_string_append(string, ", ");
@@ -301,6 +311,8 @@ image_type get_type_for_extension(const char *extension) {
 	} else if (!g_ascii_strcasecmp(extension, "fit.fz") || !g_ascii_strcasecmp(extension, "fits.fz") ||
 			!g_ascii_strcasecmp(extension, "fts.fz")) {
 		return TYPEFITS;
+	} else if (!g_ascii_strcasecmp(extension, "xisf")) {
+		return TYPEXISF;
 	}
 	return TYPEUNDEF; // not recognized or not supported
 }
@@ -323,6 +335,11 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
 			retval = (readtif(source, dest, force_float, TRUE) < 0);
+			break;
+#endif
+#ifdef HAVE_LIBXISF
+		case TYPEXISF:
+			retval = (readxisf(source, dest, force_float) < 0);
 			break;
 #endif
 		case TYPEPNM:

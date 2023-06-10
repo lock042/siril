@@ -32,7 +32,7 @@ project('siril',
   meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
-    'cpp_std=c++14',
+    'cpp_std=c++17',
     'buildtype=debugoptimized',
   ],
 )
@@ -54,6 +54,7 @@ enable_libtiff   = get_option('libtiff')
 enable_libjpeg   = get_option('libjpeg')
 enable_libpng    = get_option('libpng')
 enable_libheif   = get_option('libheif')
+enable_libXISF   = get_option('libXISF')
 enable_ffms2     = get_option('ffms2')
 enable_ffmpeg    = get_option('ffmpeg')
 enable_libconfig = get_option('libconfig')
@@ -142,6 +143,7 @@ cpp = meson.get_compiler('cpp')
 siril_cpp_flag = []
 siril_c_flag = []
 siril_link_arg = []
+
 
 # -fno-math-errno is used to speedup code, this for example speeds up all sqrt() functions.
 # There is no case where we check the math errno. So it’s safe to use this flag for siril.
@@ -383,6 +385,11 @@ if enable_libheif
   libheif_dep = dependency('libheif', required : true)
 endif
 
+libXISF_dep = no_dep
+if enable_libXISF
+  libXISF_dep = dependency('libxisf', required : true, version: '>= 0.2.5')
+endif
+
 ffms2_dep = no_dep
 if enable_ffms2
   ffms2_dep = dependency('ffms2', required : true)
@@ -555,6 +562,12 @@ else
   conf_data.set('HAVE_LIBHEIF', false, description : 'Using HEIF.')
 endif
 
+if libXISF_dep.found()
+  conf_data.set('HAVE_LIBXISF', true, description : 'Using XISF.')
+else
+  conf_data.set('HAVE_LIBXISF', false, description : 'Using XISF.')
+endif
+
 ffmpeg_found = false
 foreach dep : ffmpeg
   if not dep.found()
@@ -597,7 +610,7 @@ conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is 
 # Check for GLib Networking
 
 glib_networking_works_run=false
-if meson.is_cross_build() and not meson.has_exe_wrapper()
+if meson.is_cross_build() and not meson.can_run_host_binaries()
     # Cross-compilation without run capability: we won't be able to
     # check networking support.
     glib_networking_works = true
@@ -611,17 +624,11 @@ if meson.is_cross_build() and not meson.has_exe_wrapper()
     '''
     warning(glib_warning)
     warnings += glib_warning
-else # not meson.is_cross_build() or meson.has_exe_wrapper()
+else # not meson.is_cross_build() or meson.can_run_host_binaries()
     glib_networking_works_run = cc.run(
       '''#include <gio/gio.h>
       int main() {
-        if (!g_tls_backend_supports_tls (g_tls_backend_get_default ()))
-	  return 1;
-	GFile *file = g_file_new_for_uri("https://localhost/test");
-	GError *error = NULL;
-	gchar *content = NULL;
-	g_file_load_contents(file, NULL, &content, NULL, NULL, &error);
-	return error->code == G_IO_ERROR_NOT_SUPPORTED;
+        return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
       }''',
       dependencies: gio_dep,
     )
@@ -686,6 +693,7 @@ externals_dep = declare_dependency(
     libjpeg_dep,
     libpng_dep,
     libheif_dep,
+    libXISF_dep,
     ffms2_dep,
     openmp_dep,
     kplot_dep,
@@ -759,6 +767,7 @@ summary(
     'exiv2'             : exiv_dep.found(),
     'libraw'            : libraw_dep.found(),
     'TIFF'              : libtiff_dep.found(),
+    'XISF'              : libXISF_dep.found(),
     'JPEG'              : libjpeg_dep.found(),
     'PNG'               : libpng_dep.found(),
     'HEIF'              : libheif_dep.found(),

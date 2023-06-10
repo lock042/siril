@@ -34,7 +34,8 @@
 #include "algos/star_finder.h"
 #include "algos/siril_wcs.h"
 #include "io/single_image.h"
-#include "io/catalogues.h"
+#include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
 #include "gui/progress_and_log.h"
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
@@ -490,70 +491,4 @@ gpointer photometric_cc_standalone(gpointer p) {
 	else siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
-
-int project_catalog_with_WCS(GFile *catalog_file, fits *fit, gboolean phot, pcc_star **ret_stars, int *ret_nb_stars) {
-	GError *error = NULL;
-	GInputStream *input_stream = NULL;
-	/* catalog format should be 5 columns: distance from centre, RA, Dec, V, B */
-	if (!(input_stream = (GInputStream*) g_file_read(catalog_file, NULL, &error))) {
-		if (error) {
-			siril_log_message(_("Can't open catalog file %s for PCC: %s\n"), g_file_peek_path(catalog_file), error->message);
-			g_clear_error(&error);
-		}
-		*ret_stars = NULL;
-		*ret_nb_stars = 0;
-		return 1;
-	}
-
-	int nb_alloc = 1200, nb_stars = 0;
-	pcc_star *stars = malloc(nb_alloc * sizeof(pcc_star));
-
-	/* see also proc_star_file() or read_NOMAD_catalog() */
-	// TODO: merge the three codes? they are not quite the same
-	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
-	gchar *line;
-	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
-		if (line[0] == COMMENT_CHAR || is_blank(line) || g_str_has_prefix(line, "---")) {
-			g_free(line);
-			continue;
-		}
-		double r = 0.0, ra = 0.0, dec = 0.0, Vmag = 0.0, Bmag = 0.0;
-		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &ra, &dec, &Vmag, &Bmag);
-		g_free(line);
-		if ((phot && n == 5 && Bmag < 30.0) ||	// 30 sometimes means not available in NOMAD
-				(!phot && n >= 4)) {
-			if (nb_stars >= nb_alloc) {
-				nb_alloc *= 2;
-				pcc_star *new_array = realloc(stars, nb_alloc * sizeof(pcc_star));
-				if (!new_array) {
-					PRINT_ALLOC_ERR;
-					g_object_unref(data_input);
-					free(stars);
-					*ret_stars = NULL;
-					*ret_nb_stars = 0;
-					return 1;
-				}
-				stars = new_array;
-			}
-
-			double x, y;
-			if (!wcs2pix(fit, ra, dec, &x, &y)) {
-				stars[nb_stars].x = x;
-				stars[nb_stars].y = y;
-				stars[nb_stars].mag = Vmag;
-				if (phot)
-					stars[nb_stars].BV = Bmag - Vmag;
-				else stars[nb_stars].BV = -99.9;
-				nb_stars++;
-			}
-		}
-	}
-
-	g_object_unref(data_input);
-	siril_debug_print("projected %d stars from the provided catalogue\n", nb_stars);
-	*ret_stars = stars;
-	*ret_nb_stars = nb_stars;
-	return 0;
-}
-
 

@@ -723,6 +723,7 @@ static void draw_stars(const draw_data_t* dd) {
 
 		while (com.stars[i]) {
 			double size = com.stars[i]->fwhmx * 2.0;
+			if (size <= 0.0) size = com.pref.phot_set.aperture;
 			if (i == gui.selected_star) {
 				// We draw horizontal and vertical lines to show the star
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
@@ -745,7 +746,8 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_save(cr); // save the original transform
 			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
 			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
-			cairo_scale(cr, com.stars[i]->fwhmy / com.stars[i]->fwhmx, 1);
+			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
+			cairo_scale(cr, r, 1);
 			cairo_arc(cr, 0., 0., size, 0.,2 * M_PI);
 			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
@@ -765,6 +767,7 @@ static void draw_stars(const draw_data_t* dd) {
 	/* quick photometry */
 	if (!com.script && gui.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
 		double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
+		if (size <= 0.0) size = com.pref.phot_set.aperture;
 
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
@@ -1261,7 +1264,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble radius = get_catalogue_object_radius(object);
 		gdouble ra = get_catalogue_object_ra(object);
 		gdouble dec = get_catalogue_object_dec(object);
-		gchar *code = get_catalogue_object_code(object);
+		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
 
 		switch (catalog) {

@@ -106,7 +106,7 @@ static GSList *search_script(const char *path) {
 
 	dir = g_dir_open(path, 0, &error);
 	if (!dir) {
-		fprintf(stderr, "scripts: %s\n", error->message);
+		g_print("scripts: %s\n", error->message);
 		g_clear_error(&error);
 		return NULL;
 	}

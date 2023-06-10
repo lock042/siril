@@ -54,6 +54,12 @@ option('libheif',
  description: 'build with HEIF support'
 )
 
+option('libXISF',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with XISF support'
+)
+
 option('ffms2',
  type : 'boolean',
  value : 'true',

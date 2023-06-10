@@ -2398,13 +2398,13 @@ int save_opened_fits(fits *f) {
 		break;
 	case USHORT_IMG:
 		if (f->type == DATA_FLOAT) {
-			WORD *data = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
-			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, data, &status)) {
+			WORD *datau = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, datau, &status)) {
 				report_fits_error(status);
-				g_free(data);
+				g_free(datau);
 				return 1;
 			}
-			free(data);
+			free(datau);
 		} else {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
@@ -3411,7 +3411,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 		// average exposure
 		exposure += current->exposure;
 
-		/* to add if one day we keep FITS comments: discrepencies in
+		/* to add if one day we keep FITS comments: discrepancies in
 		 * various fields like exposure, instrument, observer,
 		 * telescope, ... */
 		image_count++;

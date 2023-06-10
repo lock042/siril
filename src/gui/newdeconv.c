@@ -1263,6 +1263,7 @@ gpointer deconvolve(gpointer p) {
 			LAB_to_xyzf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
 			xyz_to_rgbf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
 		}
+		free(xyzdata);
 	}
 
 	// Update the_fit with the result
@@ -1289,7 +1290,7 @@ ENDDECONV:
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
 	if (stars_need_clearing) {
-		free(com.stars);
+		clear_stars_list(TRUE);
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}

@@ -913,6 +913,11 @@ gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, doub
 	return TRUE;
 }
 
+void psf_star_init(psf_star *s) {
+	memset(s, 0, sizeof(psf_star));
+	s->units = "px";
+}
+
 psf_star *new_psf_star() {
 	psf_star *star = calloc(1, sizeof(psf_star));
 	star->phot = NULL;
@@ -931,10 +936,13 @@ psf_star *duplicate_psf(psf_star *psf) {
 	} else {
 		new_psf->phot = NULL;
 	}
+	if (psf->star_name)
+		new_psf->star_name = g_strdup(psf->star_name);
 	return new_psf;
 }
 
 void free_psf(psf_star *psf) {
 	if (psf->phot) free(psf->phot);
+	if (psf->star_name) g_free(psf->star_name);
 	free(psf);
 }
