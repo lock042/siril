@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-06 10:21+0200\n"
-"PO-Revision-Date: 2023-06-09 10:40+0000\n"
+"PO-Revision-Date: 2023-06-10 20:59+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -2326,22 +2326,22 @@ msgstr ""
 #: src/gui/siril3.glade:9588 src/gui/siril3.glade:10197
 #: src/gui/siril3.glade:16074
 msgid "Generalised hyperbolic transform"
-msgstr "Обобщённая гиперболическая трансформация"
+msgstr "Обобщённое гиперболическое преобразование"
 
 #: src/gui/siril3.glade:9589 src/gui/siril3.glade:10198
 #: src/gui/siril3.glade:16075
 msgid "Inverse generalised hyperbolic transform"
-msgstr "Инвертированная обобщённая гиперболическая трансформация"
+msgstr "Инвертированное обобщённое гиперболическое преобразование"
 
 #: src/gui/siril3.glade:9590 src/gui/siril3.glade:10199
 #: src/gui/siril3.glade:16076
 msgid "Modified arcsinh transform"
-msgstr "Модифицированная трансформация по arcsinh"
+msgstr "Модифицированное преобразование по arcsinh"
 
 #: src/gui/siril3.glade:9591 src/gui/siril3.glade:10200
 #: src/gui/siril3.glade:16077
 msgid "Inverse modified arcsinh transform"
-msgstr "Обратная модифицированная трансформация по arcsinh"
+msgstr "Обратное модифицированное преобразование по arcsinh"
 
 #: src/gui/siril3.glade:9619 src/gui/siril3.glade:10228
 #: src/gui/siril3.glade:16105
@@ -4023,7 +4023,7 @@ msgstr "Последовательности"
 
 #: src/gui/siril3.glade:15422 src/gui/histogram.c:1246
 msgid "Histogram Transformation"
-msgstr "Трансформация гистограммы"
+msgstr "Преобразование гистограммы"
 
 #: src/gui/siril3.glade:15476
 msgid "Apply histogram transformation"
@@ -4371,19 +4371,19 @@ msgstr "Преобразование по asinh…"
 
 #: src/gui/siril3.glade:17530
 msgid "Open the generalized hyperbolic transform dialog"
-msgstr "Диалог обобщённой гиперболической трансформации"
+msgstr "Диалог обобщённого гиперболического преобразования"
 
 #: src/gui/siril3.glade:17532
 msgid "Generalised Hyperbolic Stretch Transformations..."
-msgstr "Обобщённая гиперболическая трансформация..."
+msgstr "Обобщённое гиперболическое преобразование..."
 
 #: src/gui/siril3.glade:17545
 msgid "Open the hystogram transform dialog"
-msgstr "Диалог трансформации гистограммы"
+msgstr "Диалог преобразования гистограммы"
 
 #: src/gui/siril3.glade:17547
 msgid "Histogram Transformation..."
-msgstr "Трансформация гистограммы…"
+msgstr "Преобразование гистограммы…"
 
 #: src/gui/siril3.glade:17571 src/gui/siril3.glade:18064
 #: src/gui/siril3.glade:26869 src/gui/colors.c:275
@@ -17340,7 +17340,7 @@ msgstr ""
 
 #: src/gui/histogram.c:1260
 msgid "Generalised Hyperbolic Stretch Transformations"
-msgstr "Обобщённая гиперболическая трансформация"
+msgstr "Обобщённое гиперболическое преобразование"
 
 #: src/gui/histogram.c:1288 src/gui/histogram.c:1677
 msgid "Clicking on the histogram sets SP"
