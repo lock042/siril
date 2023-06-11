@@ -45,6 +45,7 @@
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
+#include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
@@ -1421,7 +1422,8 @@ gboolean close_sequence_idle(gpointer data) {
 	update_stack_interface(TRUE);
 	adjust_sellabel();
 	update_seqlist(-1);
-
+	free_cut_args(&gui.cut);
+	initialize_cut_struct(&gui.cut);
 	/* unselect the sequence in the sequence list if it's not the one
 	 * being loaded */
 	if (!data) { // loading_sequence_from_combo
