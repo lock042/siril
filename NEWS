@@ -2,7 +2,7 @@ siril 1.4.0 xx xx, xx
 
 * Added comparison star list creation from Siril
 * Allowed object search with their common name, from the annotations catalogues
-* Prevent crash using recomposition tool eyedroppers without images loaded
+* Add intensity profiling function
 
 siril 1.2.0 xx xx, xx
 

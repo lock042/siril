@@ -127,6 +127,7 @@ int	process_pcc(int nb);
 int	process_pm(int nb);
 int	process_preprocess(int nb);
 int	process_preprocess_single(int nb);
+int	process_profile(int nb);
 int	process_psf(int nb);
 
 int	process_rebayer(int nb);
@@ -175,6 +176,7 @@ int	process_seq_linstretch(int nb);
 int	process_seq_merge_cfa(int nb);
 int	process_seq_modasinh(int nb);
 int	process_seq_mtf(int nb);
+int	process_seq_profile(int nb);
 int	process_seq_psf(int nb);
 int	process_seq_rl(int nb);
 int	process_seq_sb(int nb);

@@ -71,7 +71,7 @@
 #endif
 
 // Uncomment the following line for lots of debug messages
-#define GPLOT_DEBUG
+//#define GPLOT_DEBUG
 
 static gboolean gnuplot_is_in_path = FALSE;
 
@@ -340,7 +340,8 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 		return;
 	}
 #ifdef GPLOT_DEBUG
-	siril_debug_print("Closing handle %zu via callback\n", (size_t) handle->thread);
+	if (handle->thread)
+		siril_debug_print("Closing handle %zu via callback\n", (size_t) handle->thread);
 #endif
 	if (handle->ntmp) {
 		for (int i = 0 ; i < handle->ntmp ; i++) {
@@ -374,7 +375,7 @@ gnuplot_ctrl * gnuplot_init()
     /*
      * Structure initialization:
      */
-    handle = (gnuplot_ctrl*)malloc(sizeof(gnuplot_ctrl)) ;
+    handle = (gnuplot_ctrl*)malloc(sizeof(gnuplot_ctrl));
 	handle->tmp_filename_tbl = calloc(1, sizeof(char*));
 	handle->tmp_filename_tbl[0] = NULL;
 	handle->ntmp = 0;
@@ -488,9 +489,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 	if (!handle->running)
 			break;
 	}
-	null_handle_in_com_gnuplot_handles(handle);
-	free(handle);
-	handle = NULL;
+//	The handle is removed from com.gnuplot_handles and freed in child_watch_cb
 }
 
 /*-------------------------------------------------------------------------*/

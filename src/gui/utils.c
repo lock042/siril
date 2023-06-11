@@ -71,6 +71,11 @@ GtkWidget* lookup_widget(const gchar *widget_name) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, widget_name));
 }
 
+GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
+	return GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, adjustment_name));
+}
+
+
 void control_window_switch_to_tab(main_tabs tab) {
 	if (com.script)
 		return;
@@ -249,4 +254,29 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 
 int select_vport(int vport) {
 	return vport == RGB_VPORT ? GREEN_VPORT : vport;
+}
+
+point closest_point_on_line(point in, point p1, point p2) {
+	point out = { 0 };
+	if (p1.x == p2.x) {
+		out.x = p1.x;
+		out.y = in.y;
+	} else if (p1.y == p2.y) {
+		out.x = in.x;
+		out.y = p1.y;
+	} else {
+		double a = in.x;
+		double b = in.y;
+		double x1 = p1.x;
+		double y1 = p1.y;
+		double x2 = p2.x;
+		double y2 = p2.y;
+		double m1 = (y2-y1)/(x2-x1);
+		double m2 = -1.0 / m1;
+		double x = (m1*x1-m2*a+b-y1)/(m1-m2);
+		double y = m2*(x-a)+b;
+		out.x = x;
+		out.y = y;
+	}
+	return out;
 }
