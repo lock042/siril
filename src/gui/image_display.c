@@ -68,6 +68,11 @@ GtkComboBox *seqcombo;
 GtkToggleButton *drawframe;
 static GtkWidget *rotation_dlg = NULL;
 
+/* widgets for cut tool*/
+static GtkWidget *cut_dialog = NULL, *cut_cdialog = NULL, *cut_sdialog = NULL;
+static GtkToggleButton *tri_cut_toggle = NULL;
+static GtkSpinButton *tri_cut_spin_step = NULL;
+
 static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
@@ -709,6 +714,76 @@ static void draw_selection(const draw_data_t* dd) {
 		}
 		cairo_restore(cr); // restore the original transform
 	}
+}
+
+static void draw_cut_line(const draw_data_t* dd) {
+	if (!cut_dialog) {
+		cut_dialog = lookup_widget("cut_dialog");
+		cut_cdialog = lookup_widget("cut_coords_dialog");
+		cut_sdialog = lookup_widget("cut_spectroscopy_dialog");
+		tri_cut_toggle = GTK_TOGGLE_BUTTON(lookup_widget("cut_tri_cut"));
+		tri_cut_spin_step = GTK_SPIN_BUTTON(lookup_widget("cut_tricut_step"));
+	}
+	if (!(gtk_widget_get_visible(cut_dialog) || gtk_widget_get_visible(cut_cdialog) || gtk_widget_get_visible(cut_sdialog)))
+		return;
+	if (gui.cut.cut_end.x == -1 || gui.cut.cut_end.y == -1 || gui.cut.seq)
+		return;
+	gboolean tri = gtk_toggle_button_get_active(tri_cut_toggle);
+	double offstartx, offstarty, offendx, offendy, step;
+
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+
+	if (tri) {
+		point delta;
+		delta.x = gui.cut.cut_end.x - gui.cut.cut_start.x;
+		delta.y = gui.cut.cut_end.y - gui.cut.cut_start.y;
+		double length = sqrt(delta.x * delta.x + delta.y * delta.y);
+		if (length < 1.) return;
+		int nbr_points = (int) length;
+		double point_spacing_x = delta.x / nbr_points;
+		double point_spacing_y = delta.y / nbr_points;
+		step = gtk_spin_button_get_value(tri_cut_spin_step);
+		double line_r[3] = { 0.58, 0.0, 0.34 }; // These colours match the 3 lines plotted by GNUplot
+		double line_g[3] = { 0.0, 0.62, 0.70 };
+		double line_b[3] = { 0.83, 0.45, 0.91 };
+		for (int offset = -1 ; offset < 2 ; offset++) {
+			offstartx = gui.cut.cut_start.x + (offset * point_spacing_y * step);
+			offstarty = gui.cut.cut_start.y - (offset * point_spacing_x * step);
+			offendx = gui.cut.cut_end.x + (offset * point_spacing_y * step);
+			offendy = gui.cut.cut_end.y - (offset * point_spacing_x * step);
+			cairo_set_source_rgb(cr, line_r[offset+1], line_g[offset+1], line_b[offset+1]);
+			cairo_save(cr);
+			cairo_move_to(cr, offstartx, offstarty);
+			cairo_line_to(cr, offendx, offendy);
+			cairo_stroke(cr);
+			cairo_restore(cr);
+		}
+	} else {
+		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by GNUplot
+		cairo_save(cr);
+		cairo_move_to(cr, gui.cut.cut_start.x, gui.cut.cut_start.y);
+		cairo_line_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);
+		cairo_stroke(cr);
+		cairo_restore(cr);
+	}
+}
+
+static void draw_measurement_line(const draw_data_t* dd) {
+	if (gui.measure_start.x == -1)
+		return;
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+	cairo_save(cr);
+	cairo_move_to(cr, gui.measure_start.x, gui.measure_start.y);
+	cairo_line_to(cr, gui.measure_end.x, gui.measure_end.y);
+	cairo_stroke(cr);
+	cairo_restore(cr);
 }
 
 static void draw_stars(const draw_data_t* dd) {
@@ -1640,6 +1715,12 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* selection rectangle */
 	draw_selection(&dd);
+
+	/* cut line */
+	draw_cut_line(&dd);
+
+	/* draw measurement line */
+	draw_measurement_line(&dd);
 
 	/* detected stars and highlight the selected star */
 	g_mutex_lock(&com.mutex);
