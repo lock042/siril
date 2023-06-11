@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -8878,7 +8878,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
           </packing>
         </child>
         <child>
-          <!-- n-columns=7 n-rows=2 -->
+          <!-- n-columns=8 n-rows=2 -->
           <object class="GtkGrid" id="grid_layers">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -9016,9 +9016,8 @@ Rotation is shown in degrees anticlockwise.</property>
             </child>
             <child>
               <object class="GtkToggleButton" id="centerbutton_lum">
-                <property name="active">False</property>
-                <property name="sensitive">False</property>
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Set rotation center for this layer</property>
@@ -9035,6 +9034,12 @@ Rotation is shown in degrees anticlockwise.</property>
                 <property name="left-attach">7</property>
                 <property name="top-attach">1</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -9235,7 +9240,7 @@ First channel - frame to the first channel (always L in luminance mode);
 Max - frame to the maximum extent of the aligned images;
 Min - frame to the minimum overlap of all aligned images;
 COG - frame to the centre of gravity of the pixels in the set of aligned images.</property>
-                <property name="active">1</property>
+                <property name="active">2</property>
                 <items>
                   <item translatable="yes">First channel</item>
                   <item translatable="yes">Max</item>
@@ -9262,6 +9267,9 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
                 <property name="top-attach">0</property>
                 <property name="height">2</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
