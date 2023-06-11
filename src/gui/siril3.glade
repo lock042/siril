@@ -9663,7 +9663,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Reload all input images into their respective compositing layers</property>
+                <property name="tooltip-text" translatable="yes">Reload all input images into their respective compositing layers. This is necessary if you aren't happy with the alignment results and wish to re-do the alignment, for example with a different framing method.</property>
                 <signal name="clicked" handler="on_compositing_reload_all_clicked" swapped="no"/>
               </object>
               <packing>

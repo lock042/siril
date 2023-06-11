@@ -568,6 +568,7 @@ static void check_gfit_is_ours() {
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
 	set_display_mode();
+	update_MenuItem();
 	redraw(REMAP_ALL);
 
 	sequence_list_change_current();
@@ -917,8 +918,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	}
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
-//	free(regargs.imgparam);
-//	free(regargs.regparam);
 	update_result(1);
 	// reset the transformation type so that it is always in this state by default
 	the_type = HOMOGRAPHY_TRANSFORMATION;
