@@ -548,6 +548,39 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 	return retval;
 }
 
+	/* Internal sequences work differently to all other sequence types.
+	 * Where other sequence types save their results to a new file,
+	 * internal sequences update their results in the internal_fits[]
+	 * array. They therefore need different handling within the save hook.
+	 *
+	 * We copy the fits metadata back to the internal_fits[in_index]
+	 * pointer.
+	 * Only the pointer to data / fdata was copied across in seq_read_frame
+	 * We re-copy the pointers back, because they are set to NULL in
+	 * copyfits. We then set the pointers in fit to NULL so that the memory
+	 * doesn't get freed by the generic sequence worker.
+	*/
+
+static int generic_save_internal(struct generic_seq_args *args, int in_index, fits *fit) {
+	clearfits_header(args->seq->internal_fits[in_index]);
+	copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
+	if (fit->type == DATA_USHORT) {
+		args->seq->internal_fits[in_index]->data = fit->data;
+		args->seq->internal_fits[in_index]->pdata[0] = fit->pdata[0];
+		args->seq->internal_fits[in_index]->pdata[1] = fit->pdata[1];
+		args->seq->internal_fits[in_index]->pdata[2] = fit->pdata[2];
+	} else if (fit->type == DATA_FLOAT) {
+		args->seq->internal_fits[in_index]->fdata = fit->fdata;
+		args->seq->internal_fits[in_index]->fpdata[0] = fit->fpdata[0];
+		args->seq->internal_fits[in_index]->fpdata[1] = fit->fpdata[1];
+		args->seq->internal_fits[in_index]->fpdata[2] = fit->fpdata[2];
+	}
+	fit->data = NULL;
+	fit->fdata = NULL;
+	clearfits(fit);
+	return 0;
+}
+
 /* In SER, all images must be in a contiguous sequence, so we use the out_index.
  * In FITS sequences, to keep track of image across processings, we keep the
  * input file number all along (in_index is the index in the sequence, not the name).
@@ -556,28 +589,7 @@ int seq_finalize_hook(struct generic_seq_args *args) {
  */
 int generic_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
 	if (args->seq->type == SEQ_INTERNAL) {
-		// In this case we copy the fits metadata back to the internal_fits[index] pointer
-		// Only the pointer to data / fdata was copied across in seq_read_frame
-		// We re-copy the pointers back, because they are set to NULL in copyfits
-		// We then set the pointers in fit to NULL so that the memory doesn't get freed
-		// by the generic sequence worker
-		clearfits_header(args->seq->internal_fits[in_index]);
-		copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
-		if (fit->type == DATA_USHORT) {
-			args->seq->internal_fits[in_index]->data = fit->data;
-			args->seq->internal_fits[in_index]->pdata[0] = fit->pdata[0];
-			args->seq->internal_fits[in_index]->pdata[1] = fit->pdata[1];
-			args->seq->internal_fits[in_index]->pdata[2] = fit->pdata[2];
-		} else if (fit->type == DATA_FLOAT) {
-			args->seq->internal_fits[in_index]->fdata = fit->fdata;
-			args->seq->internal_fits[in_index]->fpdata[0] = fit->fpdata[0];
-			args->seq->internal_fits[in_index]->fpdata[1] = fit->fpdata[1];
-			args->seq->internal_fits[in_index]->fpdata[2] = fit->fpdata[2];
-		}
-		fit->data = NULL;
-		fit->fdata = NULL;
-		clearfits(fit);
-		return 0;
+		return generic_save_internal(args, in_index, fit);
 	} else {
 		if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 			return ser_write_frame_from_fit(args->new_ser, fit, out_index);
