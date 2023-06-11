@@ -20,7 +20,6 @@
 #define PIPP_BUFFER_H
 
 #include <cstdint>
-#include <cstdint>
 #include <cstddef>
 
 
