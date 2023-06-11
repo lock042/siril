@@ -20,6 +20,8 @@
 #ifndef SRC_CORE_EXIF_H_
 #define SRC_CORE_EXIF_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
