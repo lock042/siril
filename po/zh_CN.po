@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-06 10:21+0200\n"
-"PO-Revision-Date: 2023-06-06 08:18+0000\n"
+"PO-Revision-Date: 2023-06-10 20:59+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -5903,15 +5903,16 @@ msgid ""
 msgstr "使用来自NINA系外行星插件的恒星列表处理光度曲线"
 
 #: src/gui/siril3.glade:23858
-#, fuzzy
 msgid "Comparison stars"
-msgstr "补偿系数"
+msgstr "比较星"
 
 #: src/gui/siril3.glade:23862
 msgid ""
 "Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.\n"
 "Output is a csv file compatible with NINA Exoplanet"
 msgstr ""
+"生成视场中包含的比较星（AAVSO，APASS）列表。\n"
+"输出为与NINA系外行星兼容的csv文件"
 
 #: src/gui/siril3.glade:23887
 msgid "Julian Date"
@@ -8414,7 +8415,7 @@ msgid "Error: failed to write output to user catalogue.\n"
 msgstr "错误：无法将输出写入用户星表。\n"
 
 #: src/algos/annotate.c:540
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "The object was already found in the %s catalog under the name '%s', not "
 "adding it again\n"
@@ -8830,35 +8831,33 @@ msgid "Star %s could not be used because it's on the borders or outside\n"
 msgstr "星%s不能使用，因为它位于边界或外面\n"
 
 #: src/algos/comparison_stars.c:317
-#, fuzzy
 msgid "Not enough stars available\n"
-msgstr "没有足够的星点。图像 %d 被跳过\n"
+msgstr "没有足够可用的星点\n"
 
 #: src/algos/comparison_stars.c:320
 #, c-format
 msgid "Sort parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf\n"
-msgstr ""
+msgstr "排序参数：delta_Vmag: %1.2lf, delta_BV: %1.2lf\n"
 
 #: src/algos/comparison_stars.c:322
 #, c-format
 msgid "Target star: Vmag=%2.2lf, Bmag=%2.2lf\n"
-msgstr ""
+msgstr "目标星：Vmag=%2.2lf, Bmag=%2.2lf\n"
 
 #: src/algos/comparison_stars.c:348
 #, c-format
 msgid "%d comparison stars after sort.\n"
-msgstr ""
+msgstr "排序后的 %d 比较星。\n"
 
 #: src/algos/comparison_stars.c:355 src/algos/comparison_stars.c:444
-#, fuzzy
 msgid "No variable star selected\n"
-msgstr "无星点选择"
+msgstr "无变星选择\n"
 
 #: src/algos/comparison_stars.c:359 src/core/command.c:8623
 #: src/core/command.c:8718 src/core/command.c:8773 src/core/command.c:8796
 #: src/core/command.c:8957 src/gui/plot.c:1240
 msgid "This command only works on plate solved images\n"
-msgstr "This command only works on plate solved images\n"
+msgstr "此命令仅适用于已解析的图像\n"
 
 #: src/algos/comparison_stars.c:385 src/algos/photometric_cc.c:464
 #: src/core/command.c:8681
@@ -8872,38 +8871,36 @@ msgid "The %s catalog has been successfully downloaded.\n"
 msgstr "%s 星表已被成功下载。\n"
 
 #: src/algos/comparison_stars.c:409
-#, fuzzy, c-format
+#, c-format
 msgid "Creating csv output file %s\n"
-msgstr "无法创建输出目录: %s\n"
+msgstr "创建 csv 输出文件 %s\n"
 
 #: src/algos/comparison_stars.c:449
 #, c-format
 msgid "e_Vmag and e_Bmag are intrinsec errors supplied from %s\n"
-msgstr ""
+msgstr "e_Vmag 和 e_Bmag 是从 %s 提供的固有秒错误\n"
 
 #: src/algos/comparison_stars.c:451
 #, c-format
 msgid "Target star: %2.2lf, %2.2lf, 0, %1.3lf, %1.3lf, %1.3lf\n"
-msgstr ""
+msgstr "目标星：%2.2lf, %2.2lf, 0, %1.3lf, %1.3lf, %1.3lf\n"
 
 #: src/algos/comparison_stars.c:461
 #, c-format
 msgid "%s  %d: %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
-msgstr ""
+msgstr "%s  %d: %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
 
 #: src/algos/comparison_stars.c:471
 msgid "No csv output file to create\n"
-msgstr ""
+msgstr "无CSV输出文件创建\n"
 
 #: src/algos/comparison_stars.c:483
-#, fuzzy
 msgid "Target star invalid.\n"
-msgstr "目标星已识别：%s\n"
+msgstr "目标星无效。\n"
 
 #: src/algos/comparison_stars.c:488
-#, fuzzy
 msgid "Target star photometric information not available.\n"
-msgstr "显示天体名称（若WCS信息可用）"
+msgstr "目标恒星光度信息不可用。\n"
 
 #: src/algos/demosaicing.c:949
 msgid ""
@@ -9480,13 +9477,12 @@ msgid "Unknown transform\n"
 msgstr "未知的转换\n"
 
 #: src/algos/search_objects.c:98
-#, fuzzy
 msgid "No photometric data available for this object.\n"
-msgstr "没有可用的拓扑中心数据。设置为地心\n"
+msgstr "没有该天体的光度数据可用。\n"
 
 #: src/algos/search_objects.c:109
 msgid "Object not in the field of view...\n"
-msgstr ""
+msgstr "目标不在视野范围内......\n"
 
 #: src/algos/search_objects.c:142
 #, c-format
@@ -9498,13 +9494,13 @@ msgstr "响应中不支持的天体类型： %s\n"
 #: src/algos/search_objects.c:202
 #, c-format
 msgid "Failure in name resolution: %s\n"
-msgstr ""
+msgstr "名称解析失败： %s\n"
 
 #. unsupported response format, should not happen
 #: src/algos/search_objects.c:207
-#, fuzzy, c-format
+#, c-format
 msgid "Error in name resolution: %s\n"
-msgstr "Error in line %d ('%s'): %s.\n"
+msgstr "名称解析错误：%s\n"
 
 #: src/algos/search_objects.c:215
 #, c-format
@@ -9522,9 +9518,9 @@ msgid "Found %d Solar System Objects with mag < %0.1lf\n"
 msgstr "发现 %d 太阳系天体，星等为 %0.1lf\n"
 
 #: src/algos/search_objects.c:341
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s was found in the %s catalogue, RA = %f, Dec = %f\n"
-msgstr "已在 %s 星表中以 %s 的名称找到该天体，无需再次添加\n"
+msgstr "天体 %s 在星表 %s 中被找到，RA = %f, Dec = %f\n"
 
 #: src/algos/search_objects.c:380 src/core/command.c:8787
 #, c-format
@@ -9570,12 +9566,12 @@ msgstr "没有可用的拓扑中心数据。设置为地心\n"
 #: src/algos/search_objects.c:583
 #, c-format
 msgid "at lat: %f, long: %f, alt: %f\n"
-msgstr ""
+msgstr "位于 lat: %f, long: %f, alt: %f\n"
 
 #: src/algos/search_objects.c:594
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in SIMBAD\n"
-msgstr "正在 SIMBAD 中搜索 %s...\n"
+msgstr "正在 SIMBAD 中搜索 %s\n"
 
 #: src/algos/star_finder.c:190 src/algos/star_finder.c:193
 #, c-format
@@ -12306,6 +12302,22 @@ msgid ""
 "provided name is the special value <b>auto</b>, it is generated using the "
 "input parameters"
 msgstr ""
+"Automatically finds comparison stars in the field for photometric analysis "
+"of a star's light curve according to\n"
+"- the provided name of the star\n"
+"- the field of view of the image, reduced to a diameter of its height if "
+"<b>-narrow</b> is passed, avoiding stars in the corners\n"
+"- the chosen catalog (APASS by default), can be changed with "
+"<b>-catalog={NOMAD|APASS}</b>\n"
+"- the difference in visual magnitude from the variable star, in the range ["
+"0, 6] with a default of 3, change with <b>-dvmag=</b>\n"
+"- the difference in color with from the variable star, in the range [0.0, 0."
+"7] of their B-V indices with a default of 0.5, change with <b>-dbv=</b>.\n"
+"\n"
+"The list can optionally be saved as a CSV file compatible with the NINA "
+"comparison stars list, specifying the file name with <b>-out=</b>. If the "
+"provided name is the special value <b>auto</b>, it is generated using the "
+"input parameters"
 
 #: src/core/command_def.h:49
 msgid ""
@@ -17068,7 +17080,7 @@ msgstr "队列的请求数据已被清除。"
 
 #: src/gui/compstars.c:39
 msgid "Create a comparison stars list"
-msgstr ""
+msgstr "创建比较星列表"
 
 #: src/gui/compstars.c:40 src/gui/nina_light_curve.c:42
 #: src/io/image_formats_libraries.c:1869
@@ -17076,69 +17088,65 @@ msgid "_OK"
 msgstr "_OK"
 
 #: src/gui/compstars.c:40
-#, fuzzy
 msgid "_Close"
-msgstr "关闭"
+msgstr "_关闭"
 
 #: src/gui/compstars.c:47
 msgid ""
 "Find comparison stars for the currently loaded image and the given star name"
-msgstr ""
+msgstr "查找当前载入的图像和给定恒星名称的比较星"
 
 #: src/gui/compstars.c:53
 msgid "Enter the target star name to search in cataloges"
-msgstr ""
+msgstr "输入要在星表中搜索的目标星名"
 
 #: src/gui/compstars.c:56
 msgid "Allowed visual magnitude range:"
-msgstr ""
+msgstr "允许的视星等范围："
 
 #: src/gui/compstars.c:64
 msgid ""
 "Allowed range of visual magnitude between the target star and the comparison "
 "stars"
-msgstr ""
+msgstr "目标星和比较星之间允许的视星等范围"
 
 #: src/gui/compstars.c:68
 msgid "Allowed B-V index range:"
-msgstr ""
+msgstr "允许的 B-V 指标范围："
 
 #: src/gui/compstars.c:76
 msgid ""
 "Allowed range of B-V index (color) between the target star and the "
 "comparison stars"
-msgstr ""
+msgstr "目标星和比较星之间允许的B-V指标（色彩）范围"
 
 #: src/gui/compstars.c:84
 msgid "Recommended catalogue for this feature is APASS"
-msgstr ""
+msgstr "此功能的推荐星表是 APASS"
 
 #: src/gui/compstars.c:86
-#, fuzzy
 msgid "APASS catalogue"
-msgstr "星表"
+msgstr "APASS 星表"
 
 #: src/gui/compstars.c:88
-#, fuzzy
 msgid "NOMAD catalogue"
-msgstr "无星表"
+msgstr "NOMAD 星表"
 
 #: src/gui/compstars.c:119 src/gui/nina_light_curve.c:105
 msgid "The currently loaded image must be plate solved"
 msgstr "当前所加载的图像必须是已解析的"
 
 #: src/gui/compstars.c:128
-#, fuzzy
 msgid "Enter the name of the target star"
-msgstr "请输入图像数量。"
+msgstr "输入目标恒星的名称"
 
 #: src/gui/compstars.c:136
 msgid "Vmag range not accepted (should be ]0, 6])"
-msgstr ""
+msgstr "不接受 Vmag 范围（应为 [0， 6]）"
 
 #: src/gui/compstars.c:142
 msgid "BV range not accepted (should be ]0, 0.7]"
-msgstr ""
+msgstr "不接受 BV 范围（应为 [0， 0.7]）"
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
@@ -18734,9 +18742,8 @@ msgid "TIFF images"
 msgstr "TIFF图像"
 
 #: src/io/conversion.c:221
-#, fuzzy
 msgid "XISF images"
-msgstr "TIFF图像"
+msgstr "XISF 图像"
 
 #: src/io/conversion.c:228
 msgid "JPG images"
@@ -19124,14 +19131,13 @@ msgid "Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "保存TIFF：%d-bit 文件名 %s, %ld layer(s), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:928
-#, fuzzy
 msgid "This image type is not handled.\n"
-msgstr "这个类型的拜耳滤镜排列模式尚未被支持。\n"
+msgstr "该图像类型无法处理。\n"
 
 #: src/io/image_formats_libraries.c:944
-#, fuzzy, c-format
+#, c-format
 msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "读取HEIF：文件名 %s, %ld 图层， %ux%u 像素\n"
+msgstr "读取XISF：文件名 %s, %ld 图层， %ux%u 像素\n"
 
 #: src/io/image_formats_libraries.c:965 src/io/image_formats_libraries.c:1130
 #, c-format
@@ -19469,7 +19475,7 @@ msgstr "亮星"
 
 #: src/io/remote_catalogues.c:89
 msgid "AAVSO"
-msgstr ""
+msgstr "AAVSO"
 
 #: src/io/remote_catalogues.c:91
 msgid "local Tycho-2+NOMAD"
@@ -19547,9 +19553,9 @@ msgid "Solar System Objects search on observation date %s\n"
 msgstr "搜索观测日期%s的太阳系天体\n"
 
 #: src/io/remote_catalogues.c:718
-#, fuzzy, c-format
+#, c-format
 msgid "URL: %s\n"
-msgstr "网址：%s. \n"
+msgstr "网址：%s\n"
 
 #: src/io/remote_catalogues.c:780
 msgid "Using already downloaded star catalogue\n"
@@ -19570,6 +19576,7 @@ msgstr "无法打开星表文件 %s 以用于PCC： %s\n"
 msgid ""
 "name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
 msgstr ""
+"name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
 
 #: src/io/seqfile.c:129
 msgid ""

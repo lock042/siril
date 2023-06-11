@@ -69,6 +69,7 @@ src/gui/background_extraction.c
 src/gui/callbacks.c
 src/gui/compstars.c 
 src/gui/conversion.c
+src/gui/cut.c
 src/gui/colors.c
 src/gui/dialog_preview.c
 src/gui/documentation.c

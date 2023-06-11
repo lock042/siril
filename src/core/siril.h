@@ -489,6 +489,38 @@ typedef struct {
 	int x, y;
 } pointi;
 
+typedef enum {
+	CUT_MONO,
+	CUT_COLOR
+} cut_mode;
+
+typedef struct cut_struct {
+	point cut_start;			// point marking start of cut line
+	point cut_end;			// point dragged while selecting the cut line
+	point cut_wn1;				// point for wavenumber 1 for spectroscopic cut
+	point cut_wn2;				// point for wavenumber 2 for spectroscopic cut
+	gboolean cut_measure;		// Whether or not to measure cuts
+	double wavenumber1;
+	double wavenumber2;
+	gboolean tri;
+	gboolean cfa;
+	cut_mode mode;
+	int width;
+	int step;
+	gboolean display_graph;
+	gboolean save_png_too; // Only takes effect if display_graph == TRUE - ignored otherwise
+	char* filename;
+	gchar* title; // this is the working copy of the title
+	gchar* user_title; // this is the title set by the user, may include brackets
+	gboolean title_has_sequence_numbers;
+	fits* fit;
+	sequence* seq;
+	int imgnumber;
+	gboolean save_dat;
+	gboolean pref_as;
+	int vport;
+} cut_struct;
+
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
@@ -597,6 +629,9 @@ struct guiinf {
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 
+	point measure_start;	// quick alt-drag measurement
+	point measure_end;
+
 	void (*draw_extra)(draw_data_t *dd);
 
 	/*********** Color mapping **********/
@@ -612,6 +647,8 @@ struct guiinf {
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
+	cut_struct cut;				// Struct to hold data relating to intensity
+								// profile cuts
 	pointi start;			// where the mouse was originally clicked to
 	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection

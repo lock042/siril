@@ -5,6 +5,8 @@ pixmaps = \
 	chain.svg \
 	cm.svg \
 	curve.svg \
+	cut.svg \
+	cut_dark.svg \
 	export.svg \
 	export_dark.svg \
 	eyedropper.svg \

@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command.h"
+#include "gui/cut.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/siril_world_cs.h"
@@ -32,6 +33,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/open_dialog.h"
+#include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 #include "image_interactions.h"
 #include "image_display.h"
@@ -42,9 +44,24 @@
 #include "registration_preview.h"
 
 mouse_status_enum mouse_status;
+cut_method cutting;
 
 // caching widgets
 static GtkWidget *rotation_dlg = NULL;
+static GtkWidget *cut_dialog = NULL, *dynpsf_dlg = NULL;
+static GtkLabel *label_wn1_x = NULL, *label_wn1_y = NULL, *label_wn2_x = NULL, *label_wn2_y = NULL;
+
+static void cache_widgets() {
+	if (!rotation_dlg) {
+		rotation_dlg = lookup_widget("rotation_dialog");
+		label_wn1_x = GTK_LABEL(lookup_widget("label_wn1_x"));
+		label_wn1_y = GTK_LABEL(lookup_widget("label_wn1_y"));
+		label_wn2_x = GTK_LABEL(lookup_widget("label_wn2_x"));
+		label_wn2_y = GTK_LABEL(lookup_widget("label_wn2_y"));
+		cut_dialog = lookup_widget("cut_dialog");
+		dynpsf_dlg = lookup_widget("stars_list_window");
+	}
+}
 
 /* mouse callbacks */
 static double margin_size = 10;
@@ -322,9 +339,7 @@ void enforce_ratio_and_clamp() {
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 
-	if (!rotation_dlg) {
-		rotation_dlg = lookup_widget("rotation_dialog");
-	}
+	cache_widgets();
 	/* when double clicking on drawing area (if no images loaded)
 	 * you can load an image This feature is in GIMP and I really
 	 * love it: lazy world :).
@@ -351,7 +366,16 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 
 	if (inside) {
-		if (event->state & get_primary()) {
+		/* if Alt is pressed, prepare to measure */
+		if (event->button == GDK_BUTTON_PRIMARY && (event->state & GDK_SHIFT_MASK) && (event->state & GDK_CONTROL_MASK)) {
+			gui.measure_start.x = zoomed.x;
+			gui.measure_start.y = zoomed.y;
+			gui.measure_end.x = zoomed.x;
+			gui.measure_end.y = zoomed.y;
+		}
+
+		/* Ctrl click to drag */
+		else if (event->state & get_primary()) {
 			if (event->button == GDK_BUTTON_PRIMARY) {
 				// viewport translation
 				gui.translating = TRUE;
@@ -362,90 +386,131 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		}
 
 		/* else, click on gray image */
-		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
-			if (mouse_status == MOUSE_ACTION_SELECT_REG_AREA) {
-				if (gui.drawing) {
-					gui.drawing = FALSE;
-				} else {
-					gui.drawing = TRUE;
-					if (is_inside_of_sel(zoomed, zoom)) {
-						// Move selection
-						gui.freezeX = gui.freezeY = TRUE;
-						gui.start = zoomed;
-						gui.origin.x = com.selection.x;
-						gui.origin.y = com.selection.y;
+		else if (event->button == GDK_BUTTON_PRIMARY) {	// left click
+			point pt;
+			int radius, s;
+			gboolean right, left, bottom, top;
+			rectangle area;
+			struct phot_config *ps = NULL;
+			switch (mouse_status) {
+				case MOUSE_ACTION_SELECT_REG_AREA:
+					if (gui.drawing) {
+						gui.drawing = FALSE;
 					} else {
-						// Default values
-						gui.freezeX = gui.freezeY = FALSE;
-						// The order matters if the selection is so small that edge detection overlaps
-						// and need to be the same as in the on_drawingarea_motion_notify_event()
-						gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
-						gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
-						gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
-						gboolean top = is_over_the_top_of_sel(zoomed, zoom);
-						if (right || left || bottom || top) {
-							// Freeze one axis when grabbing an edge far enough from a corner
-							if (right) {
-								gui.start.x = com.selection.x;
-								if (!bottom && !top)
-									gui.freezeY = TRUE;
-							} else if (left) {
-								gui.start.x = com.selection.x + com.selection.w;
-								if (!bottom && !top)
-									gui.freezeY = TRUE;
-							}
-							if (bottom) {
-								gui.start.y = com.selection.y;
-								if (!left && !right)
-									gui.freezeX = TRUE;
-							} else if (top) {
-								gui.start.y = com.selection.y + com.selection.h;
-								if (!left && !right)
-									gui.freezeX = TRUE;
-							}
-						} else {
+						gui.drawing = TRUE;
+						if (is_inside_of_sel(zoomed, zoom)) {
+							// Move selection
+							gui.freezeX = gui.freezeY = TRUE;
 							gui.start = zoomed;
-							com.selection.h = 0;
-							com.selection.w = 0;
+							gui.origin.x = com.selection.x;
+							gui.origin.y = com.selection.y;
+						} else {
+							// Default values
+							gui.freezeX = gui.freezeY = FALSE;
+							// The order matters if the selection is so small that edge detection overlaps
+							// and need to be the same as in the on_drawingarea_motion_notify_event()
+							right = is_over_the_right_side_of_sel(zoomed, zoom);
+							left = is_over_the_left_side_of_sel(zoomed, zoom);
+							bottom = is_over_the_bottom_of_sel(zoomed, zoom);
+							top = is_over_the_top_of_sel(zoomed, zoom);
+							if (right || left || bottom || top) {
+								// Freeze one axis when grabbing an edge far enough from a corner
+								if (right) {
+									gui.start.x = com.selection.x;
+									if (!bottom && !top)
+										gui.freezeY = TRUE;
+								} else if (left) {
+									gui.start.x = com.selection.x + com.selection.w;
+									if (!bottom && !top)
+										gui.freezeY = TRUE;
+								}
+								if (bottom) {
+									gui.start.y = com.selection.y;
+									if (!left && !right)
+										gui.freezeX = TRUE;
+								} else if (top) {
+									gui.start.y = com.selection.y + com.selection.h;
+									if (!left && !right)
+										gui.freezeX = TRUE;
+								}
+							} else {
+								gui.start = zoomed;
+								com.selection.h = 0;
+								com.selection.w = 0;
+							}
 						}
 					}
-				}
-				redraw(REDRAW_OVERLAY);
-			} else if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
-				point pt;
-				int radius = get_background_sample_radius();
-
-				pt.x = (gdouble) zoomed.x;
-				pt.y = (gdouble) zoomed.y;
-
-				if (pt.x + radius < gfit.rx && pt.y + radius < gfit.ry
-						&& pt.x - radius > 0 && pt.y - radius > 0) {
-					com.grad_samples = add_background_sample(com.grad_samples, &gfit, pt);
-
 					redraw(REDRAW_OVERLAY);
-					redraw_previews();
-				}
-			} else if (mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-				int s = com.pref.phot_set.outer * 1.2;
-				rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
-				if (area.x - area.w > 0 && area.x + area.w < gfit.rx
-						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
+					break;
+				case MOUSE_ACTION_DRAW_SAMPLES:
+					radius = get_background_sample_radius();
 
-					struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
-					free(ps);
-					if (gui.qphot) {
-						gui.qphot->xpos = gui.qphot->x0 + area.x;
-						if (gfit.top_down)
-							gui.qphot->ypos = gui.qphot->y0 + area.y;
-						else
-							gui.qphot->ypos = area.y + area.h - gui.qphot->y0;
+					pt.x = (gdouble) zoomed.x;
+					pt.y = (gdouble) zoomed.y;
+
+					if (pt.x + radius < gfit.rx && pt.y + radius < gfit.ry
+							&& pt.x - radius > 0 && pt.y - radius > 0) {
+						com.grad_samples = add_background_sample(com.grad_samples, &gfit, pt);
+
 						redraw(REDRAW_OVERLAY);
-						popup_psf_result(gui.qphot, &area, &gfit);
+						redraw_previews();
 					}
-				}
+					break;
+				case MOUSE_ACTION_PHOTOMETRY:
+					s = com.pref.phot_set.outer * 1.2;
+					area.x = zoomed.x - s;
+					area.y = zoomed.y - s;
+					area.w = s * 2;
+					area.h = s * 2;
+					if (area.x - area.w > 0 && area.x + area.w < gfit.rx
+							&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
+						ps = phot_set_adjusted_for_image(&gfit);
+						gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
+						free(ps);
+						if (gui.qphot) {
+							gui.qphot->xpos = gui.qphot->x0 + area.x;
+							if (gfit.top_down)
+								gui.qphot->ypos = gui.qphot->y0 + area.y;
+							else
+								gui.qphot->ypos = area.y + area.h - gui.qphot->y0;
+							redraw(REDRAW_OVERLAY);
+							popup_psf_result(gui.qphot, &area, &gfit);
+						}
+					}
+					break;
+				case MOUSE_ACTION_CUT_SELECT:
+					// Reset the cut line before setting new coords in order to avoid
+					// drawing artefacts
+					gui.cut.cut_start.x = -1.;
+					gui.cut.cut_start.y = -1.;
+					gui.cut.cut_end.x = -1.;
+					gui.cut.cut_end.y = -1.;
+					if (event->state & GDK_SHIFT_MASK) {
+						cutting = CUT_VERT_OR_HORIZ;
+					} else {
+						cutting = CUT_UNCONSTRAINED;
+					}
+					gui.cut.cut_start.x = zoomed.x;
+					gui.cut.cut_start.y = zoomed.y;
+					// This is a new cut line so reset any spectroscopic wavenumber points
+					gui.cut.cut_wn1.x = -1.;
+					gui.cut.cut_wn1.y = -1.;
+					gui.cut.cut_wn2.x = -1.;
+					gui.cut.cut_wn2.y = -1.;
+					gtk_label_set_text(label_wn1_x, "");
+					gtk_label_set_text(label_wn1_y, "");
+					gtk_label_set_text(label_wn2_x, "");
+					gtk_label_set_text(label_wn2_y, "");
+					break;
+				default:
+					break;
 			}
 		} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
+			// Reset the cut line if one has been drawn
+			gui.cut.cut_start.x = -1;
+			gui.cut.cut_start.y = -1;
+			gui.cut.cut_end.x = -1;
+			gui.cut.cut_end.y = -1;
 			if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 				point pt;
 				int radius = (int) (25 / 2);
@@ -479,6 +544,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 
 gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
+
+	cache_widgets();
 	// evpos.x/evpos.y = cursor position in image coordinate
 	point evpos = { event->x, event->y };
 	cairo_matrix_transform_point(&gui.image_matrix, &evpos.x, &evpos.y);
@@ -487,7 +554,18 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
 
-	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
+	if (event->button == GDK_BUTTON_PRIMARY && gui.measure_start.x != -1.) {
+		gui.measure_end.x = zoomed.x;
+		gui.measure_end.y = zoomed.y;
+		gboolean use_arcsec = (gfit.wcsdata.pltsolvd || gui.cut.pref_as);
+		measure_line(&gfit, gui.measure_start, gui.measure_end, use_arcsec);
+		gui.measure_start.x = -1.;
+		gui.measure_start.y = -1.;
+		gui.measure_end.x = -1.;
+		gui.measure_end.y = -1.;
+	}
+
+	else if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		if (gui.translating) {
 			gui.translating = FALSE;
 		} else if (gui.drawing && mouse_status == MOUSE_ACTION_SELECT_REG_AREA) {
@@ -512,7 +590,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				}
 			}
 			// Clicking in displayed psf selects star in list if the DynamicPSF dialog is open
-			GtkWidget *dynpsf_dlg = lookup_widget("stars_list_window");
 			if (((com.selection.w == 0 || com.selection.w == 1) && (com.selection.h == 0 || com.selection.h == 1)) && gtk_widget_is_visible(dynpsf_dlg)) {
 				set_iter_of_clicked_psf((double) com.selection.x, (double) com.selection.y);
 			}
@@ -555,6 +632,51 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			}
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
+		} else if (mouse_status == MOUSE_ACTION_CUT_SELECT) {
+			point tmp;
+			tmp.x = zoomed.x;
+			tmp.y = zoomed.y;
+			if (cutting == CUT_VERT_OR_HORIZ) {
+				if (fabs(tmp.y - gui.cut.cut_start.y) > fabs(tmp.x - gui.cut.cut_start.x)) {
+					tmp.x = gui.cut.cut_start.x;
+				} else {
+					tmp.y = gui.cut.cut_start.y;
+				}
+			}
+			gui.cut.cut_end.x = tmp.x;
+			gui.cut.cut_end.y = tmp.y;
+			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
+			cutting = CUT_NOT_CUTTING;
+			redraw(REDRAW_OVERLAY);
+			// Deselect the Cut button once the cut is made
+			if (!gtk_widget_is_visible(cut_dialog))
+				siril_open_dialog("cut_dialog");
+		} else if (mouse_status == MOUSE_ACTION_CUT_WN1) {
+			gui.cut.cut_wn1.x = zoomed.x;
+			gui.cut.cut_wn1.y = zoomed.y;
+			// Snap the selected pixel to the closest point on the line
+			gui.cut.cut_wn1 = closest_point_on_line(gui.cut.cut_wn1, gui.cut.cut_start, gui.cut.cut_end);
+			gchar* l1x = g_strdup_printf("%d", (int) gui.cut.cut_wn1.x);
+			gchar* l1y = g_strdup_printf("%d", (int) gui.cut.cut_wn1.y);
+			gtk_label_set_text(label_wn1_x, l1x);
+			gtk_label_set_text(label_wn1_y, l1y);
+			g_free(l1x);
+			g_free(l1y);
+			set_cursor("default");
+			mouse_status = MOUSE_ACTION_NONE;
+		} else if (mouse_status == MOUSE_ACTION_CUT_WN2) {
+			gui.cut.cut_wn2.x = zoomed.x;
+			gui.cut.cut_wn2.y = zoomed.y;
+			// Snap the selected pixel to the closest point on the line
+			gui.cut.cut_wn2 = closest_point_on_line(gui.cut.cut_wn2, gui.cut.cut_start, gui.cut.cut_end);
+			gchar* l2x = g_strdup_printf("%d", (int) gui.cut.cut_wn2.x);
+			gchar* l2y = g_strdup_printf("%d", (int) gui.cut.cut_wn2.y);
+			gtk_label_set_text(label_wn2_x, l2x);
+			gtk_label_set_text(label_wn2_y, l2y);
+			g_free(l2x);
+			g_free(l2y);
+			set_cursor("default");
+			mouse_status = MOUSE_ACTION_NONE;
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {
@@ -588,9 +710,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
-	if (!rotation_dlg) {
-		rotation_dlg = lookup_widget("rotation_dialog");
-	}
+	cache_widgets();
 	if ((!single_image_is_loaded() && !sequence_is_loaded())
 			|| gfit.type == DATA_UNSUPPORTED) {
 		return FALSE;
@@ -623,6 +743,11 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	gtk_label_set_text(GTK_LABEL(lookup_widget("label-rgb")), "");
 
 	if (inside) {
+		if (gui.measure_start.x != -1) {
+			gui.measure_end.x = zoomed.x;
+			gui.measure_end.y = zoomed.y;
+			redraw(REDRAW_OVERLAY);
+		}
 		if (gui.cvport == RGB_VPORT) {
 			static gchar buffer[256] = { 0 };
 			if (gfit.type == DATA_USHORT) {
@@ -728,6 +853,24 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		gui.display_offset.x += delta.x;
 		gui.display_offset.y += delta.y;
 		adjust_vport_size_to_image();
+		redraw(REDRAW_OVERLAY);
+	} else if (cutting) {	// button 1 down, dragging a line for the pixel profile cut
+		if (event->state & GDK_SHIFT_MASK)
+			cutting = CUT_VERT_OR_HORIZ;
+		else
+			cutting = CUT_UNCONSTRAINED;
+		pointi tmp;
+		tmp.x = zoomed.x;
+		tmp.y = zoomed.y;
+		if (cutting == CUT_VERT_OR_HORIZ) {
+			if (fabs(tmp.y - gui.cut.cut_start.y) > fabs(tmp.x - gui.cut.cut_start.x)) {
+				tmp.x = gui.cut.cut_start.x;
+			} else {
+				tmp.y = gui.cut.cut_start.y;
+			}
+		}
+		gui.cut.cut_end.x = tmp.x;
+		gui.cut.cut_end.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.drawing) {	// with button 1 down
 		if (!gui.freezeX) {

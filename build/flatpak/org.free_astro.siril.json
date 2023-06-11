@@ -235,6 +235,24 @@
             ]
         },
         {
+            "name": "libxisf",
+            "buildsystem": "cmake",
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://gitea.nouspiro.space/nou/libXISF.git",
+                    "branch": "master"
+                }
+            ],
+            "cleanup": [
+                "/include",
+                "*.la",
+                "*.a",
+                "/lib/cmake",
+                "/lib/pkgconfig"
+            ]
+        },
+        {
             "name": "opencv",
             "buildsystem": "cmake-ninja",
             "builddir": true,

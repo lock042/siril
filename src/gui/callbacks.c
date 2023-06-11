@@ -32,6 +32,7 @@
 #include "core/siril_language.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "gui/cut.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/annotate.h"
@@ -187,6 +188,7 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("annotate_button", "astrometry_dark.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid_dark.svg");
 		update_theme_button("photometry_button", "photometry_dark.svg");
+		update_theme_button("cut_button", "cut_dark.svg");
 
 		update_theme_button("rotate90_anticlock_button", "rotate-acw_dark.svg");
 		update_theme_button("rotate90_clock_button", "rotate-cw_dark.svg");
@@ -203,6 +205,7 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("annotate_button", "astrometry.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid.svg");
 		update_theme_button("photometry_button", "photometry.svg");
+		update_theme_button("cut_button", "cut.svg");
 
 		update_theme_button("rotate90_anticlock_button", "rotate-acw.svg");
 		update_theme_button("rotate90_clock_button", "rotate-cw.svg");
@@ -743,7 +746,6 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 void update_display_selection() {
 	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
 	static gchar selection_buffer[256] = { 0 };
-
 	if (com.selection.w && com.selection.h) {
 		g_sprintf(selection_buffer, _("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
 			(double)com.selection.w / (double)com.selection.h);
@@ -1320,7 +1322,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
 	initialize_image_display();
 	init_mouse();
-
 	/* populate language combo */
 	siril_language_fill_combo(com.pref.lang);
 
@@ -1407,6 +1408,12 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	// init the Plot tab
 	drawPlot();
+
+	// init the cut structure
+	initialize_cut_struct(&gui.cut);
+	gui.cut.cut_measure = TRUE;
+	gui.measure_start = (point){ -1., -1. };
+	gui.measure_end = (point){ -1., -1. };
 
 	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
 		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
