@@ -243,23 +243,6 @@
                     "branch": "master"
                 }
             ],
-            "modules": [
-                {
-                    "name": "zstd",
-                    "cleanup": [ "/bin" ],
-                    "sources": [
-                        {
-                            "type": "archive",
-                            "url": "https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-1.5.5.tar.gz",
-                            "sha256": "9c4396cc829cfae319a6e2615202e82aad41372073482fce286fac78646d3ee4"
-                        },
-                        {
-                            "type": "patch",
-                            "path": "patches/zstd-cmake.patch"
-                        }
-                    ]
-                }
-            ],
             "cleanup": [
                 "/include",
                 "*.la",
