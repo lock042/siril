@@ -67,6 +67,8 @@ static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
+static char *SITELAT[] = { "SITELAT", "SITE-LAT", NULL };
+static char *SITELONG[] = { "SITELONG", "SITE-LON", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -89,31 +91,37 @@ static void read_fits_locdata_header(fits *fit) {
 	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
 
 	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TSTRING, "*LAT", &sitelat_dump, NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases in TSTRING style
+	__tryToFindKeywords(fit->fptr, TSTRING, SITELAT, &sitelat_dump, &status);
+
+	if (status == 0) {
+		gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
+		gsize token_size = g_strv_length(token);
+		if (token_size > 1 && token[1])	{	// Denotes presence of ":"
+			for (int i = 0; i < token_size; ++i) {
+				strncat(sitelat_dump_tmp, token[i], strlen (token[i]));
+				if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
+				d_sitelat_dump = parse_dms(sitelat_dump_tmp);
+			}
+		} else d_sitelat_dump = parse_dms(sitelat_dump);
+
+		g_strfreev(token); // we free token before reusing it
+	}
+
 	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TSTRING, "*LON*", &sitelong_dump, NULL, &status);	// Handles SITELONG and SITE-LON keyword cases in TSTRING style
+	__tryToFindKeywords(fit->fptr, TSTRING, SITELONG, &sitelong_dump, &status);
 
-	gchar **token = g_strsplit(sitelat_dump, ":", -1);							// Handles PRISM special parsing for SITELAT
-	if (token[1])	{	// Denotes presence of ":" 
-		for (int i = 0; i < g_strv_length(token); ++i) {
-			strncat(sitelat_dump_tmp, token[i], strlen (token[i]));
-			if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
-			d_sitelat_dump = parse_dms(sitelat_dump_tmp);
-		}
-	} else d_sitelat_dump = parse_dms(sitelat_dump);
-
-	token = g_strsplit(sitelong_dump, ":", -1);									// Handles PRISM special parsing for SITELONG
-	if (token[1])	{
-		for (int i = 0; i < g_strv_length(token); ++i) {
-			strncat(sitelong_dump_tmp, token[i], strlen (token[i]));
-			if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
-			d_sitelong_dump = parse_dms(sitelong_dump_tmp);
-		}
-	} else d_sitelong_dump = parse_dms(sitelong_dump);
-	g_strfreev(token);
-
+	if (status == 0) {
+		gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
+		gsize token_size = g_strv_length(token);
+		if (token_size > 1 && token[1])	{
+			for (int i = 0; i < token_size; ++i) {
+				strncat(sitelong_dump_tmp, token[i], strlen (token[i]));
+				if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
+				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
+			}
+		} else d_sitelong_dump = parse_dms(sitelong_dump);
+		g_strfreev(token);
+	}
 
 	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
 		fit->sitelat = strtod(sitelat_dump, NULL);
