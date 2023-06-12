@@ -210,8 +210,8 @@ int parse_catalog_buffer(const gchar *buffer, psf_star **result) {
 
 	if (world_cs && realname) {
 		gchar **display_name = g_strsplit(realname, "\\n", 2);
-		gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
-		gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02.2lfs");
+		gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02.2lf\"");
 		siril_log_message(_("Found %s at coordinates: %s, %s\n"), display_name[0], alpha, delta);
 		g_strfreev(display_name);
 		g_free(alpha);
@@ -304,8 +304,8 @@ int parse_conesearch_buffer(const gchar *buffer, double lim_mag) {
 		g_strfreev(fields);
 
 		if (world_cs && objname && valid) {
-			gchar* alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
-			gchar* delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+			gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02.2lfs");
+			gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02.2lf\"");
 			siril_log_message(_("Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"),
 					objname, alpha, delta, mag);
 			g_free(alpha);
