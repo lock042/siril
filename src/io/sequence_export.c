@@ -726,7 +726,9 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		// add a trailing '_' for multiple-files sequences
 		args->basename = format_basename(args->basename, TRUE);
 		if (args->output == EXPORT_TIFF) {
+#ifdef HAVE_LIBTIFF
 			args->tiff_compression = get_tiff_compression();
+#endif
 		}
 	}
 	// Display a useful warning because I always forget to remove selection

@@ -583,6 +583,8 @@ int processcommand(const char *line) {
 
 		gchar *myline = strdup(line);
 		int len = strlen(line);
+		if (len > 0)
+			g_print("input command:%s\n", myline);
 		parse_line(myline, len, &wordnb);
 		int ret = execute_command(wordnb);
 		if (ret) {

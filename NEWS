@@ -2,6 +2,7 @@ siril 1.4.0 xx xx, xx
 
 * Added comparison star list creation from Siril
 * Allowed object search with their common name, from the annotations catalogues
+* Add intensity profiling function
 
 siril 1.2.0 xx xx, xx
 
@@ -9,6 +10,9 @@ siril 1.2.0 xx xx, xx
 * Fixed crash in binning with ushort images
 * Fixed crash in findstar when a large saturated patch was close to border
 * Fixed memory leaks in deconvolution code
+* Added logging typed command in stdout
+* Improved path-checking and messages for astrometry.net local solver (Windows)
+* Prevent crash using recomposition tool eyedroppers without images loaded
 
 siril 1.2.0-rc1 June 1, 2023
 

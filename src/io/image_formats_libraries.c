@@ -1398,8 +1398,9 @@ int readpng(const char *name, fits* fit) {
 		fit->orig_bitpix = fit->bitpix;
 		fit->data = data;
 		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + npixels;
-		fit->pdata[BLAYER] = fit->data + npixels * 2;
+		fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + npixels : fit->data;
+		fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + npixels * 2 : fit->data;
+
 		fit->binning_x = fit->binning_y = 1;
 		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 		fill_date_obs_if_any(fit, name);

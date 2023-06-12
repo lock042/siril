@@ -16,22 +16,21 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
- */
-#ifndef SRC_CORE_EXIF_H_
-#define SRC_CORE_EXIF_H_
+*/
 
-#include <stdint.h>
+#ifndef SRC_GUI_CUT_H_
+#define SRC_GUI_CUT_H_
 
-#ifdef __cplusplus
-extern "C" {
+void reset_cut_gui_filedependent();
+double get_conversion_factor(fits *fit);
+void measure_line(fits* fit, point start, point finish, gboolean pref_as);
+void initialize_cut_struct(cut_struct *arg);
+gboolean cut_struct_is_valid(cut_struct *arg);
+void free_cut_args(cut_struct *arg);
+gpointer cut_profile(gpointer p);
+gpointer tri_cut(gpointer p);
+gpointer cfa_cut(gpointer p);
+void apply_cut_to_sequence(cut_struct *cut_args);
+
+
 #endif
-
-int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, char **mime_type);
-gchar *siril_get_date_from_exif(const char *filename);
-
-#ifdef __cplusplus
-}
-#endif
-
-
-#endif /* SRC_CORE_EXIF_H_ */

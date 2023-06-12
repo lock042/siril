@@ -188,6 +188,7 @@ src_files = [
   'gui/colors.c',
   'gui/compstars.c',
   'gui/conversion.c',
+  'gui/cut.c',
   'gui/dialog_preview.c',
   'gui/dialogs.c',
   'gui/documentation.c',

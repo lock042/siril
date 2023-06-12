@@ -1328,6 +1328,11 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 				_("Make a selection of the point or area to set SP"));
 		return;
 	}
+	if (!left_loaded) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no starless image loaded"),
+				_("Load an image using the left-hand file chooser before attempting to set SP using the eyedropper"));
+		return;
+	}
 	for (chan = 0; chan < fit_left.naxes[2]; chan++) {
 		stats[chan] = statistics(NULL, -1, &fit_left, chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
@@ -1369,6 +1374,11 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 	if (!com.selection.w || !com.selection.h) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the point or area to set SP"));
+		return;
+	}
+	if (!right_loaded) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no starless image loaded"),
+				_("Load an image using the rightt-hand file chooser before attempting to set SP using the eyedropper"));
 		return;
 	}
 	for (chan = 0; chan < fit_right.naxes[2]; chan++) {

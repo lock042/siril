@@ -337,6 +337,7 @@ void initialize_path_directory(const gchar *path) {
 }
 
 void initialize_starnet_executable(const gchar *path) {
+#ifdef HAVE_LIBTIFF
 	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
 	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
@@ -353,6 +354,7 @@ void initialize_starnet_executable(const gchar *path) {
 		gtk_widget_set_sensitive(starnet_weights, FALSE);
 		gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
 	}
+#endif
 }
 
 void initialize_starnet_weights(const gchar *path) {
@@ -374,6 +376,11 @@ void initialize_asnet_directory(const gchar *path) {
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (asnet_dir, path);
 	}
+}
+
+void on_asnet_clear_clicked(GtkButton *button, gpointer user_data) {
+	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	gtk_file_chooser_set_filename(asnet_dir, "\0");
 }
 
 void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
@@ -437,6 +444,7 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 }
 
 void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
+#ifdef HAVE_LIBTIFF
 	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(fileChooser);
 	gchar *path;
 
@@ -462,7 +470,7 @@ void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer
 		gtk_widget_set_sensitive(starnet_weights, FALSE);
 		gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
 	}
-
+#endif
 }
 
 void on_starnet_weights_clear_clicked(GtkButton *button, gpointer user_data) {

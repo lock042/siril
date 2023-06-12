@@ -66,6 +66,7 @@
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/plot.h"
+#include "gui/cut.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -9028,3 +9029,225 @@ display:
 		siril_world_cs_unref(coords);
 	return CMD_OK;
 }
+
+int read_cut_pair(char *value, point *pair) {
+	char *end;
+	pair->x = (double) g_ascii_strtoull(value, &end, 10);
+	if (end == value)
+		return CMD_ARG_ERROR;
+	if (*end != ',')
+		return CMD_ARG_ERROR;
+	end++;
+	value = end;
+	pair->y = (double) g_ascii_strtoull(value, &end, 10);
+	if (end == value)
+		return CMD_ARG_ERROR;
+	return CMD_OK;
+}
+
+cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
+	cut_struct *cut_args = calloc(1, sizeof(cut_struct));
+	initialize_cut_struct(cut_args);
+	int start = (seq) ? 2 : 1;
+	*err = CMD_OK;
+	if (seq)
+		cut_args->seq = seq;
+	else
+		cut_args->fit = &gfit;
+	int nb_layers = (cut_args->seq) ? cut_args->seq->nb_layers : cut_args->fit->naxes[2];
+	for (int i = start; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(word[i], "-tri")) {
+			cut_args->tri = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-cfa")) {
+			fits reffit = { 0 };
+			if (seq) {
+				// loading the sequence reference image's metadata to read its bayer pattern
+				int image_to_load = sequence_find_refimage(seq);
+				if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+					siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+					*err = CMD_SEQUENCE_NOT_FOUND;
+					break;
+				}
+			} else {
+				reffit = gfit;
+			}
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.bayer_pattern);
+			if ((reffit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
+				siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+			cut_args->cfa = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-savedat")) {
+			cut_args->save_dat = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-arcsec")) {
+			cut_args->pref_as = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-width=")) {
+			arg += 7;
+			cut_args->width = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-spacing=")) {
+			arg += 9;
+			cut_args->step = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-layer=")) {
+			arg += 7;
+			if (g_str_has_prefix(arg, "red"))
+				cut_args->vport = 0;
+			else if (g_str_has_prefix(arg, "green"))
+				cut_args->vport = 1;
+			else if (g_str_has_prefix(arg, "blue"))
+				cut_args->vport = 2;
+			else if (g_str_has_prefix(arg, "lum")) {
+				if (nb_layers == 1) {
+					cut_args->vport = 0;
+					cut_args->mode = CUT_MONO;
+				} else {
+					cut_args->vport = 3;
+					cut_args->mode = CUT_MONO;
+				}
+			} else if (g_str_has_prefix(arg, "col")) {
+				cut_args->vport = 0;
+				cut_args->mode = CUT_COLOR;
+			} else {
+				siril_log_message(_("Incorrect option follows -layer=, aborting.\n"));
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber1=")) {
+			arg += 13;
+			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber2=")) {
+			arg += 13;
+			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavelength1=")) {
+			arg += 13;
+			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavelength2=")) {
+			arg += 13;
+			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-from=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-from";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-to=")) {
+			gchar *value;
+			value = arg + 4;
+			if ((*err = read_cut_pair(value, &cut_args->cut_end))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-to";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wn1at=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn1at";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wn2at=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn2at";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-filename=")) {
+			if (seq) {
+				siril_log_color_message(_("Error: this option cannot be used for sequences.\n"), "red");
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+			arg += 10;
+			if (cut_args->filename)
+				g_free(cut_args->filename);
+			cut_args->filename = g_strdup(arg);
+			cut_args->save_dat = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-title=")) {
+			arg += 7;
+			if (arg && arg[0] != '\0') {
+				if (cut_args->user_title)
+					g_free(cut_args->user_title);
+				cut_args->user_title = g_strdup(arg);
+				siril_debug_print("title: %s\n", arg);
+			}
+		}
+	}
+	if (cut_args->vport == -1) {
+		if (nb_layers == 1) {
+			cut_args->vport = 0;
+			cut_args->mode = CUT_MONO;
+		} else {
+			cut_args->vport = 3;
+			cut_args->mode = CUT_COLOR;
+		}
+	}
+	if (!cut_struct_is_valid(cut_args))
+		*err = CMD_ARG_ERROR;
+	if (*err) {
+		free_cut_args(cut_args);
+		cut_args = NULL;
+	}
+	return cut_args;
+}
+
+int process_profile(int nb) {
+	cmd_errors err;
+	cut_struct *cut_args = parse_cut_args(nb, NULL, &err);
+	if (err)
+		return err;
+
+	cut_args->save_png_too = TRUE;
+
+	if (cut_args->cfa)
+		start_in_new_thread(cfa_cut, cut_args);
+	else if (cut_args->tri)
+		start_in_new_thread(tri_cut, cut_args);
+	else
+		start_in_new_thread(cut_profile, cut_args);
+
+	return CMD_OK;
+}
+
+int process_seq_profile(int nb) {
+	cmd_errors err;
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	cut_struct *cut_args = parse_cut_args(nb, seq, &err);
+	if (err)
+		return err;
+
+	cut_args->display_graph = FALSE;
+	cut_args->save_png_too = FALSE;
+
+	apply_cut_to_sequence(cut_args);
+
+	return CMD_OK;
+}
+
