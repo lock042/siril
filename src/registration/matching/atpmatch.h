@@ -238,8 +238,7 @@ atRecalcTrans(int numA, struct s_star *listA,
               int max_iter, double halt_sigma, TRANS *trans);
 
 int atPrepareHomography(int numA, struct s_star *listA, int numB,
-		struct s_star *listB, Homography *H, gboolean for_astrometry, 
-      gboolean save_photometric_data, pcc_star *photometric_data, int *nb_photometric_stars,
+		struct s_star *listB, Homography *H, gboolean for_astrometry,
 		transformation_type type);
 
 int

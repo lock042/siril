@@ -624,6 +624,14 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			set_preview_area(1, zoomed.x, zoomed.y);
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
+		} else if (mouse_status == MOUSE_ACTION_GET_COMP_CENTER_COORDINATE) {
+			if (gui.comp_layer_centering) {
+				gui.comp_layer_centering->center.x = zoomed.x;
+				gui.comp_layer_centering->center.y = zoomed.y;
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(gui.comp_layer_centering->centerbutton), FALSE);
+			}
+			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+			redraw(REDRAW_OVERLAY);
 		} else if (mouse_status == MOUSE_ACTION_CUT_SELECT) {
 			point tmp;
 			tmp.x = zoomed.x;

@@ -603,9 +603,6 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 		struct s_star *listB, /* I: match this set of objects with list A */
 		Homography *H,
 		gboolean for_astrometry,
-		gboolean save_photometric_data,
-		pcc_star *photometric_data,
-		int *nb_photometric_stars,
 		transformation_type type
 ) {
 	s_star *star_array_A;
@@ -620,24 +617,6 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 
 	mask = cvCalculH(star_array_A, star_array_B, numB, H, type, (for_astrometry) ? 0.f : -0.5f);
 	int ret = mask == NULL;
-
-	if (!ret && save_photometric_data) {
-		int n = 0;
-		for (int i = 0; i < numB; i++) {
-			s_star *starA = star_array_A + i;
-			s_star *starB = star_array_B + i;
-			g_assert(starA != NULL);
-			g_assert(starB != NULL);
-			if (mask && mask[i] && starB->BV != -99.9) {
-				photometric_data[n].x = (float)starA->x;
-				photometric_data[n].y = (float)starA->y;
-				photometric_data[n].mag = (float)starB->mag;
-				photometric_data[n].BV = (float)starB->BV;
-				n++;
-			}
-		}
-		*nb_photometric_stars = n;
-	}
 
 	/*
 	 * clean up memory we allocated during the matching process

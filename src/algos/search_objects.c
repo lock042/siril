@@ -590,6 +590,8 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	case QUERY_SERVER_SIMBAD_PHOTO:
 		// SIMBAD request to get the magnitudes (BVRIJ) in addition to coordinates for a particular star/object
 		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
 		string_url = g_string_prepend(string_url, SIMBAD);
 		siril_log_message(_("Searching %s in SIMBAD\n"), name);
 		break;

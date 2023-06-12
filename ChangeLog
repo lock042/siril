@@ -5,6 +5,7 @@ xx/xx/xx
 * Allowed object search with their common name, from the annotations catalogues
 * Add intensity profiling function
 * Fixed PRISM SITELAT/SITELONG keywords data
+* Improve RGB composition tool to do full homography registration
 
 siril 1.2.0
 xx/xx/xx

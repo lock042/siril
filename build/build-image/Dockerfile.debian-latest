@@ -14,7 +14,6 @@ RUN apt-get update -qyy \
         libcfitsio-dev \
         libfftw3-dev \
         libgsl-dev \
-        libconfig-dev \
         libopencv-dev \
         librsvg2-dev \
         libraw-dev \
@@ -35,9 +34,10 @@ RUN apt-get update -qyy \
         python3-pip \
         libjson-glib-dev \
         gcovr \
+        libzstd-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-RUN git clone --branch v0.2.5 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
+RUN git clone --branch v0.2.7 --single-branch https://gitea.nouspiro.space/nou/libXISF.git \
     && cd libXISF \
     && mkdir -p build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. \

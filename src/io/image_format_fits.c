@@ -1897,29 +1897,50 @@ int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomo
 	return *status;
 }
 
-// reset a fit data structure, deallocates everything in it and zero the data
-void clearfits(fits *fit) {
+// reset a fit data structure, deallocates everything in it but keep the data:
+// useful in processing internal_fits in SEQ_INTERNAL sequences
+void clearfits_header(fits *fit) {
 	if (fit == NULL)
 		return;
-	if (fit->data)
-		free(fit->data);
-	if (fit->fdata)
-		free(fit->fdata);
-	if (fit->header)
+	if (fit->header) {
 		free(fit->header);
-	if (fit->history)
+		fit->header = NULL;
+	}
+	if (fit->history) {
 		g_slist_free_full(fit->history, g_free);
-	if (fit->date_obs)
+		fit->history = NULL;
+	}
+	if (fit->date_obs) {
 		g_date_time_unref(fit->date_obs);
-	if (fit->date)
+		fit->date_obs = NULL;
+	}
+	if (fit->date) {
 		g_date_time_unref(fit->date);
+		fit->date = NULL;
+	}
 	if (fit->stats) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			free_stats(fit->stats[i]);
 		free(fit->stats);
+		fit->stats = NULL;
 	}
 	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
+}
+
+// reset a fit data structure, deallocates everything in it and zero the data
+void clearfits(fits *fit) {
+	if (fit == NULL)
+		return;
+	if (fit->data) {
+		free(fit->data);
+		fit->data = NULL;
+	}
+	if (fit->fdata) {
+		free(fit->fdata);
+		fit->fdata = NULL;
+	}
+	clearfits_header(fit);
 }
 
 /* Read a rectangular section of a FITS image in Siril's format, pointed by its

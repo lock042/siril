@@ -760,7 +760,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		free_stars(&star_list_B);
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
 				scale_min, scale_max, &H, TRUE,
-				FALSE, NULL, NULL,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
 		if (attempt == 1) {
 			scale_min = -1.0;
@@ -823,7 +822,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		double focal = RADCONV * solution->pixel_size / resolution;
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
-		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, TRUE, FALSE, NULL, NULL, AFFINE_TRANSFORMATION)){
+		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, TRUE, AFFINE_TRANSFORMATION)){
 			args->message = g_strdup(_("Updating homography failed."));
 			args->ret = 1;
 			break;
