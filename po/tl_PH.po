@@ -7,11 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-27 18:35+0200\n"
+"POT-Creation-Date: 2023-06-12 10:41+0200\n"
 "PO-Revision-Date: 2023-06-02 12:31+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
-"Language-Team: Tagalog <https://weblate.pixls.us/projects/siril/"
-"siril-application-1-2/tl/>\n"
+"Language-Team: Tagalog <https://weblate.pixls.us/projects/siril/siril-"
+"application-1-2/tl/>\n"
 "Language: tl_PH\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -571,7 +571,7 @@ msgid ""
 "luminance used to compute the stretch for each pixel."
 msgstr ""
 
-#: src/gui/siril3.glade:3412 src/algos/background_extraction.c:1059
+#: src/gui/siril3.glade:3412 src/algos/background_extraction.c:1060
 msgid "Background Extraction"
 msgstr "Background Extraction"
 
@@ -975,7 +975,7 @@ msgstr ""
 "pumili ng filter sa listahan o\n"
 "ipasok ang wavelength sa nm."
 
-#: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1176 src/gui/newdeconv.c:1546
+#: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1176 src/gui/newdeconv.c:1547
 msgid "Deconvolution"
 msgstr ""
 
@@ -2014,7 +2014,7 @@ msgid "Log histograms"
 msgstr "Histogram"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
-#: src/gui/siril3.glade:9457 src/gui/remixer.c:701 src/gui/remixer.c:1370
+#: src/gui/siril3.glade:9457 src/gui/remixer.c:701 src/gui/remixer.c:1380
 msgid "Advanced"
 msgstr ""
 
@@ -4480,7 +4480,7 @@ msgid ""
 "\t\t\t"
 msgstr ""
 
-#: src/gui/siril3.glade:20628 src/io/sequence_export.c:693
+#: src/gui/siril3.glade:20628 src/io/sequence_export.c:695
 msgid "Select area to crop"
 msgstr ""
 
@@ -5933,8 +5933,8 @@ msgid ""
 "put them in black to see in which part of the image the threshold is "
 "exceeded."
 msgstr ""
-"Imbes na panatilihing puti ang pixels na may halagang mataas sa "
-"&quot;hi&quot; gawing itim para makita kung alin ang lumagpas sa threshold."
+"Imbes na panatilihing puti ang pixels na may halagang mataas sa &quot;"
+"hi&quot; gawing itim para makita kung alin ang lumagpas sa threshold."
 
 #: src/gui/siril3.glade:25546
 msgid ""
@@ -7694,7 +7694,7 @@ msgstr ""
 msgid "Initializing FFTW multithreading support...\n"
 msgstr ""
 
-#: src/main.c:356 src/core/command.c:7109 src/core/command_line_processor.c:617
+#: src/main.c:356 src/core/command.c:7109 src/core/command_line_processor.c:619
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -8161,39 +8161,39 @@ msgid ""
 "cannot be computed.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:833
+#: src/algos/background_extraction.c:834
 #, c-format
 msgid "Failed to generate background samples for image: %s\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:888
+#: src/algos/background_extraction.c:889
 msgid "Not enough samples."
 msgstr ""
 
-#: src/algos/background_extraction.c:898 src/algos/PSF.c:838
+#: src/algos/background_extraction.c:899 src/algos/PSF.c:838
 msgid "monochrome"
 msgstr ""
 
-#: src/algos/background_extraction.c:899
+#: src/algos/background_extraction.c:900
 #, fuzzy, c-format
 msgid "Background extraction from %s channel.\n"
 msgstr "Background Extraction"
 
-#: src/algos/background_extraction.c:904
+#: src/algos/background_extraction.c:905
 #, c-format
 msgid "Background with %s interpolation computed.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:924
+#: src/algos/background_extraction.c:925
 msgid "Out of memory - aborting"
 msgstr ""
 
-#: src/algos/background_extraction.c:931
+#: src/algos/background_extraction.c:932
 #, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:1019 src/algos/demosaicing.c:1284
+#: src/algos/background_extraction.c:1020 src/algos/demosaicing.c:1284
 #: src/algos/extraction.c:728 src/algos/star_finder.c:1096
 #: src/algos/statistics.c:912 src/core/preprocess.c:264
 #: src/core/processing.c:426 src/filters/banding.c:85
@@ -8235,7 +8235,7 @@ msgstr ""
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
-#: src/gui/histogram.c:1617 src/gui/remixer.c:1271 src/gui/remixer.c:1314
+#: src/gui/histogram.c:1617 src/gui/remixer.c:1276 src/gui/remixer.c:1324
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr ""
@@ -13046,12 +13046,12 @@ msgstr ""
 msgid "Starting script %s\n"
 msgstr "Stacking lahat ng larawan sa sequence (%d)\n"
 
-#: src/core/command_line_processor.c:589
+#: src/core/command_line_processor.c:591
 #, c-format
 msgid "Command execution failed: %s.\n"
 msgstr ""
 
-#: src/core/command_line_processor.c:638
+#: src/core/command_line_processor.c:640
 #, fuzzy, c-format
 msgid "Loading sequence `%s' failed.\n"
 msgstr "Stacking lahat ng larawan sa sequence (%d)\n"
@@ -13567,8 +13567,8 @@ msgstr "Stacking ng mga piling larawan lamang sa sequence (%d)\n"
 msgid ""
 "Processing images of the sequence with a FWHM lower or equal than %g (%d)\n"
 msgstr ""
-"Stacking ng mga larawan sa sequence na may FWHM na mababa o pantay sa %g (%d)"
-"\n"
+"Stacking ng mga larawan sa sequence na may FWHM na mababa o pantay sa %g "
+"(%d)\n"
 
 #: src/core/sequence_filtering.c:530
 #, fuzzy, c-format
@@ -13576,8 +13576,8 @@ msgid ""
 "Processing images of the sequence with a weighted FWHM lower or equal than "
 "%g (%d)\n"
 msgstr ""
-"Stacking ng mga larawan sa sequence na may FWHM na mababa o pantay sa %g (%d)"
-"\n"
+"Stacking ng mga larawan sa sequence na may FWHM na mababa o pantay sa %g "
+"(%d)\n"
 
 #: src/core/sequence_filtering.c:534
 #, fuzzy, c-format
@@ -13603,8 +13603,8 @@ msgid ""
 "Processing images of the sequence with a background lower or equal than %g "
 "(%d)\n"
 msgstr ""
-"Stacking ng mga larawan sa sequence na may FWHM na mababa o pantay sa %g (%d)"
-"\n"
+"Stacking ng mga larawan sa sequence na may FWHM na mababa o pantay sa %g "
+"(%d)\n"
 
 #: src/core/sequence_filtering.c:546
 #, fuzzy, c-format
@@ -14238,31 +14238,31 @@ msgstr ""
 msgid "File I/O Error: Unable to write swap file in %s: [%s]\n"
 msgstr ""
 
-#: src/core/undo.c:310
+#: src/core/undo.c:314
 #, c-format
 msgid "Undo: %s\n"
 msgstr ""
 
-#: src/core/undo.c:323
+#: src/core/undo.c:327
 #, c-format
 msgid "Redo: %s\n"
 msgstr ""
 
-#: src/core/undo.c:356
+#: src/core/undo.c:360
 #, c-format
 msgid "Undo: \"%s\""
 msgstr ""
 
-#: src/core/undo.c:360
+#: src/core/undo.c:364
 msgid "Nothing to undo"
 msgstr ""
 
-#: src/core/undo.c:362
+#: src/core/undo.c:366
 #, c-format
 msgid "Redo: \"%s\""
 msgstr ""
 
-#: src/core/undo.c:366
+#: src/core/undo.c:370
 msgid "Nothing to redo"
 msgstr ""
 
@@ -14378,11 +14378,11 @@ msgstr ""
 msgid "There is something wrong in your files\n"
 msgstr ""
 
-#: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1286
+#: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1287
 msgid "Siril FFT wisdom updated successfully...\n"
 msgstr ""
 
-#: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1289
+#: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1290
 msgid "Siril FFT wisdom update failed...\n"
 msgstr ""
 
@@ -14393,8 +14393,8 @@ msgstr ""
 #. fail
 #: src/filters/fft.c:592 src/filters/fft.c:598 src/filters/fft.c:619
 #: src/gui/nina_light_curve.c:83 src/gui/nina_light_curve.c:120
-#: src/gui/open_dialog.c:382 src/gui/plot.c:829 src/gui/preferences.c:391
-#: src/gui/preferences.c:409 src/gui/preferences.c:447 src/gui/PSF_list.c:305
+#: src/gui/open_dialog.c:382 src/gui/plot.c:829 src/gui/preferences.c:393
+#: src/gui/preferences.c:412 src/gui/preferences.c:450 src/gui/PSF_list.c:305
 #: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:398
 msgid "Error"
 msgstr ""
@@ -15240,7 +15240,7 @@ msgstr[1] ""
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
 #: src/gui/photometric_cc.c:200 src/gui/photometric_cc.c:218
-#: src/gui/remixer.c:1264 src/gui/remixer.c:1307
+#: src/gui/remixer.c:1264 src/gui/remixer.c:1312
 #, fuzzy
 msgid "There is no selection"
 msgstr "fwhm: walang seleksyon"
@@ -15397,7 +15397,7 @@ msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1308
+#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1313
 msgid "Make a selection of the point or area to set SP"
 msgstr ""
 
@@ -15678,7 +15678,7 @@ msgstr ""
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
-#: src/gui/newdeconv.c:1129 src/gui/newdeconv.c:1495
+#: src/gui/newdeconv.c:1129 src/gui/newdeconv.c:1496
 msgid ""
 "Error: trying to use previous PSF but no PSF has been generated. "
 "Aborting...\n"
@@ -15704,13 +15704,13 @@ msgstr ""
 msgid "Richardson-Lucy deconvolution..."
 msgstr ""
 
-#: src/gui/newdeconv.c:1402
+#: src/gui/newdeconv.c:1403
 msgid ""
 "Image row order has changed since PSF was generated. The PSF orientation "
 "will be updated to match before applying to this image."
 msgstr ""
 
-#: src/gui/newdeconv.c:1490
+#: src/gui/newdeconv.c:1491
 msgid "Deconvolution. Processing sequence..."
 msgstr ""
 
@@ -15718,7 +15718,7 @@ msgstr ""
 msgid "Light curve with NINA star list"
 msgstr ""
 
-#: src/gui/nina_light_curve.c:20 src/io/image_formats_libraries.c:1757
+#: src/gui/nina_light_curve.c:20 src/io/image_formats_libraries.c:1758
 msgid "_OK"
 msgstr ""
 
@@ -15972,51 +15972,51 @@ msgstr ""
 msgid "Exclude selected points"
 msgstr ""
 
-#: src/gui/preferences.c:390
+#: src/gui/preferences.c:392
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:408
+#: src/gui/preferences.c:411
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:446
+#: src/gui/preferences.c:449
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:475
+#: src/gui/preferences.c:478
 msgid "Cannot refresh script list"
 msgstr ""
 
-#: src/gui/preferences.c:697
+#: src/gui/preferences.c:700
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr ""
 
-#: src/gui/preferences.c:706
+#: src/gui/preferences.c:709
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
 
-#: src/gui/preferences.c:718
+#: src/gui/preferences.c:721
 #, fuzzy
 msgid "Wrong value"
 msgstr "Background Extraction"
 
-#: src/gui/preferences.c:739
+#: src/gui/preferences.c:742
 msgid "Reset all preferences"
 msgstr ""
 
-#: src/gui/preferences.c:740
+#: src/gui/preferences.c:743
 msgid "Do you really want to reset all preferences to default value?"
 msgstr ""
 
-#: src/gui/preferences.c:741
+#: src/gui/preferences.c:744
 msgid "Reset Preferences"
 msgstr ""
 
@@ -16139,7 +16139,7 @@ msgstr ""
 msgid "Star recomposition"
 msgstr ""
 
-#: src/gui/remixer.c:702 src/gui/remixer.c:1371
+#: src/gui/remixer.c:702 src/gui/remixer.c:1381
 msgid "Show advanced stretch options."
 msgstr ""
 
@@ -16170,12 +16170,29 @@ msgstr ""
 msgid "Image width, height, bit depth and number of channels must match"
 msgstr ""
 
+#: src/gui/remixer.c:1269 src/gui/remixer.c:1317
+#, fuzzy
+msgid "There is no starless image loaded"
+msgstr "fwhm: walang seleksyon"
+
+#: src/gui/remixer.c:1270
+msgid ""
+"Load an image using the left-hand file chooser before attempting to set SP "
+"using the eyedropper"
+msgstr ""
+
+#: src/gui/remixer.c:1318
+msgid ""
+"Load an image using the rightt-hand file chooser before attempting to set SP "
+"using the eyedropper"
+msgstr ""
+
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
-#: src/gui/remixer.c:1354
+#: src/gui/remixer.c:1364
 msgid "Simple"
 msgstr ""
 
-#: src/gui/remixer.c:1355
+#: src/gui/remixer.c:1365
 msgid ""
 "Show only simple stretch options. Note that any parameters that have been "
 "set while in advanced mode will remain set."
@@ -17108,66 +17125,66 @@ msgstr ""
 msgid "Error opening the file %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1149
+#: src/io/image_formats_libraries.c:1150
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1332
+#: src/io/image_formats_libraries.c:1333
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1466
+#: src/io/image_formats_libraries.c:1467
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1495
+#: src/io/image_formats_libraries.c:1496
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1498
+#: src/io/image_formats_libraries.c:1499
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1521
+#: src/io/image_formats_libraries.c:1522
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1595
+#: src/io/image_formats_libraries.c:1596
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1646
+#: src/io/image_formats_libraries.c:1647
 msgid "primary"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1755
+#: src/io/image_formats_libraries.c:1756
 msgid "Load HEIF image content"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1757 src/pixelMath/pixel_math_runner.c:1067
+#: src/io/image_formats_libraries.c:1758 src/pixelMath/pixel_math_runner.c:1067
 msgid "_Cancel"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1763
+#: src/io/image_formats_libraries.c:1764
 msgid "Select image"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1868
+#: src/io/image_formats_libraries.c:1869
 msgid "Input file contains no readable images.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1895
+#: src/io/image_formats_libraries.c:1896
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1973
+#: src/io/image_formats_libraries.c:1974
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
@@ -17687,22 +17704,22 @@ msgstr ""
 msgid "Width or height cannot be null. Not resizing.\n"
 msgstr ""
 
-#: src/io/sequence_export.c:658
+#: src/io/sequence_export.c:660
 msgid "Export cropped sequence?"
 msgstr ""
 
-#: src/io/sequence_export.c:659
+#: src/io/sequence_export.c:661
 msgid ""
 "An active selection was detected. The exported sequence will only contain "
 "data within the drawn selection. You can confirm the crop or cancel it. If "
 "you choose to click on cancel, the exported sequence will contain all data."
 msgstr ""
 
-#: src/io/sequence_export.c:660
+#: src/io/sequence_export.c:662
 msgid "Confirm Crop"
 msgstr ""
 
-#: src/io/sequence_export.c:692
+#: src/io/sequence_export.c:694
 #, fuzzy
 msgid "Cropping to selection"
 msgstr "fwhm: walang seleksyon"

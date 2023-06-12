@@ -7,11 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-27 18:35+0200\n"
+"POT-Creation-Date: 2023-06-12 10:41+0200\n"
 "PO-Revision-Date: 2023-06-02 12:29+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
-"Language-Team: Japanese <https://weblate.pixls.us/projects/siril/"
-"siril-application-1-2/ja/>\n"
+"Language-Team: Japanese <https://weblate.pixls.us/projects/siril/siril-"
+"application-1-2/ja/>\n"
 "Language: ja_JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -581,7 +581,7 @@ msgid ""
 "luminance used to compute the stretch for each pixel."
 msgstr ""
 
-#: src/gui/siril3.glade:3412 src/algos/background_extraction.c:1059
+#: src/gui/siril3.glade:3412 src/algos/background_extraction.c:1060
 msgid "Background Extraction"
 msgstr ""
 
@@ -986,7 +986,7 @@ msgstr ""
 "リストの中からフィルターを選択するか,\n"
 "可視光線の波長をナノメートル単位で入力"
 
-#: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1176 src/gui/newdeconv.c:1546
+#: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1176 src/gui/newdeconv.c:1547
 msgid "Deconvolution"
 msgstr "逆畳み込み"
 
@@ -2061,7 +2061,7 @@ msgid "Log histograms"
 msgstr "ヒストグラム"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
-#: src/gui/siril3.glade:9457 src/gui/remixer.c:701 src/gui/remixer.c:1370
+#: src/gui/siril3.glade:9457 src/gui/remixer.c:701 src/gui/remixer.c:1380
 msgid "Advanced"
 msgstr ""
 
@@ -3326,8 +3326,8 @@ msgid ""
 "otherwise if the checkbox 'follow star movement' is checked in the "
 "registration tab, it will run with this option."
 msgstr ""
-"配列チャンネルのデータがあればそれを使用し、ない場合でありかつタブ ``配列’’"
-"のチェックボックス ``星の動きを追う’’ をチェックしている場合はこれに従う."
+"配列チャンネルのデータがあればそれを使用し、ない場合でありかつタブ ``配列’’の"
+"チェックボックス ``星の動きを追う’’ をチェックしている場合はこれに従う."
 
 #: src/gui/siril3.glade:14657
 #, fuzzy
@@ -4425,8 +4425,9 @@ msgstr "ソース ファイル"
 msgid ""
 "Indicates the start indice of your converted files. This value must be "
 "included in the [1, 65535] range."
-msgstr "変換後のファイル番号の初期値を記して下さい. この値は 1 以上 65536 "
-"以下でなければなりません."
+msgstr ""
+"変換後のファイル番号の初期値を記して下さい. この値は 1 以上 65536 以下でなけ"
+"ればなりません."
 
 #: src/gui/siril3.glade:20143
 #, fuzzy
@@ -4437,7 +4438,8 @@ msgstr "変換"
 msgid ""
 "Start conversion of all source files into the configured output files, FITS "
 "or SER, with colour processing or not."
-msgstr "全てのソースファイルを, 色処理の有無に関わらず, 設定された出力 FITS または "
+msgstr ""
+"全てのソースファイルを, 色処理の有無に関わらず, 設定された出力 FITS または "
 "SER ファイルに変換を開始."
 
 #: src/gui/siril3.glade:20165
@@ -4453,11 +4455,11 @@ msgid ""
 msgstr ""
 "これは目的の画像シーケンスのタイプを設定します. \n"
 "FITS 画像: 一つの画像に付き一つの FITS ファイル.\n"
-"SER 画像シーケンス: 全ての画像シーケンス(各チャンネル毎に 16 ビットに制限)"
-"に対し一つの SER ファイル.\n"
+"SER 画像シーケンス: 全ての画像シーケンス(各チャンネル毎に 16 ビットに制限)に"
+"対し一つの SER ファイル.\n"
 "FITS 画像シーケンス: 全ての画像シーケンスに対し一つの FITS ファイル. \n"
-"注意: 前処理段階の画像シーケンスが SER あるいは FITS "
-"画像シーケンスファイルの場合、FITS 画像には効果はありません."
+"注意: 前処理段階の画像シーケンスが SER あるいは FITS 画像シーケンスファイルの"
+"場合、FITS 画像には効果はありません."
 
 #: src/gui/siril3.glade:20174 src/gui/siril3.glade:20554
 #: src/gui/siril3.glade:21620
@@ -4500,8 +4502,8 @@ msgid ""
 "<b>WARNING: on Windows, the symbolic link operations are only possible in "
 "Development mode.</b>"
 msgstr ""
-"FTIS ファイルをコピーせずにシンボリック リンクを作ります. "
-"これはディスク上のファイルを複製せずに画像シーケンスの名前を変えるのに便利.\n"
+"FTIS ファイルをコピーせずにシンボリック リンクを作ります. これはディスク上の"
+"ファイルを複製せずに画像シーケンスの名前を変えるのに便利.\n"
 "\n"
 "<b>警告: Windows 上では, シンボリック リンクは開発モードでのみ可能.</b>"
 
@@ -4538,7 +4540,8 @@ msgstr "保存先"
 msgid ""
 "This conversion tab is used to import files and convert them into a format "
 "with which Siril can work: FITS or SER."
-msgstr "この変換タブは、ファイルをインポートし Siril で作業できる形式: FITS または "
+msgstr ""
+"この変換タブは、ファイルをインポートし Siril で作業できる形式: FITS または "
 "SER に変換するのに用います."
 
 #: src/gui/siril3.glade:20321
@@ -4570,8 +4573,9 @@ msgstr "画像シーケンスを検索"
 #: src/gui/siril3.glade:20443
 msgid ""
 "Search current directory for sequences of FITS images, SER or film videos."
-msgstr "このディレクトリー内の FITS 画像, SER "
-"又は画像ビデオの画像シーケンスを検索します."
+msgstr ""
+"このディレクトリー内の FITS 画像, SER 又は画像ビデオの画像シーケンスを検索し"
+"ます."
 
 #: src/gui/siril3.glade:20458
 msgid "Open Frame List"
@@ -4621,9 +4625,9 @@ msgid ""
 "of a sequence with less images. Images of the exported selection can be "
 "cropped and selected with the same criteria as the stacking image selection."
 msgstr ""
-"読み込まれた画像シーケンスを選択した形式でエクスポートします.  "
-"これは画像シーケンスを他のフォーマットで保存する事, 動画を作る事または画像シ"
-"ーケンスのより画像の少ないライトバージョンを保存する事にも使えます."
+"読み込まれた画像シーケンスを選択した形式でエクスポートします.  これは画像シー"
+"ケンスを他のフォーマットで保存する事, 動画を作る事または画像シーケンスのより"
+"画像の少ないライトバージョンを保存する事にも使えます."
 
 #: src/gui/siril3.glade:20607
 msgid "Normalize images"
@@ -4638,15 +4642,15 @@ msgid ""
 "take some time, only the first export of a sequence.\n"
 "\t\t\t"
 msgstr ""
-"エクスポートする為に, 画像の正規化を有効にします. "
-"これは全ての画像の明るさを等しくするため, 一貫性の無い露出や pixel "
-"値を含む画像シーケンスには推奨されます.\n"
+"エクスポートする為に, 画像の正規化を有効にします. これは全ての画像の明るさを"
+"等しくするため, 一貫性の無い露出や pixel 値を含む画像シーケンスには推奨されま"
+"す.\n"
 "最初の計算パスはエクスポートする前に全ての画像に行われます. これは時間が掛か"
-"ることもありますが、画像シーケンスの最初のエクスポートにのみ行われるものです."
-"\n"
+"ることもありますが、画像シーケンスの最初のエクスポートにのみ行われるもので"
+"す.\n"
 "\t\t\t"
 
-#: src/gui/siril3.glade:20628 src/io/sequence_export.c:693
+#: src/gui/siril3.glade:20628 src/io/sequence_export.c:695
 msgid "Select area to crop"
 msgstr "切り抜き範囲を選択"
 
@@ -4675,7 +4679,8 @@ msgstr "サイズ変更"
 msgid ""
 "Check this box if you want to resize exported sequence. Note that this will "
 "degrade image quality."
-msgstr "エクスポートされた画像シーケンスをリサイズしたければこのボックスをチェックし"
+msgstr ""
+"エクスポートされた画像シーケンスをリサイズしたければこのボックスをチェックし"
 "て下さい. これは画像の品質を下げるので注意."
 
 #: src/gui/siril3.glade:20748
@@ -4708,8 +4713,9 @@ msgid ""
 "Film quality: lower value will use more compression and less bitrate, also "
 "resulting in smaller file size. Values above 2 could be useful for fast-"
 "moving images like bright time-lapses."
-msgstr "動画の品質: 低い値ほど圧縮率が高くビット速度が低く, "
-"得られるファイルのサイズは小さくなります."
+msgstr ""
+"動画の品質: 低い値ほど圧縮率が高くビット速度が低く, 得られるファイルのサイズ"
+"は小さくなります."
 
 #: src/gui/siril3.glade:20851
 msgid "Sequence export"
@@ -4737,8 +4743,9 @@ msgstr "Flat を使用"
 msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
-msgstr "この画像シーケンスに含まれる全ての画像は (各 pixel 値に対する) flat image "
-"のマスターファイルに分割されます."
+msgstr ""
+"この画像シーケンスに含まれる全ての画像は (各 pixel 値に対する) flat image の"
+"マスターファイルに分割されます."
 
 #: src/gui/siril3.glade:20939
 msgid ""
@@ -4819,7 +4826,8 @@ msgstr "CFA を均等化"
 #, fuzzy
 msgid ""
 "This option equalizes the mean intensity of RGB layers in a CFA flat image."
-msgstr "このオプションは CFA flat image における RGB layer の平均強度を均等化します."
+msgstr ""
+"このオプションは CFA flat image における RGB layer の平均強度を均等化します."
 
 #: src/gui/siril3.glade:21117
 msgid "Auto evaluate normalisation value"
@@ -4889,8 +4897,8 @@ msgid ""
 "higher than 1% of the total of pixels, you will be encouraged to change "
 "sigma values."
 msgstr ""
-"Deviant pixel の個数を評価するには、このボタンをクリックして下さい. もし、"
-"その値が pixel 総数の 1 % 以上ならば、標準偏差の値を変える事が推奨されます."
+"Deviant pixel の個数を評価するには、このボタンをクリックして下さい. もし、そ"
+"の値が pixel 総数の 1 % 以上ならば、標準偏差の値を変える事が推奨されます."
 
 #: src/gui/siril3.glade:21380 src/gui/siril3.glade:21392
 #, fuzzy
@@ -4973,12 +4981,12 @@ msgid ""
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
 msgstr ""
-"前処理を施した直後のFITS "
-"画像にデモザイキング処理を施したければ,このオプションを選択してください. "
-"これにより, 時間が掛かり得る手動ステップの一つを省略します. \n"
+"前処理を施した直後のFITS 画像にデモザイキング処理を施したければ,このオプショ"
+"ンを選択してください. これにより, 時間が掛かり得る手動ステップの一つを省略し"
+"ます. \n"
 "\n"
-"警告: SER シーケンスは別の作業をしながらデモザイク出来るので, "
-"このオプションは FITS 画像にのみ適用できます."
+"警告: SER シーケンスは別の作業をしながらデモザイク出来るので, このオプション"
+"は FITS 画像にのみ適用できます."
 
 #: src/gui/siril3.glade:21613
 msgid ""
@@ -5071,8 +5079,8 @@ msgid ""
 "stars."
 msgstr ""
 "リファレンス画像の選択された範囲内にある全ての星を整列するアルゴリズムを実行"
-"させたい場合は、このボックスをチェックして下さい. "
-"選択範囲がない場合はこのオプションは無効になります.\n"
+"させたい場合は、このボックスをチェックして下さい. 選択範囲がない場合はこのオ"
+"プションは無効になります.\n"
 "警告: 星の数が十分たくさんあるように範囲を選択して下さい."
 
 #: src/gui/siril3.glade:21876
@@ -5164,8 +5172,8 @@ msgid ""
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
-"最初の選択された画像のアステロイドまたは彗星の「核」の周辺の範囲を選択し, "
-"このボタンを押して下さい. この対象の pixel 座標が計算され表示されます."
+"最初の選択された画像のアステロイドまたは彗星の「核」の周辺の範囲を選択し, こ"
+"のボタンを押して下さい. この対象の pixel 座標が計算され表示されます."
 
 #: src/gui/siril3.glade:22057
 msgid "Pick object in #2"
@@ -5177,8 +5185,8 @@ msgid ""
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
-"最後に選択された画像のアステロイドまたは彗星の「核」の周辺の範囲を選択し, "
-"このボタンを押して下さい. この対象の pixel 座標が計算され表示されます."
+"最後に選択された画像のアステロイドまたは彗星の「核」の周辺の範囲を選択し, こ"
+"のボタンを押して下さい. この対象の pixel 座標が計算され表示されます."
 
 #: src/gui/siril3.glade:22073
 msgid "Core X-coordinates of the first image."
@@ -5515,8 +5523,8 @@ msgid ""
 "method that does not build a new sequence, but it should be unchecked when "
 "the comet/asteroid algorithm is applied several times."
 msgstr ""
-"もし新たな整列データを以前のものに追加したければ, "
-"このボタンをクリックして下さい.\n"
+"もし新たな整列データを以前のものに追加したければ, このボタンをクリックして下"
+"さい.\n"
 "このオプションは,新たな画像シーケンスの構成を伴わない方法で既に整列されている"
 "場合には有効ですが, 彗星/アステロイド アルゴリズムを複数回適用している場合は "
 "チェックを外して下さい."
@@ -5570,8 +5578,9 @@ msgstr "まずはリファレンス画像を設定して下さい"
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the X axis."
-msgstr "この画像をリファレンス画像の X "
-"軸に合わせる為に、マウスまたは上下矢印を用いてこの値を変更."
+msgstr ""
+"この画像をリファレンス画像の X 軸に合わせる為に、マウスまたは上下矢印を用いて"
+"この値を変更."
 
 #: src/gui/siril3.glade:23394
 msgid "X translation:"
@@ -5581,8 +5590,9 @@ msgstr "X 平行移動:"
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the Y axis."
-msgstr "この画像をリファレンス画像の Y "
-"軸に合わせる為に、マウスまたは上下矢印を用いてこの値を変更."
+msgstr ""
+"この画像をリファレンス画像の Y 軸に合わせる為に、マウスまたは上下矢印を用いて"
+"この値を変更."
 
 #: src/gui/siril3.glade:23430
 msgid "Y translation:"
@@ -5749,9 +5759,8 @@ msgid ""
 "displayed graph.\n"
 "WARNING: gnuplot must be installed."
 msgstr ""
-"変光星のグラフをプロット. 変光星を最初に分析して下さい. "
-"その後に他の点像分布関数をリファレンスに適用させます.最大で "
-"6つのリファレンスが認められます. \n"
+"変光星のグラフをプロット. 変光星を最初に分析して下さい. その後に他の点像分布"
+"関数をリファレンスに適用させます.最大で 6つのリファレンスが認められます. \n"
 "この関数を有効にするには, グラフ表示のタイプの中で ``等級’’ を選んで下さい.\n"
 "警告: gnuplot をインストールする必要があります."
 
@@ -5902,9 +5911,9 @@ msgid ""
 "already computed. However you can force Siril to recompute it before "
 "stacking."
 msgstr ""
-"デフォルトで, 既に計算されているならば Siril は seq "
-"ファイルから正規化係数を取ります. しかし、重ね合わせをする前に、Siril "
-"に強制的に再計算させることが可能です."
+"デフォルトで, 既に計算されているならば Siril は seq ファイルから正規化係数を"
+"取ります. しかし、重ね合わせをする前に、Siril に強制的に再計算させることが可"
+"能です."
 
 #: src/gui/siril3.glade:24125
 #, fuzzy
@@ -5975,8 +5984,8 @@ msgid ""
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
 "5つの rejection algorithm が使用可能.\n"
-"- <b>Percentile Clipping</b> は 1 ステップ rejection algorithm "
-"で少数のデータ (6画像まで) の取り扱いに適しています.\n"
+"- <b>Percentile Clipping</b> は 1 ステップ rejection algorithm で少数のデー"
+"タ (6画像まで) の取り扱いに適しています.\n"
 "- <b>Sigma Clipping</b> is an iterative algorithm which will reject pixels "
 "whose distance from\n"
 "median will be farthest than two given values in sigma units.\n"
@@ -6169,7 +6178,8 @@ msgstr "重ね合わせ開始"
 msgid ""
 "Start stacking the current sequence of images, using the method and other "
 "information provided above."
-msgstr "上で与えられた方法やその他の情報を用いて,現行の画像シーケンスの画像の重ね合わ"
+msgstr ""
+"上で与えられた方法やその他の情報を用いて,現行の画像シーケンスの画像の重ね合わ"
 "せを開始します."
 
 #: src/gui/siril3.glade:25124
@@ -6209,12 +6219,14 @@ msgstr "Console"
 msgid ""
 "Input command. Typing \"help\" here will bring the list of supported "
 "commands."
-msgstr "コマンドを入力. ``help’’ "
-"をタイプするとサポートされているコマンドのリストを表示."
+msgstr ""
+"コマンドを入力. ``help’’ をタイプするとサポートされているコマンドのリストを表"
+"示."
 
 #: src/gui/siril3.glade:25343
 msgid "Type \"help\" for the list of supported commands"
-msgstr "サポートされているコマンドのリストを見るには ``help’’ をタイプして下さい"
+msgstr ""
+"サポートされているコマンドのリストを見るには ``help’’ をタイプして下さい"
 
 #: src/gui/siril3.glade:25358
 msgid "Displays manual of the command written in the console."
@@ -6424,7 +6436,8 @@ msgstr "Siril が使用中の RAM メモリー量を表示."
 msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
-msgstr "現在のワーキングディレクトリーを含むファイルシステムに与えられたディスク容量"
+msgstr ""
+"現在のワーキングディレクトリーを含むファイルシステムに与えられたディスク容量"
 "を表示."
 
 #. Must be short !!
@@ -8073,7 +8086,7 @@ msgstr ""
 msgid "Initializing FFTW multithreading support...\n"
 msgstr ""
 
-#: src/main.c:356 src/core/command.c:7109 src/core/command_line_processor.c:617
+#: src/main.c:356 src/core/command.c:7109 src/core/command_line_processor.c:619
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -8555,39 +8568,39 @@ msgid ""
 "cannot be computed.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:833
+#: src/algos/background_extraction.c:834
 #, fuzzy, c-format
 msgid "Failed to generate background samples for image: %s\n"
 msgstr "最初の画像の「核」の X-座標."
 
-#: src/algos/background_extraction.c:888
+#: src/algos/background_extraction.c:889
 msgid "Not enough samples."
 msgstr "サンプル不足."
 
-#: src/algos/background_extraction.c:898 src/algos/PSF.c:838
+#: src/algos/background_extraction.c:899 src/algos/PSF.c:838
 msgid "monochrome"
 msgstr ""
 
-#: src/algos/background_extraction.c:899
+#: src/algos/background_extraction.c:900
 #, fuzzy, c-format
 msgid "Background extraction from %s channel.\n"
 msgstr "Background Extraction…"
 
-#: src/algos/background_extraction.c:904
+#: src/algos/background_extraction.c:905
 #, c-format
 msgid "Background with %s interpolation computed.\n"
 msgstr ""
 
-#: src/algos/background_extraction.c:924
+#: src/algos/background_extraction.c:925
 msgid "Out of memory - aborting"
 msgstr "メモリ不足 - 中断"
 
-#: src/algos/background_extraction.c:931
+#: src/algos/background_extraction.c:932
 #, fuzzy, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
 msgstr "最初の画像の「核」の X-座標."
 
-#: src/algos/background_extraction.c:1019 src/algos/demosaicing.c:1284
+#: src/algos/background_extraction.c:1020 src/algos/demosaicing.c:1284
 #: src/algos/extraction.c:728 src/algos/star_finder.c:1096
 #: src/algos/statistics.c:912 src/core/preprocess.c:264
 #: src/core/processing.c:426 src/filters/banding.c:85
@@ -8631,7 +8644,7 @@ msgstr "最初の画像の「核」の X-座標."
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
-#: src/gui/histogram.c:1617 src/gui/remixer.c:1271 src/gui/remixer.c:1314
+#: src/gui/histogram.c:1617 src/gui/remixer.c:1276 src/gui/remixer.c:1324
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "エラー: 統計計算失敗\n"
@@ -9896,8 +9909,9 @@ msgstr "切り抜き: 横サイズと縦サイズは正の値でなければな�
 #: src/core/command.c:1679 src/core/command.c:4138
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
-msgstr "切り抜き: 横サイズと縦サイズは, それぞれ, %d および  %d "
-"未満でなければならない.\n"
+msgstr ""
+"切り抜き: 横サイズと縦サイズは, それぞれ, %d および  %d 未満でなければならな"
+"い.\n"
 
 #: src/core/command.c:1684 src/core/command.c:4128
 msgid "Crop: select a region or provide x, y, width, height\n"
@@ -12536,7 +12550,8 @@ msgstr ""
 msgid ""
 "Rotates the image of an angle of 180° around its center. This is equivalent "
 "to the command \"ROTATE 180\" or \"ROTATE -180\""
-msgstr "画像をその中心の周りに 180°回転. これはコマンド ``ROTATE 180’’ 又は "
+msgstr ""
+"画像をその中心の周りに 180°回転. これはコマンド ``ROTATE 180’’ 又は "
 "``ROTATE-180’’ と同等."
 
 #: src/core/command_def.h:119
@@ -13275,7 +13290,8 @@ msgstr "« level » 以上の値を « level » に置き換える"
 msgid ""
 "Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
 "with <b>hi</b>"
-msgstr "« lo » 以下の値を « lo » に置き換え, « hi » 以上の値を « hi » に置き換える"
+msgstr ""
+"« lo » 以下の値を « lo » に置き換え, « hi » 以上の値を « hi » に置き換える"
 
 #: src/core/command_def.h:188
 msgid ""
@@ -13517,12 +13533,12 @@ msgstr ""
 msgid "Starting script %s\n"
 msgstr ""
 
-#: src/core/command_line_processor.c:589
+#: src/core/command_line_processor.c:591
 #, fuzzy, c-format
 msgid "Command execution failed: %s.\n"
 msgstr "FITS ファイル %s を開けない\n"
 
-#: src/core/command_line_processor.c:638
+#: src/core/command_line_processor.c:640
 #, c-format
 msgid "Loading sequence `%s' failed.\n"
 msgstr ""
@@ -14730,31 +14746,31 @@ msgstr ""
 msgid "File I/O Error: Unable to write swap file in %s: [%s]\n"
 msgstr ""
 
-#: src/core/undo.c:310
+#: src/core/undo.c:314
 #, fuzzy, c-format
 msgid "Undo: %s\n"
 msgstr "取り消す"
 
-#: src/core/undo.c:323
+#: src/core/undo.c:327
 #, fuzzy, c-format
 msgid "Redo: %s\n"
 msgstr "やり直す"
 
-#: src/core/undo.c:356
+#: src/core/undo.c:360
 #, c-format
 msgid "Undo: \"%s\""
 msgstr ""
 
-#: src/core/undo.c:360
+#: src/core/undo.c:364
 msgid "Nothing to undo"
 msgstr ""
 
-#: src/core/undo.c:362
+#: src/core/undo.c:366
 #, c-format
 msgid "Redo: \"%s\""
 msgstr ""
 
-#: src/core/undo.c:366
+#: src/core/undo.c:370
 msgid "Nothing to redo"
 msgstr ""
 
@@ -14868,11 +14884,11 @@ msgstr "フーリエ変換: 処理中…\n"
 msgid "There is something wrong in your files\n"
 msgstr ""
 
-#: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1286
+#: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1287
 msgid "Siril FFT wisdom updated successfully...\n"
 msgstr ""
 
-#: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1289
+#: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1290
 msgid "Siril FFT wisdom update failed...\n"
 msgstr ""
 
@@ -14883,8 +14899,8 @@ msgstr ""
 #. fail
 #: src/filters/fft.c:592 src/filters/fft.c:598 src/filters/fft.c:619
 #: src/gui/nina_light_curve.c:83 src/gui/nina_light_curve.c:120
-#: src/gui/open_dialog.c:382 src/gui/plot.c:829 src/gui/preferences.c:391
-#: src/gui/preferences.c:409 src/gui/preferences.c:447 src/gui/PSF_list.c:305
+#: src/gui/open_dialog.c:382 src/gui/plot.c:829 src/gui/preferences.c:393
+#: src/gui/preferences.c:412 src/gui/preferences.c:450 src/gui/PSF_list.c:305
 #: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:398
 msgid "Error"
 msgstr "エラー"
@@ -15751,7 +15767,7 @@ msgstr[0] "%d 個のファイルを選択済み"
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
 #: src/gui/photometric_cc.c:200 src/gui/photometric_cc.c:218
-#: src/gui/remixer.c:1264 src/gui/remixer.c:1307
+#: src/gui/remixer.c:1264 src/gui/remixer.c:1312
 msgid "There is no selection"
 msgstr ""
 
@@ -15908,7 +15924,7 @@ msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1308
+#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1313
 msgid "Make a selection of the point or area to set SP"
 msgstr ""
 
@@ -16200,7 +16216,7 @@ msgstr "逆畳み込み..."
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
-#: src/gui/newdeconv.c:1129 src/gui/newdeconv.c:1495
+#: src/gui/newdeconv.c:1129 src/gui/newdeconv.c:1496
 msgid ""
 "Error: trying to use previous PSF but no PSF has been generated. "
 "Aborting...\n"
@@ -16229,13 +16245,13 @@ msgstr ""
 msgid "Richardson-Lucy deconvolution..."
 msgstr "逆畳み込み..."
 
-#: src/gui/newdeconv.c:1402
+#: src/gui/newdeconv.c:1403
 msgid ""
 "Image row order has changed since PSF was generated. The PSF orientation "
 "will be updated to match before applying to this image."
 msgstr ""
 
-#: src/gui/newdeconv.c:1490
+#: src/gui/newdeconv.c:1491
 #, fuzzy
 msgid "Deconvolution. Processing sequence..."
 msgstr "逆畳み込み..."
@@ -16244,7 +16260,7 @@ msgstr "逆畳み込み..."
 msgid "Light curve with NINA star list"
 msgstr ""
 
-#: src/gui/nina_light_curve.c:20 src/io/image_formats_libraries.c:1757
+#: src/gui/nina_light_curve.c:20 src/io/image_formats_libraries.c:1758
 msgid "_OK"
 msgstr ""
 
@@ -16351,8 +16367,9 @@ msgstr ""
 msgid ""
 "FITS sequences are not supported for master files. Please select a single "
 "FITS file."
-msgstr "FITS 画像シーケンスはマスターファイルとしてサポートされていません. FITS "
-"ファイルを一つ選んで下さい."
+msgstr ""
+"FITS 画像シーケンスはマスターファイルとしてサポートされていません. FITS ファ"
+"イルを一つ選んで下さい."
 
 #: src/gui/photometric_cc.c:50
 msgid ""
@@ -16507,51 +16524,51 @@ msgstr "この選択を用いる"
 msgid "Exclude selected points"
 msgstr ""
 
-#: src/gui/preferences.c:390
+#: src/gui/preferences.c:392
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:408
+#: src/gui/preferences.c:411
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:446
+#: src/gui/preferences.c:449
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:475
+#: src/gui/preferences.c:478
 msgid "Cannot refresh script list"
 msgstr ""
 
-#: src/gui/preferences.c:697
+#: src/gui/preferences.c:700
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr ""
 
-#: src/gui/preferences.c:706
+#: src/gui/preferences.c:709
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
 
-#: src/gui/preferences.c:718
+#: src/gui/preferences.c:721
 msgid "Wrong value"
 msgstr ""
 
-#: src/gui/preferences.c:739
+#: src/gui/preferences.c:742
 #, fuzzy
 msgid "Reset all preferences"
 msgstr "環境設定を開ける"
 
-#: src/gui/preferences.c:740
+#: src/gui/preferences.c:743
 msgid "Do you really want to reset all preferences to default value?"
 msgstr ""
 
-#: src/gui/preferences.c:741
+#: src/gui/preferences.c:744
 #, fuzzy
 msgid "Reset Preferences"
 msgstr "環境設定を開ける"
@@ -16674,7 +16691,7 @@ msgstr "HSL 色空間"
 msgid "Star recomposition"
 msgstr "HSL 色空間"
 
-#: src/gui/remixer.c:702 src/gui/remixer.c:1371
+#: src/gui/remixer.c:702 src/gui/remixer.c:1381
 msgid "Show advanced stretch options."
 msgstr ""
 
@@ -16707,12 +16724,29 @@ msgstr ""
 msgid "Image width, height, bit depth and number of channels must match"
 msgstr ""
 
+#: src/gui/remixer.c:1269 src/gui/remixer.c:1317
+#, fuzzy
+msgid "There is no starless image loaded"
+msgstr "リストから全ての星を除去"
+
+#: src/gui/remixer.c:1270
+msgid ""
+"Load an image using the left-hand file chooser before attempting to set SP "
+"using the eyedropper"
+msgstr ""
+
+#: src/gui/remixer.c:1318
+msgid ""
+"Load an image using the rightt-hand file chooser before attempting to set SP "
+"using the eyedropper"
+msgstr ""
+
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
-#: src/gui/remixer.c:1354
+#: src/gui/remixer.c:1364
 msgid "Simple"
 msgstr ""
 
-#: src/gui/remixer.c:1355
+#: src/gui/remixer.c:1365
 msgid ""
 "Show only simple stretch options. Note that any parameters that have been "
 "set while in advanced mode will remain set."
@@ -17648,66 +17682,66 @@ msgstr ""
 msgid "Error opening the file %s\n"
 msgstr "%d: ‘%s’ 行目にエラー.\n"
 
-#: src/io/image_formats_libraries.c:1149
+#: src/io/image_formats_libraries.c:1150
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1332
+#: src/io/image_formats_libraries.c:1333
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1466
+#: src/io/image_formats_libraries.c:1467
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1495
+#: src/io/image_formats_libraries.c:1496
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1498
+#: src/io/image_formats_libraries.c:1499
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1521
+#: src/io/image_formats_libraries.c:1522
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1595
+#: src/io/image_formats_libraries.c:1596
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1646
+#: src/io/image_formats_libraries.c:1647
 msgid "primary"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1755
+#: src/io/image_formats_libraries.c:1756
 msgid "Load HEIF image content"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1757 src/pixelMath/pixel_math_runner.c:1067
+#: src/io/image_formats_libraries.c:1758 src/pixelMath/pixel_math_runner.c:1067
 msgid "_Cancel"
 msgstr "_取り消し"
 
-#: src/io/image_formats_libraries.c:1763
+#: src/io/image_formats_libraries.c:1764
 msgid "Select image"
 msgstr "画像を選ぶ"
 
-#: src/io/image_formats_libraries.c:1868
+#: src/io/image_formats_libraries.c:1869
 msgid "Input file contains no readable images.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1895
+#: src/io/image_formats_libraries.c:1896
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr ""
 
-#: src/io/image_formats_libraries.c:1973
+#: src/io/image_formats_libraries.c:1974
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr ""
@@ -18237,23 +18271,23 @@ msgstr "… に保存:"
 msgid "Width or height cannot be null. Not resizing.\n"
 msgstr ""
 
-#: src/io/sequence_export.c:658
+#: src/io/sequence_export.c:660
 #, fuzzy
 msgid "Export cropped sequence?"
 msgstr "画像シーケンスをエクスポート"
 
-#: src/io/sequence_export.c:659
+#: src/io/sequence_export.c:661
 msgid ""
 "An active selection was detected. The exported sequence will only contain "
 "data within the drawn selection. You can confirm the crop or cancel it. If "
 "you choose to click on cancel, the exported sequence will contain all data."
 msgstr ""
 
-#: src/io/sequence_export.c:660
+#: src/io/sequence_export.c:662
 msgid "Confirm Crop"
 msgstr ""
 
-#: src/io/sequence_export.c:692
+#: src/io/sequence_export.c:694
 msgid "Cropping to selection"
 msgstr ""
 
