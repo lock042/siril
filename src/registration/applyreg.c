@@ -358,12 +358,12 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-
-		// explicit sequence creation to copy imgparam and regparam
-		create_output_sequence_for_apply_reg(regargs);
-		// will be loaded in the idle function if (load_new_sequence)
-		regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
-
+		if (!(args->seq->type == SEQ_INTERNAL)) {
+			// explicit sequence creation to copy imgparam and regparam
+			create_output_sequence_for_apply_reg(regargs);
+			// will be loaded in the idle function if (load_new_sequence)
+			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
+		}
 	}
 	else {
 		siril_log_message(_("Transformation aborted.\n"));
