@@ -1247,7 +1247,13 @@ void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
 		char root[256];
 		fit_sequence_get_image_filename(seq, i, root, FALSE);
-		gchar *star_filename = g_strdup_printf("%s%s.lst", prefix, root);
+		gchar *star_filename = NULL;
+		if (prefix)
+			star_filename = g_strdup_printf("%s%s.lst", prefix, root);
+		else
+		// Despite the name this function does actually allow for
+		// the prefix to be NULL as this is of use with internal sequences
+			star_filename = g_strdup_printf("%s.lst", root);
 		siril_debug_print("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
 			siril_debug_print("g_unlink() failed\n");
@@ -1993,17 +1999,17 @@ void free_reference_image() {
 
 /* returns the number of images of the sequence that can fit into memory based
  * on the configured memory ratio */
-int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
+static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_layers, data_type type, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int max_memory_MB = get_max_memory_in_MB();
 	if (factor < 1.0 || factor > 2.0) {
 		fprintf(stderr, "############ FACTOR UNINIT (set to 1) ############\n");
 		factor = 1.0;
 	}
-	uint64_t newx = round_to_int((double)seq->rx * factor);
-	uint64_t newy = round_to_int((double)seq->ry * factor);
-	uint64_t memory_per_orig_image = (uint64_t) seq->rx * seq->ry * seq->nb_layers;
-	uint64_t memory_per_scaled_image = newx * newy * seq->nb_layers;
-	if (force_float || get_data_type(seq->bitpix) == DATA_FLOAT) {
+	uint64_t newx = round_to_int((double) rx * factor);
+	uint64_t newy = round_to_int((double) ry * factor);
+	uint64_t memory_per_orig_image = (uint64_t) rx * ry * nb_layers;
+	uint64_t memory_per_scaled_image = newx * newy * nb_layers;
+	if (force_float || type == DATA_FLOAT) {
 		memory_per_orig_image *= sizeof(float);
 		memory_per_scaled_image *= sizeof(float);
 	} else {
@@ -2024,6 +2030,18 @@ int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_fl
 	if (max_mem_MB)
 		*max_mem_MB = max_memory_MB;
 	return max_memory_MB / memory_per_scaled_image_MB;
+}
+
+/* returns the number of images of the sequence that can fit into memory based
+ * on the configured memory ratio */
+int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
+	return compute_nb_images_fit_memory_from_dimensions(seq->rx, seq->ry, seq->nb_layers, get_data_type(seq->bitpix), factor, force_float, MB_per_orig_image, MB_per_scaled_image, max_mem_MB);
+}
+
+/* returns the number of images of the sequence that can fit into memory based
+ * on the configured memory ratio */
+int compute_nb_images_fit_memory_from_fit(fits *fit, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
+	return compute_nb_images_fit_memory_from_dimensions(fit->rx, fit->ry, fit->naxes[2], fit->type, factor, force_float, MB_per_orig_image, MB_per_scaled_image, max_mem_MB);
 }
 
 void fix_selnum(sequence *seq, gboolean warn) {

@@ -319,11 +319,6 @@ PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
 		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
 		  AC_MSG_WARN([json-glib not found. Not using automatic updates.]))
 
-dnl check libconfig
-PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],
-		  [AC_DEFINE([HAVE_LIBCONFIG], [1], [Using libconfig])],
-		  AC_MSG_WARN([libconfig not found. Old configuration file will not be read.]))
-
 dnl ================================================================
 dnl Collect some arguments.
 dnl ================================================================

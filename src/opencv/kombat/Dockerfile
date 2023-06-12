@@ -24,7 +24,7 @@ RUN apt-get install -y tzdata
 RUN dpkg-reconfigure --frontend noninteractive tzdata
 
 RUN apt-get install -y g++-10
-RUN apt-get install -y intltool libglib2.0-dev libjson-glib-dev libgtk-3-dev fftw3-dev libgsl-dev libcfitsio-dev libconfig-dev libtiff-dev libavutil-dev libswscale-dev libswresample-dev libavformat-dev libexiv2-dev
+RUN apt-get install -y intltool libglib2.0-dev libjson-glib-dev libgtk-3-dev fftw3-dev libgsl-dev libcfitsio-dev libtiff-dev libavutil-dev libswscale-dev libswresample-dev libavformat-dev libexiv2-dev
 
 RUN apt-get install -y build-essential checkinstall cmake pkg-config yasm
 

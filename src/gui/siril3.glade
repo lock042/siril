@@ -4639,6 +4639,12 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="step-increment">10</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_lum_r">
+    <property name="lower">-360</property>
+    <property name="upper">360</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_lum_x">
     <property name="lower">-1000</property>
     <property name="upper">1000</property>
@@ -9632,6 +9638,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
       <pattern>*.fts</pattern>
       <pattern>*.tif</pattern>
       <pattern>*.tiff</pattern>
+      <pattern>*.fz</pattern>
     </patterns>
   </object>
   <object class="GtkDialog" id="composition_dialog">
@@ -9651,6 +9658,36 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkButton" id="compositing_reload_all">
+                <property name="label" translatable="yes">Reload all</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Reload all input images into their respective compositing layers. This is necessary if you aren't happy with the alignment results and wish to re-do the alignment, for example with a different framing method.</property>
+                <signal name="clicked" handler="on_compositing_reload_all_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="compositing_save_all">
+                <property name="label" translatable="yes">Save all</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">Save all the layer images with the prefix &lt;i&gt;comp_&lt;/i&gt;. After alignment the aligned and framed images will be saved, so if you prefer to combine them using PixelMath you can still use this tool as a simple means of aligning them.</property>
+                <signal name="clicked" handler="on_compositing_save_all_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="compositing_reset">
                 <property name="label" translatable="yes">Clear</property>
                 <property name="visible">True</property>
@@ -9661,7 +9698,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -9675,7 +9712,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -9704,7 +9741,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
           </packing>
         </child>
         <child>
-          <!-- n-columns=6 n-rows=2 -->
+          <!-- n-columns=8 n-rows=2 -->
           <object class="GtkGrid" id="grid_layers">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -9712,29 +9749,18 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
             <property name="row-spacing">6</property>
             <property name="column-spacing">8</property>
             <child>
-              <object class="GtkLabel" id="label_alignments">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Layer alignments</property>
-              </object>
-              <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">0</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spinbutton_lum_x">
+              <object class="GtkSpinButton" id="spinbutton_lum_r">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="text">0</property>
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                <property name="adjustment">adjustment_lum_x</property>
+                <property name="adjustment">adjustment_lum_r</property>
+                <property name="digits">3</property>
               </object>
               <packing>
-                <property name="left-attach">4</property>
+                <property name="left-attach">6</property>
                 <property name="top-attach">1</property>
               </packing>
             </child>
@@ -9747,9 +9773,26 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                 <property name="adjustment">adjustment_lum_y</property>
+                <property name="digits">1</property>
               </object>
               <packing>
                 <property name="left-attach">5</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spinbutton_lum_x">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="text">0</property>
+                <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                <property name="adjustment">adjustment_lum_x</property>
+                <property name="digits">1</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
                 <property name="top-attach">1</property>
               </packing>
             </child>
@@ -9795,6 +9838,70 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="label_alignments">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the x-axis shift.
+In other alignment modes, shows the x-axis shift applied to the layer.</property>
+                <property name="label" translatable="yes">x alignment</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the y-axis shift.
+In other alignment modes, shows the y-axis shift applied to the layer.</property>
+                <property name="label" translatable="yes">y alignment</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the rotation around the center of the image.
+In other alignment modes, shows the rotation applied to the layer around the origin.
+Rotation is shown in degrees anticlockwise.</property>
+                <property name="label" translatable="yes">rotation</property>
+              </object>
+              <packing>
+                <property name="left-attach">6</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="centerbutton_lum">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Set rotation center for this layer</property>
+                <signal name="toggled" handler="on_centerbutton_toggled" swapped="no"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="stock">gtk-cdrom</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">7</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
               <placeholder/>
             </child>
             <child>
@@ -9821,6 +9928,22 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
             <property name="margin-top">2</property>
             <property name="spacing">10</property>
             <child>
+              <object class="GtkButton" id="compositing_linear_match">
+                <property name="label" translatable="yes">Linear match</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Linear match the input layer images to the first layer.
+This is important if you are not coloring the layers with pure R, pure G and pure B.</property>
+                <signal name="clicked" handler="on_compositing_linear_match_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="composition_layers_autoadjust">
                 <property name="label" translatable="yes">Adjust layers brightness</property>
                 <property name="visible">True</property>
@@ -9832,12 +9955,12 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkButton" id="composition_rgbcolor">
-                <property name="label" translatable="yes">Finalize colour balance</property>
+                <property name="label" translatable="yes">Color calibration</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
@@ -9849,7 +9972,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -9870,6 +9993,22 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="fill">True</property>
                 <property name="pack-type">end</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="compositing_pcc_active">
+                <property name="label" translatable="yes">photometric</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">When checked, photometric color calibration is used.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -9893,7 +10032,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
           </packing>
         </child>
         <child>
-          <!-- n-columns=4 n-rows=3 -->
+          <!-- n-columns=5 n-rows=3 -->
           <object class="GtkGrid" id="grid19">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -9901,14 +10040,80 @@ Modifying parameters in this windows afterward will void the colour balance, and
             <property name="column-spacing">8</property>
             <child>
               <object class="GtkLabel" id="label_ref">
+                <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Align layers on this reference layer:</property>
+                <property name="label" translatable="yes">Use this alignment method:</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">0</property>
                 <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_align">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">and this framing method:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_msg">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+                <property name="width">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="compositing_align_method_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <items>
+                  <item translatable="yes">Image pattern alignment (planetary/deep-sky)</item>
+                  <item translatable="yes">One star registration (deep-sky)</item>
+                </items>
+                <signal name="changed" handler="on_compositing_align_method_combo_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="compositing_align_framing_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Select framing method for deep-sky alignment:
+First channel - frame to the first channel (always L in luminance mode);
+Max - frame to the maximum extent of the aligned images;
+Min - frame to the minimum overlap of all aligned images;
+COG - frame to the centre of gravity of the pixels in the set of aligned images.</property>
+                <property name="active">2</property>
+                <items>
+                  <item translatable="yes">First channel</item>
+                  <item translatable="yes">Max</item>
+                  <item translatable="yes">Min</item>
+                  <item translatable="yes">COG</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -9921,69 +10126,13 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <signal name="clicked" handler="on_button_align_clicked" swapped="no"/>
               </object>
               <packing>
-                <property name="left-attach">3</property>
+                <property name="left-attach">4</property>
                 <property name="top-attach">0</property>
                 <property name="height">2</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="label_align">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">and using this alignment method:</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="compositing_align_method_combo">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <items>
-                  <item translatable="yes">Image pattern alignment (planetary/deep-sky)</item>
-                  <item translatable="yes">One star registration (deep-sky)</item>
-                </items>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label_msg">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                </attributes>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="compositing_align_layer_combo">
-                <property name="sensitive">False</property>
-                <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">For LRGB composition, the reference layer should be luminance.</property>
-                <items>
-                  <item translatable="yes">Luminance</item>
-                  <item translatable="yes">Red</item>
-                  <item translatable="yes">Green</item>
-                  <item translatable="yes">Blue</item>
-                </items>
-                <signal name="changed" handler="on_compositing_align_layer_combo_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">0</property>
-              </packing>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>

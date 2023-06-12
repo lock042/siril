@@ -169,6 +169,14 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	sadata->ref.x = fit.rx;
 	sadata->ref.y = fit.ry;
 
+	// For internal sequences the data / fdata pointer still
+	// points to the original memory in seq->internal_fits.
+	// It must not be freed by clearfits here so we set the
+	// pointers in fit to NULL
+	if (args->seq->type == SEQ_INTERNAL) {
+		fit.data = NULL;
+		fit.fdata = NULL;
+	}
 	clearfits(&fit);
 
 	if (regargs->x2upscale) {
@@ -477,7 +485,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-		if (!regargs->no_output) {
+		if (!regargs->no_output && (args->seq->type != SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_global_star(regargs);
 			// will be loaded in the idle function if (load_new_sequence)
