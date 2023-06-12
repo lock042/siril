@@ -7778,6 +7778,7 @@ msgid "Compass"
 msgstr "Компас"
 
 #: src/gui/siril3.glade:28640
+#, fuzzy
 msgid ""
 "<b>Formalism 1</b>: It encodes Mij in so called PCi_j keywords and scale "
 "factor Si are the values of the CDELTi keywords from the FITS header. It is "
@@ -7791,6 +7792,17 @@ msgid ""
 "FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by "
 "FITS keyword CTYPEi."
 msgstr ""
+"<b>Формализм 1</b>: Кодирует Mij в так называемых ключевых словах PCi_j и "
+"масштабный коэффициент Si является значениями ключевых слов CDELTi из "
+"заголовка FITS. Очевидно, что значение CDELT не должно быть 0.0.\n"
+"\n"
+"<b>Формализм 2</b>: Если объединить матрицу и масштабирование, то будет "
+"получено промежуточное значение WORLD COORDINATE Xi:\n"
+"\n"
+"Xi = Sigma_j=1^N (Si*Mij)(Pj-Rj)\n"
+"\n"
+"Ключевые слова FITS CDi_j кодируют результат Si*Mij. Единицы измерения xi "
+"задаются с помощью ключевого слова FITS CTYPEi."
 
 #: src/gui/siril3.glade:28651
 msgid "Formalism 2 (CD keywords)"
@@ -8458,6 +8470,10 @@ msgid ""
 "Configuring a memory amount larger than what is available on your system may "
 "result in a crash of siril or of the operating system."
 msgstr ""
+"Siril ограничит себя фиксированным объёмом памяти и, при необходимости, "
+"уменьшит размер рабочих задач.\n"
+"Указание объёма памяти бо́льшего, чем доступен вашей системе может привести к "
+"падению siril или операционной системы."
 
 #: src/gui/siril3.glade:30934
 msgid ""
@@ -8467,6 +8483,12 @@ msgid ""
 "used for stacking above 1 will require the use of on-disk memory, which is "
 "very slow and unrecommended"
 msgstr ""
+"Устанавливает новое соотношение свободной памяти и памяти, используемой для "
+"укладки. Значение должно быть между 0.05 и 2, в зависимости от других "
+"процессов, выполняемых машиной. Бо́льшее соотношение должно позволить siril "
+"выполнять укладку быстрее. Однако установка доли памяти, используемый для "
+"укладки, больше 1 потребует использования памяти на диске, что очень "
+"медленно и не рекомендуется"
 
 #: src/gui/siril3.glade:30979
 msgid "<b>Memory management</b>"
@@ -8514,6 +8536,10 @@ msgid ""
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
+"Если флажок установлен, FFTW будет использовать несколько потоков. Обычно "
+"это ускоряет работу с большими изображениями, но увеличивает время "
+"первоначального планирования при первой работе FFTW с изображением данного "
+"размера."
 
 #: src/gui/siril3.glade:31121 src/core/settings.c:285
 msgid "FFTW planning strategy"
@@ -8673,6 +8699,8 @@ msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
+"Очищает расположение весов нейросети. После очистки, файл с весами "
+"<b>должен</b> располагаться в директории с исполняемым файлом StarNet."
 
 #: src/gui/siril3.glade:31523
 msgid ""
@@ -8942,6 +8970,8 @@ msgstr ""
 #: src/main-cli.c:106 src/main.c:108
 msgid "run in console mode with command and log stream through named pipes"
 msgstr ""
+"запущен в консольном режиме с командным и исходящим потоками через "
+"именованные каналы"
 
 #: src/main-cli.c:107 src/main.c:109
 msgid "specify the path for the read pipe, the one receiving commands"
@@ -10934,6 +10964,9 @@ msgid ""
 "It is impossible to crop the image when a filter with preview session is "
 "active. Please consider to close the filter dialog first.\n"
 msgstr ""
+"Невозможно кадрировать изображение при активном фильтре с сеансом "
+"предварительного просмотра. Пожалуйста, подумайте о том, чтобы сначала "
+"закрыть диалоговое окно фильтра.\n"
 
 #: src/core/command.c:1669 src/core/command.c:4116
 msgid "Crop: x and y must be positive values.\n"
@@ -11314,7 +11347,7 @@ msgstr "Минимизация PSF не удалась. Ошибка %d\n"
 #, c-format
 msgid ""
 "Relative magnitude: %.3lf, True reduced magnitude: %.3lf, Offset: %.3lf\n"
-msgstr ""
+msgstr "Относительный блеск: %.3lf, Истинный блеск: %.3lf, Смещение: %.3lf\n"
 
 #: src/core/command.c:3229 src/core/command.c:3236 src/core/command.c:3245
 msgid "Inner radius value must be less than outer. Please change the value."
@@ -11355,6 +11388,8 @@ msgid ""
 "Reference magnitude has been set for star %d to %f and will be computed for "
 "each image\n"
 msgstr ""
+"Опорный блеск установлен для звезды от %d до %f и будет вычисляться для "
+"каждого изображения\n"
 
 #: src/core/command.c:3368
 #, c-format
@@ -11982,7 +12017,7 @@ msgstr "Фиксация при интерполяции включена\n"
 #: src/core/command.c:6779 src/core/command.c:6798 src/core/command.c:6816
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
-msgstr ""
+msgstr "Не удалось разобрать аргумент `%s' фильтра `%s', прерывание.\n"
 
 #: src/core/command.c:6856
 msgid "No registration data exists for this sequence, aborting\n"
@@ -12057,7 +12092,7 @@ msgstr ""
 
 #: src/core/command.c:7084
 msgid "Output filename option is not allowed in this context, ignoring.\n"
-msgstr ""
+msgstr "В этом контексте имя исходящего файле не разрешено, игнорирование.\n"
 
 #: src/core/command.c:7088
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
@@ -12188,7 +12223,7 @@ msgstr ""
 #: src/core/command.c:7590 src/core/preprocess.c:685
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
-msgstr ""
+msgstr "Синтетический шум считывания: Уровень = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
 #: src/core/command.c:7593
@@ -12760,11 +12795,13 @@ msgstr "Очищает содержимое журнала"
 
 #: src/core/command_def.h:24
 msgid "Clear all the stars saved in memory and displayed on the screen"
-msgstr ""
+msgstr "Очистить всё звёзды, сохранённые в памяти и отображённые на экране"
 
 #: src/core/command_def.h:25
 msgid "Properly closes the opened image and the opened sequence, if any"
 msgstr ""
+"Корректно закрывает открытое изображение и открытую последовательность, если "
+"имеются"
 
 #: src/core/command_def.h:26
 msgid ""
@@ -12803,6 +12840,10 @@ msgid ""
 "file]. COSME is adapted to correct residual hot and cold pixels after "
 "preprocessing"
 msgstr ""
+"Применяет локальное среднее к набору пикселей на изображении, находящемся в "
+"памяти (косметическая коррекция). Координаты этих пикселей находятся в файле "
+"ASCII [файл .lst]. COSME адаптирована для коррекции остаточных горячих и "
+"холодных пикселей, сохранившихся после предварительной обработки"
 
 #: src/core/command_def.h:29
 msgid "Same function as COSME but applying to RAW CFA images"
@@ -12957,6 +12998,8 @@ msgid ""
 "Extracts green signal from a CFA image. The output file name starts with the "
 "prefix \"Green_\""
 msgstr ""
+"Извлекает зелёный сигнал из изображения CFA. Имя итогового файла будет "
+"начинаться с префикса \"Green_\""
 
 #: src/core/command_def.h:40
 msgid ""
@@ -15007,7 +15050,7 @@ msgstr ""
 
 #: src/core/OS_utils.c:695
 msgid "Limiting processing to 1900 MiB allocations (32-bit system)\n"
-msgstr ""
+msgstr "Ограничение обработки до 1900Мб (32 битная система)\n"
 
 #: src/core/pipe.c:100
 #, c-format
@@ -16282,7 +16325,7 @@ msgstr "Заключительный шаг шумоподавления DA3D...
 
 #: src/filters/nlbayes/call_nlbayes.cpp:213
 msgid "OpenMP not available. The DA3D algorithm will run in a single thread.\n"
-msgstr ""
+msgstr "OpenMP отсутствует. Алгоритм DA3D будет выполняться в одном потоке.\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:219
 msgid ""
@@ -17360,7 +17403,7 @@ msgstr "Подтверждение кадрирования"
 #: src/gui/menu_gray_geometry.c:65
 #, c-format
 msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
-msgstr ""
+msgstr "Вращение (%.1lf°, кадрирование=%s, фиксация=%s)"
 
 #: src/gui/menu_gray_geometry.c:84
 msgid "Rotation (90 deg)"
@@ -17701,7 +17744,7 @@ msgstr ""
 
 #: src/gui/nina_light_curve.c:49
 msgid "The AAVSO gives stars that are know to not be variable"
-msgstr ""
+msgstr "Звёзды, предоставленные AAVSO, не являются переменными"
 
 #: src/gui/nina_light_curve.c:50
 msgid ""
