@@ -692,6 +692,19 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 		orig_ry[layer] = 0;
 		return;
 	}
+	// Check if we have a color image. If so, show the RGB viewport. But set a variable so if the
+	// user switches back to a mono viewport and then loads another layer it won't change again -
+	// at that point it's up to them.
+	if (number_of_images_loaded() > 1) {
+		GtkNotebook* notebook = (GtkNotebook*) lookup_widget("notebook1");
+		gtk_notebook_set_current_page(notebook, 3);
+		gui.cvport = 3;
+		redraw(REMAP_ALL);
+		update_display_selection();	// update the dimensions of the selection when switching page
+		update_display_fwhm();
+	}
+
+
 	update_compositing_registration_interface();
 
 	// enable the color balance finalization button
