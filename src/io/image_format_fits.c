@@ -83,7 +83,9 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 static void read_fits_locdata_header(fits *fit) {
 	int status = 0;
 	char sitelat_dump[FLEN_VALUE] = { 0 };
+	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
 	char sitelong_dump[FLEN_VALUE] = { 0 };
+	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
 
 	status = 0;
