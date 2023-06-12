@@ -104,7 +104,7 @@ static void read_fits_locdata_header(fits *fit) {
 			}
 		} else d_sitelat_dump = parse_dms(sitelat_dump);
 
-		g_strfreev(token); // we free token before reusing it
+		g_strfreev(token);
 	}
 
 	status = 0;
@@ -120,12 +120,20 @@ static void read_fits_locdata_header(fits *fit) {
 				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
 			}
 		} else d_sitelong_dump = parse_dms(sitelong_dump);
+
 		g_strfreev(token);
 	}
 
 	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
-		fit->sitelat = strtod(sitelat_dump, NULL);
-		fit->sitelong = strtod(sitelong_dump, NULL);
+		gchar *end;
+		fit->sitelat = g_ascii_strtod(sitelat_dump, &end);
+		if (sitelat_dump == end) {
+			siril_debug_print("Cannot read SITELAT\n");
+		}
+		fit->sitelong = g_ascii_strtod(sitelong_dump, &end);
+		if (sitelong_dump == end) {
+			siril_debug_print("Cannot read SITELONG\n");
+		}
 	} else {
 		fit->sitelat = d_sitelat_dump;
 		fit->sitelong = d_sitelong_dump;
