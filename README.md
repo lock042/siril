@@ -57,7 +57,6 @@ their support won't be included.
 - **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
 - **wcslib** for some astrometry utilities
 - **gnuplot** for photometry graphs output
-- **libconfig** (>= 1.4) to read old configuration files (not used since 1.1)
 - **criterion** for unit testing with meson (development)
 
 All these libraries and programs are available in most Linux distributions and
