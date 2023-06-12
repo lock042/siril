@@ -57,7 +57,6 @@ enable_libheif   = get_option('libheif')
 enable_libXISF   = get_option('libXISF')
 enable_ffms2     = get_option('ffms2')
 enable_ffmpeg    = get_option('ffmpeg')
-enable_libconfig = get_option('libconfig')
 enable_criterion = get_option('criterion')
 enable_wcslib    = get_option('wcslib')
 
@@ -411,11 +410,6 @@ if enable_libcurl
   libcurl_dep = dependency('libcurl', required : true)
 endif
 
-libconfig_dep = no_dep
-if enable_libconfig
-  libconfig_dep = dependency('libconfig', required : true)
-endif
-
 criterion_dep = no_dep
 if enable_criterion
   criterion_dep = dependency('criterion', required : true)
@@ -499,12 +493,6 @@ if opencv4_dep.version().version_compare('>=4.4.0')
   conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
 else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
-endif
-
-if libconfig_dep.found()
-  conf_data.set('HAVE_LIBCONFIG', true, description : 'Using libconfig.')
-else
-  conf_data.set('HAVE_LIBCONFIG', false, description : 'Using libconfig.')
 endif
 
 if gsl_dep.found()
@@ -684,7 +672,6 @@ externals_dep = declare_dependency(
     htmesh_dep,
     exiv_dep,
     wcslib_dep,
-    libconfig_dep,
     fftw3f_dep,
     cfitsio_dep,
     json_glib_dep,
@@ -776,7 +763,6 @@ summary(
     'libcurl'           : libcurl_dep.found(),
     'glib-networking'   : glib_networking_works,
     'wcslib'            : wcslib_dep.found(),
-    'libconfig'         : libconfig_dep.found(),
     'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )

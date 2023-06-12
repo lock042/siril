@@ -599,11 +599,14 @@ gboolean local_catalogues_available() {
 // dec is phi, ra is lambda
 // in degrees
 static double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
+	double dec1_r = dec1 * DEGTORAD, dec2_r = dec2 * DEGTORAD;
 	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
-	double ddec_2 = 0.5 * (dec2 - dec1) * DEGTORAD;
-	double h = pow(sin(ddec_2), 2.) + cos(dec1 * DEGTORAD) * cos(dec2 * DEGTORAD) * pow(sin(dra_2), 2.);
-	if (h > 1.) h = 1.;
-	return 2 * asin(pow(h, 0.5)) * RADTODEG;
+	double ddec_2 = 0.5 * (dec2_r - dec1_r);
+	double sin_ddec = sin(ddec_2), sin_dra = sin(dra_2);
+	double h = sin_ddec * sin_ddec + cos(dec1_r) * cos(dec2_r) * sin_dra * sin_dra;
+	if (h > 1.)
+		return 180.0;   // h = 1, asin(1) is pi/2
+	return 2.0 * asin(sqrt(h)) * RADTODEG;
 }
 
 /* similar to get_stars_from_local_catalogues except it doesn't project the

@@ -13,6 +13,8 @@ xx/xx/xx
 * Fixed memory leaks in deconvolution code
 * Added logging typed command in stdout
 * Improved path-checking and messages for astrometry.net local solver (Windows)
+* Prevent crash using recomposition tool eyedroppers without images loaded
+
 
 siril 1.2.0-rc1
 06/01/23

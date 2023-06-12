@@ -79,12 +79,6 @@ option('enable-libcurl',
  choices: [ 'yes', 'no', 'platform-default' ]
 )
 
-option('libconfig',
- type : 'boolean',
- value : 'false',
- description: 'build with libconfig support'
-)
-
 option('criterion',
  type : 'boolean',
  value : 'false',
