@@ -619,7 +619,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 
 	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
 	if (!filename) return;
-	if (layers[layer]->the_fit.rx == 0) {	// already loaded image
+	if (layers[layer]->the_fit.rx != 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
 	}
 	if ((retval = read_single_image(filename, &layers[layer]->the_fit,
@@ -660,7 +660,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 							layers[layer]->the_fit.ry, gfit.rx, gfit.ry);
 						sprintf(buf, _("OK upscaled from %ux%u"),
 								layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
-						cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_AREA, FALSE);
+						cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_LANCZOS4, TRUE);
 						gtk_label_set_text(layers[layer]->label, buf);
 						layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
 						layers[layer]->center.y = layers[layer]->the_fit.ry / 2.0;
@@ -882,6 +882,11 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 				com.run_thread = FALSE;	// fix for the cancelling check in processing
 				return;
 			}
+		}
+		if (luminance_mode) {
+			// Set the reference image to 0 (i.e. Luminance)
+			regargs.seq->reference_image = 0;
+			siril_log_message(_("Using Luminance channel as reference.\n"));
 		}
 		int ret2 = register_apply_reg(&regargs);
 		free(regargs.imgparam);
