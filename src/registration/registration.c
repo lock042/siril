@@ -112,8 +112,6 @@ static char *filter_tooltip_text[] = {
 	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
 };
 
-int register_kombat(struct registration_args *args);
-
 /* callback for the selected area event */
 void _reg_selected_area_callback() {
 	if (!com.headless)
@@ -560,13 +558,21 @@ int register_kombat(struct registration_args *args) {
 	/* we want pattern (the selection) to be located on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 			&args->selection, FALSE, -1);
-
 	/* we load reference image just to get dimensions of images,
 	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
 	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
 	full.x = full.y = 0;
 	full.w = fit_ref.rx;
 	full.h = fit_ref.ry;
+	/* if we are calling this with an internal sequence we must avoid
+	 * freeing fit_ref pixel data as seq_read_frame only copies the data
+	 * pointers across from the internal_fits**; it is not a true copy
+	 * that can be freed independently. */
+	if (args->seq->type == SEQ_INTERNAL) {
+		fit_ref.data = NULL;
+		fit_ref.fdata = NULL;
+		clearfits(&fit_ref);
+	}
 
 	if (ret || ret2 || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
 		siril_log_message(
@@ -582,7 +588,6 @@ int register_kombat(struct registration_args *args) {
 
 	/* we want pattern position on the reference image */
 	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL, NULL);
-
 	/* main part starts here */
 	int max_threads;
 #ifdef _OPENMP
@@ -596,7 +601,7 @@ int register_kombat(struct registration_args *args) {
 		caches[i] = NULL;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ || args->seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
 		for (frame = 0; frame < args->seq->number; frame++) {
 			if (abort)
@@ -1464,7 +1469,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
 	}
-	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) && 
+	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
 		reg_args->matchSelection && reg_args->seq->is_variable) {
 		siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
 		free(reg_args);
@@ -1472,7 +1477,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) && 
+	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
 		!reg_args->matchSelection) {
 		delete_selected_area(); // othersie it is enforced
 	}
