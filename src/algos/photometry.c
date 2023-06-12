@@ -222,7 +222,7 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
 	return phot;
 }
 
-/* used only be the old (libconfig) settings file reading and unit tests */
+/* used only by unit tests */
 void initialize_photometric_param() {
 	com.pref.phot_set.inner = 20;
 	com.pref.phot_set.outer = 30;

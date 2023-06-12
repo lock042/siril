@@ -6,7 +6,6 @@ crossroad install lcms2 \
                   gtk3 \
                   fftw \
                   exiv2 \
-                  libconfig \
                   gsl \
                   opencv\
                   libheif \
