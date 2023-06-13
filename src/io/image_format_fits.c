@@ -67,8 +67,8 @@ static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
-static char *SITELAT[] = { "SITELAT", "SITE-LAT", NULL };
-static char *SITELONG[] = { "SITELONG", "SITE-LON", NULL };
+static char *SITELAT[] = { "SITELAT", "SITE-LAT", "OBSLAT" NULL };
+static char *SITELONG[] = { "SITELONG", "SITE-LON", "OBSLONG", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
