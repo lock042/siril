@@ -3,8 +3,10 @@ siril 1.4.0 xx xx, xx
 * Added comparison star list creation from Siril
 * Allowed object search with their common name, from the annotations catalogues
 * Add intensity profiling function
+* Fixed PRISM SITELAT/SITELONG keywords data
 * Improve RGB composition tool to do full homography registration
 
+>>>>>>> master
 
 siril 1.2.0 xx xx, xx
 
