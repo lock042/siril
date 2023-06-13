@@ -22,6 +22,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include "algos/hsluv.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -187,7 +188,7 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	clear_backup();
 	clear_hist_backup();
 }
-
+/*
 static void hsl_to_gfit (float* h, float* s, float* l) {
 	size_t npixels = gfit.rx * gfit.ry;
 	if (gfit.type == DATA_FLOAT) {
@@ -232,7 +233,65 @@ static void gfit_to_hsl() {
 	}
 	memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
 }
+*/
 
+static void hsluv_to_gfit (float* h, float* s, float* l) {
+	size_t npixels = gfit.rx * gfit.ry;
+	if (gfit.type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			double r, g, b;
+			hsluv2rgb((double) h[i], (double) s[i] * 100.f, (double) l[i], &r, &g, &b);
+			gfit.fpdata[RLAYER][i] = r;
+			gfit.fpdata[GLAYER][i] = g;
+			gfit.fpdata[BLAYER][i] = b;
+		}
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			double r, g, b;
+			hsluv2rgb((double) h[i], (double) s[i] * 100.f, (double) l[i], &r, &g, &b);
+			gfit.pdata[RLAYER][i] = round_to_WORD(r * USHRT_MAX_DOUBLE);
+			gfit.pdata[GLAYER][i] = round_to_WORD(g * USHRT_MAX_DOUBLE);
+			gfit.pdata[BLAYER][i] = round_to_WORD(b * USHRT_MAX_DOUBLE);
+		}
+	}
+}
+
+static void gfit_to_hsluv() {
+	size_t npixels = gfit.rx * gfit.ry;
+	if (gfit.type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			double h, s, l;
+			rgb2hsluv((double) gfit.fpdata[0][i], (double) gfit.fpdata[1][i], (double) gfit.fpdata[2][i], &h, &s, &l);
+			huebuf[i] = (float) h;
+			satbuf_orig[i] = (float) s / 100.f;
+			lumbuf[i] = (float) l;
+		}
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			double h, s, l;
+			float r = (float) gfit.pdata[0][i] / USHRT_MAX_SINGLE;
+			float g = (float) gfit.pdata[1][i] / USHRT_MAX_SINGLE;
+			float b = (float) gfit.pdata[2][i] / USHRT_MAX_SINGLE;
+			rgb2hsluv((double) r, (double) g, (double) b, &h, &s, &l);
+			huebuf[i] = (float) h;
+			satbuf_orig[i] = (float) s / 100.f;
+			lumbuf[i] = (float) l;
+		}
+	}
+	memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
+}
 static void histo_recompute() {
 	set_cursor("progress");
 	copy_backup_to_gfit();
@@ -251,7 +310,7 @@ static void histo_recompute() {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
 		if (_payne_colourstretchmodel == COL_SAT) {
 			apply_linked_ght_to_fbuf_indep(satbuf_orig, satbuf_working, gfit.rx * gfit.ry, 1, &params_ght, TRUE);
-			hsl_to_gfit(huebuf, satbuf_working, lumbuf);
+			hsluv_to_gfit(huebuf, satbuf_working, lumbuf);
 		} else {
 			apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
 		}
@@ -967,7 +1026,7 @@ static void setup_hsl() {
 	if (lumbuf)
 		free(lumbuf);
 	lumbuf = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
-	gfit_to_hsl();
+	gfit_to_hsluv();
 	set_sat_histogram(computeHistoSat(satbuf_working));
 	if (hist_sat_backup)
 		gsl_histogram_free(hist_sat_backup);

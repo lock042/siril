@@ -29,6 +29,7 @@ src_files = [
   'algos/extraction.c',
   'algos/fix_xtrans_af.c',
   'algos/geometry.c',
+  'algos/hsluv.c',
   'algos/io_wave.c',
   'algos/median_fast.c',
   'algos/noise.c',
