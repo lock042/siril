@@ -830,8 +830,11 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 			siril_log_color_message(_("Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
 		}
 	} else {
-		gui.icc.soft_proof = NULL;
-		siril_log_color_message(_("Soft proofing ICC profile closed. Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
+		if (gui.icc.soft_proof) {
+			cmsCloseProfile(gui.icc.soft_proof);
+			gui.icc.soft_proof = NULL;
+		}
+		siril_log_color_message(_("Soft proofing ICC profile deactivated. Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
 	}
 	g_mutex_unlock(&soft_proof_profile_mutex);
 	refresh_icc_transforms();

@@ -28,6 +28,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -111,7 +112,7 @@ static GtkComboBoxText *box = NULL;
 static GtkGrid *grid_layers = NULL;
 
 static GtkButton *add_button = NULL;
-
+static cmsHPROFILE reference = NULL;
 /******* internal functions *******/
 static void remove_layer(int layer);
 static void add_the_layer_add_button();
@@ -643,6 +644,16 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 				orig_rx[layer] = layers[layer]->the_fit.rx;
 				orig_ry[layer] = layers[layer]->the_fit.ry;
 				compute_compositor_mem_limits(&layers[layer]->the_fit);
+				if (reference)
+					cmsCloseProfile(reference);
+				reference = copyICCProfile(layers[layer]->the_fit.icc_profile);
+			}
+			if (number_of_images_loaded() > 1 && !profiles_identical(reference,
+							layers[layer]->the_fit.icc_profile)) {
+				siril_log_message(_("ICC profile differs to that of the first image loaded."
+									"Converting this image to match.\n"));
+				convert_fit_colorspace(&layers[layer]->the_fit, layers[layer]->the_fit.icc_profile,
+									   reference);
 			}
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||
@@ -1420,8 +1431,11 @@ void reset_compositing_module() {
 		layers[i] = NULL;
 		layers_count--;
 	}
-	// already done in on_layer_add
-	//gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
+
+	if (reference) {
+		cmsCloseProfile(reference);
+		reference = NULL;
+	}
 
 	/* Reset GtkFileChooserButton Luminance */
 	GtkFileChooserButton *lum = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));
