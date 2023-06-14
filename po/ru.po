@@ -6,10 +6,10 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-10 20:59+0000\n"
+"PO-Revision-Date: 2023-06-16 22:46+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -9975,8 +9975,8 @@ msgid ""
 "Gnuplot was not found, the light curve data will be produced in %s but no "
 "image will be created.\n"
 msgstr ""
-"Gnuplot не найден, будут созданы данные для световой кривой в %s, а "
-"изображение — нет.\n"
+"Gnuplot не найден, данные для световой кривой будут сохранены в %s; "
+"изображение не будет создано.\n"
 
 #: src/algos/photometry.c:300 src/gui/plot.c:718
 msgid "No photometry data found, error\n"
@@ -16637,7 +16637,7 @@ msgstr "StarNet: Обработка…"
 
 #: src/filters/synthstar.c:361
 msgid "Star synthesis (full star mask creation): processing...\n"
-msgstr ""
+msgstr "Синтез звёзд (создание полной маски звёзд): обработка...\n"
 
 #: src/filters/synthstar.c:388
 msgid "No stars detected in the image.\n"
@@ -16650,17 +16650,17 @@ msgstr "Синтез %d звёзд...\n"
 
 #: src/filters/synthstar.c:666
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
-msgstr ""
+msgstr "Синтез звёзд (обесцвечивание обрезанных профилей звёзд): обработка...\n"
 
 #: src/filters/synthstar.c:722
 #, c-format
 msgid "Star synthesis: desaturating stars in channel %u...\n"
-msgstr ""
+msgstr "Синтез звёзд: обесцвечивание звёзд в канале %u...\n"
 
 #: src/filters/synthstar.c:761
 #, c-format
 msgid "Star synthesis: %d stars desaturated\n"
-msgstr ""
+msgstr "Синтез звёзд: обесцвечено %d звёзд\n"
 
 #: src/filters/synthstar.c:773
 msgid "Remapping output to floating point range 0.0 to 1.0\n"
@@ -17871,8 +17871,9 @@ msgid ""
 "image will be created. You can specify the path to gnuplot in the Siril "
 "preferences.\n"
 msgstr ""
-"Gnuplot не найден, будут созданы данные для световой кривой в %s, а "
-"изображение — нет. Вы можете указать путь к gnuplot в настройках Siril.\n"
+"Gnuplot не найден: данные для световой кривой будут сохранены в %s; "
+"изображение не будет создано. Вы можете указать путь к gnuplot в настройках "
+"Siril.\n"
 
 #: src/gui/plot.c:807
 #, c-format
@@ -18191,9 +18192,8 @@ msgstr ""
 "Ширина, высота, разрядность и количество каналов изображения должны совпадать"
 
 #: src/gui/remixer.c:1269 src/gui/remixer.c:1317
-#, fuzzy
 msgid "There is no starless image loaded"
-msgstr "В файле отсутствуют отметки времени"
+msgstr "Изображение без звёзд не загружено"
 
 #: src/gui/remixer.c:1270
 msgid ""
