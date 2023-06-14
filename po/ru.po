@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-14 11:05+0000\n"
+"PO-Revision-Date: 2023-06-16 22:46+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -10477,8 +10477,8 @@ msgid ""
 "Gnuplot was not found, the light curve data will be produced in %s but no "
 "image will be created.\n"
 msgstr ""
-"Gnuplot не найден, будут созданы данные для световой кривой в %s, а "
-"изображение — нет.\n"
+"Gnuplot не найден, данные для световой кривой будут сохранены в %s; "
+"изображение не будет создано.\n"
 
 #: src/algos/photometry.c:302 src/gui/plot.c:722
 msgid "No photometry data found, error\n"
@@ -18135,8 +18135,8 @@ msgid ""
 "Gnuplot was not found, the brightness profile data will be written to %s but "
 "no image will be created.\n"
 msgstr ""
-"Gnuplot не найден, будут созданы данные для световой кривой в %s, а "
-"изображение — нет.\n"
+"Gnuplot не найден, данные профиля яркости будут сохранены в %s; изображение "
+"не будет создано.\n"
 
 #: src/gui/cut.c:614 src/gui/cut.c:801 src/gui/cut.c:947
 #, fuzzy, c-format
@@ -18895,8 +18895,9 @@ msgid ""
 "image will be created. You can specify the path to gnuplot in the Siril "
 "preferences.\n"
 msgstr ""
-"Gnuplot не найден, будут созданы данные для световой кривой в %s, а "
-"изображение — нет. Вы можете указать путь к gnuplot в настройках Siril.\n"
+"Gnuplot не найден: данные для световой кривой будут сохранены в %s; "
+"изображение не будет создано. Вы можете указать путь к gnuplot в настройках "
+"Siril.\n"
 
 #: src/gui/plot.c:811
 #, c-format
