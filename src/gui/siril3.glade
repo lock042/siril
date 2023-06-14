@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -14088,7 +14088,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">5</property>
+                    <property name="sort-column-id">7</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_fwhmx">
                         <property name="alignment">right</property>
@@ -14108,7 +14108,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">6</property>
+                    <property name="sort-column-id">8</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_fwhmy">
                         <property name="alignment">right</property>
@@ -14127,7 +14127,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">7</property>
+                    <property name="sort-column-id">9</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_mag">
                         <property name="alignment">right</property>
@@ -14147,7 +14147,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">8</property>
+                    <property name="sort-column-id">10</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_beta">
                         <property name="alignment">right</property>
@@ -14167,7 +14167,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">9</property>
+                    <property name="sort-column-id">11</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_r">
                         <property name="alignment">right</property>
@@ -14187,7 +14187,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">10</property>
+                    <property name="sort-column-id">12</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_angle">
                         <property name="alignment">right</property>
@@ -14207,7 +14207,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">11</property>
+                    <property name="sort-column-id">13</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_rmse">
                         <property name="alignment">right</property>
