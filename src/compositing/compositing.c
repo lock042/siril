@@ -474,19 +474,6 @@ void open_compositing_window() {
 		siril_open_dialog("composition_dialog");
 }
 
-static void update_comp_metadata(fits *fit) {
-    fits **f = malloc((MAX_LAYERS + 1) * sizeof(fits *));
-    int j = 0;
-    for (int i = 0; i < number_of_images_loaded() ; i++)
-        if (seq->internal_fits[i])
-            f[j++] = seq->internal_fits[i];
-    f[j] = NULL;
-
-    merge_fits_headers_to_result2(&gfit, f);
-    load_WCS_from_memory(fit);
-    free(f);
-}
-
 /* returns true if the layer number layer has a loaded FITS image */
 static int has_fit(int layer) {
 	return (layers[layer] && layers[layer]->the_fit.rx != 0);
@@ -568,7 +555,8 @@ static void check_gfit_is_ours() {
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	if (!create_uniq_from_gfit(strdup(_("Unsaved compositing result")), FALSE))
+	char *temp = strdup(_("Unsaved compositing result"));
+	if (!create_uniq_from_gfit(temp, FALSE))
 		com.uniq->comment = strdup(_("Compositing result image"));
 
 	initialize_display_mode();
@@ -587,18 +575,37 @@ static void check_gfit_is_ours() {
 	sequence_list_change_current();
 }
 
+// Called from the filechooser
 static void update_metadata() {
 	int nb = number_of_images_loaded();
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
+	int firstlayer = -1;
 	for (int i = 0; layers[i] ; i++)
-		if (has_fit(i))
+		if (has_fit(i)) {
+			if (firstlayer == -1)
+				firstlayer = i;
 			f[j++] = &layers[i]->the_fit;
+		}
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(&gfit);
+	load_WCS_from_memory(&layers[firstlayer]->the_fit);
 	free(f);
+}
+
+// Called after alignment
+static void update_comp_metadata(fits *fit) {
+    fits **f = malloc((MAX_LAYERS + 1) * sizeof(fits *));
+    int j = 0;
+    for (int i = 0; i < number_of_images_loaded() ; i++)
+        if (seq->internal_fits[i])
+            f[j++] = seq->internal_fits[i];
+    f[j] = NULL;
+
+    merge_fits_headers_to_result2(&gfit, f);
+    load_WCS_from_memory(fit);
+    free(f);
 }
 
 /* callback for the file chooser's file selection: try to load the pointed file, allocate the
