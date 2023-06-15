@@ -597,16 +597,16 @@ static void update_metadata() {
 // Called after alignment
 static void update_comp_metadata(fits *fit) {
 	int nb = number_of_images_loaded();
-    fits **f = malloc((nb + 1) * sizeof(fits *));
-    int j = 0;
-    for (int i = 0; i < nb ; i++)
-        if (seq->internal_fits[i])
-            f[j++] = seq->internal_fits[i];
-    f[j] = NULL;
+	fits **f = malloc((nb + 1) * sizeof(fits *));
+	int j = 0;
+	for (int i = 0; i < nb ; i++)
+		if (seq->internal_fits[i])
+			f[j++] = seq->internal_fits[i];
+	f[j] = NULL;
 
-    merge_fits_headers_to_result2(&gfit, f);
-    load_WCS_from_memory(fit);
-    free(f);
+	merge_fits_headers_to_result2(&gfit, f);
+	load_WCS_from_memory(fit);
+	free(f);
 }
 
 /* callback for the file chooser's file selection: try to load the pointed file, allocate the
