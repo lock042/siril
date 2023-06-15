@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-02 12:29+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2023-06-16 22:46+0000\n"
+"Last-Translator: Antoine Hoeffelman <swerves_pilafs.0v@icloud.com>\n"
 "Language-Team: Dutch (Belgium) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/nl_BE/>\n"
 "Language: nl_BE\n"
@@ -161,28 +161,24 @@ msgid ""
 msgstr "Prefix van het beeld afkomstig van het correctieproces."
 
 #: src/gui/siril3.glade:566
-#, fuzzy
 msgid "Binning"
-msgstr "Binning: "
+msgstr "Binning"
 
 #: src/gui/siril3.glade:631
-#, fuzzy
 msgid "Binning factor:"
-msgstr "Binning: "
+msgstr "Binning factor:"
 
 #: src/gui/siril3.glade:663
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "Afbeelding downsamplen"
+msgstr "Downsample modus:"
 
 #: src/gui/siril3.glade:677
-#, fuzzy
 msgid "Average"
-msgstr "Gemiddelde Neutraal"
+msgstr "Gemiddeld"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
-msgstr ""
+msgstr "Som"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17673
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -1165,9 +1161,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6269 src/gui/siril3.glade:7237
-#, fuzzy
 msgid "Profile"
-msgstr "Ondersteund bestandtypes:"
+msgstr "Profiel"
 
 #: src/gui/siril3.glade:6280
 msgid ""
