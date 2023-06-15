@@ -596,9 +596,10 @@ static void update_metadata() {
 
 // Called after alignment
 static void update_comp_metadata(fits *fit) {
-    fits **f = malloc((MAX_LAYERS + 1) * sizeof(fits *));
+	int nb = number_of_images_loaded();
+    fits **f = malloc((nb + 1) * sizeof(fits *));
     int j = 0;
-    for (int i = 0; i < number_of_images_loaded() ; i++)
+    for (int i = 0; i < nb ; i++)
         if (seq->internal_fits[i])
             f[j++] = seq->internal_fits[i];
     f[j] = NULL;
