@@ -474,6 +474,19 @@ void open_compositing_window() {
 		siril_open_dialog("composition_dialog");
 }
 
+static void update_comp_metadata(fits *fit) {
+    fits **f = malloc((MAX_LAYERS + 1) * sizeof(fits *));
+    int j = 0;
+    for (int i = 0; i < number_of_images_loaded() ; i++)
+        if (seq->internal_fits[i])
+            f[j++] = seq->internal_fits[i];
+    f[j] = NULL;
+
+    merge_fits_headers_to_result2(&gfit, f);
+    load_WCS_from_memory(fit);
+    free(f);
+}
+
 /* returns true if the layer number layer has a loaded FITS image */
 static int has_fit(int layer) {
 	return (layers[layer] && layers[layer]->the_fit.rx != 0);
@@ -913,6 +926,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
+	// update WCS etc.
+	update_comp_metadata(seq->internal_fits[seq->reference_image]);
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
