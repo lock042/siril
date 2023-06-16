@@ -578,7 +578,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	return FALSE;
 }
 
-void exclude_single_frame(int index) {
+void exclude_include_single_frame(int index) {
 	siril_log_message(_("%s image %d in sequence %s\n"),
 			com.seq.imgparam[index].incl ? _("Excluding") : _("Including"),
 			index + 1, com.seq.seqname);
@@ -588,12 +588,16 @@ void exclude_single_frame(int index) {
 		com.seq.selnum++;
 	else {
 		com.seq.selnum--;
+	}
+	if (com.seq.selnum == 1 || com.seq.reference_image == index) {
 		if (com.seq.reference_image == index) {
 			com.seq.reference_image = -1;
 			com.seq.reference_image = sequence_find_refimage(&com.seq);
-			adjust_refimage(index);
-			sequence_list_change_reference();
+		} else {
+			com.seq.reference_image = index;
 		}
+		adjust_refimage(index);
+		sequence_list_change_reference();
 	}
 	update_reg_interface(FALSE);
 	update_stack_interface(FALSE);
@@ -637,7 +641,7 @@ void on_seqlist_image_selection_toggled(GtkCellRendererToggle *cell_renderer,
 	fprintf(stdout, "toggle selection index = %d\n", index);
 
 	sequence_list_change_selection(char_path, !com.seq.imgparam[index].incl);
-	exclude_single_frame(index);
+	exclude_include_single_frame(index);
 }
 
 void toggle_image_selection(int index_in_list, int real_index, gboolean initvalue) {
