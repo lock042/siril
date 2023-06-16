@@ -514,9 +514,12 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
 		g_time_zone_unref(tz);
 	}
-
-	if (has_icc)
-		fits_initialize_icc(fit, EmbedBuffer, EmbedLen);
+	cmsUInt8Number *embed = NULL;
+	if (EmbedLen) {
+		embed = malloc(EmbedLen * sizeof(cmsUInt8Number));
+		memcpy(embed, EmbedBuffer, EmbedLen * sizeof(cmsUInt8Number));
+	}
+	cmsUInt32Number len = EmbedLen;
 
 	TIFFClose(tif);
 	if (retval < 0) {
@@ -628,6 +631,10 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 			free(description);
 		}
 	}
+
+	if (has_icc)
+		fits_initialize_icc(fit, embed, len);
+	free(embed);
 
 	retval = nsamples;
 
@@ -741,6 +748,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	// Apply the colorspace transform
 	void *buf = NULL;
 	void *dest = NULL;
+	cmsHTRANSFORM save_transform = NULL;
 	if (com.icc.available) {
 		// Check the fit has a profile. If not, assign a linear one
 		if (fit->icc_profile == NULL) {
@@ -758,20 +766,27 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		}
 		// Check what is the appropriate color space to save in
 		if (bitspersample == 8) {
-			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.pref.icc.export_intent, 0);
-			cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-			cmsUInt32Number bytesperline = width * datasize;
-			cmsUInt32Number bytesperplane = npixels * datasize;
-			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(save_transform);
+			if (nsamples == 1) {
+				save_transform = sirilCreateTransform(fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+			} else if (com.pref.icc.export_8bit_method == EXPORT_SRGB) {
+				save_transform = sirilCreateTransform(fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+			} else {
+				save_transform = sirilCreateTransform(fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
+			}
 		} else if (bitspersample == 16) {
-			cmsHTRANSFORM save_transform = sirilCreateTransform(fit->icc_profile, trans_type, (nsamples == 1 ? com.icc.mono_out : (com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.pref.icc.export_intent, 0);
-			cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-			cmsUInt32Number bytesperline = width * datasize;
-			cmsUInt32Number bytesperplane = npixels * datasize;
-			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(save_transform);
+			if (nsamples == 1) {
+				save_transform = sirilCreateTransform(fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+			} else if (com.pref.icc.export_16bit_method == EXPORT_SRGB) {
+				save_transform = sirilCreateTransform(fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+			} else {
+				save_transform = sirilCreateTransform(fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
+			}
 		}
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = width * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
 		// 32 bit files are always saved in the working color space with the ICC profile
 		// embedded. If you want 32-bit sRGB output you need to convert the color space yourself.
 		gbuf[0] = (WORD *) dest;

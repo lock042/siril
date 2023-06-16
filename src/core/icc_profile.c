@@ -180,62 +180,112 @@ gboolean validate_profile(gchar* filename) {
 }
 
 void validate_custom_profiles() {
-	g_mutex_lock(&monitor_profile_mutex);
-	if (validate_profile(com.pref.icc.icc_path_monitor)) {
-		if (gui.icc.monitor)
-			cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
-		if (!gui.icc.monitor) {
+	if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0') {
+		g_mutex_lock(&monitor_profile_mutex);
+		if (validate_profile(com.pref.icc.icc_path_monitor)) {
+			if (gui.icc.monitor)
+				cmsCloseProfile(gui.icc.monitor);
+			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
+			if (!gui.icc.monitor) {
+				gui.icc.monitor = srgb_trc();
+				siril_log_color_message(_("Error opening custom monitor profile. Monitor profile set to sRGB.\n"), "red");
+			}
+		} else {
 			gui.icc.monitor = srgb_trc();
-			siril_log_color_message(_("Error opening custom monitor profile. Monitor profile set to sRGB.\n"), "red");
+			siril_log_message(_("Warning: custom monitor profile set but could not "
+								"be loaded. Display will use a sRGB profile with "
+								"the standard sRGB TRC.\n"));
 		}
-	} else
-		gui.icc.monitor = srgb_trc();
-	g_mutex_unlock(&monitor_profile_mutex);
+		g_mutex_unlock(&monitor_profile_mutex);
+	}
 
-	g_mutex_lock(&soft_proof_profile_mutex);
-	if (validate_profile(com.pref.icc.icc_path_soft_proof)) {
-		if (gui.icc.soft_proof)
-			cmsCloseProfile(gui.icc.soft_proof);
-		gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
-	} else
-		gui.icc.soft_proof = NULL;
-	g_mutex_unlock(&soft_proof_profile_mutex);
+	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
+		g_mutex_lock(&soft_proof_profile_mutex);
+		if (validate_profile(com.pref.icc.icc_path_soft_proof)) {
+			if (gui.icc.soft_proof)
+				cmsCloseProfile(gui.icc.soft_proof);
+			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
+		} else {
+			gui.icc.soft_proof = NULL;
+			siril_log_message(_("Warning: soft proofing profile set but could not "
+								"be loaded. Soft proofing will be unavailable.\n"));
+		}
+		g_mutex_unlock(&soft_proof_profile_mutex);
+	}
 
 	g_mutex_lock(&default_profiles_mutex);
-	if (validate_profile(com.pref.icc.custom_icc_linear)) {
+	if (com.pref.icc.working_gamut == TYPE_SRGB) {
 		if (com.icc.working_linear)
 			cmsCloseProfile(com.icc.working_linear);
-		com.icc.working_linear = cmsOpenProfileFromFile(com.pref.icc.custom_icc_linear, "r");
-		if (!com.icc.working_linear) {
-			com.icc.working_linear = srgb_linear();
-			siril_log_color_message(_("Error opening linear working profile. Profile set to linear sRGB.\n"), "red");
-		}
-	} else
 		com.icc.working_linear = srgb_linear();
-
-	if (validate_profile(com.pref.icc.custom_icc_trc)) {
 		if (com.icc.working_standard)
 			cmsCloseProfile(com.icc.working_standard);
-		com.icc.working_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_trc, "r");
-		if (!com.icc.working_standard) {
-			com.icc.working_standard = srgb_trc();
-			siril_log_color_message(_("Error opening nonlinear working profile. Profile set to sRGB.\n"), "red");
-		}
-	} else
 		com.icc.working_standard = srgb_trc();
-	if (com.icc.working_out)
-		cmsCloseProfile(com.icc.working_out);
-	com.icc.working_out = copyICCProfile(com.icc.working_standard);
-
-	if (validate_profile(com.pref.icc.custom_icc_gray)) {
-		com.icc.mono_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r");
-		if (!com.icc.mono_standard) {
-			com.icc.mono_standard = gray_srgbtrc();
-			siril_log_color_message(_("Error opening matched grayscale working profile. Profile set to Gray with srGB tone response curve.\n"), "red");
-		}
-	} else
+		if (com.icc.working_out)
+			cmsCloseProfile(com.icc.working_out);
+		com.icc.working_out = srgb_trcv2();
+		if (com.icc.mono_standard)
+			cmsCloseProfile(com.icc.mono_standard);
 		com.icc.mono_standard = gray_srgbtrc();
+		if (com.icc.mono_out)
+			cmsCloseProfile(com.icc.mono_out);
+		com.icc.mono_out = gray_srgbtrcv2();
+	} else if (com.pref.icc.working_gamut == TYPE_REC2020) {
+		if (com.icc.working_linear)
+			cmsCloseProfile(com.icc.working_linear);
+		com.icc.working_linear = rec2020_linear();
+		if (com.icc.working_standard)
+			cmsCloseProfile(com.icc.working_standard);
+		com.icc.working_standard = rec2020_trc();
+		if (com.icc.working_out)
+			cmsCloseProfile(com.icc.working_out);
+		com.icc.working_out = rec2020_trcv2();
+		if (com.icc.mono_standard)
+			cmsCloseProfile(com.icc.mono_standard);
+		com.icc.mono_standard = gray_rec709trc();
+		if (com.icc.mono_out)
+			cmsCloseProfile(com.icc.mono_out);
+		com.icc.mono_out = gray_rec709trcv2();
+	} else {
+		if (validate_profile(com.pref.icc.custom_icc_linear)) {
+			if (com.icc.working_linear)
+				cmsCloseProfile(com.icc.working_linear);
+			com.icc.working_linear = cmsOpenProfileFromFile(com.pref.icc.custom_icc_linear, "r");
+			if (!com.icc.working_linear) {
+				com.icc.working_linear = srgb_linear();
+				siril_log_color_message(_("Error opening linear working profile. Profile set to linear sRGB.\n"), "red");
+			}
+		} else {
+			com.icc.working_linear = srgb_linear();
+		}
+		if (validate_profile(com.pref.icc.custom_icc_trc)) {
+			if (com.icc.working_standard)
+				cmsCloseProfile(com.icc.working_standard);
+			com.icc.working_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_trc, "r");
+			if (!com.icc.working_standard) {
+				com.icc.working_standard = srgb_trc();
+				siril_log_color_message(_("Error opening nonlinear working profile. Profile set to sRGB.\n"), "red");
+			}
+		} else {
+			com.icc.working_standard = srgb_trc();
+		}
+		if (com.icc.working_out)
+			cmsCloseProfile(com.icc.working_out);
+		com.icc.working_out = copyICCProfile(com.icc.working_standard);
+
+		if (validate_profile(com.pref.icc.custom_icc_gray)) {
+			if (com.icc.mono_standard)
+				cmsCloseProfile(com.icc.mono_standard);
+			com.icc.mono_standard = cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r");
+			if (!com.icc.mono_standard) {
+				com.icc.mono_standard = gray_srgbtrc();
+				siril_log_color_message(_("Error opening matched grayscale working profile. Profile set to Gray with srGB tone response curve.\n"), "red");
+			}
+		} else {
+			com.icc.mono_standard = gray_srgbtrc();
+		}
+		com.icc.mono_out = copyICCProfile(com.icc.mono_standard);
+	}
 	g_mutex_unlock(&default_profiles_mutex);
 }
 
@@ -253,7 +303,6 @@ void initialize_profiles_and_transforms() {
 	// Set alarm codes for soft proof out-of-gamut warning
 	cmsUInt16Number alarmcodes[16] = { 65535, 0, 65535, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	cmsSetAlarmCodes(alarmcodes); // Out of gamut colours will be shown in magenta
-	int error = 0;
 
 	// Working profiles
 	com.icc.mono_linear = gray_linear();
@@ -261,53 +310,18 @@ void initialize_profiles_and_transforms() {
 
 	// Target profiles for embedding in saved files
 	com.icc.srgb_out = srgb_trcv2();
-	com.icc.mono_out = gray_srgbtrcv2();
+//	com.icc.mono_out = gray_srgbtrcv2();
 
 	// ICC availability
 	com.icc.available = (com.icc.working_linear && com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
 	gui.icc.available = (com.icc.available); // && gui.icc_profile_rgb && gui.icc_profile_mono);
 	if ((com.headless && !com.icc.available) || (!com.headless && !gui.icc.available)) {
-		error++;
-		siril_log_message(_("Error: standard color management profiles could not be loaded. Siril will continue "
-							"but colors in saved images will not be consistent when viewed in other applications "
-							"or printed. Check your installation is correct.\n"));
-	} else { // No point loading monitor and soft proof profiles if the standard ones are unavailable
-		// Open the custom monitor and soft proofing profiles if there is a path set in preferences
-		g_mutex_lock(&monitor_profile_mutex);
-		if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0') {
-			gui.icc.monitor =srgb_trc();
-			if (!gui.icc.monitor) {
-				error++;
-				siril_log_message(_("Warning: custom monitor profile set but could not be loaded. Display will use a "
-									"sRGB profile with the standard sRGB TRC.\n"));
-			} else {
-				siril_log_message(_("Monitor ICC profile loaded from %s\n"), com.pref.icc.icc_path_monitor);
-			}
-		}
-		if (!gui.icc.monitor) {
-			gui.icc.monitor = srgb_trc();
-			siril_log_message(_("Monitor ICC profile set to sRGB (standard sRGB TRC)\n"));
-		}
-		g_mutex_unlock(&monitor_profile_mutex);
-
-		if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
-			g_mutex_lock(&soft_proof_profile_mutex);
-			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
-			g_mutex_unlock(&soft_proof_profile_mutex);
-		if (!gui.icc.soft_proof) {
-				error++;
-				siril_log_message(_("Warning: soft proofing profile set but could not be loaded. Soft proofing will be "
-									"unavailable.\n"));
-			} else {
-				siril_log_message(_("Soft proofing ICC profile loaded from %s\n"), com.pref.icc.icc_path_soft_proof);
-			}
-		} else {
-			siril_log_message(_("No soft proofing ICC profile set. Soft proofing is unavailable.\n"));
-		}
-
-	}
-	if (!error) {
-		siril_log_message(_("ICC profiles loaded correctly. Workflow will be color managed.\n"));
+		siril_log_message(_("Error: standard color management profiles "
+							"could not be loaded. Cannot continue. "
+							"Please report this error.\n"));
+		exit(1);
+	} else {
+		siril_log_message(_("Color management active.\n"));
 	}
 }
 
