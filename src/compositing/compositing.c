@@ -558,7 +558,8 @@ static void check_gfit_is_ours() {
 	char *temp = strdup(_("Unsaved compositing result"));
 	if (!create_uniq_from_gfit(temp, FALSE))
 		com.uniq->comment = strdup(_("Compositing result image"));
-
+	else
+		free(temp);
 	initialize_display_mode();
 	update_zoom_label();
 	display_filename();
