@@ -197,6 +197,8 @@ void validate_custom_profiles() {
 								"the standard sRGB TRC.\n"));
 		}
 		g_mutex_unlock(&monitor_profile_mutex);
+	} else {
+			gui.icc.monitor = srgb_trc();
 	}
 
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
