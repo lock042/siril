@@ -451,31 +451,3 @@ rgb2hpluv(double r, double g, double b, double* ph, double* ps, double* pl)
     *ps = tmp.b;
     *pl = tmp.c;
 }
-
-void
-hsluv2xyz(double h, double s, double l, double* px, double* py, double* pz)
-{
-    Triplet tmp = { h, s, l };
-
-    hsluv2lch(&tmp);
-    lch2luv(&tmp);
-    luv2xyz(&tmp);
-
-    *px = tmp.a;
-    *py = tmp.b;
-    *pz = tmp.c;
-}
-
-void
-xyz2hsluv(double x, double y, double z, double* ph, double* ps, double* pl)
-{
-    Triplet tmp = { x, y, z };
-
-    xyz2luv(&tmp);
-    luv2lch(&tmp);
-    lch2hsluv(&tmp);
-
-    *ph = tmp.a;
-    *ps = tmp.b;
-    *pl = tmp.c;
-}

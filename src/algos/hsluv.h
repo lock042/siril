@@ -85,9 +85,6 @@ void hpluv2rgb(double h, double s, double l, double* pr, double* pg, double* pb)
  */
 void rgb2hpluv(double r, double g, double b, double* ph, double* ps, double* pl);
 
-void hsluv2xyz(double h, double s, double l, double* px, double* py, double* pz);
-
-void xyz2hsluv(double x, double y, double z, double* ph, double* ps, double* pl);
 
 #ifdef __cplusplus
 }
