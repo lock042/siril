@@ -556,9 +556,11 @@ static void check_gfit_is_ours() {
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	if (!create_uniq_from_gfit(strdup(_("Unsaved compositing result")), FALSE))
+	char *temp = strdup(_("Unsaved compositing result"));
+	if (!create_uniq_from_gfit(temp, FALSE))
 		com.uniq->comment = strdup(_("Compositing result image"));
-
+	else
+		free(temp);
 	initialize_display_mode();
 	update_zoom_label();
 	display_filename();
@@ -575,17 +577,37 @@ static void check_gfit_is_ours() {
 	sequence_list_change_current();
 }
 
+// Called from the filechooser
 static void update_metadata() {
 	int nb = number_of_images_loaded();
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
+	int firstlayer = -1;
 	for (int i = 0; layers[i] ; i++)
-		if (has_fit(i))
+		if (has_fit(i)) {
+			if (firstlayer == -1)
+				firstlayer = i;
 			f[j++] = &layers[i]->the_fit;
+		}
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(&gfit);
+	load_WCS_from_memory(&layers[firstlayer]->the_fit);
+	free(f);
+}
+
+// Called after alignment
+static void update_comp_metadata(fits *fit) {
+	int nb = number_of_images_loaded();
+	fits **f = malloc((nb + 1) * sizeof(fits *));
+	int j = 0;
+	for (int i = 0; i < nb ; i++)
+		if (seq->internal_fits[i])
+			f[j++] = seq->internal_fits[i];
+	f[j] = NULL;
+
+	merge_fits_headers_to_result2(&gfit, f);
+	load_WCS_from_memory(fit);
 	free(f);
 }
 
@@ -924,6 +946,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
+	// update WCS etc.
+	update_comp_metadata(seq->internal_fits[seq->reference_image]);
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
