@@ -191,6 +191,8 @@ void validate_custom_profiles() {
 				siril_log_color_message(_("Error opening custom monitor profile. Monitor profile set to sRGB.\n"), "red");
 			}
 		} else {
+			if (gui.icc.monitor)
+				cmsCloseProfile(gui.icc.monitor);
 			gui.icc.monitor = srgb_trc();
 			siril_log_message(_("Warning: custom monitor profile set but could not "
 								"be loaded. Display will use a sRGB profile with "
@@ -198,7 +200,9 @@ void validate_custom_profiles() {
 		}
 		g_mutex_unlock(&monitor_profile_mutex);
 	} else {
-			gui.icc.monitor = srgb_trc();
+		if (gui.icc.monitor)
+			cmsCloseProfile(gui.icc.monitor);
+		gui.icc.monitor = srgb_trc();
 	}
 
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
@@ -208,6 +212,8 @@ void validate_custom_profiles() {
 				cmsCloseProfile(gui.icc.soft_proof);
 			gui.icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
 		} else {
+			if (gui.icc.soft_proof)
+				cmsCloseProfile(gui.icc.soft_proof);
 			gui.icc.soft_proof = NULL;
 			siril_log_message(_("Warning: soft proofing profile set but could not "
 								"be loaded. Soft proofing will be unavailable.\n"));

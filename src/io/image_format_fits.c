@@ -1864,7 +1864,7 @@ int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
 
 	// Success! Clean up and return
 	g_free(profile);
-	siril_log_message(_("ICC profile embedded in FITS file\n"));
+	siril_debug_print("ICC profile embedded in FITS file\n");
 	return 0;
 
 ERROR_MESSAGE_AND_RETURN:
@@ -1936,7 +1936,7 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	}
 	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
 	if (icc_profile)
-		siril_log_message("Embedded ICC profile read from FITS\n");
+		siril_debug_print("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
 	return icc_profile;

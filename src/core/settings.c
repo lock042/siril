@@ -239,7 +239,7 @@ void free_preferences(preferences *pref) {
 	pref->asnet_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
-	g_slist_free_full(pref->gui.script_path, g_free);
+	g_slist_free_full(g_steal_pointer(&pref->gui.script_path), g_free);
 	pref->gui.script_path = NULL;
 	g_free(pref->fftw_conf.wisdom_file);
 	pref->fftw_conf.wisdom_file = NULL;

@@ -37,6 +37,7 @@
 #ifdef HAVE_LIBJPEG
 #include <jpeglib.h>
 #include <jconfig.h>
+#include <jerror.h>
 #endif
 #ifdef HAVE_LIBPNG
 #include <png.h>
@@ -469,7 +470,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	// Try to read embedded ICC profile data
 	cmsUInt32Number EmbedLen;
 	cmsUInt8Number* EmbedBuffer = NULL;
-	gboolean has_icc = TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
+	(void) TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
 
 	// Retrieve Description field
 	char *desc = NULL;
@@ -632,8 +633,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		}
 	}
 
-	if (has_icc)
-		fits_initialize_icc(fit, embed, len);
+	fits_initialize_icc(fit, embed, len);
 	free(embed);
 
 	retval = nsamples;
@@ -1068,17 +1068,20 @@ int readjpg(const char* name, fits *fit){
 	cinfo.err = jpeg_std_error(&jerr);
 	jpeg_create_decompress(&cinfo);
 	jpeg_stdio_src(&cinfo, f);
-	jpeg_read_header(&cinfo, TRUE);
+	(void) jpeg_read_header(&cinfo, TRUE);
 	jpeg_start_decompress(&cinfo);
 
 	// Check for an ICC profile
 	JOCTET *EmbedBuffer = NULL;
-	unsigned int EmbedLen = 0;
+	unsigned int EmbedLen;
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
-	jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen);
+	if (jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen)) {
+		siril_debug_print("Read ICC profile from JPEG\n");
+	}
+	else if (cinfo.err->msg_code != JWRN_BOGUS_ICC) {
+		siril_debug_print("No ICC profile data in JPEG file\n");
+}
 #endif
-	if (EmbedLen > 0)
-		fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
 
 	size_t npixels = cinfo.output_width * cinfo.output_height;
 	WORD *data = malloc(npixels * sizeof(WORD) * 3);
@@ -1099,10 +1102,12 @@ int readjpg(const char* name, fits *fit){
 			*buf[BLAYER]++ = pJpegBuffer[0][cinfo.output_components * i + 2];
 		}
 	}
+	clearfits(fit);
 
 	fclose(f);
 	jpeg_finish_decompress(&cinfo);
 	jpeg_destroy_decompress(&cinfo);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	if (cinfo.output_components == 1)
 		fit->naxis = 2;
@@ -1123,6 +1128,9 @@ int readjpg(const char* name, fits *fit){
 	fill_date_obs_if_any(fit, name);
 
 	// Initialize ICC profile and display transform
+	fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer,
+							 (cmsUInt32Number) EmbedLen);
+	free(EmbedBuffer);
 
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"),
@@ -1342,14 +1350,24 @@ int readpng(const char *name, fits* fit) {
 		row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png, info));
 	}
 
-	png_charpp ProfileName = NULL;
-#if (PNG_LIBPNG_VER < 10500)
-    png_charpp EmbedBuffer = NULL;
-#else
-    png_bytepp EmbedBuffer = NULL;
+	cmsUInt8Number *embed = NULL;
+	cmsUInt32Number len;
+	{
+		png_charp name;
+		int comp_type;
+#if ((PNG_LIBPNG_VER_MAJOR << 8) | PNG_LIBPNG_VER_MINOR << 0) < \
+    ((1 << 8) | (5 << 0))
+		png_charp profile;
+#else  // >= libpng 1.5.0
+		png_bytep profile;
 #endif
-	png_uint_32 EmbedLen = 0;
-	png_get_iCCP(png, info, ProfileName, PNG_COMPRESSION_TYPE_BASE, EmbedBuffer, &EmbedLen);
+		if (png_get_iCCP(png, info,
+						&name, &comp_type, &profile, &len) ==
+						PNG_INFO_iCCP) {
+			embed = malloc(len * sizeof(cmsUInt8Number));
+			memcpy(embed, profile, len * sizeof(cmsUInt8Number));
+		}
+    }
 
 	png_read_image(png, row_pointers);
 
@@ -1420,8 +1438,8 @@ int readpng(const char *name, fits* fit) {
 		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 		fill_date_obs_if_any(fit, name);
 		// Initialize ICC profile and display transform
-		if (EmbedLen > 0)
-			fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer, (cmsUInt32Number) EmbedLen);
+		fits_initialize_icc(fit, embed, len);
+		free(embed);
 	}
 
 	gchar *basename = g_path_get_basename(name);
