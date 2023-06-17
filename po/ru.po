@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-16 22:46+0000\n"
+"PO-Revision-Date: 2023-06-17 06:08+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -302,7 +302,7 @@ msgstr "<b>Тип профиля</b>"
 
 #: src/gui/siril3.glade:1059
 msgid "Mono"
-msgstr ""
+msgstr "Моно"
 
 #: src/gui/siril3.glade:1063
 msgid "Generates a single luminance profile along the profile line"
@@ -317,6 +317,8 @@ msgid ""
 "Generates separate R, G and B profiles along the profile line. Not "
 "applicable for mono images"
 msgstr ""
+"Создаёт отдельные профили R, G и B вдоль линии профиля. Неприменимо к "
+"монохромным изображениям"
 
 #: src/gui/siril3.glade:1089
 msgid "Manual coordinates"
@@ -324,11 +326,11 @@ msgstr "Координаты вручную"
 
 #: src/gui/siril3.glade:1093
 msgid "Enter coordinates for the start and end points of the profile manually"
-msgstr ""
+msgstr "Ввести координаты начальной и конечной точек профиля вручную"
 
 #: src/gui/siril3.glade:1103
 msgid "Spectrometric data"
-msgstr ""
+msgstr "Данные спектрометрии"
 
 #: src/gui/siril3.glade:1107
 msgid "Enter data relating to profiling along a spectrum"
@@ -385,7 +387,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1209
 msgid "Measure in pixels"
-msgstr ""
+msgstr "Измерение в пикселях"
 
 #: src/gui/siril3.glade:1213
 msgid ""
@@ -395,7 +397,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1225
 msgid "Measure in arcsec"
-msgstr ""
+msgstr "Измерение в угловых секундах"
 
 #: src/gui/siril3.glade:1229
 msgid ""
@@ -417,7 +419,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1274
 msgid "Plot Title"
-msgstr ""
+msgstr "Заголовок графика"
 
 #: src/gui/siril3.glade:1327
 msgid "Coordinates"
@@ -455,7 +457,7 @@ msgstr "Предупреждение: используется текущее в
 
 #: src/gui/siril3.glade:1491 src/gui/siril3.glade:1516
 msgid "*"
-msgstr ""
+msgstr "*"
 
 #: src/gui/siril3.glade:1515
 msgid ""
@@ -9100,6 +9102,20 @@ msgid ""
 "and planning level takes longer to generate if you have selected "
 "multithreaded FFTW."
 msgstr ""
+"Устанавливает стратегию планирования FFTW. FFTW генерирует и сохраняет "
+"информацию, которая помогает оптимизировать вычисления FFT заданных "
+"размеров. Для каждого последующего уровня стратегии планирования будет "
+"проделана дополнительная работа по поиску оптимальной стратегии расчета при "
+"первом обнаружении FFT неизвестного размера. Вычисление в первый раз будет "
+"постепенно замедляться, но информация сохраняется, что позволит ускорить "
+"последующие запуски. Для большинства пользователей установленная по "
+"умолчанию стратегия\"Полная\" вполне приемлема. В случае, если вы регулярно "
+"имеете дело с изображениями самых разных размеров, возможно, лучше "
+"использовать стратегии \"Оценить\" или \"Измерить\"; если размер ваших "
+"изображений всегда одинаков, возможно, вы захотите попробовать стратегию "
+"\"Исчерпывающая\". Обратите внимание, что создание первоначального плана для "
+"заданного размера и уровня планирования занимает больше времени, если вы "
+"выбрали многопоточный FFTW."
 
 #: src/gui/siril3.glade:32054 src/gui/siril3.glade:31154
 msgid "Measure"
@@ -9107,11 +9123,11 @@ msgstr "Измерение"
 
 #: src/gui/siril3.glade:32055 src/gui/siril3.glade:31155
 msgid "Patient"
-msgstr ""
+msgstr "Полная"
 
 #: src/gui/siril3.glade:32056 src/gui/siril3.glade:31156
 msgid "Exhaustive"
-msgstr ""
+msgstr "Исчерпывающая"
 
 #: src/gui/siril3.glade:32069 src/gui/siril3.glade:31169
 msgid "FFTW planning time limit (seconds)"
@@ -9124,6 +9140,12 @@ msgid ""
 "FFTW is in the middle of an uninterruptible operation. If set to 0, a "
 "minimum planning level of Estimate will always be completed."
 msgstr ""
+"Указывает FFTW потратить не более заданного количества секунд на "
+"планирование FFT. На практике это время может быть несколько превышено, если "
+"ограничение времени достигнуто в момент, когда FFTW находится в середине "
+"выполнения операции, которая не может быть прервана. Если установлено "
+"значение 0, всегда будет выполнен минимальный уровень планирования \"Оценка\""
+"."
 
 #: src/gui/siril3.glade:32095 src/gui/siril3.glade:31195
 msgid "Minimum PSF size to use FFT convolutions"
@@ -9139,6 +9161,14 @@ msgid ""
 "is therefore configurable. This parameter sets the minimum size for which "
 "Fourier Transforms will be used."
 msgstr ""
+"Siril может вычислять свёртки либо суммируя по ядру в каждом пикселе, либо "
+"используя преобразования Фурье. Суммирование по ядру становится очень "
+"неэффективным при больших размерах ядра, в то время как преобразования Фурье "
+"требует некоторого времени на настройку. Следовательно, преобразования Фурье "
+"выполняются быстрее для больших ядер, суммирование выполняется быстрее для "
+"меньших ядер. Точная точка пересечения будет зависеть от вашего оборудования "
+"и, следовательно, может быть настроена. Этот параметр задает минимальный "
+"размер, для которого будут использоваться преобразования Фурье."
 
 #: src/gui/siril3.glade:32128 src/gui/siril3.glade:31228
 msgid "<b>FFTW Options</b>"
@@ -9861,7 +9891,7 @@ msgstr "Астрономическое решение"
 #: src/algos/astrometry_solver.c:989 src/algos/astrometry_solver.c:1005
 #, c-format
 msgid "cygwin/bin was not found at %s - ignoring\n"
-msgstr ""
+msgstr "cygwin/bin не обнаружен в %s — игнорирование\n"
 
 #: src/algos/astrometry_solver.c:1046 src/algos/astrometry_solver.c:1034
 msgid "solve-field was not found, set its path in the preferences\n"
@@ -13271,9 +13301,9 @@ msgstr ""
 
 #: src/core/command.c:9140 src/core/command.c:9148 src/core/command.c:9156
 #: src/core/command.c:9164
-#, fuzzy, c-format
+#, c-format
 msgid "Error: Could not parse %s values.\n"
-msgstr "Не удалось разобрать координаты цели\n"
+msgstr "Ошибка: не удалось разобрать %s значений.\n"
 
 #: src/core/command.c:9170
 msgid "Error: this option cannot be used for sequences.\n"
@@ -13285,6 +13315,10 @@ msgid ""
 "<b>filename</b>. At each pixel location, the new value is determined as the "
 "max of value in current image and in <b>filename</b>"
 msgstr ""
+"Вычисляет новое изображение, комбинируя изображение, находящееся в памяти с "
+"изображением <b>filename</b>. Значение в каждом положении пикселя "
+"вычисляется как максимум из значений текущего изображения и изображения "
+"<b>filename</b>"
 
 #: src/core/command_def.h:7
 msgid ""
@@ -13298,6 +13332,16 @@ msgid ""
 "pixel values. This stretch method preserves lightness from the L*a*b* color "
 "space"
 msgstr ""
+"Преобразует изображение, используя функцию arcsin, благодаря чему становятся "
+"видны тусклые объекты. Обязательный аргумент команды — <b>stretch</b>, "
+"обычно в диапазоне от 1 до 1000, определяет интенсивность растягивания. "
+"Точка чёрного может быть смещена с помощью аргумента <b>offset</b> в "
+"нормализованном значении пикселя в диапазоне [0, 1]. Наконец, аргумент "
+"<b>-human</b> позволяет использовать веса на основе относительной "
+"чувствительности человеческого глаза для вычисления светимости, применяемой "
+"при расчёте растягивания для каждого пикселя, а не просто средние значения "
+"пикселей каналов. Этот метод растягивания сохраняет светимость в цветовом "
+"пространстве L*a*b*"
 
 #: src/core/command_def.h:8
 msgid ""
@@ -13308,6 +13352,13 @@ msgid ""
 "target background value, giving a final brightness to the image, range [0, "
 "1], default is 0.25"
 msgstr ""
+"Автоматически растягивает текущее загруженное изображение с различными "
+"параметрами для каждого канала (если каналы несвязанны), если только не "
+"передан аргумент <b>-linked</b>. Необязательные аргументы: <b>shadowclip</b> "
+"— точка обрезки теней, выраженная в значениях σ от основного пика "
+"гистограммы (по умолчанию -2.8); <b>targetbg</b> — целевое значение фона, в "
+"диапазоне [0, 1] (по умолчанию 0.25), определяющее окончательную яркость "
+"изображения"
 
 #: src/core/command_def.h:9
 msgid ""
@@ -13321,6 +13372,17 @@ msgid ""
 "brightness range, 0.7 for <b>HP</b>, 0 for <b>LP</b> are used but can be "
 "changed with the options of the same names"
 msgstr ""
+"Применение обобщённого гиперболического растягивания с точкой симметрии SP, "
+"определяемой как k.σ из медианы каждого канала (здесь значение "
+"<b>shadowsclip</b> является k и может быть отрицательным). По умолчанию "
+"точка симметрии и растягивание вычисляются поканально. Точка симметрии может "
+"быть рассчитана как среднее значение каналов при помощи опции <b>-linked</"
+"b>. Интенсивность растягивания D передаётся во втором обязательном аргументе."
+"\n"
+"Используются следующие неявные значения: 13 для <b>B</b>, фокусирующее на "
+"диапазон яркости точки симметрии SP; 0.7 для <b>HP</b> и 0 для <b>LP</b>. "
+"Все значения могут быть изменены при помощи опций с соответствующими "
+"названиями"
 
 #: src/core/command_def.h:11
 msgid "Returns the background level of the image loaded in memory"
@@ -13338,6 +13400,11 @@ msgid ""
 "argument <b>-sum</b> is passed, then the sum of pixels is computed, while it "
 "is the average when no optional argument is provided"
 msgstr ""
+"Вычисляет числовой биннинг изображения, находящегося в памяти (сумма "
+"пикселей 2×2, 3×3..., подобно аналоговому биннингу у CCD-камеры). Если "
+"передан необязательный аргумент <b>-sum</b>, то вычисляется сумма пикселей, "
+"в то время как при отсутствии необязательного аргумента вычисляется среднее "
+"значение"
 
 #: src/core/command_def.h:14
 msgid ""
@@ -13348,6 +13415,11 @@ msgid ""
 "argument deletes any selection area. If no argument is passed, the current "
 "selection is printed"
 msgstr ""
+"Создаёт выделенную область на загруженном память изображении с аргументами "
+"<b>x</b>, <b>y</b>, <b>width</b> и <b>height</b>, где <b>x</b> и <b>y</b> — "
+"координаты верхнего левого угла, начинающиеся с (0, 0), а <b>width</b> и "
+"<b>height</b> — размер выделения. Аргумент <b>-clear</b> удаляет любую "
+"выделенную область. Если аргумент не передан, выводится текущее выделение"
 
 #: src/core/command_def.h:16
 msgid ""
@@ -13442,6 +13514,11 @@ msgid ""
 "directory, directories with spaces in the name can be protected using single "
 "or double quotes"
 msgstr ""
+"Устанавливает новую текущую рабочую директорию.\n"
+"\n"
+"Аргумент <b>directory</b> может содержать символ ~, расширяемый как домашняя "
+"директория. Директории с пробелами в названии могут быть защищены одинарными "
+"или двойными кавычками"
 
 #: src/core/command_def.h:21
 msgid "Returns the coordinates of the center of gravity of the image"
@@ -13515,7 +13592,7 @@ msgstr ""
 
 #: src/core/command_def.h:29
 msgid "Same function as COSME but applying to RAW CFA images"
-msgstr ""
+msgstr "Аналогична функции COSME, но применяемая к RAW-изображениям CFA"
 
 #: src/core/command_def.h:30
 msgid ""
@@ -13659,7 +13736,7 @@ msgstr "Выход из приложения"
 
 #: src/core/command_def.h:38
 msgid "Extracts <b>NbPlans</b> planes of wavelet domain"
-msgstr ""
+msgstr "Извлекает <b>NbPlans</b> слоёв из вейвлетного домена"
 
 #: src/core/command_def.h:39
 msgid ""
@@ -13674,6 +13751,8 @@ msgid ""
 "Extracts Ha signal from a CFA image. The output file name starts with the "
 "prefix \"Ha_\""
 msgstr ""
+"Извлекает сигнал Ha из изображения CFA. Имя итогового файла будет содержать "
+"префикс \"Ha_\""
 
 #: src/core/command_def.h:41
 msgid ""
@@ -13685,12 +13764,23 @@ msgid ""
 "no resampling will be carried out and the OIII image will have twice the "
 "height and width of the Ha image"
 msgstr ""
+"Извлекает сигналы Ha и OIII из изображения CFA. Имя итоговых файлов будет "
+"начинаться префиксов \"Ha_\" и \"OIII_\", соответственно\n"
+"\n"
+"Необязательный аргумент <b>-resample={ha|oiii}</b> указывает, следует ли "
+"увеличивать масштаб изображения Ha или уменьшать масштаб изображения OIII. "
+"Если этот аргумент не указан, масштаб изображений останется прежним и "
+"изображение OIII будет иметь вдвое большие высоту и ширину по сравнению с "
+"изображением Ha"
 
 #: src/core/command_def.h:43
 msgid ""
 "Divides the image in memory by the image given in argument. The resulting "
 "image is multiplied by the value of the <b>scalar</b> argument. See also IDIV"
 msgstr ""
+"Выполняет деление изображения, находящегося в памяти на изображение, "
+"указанно в аргументе. Получившееся изображение умножается на значение "
+"аргумента <b>scalar</b>. См. также IDIV"
 
 #: src/core/command_def.h:44
 msgid ""
@@ -13751,7 +13841,7 @@ msgstr ""
 
 #: src/core/command_def.h:50
 msgid "Same command as FIND_COSME but for monochromatic CFA images"
-msgstr ""
+msgstr "Аналогична команде FIND_COSME, но для монохромных изображений CFA"
 
 #: src/core/command_def.h:51
 msgid ""
@@ -16990,15 +17080,15 @@ msgstr "косметическая коррекция: ошибка формат
 
 #: src/filters/fft.c:464 src/gui/newdeconv.c:1035 src/gui/newdeconv.c:1166
 msgid "Siril FFT wisdom imported successfully...\n"
-msgstr ""
+msgstr "Siril успешно импортировал информацию FFT...\n"
 
 #: src/filters/fft.c:466 src/gui/newdeconv.c:1037 src/gui/newdeconv.c:1169
 msgid "System FFT wisdom imported successfully...\n"
-msgstr ""
+msgstr "Системная информация FFT успешно импортирована...\n"
 
 #: src/filters/fft.c:468 src/gui/newdeconv.c:1039 src/gui/newdeconv.c:1172
 msgid "No FFT wisdom found to import...\n"
-msgstr ""
+msgstr "Не найдено информации FFT для импорта...\n"
 
 #: src/filters/fft.c:472
 msgid "Fourier Transform: processing...\n"
@@ -17011,12 +17101,12 @@ msgstr "В ваших файлах что-то не так\n"
 #: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1287
 #: src/gui/newdeconv.c:1286
 msgid "Siril FFT wisdom updated successfully...\n"
-msgstr ""
+msgstr "Siril успешно обновил информацию FFT...\n"
 
 #: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1290
 #: src/gui/newdeconv.c:1289
 msgid "Siril FFT wisdom update failed...\n"
-msgstr ""
+msgstr "Siril не удалось обновить информацию FFT...\n"
 
 #: src/filters/fft.c:591
 msgid "FFT does not work with sequences !\n"
@@ -17884,7 +17974,7 @@ msgstr ""
 
 #: src/gui/compstars.c:84
 msgid "Recommended catalogue for this feature is APASS"
-msgstr ""
+msgstr "Рекомендованный каталог для этой функции — APASS"
 
 #: src/gui/compstars.c:86
 msgid "APASS catalogue"
@@ -18050,15 +18140,17 @@ msgstr ""
 
 #: src/gui/cut.c:221
 msgid "Error: mono image is loaded: color mode is unavailable.\n"
-msgstr ""
+msgstr "Ошибка: загружено монохромное изображение: цветной режим недоступен.\n"
 
 #: src/gui/cut.c:225
 msgid "Error: mono image is loaded: colored layers cannot be specified.\n"
 msgstr ""
+"Ошибка: загружено монохромное изображение: цветные слои не могут быть "
+"указаны.\n"
 
 #: src/gui/cut.c:229
 msgid "Error: color plot and CFA mode are mutually exclusive.\n"
-msgstr ""
+msgstr "Ошибка: цветной график и режим CFA исключают друг друга.\n"
 
 #: src/gui/cut.c:233
 msgid "Error: start and finish points are the same.\n"
@@ -18075,11 +18167,11 @@ msgstr "Ошибка: Нельзя прочитать данные\n"
 
 #: src/gui/cut.c:250
 msgid "Error: wavenumber for -wn1= is not set.\n"
-msgstr ""
+msgstr "Ошибка: не указан номер волны для -wn1=.\n"
 
 #: src/gui/cut.c:254
 msgid "Error: wavenumber for -wn2= is not set.\n"
-msgstr ""
+msgstr "Ошибка: не указан номер волны для -wn2=.\n"
 
 #: src/gui/cut.c:258
 msgid "Error: wavenumber1 set but corresponding location is not set.\n"
@@ -18163,9 +18255,8 @@ msgid "Communicating with gnuplot failed\n"
 msgstr "Не удалось соединиться с gnuplot.\n"
 
 #: src/gui/cut.c:890 src/gui/cut.c:896
-#, fuzzy
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
-msgstr "Ошибка: не удалось записать результат в пользовательский каталог.\n"
+msgstr "Ошибка: не удалось разделить FITS на подшаблоны CFA.\n"
 
 #: src/gui/cut.c:1066
 msgid "No sequence is loaded"
@@ -20165,7 +20256,7 @@ msgstr "Siril не может прочитать этот формат TIFF.\n"
 
 #: src/io/image_formats_libraries.c:573 src/io/image_formats_libraries.c:589
 msgid "TIFFTAG Orientation not handled.\n"
-msgstr ""
+msgstr "Ориентация TIFFTAG не поддерживается.\n"
 
 #: src/io/image_formats_libraries.c:621
 #, c-format
