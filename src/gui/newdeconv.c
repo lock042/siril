@@ -1209,22 +1209,17 @@ gpointer deconvolve(gpointer p) {
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
 		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
-		if (com.icc.available) {
-			cielab_profile = cmsCreateLab4Profile(NULL);
-			sig = cmsGetColorSpace(the_fit->icc_profile);
-			src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
-			dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
-			transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
-			inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
-			cmsCloseProfile(cielab_profile);
-			cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(transform);
-		} else {
-			for (int i = 0 ; i < npixels ; i++) {
-				rgb_to_xyzf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
-				xyz_to_LABf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
-			}
-		}
+
+		cielab_profile = cmsCreateLab4Profile(NULL);
+		sig = cmsGetColorSpace(the_fit->icc_profile);
+		src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
+		dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
+		transform = cmsCreateTransform(the_fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
+		inverse_transform = cmsCreateTransform(cielab_profile, dest_type, the_fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
+		cmsCloseProfile(cielab_profile);
+		cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(transform);
+
 		args.nchans = 1;
 		free(args.fdata);
 		args.fdata = xyzdata; // fdata now points to the L part of xyzdata
@@ -1276,15 +1271,8 @@ gpointer deconvolve(gpointer p) {
 		// Put things back as they were
 		args.nchans = 3;
 		args.fdata = malloc(npixels * args.nchans * sizeof(float));
-		if (com.icc.available) {
-			cmsDoTransformLineStride(inverse_transform, (void*) xyzdata, (void*) args.fdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(inverse_transform);
-		} else {
-			for (int i = 0 ; i < npixels ; i++) {
-				LAB_to_xyzf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
-				xyz_to_rgbf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
-			}
-		}
+		cmsDoTransformLineStride(inverse_transform, (void*) xyzdata, (void*) args.fdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(inverse_transform);
 		free(xyzdata);
 	}
 
