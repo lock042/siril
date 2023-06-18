@@ -477,6 +477,8 @@ void notify_gfit_modified() {
 
 static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data) {
+	char *realname = NULL;
+	gboolean is_sequence;
 	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
 		gchar *filename = g_file_get_basename(file);
 		siril_log_message(_("File %s changed on disk: reloading...\n"), filename);
@@ -488,9 +490,16 @@ static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile 
 		filemonitor_zoom_value = gui.zoom_value;
 		memcpy(&filemonitor_display_offset, &gui.display_offset, sizeof(point));
 		filemonitor_reloading = TRUE;
+
 		open_single_image(filename);
+//		clearfits(&gfit);
+		// Disallow sequences, disallow dialogs, no force float
+//		read_single_image(filename, &gfit, &realname, FALSE, &is_sequence, FALSE, FALSE);
+//		notify_gfit_modified();
+
 		filemonitor_reloading = FALSE;
 		g_free(filename);
+		g_free(realname);
 	}
 	register_filemonitor();
 }
