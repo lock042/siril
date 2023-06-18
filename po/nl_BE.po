@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-16 22:46+0000\n"
+"PO-Revision-Date: 2023-06-19 11:31+0000\n"
 "Last-Translator: Antoine Hoeffelman <swerves_pilafs.0v@icloud.com>\n"
 "Language-Team: Dutch (Belgium) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/nl_BE/>\n"
@@ -245,11 +245,11 @@ msgid "Apply wavelet extraction."
 msgstr "Pas wevelet extractie toe."
 
 #: src/gui/siril3.glade:1059
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
-msgstr "Aantal wavelet lagen. U kan tot 6 lagen kiezen."
+msgstr ""
+"Aantal wavelet-lagen. U kunt maximaal 9 lagen kiezen voor wavelets-computing."
 
 #: src/gui/siril3.glade:1080
 msgid "Type of algorithm"
@@ -279,9 +279,8 @@ msgid "Banding Reduction"
 msgstr "Banding Reductie"
 
 #: src/gui/siril3.glade:1227 src/gui/siril3.glade:1250
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "Pas de afbeelding aan op het venster"
+msgstr "Definieert de sterkte van de correctie."
 
 #: src/gui/siril3.glade:1266
 msgid "Protect from Highlights"
@@ -289,7 +288,7 @@ msgstr "Bescherm van de heldere zones"
 
 #: src/gui/siril3.glade:1270
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "Heldere pixels worden genegeerd."
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
@@ -300,6 +299,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"Achtergrond voor lijnen wordt enkel berekend met behulp van pixels in "
+"SigmaFactor * StdDev. Een hogere waarde geeft een betere bescherming."
 
 #: src/gui/siril3.glade:1342
 msgid "Vertical banding"
@@ -416,7 +417,7 @@ msgstr "Y coordinaat van het centrum van de poolcoördinaten."
 
 #: src/gui/siril3.glade:2090
 msgid "StarNet Star Removal"
-msgstr ""
+msgstr "StarNet Star verwijderen"
 
 #: src/gui/siril3.glade:2122 src/gui/siril3.glade:2536
 #: src/gui/siril3.glade:12613
@@ -424,13 +425,12 @@ msgid "Execute"
 msgstr "Voer uit"
 
 #: src/gui/siril3.glade:2126
-#, fuzzy
 msgid "Apply StarNet"
-msgstr "Pas Split CFA toe"
+msgstr "Pas StarNet toe"
 
 #: src/gui/siril3.glade:2156
 msgid "Pre-stretch linear image"
-msgstr ""
+msgstr "Pre-stretch lineair beeld"
 
 #: src/gui/siril3.glade:2161
 msgid ""
@@ -439,11 +439,14 @@ msgid ""
 "completion. This is necessary for using StarNet at the linear stage of "
 "processing."
 msgstr ""
+"Indien geselecteerd, wordt een geoptimaliseerde Midtone Transfer Function "
+"(MTF)-stretch toegepast op de afbeelding voordat StarNet wordt uitgevoerd, "
+"en de omgekeerde stretch wordt toegepast na voltooiing. Dit is nodig om "
+"StarNet te gebruiken in de lineaire verwerkingsfase."
 
 #: src/gui/siril3.glade:2174
-#, fuzzy
 msgid "Generate star mask"
-msgstr "Maak aan"
+msgstr "Genereer een sterrenmasker"
 
 #: src/gui/siril3.glade:2179
 msgid ""
@@ -451,10 +454,14 @@ msgid ""
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
 msgstr ""
+"Indien geselecteerd, wordt een stermasker gegenereerd en opgeslagen in de "
+"werkdirectory. Het stermaskerwordt berekend als het verschil tussen de "
+"originele afbeelding en de sterloze afbeelding. De standaard is om een "
+"stermasker te maken."
 
 #: src/gui/siril3.glade:2194
 msgid "Use custom stride"
-msgstr ""
+msgstr "Gebruik aangepaste pas"
 
 #: src/gui/siril3.glade:2199
 msgid ""
@@ -462,10 +469,13 @@ msgid ""
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
+"Indien geselecteerd, kan een aangepaste waarde worden ingevoerd voor de "
+"StarNet pas parameter. De standaardwaarde is 256 en de StarNet-ontwikkelaar "
+"raadt aan dit niet te wijzigen."
 
 #: src/gui/siril3.glade:2219
 msgid "Stride"
-msgstr ""
+msgstr "Pas"
 
 #: src/gui/siril3.glade:2231
 msgid ""
@@ -474,11 +484,15 @@ msgid ""
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
+"Stelt de grootte in van tegels die worden doorgegeven aan het neurale "
+"netwerk van StarNet voor verwerking. Het wordt sterk aanbevolen om dit op de "
+"standaardinstelling te laten staan. Halvering van de stapinstelling "
+"verviervoudigt de verwerkingstijd. Indien gewijzigd, moet de pas een even "
+"geheel getal tussen 2-256 zijn."
 
 #: src/gui/siril3.glade:2254
-#, fuzzy
 msgid "Recompose stars on completion"
-msgstr "Lijn de sterren in de selectie uit"
+msgstr "Hercomposeer sterren na voltooiing"
 
 #: src/gui/siril3.glade:2259
 msgid ""
@@ -488,11 +502,15 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
+"Indien geselecteerd, wordt na voltooiing van het StarNet-proces de tool voor "
+"hercompositie van sterren geopend, die een interface biedt voor het "
+"onafhankelijk stretchen en mengen van de achtergrond en de sterren indien "
+"sterreductie in plaats van totale verwijdering gewenst is.\n"
+"Deze optie heeft geen effect bij het verwerken van een reeks."
 
 #: src/gui/siril3.glade:2274
-#, fuzzy
 msgid "Upsample x2"
-msgstr "Resample"
+msgstr "Upsampling x2"
 
 #: src/gui/siril3.glade:2279
 msgid ""
@@ -501,12 +519,19 @@ msgid ""
 "processing time and may impair performance on very large stars. The image is "
 "rescaled to the original size on completion."
 msgstr ""
+"Indien geselecteerd, wordt het beeld met een factor 2 geüpsampled voordat "
+"StarNet wordt uitgevoerd. Dit verbetert de prestaties op zeer kleine "
+"sterren, maar verviervoudigt de verwerkingstijd en kan de prestaties op zeer "
+"grote sterren nadelig beïnvloeden. De afbeelding wordt na voltooiing opnieuw "
+"geschaald naar de oorspronkelijke grootte."
 
 #: src/gui/siril3.glade:2296
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr ""
+"Pas StarNet toe op alle afbeeldingen in de huidige reeks. Er worden starless "
+"en, indien geselecteerd, stermasker reeksen gegenereerd."
 
 #: src/gui/siril3.glade:2372
 msgid "Wavelets control"
@@ -529,9 +554,8 @@ msgid "Type:"
 msgstr "Type:"
 
 #: src/gui/siril3.glade:2504
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "Aantal Lagen: "
+msgstr "Aantal lagen:"
 
 #: src/gui/siril3.glade:2515
 msgid "Number of wavelet layers that will be used"
@@ -543,27 +567,27 @@ msgstr "Bereken de wavelets"
 
 #: src/gui/siril3.glade:2615
 msgid "Layer 1"
-msgstr ""
+msgstr "Laag 1"
 
 #: src/gui/siril3.glade:2685
 msgid "Layer 2"
-msgstr ""
+msgstr "Laag 2"
 
 #: src/gui/siril3.glade:2755
 msgid "Layer 3"
-msgstr ""
+msgstr "Laag 3"
 
 #: src/gui/siril3.glade:2825
 msgid "Layer 4"
-msgstr ""
+msgstr "Laag 4"
 
 #: src/gui/siril3.glade:2895
 msgid "Layer 5"
-msgstr ""
+msgstr "Laag 5"
 
 #: src/gui/siril3.glade:2965
 msgid "Layer 6"
-msgstr ""
+msgstr "Laag 6"
 
 #: src/gui/siril3.glade:3031
 msgid "Adjust"
@@ -591,13 +615,16 @@ msgstr "Constante waarde dat van het beeld wordt afgetrokken."
 
 #: src/gui/siril3.glade:3361
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "Human-gewogen luminantie"
 
 #: src/gui/siril3.glade:3365
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
 msgstr ""
+"Gebruik voor kleurenafbeeldingen de lichtefficiëntiegewichten van het "
+"menselijk oog om de luminantie te berekenen die wordt gebruikt om de stretch "
+"voor elke pixel te berekenen."
 
 #: src/gui/siril3.glade:3412 src/algos/background_extraction.c:1060
 msgid "Background Extraction"
@@ -614,24 +641,26 @@ msgid ""
 "<b>Apply to sequence</b> button is checked, this will compute the model and "
 "apply it to the whole sequence."
 msgstr ""
+"Hiermee wordt het eerder toegepaste achtergrondmodel bevestigd met de knop "
+"<b>Achtergrond berekenen</b>. In het geval van een reeks, als de knop "
+"<b>Toepassen op reeks</b> is aangevinkt, wordt het model berekend en "
+"toegepast op de hele reeks."
 
 #: src/gui/siril3.glade:3484
-#, fuzzy
 msgid "Choose between interpolation methods."
-msgstr "Debayer interpolatie: "
+msgstr "Kies tussen interpolatiemethoden."
 
 #: src/gui/siril3.glade:3488
-#, fuzzy
 msgid "RBF"
-msgstr "RGB"
+msgstr "RBF"
 
 #: src/gui/siril3.glade:3489
 msgid "Polynomial"
-msgstr ""
+msgstr "Polynomiaal"
 
 #: src/gui/siril3.glade:3519
 msgid "Smoothing"
-msgstr ""
+msgstr "Smoothing"
 
 #: src/gui/siril3.glade:3531 src/gui/siril3.glade:3668
 #: src/gui/siril3.glade:3695
@@ -645,9 +674,12 @@ msgid ""
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
+"Pas de smoothing voor de interpolatiemethode aan. Een te kleine smoothing "
+"kan resulteren in overschieten en overschieten tussen punten op de "
+"achtergrond, terwijl een te grote smoothing parameter mogelijk niet geschikt "
+"is voor grote variaties in de gradient."
 
 #: src/gui/siril3.glade:3576
-#, fuzzy
 msgid "page 1"
 msgstr "pagina 1"
 
@@ -675,22 +707,23 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"Voorkom strepen door wat willekeurige ruis toe te voegen aan het lage "
+"dynamische achtergrond gradiënt.\n"
+"Dit moet worden ingeschakeld voor niet-gestretchte afbeeldingen."
 
 #: src/gui/siril3.glade:3716
-#, fuzzy
 msgid "Grid tolerance"
-msgstr "Tolerantie"
+msgstr "Rastertolerantie"
 
 #: src/gui/siril3.glade:3728
-#, fuzzy
 msgid ""
 "Tolerance factor of global sample rejection, in mad units (median + this * "
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
 msgstr ""
-"Tolerantie van de globale sample verwerping, in sigma-eenheden. Door deze "
-"waarde te verminderen zal Siril restrictiever zijn om achtergrondsamples te "
-"kiezen."
+"Tolerantie van de globale sample verwerping, in mad eenheden (mediaan + deze "
+"* mad). Door deze waarde te verminderen zal Siril restrictiever zijn om "
+"achtergrondsamples te kiezen."
 
 #: src/gui/siril3.glade:3755
 msgid ""
@@ -746,9 +779,8 @@ msgstr ""
 "ze."
 
 #: src/gui/siril3.glade:3853
-#, fuzzy
 msgid "Interpolation Method"
-msgstr "Interpolatie: "
+msgstr "Interpolatie methode"
 
 #: src/gui/siril3.glade:3875
 msgid ""
@@ -779,29 +811,26 @@ msgid "Correction"
 msgstr "Correcties"
 
 #: src/gui/siril3.glade:3906
-#, fuzzy
 msgid "Compute Background"
-msgstr "Toon Background"
+msgstr "Bereken achtergrond"
 
 #: src/gui/siril3.glade:3910
-#, fuzzy
 msgid ""
 "This will compute the synthetic background and will apply the selected "
 "correction. The model is always computed from the original image kept in "
 "memory allowing the user to work iteratively."
 msgstr ""
-"Dit zal de synthetische achtergrond berekenen and de gekozen corretie "
-"toepassen."
+"Dit berekent de synthetische achtergrond en past de geselecteerde correctie "
+"toe. Het model wordt altijd berekend op basis van de originele afbeelding "
+"die in het geheugen wordt bewaard, zodat de gebruiker iteratief kan werken."
 
 #: src/gui/siril3.glade:3924
-#, fuzzy
 msgid "Show original image"
-msgstr "onbekend beeld"
+msgstr "Toon originele afbeelding"
 
 #: src/gui/siril3.glade:3929
-#, fuzzy
 msgid "Keep pressing this button to see the original image."
-msgstr "Druk op deze knop om het beeld weer te geven."
+msgstr "Blijf op deze knop drukken om de originele afbeelding te zien."
 
 #: src/gui/siril3.glade:3976
 msgid ""
@@ -868,7 +897,6 @@ msgid "Embed sRGB ICC profile in the image"
 msgstr "Sluit sRGB ICC-profiel in de afbeelding in"
 
 #: src/gui/siril3.glade:4515
-#, fuzzy
 msgid "<b>Embedded Data</b>"
 msgstr "<b>Ingesloten gegevens</b>"
 
@@ -882,12 +910,11 @@ msgstr "<b>Beeld Copyright</b>"
 
 #: src/gui/siril3.glade:4652
 msgid "ASTRO-TIFF"
-msgstr ""
+msgstr "ASTRO-TIFF"
 
 #: src/gui/siril3.glade:4653
-#, fuzzy
 msgid "Standard TIFF"
-msgstr "Sla TIFF op"
+msgstr "Standaard TIFF"
 
 #: src/gui/siril3.glade:4669
 msgid "TIFF"
@@ -975,15 +1002,14 @@ msgid "Background factor"
 msgstr "Achtergrondfactor"
 
 #: src/gui/siril3.glade:5256
-#, fuzzy
 msgid ""
 "This is the factor multiplied by the background value. Lower is the value, "
 "stronger is the saturation effect. While a high value will preserve the "
 "background."
 msgstr ""
-"Dit is de factor vermenigvuldigd met de achtergrondwaarde. Hoe lager de "
-"waarde, hoe sterker is het saturationseffect; terwlijl een hoge waarde de "
-"achtergrond behoudt."
+"Dit is de factor vermenigvuldigd met de achtergrondwaarde. Lager is de "
+"waarde, sterker is de saturatie. Terwijl een hoge waarde de achtergrond "
+"behoudt."
 
 #: src/gui/siril3.glade:5319
 msgid "Subtractive Chromatic Green Noise Reduction"
@@ -1051,20 +1077,20 @@ msgstr "Deconvolutie"
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
 msgstr ""
+"Genereer de kernel en gebruik deze om de huidige afbeelding of reeks te "
+"deconvolueren"
 
 #: src/gui/siril3.glade:5977
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Deconvolutie"
+msgstr "Blinde deconvolutie"
 
 #: src/gui/siril3.glade:5981
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Schat een PSF uit de afbeelding"
 
 #: src/gui/siril3.glade:5994
-#, fuzzy
 msgid "PSF from stars"
-msgstr "PSF op zone"
+msgstr "PSF van sterren"
 
 #: src/gui/siril3.glade:5998
 msgid ""
@@ -1072,93 +1098,99 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Modelleert een PSF op basis van de gemiddelde PSF-parameters van de "
+"geïdentificeerde sterren. Als er geen sterren zijn gedetecteerd, wordt "
+"geprobeerd sterren in het beeld te detecteren binnen een geschikt bereik van "
+"piekhelderheid."
 
 #: src/gui/siril3.glade:6011
-#, fuzzy
 msgid "Manual PSF"
-msgstr "Manueel"
+msgstr "Manuele PSF"
 
 #: src/gui/siril3.glade:6015
 msgid "Use a manually defined PSF based on the parameters chosen."
 msgstr ""
+"Gebruik een manuele gedefinieerde PSF op basis van de gekozen parameters."
 
 #: src/gui/siril3.glade:6030
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"Selecteer de blinde PSF-schattingsmethode die u wilt gebruiken. ℓ0 afdaling "
+"is de standaard en meestal de beste optie."
 
 #: src/gui/siril3.glade:6033
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "Spectrale onregelmatigheid"
 
 #: src/gui/siril3.glade:6034
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 Descent"
 
 #: src/gui/siril3.glade:6045
 msgid "Previous PSF"
-msgstr ""
+msgstr "Vorige PSF"
 
 #: src/gui/siril3.glade:6049
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Hergebruik de eerder berekende PSF."
 
 #: src/gui/siril3.glade:6064
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Selecteer een PSF om uit bestand te laden. De PSF moet vierkant zijn en "
+"idealiter een oneven lengte / breedte hebben."
 
 #: src/gui/siril3.glade:6078
-#, fuzzy
 msgid "Load PSF from file"
-msgstr "Mediaan filter toegepast"
+msgstr "Laad PSF vanuit bestand"
 
 #: src/gui/siril3.glade:6092
-#, fuzzy
 msgid "Generate PSF"
-msgstr "Maak aan"
+msgstr "PSF genereren"
 
 #: src/gui/siril3.glade:6096
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
-msgstr ""
+msgstr "Genereer en bekijk de PSF, maar voer geen deconvolutie uit"
 
 #: src/gui/siril3.glade:6118
-#, fuzzy
 msgid "Save PSF to a file"
-msgstr "Bestand Opslaan"
+msgstr "Sla PSF op in een bestand"
 
 #: src/gui/siril3.glade:6137
-#, fuzzy
 msgid "PSF from selection"
-msgstr "Geen selectie"
+msgstr "PSF uit selectie"
 
 #: src/gui/siril3.glade:6140
 msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
 msgstr ""
+"Neemt een PSF rechtstreeks van de afbeelding, aangepast aan de huidige "
+"dimensie. De PSF-grootte is het minimum van de selectiebreedte en -hoogte."
 
 #: src/gui/siril3.glade:6156
-#, fuzzy
 msgid "PSF Source"
-msgstr "Bron"
+msgstr "PSF-bron"
 
 #: src/gui/siril3.glade:6184
-#, fuzzy
 msgid "General PSF Parameters"
-msgstr "Catalogus Eigenschappen"
+msgstr "Algemene PSF-parameters"
 
 #: src/gui/siril3.glade:6207
 msgid "PSF size"
-msgstr ""
+msgstr "PSF-grootte"
 
 #: src/gui/siril3.glade:6219
 msgid ""
 "Make sure the size is big enough not to crop off any significant parts of "
 "the PSF."
 msgstr ""
+"Zorg ervoor dat het formaat groot genoeg is om geen significante delen van "
+"de PSF af te snijden."
 
 #: src/gui/siril3.glade:6269 src/gui/siril3.glade:7237
 msgid "Profile"
@@ -1170,87 +1202,91 @@ msgid ""
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
 msgstr ""
+"Gauss- en Moffat-profielen zijn goede modellen voor stervormen. "
+"Schijfprofielen kunnen worden gebruikt om problemen met scherpstelling te "
+"verbeteren. Airy disc modelleert de inherente diffractie van uw telescoop."
 
 #: src/gui/siril3.glade:6283 src/gui/siril3.glade:13426
 #: src/algos/star_finder.c:1314 src/gui/newdeconv.c:542
 msgid "Gaussian"
-msgstr ""
+msgstr "Gaussische"
 
 #: src/gui/siril3.glade:6284 src/gui/siril3.glade:13427
 #: src/algos/star_finder.c:1314 src/gui/newdeconv.c:544
 msgid "Moffat"
-msgstr ""
+msgstr "Moffat"
 
 #: src/gui/siril3.glade:6285
 msgid "Disc"
-msgstr ""
+msgstr "Disc"
 
 #: src/gui/siril3.glade:6286
 msgid "Airy Disc"
-msgstr ""
+msgstr "Airy Disc"
 
 #: src/gui/siril3.glade:6340 src/gui/siril3.glade:7261
-#, fuzzy
 msgid "Ratio"
-msgstr "Rotatie..."
+msgstr "Ratio"
 
 #: src/gui/siril3.glade:6351
 msgid ""
 "For elliptical PSFs, this gives the ratio of the shorter and longer "
 "dimensions."
 msgstr ""
+"Voor elliptische PSF's geeft dit de verhouding van de kortere en langere "
+"afmetingen."
 
 #: src/gui/siril3.glade:6367 src/gui/siril3.glade:7249
-#, fuzzy
 msgid "fwhm / \""
-msgstr "fwhm: N/A"
+msgstr "fwhm / \""
 
 #: src/gui/siril3.glade:6378
 msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
+"Volle breedte bij halve maximum. Voor discprofielen is dit alleen de "
+"diameter van de disc. Voor elliptische PSF's is dit de langere PSF-afmeting."
 
 #: src/gui/siril3.glade:6394 src/gui/siril3.glade:7273
-#, fuzzy
 msgid "Angle / º"
-msgstr "Hoek (°)"
+msgstr "Hoek / º"
 
 #: src/gui/siril3.glade:6405
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
-msgstr ""
+msgstr "Voor elliptische PSF's, de hoek vanaf de x-as in graden."
 
 #: src/gui/siril3.glade:6420 src/gui/siril3.glade:7285
 msgid "beta (β)"
-msgstr ""
+msgstr "beta (β)"
 
 #: src/gui/siril3.glade:6432
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
 msgstr ""
+"Voor Moffat-profielen stelt dit de waarde van bèta in. Zie de documentatie "
+"over astrometrie voor informatie over deze parameter."
 
 #: src/gui/siril3.glade:6463
-#, fuzzy
 msgid "Pixel Size / μm"
-msgstr "Pixelgrootte (µm):"
+msgstr "Pixelgrootte / µm"
 
 #: src/gui/siril3.glade:6475
 msgid "Wavelength / nm"
-msgstr ""
+msgstr "Golflengte / nm"
 
 #: src/gui/siril3.glade:6487
-#, fuzzy
 msgid "Focal length / mm"
-msgstr "Brandpuntsafstand (mm): "
+msgstr "Brandpuntsafstand / mm"
 
 #: src/gui/siril3.glade:6499
 msgid "Diameter / mm"
-msgstr ""
+msgstr "Diameter / mm"
 
 #: src/gui/siril3.glade:6510
 msgid "Sensor pixel size in microns"
-msgstr ""
+msgstr "Sensorpixelgrootte in micron"
 
 #: src/gui/siril3.glade:6526
 msgid ""
@@ -1258,20 +1294,25 @@ msgid ""
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
+"Golflengte om het diffractiepatroon voor te berekenen. Kan exact worden "
+"gespecificeerd voor smalbandfilters, of gebruik voor breedband / OSC / "
+"luminantiefilters gewoon een representatieve centrale golflengte."
 
 #: src/gui/siril3.glade:6541
 msgid ""
 "Telescope focal length (this should account for any multiplication factor "
 "introduced by Barlows or field flatteners)"
 msgstr ""
+"Brandpuntsafstand telescoop (dit zou rekening moeten houden met elke "
+"vermenigvuldigingsfactor geïntroduceerd door Barlows of veldafvlakkers)"
 
 #: src/gui/siril3.glade:6557
 msgid "Diameter of the telescope primary aperture"
-msgstr ""
+msgstr "Diameter van de primaire opening van de telescoop"
 
 #: src/gui/siril3.glade:6574
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "Centrale obstructie /%"
 
 #: src/gui/siril3.glade:6585
 msgid ""
@@ -1279,21 +1320,26 @@ msgid ""
 "This is zero for refractors, typically around 10-20% for fast Newtonians and "
 "may be as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"Stelt de centrale obstructie in als een percentage van het totale "
+"openingsoppervlakte. Dit is nul voor refractors, meestal rond de 10-20% voor "
+"snelle Newtonianen en kan oplopen tot 40% voor een gecorrigeerde Dall-"
+"Kirkham."
 
 #: src/gui/siril3.glade:6608
-#, fuzzy
 msgid "Manual PSF Parameters"
-msgstr "Catalogus Eigenschappen"
+msgstr "Manuele PSF-parameters"
 
 #: src/gui/siril3.glade:6640
 msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
 msgstr ""
+"Regularisatieparameter voor PSF-schatting. Probeer deze waarde te verlagen "
+"voor afbeeldingen met veel ruis."
 
 #: src/gui/siril3.glade:6655
 msgid "Lambda (λ)"
-msgstr ""
+msgstr "Lambda (λ)"
 
 #: src/gui/siril3.glade:6668
 msgid "Blind Deconvolution PSF Estimation"
@@ -16604,9 +16650,8 @@ msgid "Starnet: Processing image %d\n"
 msgstr "Pre-processing van de beelden %s"
 
 #: src/filters/starnet.c:979
-#, fuzzy
 msgid "StarNet"
-msgstr "Stacking begonnen...\n"
+msgstr "StarNet"
 
 #: src/filters/starnet.c:989
 #, fuzzy
