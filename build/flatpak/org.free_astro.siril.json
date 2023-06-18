@@ -169,27 +169,6 @@
             ]
         },
         {
-            "name": "libconfig",
-            "config-opts": [
-                "--disable-static",
-                "--enable-shared"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://hyperrealm.github.io/libconfig/dist/libconfig-1.7.3.tar.gz",
-                    "sha256": "545166d6cac037744381d1e9cc5a5405094e7bfad16a411699bcff40bbb31ee7"
-                }
-            ],
-            "cleanup": [
-                "/include",
-                "*.la",
-                "*.a",
-                "/lib/cmake",
-                "/lib/pkgconfig"
-            ]
-        },
-        {
             "name": "ffms2",
             "config-opts": [
                 "--with-pic",
@@ -232,6 +211,24 @@
                     "sha256" : "e1ac2abb354fdc8ccdca71363ebad7503ad731c84022cf460837f0839e171718",
                     "type" : "archive"
                 }
+            ]
+        },
+        {
+            "name": "libxisf",
+            "buildsystem": "cmake",
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://gitea.nouspiro.space/nou/libXISF.git",
+                    "branch": "master"
+                }
+            ],
+            "cleanup": [
+                "/include",
+                "*.la",
+                "*.a",
+                "/lib/cmake",
+                "/lib/pkgconfig"
             ]
         },
         {

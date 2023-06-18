@@ -57,13 +57,15 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "io/catalogues.h"
+#include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/plot.h"
+#include "gui/cut.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -109,6 +111,7 @@
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
 #include "algos/annotate.h"
+#include "algos/comparison_stars.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -3982,6 +3985,7 @@ int process_light_curve(int nb) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
+		init_plot_colors();
 	}
 	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
 	int refimage = 0;
@@ -6344,7 +6348,7 @@ int process_convert(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	char *destroot = strdup(word[1]);
+	gchar *destroot = g_strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = !raw_only;
@@ -8021,6 +8025,9 @@ int process_capabilities(int nb) {
 #ifdef HAVE_LIBTIFF
 	siril_log_message("Can read and write TIFF and Astro-TIFF files\n");
 #endif
+#ifdef HAVE_LIBXISF
+	siril_log_message("Can read XISF files\n");
+#endif
 #ifdef HAVE_LIBHEIF
 	siril_log_message("Can read HEIF files\n");
 #endif
@@ -8768,26 +8775,92 @@ int process_catsearch(int nb){
 		return CMD_FOR_PLATE_SOLVED;
 	}
 	set_cursor_waiting(TRUE);
-
-	gchar *result;
+	gchar *name = NULL;
 	if (nb > 2) {
-		// replace with build_string_from_words(word+1);
-		GString *str = g_string_new(word[1]);
-		int i = 2;
-		while (i < nb && word[i]) {
-			g_string_append_printf(str, " %s", word[i]);
-			i++;
-		}
-		gchar *name = g_string_free(str, FALSE);
-		result = search_object(name);
-		g_free(name);
+		name = build_string_from_words(word + 1);
 	} else {
-		result = search_object(word[1]);
+		name = g_strdup(word[1]);
 	}
 
-	if (result && !parse_buffer(result, 20.0)) {
+	gboolean found_it = cached_object_lookup(name, NULL) == 0;
+	if (found_it)
 		siril_add_idle(end_process_catsearch, NULL);
+	else siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
+	g_free(name);
+
+	return CMD_OK;
+}
+
+int process_findcompstars(int nb) {
+	// findcompstars star_name [-narrow] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-out=nina_file.csv]
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
 	}
+	const char *target = word[1];
+	gboolean narrow = FALSE;
+	online_catalog used_cat = CAT_APASS;
+	double delta_Vmag = 3.0, delta_BV = 0.5;
+	const char *nina_file = NULL;
+
+	int arg_idx = 2;
+	while (arg_idx < nb) {
+		if (!g_strcmp0(word[arg_idx], "-narrow"))
+			narrow = TRUE;
+		else if (!g_strcmp0(word[arg_idx], "-wide"))
+			narrow = FALSE;
+		else if (g_str_has_prefix(word[arg_idx], "-catalog=")) {
+			const char *cat = word[arg_idx] + 9;
+			if (!g_ascii_strcasecmp(cat, "nomad"))
+				used_cat = CAT_NOMAD;
+			else if (!g_ascii_strcasecmp(cat, "apass"))
+				used_cat = CAT_APASS;
+			else {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strncasecmp(word[arg_idx], "-dvmag=", 7)) {
+			const char *val = word[arg_idx] + 7;
+			gchar *end;
+			delta_Vmag = g_ascii_strtod(val, &end);
+			if (end == val || delta_Vmag < 0.0 || delta_Vmag > 6.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strncasecmp(word[arg_idx], "-dbv=", 5)) {
+			const char *val = word[arg_idx] + 5;
+			gchar *end;
+			delta_BV = g_ascii_strtod(val, &end);
+			if (end == val || delta_BV < 0.0 || delta_BV > 0.7) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[arg_idx], "-out=")) {
+			nina_file = word[arg_idx] + 5;
+			if (nina_file[0] == '\0') {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Unknown option provided: %s\n"), word[arg_idx]);
+			return CMD_ARG_ERROR;
+		}
+		arg_idx++;
+	}
+
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	args->target_name = g_strdup(target);
+	args->narrow_fov = narrow;
+	args->cat = used_cat;
+	args->delta_Vmag = delta_Vmag;
+	args->delta_BV = delta_BV;
+	args->nina_file = g_strdup(nina_file);
+
+	start_in_new_thread(compstars_worker, args);
 	return CMD_OK;
 }
 
@@ -8936,7 +9009,7 @@ parse_coords:
 		return CMD_ARG_ERROR;
 	}
 
-	add_object_in_catalogue(name, coords, TRUE, TRUE);	// with the first TRUE, it's in tmp
+	add_object_in_catalogue(name, coords, FALSE, USER_TEMP_CAT_INDEX);
 
 display:
 	/* display the new 'found_object' */
@@ -8947,6 +9020,229 @@ display:
 		refresh_found_objects();
 		redraw(REDRAW_OVERLAY);
 	}
-	siril_world_cs_unref(coords);
+	if (coords)
+		siril_world_cs_unref(coords);
 	return CMD_OK;
 }
+
+int read_cut_pair(char *value, point *pair) {
+	char *end;
+	pair->x = (double) g_ascii_strtoull(value, &end, 10);
+	if (end == value)
+		return CMD_ARG_ERROR;
+	if (*end != ',')
+		return CMD_ARG_ERROR;
+	end++;
+	value = end;
+	pair->y = (double) g_ascii_strtoull(value, &end, 10);
+	if (end == value)
+		return CMD_ARG_ERROR;
+	return CMD_OK;
+}
+
+cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
+	cut_struct *cut_args = calloc(1, sizeof(cut_struct));
+	initialize_cut_struct(cut_args);
+	int start = (seq) ? 2 : 1;
+	*err = CMD_OK;
+	if (seq)
+		cut_args->seq = seq;
+	else
+		cut_args->fit = &gfit;
+	int nb_layers = (cut_args->seq) ? cut_args->seq->nb_layers : cut_args->fit->naxes[2];
+	for (int i = start; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(word[i], "-tri")) {
+			cut_args->tri = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-cfa")) {
+			fits reffit = { 0 };
+			if (seq) {
+				// loading the sequence reference image's metadata to read its bayer pattern
+				int image_to_load = sequence_find_refimage(seq);
+				if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+					siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+					*err = CMD_SEQUENCE_NOT_FOUND;
+					break;
+				}
+			} else {
+				reffit = gfit;
+			}
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.bayer_pattern);
+			if ((reffit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
+				siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+			cut_args->cfa = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-savedat")) {
+			cut_args->save_dat = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-arcsec")) {
+			cut_args->pref_as = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-width=")) {
+			arg += 7;
+			cut_args->width = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-spacing=")) {
+			arg += 9;
+			cut_args->step = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-layer=")) {
+			arg += 7;
+			if (g_str_has_prefix(arg, "red"))
+				cut_args->vport = 0;
+			else if (g_str_has_prefix(arg, "green"))
+				cut_args->vport = 1;
+			else if (g_str_has_prefix(arg, "blue"))
+				cut_args->vport = 2;
+			else if (g_str_has_prefix(arg, "lum")) {
+				if (nb_layers == 1) {
+					cut_args->vport = 0;
+					cut_args->mode = CUT_MONO;
+				} else {
+					cut_args->vport = 3;
+					cut_args->mode = CUT_MONO;
+				}
+			} else if (g_str_has_prefix(arg, "col")) {
+				cut_args->vport = 0;
+				cut_args->mode = CUT_COLOR;
+			} else {
+				siril_log_message(_("Incorrect option follows -layer=, aborting.\n"));
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber1=")) {
+			arg += 13;
+			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber2=")) {
+			arg += 13;
+			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavelength1=")) {
+			arg += 13;
+			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavelength2=")) {
+			arg += 13;
+			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-from=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-from";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-to=")) {
+			gchar *value;
+			value = arg + 4;
+			if ((*err = read_cut_pair(value, &cut_args->cut_end))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-to";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wn1at=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn1at";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wn2at=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn2at";
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-filename=")) {
+			if (seq) {
+				siril_log_color_message(_("Error: this option cannot be used for sequences.\n"), "red");
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+			arg += 10;
+			if (cut_args->filename)
+				g_free(cut_args->filename);
+			cut_args->filename = g_strdup(arg);
+			cut_args->save_dat = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-title=")) {
+			arg += 7;
+			if (arg && arg[0] != '\0') {
+				if (cut_args->user_title)
+					g_free(cut_args->user_title);
+				cut_args->user_title = g_strdup(arg);
+				siril_debug_print("title: %s\n", arg);
+			}
+		}
+	}
+	if (cut_args->vport == -1) {
+		if (nb_layers == 1) {
+			cut_args->vport = 0;
+			cut_args->mode = CUT_MONO;
+		} else {
+			cut_args->vport = 3;
+			cut_args->mode = CUT_COLOR;
+		}
+	}
+	if (!cut_struct_is_valid(cut_args))
+		*err = CMD_ARG_ERROR;
+	if (*err) {
+		free_cut_args(cut_args);
+		cut_args = NULL;
+	}
+	return cut_args;
+}
+
+int process_profile(int nb) {
+	cmd_errors err;
+	cut_struct *cut_args = parse_cut_args(nb, NULL, &err);
+	if (err)
+		return err;
+
+	cut_args->save_png_too = TRUE;
+
+	if (cut_args->cfa)
+		start_in_new_thread(cfa_cut, cut_args);
+	else if (cut_args->tri)
+		start_in_new_thread(tri_cut, cut_args);
+	else
+		start_in_new_thread(cut_profile, cut_args);
+
+	return CMD_OK;
+}
+
+int process_seq_profile(int nb) {
+	cmd_errors err;
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	cut_struct *cut_args = parse_cut_args(nb, seq, &err);
+	if (err)
+		return err;
+
+	cut_args->display_graph = FALSE;
+	cut_args->save_png_too = FALSE;
+
+	apply_cut_to_sequence(cut_args);
+
+	return CMD_OK;
+}
+

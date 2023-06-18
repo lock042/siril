@@ -5,37 +5,21 @@
 #include <gsl/gsl_matrix.h>
 #include "core/siril.h"
 #include "core/settings.h"
+#include "algos/astrometry_solver.h"
+#include "algos/PSF.h"
 
-typedef struct {
+struct photometry_struct {
 	double mag;	// magnitude
 	double s_mag;	// magnitude uncertainty
 	gboolean valid;	// TRUE if no pixel outside of the range
 	double SNR;	// SNR estimation
-} photometry;
+};
 
 typedef struct {
 	float x, y;	// in FITS/WCS coordinates
 	float mag;	// visible magnitude (V filter), for sorting and debug
 	float BV;	// B magnitude - V magnitude, -99.9 if not available
 } pcc_star;
-
-typedef enum {
-	PSF_NO_ERR = 0,
-	PSF_ERR_ALLOC = 3,
-	PSF_ERR_UNSUPPORTED = 4,
-	PSF_ERR_DIVERGED = 5,
-	PSF_ERR_OUT_OF_WINDOW = 6,
-	PSF_ERR_INNER_TOO_SMALL = 7,
-	PSF_ERR_APERTURE_TOO_SMALL = 8,
-	PSF_ERR_TOO_FEW_BG_PIX = 9,
-	PSF_ERR_MEAN_FAILED = 10,
-	PSF_ERR_INVALID_STD_ERROR = 11,
-	PSF_ERR_INVALID_PIX_VALUE = 12,
-	PSF_ERR_WINDOW_TOO_SMALL = 13,
-	PSF_ERR_INVALID_IMAGE = 14,
-	PSF_ERR_OUT_OF_IMAGE = 15,
-	PSF_ERR_MAX_VALUE = 16	// keep last
-} psf_error;
 
 struct phot_config *phot_set_adjusted_for_image(fits *fit);
 
@@ -48,6 +32,14 @@ const char *psf_error_to_string(psf_error err);
 void print_psf_error_summary(gint *code_sums);
 
 /* light curves */
+/*struct light_curve_metadata {
+	double delta_Vmag, delta_BV;
+	int nb_comp_stars;
+	gchar *AAVSO_chartid;
+	gchar *AAVSO_uri;
+};*/
+
+struct compstars_arg;
 
 struct light_curve_args {
 	rectangle *areas;	// the first is the variable star's area
@@ -56,15 +48,16 @@ struct light_curve_args {
 	int layer;
 	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
+
+	// metadata from the NINA file created by Siril
+	struct compstars_arg *metadata;
 };
 
 void free_light_curve_args(struct light_curve_args *args);
 
 gpointer light_curve_worker(gpointer arg);
 
-int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph);
+int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs);
 
-int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
-		gboolean use_comp1, gboolean use_comp2, fits *first);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

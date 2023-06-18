@@ -30,6 +30,7 @@
 
 #include "gui/dialogs.h"
 #include "nina_light_curve.h"
+#include "compstars.h"
 
 static const SirilDialogEntry entries[] =
 {
@@ -40,9 +41,13 @@ static const SirilDialogEntry entries[] =
 	{"canon_fixbanding_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
 	{"composition_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"compstars", get_compstars_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"crop_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"cut_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"cut_coords_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"cut_spectroscopy_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},

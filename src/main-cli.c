@@ -132,7 +132,6 @@ static void global_initialization() {
 #endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-
 	initialize_default_settings();	// com.pref
 #ifdef HAVE_FFTW3F_OMP
 	fftwf_init_threads(); // Should really only be called once so do it at startup

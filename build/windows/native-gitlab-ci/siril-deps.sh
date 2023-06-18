@@ -12,7 +12,6 @@ mingw-w64-x86_64-ninja \
 mingw-w64-x86_64-fftw \
 mingw-w64-x86_64-exiv2 \
 mingw-w64-x86_64-gtk3 \
-mingw-w64-x86_64-libconfig \
 mingw-w64-x86_64-gsl \
 mingw-w64-x86_64-opencv \
 mingw-w64-x86_64-libheif \
@@ -28,3 +27,10 @@ autoreconf -fi && \
 make install -j$(nproc) || exit 1
 cd ..
 
+# Build libXISF from git rep
+git clone https://gitea.nouspiro.space/nou/libXISF.git
+cd libXISF
+mkdir -p build && cd build
+cmake -G "MSYS Makefiles" -DCMAKE_INSTALL_PREFIX="$MSYSTEM_PREFIX" -DCMAKE_BUILD_TYPE="Release" ..
+make install || exit 1
+cd ..

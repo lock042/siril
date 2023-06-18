@@ -35,6 +35,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
+#include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
@@ -92,6 +93,8 @@ static gboolean free_image_data_idle(gpointer p) {
 	update_MenuItem();
 	reset_3stars();
 	close_tab();	// close Green and Blue tabs
+	free_cut_args(&gui.cut);
+	initialize_cut_struct(&gui.cut);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));
 	GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
@@ -326,6 +329,8 @@ int open_single_image(const char* filename) {
 			else end_open_single_image(NULL);
 		}
 	}
+	if (!com.script)
+		reset_cut_gui_filedependent();
 	return retval;
 }
 

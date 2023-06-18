@@ -6,7 +6,6 @@ crossroad install lcms2 \
                   gtk3 \
                   fftw \
                   exiv2 \
-                  libconfig \
                   gsl \
                   opencv\
                   libheif \
@@ -26,6 +25,13 @@ crossroad ./configure --disable-examples --disable-static && \
 make install || exit 1
 cd ..
 
+# Build libXISF from git rep
+git clone https://gitea.nouspiro.space/nou/libXISF.git
+cd libXISF
+mkdir -p build && cd build
+crossroad cmake ..
+make install || exit 1
+cd ../..
 
 if [ $? -ne 0 ]; then
   echo "Installation of pre-built dependencies failed.";

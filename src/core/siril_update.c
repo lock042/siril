@@ -42,7 +42,7 @@
 
 #define DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
-#define SIRIL_DOWNLOAD DOMAIN"download"
+#define SIRIL_DOWNLOAD DOMAIN"download/"VERSION
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 
 static gchar *get_changelog(gchar *str);

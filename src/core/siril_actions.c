@@ -32,6 +32,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
+#include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
 #include "compositing/compositing.h"
@@ -383,7 +384,7 @@ void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gp
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		if (has_wcs(&gfit)) {
-			com.found_object = find_objects(&gfit);
+			com.found_object = find_objects_in_field(&gfit);
 		}
 	} else {
 		g_slist_free(com.found_object);
@@ -620,6 +621,10 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("nina_light_curve");
 }
 
+void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("compstars");
+}
+
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
 }
@@ -653,3 +658,17 @@ void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	}
 	rgb_align(0);
 }
+
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkToggleToolButton *button = (GtkToggleToolButton*) lookup_widget("cut_button");
+	if (gtk_toggle_tool_button_get_active(button)) {
+		mouse_status = MOUSE_ACTION_CUT_SELECT;
+		siril_open_dialog("cut_dialog");
+	} else {
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		siril_close_dialog("cut_coords_dialog");
+		siril_close_dialog("cut_spectroscopy_dialog");
+		siril_close_dialog("cut_dialog");
+	}
+}
+

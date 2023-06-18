@@ -68,6 +68,11 @@ GtkComboBox *seqcombo;
 GtkToggleButton *drawframe;
 static GtkWidget *rotation_dlg = NULL;
 
+/* widgets for cut tool*/
+static GtkWidget *cut_dialog = NULL, *cut_cdialog = NULL, *cut_sdialog = NULL;
+static GtkToggleButton *tri_cut_toggle = NULL;
+static GtkSpinButton *tri_cut_spin_step = NULL;
+
 static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
@@ -711,6 +716,76 @@ static void draw_selection(const draw_data_t* dd) {
 	}
 }
 
+static void draw_cut_line(const draw_data_t* dd) {
+	if (!cut_dialog) {
+		cut_dialog = lookup_widget("cut_dialog");
+		cut_cdialog = lookup_widget("cut_coords_dialog");
+		cut_sdialog = lookup_widget("cut_spectroscopy_dialog");
+		tri_cut_toggle = GTK_TOGGLE_BUTTON(lookup_widget("cut_tri_cut"));
+		tri_cut_spin_step = GTK_SPIN_BUTTON(lookup_widget("cut_tricut_step"));
+	}
+	if (!(gtk_widget_get_visible(cut_dialog) || gtk_widget_get_visible(cut_cdialog) || gtk_widget_get_visible(cut_sdialog)))
+		return;
+	if (gui.cut.cut_end.x == -1 || gui.cut.cut_end.y == -1 || gui.cut.seq)
+		return;
+	gboolean tri = gtk_toggle_button_get_active(tri_cut_toggle);
+	double offstartx, offstarty, offendx, offendy, step;
+
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+
+	if (tri) {
+		point delta;
+		delta.x = gui.cut.cut_end.x - gui.cut.cut_start.x;
+		delta.y = gui.cut.cut_end.y - gui.cut.cut_start.y;
+		double length = sqrt(delta.x * delta.x + delta.y * delta.y);
+		if (length < 1.) return;
+		int nbr_points = (int) length;
+		double point_spacing_x = delta.x / nbr_points;
+		double point_spacing_y = delta.y / nbr_points;
+		step = gtk_spin_button_get_value(tri_cut_spin_step);
+		double line_r[3] = { 0.58, 0.0, 0.34 }; // These colours match the 3 lines plotted by GNUplot
+		double line_g[3] = { 0.0, 0.62, 0.70 };
+		double line_b[3] = { 0.83, 0.45, 0.91 };
+		for (int offset = -1 ; offset < 2 ; offset++) {
+			offstartx = gui.cut.cut_start.x + (offset * point_spacing_y * step);
+			offstarty = gui.cut.cut_start.y - (offset * point_spacing_x * step);
+			offendx = gui.cut.cut_end.x + (offset * point_spacing_y * step);
+			offendy = gui.cut.cut_end.y - (offset * point_spacing_x * step);
+			cairo_set_source_rgb(cr, line_r[offset+1], line_g[offset+1], line_b[offset+1]);
+			cairo_save(cr);
+			cairo_move_to(cr, offstartx, offstarty);
+			cairo_line_to(cr, offendx, offendy);
+			cairo_stroke(cr);
+			cairo_restore(cr);
+		}
+	} else {
+		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by GNUplot
+		cairo_save(cr);
+		cairo_move_to(cr, gui.cut.cut_start.x, gui.cut.cut_start.y);
+		cairo_line_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);
+		cairo_stroke(cr);
+		cairo_restore(cr);
+	}
+}
+
+static void draw_measurement_line(const draw_data_t* dd) {
+	if (gui.measure_start.x == -1)
+		return;
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+	cairo_save(cr);
+	cairo_move_to(cr, gui.measure_start.x, gui.measure_start.y);
+	cairo_line_to(cr, gui.measure_end.x, gui.measure_end.y);
+	cairo_stroke(cr);
+	cairo_restore(cr);
+}
+
 static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	int i = 0;
@@ -723,6 +798,7 @@ static void draw_stars(const draw_data_t* dd) {
 
 		while (com.stars[i]) {
 			double size = com.stars[i]->fwhmx * 2.0;
+			if (size <= 0.0) size = com.pref.phot_set.aperture;
 			if (i == gui.selected_star) {
 				// We draw horizontal and vertical lines to show the star
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
@@ -745,7 +821,8 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_save(cr); // save the original transform
 			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
 			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
-			cairo_scale(cr, com.stars[i]->fwhmy / com.stars[i]->fwhmx, 1);
+			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
+			cairo_scale(cr, r, 1);
 			cairo_arc(cr, 0., 0., size, 0.,2 * M_PI);
 			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
@@ -765,6 +842,7 @@ static void draw_stars(const draw_data_t* dd) {
 	/* quick photometry */
 	if (!com.script && gui.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
 		double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
+		if (size <= 0.0) size = com.pref.phot_set.aperture;
 
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
@@ -1261,7 +1339,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble radius = get_catalogue_object_radius(object);
 		gdouble ra = get_catalogue_object_ra(object);
 		gdouble dec = get_catalogue_object_dec(object);
-		gchar *code = get_catalogue_object_code(object);
+		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
 
 		switch (catalog) {
@@ -1342,6 +1420,22 @@ static void draw_annotates(const draw_data_t* dd) {
 			}
 		}
 	}
+}
+
+static void draw_rgb_centers(const draw_data_t* dd) {
+	if (!gui.comp_layer_centering) return;
+	cairo_t *cr = dd->cr;
+	cairo_set_dash(cr, NULL, 0, 0);
+
+	double red = gui.comp_layer_centering->saturated_color.red;
+	double green = gui.comp_layer_centering->saturated_color.green;
+	double blue = gui.comp_layer_centering->saturated_color.blue;
+	cairo_set_source_rgb(cr, red, green, blue);
+	cairo_set_line_width(cr, 2.0 / dd->zoom);
+
+	double size = 10. / dd->zoom;
+	cairo_arc(cr, gui.comp_layer_centering->center.x, gui.comp_layer_centering->center.y, size * 0.5, 0., 2. * M_PI);
+	cairo_stroke(cr);
 }
 
 static void draw_analysis(const draw_data_t* dd) {
@@ -1638,6 +1732,12 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	/* selection rectangle */
 	draw_selection(&dd);
 
+	/* cut line */
+	draw_cut_line(&dd);
+
+	/* draw measurement line */
+	draw_measurement_line(&dd);
+
 	/* detected stars and highlight the selected star */
 	g_mutex_lock(&com.mutex);
 	draw_stars(&dd);
@@ -1657,6 +1757,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* registration framing*/
 	draw_regframe(&dd);
+
+	/* RGB composition center points */
+	draw_rgb_centers(&dd);
 
 	/* allow custom rendering */
 	if (gui.draw_extra)

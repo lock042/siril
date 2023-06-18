@@ -279,6 +279,37 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 #endif
 }
 
+// ra in degrees
+// Intended to discard stars too close to the borders
+// May be could be merged with wcs2pix
+int wcs2pix_off(fits *fit, double ra, double dec, double *x, double *y, double offset_ratio) {
+	if (x) *x = -1.0;
+	if (y) *y = -1.0;
+#ifndef HAVE_WCSLIB
+	return 1;
+#else
+	int status, stat[NWCSFIX];
+	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
+	world[0] = ra;
+	world[1] = dec;
+
+	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
+
+	if (!status) {
+		double xx = pixcrd[0];
+		double yy = pixcrd[1];
+		// return values even if outside
+		// required for celestial grid display
+		if (x) *x = xx;
+		if (y) *y = yy;
+		if (xx < offset_ratio * (double)fit->rx || yy < offset_ratio * (double)fit->ry || xx > (1.0 - offset_ratio) * (double)fit->rx || yy > (1.0 - offset_ratio) * (double)fit->ry)
+			//siril_debug_print("outside image but valid return\n");
+			status = 10;
+	}
+	return status;
+#endif
+}
+
 /* get image center celestial coordinates */
 void center2wcs(fits *fit, double *r, double *d) {
 	*r = -1.0;

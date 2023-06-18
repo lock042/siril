@@ -67,6 +67,8 @@ static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
+static char *SITELAT[] = { "SITELAT", "SITE-LAT", "OBSLAT", NULL };
+static char *SITELONG[] = { "SITELONG", "SITE-LON", "OBSLONG", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -83,21 +85,55 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 static void read_fits_locdata_header(fits *fit) {
 	int status = 0;
 	char sitelat_dump[FLEN_VALUE] = { 0 };
+	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
 	char sitelong_dump[FLEN_VALUE] = { 0 };
+	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
 
 	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TSTRING, "*LAT", &sitelat_dump, NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases in TSTRING style
-	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TSTRING, "*LON*", &sitelong_dump, NULL, &status);	// Handles SITELONG and SITE-LON keyword cases in TSTRING style
+	__tryToFindKeywords(fit->fptr, TSTRING, SITELAT, &sitelat_dump, &status);
 
-	d_sitelat_dump = parse_dms(sitelat_dump);
-	d_sitelong_dump = parse_dms(sitelong_dump);
+	if (status == 0) {
+		gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
+		gsize token_size = g_strv_length(token);
+		if (token_size > 1 && token[1])	{	// Denotes presence of ":"
+			for (int i = 0; i < token_size; ++i) {
+				strncat(sitelat_dump_tmp, token[i], strlen (token[i]));
+				if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
+				d_sitelat_dump = parse_dms(sitelat_dump_tmp);
+			}
+		} else d_sitelat_dump = parse_dms(sitelat_dump);
+
+		g_strfreev(token);
+	}
+
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TSTRING, SITELONG, &sitelong_dump, &status);
+
+	if (status == 0) {
+		gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
+		gsize token_size = g_strv_length(token);
+		if (token_size > 1 && token[1])	{
+			for (int i = 0; i < token_size; ++i) {
+				strncat(sitelong_dump_tmp, token[i], strlen (token[i]));
+				if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
+				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
+			}
+		} else d_sitelong_dump = parse_dms(sitelong_dump);
+
+		g_strfreev(token);
+	}
+
 	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
-		fit->sitelat = strtod(sitelat_dump, NULL);
-		fit->sitelong = strtod(sitelong_dump, NULL);
+		gchar *end;
+		fit->sitelat = g_ascii_strtod(sitelat_dump, &end);
+		if (sitelat_dump == end) {
+			siril_debug_print("Cannot read SITELAT\n");
+		}
+		fit->sitelong = g_ascii_strtod(sitelong_dump, &end);
+		if (sitelong_dump == end) {
+			siril_debug_print("Cannot read SITELONG\n");
+		}
 	} else {
 		fit->sitelat = d_sitelat_dump;
 		fit->sitelong = d_sitelong_dump;
@@ -1877,29 +1913,50 @@ int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomo
 	return *status;
 }
 
-// reset a fit data structure, deallocates everything in it and zero the data
-void clearfits(fits *fit) {
+// reset a fit data structure, deallocates everything in it but keep the data:
+// useful in processing internal_fits in SEQ_INTERNAL sequences
+void clearfits_header(fits *fit) {
 	if (fit == NULL)
 		return;
-	if (fit->data)
-		free(fit->data);
-	if (fit->fdata)
-		free(fit->fdata);
-	if (fit->header)
+	if (fit->header) {
 		free(fit->header);
-	if (fit->history)
+		fit->header = NULL;
+	}
+	if (fit->history) {
 		g_slist_free_full(fit->history, g_free);
-	if (fit->date_obs)
+		fit->history = NULL;
+	}
+	if (fit->date_obs) {
 		g_date_time_unref(fit->date_obs);
-	if (fit->date)
+		fit->date_obs = NULL;
+	}
+	if (fit->date) {
 		g_date_time_unref(fit->date);
+		fit->date = NULL;
+	}
 	if (fit->stats) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			free_stats(fit->stats[i]);
 		free(fit->stats);
+		fit->stats = NULL;
 	}
 	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
+}
+
+// reset a fit data structure, deallocates everything in it and zero the data
+void clearfits(fits *fit) {
+	if (fit == NULL)
+		return;
+	if (fit->data) {
+		free(fit->data);
+		fit->data = NULL;
+	}
+	if (fit->fdata) {
+		free(fit->fdata);
+		fit->fdata = NULL;
+	}
+	clearfits_header(fit);
 }
 
 /* Read a rectangular section of a FITS image in Siril's format, pointed by its
@@ -2377,13 +2434,13 @@ int save_opened_fits(fits *f) {
 		break;
 	case USHORT_IMG:
 		if (f->type == DATA_FLOAT) {
-			WORD *data = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
-			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, data, &status)) {
+			WORD *datau = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, datau, &status)) {
 				report_fits_error(status);
-				g_free(data);
+				g_free(datau);
 				return 1;
 			}
-			free(data);
+			free(datau);
 		} else {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
@@ -3390,7 +3447,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 		// average exposure
 		exposure += current->exposure;
 
-		/* to add if one day we keep FITS comments: discrepencies in
+		/* to add if one day we keep FITS comments: discrepancies in
 		 * various fields like exposure, instrument, observer,
 		 * telescope, ... */
 		image_count++;

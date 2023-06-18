@@ -1214,7 +1214,7 @@ int get_cfa_pattern_index_from_string(const char *bayer) {
 // debayers the image if it's a FITS image and if debayer is activated globally
 // or if the force argument is passed
 int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
-	if ((imagetype != TYPEFITS && imagetype != TYPETIFF)|| (!com.pref.debayer.open_debayer && !force_debayer))
+	if ((imagetype != TYPEFITS && imagetype != TYPETIFF && imagetype != TYPEXISF)|| (!com.pref.debayer.open_debayer && !force_debayer))
 		return 0;
 
 	/* Siril's FITS are stored bottom-up, debayering will give wrong results.
