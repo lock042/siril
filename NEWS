@@ -18,7 +18,6 @@ siril 1.2.0 xx xx, xx
 * Prevent crash using recomposition tool eyedroppers without images loaded
 * Fix HaOiii script failure if input image has odd dimensions
 
-
 siril 1.2.0-rc1 June 1, 2023
 
 * Added GHS saturation stretch mode
