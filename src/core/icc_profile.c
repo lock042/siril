@@ -303,7 +303,7 @@ void initialize_profiles_and_transforms() {
 	cmsPlugin(cmsFastFloatExtensions());
 	siril_log_message(_("lcms2 fast floating point plugin active.\n"));
 	if (!com.headless) {
-		cmsPlugin(cmsThreadedExtensions(com.max_thread, 0));
+		cmsPlugin(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
 		siril_log_message(_("lcms2 multithreading plugin active.\n"));
 	}
 #endif

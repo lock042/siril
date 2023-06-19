@@ -167,8 +167,6 @@ static void siril_app_activate(GApplication *application) {
 		exit(EXIT_FAILURE);
 	}
 
-	initialize_profiles_and_transforms(); // color management
-
 	if (com.pref.lang)
 		language_init(com.pref.lang);
 
@@ -195,6 +193,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_profiles_and_transforms(); // color management
 
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;

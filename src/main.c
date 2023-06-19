@@ -250,7 +250,6 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	// After this point com.pref is populated
-	initialize_profiles_and_transforms(); // color management
 	siril_language_parser_init();
 	if (com.pref.lang)
 		language_init(com.pref.lang);
@@ -278,6 +277,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_profiles_and_transforms(); // color management
 
 	if (com.headless) {
 		if (main_option_script) {
