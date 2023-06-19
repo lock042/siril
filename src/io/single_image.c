@@ -26,6 +26,7 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/proto.h"
 #include "algos/statistics.h"
 #include "algos/annotate.h"
 #include "algos/ccd-inspector.h"
@@ -58,6 +59,8 @@
 static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data);
 
+static struct timeval last_update;
+static gboolean timer_running = FALSE;
 static gboolean filemonitor_active = FALSE;
 static gboolean filemonitor_reloading = FALSE;
 static unsigned filemonitor_dimensions[2] = { 0, 0 };
@@ -474,34 +477,44 @@ void notify_gfit_modified() {
 }
 
 /* File watcher and callback */
-
-static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
-		GFileMonitorEvent evtype, gpointer user_data) {
-	char *realname = NULL;
-	gboolean is_sequence;
-	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
-		gchar *filename = g_file_get_basename(file);
+GSourceFunc timeout_cb(gpointer *user_data) {
+	struct timeval current;
+	gettimeofday(&current, NULL);
+	struct timeval difference;
+	timeval_subtract(&difference, &current, &last_update);
+	if (difference.tv_sec > 0 || difference.tv_usec > 300000) {
+		gchar *filename = (gchar*) user_data;
 		siril_log_message(_("File %s changed on disk: reloading...\n"), filename);
-		// Store current dimensions of gfit and display zoom and offset values
-		// If the image dimensions are the same, the zoom and offset will be preserved
-		// to improve usability for focus monitoring when zoomed in
 		filemonitor_dimensions[0] = gfit.rx;
 		filemonitor_dimensions[1] = gfit.ry;
 		filemonitor_zoom_value = gui.zoom_value;
 		memcpy(&filemonitor_display_offset, &gui.display_offset, sizeof(point));
 		filemonitor_reloading = TRUE;
 
-		open_single_image(filename);
-//		clearfits(&gfit);
-		// Disallow sequences, disallow dialogs, no force float
-//		read_single_image(filename, &gfit, &realname, FALSE, &is_sequence, FALSE, FALSE);
-//		notify_gfit_modified();
+//		Disallow sequences, disallow dialogs, no force float
+		clearfits(&gfit);
+		gboolean is_sequence;
+		gchar* realname = NULL;
+		read_single_image(filename, &gfit, &realname, FALSE, &is_sequence, FALSE, FALSE);
+		notify_gfit_modified();
 
 		filemonitor_reloading = FALSE;
 		g_free(filename);
 		g_free(realname);
+		register_filemonitor();
+		return FALSE;
 	}
-	register_filemonitor();
+	return TRUE;
+}
+
+
+static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+									  GFileMonitorEvent evtype, gpointer user_data) {
+	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
+		gettimeofday(&last_update, NULL);
+		gchar *filename = g_file_get_basename(file);
+		g_timeout_add(225, timeout_cb, filename);
+	}
 }
 
 void unregister_filemonitor() {
@@ -520,6 +533,7 @@ int register_filemonitor() {
 	com.file_monitor = g_file_monitor_file(file, G_FILE_MONITOR_NONE, NULL, &err); // Check the flags
 	if (err) {
 	}
+	g_file_monitor_set_rate_limit(com.file_monitor, 100);
 	if (g_signal_connect(G_OBJECT(com.file_monitor), "changed", G_CALLBACK(on_monitored_file_changed), NULL) <= 0) {
 		siril_log_message(_("Unable to monitor file (%s): %s\n"), com.uniq->filename, err->message);
 		g_object_unref(com.file_monitor);

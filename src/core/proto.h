@@ -163,6 +163,8 @@ const gchar *get_com_ext(gboolean fz);
 
 int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
 int display_to_fits(double dx, double dy, double *fx, double *fy, int ry);
+int
+timeval_subtract (struct timeval *result, struct timeval *x, struct timeval *y);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
