@@ -768,6 +768,22 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 #define SQRTF_2 1.41421356f
 
 int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
+	int crop_x = in->rx, crop_y = in->ry;
+	gboolean do_crop = FALSE;
+	if (in->rx % 2) {
+		crop_x--;
+		do_crop = TRUE;
+	}
+	if (in->ry % 2) {
+		crop_y--;
+		do_crop = TRUE;
+	}
+	if (do_crop) {
+		siril_log_message(_("Image dimensions must be even. Trimming by 1 pixel.\n"));
+		rectangle bounds = {0, 0, crop_x, crop_y};
+		crop(in, &bounds);
+	}
+
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -943,6 +959,22 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 }
 
 int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
+	int crop_x = in->rx, crop_y = in->ry;
+	gboolean do_crop = FALSE;
+	if (in->rx % 2) {
+		crop_x--;
+		do_crop = TRUE;
+	}
+	if (in->ry % 2) {
+		crop_y--;
+		do_crop = TRUE;
+	}
+	if (do_crop) {
+		siril_log_message(_("Image dimensions must be even. Trimming by 1 pixel.\n"));
+		rectangle bounds = {0, 0, crop_x, crop_y};
+		crop(in, &bounds);
+	}
+
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {

@@ -12975,7 +12975,6 @@ Specialist monitors offer wider gamuts than sRGB; </property>
             </child>
             <child>
               <object class="GtkButton">
-                <property name="name">undo-button</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
