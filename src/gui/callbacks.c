@@ -1138,6 +1138,13 @@ static void load_accels() {
 
 		"win.search-object",          "<Primary>slash", NULL,
 		"win.search-solar",          "<Primary>slash", NULL,
+		"win.cat_gcvs",        		  "<Primary>slash", NULL,
+		"win.cat_aavso",         	 "<Primary>slash", NULL,
+		"win.cat_apass",        		  "<Primary>slash", NULL,
+		"win.cat_bsc",         	 "<Primary>slash", NULL,
+		"win.cat_ppmxl",        		  "<Primary>slash", NULL,
+		"win.cat_pgc",         	 "<Primary>slash", NULL,
+
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
@@ -1895,6 +1902,16 @@ void on_menu_rgb_align_select(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_widget_set_sensitive(lookup_widget("rgb_align_dft"), sel_is_drawn);
 	gtk_widget_set_sensitive(lookup_widget("rgb_align_psf"), sel_is_drawn);
 }
+
+void on_menu_varstars_select(GtkMenuItem *menuitem, gpointer user_data) {
+	gtk_widget_set_sensitive(lookup_widget("cat_gcvs"), has_wcs(&gfit));
+	gtk_widget_set_sensitive(lookup_widget("cat_aavso"), has_wcs(&gfit));
+	gtk_widget_set_sensitive(lookup_widget("cat_apass"), has_wcs(&gfit));
+	gtk_widget_set_sensitive(lookup_widget("cat_bsc"), has_wcs(&gfit));
+	gtk_widget_set_sensitive(lookup_widget("cat_ppmxl"), has_wcs(&gfit));
+	gtk_widget_set_sensitive(lookup_widget("cat_pgc"), has_wcs(&gfit));
+}
+
 
 void on_gotoStacking_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(STACKING);

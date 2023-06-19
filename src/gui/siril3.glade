@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -15697,10 +15697,115 @@ Use only to display optical distorsions or double stars, not for registration or
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="tooltip-text" translatable="yes">Search and display solar system objects with mag&lt;20.0.
-This research has made use of IMCCE's SkyBoT VO tool.</property>
+This research has made use of IMCCE's SkyBoT VO tool.
+You can modulate the limit magnitude by using the command ``solsys [-mag=]`.</property>
         <property name="action-name">win.search-solar</property>
         <property name="label" translatable="yes">Solar System Objects</property>
         <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_search_varstars">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Search and display Variable Stars (from the GCVS or AAVSO) with mag&lt;13.0.
+You can modulate the limit magnitude by using the command ``varstars [-mag=] [-catalog=]`.</property>
+        <property name="label" translatable="yes">Variable Stars</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="on_menu_varstars_select" swapped="no"/>
+        <child type="submenu">
+          <object class="GtkMenu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkSeparatorMenuItem" id="Variable Stars">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">hjhjVariable Stars</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="cat_gcvs">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Variables stars in the field of view contained in the General Catalog of Variable Stars and with (mag&lt;13).
+The limit magnitude can be tuned with the `varstars` command. </property>
+                <property name="action-name">win.cat_gcvs</property>
+                <property name="label" translatable="yes">GCVS</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="cat_aavso">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Variables stars in the field of view contained in the AAVSO catalogue and with (mag&lt;13).
+The limit magnitude can be tuned with the `varstars` command. 
+</property>
+                <property name="action-name">win.cat_aavso</property>
+                <property name="label" translatable="yes">AAVSO (var)</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparatorMenuItem" id="Stars">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">hjhj</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="cat_apass">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Reference Stars in the field of view contained in the AAVSO Photometric All Sky Survey catalogue and with (mag&lt;13).
+The limit magnitude can be tuned with the `varstars` command. 
+</property>
+                <property name="action-name">win.cat_apass</property>
+                <property name="label" translatable="yes">APASS</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="cat_bsc">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Stars in the field of view contained in the  Bright Star Catalogue and with (mag&lt;13).
+The limit magnitude can be tuned with the `varstars` command. 
+</property>
+                <property name="action-name">win.cat_bsc</property>
+                <property name="label" translatable="yes">Bright Stars Catalogue</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="cat_ppmxl">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Stars in the field of view contained in the PPMXL Catalogue and with (mag&lt;8).
+The limit magnitude can be tuned with the `varstars` command. </property>
+                <property name="action-name">win.cat_ppmxl</property>
+                <property name="label" translatable="yes">PPMXL</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSeparatorMenuItem" id="Others">
+                <property name="name">Others...</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="cat_pgc">
+                <property name="name">dddd</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Galaxies (with B-mag&gt;18) in the field of view contained in the PGC Catalogue.
+</property>
+                <property name="action-name">win.cat_pgc</property>
+                <property name="label" translatable="yes">PGC</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
     <child>

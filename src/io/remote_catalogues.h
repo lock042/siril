@@ -20,7 +20,10 @@ typedef enum {
 	CAT_PPMXL,
 	CAT_BRIGHT_STARS,
 	CAT_APASS,
-	CAT_AAVSO,
+	CAT_GCVS,
+	CAT_AAVSO_Var,
+	CAT_AAVSO,			// becomes a VizieR URL
+	CAT_PGC,
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_ASNET = 100,	// solve-field local (astrometry.net)
@@ -37,6 +40,7 @@ void free_fetch_result(gchar *result);
 int read_projected_catalog(GInputStream *stream, psf_star **cstars, online_catalog cat);
 
 gpointer search_in_online_conesearch(gpointer p);
+gpointer search_in_online_varstars(gpointer p);
 
 // temp
 //struct compstars_arg;

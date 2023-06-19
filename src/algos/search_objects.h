@@ -62,6 +62,7 @@ struct sky_object {
 };
 
 int parse_catalog_buffer(const gchar *buffer, psf_star **result);
+int parse_varstars_buffer(const gchar *buffer, double lim_mag, int cata);
 int parse_conesearch_buffer(const gchar *buffer, double lim_mag);
 int cached_object_lookup(const gchar *name, psf_star **opt_result);
 gchar *search_in_online_catalogs(const gchar *object, query_server server);

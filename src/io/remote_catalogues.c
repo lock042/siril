@@ -83,8 +83,15 @@ const char *catalog_to_str(online_catalog cat) {
 			return _("PPMXL");
 		case CAT_BRIGHT_STARS:
 			return _("bright stars");
+		case CAT_PGC:
+			return _("PGC");
 		case CAT_APASS:
 			return _("APASS");
+		case CAT_GCVS:
+			return _("GCVS");
+		case CAT_AAVSO_Var:
+			return _("AAVSO_Variable");
+
 		case CAT_AAVSO:
 			return _("AAVSO");
 		case CAT_LOCAL:
@@ -612,8 +619,10 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		break;
 	case CAT_PPMXL:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "I/317&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Jmag");
+//		url = g_string_append(url, "I/317&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Jmag");
+		url = g_string_append(url, "I/317&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
 		url = g_string_append(url, coordinates);
@@ -624,8 +633,10 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		break;
 	case CAT_BRIGHT_STARS:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "V/50/catalog&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "&-out.add=_RAJ,_DEJ&-out=Vmag&-out=B-V");
+//		url = g_string_append(url, "V/50/catalog&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "&-out.add=_RAJ,_DEJ&-out=Vmag&-out=B-V");
+		url = g_string_append(url, "V/50/catalog&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
 		url = g_string_append(url, coordinates);
@@ -647,21 +658,53 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&Vmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case CAT_AAVSO: // for photometry only
-		{
-			int ra_h, ra_m;
-			double ra_s;
-			siril_world_cs_get_ra_hour_min_sec(center, &ra_h, &ra_m, &ra_s);
-			int dec_deg, dec_m;
-			double dec_s;
-			siril_world_cs_get_dec_deg_min_sec(center, &dec_deg, &dec_m, &dec_s);
-			url = g_string_new(AAVSO_QUERY);
-			g_string_append_printf(url, "ra=%02d:%02d:%02.lf", ra_h, ra_m, ra_s);
-			g_string_append_printf(url, "&dec=%02d:%02d:%02.lf", dec_deg, dec_m, dec_s);
-			url = g_string_append(url, "&fov=");
-			url = g_string_append(url, fov);
-			g_string_append_printf(url, "&maglimit=%s&format=json", mag);
-		}
+	case CAT_GCVS: // for variable stars
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "B/gcvs/gcvs_cat&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&magMax=<");
+		url = g_string_append(url, mag);
+		break;
+	case CAT_PGC: // for galaxies
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "VII/237&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&magMax=<");
+		url = g_string_append(url, mag);
+		break;
+	case CAT_AAVSO_Var: // for variable stars from AAVSO
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "B/vsx/vsx&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&max=<");
+		url = g_string_append(url, mag);
+		break;
+	case CAT_AAVSO: // for photometry only   becomes a VizieR URL
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "II/336&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&Vmag=<");
+		url = g_string_append(url, mag);
 		break;
 	}
 
@@ -739,6 +782,47 @@ gpointer search_in_online_conesearch(gpointer p) {
 	return GINT_TO_POINTER(retval);
 #endif
 }
+
+
+gpointer search_in_online_varstars(gpointer p) {
+	struct astrometry_data *args = (struct astrometry_data *) p;
+
+	double ra = 0.0, dec = 0.0;
+	center2wcs(args->fit, &ra, &dec);
+	double fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
+	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
+	int retval = 0;
+
+	if (!args->onlineCatalog) args->onlineCatalog = CAT_GCVS;
+	
+	gchar *url = get_catalog_url(center, args->limit_mag, fov, args->onlineCatalog);	
+	siril_log_message(_("Looking for objects according to %s in your field of view...\n"), catalog_to_str(args->onlineCatalog));
+
+	gchar *cleaned_url = url_cleanup(url);
+	char *result = fetch_url(cleaned_url);
+	siril_debug_print(_("URL: %s\n"), cleaned_url);
+
+	g_free(cleaned_url);
+	g_free(url);
+
+	if (result)
+		retval = parse_varstars_buffer(result, args->limit_mag, args->onlineCatalog);
+	
+#if defined HAVE_LIBCURL
+	free(result);
+#else
+	g_free(result);
+#endif
+	if (!retval) {
+		siril_add_idle(end_process_varstars, args);
+	} else {
+		free(args);
+		siril_add_idle(end_generic, NULL);
+	}
+
+	return GINT_TO_POINTER(retval);
+}
+
 
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
@@ -967,7 +1051,7 @@ int load_catalog(GFile *catalog_file, gboolean phot, psf_star **ret_stars, int *
 	return 0;
 }
 
-// TODO to be reviewed
+// TODO to be reviewed			// Became useless as the AAVSO queries are handeled by VizieR -FD
 // uses gfit for an is_inside() check
 int read_photo_aavso_buffer(const char *buffer, struct compstars_arg *args) {
 	gchar **token = g_strsplit(buffer, "auid", -1);

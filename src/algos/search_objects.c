@@ -31,6 +31,8 @@
 #include "gui/utils.h"
 #include "gui/image_display.h"
 
+#define MAX_DATA_ITEMS 4
+
 /* parse response from online catalogue lookups (search_in_online_catalogs()
  * for QUERY_SERVER_EPHEMCC and QUERY_SERVER_SIMBAD_PHOTO) and stores the
  * result in the local annotation catalogues and returns it in the argument if
@@ -230,6 +232,263 @@ int parse_catalog_buffer(const gchar *buffer, psf_star **result) {
 		siril_world_cs_unref(world_cs);
 	return 1;
 }
+
+/////////////////////////////////////////////////////////
+// Mapper structure for the Vizier parametric parser
+/////////////////////////////////////////////////////////
+
+typedef struct {
+	int CAT_TYP;		// Catalogue type, or number
+	int ra_len;			// Lenght of the RA field in the returned stream
+	int ra_ind;			// Index of the RA field in the returned stream
+	int dec_len;		// Lenght of the DEC field in the returned stream
+	int dec_ind;		// Index of the DEC field in the returned stream
+	int name_len;		// Lenght of the NAME field in the returned stream
+	int name_ind;		// Index of the NAME field in the returned stream
+	int Vmag_len;		// Lenght of the Vmag field in the returned stream
+	int Vmag_ind;		// Index of the Vmag field in the returned stream
+	int Bmag_len;		// Lenght of the Bmag field in the returned stream
+	int Bmag_ind;		// Index of the Bmag field in the returned stream
+	int eVmag_len;		// Lenght of the eVmag field in the returned stream
+	int eVmag_ind;		// Index of the eVmag field in the returned stream
+	int eBmag_len;		// Lenght of the eBmag field in the returned stream
+	int eBmag_ind;		// Index of the eBmag field in the returned stream
+	int fmt;			// Data type for RA and DEC: 0 stands for Alphanumeric, 1 stands for Double
+} cat_plan;
+
+/*
+///////////////////////////////// FOR VALIDATION ONLY -FD (hand made mapping)//////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+///// catalog order MUST match the one defined in the structure 'online_catalog' in "remote_catalogues.h"/////
+/////CAT_type, ra_len, ra_ind, dec_len, dec_ind, name_len, name_ind, Vmag_len, Vmag_ind, Bmag_len, Bmag_ind, eVmag_len, eVmag_ind, eBmag_len, eBmag_ind, fmt/////
+/////////////////////////////////
+static cat_plan cplace[] = {	
+	{CAT_TYCHO2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{CAT_NOMAD, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{CAT_GAIADR3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{CAT_PPMXL, 10, 8, 8, 19, 0, 0, 6, 30, 0, 0, 0, 0, 0, 0, 1},
+	{CAT_BRIGHT_STARS, 10, 7, 10, 18, 0, 0, 5, 29, 0, 0, 0, 0, 0, 0, 1},
+	{CAT_APASS, 10, 8, 10, 19, 0, 0, 6, 30, 0, 0, 0, 0, 0, 0, 1},			
+	{CAT_GCVS, 11, 39, 11, 51, 10, 27, 6, 78, 0, 0, 0, 0, 0, 0, 0},
+	{CAT_AAVSO_Var, 9, 202, 9, 212, 30, 28, 7, 94, 0, 0, 0, 0, 0, 0, 1},
+	{CAT_AAVSO, 10, 17, 10, 28, 8, 8, 6, 87, 0, 0, 0, 0, 0, 0, 1},
+	{CAT_PGC, 10 , 25, 9, 36, 7, 17, 6, 0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+};
+
+*/
+
+static cat_plan cpl22 = {0};
+
+static char *cpl2[][MAX_DATA_ITEMS] = {	// catalog order MUST match the one defined in the structure 'online_catalog' in "remote_catalogues.h"
+	/* CAT_type, ra_len, ra_ind, dec_len, dec_ind, name_len, name_ind, Vmag_len, Vmag_ind, Bmag_len, Bmag_ind, eVmag_len, eVmag_ind, eBmag_len, eBmag_ind, fmt */
+	{"RAJ2000", "DEJ2000", "Name", NULL},					//CAT_TYCHO2
+	{"RAJ2000", "DEJ2000", "Name", NULL},					//CAT_NOMAD
+	{"RAJ2000", "DEJ2000", "Name", NULL},					//CAT_GAIADR3
+	{"RAJ2000", "DEJ2000", "PPMXL", "Jmag"},				//CAT_PPMXL
+	{"RAJ2000", "DEJ2000", "Name", "Vmag"},					//CAT_BRIGHT_STARS
+	{"RAJ2000", "DEJ2000", "Name", NULL},					//CAT_APASS No real interrest as this is the same as CAT_AAVSO with no name fields
+	{"RAJ2000", "DEJ2000", "GCVS", "magMax"},				//CAT_GCVS
+	{"RAJ2000", "DEJ2000", "Name", "max"},					//CAT_AAVSO_Var
+	{"RAJ2000", "DEJ2000", "recno", "Vmag"},				//CAT_AAVSO
+	{"RAJ2000", "DEJ2000", "PGC", ""},					//CAT_PGC
+	{NULL, NULL, NULL, NULL}								// Dummy
+};
+
+
+
+/////////////////////////////////////////////////////////
+// This parser has been made parametric and can handle any query from VizieR. 
+// One particular catalogue is defined by a particular "vector" of 15 integers.
+// Below, only two are used.
+/////////////////////////////////////////////////////////
+
+
+int cat_mapping(const gchar *buffer, int cata) {
+	gchar **token = g_strsplit(buffer, "\n", -1);
+	int nb_lines = g_strv_length(token);
+	cpl22.fmt = 0;
+	size_t taille = sizeof(cpl2[cata]) / (sizeof(cpl2[cata][0]));
+
+	for (int j =0; j < taille; j++) {		// Loop on items
+		int cumul = 0;
+		int F77_len = 0;
+		for (int i = 0; i < nb_lines; i++) {		// Loops on the lines
+			gchar *line = token[i];
+			if (g_str_has_prefix(line, "#Column")) {
+				gchar **sub_line = g_strsplit(line, "\t", -1);
+//				siril_log_message(_("line: %s \n"), line);					// for test only FD
+//				siril_log_message(_("sub_line[2]: %s \n"), sub_line[2]);					// for test only FD
+				char *start = strchr(sub_line[2], '(');
+				if (start && *(start+1) != '\0') {
+					start += 1; // remove the space
+					gchar *tmp = NULL;
+					char *end = strchr(start, '.');
+					if (end) {
+						end -= 1; // remove the space
+						tmp = g_strndup(start+1, end-start);
+						F77_len = g_ascii_strtoll(tmp, NULL, 10);
+//						siril_log_message(_("F77_len: %d \n"), F77_len);					// for test only FD
+//						siril_log_message(_("cumul index: %d \n"), cumul);					// for test only FD
+					} else {
+						end = strchr(start, ')');
+						end -= 1; // remove the space
+						tmp = g_strndup(start+1, end-start);
+						F77_len = g_ascii_strtoll(tmp, NULL, 10);
+//						siril_log_message(_("F77_len: %d \n"), F77_len);					// for test only FD
+					}
+					g_free(tmp);
+					if (!strcmp(sub_line[1], cpl2[cata][j]) && cpl2[cata][j]) {
+//						siril_log_message(_("Subline: %s, index: %d, len: %d %s\n"), cpl2[cata][j], cumul, F77_len, sub_line[2]);					// for test only FD
+//						siril_log_message(_("case: %d\n"), j);					// for test only FD
+						switch (j) {
+							case 0:		//0 being the index of the 1st data, ie RA
+//								siril_log_message(_("case of RAJ2000\n"));					// for test only FD
+								cpl22.ra_ind = cumul;
+								cpl22.ra_len = F77_len;
+								if (g_str_has_prefix(sub_line[2], "(F")) cpl22.fmt = 1;
+								break;
+							case 1:		//1 being the index of the 2nd data, ie DEC
+//								siril_log_message(_("case of DEJ2000\n"));					// for test only FD
+								cpl22.dec_ind = cumul;
+								cpl22.dec_len = F77_len;
+								if (g_str_has_prefix(sub_line[2], "(F")) cpl22.fmt = 1;
+								break;
+							case 2:		//2 being the index of the 3rd data, ie Name of the object
+//								siril_log_message(_("case of Name\n"));					// for test only FD
+								cpl22.name_ind = cumul;
+								cpl22.name_len = F77_len;
+								break;
+							case 3:		//3 being the index of the 4th data, ie Vmag
+//								siril_log_message(_("case of Vmag\n"));					// for test only FD
+								cpl22.Vmag_ind = cumul;
+								cpl22.Vmag_len = F77_len;
+								break;
+						}
+					}
+					cumul = F77_len + 1 + cumul;	
+				}
+				g_free(sub_line);
+			}			
+		}	
+	}
+	g_strfreev(token);
+	return 0;
+}
+
+int parse_varstars_buffer(const gchar *buffer, double lim_mag, int cata) {
+	gchar **token = g_strsplit(buffer, "\n", -1);
+	int nb_lines = g_strv_length(token);
+	SirilWorldCS *world_cs = NULL;
+	purge_temp_user_catalogue();				// A voir-FD
+	if (nb_lines <= 20) {						// 20 because of the minimum lenght of the header...
+		g_strfreev(token);
+		return 1;
+	}
+
+	double ra = 0.0, dec = 0.0;
+	double mag = 0.0;
+	int cat = cata - 0;
+	gboolean valid = FALSE;
+	gboolean unlock = FALSE;
+	gboolean first_blank = FALSE;
+	guint nbr_a = 0;
+	gchar *objname = NULL;
+	gchar *magg = NULL;
+
+	cat_mapping(buffer, cat);
+
+	for (int i = 0; i < nb_lines; i++) {		// Loops on the lines
+		gchar *line = token[i];
+		guint line_len = strlen (line);
+		valid = FALSE;
+
+		if (!unlock) {
+			if (!line[0] && first_blank) {
+				siril_log_color_message(_("Malformed returned file. Check if server available. Aborted.\n"), "red");
+				break;
+			}			
+			if (!line[0]) first_blank = TRUE;					// Loops until the begining is found
+			if (g_str_has_prefix(line, "-----")) unlock = TRUE;	// Flag line is found, unlock and go ahead
+			continue;
+		}
+
+//		siril_log_message(_("cpl22.ra_ind: %d, cpl22.ra_len: %d\n"), cpl22.ra_ind, cpl22.ra_len);					// for test only FD
+//		siril_log_message(_("cpl22.dec_ind: %d, cpl22.dec_len: %d\n"), cpl22.dec_ind, cpl22.dec_len);				// for test only FD
+
+//		siril_log_message(_("F77_format: %d\n"), cpl22.fmt);					// for test only FD
+		if (!line[0] && unlock) break;				// The first blank line after a good data block (avoids "is_blank()" and a new dependency)
+		for (int j= 0; j < line_len; j++) {			// Loop across one line
+			if (j == cpl22.ra_ind) {			// RA read
+				gchar *temp = g_strndup(&line[j], cpl22.ra_len);
+				ra = cpl22.fmt ? g_ascii_strtod(temp, NULL) : parse_hms(temp);
+//				siril_log_message(_("ra_ind: %d, ra_len: %d\n"), cpl22.ra_ind, cpl22.ra_len);					// for test only FD
+//				siril_log_message(_("ra: %lf\n"), ra);					// for test only FD
+				g_free(temp);
+			}
+			if (j == cpl22.dec_ind) {			// DEC read
+				gchar *temp = g_strndup(&line[j], cpl22.dec_len);
+				dec = cpl22.fmt ? g_ascii_strtod(temp, NULL) : parse_dms(temp);
+//				siril_log_message(_("dec_ind: %d, dec_len: %d\n"), cpl22.dec_ind, cpl22.dec_len);					// for test only FD
+//				siril_log_message(_("dec: %lf\n"), dec);					// for test only FD
+				g_free(temp);
+			}
+			if (j == cpl22.Vmag_ind) 			// Magitude read
+				magg = g_strndup(&line[j], cpl22.Vmag_len);
+
+			if (j == cpl22.name_ind) {		// Name read
+				gchar *temp = g_strndup(&line[j], cpl22.name_len);	
+//				siril_log_message(_("name_ind: %d, name_len: %d\n"), cpl22.name_ind, cpl22.name_len);					// for test only FD
+				if (cat == CAT_PGC)	objname = g_strconcat("PGC ", temp, NULL);
+				else objname = g_strdup(temp);
+				if (!temp) objname = "x";
+//				siril_log_message(_("name_label: %s\n\n"), objname);					// for test only FD
+				g_free(temp);
+			}
+
+		}
+		valid = !isnan(dec) && !isnan(ra);
+//		siril_log_message(_("valid_in: %d\n"), valid);					// for test only FD
+		if (valid) {
+			world_cs = siril_world_cs_new_from_a_d(ra, dec);
+			gchar *end;
+
+			if (cat == CAT_PGC)	{
+				mag = -99.0;
+			} else mag = g_ascii_strtod(magg, &end);
+
+			if (end == magg)
+				valid = FALSE;
+			else if (mag < lim_mag && is_inside(&gfit, ra, dec))
+				nbr_a++;
+			else valid = FALSE;
+		}
+//		valid = TRUE;					// for test only FD
+//		siril_log_message(_("valid_out: %d\n\n"), valid);					// for test only FD
+
+		if (world_cs && objname && valid) {
+			gchar* alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+			gchar* delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+			siril_log_message(_("Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"),
+					objname, alpha, delta, mag);
+			g_free(alpha);
+			g_free(delta);
+
+			if (!com.script && !com.headless) {	// Write in catalogue only if in GUI mode
+				add_object_in_catalogue(objname, world_cs, FALSE, USER_TEMP_CAT_INDEX);
+				com.pref.gui.catalog[USER_TEMP_CAT_INDEX] = TRUE;	// and display it
+				siril_world_cs_unref(world_cs);
+				world_cs = NULL;
+			}
+		}
+	}
+	g_free(magg);
+	g_free(objname);
+	g_strfreev(token);
+	siril_log_message(_("Found %d Variable Stars with mag < %0.1lf\n"), nbr_a, lim_mag);
+	return nbr_a <= 0;
+}
+
 
 int parse_conesearch_buffer(const gchar *buffer, double lim_mag) {
 	if (!buffer || buffer[0] == '\0')

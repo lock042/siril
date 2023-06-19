@@ -381,6 +381,86 @@ void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gp
 		process_sso();
 }
 
+
+void search_stars_gcvs_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit)) {
+		purge_temp_user_catalogue();
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+		args->onlineCatalog = CAT_GCVS;
+		args->limit_mag = 13.0;
+		args->focal_length = gfit.focal_length;
+		args->pixel_size = gfit.pixel_size_x;
+		args->scale = get_resolution(args->focal_length, args->pixel_size);
+		start_in_new_thread(search_in_online_varstars, args);
+	}
+}
+void search_stars_aavso_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit)) {
+		purge_temp_user_catalogue();
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+		args->onlineCatalog = CAT_AAVSO_Var;
+		args->limit_mag = 13.0;
+		args->focal_length = gfit.focal_length;
+		args->pixel_size = gfit.pixel_size_x;
+		args->scale = get_resolution(args->focal_length, args->pixel_size);
+		start_in_new_thread(search_in_online_varstars, args);
+	}
+}
+void search_stars_apass_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit)) {
+		purge_temp_user_catalogue();
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+		args->onlineCatalog = CAT_AAVSO;
+		args->limit_mag = 13.0;
+		args->focal_length = gfit.focal_length;
+		args->pixel_size = gfit.pixel_size_x;
+		args->scale = get_resolution(args->focal_length, args->pixel_size);
+		start_in_new_thread(search_in_online_varstars, args);
+	}
+}
+void search_stars_bsc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit)) {
+		purge_temp_user_catalogue();
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+		args->onlineCatalog = CAT_BRIGHT_STARS;
+		args->limit_mag = 13.0;
+		args->focal_length = gfit.focal_length;
+		args->pixel_size = gfit.pixel_size_x;
+		args->scale = get_resolution(args->focal_length, args->pixel_size);
+		start_in_new_thread(search_in_online_varstars, args);
+	}
+}
+void search_stars_ppmxl_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit)) {
+		purge_temp_user_catalogue();
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+		args->onlineCatalog = CAT_PPMXL;
+		args->limit_mag = 8.0;
+		args->focal_length = gfit.focal_length;
+		args->pixel_size = gfit.pixel_size_x;
+		args->scale = get_resolution(args->focal_length, args->pixel_size);
+		start_in_new_thread(search_in_online_varstars, args);
+	}
+}
+void search_stars_pgc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit)) {
+		purge_temp_user_catalogue();
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+		args->onlineCatalog = CAT_PGC;
+		args->limit_mag = 13.0;
+		args->focal_length = gfit.focal_length;
+		args->pixel_size = gfit.pixel_size_x;
+		args->scale = get_resolution(args->focal_length, args->pixel_size);
+		start_in_new_thread(search_in_online_varstars, args);
+	}
+}
+
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		if (has_wcs(&gfit)) {
