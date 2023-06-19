@@ -70,7 +70,6 @@ siril_common_SOURCES = \
 	algos/quantize.c \
 	algos/reconstr.c \
 	algos/search_objects.c \
-	algos/search_objects.h \
 	algos/siril_wcs.h \
 	algos/siril_wcs.c \
 	algos/sorting.c \
@@ -82,9 +81,6 @@ siril_common_SOURCES = \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
 	algos/transform.c \
-	algos/search_objects.c \
-	algos/siril_wcs.h \
-	algos/siril_wcs.c \
 	algos/lcms_acceleration/fast_16_tethra.c \
 	algos/lcms_acceleration/fast_8_curves.c \
 	algos/lcms_acceleration/fast_8_matsh.c \
@@ -100,6 +96,10 @@ siril_common_SOURCES = \
 	algos/lcms_acceleration/fast_float_separate.c \
 	algos/lcms_acceleration/fast_float_sup.c \
 	algos/lcms_acceleration/fast_float_tethra.c \
+	algos/lcms_acceleration/threaded_core.c \
+	algos/lcms_acceleration/threaded_main.c \
+	algos/lcms_acceleration/threaded_scheduler.c \
+	algos/lcms_acceleration/threaded_split.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
 	compositing/compositing.c \
