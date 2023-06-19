@@ -99,7 +99,7 @@ static void read_fits_locdata_header(fits *fit) {
 		gsize token_size = g_strv_length(token);
 		if (token_size > 1 && token[1])	{	// Denotes presence of ":"
 			for (int i = 0; i < token_size; ++i) {
-				strncat(sitelat_dump_tmp, token[i], strlen (token[i]));
+				g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
 				if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
 				d_sitelat_dump = parse_dms(sitelat_dump_tmp);
 			}
@@ -115,7 +115,7 @@ static void read_fits_locdata_header(fits *fit) {
 		gsize token_size = g_strv_length(token);
 		if (token_size > 1 && token[1])	{
 			for (int i = 0; i < token_size; ++i) {
-				strncat(sitelong_dump_tmp, token[i], strlen (token[i]));
+				g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
 				if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
 				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
 			}
