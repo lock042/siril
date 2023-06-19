@@ -12504,7 +12504,6 @@ Note that luminance based models are not generally invertible.</property>
             </child>
             <child>
               <object class="GtkButton">
-                <property name="name">undo-button</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
