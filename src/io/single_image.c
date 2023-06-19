@@ -513,7 +513,7 @@ static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile 
 	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
 		gettimeofday(&last_update, NULL);
 		gchar *filename = g_file_get_basename(file);
-		g_timeout_add(225, timeout_cb, filename);
+		g_timeout_add(150, timeout_cb, filename);
 	}
 }
 
