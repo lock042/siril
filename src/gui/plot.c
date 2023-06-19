@@ -2088,7 +2088,7 @@ void on_menu_plot_item1_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		if (index > 0) {
 			index--;
 
-			exclude_single_frame(index);
+			exclude_include_single_frame(index);
 			update_seqlist(use_photometry ? 0 : reglayer);
 		}
 	} else { // Zoom to selection

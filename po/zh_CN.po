@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-10 20:59+0000\n"
+"PO-Revision-Date: 2023-06-19 11:31+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -240,28 +240,26 @@ msgid "Profile"
 msgstr "轮廓"
 
 #: src/gui/siril3.glade:1049
-#, fuzzy
 msgid "<b>Type of Profile</b>"
-msgstr "<b>提取的类型</b>"
+msgstr "<b>轮廓类型</b>"
 
 #: src/gui/siril3.glade:1059
 msgid "Mono"
-msgstr ""
+msgstr "单色"
 
 #: src/gui/siril3.glade:1063
 msgid "Generates a single luminance profile along the profile line"
-msgstr ""
+msgstr "沿轮廓线生成单明度轮廓"
 
 #: src/gui/siril3.glade:1074
-#, fuzzy
 msgid "Color"
-msgstr "彩色图像"
+msgstr "彩色"
 
 #: src/gui/siril3.glade:1078
 msgid ""
 "Generates separate R, G and B profiles along the profile line. Not "
 "applicable for mono images"
-msgstr ""
+msgstr "沿轮廓线生成单独的 R、G 和 B 轮廓。不适用于单色图像"
 
 #: src/gui/siril3.glade:1089
 #, fuzzy
