@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-19 11:31+0000\n"
+"PO-Revision-Date: 2023-06-22 14:40+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -9361,7 +9361,7 @@ msgstr "Не удалось загрузить удалённый каталог
 
 #: src/algos/astrometry_solver.c:1347
 msgid "Cannot project the star catalog."
-msgstr ""
+msgstr "Не удалось спроецировать каталог звёзд."
 
 #: src/algos/astrometry_solver.c:1357 src/algos/astrometry_solver.c:1360
 #, c-format
@@ -10488,6 +10488,8 @@ msgid ""
 "Threading statistics computation per channel, but enabling threading in "
 "channels too is not supported.\n"
 msgstr ""
+"Распараллеливание поканального вычисления статистики, но включение также "
+"многопотоковости для каналов не поддерживается.\n"
 
 #: src/algos/statistics_float.c:237
 msgid "MAD is null. Statistics cannot be computed.\n"
@@ -10595,16 +10597,16 @@ msgstr "Нужно хотя бы два канала для выравниван
 
 #: src/compositing/compositing.c:1180
 msgid "No overflow with the current colours, redrawing only\n"
-msgstr ""
+msgstr "С текущими цветами переполнение отсутствует, только перерисовка\n"
 
 #: src/compositing/compositing.c:1183
 msgid "Nothing to adjust, no overflow\n"
-msgstr ""
+msgstr "В коррекции нет необходимости, переполнение отсутствует\n"
 
 #: src/compositing/compositing.c:1216
 #, c-format
 msgid "Readjusting layer %d to %g times bright\n"
-msgstr ""
+msgstr "Коррекция слоя %d в %g раз ярче\n"
 
 #: src/core/arithm.c:183
 msgid "Cannot divide by zero, aborting."
@@ -10911,7 +10913,7 @@ msgstr "Оценка ядра вслепую:\n"
 
 #: src/core/command.c:1064
 msgid "ℓ0 descent prior method\n"
-msgstr ""
+msgstr "ℓ0 предшествующий метод спуска\n"
 
 #: src/core/command.c:1068
 msgid "spectral irregularity method\n"
@@ -12022,7 +12024,7 @@ msgid ""
 "transformation compatible with no interpolation\n"
 msgstr ""
 "Принудительная установка преобразование регистрации в сдвиг, которое "
-"является единственным преобразованием, совместимым без интерполяции\n"
+"является единственным преобразованием, совместимым с \"Без интерполяции\"\n"
 
 #: src/core/command.c:6675
 msgid ""
@@ -12030,6 +12032,9 @@ msgid ""
 "transformation compatible with no interpolation, is not compatible with "
 "OpenCV below 4.4. Aborting\n"
 msgstr ""
+"Принудительная установка преобразование регистрации в сдвиг, которое "
+"является единственным преобразованием, совместимым с \"Без интерполяции\", "
+"несовместима с OpenCV ниже 4.4. Прерывание\n"
 
 #: src/core/command.c:6681 src/registration/registration.c:1518
 msgid ""
@@ -12872,6 +12877,43 @@ msgid ""
 "The output filename starts with the prefix \"pp_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
+"Калибрует изображение <b>imagename</b>, используя кадры шума считывания, "
+"темновые кадры и кадры плоского поля, указанные в аргументе.\n"
+"\n"
+"Вместо изображения, можно указать однородный уровень шума считывания, введя "
+"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или "
+"-bias=\"=64*$OFFSET\".\n"
+"\n"
+"Косметическая коррекция по умолчанию отключена. Если вы хотите применить "
+"коррекцию, это необходимо указать с помощью аргумента <b>-cc=</b>.\n"
+"Вы можете использовать <b>-cc=dark</b> для определения горячих и холодных в "
+"темновом мастер-кадре, который должен быть указан с помощью аргумента "
+"<b>-dark=</b>. Опционально можно указать значения холодных и горячих "
+"пикселей с помощью аргументов <b>siglo</b> и <b>sighi</b>, соответственно. "
+"Значение 0 отключает коррекцию. Если значения σ не указаны, то будет "
+"применено только определение горячих пикселей со значением σ равным 3.\n"
+"В качестве альтернативы, для указания пикселей, которые необходимо "
+"скорректировать, можно использовать аргумент <b>-cc=bpm</b> за которым "
+"следует путь к вашей карте дефектных пикселей. Файл с примером может быть "
+"получен с помощью команды <i>find_hot</i>, применённой к темновому "
+"мастер-кадру.\n"
+"\n"
+"Для целей косметической коррекции с помощью аргумента <b>-cfa</b> можно "
+"указать, являются ли обрабатываемые изображения изображениями CFA. При "
+"помощи аргумента <b>-debayer</b> можно выполнить дебайеризацию изображений в "
+"конце процесса.\n"
+"Аргумент <b>-fix_xtrans</b> используется при работе с файлами X-Trans, "
+"применяя коррекцию к темновым кадрам и кадрам шума считывания для удаления "
+"уродливого квадратного рисунка.\n"
+"Аргумент <b>-equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в "
+"мастер-изображении CFA.\n"
+"Также можно оптимизировать вычитание темнового мастер-кадра с помощью "
+"аргумента <b>-opt</b>.\n"
+"Необходимо отметить, что синтаксический анализатор командной строки не будет "
+"отклонять аргумент <b>-pex</b>, который используется в ходе предобработки "
+"последовательностей, но этот аргумент будет проигнорирован.\n"
+"Название итоговой последовательности будет начинаться с префикса \"pp_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:18
 msgid "Lists Siril capabilities, based on compilation and runtime"
@@ -12943,6 +12985,17 @@ msgid ""
 "<b>-start=index</b> sets the starting index number and the <b>-out=</b> "
 "option converts files into the directory <b>out</b>"
 msgstr ""
+"Конвертирует все изображения в известном формате в изображения FITS.\n"
+"\n"
+"Аргумент <b>basename</b> это базовое имя новой последовательности. Для "
+"изображений FITS Siril попытается создать символическую ссылку. Если это "
+"невозможно, файлы будут скопированы.\n"
+"Аргументы <b>-fitseq</b> и <b>-ser</b> можно использовать для указания "
+"альтернативного от FITS формата.\n"
+"Аргумент <b>-debayer</b> применяет дебайеризацию к изображениям. В этом "
+"случае символические ссылки не создаются.\n"
+"Аргумент <b>-start=index</b> устанавливает начальный порядковый номер, а "
+"аргумент <b>-out=</b> указывает конвертировать файлы в директорию <b>out</b>"
 
 #: src/core/command_def.h:27
 msgid ""
@@ -12958,6 +13011,17 @@ msgid ""
 "<b>-start=index</b> sets the starting index number and the <b>-out=</b> "
 "option converts files into the directory <b>out</b>"
 msgstr ""
+"Конвертирует RAW изображения цифровых камер в изображения FITS.\n"
+"\n"
+"Аргумент <b>basename</b> это базовое имя новой последовательности. Для "
+"изображений FITS Siril попытается создать символическую ссылку. Если это "
+"невозможно, файлы будут скопированы.\n"
+"Аргументы <b>-fitseq</b> и <b>-ser</b> можно использовать для указания "
+"альтернативного от FITS формата.\n"
+"Аргумент <b>-debayer</b> применяет дебайеризацию к изображениям. В этом "
+"случае символические ссылки не создаются.\n"
+"Аргумент <b>-start=index</b> устанавливает начальный порядковый номер, а "
+"аргумент <b>-out=</b> указывает конвертировать файлы в директорию <b>out</b>"
 
 #: src/core/command_def.h:28
 msgid ""
@@ -12985,6 +13049,12 @@ msgid ""
 "size of the selection. Alternatively, the selection can be made using the "
 "BOXSELECT command"
 msgstr ""
+"Кадрирует до выбранной области загруженного изображения.\n"
+"\n"
+"Если выделение активно, то другие аргументы не требуются. В противном случае "
+"или в сценариях, необходимо передать следующие аргументы: <b>x</b> и <b>y</"
+"b> - координаты верхнего левого угла, а <b>width</b> и <b>height</b> - "
+"размер выделения. Выделение может быть сделано с помощью команды BOXSELECT"
 
 #: src/core/command_def.h:32
 msgid ""
@@ -13168,6 +13238,9 @@ msgid ""
 "Same command as FILL but this is a symmetric fill of a region defined by the "
 "mouse. Used to process an image in the Fourier (FFT) domain"
 msgstr ""
+"Аналогична команде FILL, но выполняет симметричную заливку области, "
+"определённой с помощью мыши. Используется для обработки изображения в домене "
+"Фурье (FFT)"
 
 #: src/core/command_def.h:45
 msgid ""
@@ -13326,6 +13399,8 @@ msgid ""
 "Calculates the histogram of the image channel in memory and produces file "
 "histo_[channel name].dat in the working directory"
 msgstr ""
+"Вычисляет гистограмму указанного канала изображения, находящегося памяти и "
+"создает файл histo_[channel name].dat в рабочей директории"
 
 #: src/core/command_def.h:66
 msgid ""
@@ -13438,6 +13513,19 @@ msgid ""
 "settings or set to a factor of the reference image's FWHM if <b>-autoring</"
 "b> is passed"
 msgstr ""
+"Анализирует несколько звёзд в последовательности изображений с помощью "
+"апертурной фотометрии и создаёт световую кривую одной, откалиброванную. "
+"Первые координаты (в градусах) относятся к звезде, свет которой будет "
+"нанесён на график, остальные - к опорным звёздам. В качестве альтернативы, "
+"список целевых и опорных звёзд может быть передан в формате списка звёзд для "
+"плагина экзопланет NINA при помощи аргумента <b>-ninastars=</b>. Siril "
+"проверит, что все опорные звёзды могут быть использованы, прежде чем "
+"приступить к их фактическому использованию. Файл с данными (light_curve.dat) "
+"будет создан в текущей директории; gnunplot, если он доступен, преобразует "
+"результат в изображение PNG\n"
+"Радиусы колец для апертурной фотометрии могут быть установлены в настройках, "
+"или установлены как коэффициент от FWHM опорного изображения, если передан "
+"аргумент <b>-autoring</b>"
 
 #: src/core/command_def.h:76
 msgid ""
@@ -13959,6 +14047,17 @@ msgid ""
 "for maximum mask, 3 for additive mask, defaulting to 0. The last two can "
 "take an <b>amount</b> argument, a value between 0 and 1, defaulting to 1"
 msgstr ""
+"Применяет фильтр подавления хроматического шума, удаляющий зелёный оттенок "
+"на текущем изображении. Этот фильтр основан на SCNR из PixInsight и этот же "
+"фильтр используется плагином HLVG в Photoshop.\n"
+"По умолчанию светлота сохраняется, но это может быть отключено с помощью "
+"аргумента <b>-nopreserve</b>.\n"
+"\n"
+"Аргумент <b>type</b> может принимать значения 0 для алгоритма \"Средний "
+"нейтральный\", 1 для алгоритма \"Максимальный нейтральный\", 2 для алгоритма "
+"\"Максимальная маска\" и 3 для алгоритма \"Аддитивная маска\". Значение по "
+"умолчанию — 0. Последние два могут принимать аргумент <b>amount</b> со "
+"значением между 0 и 1. Значение по умолчанию — 1"
 
 #: src/core/command_def.h:116
 msgid ""
@@ -14052,6 +14151,9 @@ msgid ""
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
 "format, while <b>-deflate</b> enables compression"
 msgstr ""
+"Аналогична команде SAVETIF, но итоговый файл сохраняется в файле "
+"<b>filename</b>.tif с разрядностью 32 бита на канал. Аргумент <b>-astro</b> "
+"сохранение в формате Astro-tiff, а аргумент <b>-deflate</b> включает сжатие"
 
 #: src/core/command_def.h:127
 msgid ""
@@ -14059,6 +14161,9 @@ msgid ""
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
 "format, while <b>-deflate</b> enables compression"
 msgstr ""
+"Аналогична команде SAVETIF, но итоговый файл сохраняется в файле "
+"<b>filename</b>.tif с разрядностью 8 бит на канал. Аргумент <b>-astro</b> "
+"сохранение в формате Astro-tiff, а аргумент <b>-deflate</b> включает сжатие"
 
 #: src/core/command_def.h:128
 msgid ""
@@ -14176,6 +14281,11 @@ msgid ""
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
+"Аналогична команде COSME, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"cosme_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:133
 msgid ""
@@ -14184,6 +14294,11 @@ msgid ""
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
+"Аналогична команде COSME_CFA, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"cosme_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:134
 msgid ""
@@ -14202,6 +14317,11 @@ msgid ""
 "The output sequence name starts with the prefix \"Ha_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
+"Аналогична команде EXTRACT_HA, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"Ha_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -14210,6 +14330,11 @@ msgid ""
 "The output sequence name starts with the prefix \"Green_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
+"Аналогична команде EXTRACT_GREEN, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"Green_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:137
 msgid ""
@@ -14222,6 +14347,17 @@ msgid ""
 "no resampling will be carried out and the OIII image will have twice the "
 "height and width of the Ha image"
 msgstr ""
+"Аналогична команде EXTRACT_HAOIII, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Названия итоговых последовательностей будет начинаться с префиксов \"Ha_\" и "
+"\"OIII_\"\n"
+"\n"
+"Необязательный аргумент <b>-resample={ha|oiii}</b> указывает, следует ли "
+"увеличивать масштаб изображения Ha или уменьшать масштаб изображения OIII. "
+"Если этот аргумент не указан, масштаб изображений останется прежним и "
+"изображение OIII будет иметь вдвое большие высоту и ширину по сравнению с "
+"изображением Ha"
 
 #: src/core/command_def.h:138
 msgid ""
@@ -14230,6 +14366,11 @@ msgid ""
 "The option <b>-out=</b> is not available for this process as all the star "
 "list files are saved with the default name <i>seqname_seqnb.lst</i>"
 msgstr ""
+"Аналогична команде FINDSTAR, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Аргумент <b>-out=</b> недоступен для этого процесса, поскольку все файлы "
+"списка звёзд сохраняются с именем по умолчанию <i>seqname_seqnb.lst</i>"
 
 #: src/core/command_def.h:139
 msgid ""
@@ -14238,6 +14379,11 @@ msgid ""
 "The output sequence name starts with the prefix \"cc_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
+"Аналогична команде FIND_COSME, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"cc_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:140
 msgid ""
@@ -14246,6 +14392,11 @@ msgid ""
 "The output sequence name starts with the prefix \"cc_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
+"Аналогична команде FIND_COSME_CFA, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"cc_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:141
 msgid ""
@@ -14255,11 +14406,19 @@ msgid ""
 "specified with <b>-prefix=</b> option.\n"
 "<b>-vertical</b> option enables to perform vertical banding removal"
 msgstr ""
+"Аналогична команде FIXBANDING, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"unband_\""
+", если не указан иной с помощью аргумента <b>-prefix=</b>\n"
+"Аргумент <b>-vertical</b> включает удаление вертикального полошения"
 
 #: src/core/command_def.h:142
 msgid ""
 "Same command as GHT but the sequence must be specified as the first argument"
 msgstr ""
+"Аналогична команде GHT, но имя последовательности должно быть указано в "
+"первом аргументе"
 
 #: src/core/command_def.h:143
 msgid ""
@@ -14272,6 +14431,9 @@ msgid ""
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
+"Аналогична команде INVGHT, но имя последовательности должно быть указано в "
+"первом аргументе. Необязательный аргумент <b>-prefix=</b> может быть "
+"использован для указания пользовательского префикса"
 
 #: src/core/command_def.h:145
 msgid ""
@@ -14279,6 +14441,9 @@ msgid ""
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
+"Аналогична команде INVMODASINH, но имя последовательности должно быть "
+"указано в первом аргументе. Необязательный аргумент <b>-prefix=</b> может "
+"быть использован для указания пользовательского префикса"
 
 #: src/core/command_def.h:146
 msgid ""
@@ -14286,6 +14451,9 @@ msgid ""
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
+"Аналогична команде LINSTRETCH, но имя последовательности должно быть указано "
+"в первом аргументе. Необязательный аргумент <b>-prefix=</b> может быть "
+"использован для указания пользовательского префикса"
 
 #: src/core/command_def.h:147
 msgid ""
@@ -14304,6 +14472,21 @@ msgid ""
 "The output sequence name starts with the prefix \"mCFA_\" and a number "
 "unless otherwise specified with <b>-prefixout=</b> option"
 msgstr ""
+"Аналогична команде MERGE_CFA, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Один из вариантов восстанавливаемого шаблона Байера (RGGB, BGGR, GBRG или "
+"GRBG) должен быть указан в качестве второго аргумента.\n"
+"\n"
+"Имена входящих файлов должны содержать идентификационный префикс \"CFA_\" и "
+"номер, если не указан иной с помощью аргумента <b>-prefixin=</b>.\n"
+"\n"
+"Внимание: все 4 набора входящих файлов <b>должны</b> присутствовать и "
+"<b>должны</b> быть названы единообразно; единственным отличием является "
+"номер после идентификационного префикса.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"mCFA_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:148
 msgid ""
@@ -14311,6 +14494,9 @@ msgid ""
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
+"Аналогична команде MODASINH, но имя последовательности должно быть указано в "
+"первом аргументе. Необязательный аргумент <b>-prefix=</b> может быть "
+"использован для указания пользовательского префикса"
 
 #: src/core/command_def.h:149
 msgid ""
@@ -14323,6 +14509,15 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
+"Аналогична команде MTF, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"mtf_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>.\n"
+"\n"
+"Необязательный аргумент <b>[channels]</b> можно использовать для указания "
+"каналов, к которым необходимо применить растягивание: это может быть R, G, "
+"B, RG, RB или GB. По умолчанию применяется ко всем каналам"
 
 #: src/core/command_def.h:150
 msgid ""
@@ -14369,6 +14564,13 @@ msgid ""
 "center of the search box in pixels can be provided with the <b>-at=</b> "
 "argument"
 msgstr ""
+"Аналогична команде PSF, но применяется к последовательности.\n"
+"\n"
+"Результаты отображаются во вкладке \"График\", если запущена из графического "
+"интерфейса или выводит результат в консоль в форме, пригодной для построения "
+"кривых изменения яркости. Для автономного использования, аргументы "
+"обязательны и центр поискового поля в пикселях можно указать с помощью "
+"аргумента <b>-at=</b>"
 
 #: src/core/command_def.h:152
 msgid ""
@@ -14397,6 +14599,18 @@ msgid ""
 "typing the command makes it easy to understand.\n"
 "To reset the reference star and magnitude offset, see SEQUNSETMAG"
 msgstr ""
+"Аналогична команде SETMAG, но для загруженной последовательности.\n"
+"\n"
+"Эта команда применима только после команды SEQPSF или её графического "
+"аналога (выберете область вокруг звезды и запустите анализ PSF для "
+"последовательности, она появится на графиках).\n"
+"Эта команда преследует ту же цель, что и SETMAG, но повторно вычисляет "
+"опорную звездную величину для каждого изображения последовательности, на "
+"котором опорная звезда была найдена.\n"
+"При запуске команды, последняя проанализированная звезда будет "
+"рассматриваться как опорная. Отображение графика блеска перед вводом команды "
+"упрощает её понимание.\n"
+"Чтобы сбросить смещение опорной звезды и звёздной величины, см. SEQUNSETMAG"
 
 #: src/core/command_def.h:155
 msgid ""
@@ -14405,6 +14619,11 @@ msgid ""
 "The output sequences names start with the prefix \"CFA_\" and a number "
 "unless otherwise specified with <b>-prefix=</b> option"
 msgstr ""
+"Аналогична команде SPLIT_CFA, но применяется к последовательности "
+"<b>sequencename</b>.\n"
+"\n"
+"Название итоговой последовательности будет начинаться с префикса \"CFA_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:156
 msgid ""
@@ -14443,6 +14662,10 @@ msgid ""
 "\n"
 "It generally gives better result"
 msgstr ""
+"Аналогична команде TILT, но для загруженной последовательности или "
+"последовательности <b>sequencename</b>.\n"
+"\n"
+"Как правило, эта команда даёт лучший результат"
 
 #: src/core/command_def.h:160
 msgid ""
@@ -14772,6 +14995,9 @@ msgid ""
 "corner truncated mean values. The <b>clear</b> option allows to clear the "
 "drawing"
 msgstr ""
+"Вычисляет наклон сенсора как разницу в fwhm между усечёнными средними "
+"значениями наилучшего и наихудшего углов. Аргумент <b>clear</b> позволяет "
+"очистить рисунок"
 
 #: src/core/command_def.h:190
 msgid ""
@@ -14799,6 +15025,8 @@ msgid ""
 "Displays an image with <b>low</b> and <b>high</b> as the low and high "
 "threshold"
 msgstr ""
+"Демонстрирует изображения, используя <b>low</b> и <b>high</b> как нижний и "
+"верхний пороги"
 
 #: src/core/command_def.h:196
 msgid ""
@@ -14807,6 +15035,10 @@ msgid ""
 "algorithm. The result is stored in a file as a structure containing the "
 "layers, ready for weighted reconstruction with WRECONS"
 msgstr ""
+"Вычисляет вейвлетное преобразование для (<b>nbr_layers</b>=1...6) слоёв, "
+"используя линейную (<b>type</b>=1) или В-сплайн (<b>type</b>=2) версию "
+"алгоритма. Результат сохраняется в файле как структура, содержащая слои, "
+"готовая к реконструкции с использованием весов с помощью WRECONS"
 
 #: src/core/command_def.h:197
 msgid ""
@@ -14818,6 +15050,13 @@ msgid ""
 "The parameter <b>-alpha=</b> provides the Gaussian noise modelled "
 "regularization factor"
 msgstr ""
+"Восстанавливает изображение, используя метод реконструкции Венера.\n"
+"\n"
+"С помощью необязательного аргумента <b>-loadpsf=<i>filename</i></b> может "
+"быть загружена PSF.\n"
+"\n"
+"Аргумент <b>-alpha=</b> предоставляет коэффициент регуляризации, "
+"моделируемый Гауссовым шумом"
 
 #: src/core/command_def.h:198
 msgid ""
@@ -14825,6 +15064,10 @@ msgid ""
 "wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> "
 "according to the number of layers used for wavelet transform"
 msgstr ""
+"Восстанавливает текущее изображение из слоёв, раннее вычисленных с помощью "
+"вейвлетов и с присвоенными весами с помощью коэффициентов <b>c1</b>, <b>c2</"
+"b>, ..., <b>cn</b> в соответствии с количеством слоёв, использованных для "
+"вейвлет-преобразования"
 
 #: src/core/command_line_processor.c:50
 msgid "unknown command name"
@@ -15780,8 +16023,9 @@ msgid "factor for outer radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внешнего радиуса"
 
 #: src/core/settings.c:304
+#, fuzzy
 msgid "force flux aperture value"
-msgstr ""
+msgstr "принудительное значение"
 
 #: src/core/settings.c:305
 #, fuzzy
@@ -16545,11 +16789,11 @@ msgstr "аддитивная маска"
 #: src/filters/scnr.c:63
 #, c-format
 msgid "SCNR: processing with %s algorithm%s...\n"
-msgstr "SCNR: обработка с помощью %s алгоритм %s...\n"
+msgstr "SCNR: обработка с помощью алгоритма %s%s...\n"
 
 #: src/filters/scnr.c:65
 msgid ", preserving lightness"
-msgstr ", сохраняя светлоту"
+msgstr ", с сохранением светлоты"
 
 #: src/filters/scnr.c:177
 #, c-format
@@ -16854,6 +17098,8 @@ msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
 msgstr ""
+"Фотометрия не может быть выполнена. Вы можете попытаться изменить установки "
+"в настройках Siril."
 
 #: src/gui/astrometry_solver.c:314
 msgid ""
@@ -16942,7 +17188,7 @@ msgstr "Обработка"
 #: src/gui/background_extraction.c:83 src/gui/background_extraction.c:94
 #: src/gui/siril_preview.c:70 src/gui/siril_preview.c:81
 msgid "Image copy error in previews\n"
-msgstr ""
+msgstr "Ошибка копирования изображения в предварительном просмотре\n"
 
 #: src/gui/background_extraction.c:184
 msgid "Polynomial order seems too high."
@@ -17001,7 +17247,7 @@ msgstr ""
 #: src/gui/callbacks.c:308
 #, c-format
 msgid "Setting ranges scalemin=%d, scalemax=%d\n"
-msgstr ""
+msgstr "Устанавливаются диапазоны мин. масштаб=%d, макс. масштаб=%d\n"
 
 #: src/gui/callbacks.c:333
 msgid ""
@@ -17410,29 +17656,30 @@ msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Преобразование гист-мы (сред.=%.3f, низ=%.3f, верх=%.3f)"
 
 #: src/gui/histogram.c:1161
-#, c-format
+#, c-format, fuzzy
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1164
-#, c-format
+#, c-format, fuzzy
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
+"Обратное GHS точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1167
-#, c-format
+#, c-format, fuzzy
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS ASINH точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1170
-#, c-format
+#, c-format, fuzzy
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Обратное GHS ASINH точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1173
-#, c-format
+#, c-format, fuzzy
 msgid "GHS LINEAR BP: %.2f"
-msgstr ""
+msgstr "Линейное растягивание BP: %.2f"
 
 #: src/gui/histogram.c:1179
 #, c-format
@@ -17900,6 +18147,8 @@ msgid ""
 "if not checked, a PNG image of the graph will be generated instead (if "
 "gnuplot is available, for both cases)"
 msgstr ""
+"если флажок не установлен, вместо этого будет создано изображение графика в "
+"формате PNG (если gnuplot доступен, в обоих случаях)"
 
 #: src/gui/nina_light_curve.c:83
 msgid "The currently loaded image must be plate solved"
@@ -18030,6 +18279,8 @@ msgid ""
 "Calibrated data for %d points of the light curve, %d excluded because of "
 "invalid calibration\n"
 msgstr ""
+"Откалиброваны данные для %d точек кривой блеска, исключено %d из-за "
+"неправильной фотометрии\n"
 
 #: src/gui/plot.c:1194
 #, c-format
@@ -18719,8 +18970,9 @@ msgid "Error: sequence is SER"
 msgstr "Ошибка: последовательность SER"
 
 #: src/gui/split_cfa.c:49
+#, fuzzy
 msgid "Only FITS format is supported for sequence CFA splitting"
-msgstr ""
+msgstr "Извлечение CFA"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
