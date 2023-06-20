@@ -8947,6 +8947,7 @@ display:
 		refresh_found_objects();
 		redraw(REDRAW_OVERLAY);
 	}
-	siril_world_cs_unref(coords);
+	if (coords)
+		siril_world_cs_unref(coords);
 	return CMD_OK;
 }
