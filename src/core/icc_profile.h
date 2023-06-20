@@ -78,4 +78,7 @@ void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference);
 void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to);
 void update_profiles_after_gamut_change();
 
+void sirilCmsDoPlanarTransformParallelRows(cmsHTRANSFORM transform, const void *src, void *dest, const cmsUInt32Number ncols, const cmsUInt32Number nrows, const cmsUInt32Number src_bytesperline, const cmsUInt32Number dest_bytesperline, const cmsUInt32Number nchans);
+void sirilCmsDoBulkyTransformParallelRows(cmsHTRANSFORM transform, const void *src, void *dest, const cmsUInt32Number ncols, const cmsUInt32Number nrows, const cmsUInt32Number src_bytesperline, const cmsUInt32Number dest_bytesperline);
+
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

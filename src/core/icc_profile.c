@@ -683,6 +683,66 @@ void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
 	convert_fit_colorspace(input, input->icc_profile, reference->icc_profile);
 }
 
+
+/* This function should be used in place of cmsDoTransformLineStride to achieve
+ * parallelism using OpenMP instead of the Little CMS threaded plugin. This way
+ * was faster when I timed it. It cannot be used on bulky data. */
+
+void sirilCmsDoPlanarTransformParallelRows(cmsHTRANSFORM transform, const void *src, void *dest, const cmsUInt32Number ncols, const cmsUInt32Number nrows, const cmsUInt32Number src_bytesperline, const cmsUInt32Number dest_bytesperline, const cmsUInt32Number nchans) {
+	const cmsUInt32Number color_stride_size = ncols * nchans;
+	const cmsUInt32Number num_threads = com.max_thread;
+	const cmsUInt32Number src_datasize = src_bytesperline / ncols;
+	const cmsUInt32Number dest_datasize = dest_bytesperline / ncols;
+	const void* psrc[3] = { src, src + ncols * src_datasize, src + 2 * ncols * src_datasize };
+	void* pdest[3] = { dest, dest + ncols * dest_datasize, dest + 2 * ncols * dest_datasize };
+	cmsBool error = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(num_threads) schedule(static)
+#endif
+	for (size_t stride = 0 ; stride < nrows ; stride ++) {
+		if (error) continue;
+		const size_t stride_index = stride * ncols;
+		void *destbuf = malloc(color_stride_size * dest_datasize);
+		if (!destbuf) {
+			PRINT_ALLOC_ERR;
+			error = TRUE;
+			continue;
+		}
+		void* srcbuf = malloc(color_stride_size * src_datasize);
+		if (!srcbuf) {
+			PRINT_ALLOC_ERR;
+			error = TRUE;
+			if (destbuf) free (destbuf);
+			continue;
+		}
+		void* psrcbuf[3] = { srcbuf, srcbuf + ncols * src_datasize, srcbuf + 2 * ncols * src_datasize };
+		void* pdestbuf[3] = { destbuf, destbuf + ncols * dest_datasize, destbuf + 2 * ncols * dest_datasize };
+		for (uint32_t i = 0 ; i < nchans ; i++) {
+			memcpy(psrcbuf[i], psrc[i] + stride_index * src_datasize, ncols * src_datasize);
+		}
+		cmsDoTransformLineStride(transform, srcbuf, destbuf, ncols, 1, src_bytesperline, dest_bytesperline, src_bytesperline, src_bytesperline);
+		for (uint32_t i = 0 ; i < nchans ; i++) {
+			memcpy(pdest[i] + stride_index * dest_datasize, pdestbuf[i], ncols * dest_datasize);
+		}
+		free (srcbuf);
+		free (destbuf);
+	}
+}
+
+/* This function should be used in place of cmsDoTransformLineStride to achieve
+ * parallelism using OpenMP instead of the Little CMS threaded plugin. This way
+ * was faster when I timed it. It cannot be used on planar data. */
+
+void sirilCmsDoBulkyTransformParallelRows(cmsHTRANSFORM transform, const void *src, void *dest, const cmsUInt32Number ncols, const cmsUInt32Number nrows, const cmsUInt32Number src_bytesperline, const cmsUInt32Number dest_bytesperline) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (cmsUInt32Number row = 0 ; row < nrows ; row ++) {
+		cmsDoTransformLineStride(transform, src + row * src_bytesperline, dest + row * dest_bytesperline, ncols, nrows, src_bytesperline, dest_bytesperline, src_bytesperline, dest_bytesperline);
+	}
+}
+
 ///// Preferences callbacks
 
 // Being able to alter the monitor and soft_proof profiles and intents from the GTK thread means all operations
