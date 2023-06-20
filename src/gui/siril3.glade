@@ -15704,12 +15704,11 @@ You can modulate the limit magnitude by using the command ``solsys [-mag=]`.</pr
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_search_varstars">
+      <object class="GtkMenuItem" id="menu_catalogues">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="tooltip-text" translatable="yes">Search and display Variable Stars (from the GCVS or AAVSO) with mag&lt;13.0.
-You can modulate the limit magnitude by using the command ``varstars [-mag=] [-catalog=]`.</property>
-        <property name="label" translatable="yes">Variable Stars</property>
+        <property name="tooltip-text" translatable="yes">Search and display fixed objects from various catalogues. </property>
+        <property name="label" translatable="yes">Catalogues...</property>
         <property name="use-underline">True</property>
         <signal name="activate" handler="on_menu_varstars_select" swapped="no"/>
         <child type="submenu">
@@ -15718,16 +15717,18 @@ You can modulate the limit magnitude by using the command ``varstars [-mag=] [-c
             <property name="can-focus">False</property>
             <child>
               <object class="GtkSeparatorMenuItem" id="Variable Stars">
+                <property name="height-request">6</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="action-name">hjhjVariable Stars</property>
+                <property name="valign">baseline</property>
+                <property name="action-name">Variable Stars</property>
               </object>
             </child>
             <child>
               <object class="GtkMenuItem" id="cat_gcvs">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Variables stars in the field of view contained in the General Catalog of Variable Stars and with (mag&lt;13).
+                <property name="tooltip-text" translatable="yes">Variables stars in the field of view belonging to the General Catalog of Variable Stars and with (mag&lt;13).
 The limit magnitude can be tuned with the `varstars` command. </property>
                 <property name="action-name">win.cat_gcvs</property>
                 <property name="label" translatable="yes">GCVS</property>
@@ -15738,16 +15739,17 @@ The limit magnitude can be tuned with the `varstars` command. </property>
               <object class="GtkMenuItem" id="cat_aavso">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Variables stars in the field of view contained in the AAVSO catalogue and with (mag&lt;13).
+                <property name="tooltip-text" translatable="yes">Variables stars in the field of view belonging to the AAVSO catalogue and with (mag&lt;13).
 The limit magnitude can be tuned with the `varstars` command. 
 </property>
                 <property name="action-name">win.cat_aavso</property>
-                <property name="label" translatable="yes">AAVSO (var)</property>
+                <property name="label" translatable="yes">AAVSO (VSX)</property>
                 <property name="use-underline">True</property>
               </object>
             </child>
             <child>
               <object class="GtkSeparatorMenuItem" id="Stars">
+                <property name="height-request">6</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="action-name">hjhj</property>
@@ -15757,7 +15759,7 @@ The limit magnitude can be tuned with the `varstars` command.
               <object class="GtkMenuItem" id="cat_apass">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Reference Stars in the field of view contained in the AAVSO Photometric All Sky Survey catalogue and with (mag&lt;13).
+                <property name="tooltip-text" translatable="yes">Reference Stars in the field of view belonging to the AAVSO Photometric All Sky Survey catalogue and with (mag&lt;13).
 The limit magnitude can be tuned with the `varstars` command. 
 </property>
                 <property name="action-name">win.cat_apass</property>
@@ -15768,7 +15770,7 @@ The limit magnitude can be tuned with the `varstars` command.
               <object class="GtkMenuItem" id="cat_bsc">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Stars in the field of view contained in the  Bright Star Catalogue and with (mag&lt;13).
+                <property name="tooltip-text" translatable="yes">Stars in the field of view belonging to the  Bright Star Catalogue and with (mag&lt;13).
 The limit magnitude can be tuned with the `varstars` command. 
 </property>
                 <property name="action-name">win.cat_bsc</property>
@@ -15779,7 +15781,7 @@ The limit magnitude can be tuned with the `varstars` command.
               <object class="GtkMenuItem" id="cat_ppmxl">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Stars in the field of view contained in the PPMXL Catalogue and with (mag&lt;8).
+                <property name="tooltip-text" translatable="yes">Stars in the field of view belonging to the PPMXL Catalogue and with (mag&lt;8).
 The limit magnitude can be tuned with the `varstars` command. </property>
                 <property name="action-name">win.cat_ppmxl</property>
                 <property name="label" translatable="yes">PPMXL</property>
@@ -15788,6 +15790,7 @@ The limit magnitude can be tuned with the `varstars` command. </property>
             <child>
               <object class="GtkSeparatorMenuItem" id="Others">
                 <property name="name">Others...</property>
+                <property name="height-request">6</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
               </object>
@@ -15797,7 +15800,7 @@ The limit magnitude can be tuned with the `varstars` command. </property>
                 <property name="name">dddd</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Galaxies (with B-mag&gt;18) in the field of view contained in the PGC Catalogue.
+                <property name="tooltip-text" translatable="yes">Galaxies (with B-mag&lt;18) in the field of view belonging to the PGC Catalogue (HYPERLEDA).
 </property>
                 <property name="action-name">win.cat_pgc</property>
                 <property name="label" translatable="yes">PGC</property>
@@ -15808,7 +15811,7 @@ The limit magnitude can be tuned with the `varstars` command. </property>
       </object>
     </child>
     <child>
-      <object class="GtkSeparatorMenuItem" id="&lt;séparateur&gt;">
+      <object class="GtkSeparatorMenuItem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
       </object>

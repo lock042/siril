@@ -82,7 +82,7 @@ const char *catalog_to_str(online_catalog cat) {
 		case CAT_PPMXL:
 			return _("PPMXL");
 		case CAT_BRIGHT_STARS:
-			return _("bright stars");
+			return _("BSC");
 		case CAT_PGC:
 			return _("PGC");
 		case CAT_APASS:
@@ -90,8 +90,7 @@ const char *catalog_to_str(online_catalog cat) {
 		case CAT_GCVS:
 			return _("GCVS");
 		case CAT_AAVSO_Var:
-			return _("AAVSO_Variable");
-
+			return _("AAVSO (VSX)");
 		case CAT_AAVSO:
 			return _("AAVSO");
 		case CAT_LOCAL:
@@ -580,7 +579,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	switch (type) {
 	case CAT_NOMAD:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "NOMAD&-out.meta=huD&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Vmag%20Bmag");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
@@ -593,7 +593,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	default:
 	case CAT_TYCHO2:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "I/259/tyc2&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "I/259/tyc2&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "I/259/tyc2&-out.meta=huD&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAmdeg%20DEmdeg%20VTmag%20BTmag");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
@@ -605,7 +606,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		break;
 	case CAT_GAIADR3:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "I/355/gaiadr3&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "I/355/gaiadr3&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "I/355/gaiadr3&-out.meta=huD&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Gmag%20BPmag%20e_Gmag%20e_BPmag%20DR3Name");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");

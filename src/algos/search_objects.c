@@ -338,7 +338,7 @@ int cat_mapping(const gchar *buffer, int cata) {
 //						siril_log_message(_("F77_len: %d \n"), F77_len);					// for test only FD
 					}
 					g_free(tmp);
-					if (!strcmp(sub_line[1], cpl2[cata][j]) && cpl2[cata][j]) {
+					if (!g_strcmp0(sub_line[1], cpl2[cata][j]) && cpl2[cata][j]) {
 //						siril_log_message(_("Subline: %s, index: %d, len: %d %s\n"), cpl2[cata][j], cumul, F77_len, sub_line[2]);					// for test only FD
 //						siril_log_message(_("case: %d\n"), j);					// for test only FD
 						switch (j) {
@@ -485,7 +485,7 @@ int parse_varstars_buffer(const gchar *buffer, double lim_mag, int cata) {
 	g_free(magg);
 	g_free(objname);
 	g_strfreev(token);
-	siril_log_message(_("Found %d Variable Stars with mag < %0.1lf\n"), nbr_a, lim_mag);
+	siril_log_message(_("Found %d Objects with mag < %0.1lf\n"), nbr_a, lim_mag);
 	return nbr_a <= 0;
 }
 
