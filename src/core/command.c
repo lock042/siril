@@ -8787,7 +8787,7 @@ int process_varstars(int nb) {
 			const char *cat = word[arg_idx] + 9;
 			if (!g_ascii_strcasecmp(cat, "gcvs"))
 				args->onlineCatalog = CAT_GCVS;
-			else if (!g_ascii_strcasecmp(cat, "aavso_v"))
+			else if (!g_ascii_strcasecmp(cat, "aavso"))
 				args->onlineCatalog = CAT_AAVSO_Var;
 			else if (!g_ascii_strcasecmp(cat, "apass"))
 				args->onlineCatalog = CAT_AAVSO;
