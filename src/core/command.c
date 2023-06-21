@@ -1024,8 +1024,8 @@ int process_makepsf(int nb) {
 	reset_conv_args(data);
 	cmd_errors status = CMD_OK;
 
-	char *arg = word[1];
-	if (!g_strcmp0(arg, "clear")) {
+	char *arg_1 = word[1];
+	if (!g_strcmp0(arg_1, "clear")) {
 		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			status = CMD_GENERIC_ERROR;
@@ -1035,7 +1035,7 @@ int process_makepsf(int nb) {
 		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
 		goto terminate_makepsf;
 	} else {
-		if (!g_strcmp0(arg, "save")) {
+		if (!g_strcmp0(arg_1, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			if (!word[2] || word[2][0] == '\0') {
 				on_bdeconv_savekernel_clicked(NULL, NULL);
@@ -1051,7 +1051,7 @@ int process_makepsf(int nb) {
 		}
 		reset_conv_kernel();
 		status = CMD_ARG_ERROR; // setting to this value as it will be the most likely error from now on
-		if (!g_strcmp0(arg, "blind")) {
+		if (!g_strcmp0(arg_1, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "blind");
 				status = CMD_GENERIC_ERROR;
@@ -1131,7 +1131,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "stars")) {
+		} else if (!g_strcmp0(arg_1, "stars")) {
 			data->recalc_ks = FALSE;
 			gboolean force_ks = FALSE;
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
@@ -1185,7 +1185,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "manual")) {
+		} else if (!g_strcmp0(arg_1, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
 			data->psftype = PSF_MANUAL;
 			for (int i = 2; i < nb; i++) {
@@ -1332,7 +1332,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only,data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "load")) {
+		} else if (!g_strcmp0(arg_1, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {
 				if (load_kernel(word[2])) {
@@ -1345,7 +1345,7 @@ int process_makepsf(int nb) {
 			status = CMD_OK;
 			goto terminate_makepsf;
 		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg_1);
 		}
 	}
 terminate_makepsf:
@@ -9205,7 +9205,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-from";
+				siril_log_color_message(_("Error: Could not parse -from values.\n"), "red");
 				break;
 			}
 		}
@@ -9213,7 +9213,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 4;
 			if ((*err = read_cut_pair(value, &cut_args->cut_end))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-to";
+				siril_log_color_message(_("Error: Could not parse -to values.\n"), "red");
 				break;
 			}
 		}
@@ -9221,7 +9221,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn1at";
+				siril_log_color_message(_("Error: Could not parse -wn1at values.\n"), "red");
 				break;
 			}
 		}
@@ -9229,7 +9229,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn2at";
+				siril_log_color_message(_("Error: Could not parse -wn2at values.\n"), "red");
 				break;
 			}
 		}
