@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-02 21:04+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/de/>\n"
+"PO-Revision-Date: 2023-06-22 14:40+0000\n"
+"Last-Translator: Jens Bladal <thurner.julius@stud.sgd.bayern>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -19611,21 +19611,24 @@ msgstr ""
 "Bildbreite, -höhe, Bittiefe und Anzahl an Kanälen müssen übereinstimmen"
 
 #: src/gui/remixer.c:1269 src/gui/remixer.c:1317
-#, fuzzy
 msgid "There is no starless image loaded"
-msgstr "Es gibt keinen Zeitstempel in dieser Datei"
+msgstr "Es kann kein sternloses Bild geladen werden"
 
 #: src/gui/remixer.c:1270
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
 msgstr ""
+"Lade ein Bild mit dem linken Datei-Manager, bevor mit der Pipette versucht "
+"wird, SP zu setzen"
 
 #: src/gui/remixer.c:1318
 msgid ""
 "Load an image using the rightt-hand file chooser before attempting to set SP "
 "using the eyedropper"
 msgstr ""
+"Lade ein Bild mit dem rechten Datei-Manager, bevor mit der Pipette versucht "
+"wird, SP zu setzen"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1364
