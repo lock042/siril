@@ -522,10 +522,12 @@ static int dual_save(struct generic_seq_args *args, int out_index, int in_index,
 		}
 		free(dest);
 	}
-	clearfits(double_data->ha);
-	free(double_data->ha);
-	clearfits(double_data->oiii);
-	free(double_data->oiii);
+	if (!cfa_args->new_fitseq_ha && !cfa_args->new_ser_ha) { // detect if there is a seqwriter
+		clearfits(double_data->ha);
+		free(double_data->ha);
+		clearfits(double_data->oiii);
+		free(double_data->oiii);
+	}
 	free(double_data);
 	return retval1 || retval2;
 }
@@ -908,7 +910,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 							weight += SQRTF_2;
 						}
 						if(!last_x) {
-							interp += OIII->data[HaIndex+1] * SQRTF_2;
+							interp += OIII->data[HaIndex + 1] * SQRTF_2;
 							weight += SQRTF_2;
 						}
 					}
