@@ -272,7 +272,7 @@ static char *catalog_data_label[][MAX_DATA_ITEMS] = {
 	{"RAJ2000", "DEJ2000", "NOMAD1", "Vmag"},				//CAT_NOMAD
 	{"RAJ2000", "DEJ2000", "DR3Name", "Gmag"},				//CAT_GAIADR3
 	{"RAJ2000", "DEJ2000", "PPMXL", "Jmag"},				//CAT_PPMXL
-	{"RAJ2000", "DEJ2000", "Name", "Vmag"},					//CAT_BRIGHT_STARS
+	{"RAJ2000", "DEJ2000", "HD", "Vmag"},					//CAT_BRIGHT_STARS
 	{"RAJ2000", "DEJ2000", "Name", NULL},					//CAT_APASS No real interrest as this is the same as CAT_AAVSO with no name fields
 	{"RAJ2000", "DEJ2000", "GCVS", "magMax"},				//CAT_GCVS
 	{"RAJ2000", "DEJ2000", "Name", "max"},					//CAT_AAVSO_Var
@@ -386,8 +386,8 @@ int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
 
 		if (!unlock) {
 			if (!line[0] && first_blank) {
-				siril_log_color_message(_("Malformed returned file. Check if server available. Aborted.\n"), "red");
-				break;
+				siril_log_color_message(_("No object from %s found in this FOV.\n"), "salmon", catalog_to_str(cat));
+				return 0;
 			}			
 			if (!line[0]) first_blank = TRUE;					// Loops until the begining is found
 			if (g_str_has_prefix(line, "-----")) unlock = TRUE;	// Flag line is found, unlock and go ahead
@@ -415,6 +415,7 @@ int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
 			if (j == catalog_data.name_ind) {		// Name read
 				gchar *temp = g_strndup(&line[j], catalog_data.name_len);	
 				if (cat == CAT_PGC)	objname = g_strconcat("PGC ", temp, NULL);	// Adding a prefix for PGC. Much nicer!!
+				if (cat == CAT_BRIGHT_STARS)	objname = g_strconcat("HD ", temp, NULL);	// Adding a prefix for BSC. Much nicer also!!
 				else objname = g_strdup(temp);
 				if (!temp) objname = "x";		// if noname, just "x"
 				g_free(temp);
