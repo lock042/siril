@@ -8821,7 +8821,7 @@ int process_varstars(int nb) {
 		return CMD_INVALID_IMAGE;
 	}
 
-	start_in_new_thread(search_in_online_varstars, args);
+	start_in_new_thread(search_in_online_vizier, args);
 	return CMD_OK;
 }
 

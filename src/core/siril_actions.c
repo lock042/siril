@@ -392,7 +392,7 @@ void search_stars_gcvs_activate(GSimpleAction *action, GVariant *parameter, gpoi
 		args->focal_length = gfit.focal_length;
 		args->pixel_size = gfit.pixel_size_x;
 		args->scale = get_resolution(args->focal_length, args->pixel_size);
-		start_in_new_thread(search_in_online_varstars, args);
+		start_in_new_thread(search_in_online_vizier, args);
 	}
 }
 void search_stars_aavso_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -405,7 +405,7 @@ void search_stars_aavso_activate(GSimpleAction *action, GVariant *parameter, gpo
 		args->focal_length = gfit.focal_length;
 		args->pixel_size = gfit.pixel_size_x;
 		args->scale = get_resolution(args->focal_length, args->pixel_size);
-		start_in_new_thread(search_in_online_varstars, args);
+		start_in_new_thread(search_in_online_vizier, args);
 	}
 }
 void search_stars_apass_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -418,7 +418,7 @@ void search_stars_apass_activate(GSimpleAction *action, GVariant *parameter, gpo
 		args->focal_length = gfit.focal_length;
 		args->pixel_size = gfit.pixel_size_x;
 		args->scale = get_resolution(args->focal_length, args->pixel_size);
-		start_in_new_thread(search_in_online_varstars, args);
+		start_in_new_thread(search_in_online_vizier, args);
 	}
 }
 void search_stars_bsc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -431,7 +431,7 @@ void search_stars_bsc_activate(GSimpleAction *action, GVariant *parameter, gpoin
 		args->focal_length = gfit.focal_length;
 		args->pixel_size = gfit.pixel_size_x;
 		args->scale = get_resolution(args->focal_length, args->pixel_size);
-		start_in_new_thread(search_in_online_varstars, args);
+		start_in_new_thread(search_in_online_vizier, args);
 	}
 }
 void search_stars_ppmxl_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -444,7 +444,7 @@ void search_stars_ppmxl_activate(GSimpleAction *action, GVariant *parameter, gpo
 		args->focal_length = gfit.focal_length;
 		args->pixel_size = gfit.pixel_size_x;
 		args->scale = get_resolution(args->focal_length, args->pixel_size);
-		start_in_new_thread(search_in_online_varstars, args);
+		start_in_new_thread(search_in_online_vizier, args);
 	}
 }
 void search_stars_pgc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -457,7 +457,7 @@ void search_stars_pgc_activate(GSimpleAction *action, GVariant *parameter, gpoin
 		args->focal_length = gfit.focal_length;
 		args->pixel_size = gfit.pixel_size_x;
 		args->scale = get_resolution(args->focal_length, args->pixel_size);
-		start_in_new_thread(search_in_online_varstars, args);
+		start_in_new_thread(search_in_online_vizier, args);
 	}
 }
 

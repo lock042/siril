@@ -786,7 +786,7 @@ gpointer search_in_online_conesearch(gpointer p) {
 }
 
 
-gpointer search_in_online_varstars(gpointer p) {
+gpointer search_in_online_vizier(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 
 	double ra = 0.0, dec = 0.0;
@@ -808,7 +808,7 @@ gpointer search_in_online_varstars(gpointer p) {
 	g_free(url);
 
 	if (result)
-		retval = parse_varstars_buffer(result, args->limit_mag, args->onlineCatalog);
+		retval = parse_vizier_buffer(result, args->limit_mag, args->onlineCatalog);
 	
 #if defined HAVE_LIBCURL
 	free(result);

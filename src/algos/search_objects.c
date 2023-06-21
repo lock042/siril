@@ -254,18 +254,19 @@ typedef struct {
 	int eBmag_len;		// Lenght of the eBmag field in the returned stream
 	int eBmag_ind;		// Index of the eBmag field in the returned stream
 	int fmt;			// Data type for RA and DEC: 0 stands for Alphanumeric, 1 stands for Double
-} cat_plan;
+} catalog_plan;
 
-static cat_plan catalog_data = {0};
+static catalog_plan catalog_data = {0};
 
 
 	//// APASS fields: RAJ2000 DEJ2000 Vmag Bmag e_Vmag e_Bmag recno
 	//// NOMAD fields: RAJ2000 DEJ2000 Vmag Bmag
 	//// GAIA3 fields: RAJ2000 DEJ2000 Gmag BPmag e_Gmag e_BPmag DR3Name
 	// 1- For now, only the 4 first data are used, but could be extended to
-	// the next items defined in cat_plan
-	// 2- The catalogue order MUST match the one defined in the structure 'online_catalog' in "remote_catalogues.h"
-	// 3- The keywords are specific to each catalogue and are explained in the Vizier pages
+	//    the next items defined in catalog_plan
+	// 2- The keyword order (RA/DEC/Name/mg/...) must be kept as is.
+	// 3- The catalogue order MUST match the one defined in the structure 'online_catalog' in "remote_catalogues.h"
+	// 4- The keywords are specific to each catalogue and are explained in the Vizier pages
 static char *catalog_data_label[][MAX_DATA_ITEMS] = {	
 	{"RAJ2000", "DEJ2000", "recno", "VTmag"},				//CAT_TYCHO2
 	{"RAJ2000", "DEJ2000", "NOMAD1", "Vmag"},				//CAT_NOMAD
@@ -280,20 +281,22 @@ static char *catalog_data_label[][MAX_DATA_ITEMS] = {
 	{NULL, NULL, NULL, NULL}								// Dummy
 };
 
-// Designed to get the index/lenght (see cat_plan) of the dataset determined by the keywords (see catalog_data_label)
-int cat_mapping(const gchar *buffer, int cata) {
+// Designed to get the index/lenght (see catalog_plan) of the dataset determined by the keywords (see catalog_data_label)
+int catalog_mapping(const gchar *buffer, int cata) {
 	gchar **token = g_strsplit(buffer, "\n", -1);
 	int nb_lines = g_strv_length(token);
 	catalog_data.fmt = 0;
-	size_t taille = sizeof(catalog_data_label[cata]) / (sizeof(catalog_data_label[cata][0]));
+	size_t label_qty = sizeof(catalog_data_label[cata]) / (sizeof(catalog_data_label[cata][0]));
 
-	for (int j =0; j < taille; j++) {		// Loop on items contained in the catalogue
+	for (int j =0; j < label_qty; j++) {		// Loop on items contained in the catalogue
 		int cumul = 0;		// cumulative index
 		int F77_len = 0;	// lenght of each item
 		for (int i = 0; i < nb_lines; i++) {		// Loops on the lines
 			gchar *line = token[i];
 
-		// Example: #Column	Item	(F77 format statement)
+		// Prototype of a significant line:
+		// #Column	Item	(F77 format statement)	[useless stuff]
+		// Example:
 		// #Column	RAJ2000	(F10.6)		[ucd=pos.eq.ra;meta.main]
 		// #Column	DEJ2000	(F10.6)		[ucd=pos.eq.dec;meta.main]
 
@@ -350,13 +353,14 @@ int cat_mapping(const gchar *buffer, int cata) {
 	return 0;
 }
 
-int parse_varstars_buffer(const gchar *buffer, double lim_mag, int cata) {
+int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
 	gchar **token = g_strsplit(buffer, "\n", -1);
 	int nb_lines = g_strv_length(token);
 	SirilWorldCS *world_cs = NULL;
 	purge_temp_user_catalogue();
 
-	if (nb_lines <= 20) {						// 20 because of the minimum lenght of the header...
+	if (!buffer || nb_lines <= 25) {				// 25 because nearly the end of the INFO lines in the header...
+		siril_log_color_message(_("Useless file. Check if server available. Aborted.\n"), "red");
 		g_strfreev(token);
 		return 0;
 	}
@@ -372,7 +376,7 @@ int parse_varstars_buffer(const gchar *buffer, double lim_mag, int cata) {
 	gchar *magg = NULL;
 
 // Determines the data mapping of he used catalogue
-	cat_mapping(buffer, cat);
+	catalog_mapping(buffer, cat);
 
 // Discards heder lines
 	for (int i = 0; i < nb_lines; i++) {		// Loops on the lines
@@ -390,8 +394,9 @@ int parse_varstars_buffer(const gchar *buffer, double lim_mag, int cata) {
 			continue;
 		}
 
-		if (!line[0] && unlock) break;				// The first blank line after a good data block (avoids "is_blank()" and a new dependency)
+		if (!line[0] && unlock) break;				// The first blank line after a good data block is the end of the file (avoids "is_blank()" and a new dependency)
 
+// If we reach this point, the file is valid and the index/lenghts have been found
 // Reading the desired data in a valid line
 		for (int j= 0; j < line_len; j++) {			// Loop across one line
 			if (j == catalog_data.ra_ind) {			// RA read

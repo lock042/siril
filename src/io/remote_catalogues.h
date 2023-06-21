@@ -40,7 +40,7 @@ void free_fetch_result(gchar *result);
 int read_projected_catalog(GInputStream *stream, psf_star **cstars, online_catalog cat);
 
 gpointer search_in_online_conesearch(gpointer p);
-gpointer search_in_online_varstars(gpointer p);
+gpointer search_in_online_vizier(gpointer p);
 
 // temp
 //struct compstars_arg;
