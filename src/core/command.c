@@ -8789,7 +8789,7 @@ int process_varstars(int nb) {
 				args->onlineCatalog = CAT_GCVS;
 			else if (!g_ascii_strcasecmp(cat, "aavso_v"))
 				args->onlineCatalog = CAT_AAVSO_Var;
-			else if (!g_ascii_strcasecmp(cat, "aavso"))
+			else if (!g_ascii_strcasecmp(cat, "apass"))
 				args->onlineCatalog = CAT_AAVSO;
 			else if (!g_ascii_strcasecmp(cat, "ppmxl"))
 				args->onlineCatalog = CAT_PPMXL;
@@ -8797,6 +8797,8 @@ int process_varstars(int nb) {
 				args->onlineCatalog = CAT_BRIGHT_STARS;
 			else if (!g_ascii_strcasecmp(cat, "pgc"))
 				args->onlineCatalog = CAT_PGC;
+			else if (!g_ascii_strcasecmp(cat, "nomad"))
+				args->onlineCatalog = CAT_NOMAD;
 			else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
 				return CMD_ARG_ERROR;

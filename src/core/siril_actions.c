@@ -421,6 +421,19 @@ void search_stars_apass_activate(GSimpleAction *action, GVariant *parameter, gpo
 		start_in_new_thread(search_in_online_vizier, args);
 	}
 }
+void search_stars_nomad_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit)) {
+		purge_temp_user_catalogue();
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+		args->onlineCatalog = CAT_NOMAD;
+		args->limit_mag = 13.0;
+		args->focal_length = gfit.focal_length;
+		args->pixel_size = gfit.pixel_size_x;
+		args->scale = get_resolution(args->focal_length, args->pixel_size);
+		start_in_new_thread(search_in_online_vizier, args);
+	}
+}
 void search_stars_bsc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (has_wcs(&gfit)) {
 		purge_temp_user_catalogue();

@@ -92,7 +92,7 @@ const char *catalog_to_str(online_catalog cat) {
 		case CAT_AAVSO_Var:
 			return _("AAVSO (VSX)");
 		case CAT_AAVSO:
-			return _("AAVSO");
+			return _("APASS");
 		case CAT_LOCAL:
 			return _("local Tycho-2+NOMAD");
 		case CAT_ASNET:
@@ -580,8 +580,9 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	case CAT_NOMAD:
 		url = g_string_new(VIZIER_QUERY);
 //		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "NOMAD&-out.meta=huD&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Vmag%20Bmag");
+		url = g_string_append(url, "I/297&-out.meta=huD&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%NOMAD1%20Vmag%20Bmag");
+		url = g_string_append(url, "&-out.all");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
 		url = g_string_append(url, coordinates);

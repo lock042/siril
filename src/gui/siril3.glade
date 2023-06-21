@@ -15767,6 +15767,17 @@ The limit magnitude can be tuned with the `varstars` command.
               </object>
             </child>
             <child>
+              <object class="GtkMenuItem" id="cat_nomad">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Stars in the field of view belonging to the NOMAD catalogue and with (mag&lt;13).
+The limit magnitude can be tuned with the `varstars` command. 
+</property>
+                <property name="action-name">win.cat_nomad</property>
+                <property name="label" translatable="yes">NOMAD</property>
+              </object>
+            </child>
+            <child>
               <object class="GtkMenuItem" id="cat_bsc">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>

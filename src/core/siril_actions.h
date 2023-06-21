@@ -78,6 +78,7 @@ void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gp
 void search_stars_gcvs_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_stars_aavso_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_stars_apass_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void search_stars_nomad_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_stars_bsc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_stars_ppmxl_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_stars_pgc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
