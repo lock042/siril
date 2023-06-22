@@ -82,7 +82,7 @@ gpointer scnr(gpointer p) {
 	const size_t stride_size = args->fit->rx;
 	const size_t stridec = stride_size * 3;
 	const size_t stride_num = args->fit->ry;
-	const cmsUInt32Number bytesperline = (cmsUInt32Number) args->fit->rx * sizeof(float);
+	const cmsUInt32Number bytesperline = (cmsUInt32Number) args->fit->rx * sizeof(float) * 3;
 	const cmsUInt32Number bytesperplane = (cmsUInt32Number) stride_size * sizeof(float);
 	int num_threads = com.max_thread;
 #ifndef EXCLUDE_FF
@@ -128,6 +128,7 @@ gpointer scnr(gpointer p) {
 				memcpy(prgbfloat[i], args->fit->fpdata[i] + stride_index, stride_size * sizeof(float));
 			}
 		}
+		//cmsDoTransform(transform, rgbfloat, lab, args->fit->rx);
 		cmsDoTransformLineStride(transform, rgbfloat, lab, args->fit->rx, 1, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		memcpy(l, lab, stride_size * sizeof(float));
 		float m;
@@ -169,8 +170,10 @@ gpointer scnr(gpointer p) {
 				}
 		}
 		if (args->preserve) {
+//			cmsDoTransform(transform, rgbfloat, lab, args->fit->rx);
 			cmsDoTransformLineStride(transform, rgbfloat, lab, args->fit->rx, 1, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			memcpy(lab, l, stride_size * sizeof(float));
+//			cmsDoTransform(invtransform, lab, rgbfloat, args->fit->rx);
 			cmsDoTransformLineStride(invtransform, lab, rgbfloat, args->fit->rx, 1, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		}
 #ifdef _OPENMP

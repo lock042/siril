@@ -783,9 +783,10 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 			}
 		}
 		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = width * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsUInt32Number bytesperline = width * datasize * nsamples;
+		cmsUInt32Number bytesperplane = npixels * datasize * nsamples;
+		sirilCmsDoParallelPlanarTransform(save_transform, buf, dest, width, height, datasize, datasize, gfit.naxes[2]);
+//		cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		// 32 bit files are always saved in the working color space with the ICC profile
 		// embedded. If you want 32-bit sRGB output you need to convert the color space yourself.
