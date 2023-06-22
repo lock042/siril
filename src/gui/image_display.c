@@ -1341,6 +1341,7 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble dec = get_catalogue_object_dec(object);
 		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
+		double extra_shift = 0.0;
 
 		switch (catalog) {
 		case USER_DSO_CAT_INDEX:
@@ -1351,6 +1352,7 @@ static void draw_annotates(const draw_data_t* dd) {
 			break;
 		case USER_TEMP_CAT_INDEX:
 			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
+			extra_shift = 20.0;
 			break;
 		default:
 		case 0:
@@ -1405,12 +1407,12 @@ static void draw_annotates(const draw_data_t* dd) {
 				gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
 				cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 				cairo_set_font_size(cr, size / dd->zoom);
-				cairo_move_to(cr, x + offset.x, y + offset.y);
+				cairo_move_to(cr, x + offset.x, y + offset.y + extra_shift);
 				cairo_show_text(cr, name);
 				cairo_stroke(cr);
 				if (name2) {
 					// subtitle, draw it below
-					cairo_move_to(cr, x + offset.x + 5 / dd->zoom, y + offset.y + (size + 4) / dd->zoom);
+					cairo_move_to(cr, x + offset.x + 5 / dd->zoom, y + offset.y + extra_shift + (size + 4) / dd->zoom);
 					size = 16 * (com.pref.gui.font_scale / 100.0);
 					cairo_set_font_size(cr, size / dd->zoom);
 					cairo_show_text(cr, name2);

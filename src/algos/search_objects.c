@@ -271,7 +271,7 @@ static char *catalog_data_label[][MAX_DATA_ITEMS] = {
 	{"RAJ2000", "DEJ2000", "recno", "VTmag"},				//CAT_TYCHO2
 	{"RAJ2000", "DEJ2000", "NOMAD1", "Vmag"},				//CAT_NOMAD
 	{"RAJ2000", "DEJ2000", "DR3Name", "Gmag"},				//CAT_GAIADR3
-	{"RAJ2000", "DEJ2000", "PPMXL", "Jmag"},				//CAT_PPMXL
+	{"RAJ2000", "DEJ2000", "PPMXL", "imag"},				//CAT_PPMXL
 	{"RAJ2000", "DEJ2000", "HD", "Vmag"},					//CAT_BRIGHT_STARS
 	{"RAJ2000", "DEJ2000", "Name", NULL},					//CAT_APASS No real interrest as this is the same as CAT_AAVSO with no name fields
 	{"RAJ2000", "DEJ2000", "GCVS", "magMax"},				//CAT_GCVS
@@ -415,12 +415,11 @@ int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
 			if (j == catalog_data.name_ind) {		// Name read
 				gchar *temp = g_strndup(&line[j], catalog_data.name_len);	
 				if (cat == CAT_PGC)	objname = g_strconcat("PGC ", temp, NULL);	// Adding a prefix for PGC. Much nicer!!
-				if (cat == CAT_BRIGHT_STARS)	objname = g_strconcat("HD ", temp, NULL);	// Adding a prefix for BSC. Much nicer also!!
+				else if (cat == CAT_BRIGHT_STARS)	objname = g_strconcat("HD ", temp, NULL);	// Adding a prefix for BSC. Much nicer also!!
 				else objname = g_strdup(temp);
-				if (!temp) objname = "x";		// if noname, just "x"
+				if (!temp) objname = "x";		// if noname, just "x", but should not happen
 				g_free(temp);
 			}
-
 		}
 		valid = !isnan(dec) && !isnan(ra);
 
