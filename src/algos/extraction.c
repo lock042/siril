@@ -796,12 +796,6 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 			new_fit_image(&OIII, in->rx, in->ry, 1, DATA_USHORT)) {
 		return 1;
 	}
-//	for (int i = 0 ; i < width * height ; i++) {
-//		Ha->data[i] =0;
-//	}
-//	for (int i = 0 ; i < in->rx * in->ry ; i++) {
-//		OIII->data[i] = 0;
-//	}
 	// Loop through calculating the means of the 3 O-III photosite subchannels
 	// Also populate the Ha fits data
 	float g1 = 0.f, g2 = 0.f, b = 0.f;
@@ -887,6 +881,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 				}
 			}
 		}
+		// Separate loop for Ha site interpolation so this works for all Bayer patterns
 		if (!error) {
 			for (int row = 0; row < in->ry - 1; row += 2) {
 				for (int col = 0; col < in->rx - 1; col += 2) {
@@ -1068,28 +1063,23 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
-				int HaIndex = 0;
 				switch(pattern) {
 					case BAYER_FILTER_RGGB:
-						HaIndex = col + row * in->rx;
 						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->fdata[1 + col + row * in->rx];
 						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->fdata[col + (1 + row) * in->rx];
 						OIII->fdata[1 + col + (1 + row) * in->rx] = bratio * in->fdata[1 + col + (1 + row) * in->rx];
 						break;
 					case BAYER_FILTER_BGGR:
-						HaIndex = 1 + col + (1 + row) * in->rx;
 						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->fdata[1 + col + row * in->rx];
 						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->fdata[col + (1 + row) * in->rx];
 						OIII->fdata[col + row * in->rx] = bratio * in->fdata[col + row * in->rx];
 						break;
 					case BAYER_FILTER_GRBG:
-						HaIndex = 1 + col + row * in->rx;
 						OIII->fdata[col + row * in->rx] = g1ratio * in->fdata[col + row * in->rx];
 						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->fdata[1 + col + (1 + row) * in->rx];
 						OIII->fdata[col + (1 + row) * in->rx] = bratio * in->fdata[col + (1 + row) * in->rx];
 						break;
 					case BAYER_FILTER_GBRG:
-						HaIndex = col + (1 + row) * in->rx;
 						OIII->fdata[col + row * in->rx] = g1ratio * in->fdata[col + row * in->rx];
 						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->fdata[1 + col + (1 + row) * in->rx];
 						OIII->fdata[1 + col + row * in->rx] = bratio * in->fdata[1 + col + row * in->rx];
@@ -1098,7 +1088,30 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 						printf("Should not happen.\n");
 						error++;
 				}
-				if (!error) {
+			}
+		}
+		// Separate loop for Ha site interpolation so this works for all Bayer patterns
+		if (!error) {
+			for (int row = 0; row < in->ry - 1; row += 2) {
+				for (int col = 0; col < in->rx - 1; col += 2) {
+					int HaIndex = 0;
+					switch(pattern) {
+						case BAYER_FILTER_RGGB:
+							HaIndex = col + row * in->rx;
+							break;
+						case BAYER_FILTER_BGGR:
+							HaIndex = 1 + col + (1 + row) * in->rx;
+							break;
+						case BAYER_FILTER_GRBG:
+							HaIndex = 1 + col + row * in->rx;
+							break;
+						case BAYER_FILTER_GBRG:
+							HaIndex = col + (1 + row) * in->rx;
+							break;
+						default:
+							printf("Should not happen.\n");
+							error++;
+					}
 					float interp = 0.f;
 					float weight = 0.f;
 					gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
