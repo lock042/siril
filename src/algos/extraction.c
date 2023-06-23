@@ -386,10 +386,10 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	double_data->index = o;
 
 	if (fit->type == DATA_USHORT) {
-		ret = extractHaOIII_ushort(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling);
+		ret = extractHaOIII_ushort(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling, threads);
 	}
 	else if (fit->type == DATA_FLOAT) {
-		ret = extractHaOIII_float(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling);
+		ret = extractHaOIII_float(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling, threads);
 	}
 
 	if (ret) {
@@ -769,7 +769,7 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 
 #define SQRTF_2 1.41421356f
 
-int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
+int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling, int threads) {
 	int crop_x = in->rx, crop_y = in->ry;
 	gboolean do_crop = FALSE;
 	if (in->rx % 2) {
@@ -852,6 +852,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 		float bratio = avgoiii / b;
 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
+#ifdef _OPENMP
+#pragma omp parallel num_threads(threads)
+{
+#pragma omp for simd schedule(static)
+#endif
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
 				switch(pattern) {
@@ -881,8 +886,14 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 				}
 			}
 		}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 		// Separate loop for Ha site interpolation so this works for all Bayer patterns
 		if (!error) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
 			for (int row = 0; row < in->ry - 1; row += 2) {
 				for (int col = 0; col < in->rx - 1; col += 2) {
 					int HaIndex = 0;
@@ -949,6 +960,9 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 				}
 			}
 		}
+#ifdef _OPENMP
+}
+#endif
 	}
 	if (error)
 		return 1;
@@ -978,7 +992,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	return 0;
 }
 
-int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling, int threads) {
 	int crop_x = in->rx, crop_y = in->ry;
 	gboolean do_crop = FALSE;
 	if (in->rx % 2) {
@@ -1061,6 +1075,11 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 		float bratio = avgoiii / b;
 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
+#ifdef _OPENMP
+#pragma omp parallel num_threads(threads)
+{
+#pragma omp for simd schedule(static)
+#endif
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
 				switch(pattern) {
@@ -1090,8 +1109,14 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 				}
 			}
 		}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 		// Separate loop for Ha site interpolation so this works for all Bayer patterns
 		if (!error) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
 			for (int row = 0; row < in->ry - 1; row += 2) {
 				for (int col = 0; col < in->rx - 1; col += 2) {
 					int HaIndex = 0;
@@ -1158,6 +1183,9 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 				}
 			}
 		}
+#ifdef _OPENMP
+}
+#endif
 	}
 	if (error)
 		return 1;
