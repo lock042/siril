@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-22 14:40+0000\n"
+"PO-Revision-Date: 2023-06-23 21:58+0000\n"
 "Last-Translator: Antoine Hoeffelman <swerves_pilafs.0v@icloud.com>\n"
 "Language-Team: Dutch (Belgium) <https://weblate.pixls.us/projects/siril/"
 "siril-application/nl_BE/>\n"
@@ -1947,7 +1947,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8573
 msgid "Pick wavenumber 1"
-msgstr "Kies golfnummer 1"
+msgstr "Kies golfgetal 1"
 
 #: src/gui/siril3.glade:8577 src/gui/siril3.glade:8591
 msgid ""
@@ -1956,16 +1956,18 @@ msgid ""
 "images, the start or central wavenumber. Note: these points snap to the "
 "profile line and are reset if the profile line is moved."
 msgstr ""
+"Kies een punt op de profiellijn dat overeenkomt met een bekend golfgetal. "
+"Meestal is dit een bekende spectraallijn of, voor echte spectrograafbeelden, "
+"het start- of centrale golfgetal. Let op: deze punten klikken op de "
+"profiellijn en worden gereset als de profiellijn wordt verplaatst."
 
 #: src/gui/siril3.glade:8587
 msgid "Pick wavenumber 2"
-msgstr ""
+msgstr "Kies golfgetal 2"
 
 #: src/gui/siril3.glade:8603 src/gui/siril3.glade:8617
-#, fuzzy
 msgid "Enter the wavenumber corresponding to the selected point"
-msgstr ""
-"Kies de kleurruimte overeenstemmend met de drie geëxtraheerde afbeeldingen"
+msgstr "Voer het golfgetal in dat overeenkomt met het geselecteerde punt"
 
 #: src/gui/siril3.glade:8604 src/gui/siril3.glade:8618
 #: src/gui/siril3.glade:12554 src/gui/siril3.glade:12574
@@ -1978,16 +1980,15 @@ msgstr "0"
 
 #: src/gui/siril3.glade:8693
 msgid "The wavenumber is the spatial frequency 1 / λ"
-msgstr ""
+msgstr "Het golfgetal is de ruimtelijke frequentie 1 / λ"
 
 #: src/gui/siril3.glade:8694
 msgid "wavenumber / cm<sup>-1</sup>"
-msgstr ""
+msgstr "golfgetal / cm<sup>-1</sup>"
 
 #: src/gui/siril3.glade:8706
-#, fuzzy
 msgid "wavelength / nm"
-msgstr "Brandpuntsafstand (mm): "
+msgstr "golflengte / nm"
 
 #: src/gui/siril3.glade:8717 src/gui/siril3.glade:8730
 msgid ""
@@ -1995,10 +1996,13 @@ msgid ""
 "instead of wavenumbers. Since wavenumber is required for the plot x axis, "
 "the value entered will be converted to wavenumber"
 msgstr ""
+"Dit is een gemaksfunctie waarmee een bekende golflengte kan worden ingevoerd "
+"in plaats van golfgetallen. Aangezien golfgetal vereist is voor de plot x-"
+"as, wordt de ingevoerde waarde geconverteerd naar golfgetal"
 
 #: src/gui/siril3.glade:8783
 msgid "Image Denoising"
-msgstr "Afbeelding ruis verwijdering"
+msgstr "Afbeelding denoising (ruis verwijdering)"
 
 #: src/gui/siril3.glade:8844
 msgid "Remove salt and pepper noise"
@@ -2011,8 +2015,8 @@ msgid ""
 "the setting defaults to active."
 msgstr ""
 "Deze optie past cosmetische correctie toe om zout- en peperruis te "
-"verwijderen vóór het primaire algoritme voor ruis verwijdering. Dit is over "
-"het algemeen een goede zaak en de instelling is standaard actief."
+"verwijderen vóór het primaire algoritme voor denoising. Dit is over het "
+"algemeen een goede zaak en de instelling is standaard actief."
 
 #: src/gui/siril3.glade:8880
 msgid "Independent Channels"
@@ -2030,26 +2034,28 @@ msgstr ""
 "kleurenafbeeldingen. Deze optie behandelt elk kanaal afzonderlijk en "
 "elimineert artefacten ten koste van enige snelheid. Meestal is dit niet "
 "vereist, dus het is standaard uitgeschakeld en mag alleen worden "
-"ingeschakeld in het zeldzame geval dat u artefacten ziet bij het verwijderen "
-"van ruis in een kleurenafbeelding."
+"ingeschakeld in het zeldzame geval dat u artefacten ziet bij denoising in "
+"een kleurenafbeelding."
 
 #: src/gui/siril3.glade:8893
 msgid "Color Denoising"
-msgstr "Ruisverwijdering kleurenbeeld"
+msgstr "Denoising kleurenbeeld"
 
 #: src/gui/siril3.glade:8921
 msgid "No secondary denoising stage"
-msgstr "Geen secundaire ruisverwijderingsfase"
+msgstr "Geen secundaire denoisingsfase"
 
 #: src/gui/siril3.glade:8925
 msgid ""
 "No secondary denoising process will be used. The primary algorithm by itself "
 "usually performs well so this is the default."
 msgstr ""
+"Er wordt geen secundair denoisingproces gebruikt. Het primaire algoritme "
+"presteert op zichzelf meestal goed, dus dit is de standaardinstelling."
 
 #: src/gui/siril3.glade:8939
 msgid "Anscombe VST with exact unbiased inverse"
-msgstr ""
+msgstr "Anscombe VST met zuivere inverse zonder bias"
 
 #: src/gui/siril3.glade:8943
 msgid ""
@@ -2058,10 +2064,14 @@ msgid ""
 "Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: "
 "https://ieeexplore.ieee.org/document/5278406"
 msgstr ""
+"De Anscombe VST is handig bij het denoising in fotonenbeperkte afbeeldingen "
+"waarbij de ruiskarakteristieken niet Gaussisch zijn, maar voornamelijk "
+"Poisson of een Poisson-Gaussiaanse mix. Het kan niet worden gebruikt in "
+"combinatie met DA3D of SOS. Zie: https://ieeexplore.ieee.org/document/5278406"
 
 #: src/gui/siril3.glade:8958
 msgid "Data Adaptive Dual Domain Denoising"
-msgstr ""
+msgstr "Data-adaptieve Dual Domain-denoising"
 
 #: src/gui/siril3.glade:8962
 msgid ""
@@ -2071,10 +2081,16 @@ msgid ""
 "than the primary algorithm and may improve detail retention and reduce "
 "staircasing artefacts. Ref: https://ieeexplore.ieee.org/document/7350835"
 msgstr ""
+"Gebruik DA3D als laatste denoising-stap. Dit algoritme gebruikt de uitvoer "
+"van het primaire denoising-algoritme als een gidsbeeld om "
+"frequentiedomeinverkleining uit te voeren op vorm- en data-adaptieve "
+"patches. Het produceert nooit een slechtere uitvoer dan het primaire "
+"algoritme en kan het behoud van details verbeteren en trapsgewijze "
+"artefacten verminderen. Zie: https://ieeexplore.ieee.org/document/7350835"
 
 #: src/gui/siril3.glade:8976
 msgid "Strengthen Operate Subtract iterator"
-msgstr ""
+msgstr "Strengthen Operate Subtract iterator"
 
 #: src/gui/siril3.glade:8980
 msgid ""
@@ -2083,20 +2099,24 @@ msgid ""
 "denoising performance and reduce staircasing artefacts. Ref: https://arxiv."
 "org/abs/1502.06220"
 msgstr ""
+"SOS-iteratie werkt door het primaire denoising-algoritme meerdere keren te "
+"herhalen, waarbij elke keer een fractie van het ruisige beeld wordt gemengd. "
+"Dit kan de ruisonderdrukkingsprestaties verbeteren en trapsgewijze "
+"artefacten verminderen. Zie: https://arxiv.org/abs/1502.06220"
 
 #: src/gui/siril3.glade:8998
 msgid "Secondary Denoising Algorithm"
-msgstr ""
+msgstr "Secundair denoising-algoritme"
 
 #: src/gui/siril3.glade:9029
 msgid ""
 "Sets the number of SOS iterations. 3-5 is usually a good starting point."
 msgstr ""
+"Stelt het aantal SOS-iteraties in. 3-5 is meestal een goed uitgangspunt."
 
 #: src/gui/siril3.glade:9031
-#, fuzzy
 msgid "SOS iterations"
-msgstr "Iteraties"
+msgstr "SOS-iteraties"
 
 #: src/gui/siril3.glade:9042
 msgid ""
@@ -2107,6 +2127,13 @@ msgid ""
 "the next iteration, so the final output noise level is substantially lower "
 "than the intermediate values shown between iterations.)"
 msgstr ""
+"Stelt het aantal SOS-iteraties in. 3-5 iteraties zorgen meestal voor een "
+"goede convergentie. Convergentie kan worden gezien door de bijgewerkte "
+"beeldruisschatting te onderzoeken die na elke iteratie in het logvenster "
+"wordt weergegeven. (Deze ruiswaarden worden gemeten nadat ruis van het "
+"originele beeld weer is gemengd om de volgende iteratie voor te bereiden, "
+"zodat het uiteindelijke uitvoerruisniveau aanzienlijk lager is dan de "
+"tussenliggende waarden die tussen iteraties worden weergegeven.)"
 
 #: src/gui/siril3.glade:9058
 msgid ""
@@ -2115,10 +2142,15 @@ msgid ""
 "kept. Values close to 0 or 1 may result in a need for more iterations to "
 "achieve convergence at the maximum improvement SOS can produce."
 msgstr ""
+"rho stelt de hoeveelheid van het oorspronkelijke beeld met ruis in bij elke "
+"iteratie. Een hogere waarde betekent dat er minder ruis wordt ingemengd en "
+"dat meer van het tussenresultaat behouden blijft. Waarden dicht bij 0 of 1 "
+"kunnen ertoe leiden dat er meer iteraties nodig zijn om convergentie te "
+"bereiken met de maximale verbetering die SOS kan opleveren."
 
 #: src/gui/siril3.glade:9060
 msgid "rho"
-msgstr ""
+msgstr "rho"
 
 #: src/gui/siril3.glade:9071
 msgid ""
@@ -2127,10 +2159,15 @@ msgid ""
 "effectiveness but beyond a certain point the algorithm will fail to "
 "converge. The default of 0.2 is often a good starting point."
 msgstr ""
+"Rho stelt de hoeveelheid van het oorspronkelijke beeld met ruis in dat "
+"tussen elke SOS-iteratie wordt teruggemengd. Tot op zekere hoogte zullen "
+"grotere waarden resulteren in een grotere effectiviteit, maar voorbij een "
+"bepaald punt zal het algoritme niet meer convergeren. De standaardwaarde van "
+"0,2 is vaak een goed uitgangspunt."
 
 #: src/gui/siril3.glade:9090
 msgid "SOS Advanced Options"
-msgstr ""
+msgstr "SOS geavanceerde opties"
 
 #: src/gui/siril3.glade:9112
 msgid ""
@@ -2141,6 +2178,12 @@ msgid ""
 "end of the process, after primary and secondary denoising stages have both "
 "completed."
 msgstr ""
+"Met modulatie kan een fractie van het ruisige beeld worden gemengd in het "
+"ruisvrije resultaat. Dit kan handig zijn om microtextuur toe te voegen als "
+"het resultaat zonder ruis er kunstmatig glad uitziet. Een waarde van 1 "
+"betekent dat de uitvoer 100% ruisvrij is, zonder dat er ruis in het beeld "
+"wordt toegevoegd. Modulatie wordt uitgevoerd aan het einde van het proces, "
+"nadat de primaire en secundaire denoising beide zijn voltooid."
 
 #: src/gui/siril3.glade:9129 src/gui/siril3.glade:9155
 msgid ""
@@ -2150,6 +2193,11 @@ msgid ""
 "modulation can be useful to add back microtexture to flat regions of the "
 "image."
 msgstr ""
+"Stelt modulatie in. De pixelwaarde wordt berekend als m * b + (1-m) * orig, "
+"waarbij m de modulatie is, b de ruisvrije waarde en orig de oorspronkelijke "
+"pixelwaarde. Modulatie vermindert de denoising, maar een beetje modulatie "
+"kan nuttig zijn om weer microtextuur toe te voegen aan vlakke delen van het "
+"beeld."
 
 #: src/gui/siril3.glade:9175
 msgid "Channel Extraction"
@@ -2216,15 +2264,19 @@ msgid ""
 "the preferences otherwise.\n"
 "Modified data can be saved in a FITS file."
 msgstr ""
+"Informatie met betrekking tot de afbeelding, indien beschikbaar uit het "
+"bestand gehaald, anders uit de voorkeuren.\n"
+"Gewijzigde gegevens kunnen worden opgeslagen in een FITS-bestand."
 
 #: src/gui/siril3.glade:9440
 msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr ""
+"Niet-vierkante pixels kunnen worden ingevoerd, maar zullen in de meeste "
+"gevallen niet worden gebruikt."
 
 #: src/gui/siril3.glade:9442
-#, fuzzy
 msgid "Pixel size (micron): "
-msgstr "Pixel X afm. (micrometer): "
+msgstr "Pixelgrootte (micron): "
 
 #: src/gui/siril3.glade:9453
 msgid ""
@@ -2255,17 +2307,16 @@ msgstr ""
 "header kunt u die zelf invoeren."
 
 #: src/gui/siril3.glade:9519
-#, fuzzy
 msgid ""
 "Clear all the fields. If you save your image after, the header will not "
 "contain any data about the focal length or sensor size."
 msgstr ""
-"Wis alle velden. De gegevens over brandpuntsafstand en de afmetingen van de "
-"sensor worden dan niet in de header opgeslaan."
+"Wis alle velden. Als u uw afbeelding daarna opslaat, bevat de header geen "
+"gegevens over de brandpuntsafstand of sensorgrootte."
 
 #: src/gui/siril3.glade:9533
 msgid "Computed sampling (arcsec/pixel):"
-msgstr ""
+msgstr "Berekende sampling (arcsec/pixel):"
 
 #: src/gui/siril3.glade:9546
 msgid "Binning: "
@@ -2280,12 +2331,10 @@ msgstr ""
 "dit venster invoeren."
 
 #: src/gui/siril3.glade:9575
-#, fuzzy
 msgid "Real pixel size"
-msgstr "Sample pixels:"
+msgstr "Werkelijke pixelgrootte"
 
 #: src/gui/siril3.glade:9579
-#, fuzzy
 msgid ""
 "Check this button if binning is not taken into account in the pixel size "
 "value. In this case, the binning value will be used to compute the "
@@ -2293,19 +2342,24 @@ msgid ""
 "WARNING: checking this stores it as a preference, also available in the FITS "
 "option preferences section."
 msgstr ""
-"Vink dit aan als binning niet in acht wordt genomen in de pixel afmetingen. "
-"In dit geval worden de waarden in de combo box hieronder gebruikt."
+"Vink deze knop aan als er geen rekening wordt gehouden met binning in de "
+"waarde voor de pixelgrootte. In dit geval wordt de binningwaarde gebruikt om "
+"de bemonstering te berekenen.\n"
+"WAARSCHUWING: als u dit aanvinkt, wordt het opgeslagen als een voorkeur, ook "
+"beschikbaar in het gedeelte FITS-optievoorkeuren."
 
 #: src/gui/siril3.glade:9602
-#, fuzzy
 msgid "Save as default values"
-msgstr "Herstel de Standaardwaarden"
+msgstr "Opslaan als standaardwaarden"
 
 #: src/gui/siril3.glade:9606
 msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
 msgstr ""
+"Sla brandpuntsafstand en pixelgrootte op als standaardwaarden in de "
+"instellingen die moeten worden gebruikt voor afbeeldingen die deze metadata "
+"niet bevatten"
 
 #: src/gui/siril3.glade:9640
 msgid "Image compositing"
@@ -2486,23 +2540,21 @@ msgid "Inverse Transform"
 msgstr "Inverse Transformatie"
 
 #: src/gui/siril3.glade:10290
-#, fuzzy
 msgid "Star Recomposition"
-msgstr "HSL compositie"
+msgstr "Ster hercompositie"
 
 #: src/gui/siril3.glade:10305
-#, fuzzy
 msgid "Log histograms"
-msgstr "Histograms"
+msgstr "Log histogrammen"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/siril3.glade:10320 src/gui/remixer.c:701 src/gui/remixer.c:1380
 msgid "Advanced"
-msgstr ""
+msgstr "Geavanceerd"
 
 #: src/gui/siril3.glade:10324
 msgid "Show advanced stretch options"
-msgstr ""
+msgstr "Toon geavanceerde stretch opties"
 
 #: src/gui/siril3.glade:10377 src/gui/siril3.glade:10984
 msgid ""
@@ -2511,23 +2563,29 @@ msgid ""
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
+"Selecteer een sterloze afbeelding om opnieuw samen te stellen met een "
+"stermasker.\n"
+"Hoewel het primaire doel van de tool het opnieuw samenstellen van sterren is "
+"als onderdeel van een workflow voor het verkleinen van sterren, kunt u elke "
+"twee fits bestanden specificeren met dezelfde afmetingen en bitdiepte het "
+"mengen van afbeeldingen."
 
 #: src/gui/siril3.glade:10408
 msgid ""
 "Expands to show a mini histogram and transfer function display for the star "
 "image"
 msgstr ""
+"Vergroot om een mini-histogram en transferfunctie voor het sterbeeld weer te "
+"geven"
 
 #: src/gui/siril3.glade:10411
-#, fuzzy
 msgid "Star Histogram"
-msgstr "Histrogram"
+msgstr "Ster Histrogram"
 
 #: src/gui/siril3.glade:10432 src/gui/siril3.glade:11041
 #: src/gui/siril3.glade:16923
-#, fuzzy
 msgid "Type of stretch"
-msgstr "Type algoritme"
+msgstr "Type stretch"
 
 #: src/gui/siril3.glade:10447 src/gui/siril3.glade:11056
 msgid ""
@@ -2538,36 +2596,37 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
+"Selecteer het type stretch. Gegeneraliseerde hyperbolische stretch voert een "
+"hyperbolische stretch uit met parameters voor stretch-sterkte, lokale "
+"intensiteit, symmetriepunt en gebieden voor behoud van schaduw en "
+"highlights. Modified arcsinh stretch voert een arcsinh stretch uit met "
+"aanvullende parameters voor het behoud van symmetriepunten, schaduwen en "
+"highlights. De inverse hyperbolische en arcsinh-stretch zijn ook beschikbaar."
 
 #: src/gui/siril3.glade:10451 src/gui/siril3.glade:11060
 #: src/gui/siril3.glade:16942
-#, fuzzy
 msgid "Generalised hyperbolic transform"
-msgstr "Negatieve Transformatie"
+msgstr "Gegeneraliseerde hyperbolische transformatie"
 
 #: src/gui/siril3.glade:10452 src/gui/siril3.glade:11061
 #: src/gui/siril3.glade:16943
-#, fuzzy
 msgid "Inverse generalised hyperbolic transform"
-msgstr "Negatieve Transformatie"
+msgstr "Inverse gegeneraliseerde hyperbolische transformatie"
 
 #: src/gui/siril3.glade:10453 src/gui/siril3.glade:11062
 #: src/gui/siril3.glade:16944
-#, fuzzy
 msgid "Modified arcsinh transform"
-msgstr "Inverse Transformatie"
+msgstr "Gewijzigde arcsinh-transformatie"
 
 #: src/gui/siril3.glade:10454 src/gui/siril3.glade:11063
 #: src/gui/siril3.glade:16945
-#, fuzzy
 msgid "Inverse modified arcsinh transform"
-msgstr "Inverse Transformatie"
+msgstr "Inverse gemodificeerde arcsinh-transformatie"
 
 #: src/gui/siril3.glade:10482 src/gui/siril3.glade:11091
 #: src/gui/siril3.glade:16973
-#, fuzzy
 msgid "Colour stretch model"
-msgstr "Kleurensaturatie"
+msgstr "Kleur stretchmodel"
 
 #: src/gui/siril3.glade:10497 src/gui/siril3.glade:11106
 msgid ""
@@ -2579,28 +2638,35 @@ msgid ""
 "which applies the stretch independently to each channel of the pixel.\n"
 "Note that luminance based models are not generally invertible."
 msgstr ""
+"Stel het stretch-model in voor kleur-stretches. De opties zijn: gelijkmatig "
+"gewogen luminantie, die de stretch berekent op basis van een "
+"luminantiewaarde waarbij de R-, G- en B-kanalen gelijk worden gewogen; "
+"menselijke gewogen luminantie, die wordt gestrecht op basis van een "
+"luminantiewaarde die de R-, G- en B-kanalen weegt volgens de relatieve "
+"gevoeligheid van het menselijk oog; en onafhankelijke kanaalwaarden, die de "
+"stretch onafhankelijk toepast op elk kanaal van de pixel.\n"
+"Merk op dat op luminantie gebaseerde modellen over het algemeen niet "
+"omkeerbaar zijn."
 
 #: src/gui/siril3.glade:10502 src/gui/siril3.glade:11111
 #: src/gui/siril3.glade:16993
-#, fuzzy
 msgid "Independent channel values"
-msgstr "Groen kanaal"
+msgstr "Onafhankelijke kanaalwaarden"
 
 #: src/gui/siril3.glade:10503 src/gui/siril3.glade:11112
 #: src/gui/siril3.glade:16994
 msgid "Human weighted luminance"
-msgstr ""
+msgstr "Menselijke gewogen luminantie"
 
 #: src/gui/siril3.glade:10504 src/gui/siril3.glade:11113
 #: src/gui/siril3.glade:16995
 msgid "Even weighted luminance"
-msgstr ""
+msgstr "Uniform gewogenluminantie"
 
 #: src/gui/siril3.glade:10538 src/gui/siril3.glade:11147
 #: src/gui/siril3.glade:17052
-#, fuzzy
 msgid "Stretch factor (ln(D+1))"
-msgstr "Stretch factor"
+msgstr "Stretchfactor (ln(D+1))"
 
 #: src/gui/siril3.glade:10549 src/gui/siril3.glade:10574
 msgid ""
@@ -2608,11 +2674,15 @@ msgid ""
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
+"Regelt onafhankelijk het toegevoegde contrast (de helling van de stretch) "
+"bij SP, waardoor de hoeveelheid stretch wordt aangepast die op de rest van "
+"het beeld wordt toegepast. Toenemende D verhoogt de intensiteit van sterren "
+"in de resulterende compositie."
 
 #: src/gui/siril3.glade:10608 src/gui/siril3.glade:11218
 #: src/gui/siril3.glade:17121
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "Lokale stretchintensiteit (b)"
 
 #: src/gui/siril3.glade:10619 src/gui/siril3.glade:10643
 msgid ""
@@ -2621,11 +2691,15 @@ msgid ""
 "peak brightness above SP, but may bloat their PSF; it will reduce the "
 "intensity of stars below SP."
 msgstr ""
+"Bepaalt hoe strak de stretch wordt gefocust door de vorm van de "
+"transformatie zelf te wijzigen. Het verhogen van b verhoogt de intensiteit "
+"van sterren met een piekhelderheid boven SP, maar kan hun PSF doen opzwellen;"
+" het zal de intensiteit van sterren onder SP verminderen."
 
 #: src/gui/siril3.glade:10678 src/gui/siril3.glade:11288
 #: src/gui/siril3.glade:17190
 msgid "Symmetry point (SP)"
-msgstr ""
+msgstr "Symmetriepunt (SP)"
 
 #: src/gui/siril3.glade:10689 src/gui/siril3.glade:10735
 msgid ""
@@ -2634,6 +2708,10 @@ msgid ""
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
 msgstr ""
+"Stelt het symmetriepunt in waarop de stretch wordt gefocust. Voor "
+"hercompositie van sterren vermindert het verhogen van SP de intensiteit van "
+"sterren met piekhelderheid onder SP en dus het aantal sterren dat zichtbaar "
+"is in de resulterende compositie."
 
 #: src/gui/siril3.glade:10709
 msgid ""
@@ -2641,12 +2719,15 @@ msgid ""
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
 msgstr ""
+"Hiermee kunt u SP instellen vanuit de huidige selectie. Dit is het meest "
+"geschikt voor gebruik met de achtergrondafbeelding, waar het vage details "
+"boven de achtergrond effectief kan oppikken. Het is over het algemeen niet "
+"nuttig voor stermasker beelden."
 
 #: src/gui/siril3.glade:10770 src/gui/siril3.glade:11380
 #: src/gui/siril3.glade:17281
-#, fuzzy
 msgid "Shadow protection point (LP)"
-msgstr "Hoge tonen overschrijding"
+msgstr "Schaduwbeschermingspunt (LP)"
 
 #: src/gui/siril3.glade:10781 src/gui/siril3.glade:10806
 #: src/gui/siril3.glade:11391 src/gui/siril3.glade:11416
@@ -2660,12 +2741,19 @@ msgid ""
 "definition in the background. This parameter must be greater than or equal "
 "to 0 and not greater than SP."
 msgstr ""
+"Stelt een waarde in waaronder de stretch wordt gewijzigd om het contrast in "
+"de schaduwen te behouden. Dit wordt gedaan door een lineaire stretch uit te "
+"voeren onder LP door contrast te reserveren voor de rest van het beeld. Door "
+"LP naar SP te verplaatsen, verandert zowel de reikwijdte als de hoeveelheid "
+"contrastreservering, het netto-effect is om de algehele stretch naar hogere "
+"helderheidsniveaus te duwen terwijl het contrast en de details op de "
+"achtergrond behouden worden. Deze parameter moet groter zijn of gelijk aan 0 "
+"zijn en niet groter zijn dan SP."
 
 #: src/gui/siril3.glade:10841 src/gui/siril3.glade:11451
 #: src/gui/siril3.glade:17350
-#, fuzzy
 msgid "Highlight protection point (HP)"
-msgstr "Hoge tonen overschrijding"
+msgstr "Beschermingspunt voor de highlights (HP)"
 
 #: src/gui/siril3.glade:10852
 msgid ""
@@ -2673,6 +2761,10 @@ msgid ""
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
 msgstr ""
+"Stelt een waarde in waarboven het uitrekken wordt gewijzigd om het contrast "
+"in de hoge lichten / sterren te behouden. Het sterrenmasker HP kan op een "
+"vrij lage waarde worden ingesteld om opzwellen van helderdere sterren te "
+"voorkomen."
 
 #: src/gui/siril3.glade:10878
 msgid ""
@@ -2681,12 +2773,15 @@ msgid ""
 "recomposition mode to prevent bloat of brighter stars while boosting the "
 "brightness of fainter ones."
 msgstr ""
+"Stelt een waarde in waarboven de stretch wordt gewijzigd om het contrast in "
+"de hoge lichten / sterren te behouden. Dit kan op een vrij lage waarde "
+"worden ingesteld in de sterhercompositiemodus om zwellen van helderdere "
+"sterren te voorkomen en de helderheid van zwakkere sterren te vergroten."
 
 #: src/gui/siril3.glade:10913 src/gui/siril3.glade:11523
 #: src/gui/siril3.glade:17420
-#, fuzzy
 msgid "Black Point (BP)"
-msgstr "Black Point"
+msgstr "Zwartpunt (BP)"
 
 #: src/gui/siril3.glade:10924 src/gui/siril3.glade:10950
 #: src/gui/siril3.glade:11534 src/gui/siril3.glade:11560
@@ -2695,17 +2790,21 @@ msgid ""
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
 msgstr ""
+"Aanpassing van het zwartpunt. Dit is een constante waarde die wordt "
+"afgetrokken van het beeld na de initiële hyperbolische uitrekking. BP-"
+"aanpassing kan resulteren in het afsnijden van de schaduwen."
 
 #: src/gui/siril3.glade:11017
 msgid ""
 "Expands to show a mini histogram and transfer function display for the "
 "background image."
 msgstr ""
+"Vergroot om een mini-histogram en transferfunctie voor de achtergrond weer "
+"te geven."
 
 #: src/gui/siril3.glade:11020
-#, fuzzy
 msgid "Background Histogram"
-msgstr "Achtergrondfactor"
+msgstr "Achtergrond histogram"
 
 #: src/gui/siril3.glade:11158 src/gui/siril3.glade:11183
 #: src/gui/siril3.glade:17063
@@ -2717,6 +2816,13 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
+"Stretcht onafhankelijk het toegevoegde contrast (de helling van de "
+"uitrekking) bij SP, waardoor de hoeveelheid stretch wordt aangepast die "
+"wordt toegepast op de rest van het beeld. Het verandert de vorm van de "
+"stretch niet, alleen de hoeveelheid, en moet samen met b worden gebruikt om "
+"de verdeling van contrast en helderheid te regelen. Wanneer dit op nul wordt "
+"gezet, zal de stretch de identiteitstransformatie zijn, maar elke geordende "
+"zwartpuntaanpassing zal nog steeds plaatsvinden."
 
 #: src/gui/siril3.glade:11229 src/gui/siril3.glade:11253
 #: src/gui/siril3.glade:17132
@@ -2731,6 +2837,16 @@ msgid ""
 "(with small D) can still be used for precise placement of additional "
 "contrast."
 msgstr ""
+"Bepaalt hoe strak de stretch wordt gefocust door de vorm van de "
+"transformatie zelf te wijzigen. Voor geconcentreerde stretchen (bijv. "
+"initiële rek op lineaire gegevens) zal een grote positieve waarde van b de "
+"stretch binnen een histogrampiek focusseren terwijl de stretch weg van de "
+"piek onscherp wordt (zoals heldere sterren). Voor het aanpassen van niet-"
+"lineaire afbeeldingen zullen lagere of negatieve waarden het contrast en de "
+"helderheid gelijkmatiger verdelen. Als algemene regel geldt dat de waarde "
+"van b afneemt naarmate een stretch sequentie bijna voltooid is, hoewel "
+"grotere waarden (met kleine D) nog steeds kunnen worden gebruikt voor "
+"nauwkeurige plaatsing van extra contrast."
 
 #: src/gui/siril3.glade:11299 src/gui/siril3.glade:11345
 #: src/gui/siril3.glade:17201
@@ -2742,6 +2858,12 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
+"Stelt het symmetriepunt in waaromheen de stretch wordt gefocust - het "
+"contrast wordt symmetrisch rond SP verdeeld. Dit moet over het algemeen "
+"binnen een histogrampiek worden geplaatst, zodat de stretch de piek breder "
+"en lager maakt door op dat punt het meeste contrast in de stretch toe te "
+"voegen. De stretch verplaatst pixelwaarden weg van SP. Deze parameter moet "
+"groter zijn dan of gelijk aan LP en kleiner dan of gelijk aan HP."
 
 #: src/gui/siril3.glade:11319 src/gui/siril3.glade:17222
 msgid ""
@@ -2749,6 +2871,9 @@ msgid ""
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
+"Met deze knop kunt u het achtergrond stretch symmetriepunt instellen op "
+"basis van de gemiddelde waarde van de huidige selectie. Dit helpt bij het "
+"uitkiezen van zwakke details boven de donkere achtergrond."
 
 #: src/gui/siril3.glade:11462 src/gui/siril3.glade:11488
 msgid ""
@@ -2762,37 +2887,49 @@ msgid ""
 "of limited use for starless backgrounds but is very effective on the star "
 "mask for preventing star bloat."
 msgstr ""
+"Stelt een waarde in waarboven de stretch wordt gewijzigd om het contrast in "
+"de highlights / sterren te behouden. Dit wordt gedaan door de gegevens boven "
+"HP lineair te stretchen door contrast van de rest van de afbeelding te "
+"reserveren. Door HP naar SP te verplaatsen, neemt zowel de reikwijdte als de "
+"hoeveelheid van deze contrastreservering toe, het netto-effect is dat de "
+"hele de stretch naar lagere helderheidsniveaus wordt geduwd terwijl het "
+"contrast en de definitie in de highlights behouden blijven. Deze parameter "
+"moet kleiner dan of gelijk aan 1 zijn en niet kleiner zijn dan SP. Deze "
+"parameter is over het algemeen van beperkt nut voor starless achtergronden, "
+"maar is zeer effectief op het stermasker om het opzwellen van sterren te "
+"voorkomen."
 
 #: src/gui/siril3.glade:11589
 #, fuzzy
 msgid "Background Stretch Parameters"
-msgstr "Beeld Eigenschappen"
+msgstr "Achtergrond Stretch Parameters"
 
 #: src/gui/siril3.glade:11605
-#, fuzzy
 msgid "Star Stretch Parameters"
-msgstr "Beeld Eigenschappen"
+msgstr "Sterren Stretch Parameters"
 
 #: src/gui/siril3.glade:11642
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Herstel de Standaardwaarden"
+msgstr "Stelt stretch parameters voor het sterbeeld opnieuw in"
 
 #: src/gui/siril3.glade:11657
 msgid ""
 "Applies current stretch to the star image and resets the stretch parameters."
 msgstr ""
+"Past de huidige stretch toe op het sterbeeld en stelt de stretch parameters "
+"opnieuw in."
 
 #: src/gui/siril3.glade:11690
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Herstel de Standaardwaarden"
+msgstr "Herstelt stretch parameters voor het starless beeld"
 
 #: src/gui/siril3.glade:11705
 msgid ""
 "Applies current stretch to the starless image and resets the stretch "
 "parameters."
 msgstr ""
+"Past de huidige stretch toe op het starless beeld en stelt de stretch "
+"parameters opnieuw in."
 
 #: src/gui/siril3.glade:11747 src/gui/linear_match.c:201
 msgid "Linear Match"
@@ -2843,11 +2980,13 @@ msgid ""
 "information is written to the Console tab. The tilt overlay can be cleared "
 "using the Remove button"
 msgstr ""
+"Bereken de tilt van het beeld. Tilt wordt weergegeven als een overlay en "
+"algemene tilt-informatie wordt naar het tabblad Console geschreven. De "
+"tiltoverlay kan worden gewist met de knop Verwijderen"
 
 #: src/gui/siril3.glade:12079
-#, fuzzy
 msgid "Export list of stars to a file"
-msgstr "Export afgebeeld plot naar een CSV bestand."
+msgstr "Exporteer lijst met sterren naar een bestand"
 
 #: src/gui/siril3.glade:12105 src/gui/siril3.glade:14510
 msgid ""
@@ -2926,6 +3065,9 @@ msgid ""
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
+"Indien ingeschakeld, wordt de omtrek van het referentiebeeld zoals "
+"getransformeerd met registratiegegevens op elk beeld getekend om de "
+"beeldpositie tov. referentie te controleren."
 
 #: src/gui/siril3.glade:12408
 msgid "Reference image"
@@ -2968,12 +3110,12 @@ msgstr "Begin het fotometrische kleurenkalibratie algoritme."
 #: src/gui/siril3.glade:12549 src/gui/siril3.glade:12569
 #: src/gui/siril3.glade:12589 src/gui/siril3.glade:12609
 #: src/gui/siril3.glade:12629 src/gui/siril3.glade:12646
-#, fuzzy
 msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close "
 "to the centre."
 msgstr ""
-"Initiële equatoriale coördinaten. Invoerwaarden moeten in het beeld zijn."
+"Initiële equatoriale coördinaten. De invoerwaarde moet zich binnen de "
+"afbeelding bevinden, dicht bij het midden."
 
 #: src/gui/siril3.glade:12663
 msgid "Right Ascension: "
@@ -2999,6 +3141,12 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Voer de identificatie of de naam in van een object dat zich dicht bij het "
+"midden van de afbeelding bevindt. Deze functie vereist een "
+"internetverbinding (vraagt standaard SIMBAD of de geselecteerde server aan "
+"de rechterkant).\n"
+"Als de coördinaten al zijn ingevuld bij het klikken op de knop Krijg "
+"Metadata Van Afbeelding hieronder, is dit waarschijnlijk niet vereist."
 
 #: src/gui/siril3.glade:12716
 msgid "Find"
@@ -3012,6 +3160,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Begin met het zoeken naar de coördinaten van het benoemde object. Deze "
+"functie vereist een internetverbinding (vraagt standaard SIMBAD of de "
+"geselecteerde server aan de rechterkant).\n"
+"Als de coördinaten al zijn ingevuld bij het klikken op de knop Krijg "
+"Metadata Van Afbeelding hieronder, is dit waarschijnlijk niet vereist."
 
 #: src/gui/siril3.glade:12735 src/gui/siril3.glade:12771
 msgid ""
@@ -3024,36 +3177,34 @@ msgstr ""
 "tot 20%."
 
 #: src/gui/siril3.glade:12753
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning."
 msgstr ""
-"Pixelgrootte in micrometers. De pixels worden beschouwd als vierkantig."
+"Pixelgrootte in micrometer. Er wordt aangenomen dat de afbeelding vierkante "
+"pixels heeft. De waarde is al vermenigvuldigd met de binning van de camera."
 
 #: src/gui/siril3.glade:12772
-#, fuzzy
 msgid "Focal length (mm):"
-msgstr "Brandpuntsafstand (mm): "
+msgstr "Brandpuntsafstand (mm):"
 
 #: src/gui/siril3.glade:12783
-#, fuzzy
 msgid "Pixel size in microns. The image is assumed to have square pixels."
 msgstr ""
-"Pixelgrootte in micrometers. De pixels worden beschouwd als vierkantig."
+"Pixelgrootte in micrometer. Er wordt aangenomen dat de afbeelding vierkante "
+"pixels heeft."
 
 #: src/gui/siril3.glade:12784
 msgid "Pixel size (µm):"
 msgstr "Pixelgrootte (µm):"
 
 #: src/gui/siril3.glade:12795 src/gui/siril3.glade:12810
-#, fuzzy
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
 msgstr ""
-"De resolutie van het beeld dat automatisch wordt berekend dakzij de "
-"focaallengte en de pixelgrootte."
+"De resolutie van de afbeelding die automatisch wordt bepaald op basis van de "
+"waarde voor brandpunt en pixelgrootte. Eenheid is boogseconde per pixel."
 
 #: src/gui/siril3.glade:12798
 msgid "Resolution: "
@@ -3066,6 +3217,11 @@ msgid ""
 "or the others should not influence the plate-solving or the photometry data, "
 "which is based on the selected catalogue."
 msgstr ""
+"In deze lijst kunnen verschillende resolvers worden gevonden en weergegeven. "
+"Het gaat er echter alleen om de coördinaten van het midden van het object te "
+"krijgen. Het kiezen van het ene item of het andere zou geen invloed moeten "
+"hebben op plate-solving of de fotometrische gegevens, die gebaseerd zijn op "
+"de geselecteerde catalogus."
 
 #: src/gui/siril3.glade:12844
 msgid "Resolver"
@@ -3083,21 +3239,23 @@ msgstr "Afbeelding spiegelen indien nodig"
 #: src/gui/siril3.glade:12879
 msgid "Flip image at the end of the platesolving if image is mirrored."
 msgstr ""
+"Draai het beeld aan het einde van de plaatoplossing als het beeld gespiegeld "
+"is."
 
 #: src/gui/siril3.glade:12892
 msgid "Downsample image"
 msgstr "Afbeelding downsamplen"
 
 #: src/gui/siril3.glade:12896
-#, fuzzy
 msgid ""
 "Sometimes, for oversampled images (like with Drizzle), it is complicated to "
 "resolve astrometry data. In consequence, downsampling data generally helps "
 "and also makes star detection run faster."
 msgstr ""
-"Soms is het voor overbemonsterde afbeeldingen (zoals bij Drizzle) moeilijk "
-"om astrometriegegevens te berekenen. Meestal helpt het downsamplen van "
-"gegevens en zorgt het ervoor dat het algoritme sneller werkt."
+"Soms is het voor overbemonsterde afbeeldingen (zoals met Drizzle) "
+"ingewikkeld om astrometrische gegevens op te lossen. Bijgevolg helpt het "
+"downsamplen van gegevens over het algemeen en zorgt het er ook voor dat "
+"sterdetectie sneller verloopt."
 
 #: src/gui/siril3.glade:12908
 msgid "Auto-crop (for wide field)"
@@ -3108,62 +3266,68 @@ msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
 msgstr ""
+"Gebruik alleen het midden van de afbeelding (of selectie) als het veld te "
+"breed is, groter dan 5 graden."
 
 #: src/gui/siril3.glade:12925
-#, fuzzy
 msgid "Force plate solving"
-msgstr "Dialoogvenster plate solver openen"
+msgstr "Forceer plate-solving"
 
 #: src/gui/siril3.glade:12929
 msgid ""
 "Checking this box will force plate solving to be redone by Siril. It is not "
 "needed if the image contains trustworthy WCS information."
 msgstr ""
+"Als u dit vakje aanvinkt, wordt plate-solving gedwongen door Siril opnieuw "
+"te worden uitgevoerd. Het is niet nodig als de afbeelding betrouwbare WCS-"
+"informatie bevat."
 
 #: src/gui/siril3.glade:12940
 msgid "Get Metadata From Image"
 msgstr "Haal Metadate Van het Beeld"
 
 #: src/gui/siril3.glade:12944
-#, fuzzy
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
 msgstr ""
-"Klick op deze knop om de focaallengte en de pixelgrootte van de header te "
-"lezen als deze bestaat."
+"Klik op deze knop om brandpuntsafstand, pixelgrootte en RA/Dec-"
+"aanwijscoördinaten uit de header van het bestand te halen, indien aanwezig."
 
 #: src/gui/siril3.glade:12972
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
 msgstr ""
+"Selecteer de server die de coördinaten van de ingevoerde objectnaam "
+"doorzoekt."
 
 #: src/gui/siril3.glade:12975
-#, fuzzy
 msgid "CDS"
-msgstr "RCD"
+msgstr "CDS"
 
 #: src/gui/siril3.glade:12976
 msgid "VizieR"
-msgstr ""
+msgstr "VizieR"
 
 #: src/gui/siril3.glade:12977
 msgid "SIMBAD"
-msgstr ""
+msgstr "SIMBAD"
 
 #: src/gui/siril3.glade:12991
 msgid "Server:"
-msgstr ""
+msgstr "Server:"
 
 #: src/gui/siril3.glade:13000
 msgid "Use local astrometry.net solver"
-msgstr ""
+msgstr "Gebruikt lokale astrometry.net solver"
 
 #: src/gui/siril3.glade:13004
 msgid ""
 "Use the solve-field command to find the astrometric solution instead of "
 "Siril's plate solver"
 msgstr ""
+"Gebruik het commando solve-field om de astrometrische oplossing te vinden in "
+"plaats van de plate-solver van Siril"
 
 #: src/gui/siril3.glade:13029
 msgid "Image Parameters"
@@ -3198,7 +3362,6 @@ msgid "Online Star Catalogue: "
 msgstr "Online Ster Catalogus: "
 
 #: src/gui/siril3.glade:13119
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -3217,22 +3380,24 @@ msgid ""
 "stellar magnitude 6.5 or brighter, which is roughly every star visible to "
 "the naked eye from Earth. The catalog contains 9,110 objects."
 msgstr ""
-"Kies een online catalogus tegen dewelke het beeld vergeleken zal worden.\n"
-"* TYCHO-2 heeft de positie, richting and tweekleurige forometrische gegevens "
-"van 2 539 913 van de helderste sterren van de Melkweg.\n"
-"* NOMAD is een samenvoeging van Hipparcos, Tycho-2, UCAC-2, Yellow-Blue 6 en "
-"USNO-B catalogi voor fotometrische en optische fotometrie, met daarbovenop "
-"de nabij-infrarood 2MASS. De catalogus weegt bijna 100 GB en bevat "
-"astrometrische n fotometrische gegevens van engeveer 1.1 miljard sterren\n"
-"* Gaia Data Release 2 werd op 25 april 2018 vrijgegeven. De vijfdelige "
-"astrometrische parameters, positie (α, δ), parallax, en beweging worden "
-"gegeven voor meer dan 1.3 miljard bronnen met een limietmagnitude van G = "
-"21.\n"
-"* PPMXL is een catalogus van posities, beweging, 2MASS- en optische en "
-"fotometrishe gegevens van 900 miljoen sterren en sterrenstelsels.\n"
-"* The Bright Star Catalogue is een catalogus dat alle sterren met een "
-"magnitude van 6.5 of helderder oplijst, wat zogoed als alle met het oog "
-"zichtbare sterren zij oplijst. Dit zijn 9 110 objecten."
+"Kies de online catalogus tegen dewelke men de afbeelding wil vergelijken.\n"
+"* De TYCHO-2-catalogus bevat posities, eigenbewegingen en tweekleurige "
+"fotometrische gegevens voor 2.539.913 van de helderste sterren in de Melkweg."
+"\n"
+"* NOMAD is een eenvoudige samenvoeging van gegevens uit de Hipparcos-, "
+"Tycho-2-, UCAC2-, Yellow-Blue 6- en USNO-B-catalogi voor astrometrie en "
+"optische fotometrie, aangevuld met 2MASS in het nabij-infrarood. De dataset "
+"van bijna 100 GB bevat astrometrische en fotometrische gegevens van ongeveer "
+"1,1 miljard sterren.\n"
+"* Gaia Data Release 3 is uitgebracht op 13 juni 2022. De astrometrische "
+"oplossing met vijf parameters, posities aan de hemel (α, δ), parallaxen en "
+"eigenbewegingen worden gegeven voor ongeveer 1,46 miljard bronnen, met een "
+"grenswaarde van G = 21.\n"
+"* PPMXL is een catalogus van posities, eigenbewegingen, 2MASS- en optische "
+"fotometrie van 900 miljoen sterren en sterrenstelsels.\n"
+"* De Bright Star Catalog is een sterrencatalogus met alle sterren van "
+"magnitude 6,5 of helderder, wat ongeveer elke ster is die met het blote oog "
+"vanaf de aarde zichtbaar is. De catalogus bevat 9.110 objecten."
 
 #: src/gui/siril3.glade:13145
 msgid ""
@@ -3280,6 +3445,8 @@ msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
 msgstr ""
+"De NOMAD-catalogus kan lokaal worden geïnstalleerd om voor deze bewerking "
+"niet afhankelijk te zijn van een internetverbinding."
 
 #: src/gui/siril3.glade:13205
 msgid "Catalogue Parameters"
@@ -3290,7 +3457,6 @@ msgid "Manual detection"
 msgstr "Manuele detectie"
 
 #: src/gui/siril3.glade:13230
-#, fuzzy
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -3298,9 +3464,11 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
-"Vink deze optie aan als je elke ster manueel wenst te kiezen. Het kan nuttig "
-"zijn in gevallen waar Siril niet genoeg sterren kon vinden. Probeer de "
-"heldeste sterren te kiezen."
+"Vink deze optie aan als u elke ster handmatig wilt kiezen. Het kan handig "
+"zijn in sommige gevallen waarin Siril niet genoeg sterren kan vinden. "
+"Probeer alstublieft de helderste sterren in de afbeelding te kiezen.\n"
+"Gebruik de Dynamic PSF-tool of de opdracht findstar om de instellingen aan "
+"te passen aan uw afbeelding."
 
 #: src/gui/siril3.glade:13240 src/gui/siril3.glade:14469
 msgid "Star Detection"
@@ -3311,13 +3479,12 @@ msgid "Automatic detection"
 msgstr "Automatische detectie"
 
 #: src/gui/siril3.glade:13270
-#, fuzzy
 msgid ""
 "Uncheck this button if you want to select the background reference by "
 "yourself. It can be useful when nebulae cover a large portion of the image."
 msgstr ""
-"Vik dit vakje uit als je de referentie achtergrond zelf wenst te kiezen. Kan "
-"nuttig zijn als de nevel het hele veld spant."
+"Schakel deze knop uit als u zelf de achtergrondreferentie wilt selecteren. "
+"Dit kan handig zijn wanneer nevels een groot deel van het beeld bedekken."
 
 #: src/gui/siril3.glade:13300 src/gui/siril3.glade:27849
 msgid "x coordinate of the start of the background selection"
@@ -3372,13 +3539,15 @@ msgstr "Normaliseer de Reëele getallen [0, 1]"
 #: src/gui/siril3.glade:13539
 #, fuzzy
 msgid "Per CFA channel"
-msgstr "Rood kanaal"
+msgstr "Per CFA kanaal"
 
 #: src/gui/siril3.glade:13544
 msgid ""
 "Compute statistics on pixels that have the same filter as the corresponding "
 "channel, for CFA (non-demosaiced) images."
 msgstr ""
+"Bereken statistieken over pixels die hetzelfde filter hebben als het "
+"corresponderende kanaal, voor CFA-afbeeldingen (niet-gedemozaïek)."
 
 #: src/gui/siril3.glade:13580
 msgid "No Selection"
@@ -3409,13 +3578,12 @@ msgid "y0"
 msgstr "y0"
 
 #: src/gui/siril3.glade:13910
-#, fuzzy
 msgid "Ra"
-msgstr "R"
+msgstr "Ra"
 
 #: src/gui/siril3.glade:13923
 msgid "Dec"
-msgstr ""
+msgstr "Dec"
 
 #: src/gui/siril3.glade:13937
 msgid "FWHMx"
@@ -3431,7 +3599,7 @@ msgstr "Mag"
 
 #: src/gui/siril3.glade:13996
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 #: src/gui/siril3.glade:14016
 msgid "r"
@@ -3447,12 +3615,11 @@ msgstr "RMSE"
 
 #: src/gui/siril3.glade:14076 src/gui/siril3.glade:17944
 msgid "index"
-msgstr ""
+msgstr "index"
 
 #: src/gui/siril3.glade:14096
-#, fuzzy
 msgid "Center selected star"
-msgstr "Bereken PSF op gekozen ster"
+msgstr "Geselecteerde ster centreren"
 
 #: src/gui/siril3.glade:14100
 msgid ""
@@ -3460,17 +3627,20 @@ msgid ""
 "The current zoom level will not be altered. This does not apply to stars "
 "selected by clicking their PSF in the main display."
 msgstr ""
+"Indien aangevinkt, wordt een uit de lijst geselecteerde ster in het midden "
+"van het scherm weergegeven. Het huidige zoomniveau wordt niet gewijzigd. Dit "
+"is niet van toepassing op sterren die zijn geselecteerd door op hun PSF in "
+"het hoofdscherm te klikken."
 
 #: src/gui/siril3.glade:14120 src/gui/siril3.glade:14172
 #: src/gui/siril3.glade:14185 src/gui/siril3.glade:14198
 #: src/gui/siril3.glade:14247
-#, fuzzy
 msgid ""
 "Changes of these four values should be tested on one representative image "
 "before using them for registration."
 msgstr ""
-"Het is aangeraden deze waarden op een representatief beeld aan te passe "
-"alvorens deze voor registratie te gebruiken."
+"Wijzigingen van deze vier waarden moeten op een representatief beeld worden "
+"getest voordat ze voor registratie worden gebruikt."
 
 #: src/gui/siril3.glade:14133
 msgid ""
@@ -3524,7 +3694,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:14229
 msgid "Relax PSF checks"
-msgstr ""
+msgstr "PSF controles versoepelen"
 
 #: src/gui/siril3.glade:14233
 msgid ""
@@ -3534,11 +3704,16 @@ msgid ""
 "guiding, strong coma) but should be used as a last resort, if playing with "
 "all other detection parameters fails."
 msgstr ""
+"Indien aangevinkt, deactiveert deze knop enkele controles die zijn "
+"uitgevoerd in de sterdetectiefase, om kandidaten die aanvankelijk zijn "
+"gedetecteerd, af te wijzen op basis van bepaalde psf-kwaliteitsstatistieken. "
+"Dit kan worden gebruikt om vreemd gevormde sterren te forceren (slechte "
+"geleiding, sterke coma), maar moet als laatste redmiddel worden gebruikt als "
+"het spelen met alle andere detectieparameters mislukt."
 
 #: src/gui/siril3.glade:14249
-#, fuzzy
 msgid "Convergence:"
-msgstr "Conversie"
+msgstr "Convergentie:"
 
 #: src/gui/siril3.glade:14260
 msgid ""
@@ -3549,44 +3724,54 @@ msgid ""
 "This should normally be the case only for stacked images. Increasing this "
 "value may signicantly impact star finding computation time."
 msgstr ""
+"Convergentiecriterium voor PSF-fitting.\n"
+"De standaardwaarde van 1 zou in de meeste gevallen moeten werken. Voor "
+"afbeeldingen met een sterke coma kan het echter nodig zijn om deze waarde te "
+"verhogen om meer iteratiestappen mogelijk te maken.\n"
+"Dit zou normaal gesproken alleen het geval moeten zijn voor gestakte "
+"afbeeldingen. Het verhogen van deze waarde kan een aanzienlijke invloed "
+"hebben op de rekentijd voor het vinden van sterren."
 
 #: src/gui/siril3.glade:14281
-#, fuzzy
 msgid "Profile type:"
-msgstr "Ondersteund bestandtypes:"
+msgstr "Profieltype:"
 
 #: src/gui/siril3.glade:14308
-#, fuzzy
 msgid "Minimum beta:"
-msgstr "Minimale sterparen:"
+msgstr "Minimum beta:"
 
 #: src/gui/siril3.glade:14318
 msgid ""
 "Minimum value for Moffat beta parameter. This can be used to avoid galaxies "
 "being modelled as stars with excessively low beta."
 msgstr ""
+"Minimumwaarde voor Moffat beta-parameter. Dit kan worden gebruikt om te "
+"voorkomen dat sterrenstelsels worden gemodelleerd als sterren met een te "
+"lage bèta."
 
 #: src/gui/siril3.glade:14337
-#, fuzzy
 msgid "Resets all parameters to defaults."
-msgstr "Herstel de Standaardwaarden"
+msgstr "Zet alle parameters terug naar de standaardwaarden."
 
 #: src/gui/siril3.glade:14358
 msgid ""
 "Maximum star amplitude threshold (stars with larger amplitudes will not be "
 "detected)."
 msgstr ""
+"Maximale steramplitudedrempel (sterren met grotere amplitudes worden niet "
+"gedetecteerd)."
 
 #: src/gui/siril3.glade:14378
 msgid ""
 "Mininum star amplitude threshold (stars with smaller amplitudes will not be "
 "detected)."
 msgstr ""
+"Minimale steramplitudedrempel (sterren met grotere amplitudes worden niet "
+"gedetecteerd)."
 
 #: src/gui/siril3.glade:14394
-#, fuzzy
 msgid "Amplitude range"
-msgstr "Amplitude"
+msgstr "Amplitudebereik"
 
 #: src/gui/siril3.glade:14398
 msgid ""
@@ -3595,11 +3780,14 @@ msgid ""
 "Note: excluding saturated stars from the list will probably make "
 "registration or astrometry fail."
 msgstr ""
+"Amplitudebereik inschakelen (alleen sterren met een amplitude in dit bereik "
+"worden niet gedetecteerd).\n"
+"Let op: het uitsluiten van gesatureerde sterren van de lijst zal "
+"waarschijnlijk de registratie of astrometrie doen mislukken."
 
 #: src/gui/siril3.glade:14410
-#, fuzzy
 msgid "Roundness range"
-msgstr "Rendheid"
+msgstr "Rondheid bereik"
 
 #: src/gui/siril3.glade:14414
 msgid ""
@@ -3607,12 +3795,18 @@ msgid ""
 "Use only to display optical distorsions or double stars, not for "
 "registration or astrometry, this will break them."
 msgstr ""
+"Schakel bovengrens rondheid in.\n"
+"Alleen gebruiken om optische vervormingen of dubbelsterren weer te geven, "
+"niet voor registratie of astrometrie, hierdoor zullen ze falen."
 
 #: src/gui/siril3.glade:14429
 msgid ""
 "Maximum roundness, use only to display optical distorsions or double stars, "
 "not for registration or astrometry, this will break them."
 msgstr ""
+"Maximale rondheid, alleen te gebruiken om optische vervormingen of "
+"dubbelsterren weer te geven, niet voor registratie of astrometrie, hierdoor "
+"zullen ze falen."
 
 #: src/gui/siril3.glade:14524
 msgid "Estimate sensor tilt"
@@ -3623,9 +3817,8 @@ msgid "Export PSF parameters in an ASCII file"
 msgstr "PSF parameters in een ASCII bestand exporteren"
 
 #: src/gui/siril3.glade:14586
-#, fuzzy
 msgid "Add star to list from selection"
-msgstr "Lijn de sterren in de selectie uit"
+msgstr "Ster toevoegen aan lijst uit selectie"
 
 #: src/gui/siril3.glade:14600
 msgid "Remove selected star from the list"
@@ -3635,25 +3828,24 @@ msgstr "Verwijder de gekozen ster van de lijst"
 msgid ""
 "Remove all stars from the list and clears the tilt overlay, if displayed"
 msgstr ""
+"Verwijder alle sterren uit de lijst en wist de tilt overlay, indien "
+"weergegeven"
 
 #: src/gui/siril3.glade:14648
-#, fuzzy
 msgid "Live Stacking"
-msgstr "Stacking"
+msgstr "Live Stacking"
 
 #: src/gui/siril3.glade:14708
-#, fuzzy
 msgid "debayer"
-msgstr "Debayer"
+msgstr "debayer"
 
 #: src/gui/siril3.glade:14713
 msgid "for now only detected in files and automatically enabled"
-msgstr ""
+msgstr "voorlopig alleen gedetecteerd in bestanden en automatisch ingeschakeld"
 
 #: src/gui/siril3.glade:14726
-#, fuzzy
 msgid "shift-only registration"
-msgstr "Manuele registratie"
+msgstr "shift-only registratie"
 
 #: src/gui/siril3.glade:14730
 msgid ""
@@ -3661,56 +3853,59 @@ msgid ""
 "unchecked for alt-az or heavily drifting mounts. This makes one image "
 "processing much faster."
 msgstr ""
+"Verschuif alleen afbeeldingen in plaats van rotatie bij registratie. Dit "
+"moet worden uitgeschakeld voor alt-az of zwaar driftende mounts. Hierdoor "
+"gaat een beeldverwerking veel sneller."
 
 #: src/gui/siril3.glade:14741
 msgid "remove gradient"
-msgstr ""
+msgstr "gradiënt verwijderen"
 
 #: src/gui/siril3.glade:14746
 msgid "Apply a linear background gradient removal on calibrated input frames."
 msgstr ""
+"Pas een lineaire achtergrondgradiëntverwijdering toe op gekalibreerde "
+"invoerframes."
 
 #: src/gui/siril3.glade:14757
-#, fuzzy
 msgid "use 32 bits"
-msgstr "32 bits"
+msgstr "gebruik 32 bits"
 
 #: src/gui/siril3.glade:14761
 msgid ""
 "Use 32 bits for image processing. This is slower and generally useless in "
 "terms of quality for live stacking."
 msgstr ""
+"Gebruik 32 bits voor beeldverwerking. Dit is langzamer en over het algemeen "
+"nutteloos in termen van kwaliteit voor live stacking."
 
 #: src/gui/siril3.glade:14835
 msgid "waiting for input files"
-msgstr ""
+msgstr "wachten op invoerbestanden"
 
 #: src/gui/siril3.glade:14844 src/gui/siril3.glade:26039
 msgid "Stacking"
 msgstr "Stacking"
 
 #: src/gui/siril3.glade:14913
-#, fuzzy
 msgid "Master-dark and cosmetic correction"
-msgstr "Schakel Cosmetische Correcties aan"
+msgstr "Master-dark en cosmetische correctie"
 
 #: src/gui/siril3.glade:14925
-#, fuzzy
 msgid "Master-flat"
-msgstr "master-flat"
+msgstr "Master-flat"
 
 #: src/gui/siril3.glade:14937
 msgid "Stacking with weighted mean"
-msgstr ""
+msgstr "Stacking met gewogen gemiddelde"
 
 #: src/gui/siril3.glade:14986
-#, fuzzy
 msgid "Configuration"
-msgstr "Informatie"
+msgstr "Configuratie"
 
 #: src/gui/siril3.glade:15012 src/livestacking/gui.c:144
 msgid "Idle"
-msgstr ""
+msgstr "Inactief"
 
 #: src/gui/siril3.glade:15046 src/gui/siril3.glade:15179
 msgid "Image Information"
@@ -3721,9 +3916,8 @@ msgid "Preferences"
 msgstr "Voorkeuren"
 
 #: src/gui/siril3.glade:15097
-#, fuzzy
 msgid "Siril Manual"
-msgstr "Manueel"
+msgstr "Documentatie"
 
 #: src/gui/siril3.glade:15111
 msgid "Check For Updates"
@@ -3755,9 +3949,8 @@ msgstr "Ruisschatting"
 
 #: src/gui/siril3.glade:15238 src/gui/siril3.glade:15586
 #: src/gui/siril3.glade:27612
-#, fuzzy
 msgid "Aberration Inspector"
-msgstr "Aftrekking klaar ...\n"
+msgstr "Aberratie Inspecteur"
 
 #: src/gui/siril3.glade:15263
 msgid "Information..."
@@ -3794,7 +3987,7 @@ msgstr "AutoStretch"
 
 #: src/gui/siril3.glade:15380
 msgid "High definition"
-msgstr ""
+msgstr "Hoge resolutie"
 
 #: src/gui/siril3.glade:15389 src/gui/siril3.glade:31498
 msgid "Histogram"
@@ -3805,9 +3998,8 @@ msgid "Exclude frame %d"
 msgstr "Frame %d verwerpen"
 
 #: src/gui/siril3.glade:15413 src/gui/siril3.glade:15422
-#, fuzzy
 msgid "Show frame %d"
-msgstr "Frame %d verwerpen"
+msgstr "Toon beeld %d"
 
 #: src/gui/siril3.glade:15438 src/gui/siril3.glade:24476
 #: src/gui/siril3.glade:24792
@@ -3857,11 +4049,12 @@ msgid ""
 "Search and display solar system objects with mag<20.0.\n"
 "This research has made use of IMCCE's SkyBoT VO tool."
 msgstr ""
+"Zoek en toon objecten in het zonnestelsel met mag<20.0.\n"
+"Voor dit onderzoek is gebruik gemaakt van de SkyBoT VO-tool van IMCCE."
 
 #: src/gui/siril3.glade:15553
-#, fuzzy
 msgid "Solar System Objects"
-msgstr "Zoek object"
+msgstr "Objecten in het zonnestelsel"
 
 #: src/gui/siril3.glade:15610
 msgid "Free aspect ratio"
@@ -3937,64 +4130,68 @@ msgstr "Crop Sequentie..."
 
 #: src/gui/siril3.glade:15816 src/gui/siril3.glade:19040
 #: src/gui/siril3.glade:19516
-#, fuzzy
 msgid "Rotate&Crop"
-msgstr "Rotatie"
+msgstr "Roteren&Crop"
 
 #: src/gui/siril3.glade:15830
-#, fuzzy
 msgid "RGB align"
-msgstr "RGB Uitlijning"
+msgstr "RGB uitlijnen"
 
 #: src/gui/siril3.glade:15863
-#, fuzzy
 msgid "Merge CFA Elements"
-msgstr "CFA-kanalen splitsen..."
+msgstr "CFA-elementen samenvoegen"
 
 #: src/gui/siril3.glade:15950
 msgid "CFA0"
-msgstr ""
+msgstr "CFA0"
 
 #: src/gui/siril3.glade:15961
 msgid "CFA1"
-msgstr ""
+msgstr "CFA1"
 
 #: src/gui/siril3.glade:15972
 msgid "CFA2"
-msgstr ""
+msgstr "CFA2"
 
 #: src/gui/siril3.glade:15983
 msgid "CFA3"
-msgstr ""
+msgstr "CFA3"
 
 #: src/gui/siril3.glade:15995
 msgid ""
 "Select the image containing the CFA0 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
 msgstr ""
+"Selecteer de afbeelding met het CFA0 Bayer-subpatroon. Als dit is gemaakt "
+"met de Split CFA-functie van Siril, heeft het het voorvoegsel CFA0."
 
 #: src/gui/siril3.glade:16009
 msgid ""
 "Select the image containing the CFA1 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA1 prefix."
 msgstr ""
+"Selecteer de afbeelding met het CFA1 Bayer-subpatroon. Als dit is gemaakt "
+"met de Split CFA-functie van Siril, heeft het het voorvoegsel CFA1."
 
 #: src/gui/siril3.glade:16023
 msgid ""
 "Select the image containing the CFA2 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA2 prefix."
 msgstr ""
+"Selecteer de afbeelding met het CFA2 Bayer-subpatroon. Als dit is gemaakt "
+"met Siril's Split CFA-functie, heeft het het CFA2-voorvoegsel."
 
 #: src/gui/siril3.glade:16037
 msgid ""
 "Select the image containing the CFA3 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA3 prefix."
 msgstr ""
+"Selecteer de afbeelding met het CFA3 Bayer-subpatroon. Als dit is gemaakt "
+"met Siril's Split CFA-functie, heeft het het CFA3-voorvoegsel."
 
 #: src/gui/siril3.glade:16054
-#, fuzzy
 msgid "Input Files"
-msgstr "TIFF Bestanden"
+msgstr "Invoerbestanden"
 
 #: src/gui/siril3.glade:16083
 msgid ""
@@ -4002,6 +4199,9 @@ msgid ""
 "the Bayer pattern of the image that the original Bayer subchannels were "
 "split from."
 msgstr ""
+"Stelt de header van het Bayer-patroon in die op het resultaat moet worden "
+"toegepast. Dit moet overeenkomen met het Bayer-patroon van de afbeelding "
+"waarvan de originele Bayer-subkanalen zijn gesplitst."
 
 #: src/gui/siril3.glade:16087
 msgid "RGGB"
@@ -4020,9 +4220,8 @@ msgid "GRBG"
 msgstr "GRBG"
 
 #: src/gui/siril3.glade:16100
-#, fuzzy
 msgid "Bayer Pattern"
-msgstr "Bayer/moisaiek pattern: "
+msgstr "Bayer-patroon"
 
 #: src/gui/siril3.glade:16119
 msgid ""
@@ -4030,16 +4229,17 @@ msgid ""
 "CFA0 loaded to start with, and ensure filenames are consistent across images "
 "for all CFA channels."
 msgstr ""
+"Voegt gescheiden CFA-afbeeldingen samen voor een reeks. U moet om te "
+"beginnen de reeks voor CFA0 laden en ervoor zorgen dat de bestandsnamen voor "
+"alle CFA-kanalen consistent zijn in alle afbeeldingen."
 
 #: src/gui/siril3.glade:16151
-#, fuzzy
 msgid "Sequence input marker"
-msgstr "Naam sequentie:"
+msgstr "Reeks-invoermarkering"
 
 #: src/gui/siril3.glade:16162
-#, fuzzy
 msgid "Sequence output prefix"
-msgstr "Output prefix:"
+msgstr "Reeks-uitvoerprefix"
 
 #: src/gui/siril3.glade:16173
 msgid ""
@@ -4047,12 +4247,16 @@ msgid ""
 "images. This should be set to whatever sequence prefix was used when the "
 "split_cfa process was run (default: CFA_)."
 msgstr ""
+"Identificatievoorvoegsel dat wordt gebruikt om het CFA-nummer aan te duiden "
+"in de afzonderlijke CFA-kanaalafbeeldingen. Dit moet worden ingesteld op het "
+"reeksvoorvoegsel dat werd gebruikt toen het split_cfa-proces werd uitgevoerd "
+"(standaard: CFA_)."
 
 #: src/gui/siril3.glade:16190
-#, fuzzy
 msgid "Prefix of the image names resulting from the merge CFA process."
 msgstr ""
-"Prefix van de afbeeldingsnamen die het resultaat zijn van het mtf-proces."
+"Voorvoegsel van de afbeeldingsnamen die het resultaat zijn van het samenvoeg-"
+"CFA-proces."
 
 #: src/gui/siril3.glade:16232
 msgid ""
@@ -4074,11 +4278,28 @@ msgid ""
 "unable to merge the remaining CFA channels for that image. All sequence "
 "filtering should be done either before split_cfa or after merge_cfa."
 msgstr ""
+"U moet de CFA0-reeks hebben geselecteerd op het tabblad Reeks in het "
+"hoofdvenster.\n"
+"\n"
+"Uw afzonderlijke sub-CFA-reeksen moeten op precies dezelfde manier zijn "
+"verwerkt.\n"
+"\n"
+"De bestandsnamen <b>moeten</b> in dezelfde map staan en <b>moeten</b> alleen "
+"verschillen door de naam van het CFA-kanaal. d.w.z. als een CFA0-afbeelding "
+"<i>r_pp_CFA_0_Light_0001.fit</i> is, moeten de overeenkomstige afbeeldingen "
+"voor de andere CFA-kanalen <i>r_pp_CFA_1_Light_0001.fit</i>, "
+"<i>r_pp_CFA_2_Light_0001.fit</i> en <i>r_pp_CFA_3_Light_0001.fit</i> zijn.\n"
+"\n"
+"Elk beeld in de reeks wordt alleen verwerkt als de overeenkomstige beelden "
+"voor de andere 3 CFA-kanalen kunnen worden gevonden. Zowel G1 als G2 zijn "
+"vereist. Merk op dat als u een afbeelding verwijdert die een CFA-kanaal "
+"bevat van een afbeelding tussen split_cfa en merge_cfa, merge_cfa de "
+"resterende CFA-kanalen voor die afbeelding niet kan samenvoegen. Alle "
+"reeksfiltering moet vóór split_cfa of na merge_cfa worden uitgevoerd."
 
 #: src/gui/siril3.glade:16257
-#, fuzzy
 msgid "Sequences"
-msgstr "Seuqentie"
+msgstr "Reeksen"
 
 #: src/gui/siril3.glade:16290 src/gui/histogram.c:1246
 msgid "Histogram Transformation"
@@ -4105,18 +4326,20 @@ msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
 msgstr ""
+"Toon het histogram met een logaritmische schaal. Heeft geen invloed op de "
+"weergave van de transferfunctie.\n"
 
 #: src/gui/siril3.glade:16513
 msgid "Toggles whether the stretch applies to the red channel"
-msgstr ""
+msgstr "Schakelt stretchen van het rode kanaal aan of uit"
 
 #: src/gui/siril3.glade:16531
 msgid "Toggles whether the stretch applies to the green channel"
-msgstr ""
+msgstr "Schakelt stretchen van het groene kanaal aan of uit"
 
 #: src/gui/siril3.glade:16549
 msgid "Toggles whether the stretch applies to the blue channel"
-msgstr ""
+msgstr "Schakelt stretchen van het blauwe kanaal aan of uit"
 
 #: src/gui/siril3.glade:16576
 msgid "Show grids"
@@ -4124,12 +4347,11 @@ msgstr "Toon Raster"
 
 #: src/gui/siril3.glade:16593
 msgid "Show transfer curve plus the line y=x"
-msgstr ""
+msgstr "Toon de transfercurve plus de lijn y=x"
 
 #: src/gui/siril3.glade:16610
-#, fuzzy
 msgid "Show pre-stretch histogram"
-msgstr "Histrogram"
+msgstr "Toon pre-stretch histogram"
 
 #: src/gui/siril3.glade:16637
 msgid "Apply autostretch algorithm to image"
@@ -10563,9 +10785,8 @@ msgid "Colour artefact suppression active.\n"
 msgstr ""
 
 #: src/core/command.c:371
-#, fuzzy
 msgid "Starting NL-Bayes denoising..."
-msgstr "Stacking begonnen...\n"
+msgstr "NL-Bayes denoising starten..."
 
 #: src/core/command.c:425
 #, fuzzy
@@ -10601,8 +10822,9 @@ msgid "Will apply generalised Anscombe variance stabilising transform.\n"
 msgstr ""
 
 #: src/core/command.c:503
+#, fuzzy
 msgid "Will carry out final stage DA3D denoising.\n"
-msgstr ""
+msgstr "Zal DA3D-denoising in de laatste fase uitvoeren.\n"
 
 #: src/core/command.c:505
 msgid "Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"
@@ -12921,6 +13143,59 @@ msgid ""
 "used to prevent this by denoising each channel separately. This is slower "
 "but will eliminate artefacts"
 msgstr ""
+"Verwijdert ruis in de afbeelding met behulp van het niet-lokale Bayesiaanse "
+"algoritme beschreven door <a href=\"https://www.ipol.im/pub/art/2013/16\""
+">Lebrun, Buades en Morel</a>.\n"
+"\n"
+"Het wordt ten zeerste aanbevolen om cosmetische correctie toe te passen om "
+"zout- en peperruis te verwijderen voordat u denoise uitvoert, en standaard "
+"zal deze opdracht cosmetische correctie automatisch toepassen. Als dit "
+"echter al eerder in de workflow is uitgevoerd, kan het hier worden "
+"uitgeschakeld met het optionele commando <b>-nocosmetic</b>.\n"
+"\n"
+"Een optioneel argument <b>-mod=m</b> kan worden gegeven, waarbij 0 &lt;= m "
+"&lt;= 1. De uitvoerpixel wordt berekend als: <i>out=m x d + (1 − m) x in </"
+"i>, waarbij <i>d</i> de gedenoiseerde pixelwaarde is. Een modulatiewaarde "
+"van 1 past geen modulatie toe. Als de parameter wordt weggelaten, is deze "
+"standaard 1.\n"
+"\n"
+"Het optionele argument <b>-vst</b> kan worden gebruikt om de "
+"gegeneraliseerde Anscombe-variantiestabiliserende transformatie toe te "
+"passen voorafgaand aan NL-Bayes. Dit is handig bij afbeeldingen met weinig "
+"fotonen, zoals enkele subs, waarbij de ruis een Poisson- of Poisson-"
+"Gaussiaanse verdeling volgt in plaats van voornamelijk Gaussisch te zijn. "
+"Het kan niet worden gebruikt in combinatie met DA3D of SOS, en voor het "
+"verwijderen van ruis in gestapelde afbeeldingen is het meestal niet gunstig."
+"\n"
+"\n"
+"Het optionele argument <b>-da3d</b> kan worden gebruikt om Data-Adaptive "
+"Dual Domain Denoising (DA3D) in te schakelen als een denoising-algoritme in "
+"de laatste fase. Dit gebruikt de output van BM3D als een gidsbeeld om de "
+"denoising te verfijnen. Het verbetert de details en vermindert "
+"trapartefacten.\n"
+"\n"
+"Het optionele argument <b>-sos=<i>n</i></b> kan worden gebruikt om "
+"Strengthen-Operate-Subtract (SOS) iteratieve denoise-boosting in te "
+"schakelen, waarbij het aantal iteraties wordt gespecificeerd door n. Deze "
+"booster kan met name betere resultaten opleveren als het niet-gebooste NL-"
+"Bayes-algoritme artefacten in achtergrondgebieden produceert. Als zowel -"
+"da3d als -sos=n zijn opgegeven, is de laatst opgegeven waarde van toepassing."
+"\n"
+"\n"
+"Het optionele argument <b>-rho=r</b> kan worden opgegeven, waarbij 0 &lt; r "
+"&lt; 1. Dit wordt gebruikt door de SOS-booster om de hoeveelheid beeldruis "
+"te bepalen die wordt toegevoegd aan het tussenresultaat tussen elke "
+"iteratie. Als -sos=n niet is opgegeven, wordt de parameter genegeerd.\n"
+"\n"
+"De standaard is om DA3D of SOS niet toe te passen, aangezien de verbetering "
+"in denoising meestal relatief klein is en deze technieken extra "
+"verwerkingstijd vereisen.\n"
+"\n"
+"In zeer zeldzame gevallen kunnen blokkerige gekleurde artefacten in de "
+"uitvoer worden aangetroffen bij het verwijderen van ruis in "
+"kleurenafbeeldingen. Het optionele argument <b>-indep</b> kan worden "
+"gebruikt om dit te voorkomen door elk kanaal apart van ruis te ontdoen. Dit "
+"is langzamer, maar elimineert artefacten"
 
 #: src/core/command_def.h:34
 msgid "Dumps the FITS header"
@@ -13751,6 +14026,52 @@ msgid ""
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
 "Title\"."
 msgstr ""
+"Genereert een intensiteitsprofiel tussen 2 punten in de afbeelding. De "
+"argumenten kunnen in willekeurige volgorde worden gegeven. De argumenten "
+"<b>-to=x,y</b> en <b>-from=x,y</b> zijn verplicht.\n"
+"\n"
+"Het argument <b>-layer=<i>{rood | groen | blauw | lum | col</i></b> geeft "
+"aan welk kanaal (of luminantie of kleur) moet worden geplot als de "
+"afbeelding in kleur is. Dit kan worden gebruikt in combinatie met "
+"spectrometrische opties. Het kan ook worden gebruikt met de optie <b>-tri</"
+"b>, die 3 parallelle profielen op gelijke afstand genereert, elk gescheiden "
+"door <b>-spacing=</b> pixels, maar houd er rekening mee dat voor tri-"
+"profielen de <i>< b>col</b></i> optie wordt hetzelfde behandeld als "
+"<i><b>lum</b></i>.\n"
+"\n"
+"De optie <b>-cfa</b> selecteert de CFA-modus, die 4 profielen genereert: 1 "
+"voor elk CFA-kanaal in een afbeelding met een Bayer-patroon. Deze optie kan "
+"niet worden gebruikt met kleurenafbeeldingen of mono-afbeeldingen zonder "
+"Bayer-patroon en kan niet tegelijk met de <b>-tri</b>-optie worden gebruikt."
+"\n"
+"\n"
+"De optie <b>-arcsec</b> zorgt ervoor dat de x-as de afstand in arcsec "
+"weergeeft, als de benodigde metadata beschikbaar is. Deze optie wordt "
+"overschreven als er spectrometrische opties beschikbaar zijn. Indien niet "
+"verstrekt of als er geen metadata beschikbaar zijn, wordt de afstand "
+"weergegeven in pixeleenheden.\n"
+"\n"
+"Het argument <b>-savedat</b> zal ervoor zorgen dat de GNUplot-"
+"gegevensbestanden worden opgeslagen: de bestandsnaam wordt naar het log "
+"geschreven. Als alternatief kan het argument <b>-filename=</b> worden "
+"gebruikt om een bestandsnaam op te geven waarnaar het gegevensbestand moet "
+"worden geschreven. (De optie <b>-filename=</b> impliceert <b>-savedat</b>.)\n"
+"\n"
+"<b>Spectrometrische opties</b>\n"
+"\n"
+"Als spectrometrische opties beschikbaar zijn, moet al het volgende worden "
+"opgegeven: <b>-wavenumber1=</b> en <b>-wavenumber2=</b> specificeren 2 "
+"golfgetallen in cm<sup>-1</sup>, en <b>-wn1=x,y</b> en <b>-wn2=x,y</b> "
+"specificeren punten in de afbeelding die overeenkomen met die golfnummers. "
+"Gemakshalve kunnen in plaats daarvan <b>-wavelength1=</b> en "
+"<b>-wavelength2=</b> worden gebruikt om golflengten in nm te geven. Deze "
+"worden altijd geconverteerd en de plot-as toont altijd het golfgetal. Het "
+"optionele spectrometrische argument <b>-width=</b> kan worden opgegeven, dat "
+"specificeert hoeveel pixels loodrecht op de profiellijn moeten worden "
+"gemiddeld.\n"
+"\n"
+"Het argument <b>\"-title=<i>Mijn titel\"</i></b> stelt een aangepaste titel "
+"\"Mijn titel\" in."
 
 #: src/core/command_def.h:108
 msgid ""
@@ -14443,6 +14764,52 @@ msgid ""
 "Sequence (1 / 5)\", the given title should end with () (e.g. \"My Sequence "
 "()\" and the numbers will be populated automatically."
 msgstr ""
+"Genereert een intensiteitsprofiel tussen 2 punten in elk beeld in de reeks. "
+"De argumenten kunnen in willekeurige volgorde worden gegeven. De argumenten "
+"<b>-to=x,y</b> en <b>-from=x,y</b> zijn verplicht.\n"
+"\n"
+"Het argument <b>-layer=<i>{rood | groen | blauw | lum | col</i></b> geeft "
+"aan welk kanaal (of luminantie of kleur) moet worden geplot als de "
+"afbeelding in kleur is. Dit kan worden gebruikt in combinatie met "
+"spectrometrische opties. Het kan ook worden gebruikt met de optie <b>-tri</"
+"b>, die 3 parallelle profielen op gelijke afstand genereert, elk gescheiden "
+"door <b>-spacing=</b> pixels, maar houd er rekening mee dat voor tri-"
+"profielen de <i>< b>col</b></i> optie wordt hetzelfde behandeld als "
+"<i><b>lum</b></i>.\n"
+"\n"
+"De optie <b>-cfa</b> selecteert de CFA-modus, die 4 profielen genereert: 1 "
+"voor elk CFA-kanaal in een afbeelding met een Bayer-patroon. Deze optie kan "
+"niet worden gebruikt met kleurenafbeeldingen of mono-afbeeldingen zonder "
+"Bayer-patroon en kan niet tegelijk met de <b>-tri</b>-optie worden gebruikt."
+"\n"
+"\n"
+"De optie <b>-arcsec</b> zorgt ervoor dat de x-as de afstand in arcsec "
+"weergeeft, als de benodigde metadata beschikbaar is. Deze optie wordt "
+"overschreven als er spectrometrische opties beschikbaar zijn. Indien niet "
+"verstrekt of als er geen metadata beschikbaar zijn, wordt de afstand "
+"weergegeven in pixeleenheden.\n"
+"\n"
+"Het argument <b>-savedat</b> kan worden opgegeven als het gewenst is om de "
+"GNUplot-gegevensbestanden te behouden: standaard worden ze verwijderd.\n"
+"\n"
+"<b>Spectrometrische opties</b>\n"
+"\n"
+"Als spectrometrische opties beschikbaar zijn, moet al het volgende worden "
+"opgegeven: <b>-wavenumber1=</b> en <b>-wavenumber2=</b> specificeren 2 "
+"golfgetallen in cm<sup>-1</sup>, en <b>-wn1=x,y</b> en <b>-wn2=x,y</b> "
+"specificeren punten in de afbeelding die overeenkomen met die golfnummers. "
+"Gemakshalve kunnen in plaats daarvan <b>-wavelength1=</b> en "
+"<b>-wavelength2=</b> worden gebruikt om golflengten in nm te geven. Deze "
+"worden altijd geconverteerd en de plot-as toont altijd het golfgetal. Het "
+"optionele spectrometrische argument <b>-width=</b> kan worden opgegeven, dat "
+"specificeert hoeveel pixels loodrecht op de profiellijn moeten worden "
+"gemiddeld.\n"
+"\n"
+"Het argument <b>\"-title=<i>Mijn titel\"</i></b> stelt een aangepaste titel "
+"\"Mijn titel\" in. Als u een reeks verwerkt en het gewenst is om het huidige "
+"beeldnummer en het totale aantal beelden weer te geven in het formaat \"Mijn "
+"reeks (1 / 5)\", moet de gegeven titel eindigen met () (bijv. \"Mijn reeks ()"
+"\" en de nummers worden automatisch ingevuld."
 
 #: src/core/command_def.h:154
 msgid ""
@@ -16722,9 +17089,8 @@ msgid "Applying MTF to channel %d with values %f, %f, %f\n"
 msgstr ""
 
 #: src/filters/nlbayes/call_nlbayes.cpp:119
-#, fuzzy
 msgid "NL-Bayes denoising..."
-msgstr "Stacking begonnen...\n"
+msgstr "NL-Bayes denoising..."
 
 #. Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
 #: src/filters/nlbayes/call_nlbayes.cpp:140
@@ -16751,9 +17117,8 @@ msgid "SOS iteration %d of %d complete\n"
 msgstr "Registratie klaar."
 
 #: src/filters/nlbayes/call_nlbayes.cpp:211
-#, fuzzy
 msgid "DA3D final-stage denoising...\n"
-msgstr "Stacking begonnen...\n"
+msgstr "DA3D laatste fase denoising...\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:213
 msgid "OpenMP not available. The DA3D algorithm will run in a single thread.\n"
@@ -17726,9 +18091,8 @@ msgid "Error: variable image size in sequence.\n"
 msgstr "Fout bij het voltooien van de samengevoegde sequentie\n"
 
 #: src/gui/cut.c:246
-#, fuzzy
 msgid "Error: wavenumber points are the same.\n"
-msgstr "Kan de data niet lezen\n"
+msgstr "Fout: golfgetalpunten zijn hetzelfde.\n"
 
 #: src/gui/cut.c:250
 msgid "Error: wavenumber for -wn1= is not set.\n"
