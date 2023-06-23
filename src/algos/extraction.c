@@ -796,6 +796,12 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 			new_fit_image(&OIII, in->rx, in->ry, 1, DATA_USHORT)) {
 		return 1;
 	}
+//	for (int i = 0 ; i < width * height ; i++) {
+//		Ha->data[i] =0;
+//	}
+//	for (int i = 0 ; i < in->rx * in->ry ; i++) {
+//		OIII->data[i] = 0;
+//	}
 	// Loop through calculating the means of the 3 O-III photosite subchannels
 	// Also populate the Ha fits data
 	float g1 = 0.f, g2 = 0.f, b = 0.f;
@@ -854,28 +860,23 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
-				int HaIndex = 0;
 				switch(pattern) {
 					case BAYER_FILTER_RGGB:
-						HaIndex = col + row * in->rx;
 						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
 						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
 						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + (1 + row) * in->rx]);
 						break;
 					case BAYER_FILTER_BGGR:
-						HaIndex = 1 + col + (1 + row) * in->rx;
 						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
 						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
 						OIII->data[col + row * in->rx] = roundf_to_WORD(bratio * in->data[col + row * in->rx]);
 						break;
 					case BAYER_FILTER_GRBG:
-						HaIndex = 1 + col + row * in->rx;
 						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
 						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
 						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[col + (1 + row) * in->rx]);
 						break;
 					case BAYER_FILTER_GBRG:
-						HaIndex = col + (1 + row) * in->rx;
 						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
 						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
 						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + row * in->rx]);
@@ -884,7 +885,29 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						printf("Should not happen.\n");
 						error++;
 				}
-				if (!error) {
+			}
+		}
+		if (!error) {
+			for (int row = 0; row < in->ry - 1; row += 2) {
+				for (int col = 0; col < in->rx - 1; col += 2) {
+					int HaIndex = 0;
+					switch(pattern) {
+						case BAYER_FILTER_RGGB:
+							HaIndex = col + row * in->rx;
+							break;
+						case BAYER_FILTER_BGGR:
+							HaIndex = 1 + col + (1 + row) * in->rx;
+							break;
+						case BAYER_FILTER_GRBG:
+							HaIndex = 1 + col + row * in->rx;
+							break;
+						case BAYER_FILTER_GBRG:
+							HaIndex = col + (1 + row) * in->rx;
+							break;
+						default:
+							printf("Should not happen.\n");
+							error++;
+					}
 					float interp = 0.f;
 					float weight = 0.f;
 					gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
@@ -896,11 +919,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						weight += SQRTF_2;
 						if (!first_x) {
 							interp += (OIII->data[HaIndex - 1] * SQRTF_2);
-							interp += OIII->data[HaIndex - in->rx - 1];
+							interp += OIII->data[(HaIndex - in->rx) - 1];
 							weight += (1.f + SQRTF_2);
 						}
 						if (!last_x) {
-							interp += OIII->data[HaIndex - in->rx + 1];
+							interp += OIII->data[(HaIndex - in->rx) + 1];
 							interp += OIII->data[HaIndex + 1] * SQRTF_2;
 							weight += (1.f + SQRTF_2);
 						}
@@ -918,7 +941,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						interp += OIII->data[HaIndex + in->rx] * SQRTF_2;
 						weight += SQRTF_2;
 						if(!first_x) {
-							interp += OIII->data[HaIndex + in->rx - 1];
+							interp += OIII->data[(HaIndex + in->rx) - 1];
 							weight += 1.f;
 						}
 						if(!last_x) {
