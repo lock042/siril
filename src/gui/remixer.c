@@ -1353,7 +1353,7 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 	}
 	if (!right_loaded) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no starless image loaded"),
-				_("Load an image using the rightt-hand file chooser before attempting to set SP using the eyedropper"));
+				_("Load an image using the right-hand file chooser before attempting to set SP using the eyedropper"));
 		return;
 	}
 	for (chan = 0; chan < fit_right.naxes[2]; chan++) {
