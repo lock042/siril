@@ -202,7 +202,7 @@ gpointer scnr(gpointer p) {
 	}
 #ifndef EXCLUDE_FF
 	if (!com.headless) {
-		cmsPlugin(cmsThreadedExtensions(com.max_thread, 0));
+		cmsPlugin(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
 	}
 #endif
 

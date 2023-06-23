@@ -306,7 +306,7 @@ static gpointer export_sequence(gpointer ptr) {
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
 	gboolean first_profile_read = FALSE;
-	cmsHPROFILE master_profile;
+	cmsHPROFILE master_profile = NULL;
 
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
