@@ -164,6 +164,7 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 		gsl_vector_set(MaxV, 3, max(FWHMx, FWHMy)); //FWHM x
 		gsl_vector_set(MaxV, 4, min(FWHMx, FWHMy)); //FWHM y
 		gsl_vector_set(MaxV, 5, 0.); //angle
+		gsl_matrix_free(m_tmp);
 		return MaxV;
 	}
 
