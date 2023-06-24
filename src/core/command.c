@@ -9213,6 +9213,11 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
+	if(!gnuplot_is_available()) {
+		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
@@ -9234,6 +9239,11 @@ int process_seq_profile(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
+	}
+
+	if(!gnuplot_is_available()) {
+		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
+		return CMD_GENERIC_ERROR;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);

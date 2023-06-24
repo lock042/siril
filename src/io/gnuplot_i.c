@@ -138,10 +138,6 @@ gboolean gnuplot_is_available() {
 		if (is_available) {
 			gchar *msg = gnuplot_version_is_bad();
 			if (msg) {
-				if (!com.script) {
-					siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
-					control_window_switch_to_tab(OUTPUT_LOGS);
-				} else {
 					siril_log_color_message("%s\n", "red", msg);
 				}
 				is_available = FALSE;
@@ -382,9 +378,9 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GError) error2 = NULL;
 	if (!g_close(handle->child_fd_stdin, &error))
-		siril_debug_print("%s\n", error->message);
+		siril_debug_print("Callback error closing stdin: %s\n", error->message);
 	if (!g_close(handle->child_fd_stderr, &error2))
-		siril_debug_print("%s\n", error2->message);
+		siril_debug_print("Callback error closing stderr: %s\n", error2->message);
 	null_handle_in_com_gnuplot_handles(handle);
 	free(handle);
 	handle = NULL;
