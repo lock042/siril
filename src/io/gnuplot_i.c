@@ -73,6 +73,9 @@
 // Uncomment the following line for lots of debug messages
 //#define GPLOT_DEBUG
 
+static gboolean gnuplot_checked = FALSE;
+static gboolean gnuplot_available = FALSE;
+
 static gboolean gnuplot_is_in_path = FALSE;
 
 /*********************** finding gnuplot first **********************/
@@ -142,33 +145,42 @@ gboolean gnuplot_is_available() {
 #else
 /* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
-	gboolean is_available;
-    gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
+	if (gnuplot_checked) {
+		siril_debug_print("Using cached GNUplot availability check\n");
+		return gnuplot_available;
+	} else {
+		siril_debug_print("Checking GNUplot will run\n");
+		gboolean is_available;
+		gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
 
-    int retval = system(str);
-    g_free(str);
-    if (WIFEXITED(retval)) {
-        gnuplot_is_in_path = TRUE;
-        is_available = (0 == WEXITSTATUS(retval));
-    } else {
-		gchar *bin = siril_get_gnuplot_bin();
-		is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-		g_free(bin);
-	}
-	if (is_available) {
-		gchar *msg = gnuplot_version_is_bad();
-		if (msg) {
-			if (!com.script) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
-				control_window_switch_to_tab(OUTPUT_LOGS);
-			} else {
-				siril_log_color_message("%s\n", "red", msg);
-			}
-			is_available = FALSE;
-			g_free(msg);
+		int retval = system(str);
+		g_free(str);
+		if (WIFEXITED(retval)) {
+			gnuplot_is_in_path = TRUE;
+			is_available = (0 == WEXITSTATUS(retval));
+		} else {
+			gchar *bin = siril_get_gnuplot_bin();
+			is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+			g_free(bin);
 		}
+		if (is_available) {
+			gchar *msg = gnuplot_version_is_bad();
+			if (msg) {
+				if (!com.script) {
+					siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
+					control_window_switch_to_tab(OUTPUT_LOGS);
+				} else {
+					siril_log_color_message("%s\n", "red", msg);
+				}
+				is_available = FALSE;
+				g_free(msg);
+			}
+
+		}
+		gnuplot_available = is_available;
+		gnuplot_checked = TRUE;
+		return is_available;
 	}
-    return is_available;
 }
 #endif
 
