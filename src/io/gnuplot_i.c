@@ -307,7 +307,7 @@ gpointer tmpwatcher (gpointer user_data) {
 		}
 		else if (g_str_has_prefix(buffer, "Terminate")) {
 			gnuplot_cmd(handle, "exit gnuplot\n");
-			if (handle->ntmp) {
+/*			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
 					if (g_unlink(handle->tmp_filename_tbl[i]))
 						siril_debug_print("Error in g_unlink()\n");
@@ -327,6 +327,7 @@ gpointer tmpwatcher (gpointer user_data) {
 			if (!g_close(handle->child_fd_stderr, &error2))
 				siril_debug_print("%s\n", error->message);
 			handle->running = FALSE; // Don't free the handle here, it will be freed in gnuplot_close()
+*/
 			return GINT_TO_POINTER(1);
 		}
 		g_free(buffer);
