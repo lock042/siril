@@ -119,27 +119,39 @@ gchar* gnuplot_version_is_bad() {
 	return retval;
 }
 
+void reset_gnuplot_check() {
+	gnuplot_checked = FALSE;
+}
+
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
-	gchar *bin = siril_get_gnuplot_bin();
-    if (!bin) return FALSE;
+	if (gnuplot_checked) {
+		siril_debug_print("Using cached GNUplot availability check\n");
+		return gnuplot_available;
+	} else {
+		siril_debug_print("Checking GNUplot will run\n");
+		gchar *bin = siril_get_gnuplot_bin();
+		if (!bin) return FALSE;
 
-    gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-    g_free(bin);
-	if (is_available) {
-		gchar *msg = gnuplot_version_is_bad();
-		if (msg) {
-			if (!com.script) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
-				control_window_switch_to_tab(OUTPUT_LOGS);
-			} else {
-				siril_log_color_message("%s\n", "red", msg);
+		gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+		g_free(bin);
+		if (is_available) {
+			gchar *msg = gnuplot_version_is_bad();
+			if (msg) {
+				if (!com.script) {
+					siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
+					control_window_switch_to_tab(OUTPUT_LOGS);
+				} else {
+					siril_log_color_message("%s\n", "red", msg);
+				}
+				is_available = FALSE;
+				g_free(msg);
 			}
-			is_available = FALSE;
-			g_free(msg);
 		}
+		gnuplot_available = is_available;
+		gnuplot_checked = TRUE;
+		return is_available;
 	}
-    return is_available;
 }
 
 #else
