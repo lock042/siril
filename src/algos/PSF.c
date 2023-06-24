@@ -58,7 +58,7 @@ const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 
 // we also zero at bg level so that we don't have to bother substracting bg
 // in all the subsequent operations
-static gsl_matrix *removeHotPixels_and_zero(gsl_matrix *in, double bg) {
+static gsl_matrix *prepare_init_matrix(gsl_matrix *in, double bg, gboolean frompeaker) {
 	size_t width = in->size2;
 	size_t height = in->size1;
 	size_t x, y;
@@ -69,6 +69,10 @@ static gsl_matrix *removeHotPixels_and_zero(gsl_matrix *in, double bg) {
 	}
 
 	gsl_matrix_memcpy (out, in);
+	if (frompeaker) {
+		gsl_matrix_add_constant(out, -bg);
+		return out;
+	}
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
 			double a = get_median_gsl(in, x, y, width, height, 1, FALSE, FALSE);
@@ -118,8 +122,10 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 	size_t i, j;
 
 	/* find maximum */
-	/* first we remove hot pixels in the matrix */
-	gsl_matrix *m_tmp = removeHotPixels_and_zero(z, bg);
+	/* first we remove hot pixels in the matrix if not coming from the peaker
+	   to make sure we get a real maximum. Otherwise we just remove the bakcground
+	*/
+	gsl_matrix *m_tmp = prepare_init_matrix(z, bg, frompeaker);
 	if (!m_tmp) return NULL;
 	// if the data is coming from the peaker, we know the central pixel is already
 	// the max intensity pixel. We don't bother searching it as it may catch another 
