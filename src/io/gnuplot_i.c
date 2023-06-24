@@ -125,6 +125,7 @@ void reset_gnuplot_check() {
 
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
+	gboolean is_available;
 	if (gnuplot_checked) {
 		siril_debug_print("Using cached GNUplot availability check\n");
 		return gnuplot_available;
@@ -133,21 +134,20 @@ gboolean gnuplot_is_available() {
 		gchar *bin = siril_get_gnuplot_bin();
 		if (!bin) return FALSE;
 
-		gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+		is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
 		g_free(bin);
 		if (is_available) {
 			gchar *msg = gnuplot_version_is_bad();
 			if (msg) {
-					siril_log_color_message("%s\n", "red", msg);
-				}
+				siril_log_color_message("%s\n", "red", msg);
 				is_available = FALSE;
-				g_free(msg);
 			}
+			g_free(msg);
 		}
-		gnuplot_available = is_available;
-		gnuplot_checked = TRUE;
-		return is_available;
 	}
+	gnuplot_available = is_available;
+	gnuplot_checked = TRUE;
+	return is_available;
 }
 
 #else
