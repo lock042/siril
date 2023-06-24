@@ -9198,8 +9198,12 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			cut_args->mode = CUT_COLOR;
 		}
 	}
-	if (!cut_struct_is_valid(cut_args))
+	if (seq && seq.is_variable) {
+		siril_log_message(_("Error: sequence has variable sized images.\n"));
+		*err = CMD_GENERIC_ERROR;
+	} else if (!cut_struct_is_valid(cut_args)) {
 		*err = CMD_ARG_ERROR;
+	}
 	if (*err) {
 		free_cut_args(cut_args);
 		cut_args = NULL;
