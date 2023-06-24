@@ -183,12 +183,14 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 	// And again, starting from the central row but upwards
 	// For all the pixels above halfA, we compute their zero, first and second moments
 	// wrt origin.
-	// Centroid position is just M1/M0
+	// Centroid position wrt origin is then simply M1/M0
 	// Inertia matrix about the centroid is assembled by correcting each M2 by 
 	// M0.xx, M0.yy and M0.xy
 	// Then assuming that the trace is an ellipse, we use Singular Value Decomposition
 	// to find the principal inertia moments and the rotation (angle)
 	// From the inertia moments, we can then calculate main FWHM and roundness
+	// As positions are 0 at the center of first pixel, 0.5 is added to centroids to 
+	// keep consistency with the convention.
 
 	// There is still a shortfall with this init, which is that for saturated stars,
 	// the amplitude is unknown and we will definitely init the optimization 
@@ -633,7 +635,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	double FWHM = gsl_vector_get(MaxV, 3);
 	double roundness = gsl_vector_get(MaxV, 4) / gsl_vector_get(MaxV, 3);
 	double a_init = gsl_vector_get(MaxV, 5) * M_PI / 180.; // angle in radians
-	// if roundness is 1., we decrease it a bit so as to be stuck on the boundary
+	// if roundness is 1., we decrease it a bit so as not to be stuck on the boundary
 	// as it is messes up the initial gradient calcs
 	if (roundness == 1.) {
 		roundness = 0.9;
