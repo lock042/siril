@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-22 14:40+0000\n"
+"PO-Revision-Date: 2023-06-25 00:43+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -11401,7 +11401,7 @@ msgstr ""
 
 #: src/core/command.c:3292
 msgid "forced"
-msgstr ""
+msgstr "принудительно"
 
 #: src/core/command.c:3292
 msgid "unused, dynamic"
@@ -11892,7 +11892,7 @@ msgstr "Не удалось сохранить файл JSON %s: %s\n"
 #: src/core/command.c:6131
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
-msgstr "Сохранить метаданные в файле JSON '%s'\n"
+msgstr "Метаданные сохранены в файле JSON '%s'\n"
 
 #: src/core/command.c:6144
 msgid ""
@@ -13172,7 +13172,7 @@ msgstr ""
 
 #: src/core/command_def.h:34
 msgid "Dumps the FITS header"
-msgstr ""
+msgstr "Отображает заголовок FITS"
 
 #: src/core/command_def.h:36
 msgid ""
@@ -13180,6 +13180,10 @@ msgid ""
 "selected area if one has been selected or in the whole image. The entropy is "
 "one way of measuring the noise or the details in an image"
 msgstr ""
+"Вычисляет энтропию открытого изображения на отображаемом слое. При наличии "
+"выделения энтропия вычисляется для выделенной области или для всего "
+"изображения при отсутствии выделения. Энтропия это один из способов "
+"измерения шума или деталей на изображении"
 
 #: src/core/command_def.h:37
 msgid "Quits the application"
@@ -13304,6 +13308,22 @@ msgid ""
 "\n"
 "See also the command CLEARSTAR"
 msgstr ""
+"Определяет звёзды на текущем загруженном изображении, чей уровень превышает "
+"пороговое значение, вычисленное Siril.\n"
+"После этого применяется PSF и Siril выбраковывает все определённые "
+"структуры, которые не удовлетворяют набору ранее определённых критериев, "
+"указанных с помощью команды SETFINDSTAR.\n"
+"По окончании вокруг обнаруженных звёзд рисуются окружности.\n"
+"\n"
+"Необязательный аргумент <b>-out=</b> позволяет сохранить результаты в "
+"указанное место.\n"
+"Аргумент <b>-layer=</b> указывает слой, на котором будет происходить "
+"определение звёзд (только для цветных изображений).\n"
+"Вы также можете ограничить максимальное количество звёзд для определения с "
+"помощью аргумента <b>-maxstars=</b>.\n"
+"\n"
+"\n"
+"См. также команду CLEARSTAR"
 
 #: src/core/command_def.h:52
 msgid ""
@@ -13339,6 +13359,8 @@ msgstr ""
 #: src/core/command_def.h:55
 msgid "Multiplies the loaded image by the <b>scalar</b> given in argument"
 msgstr ""
+"Умножает загруженное изображение на значение <b>scalar</b>, переданное в "
+"аргументе"
 
 #: src/core/command_def.h:57
 msgid "Performs a Gaussian filter with the given <b>sigma</b>"
@@ -13417,6 +13439,10 @@ msgid ""
 "Result will be in 32 bits per channel if allowed in the preferences. See "
 "also FDIV"
 msgstr ""
+"Выполняет деление изображения, находящегося в памяти, на изображение "
+"<b>filename</b>, указанное в аргументе.\n"
+"Результат будет иметь разрядность 32 бита на канал, если разрешено "
+"настройками. См. также FDIV"
 
 #: src/core/command_def.h:68
 msgid ""
@@ -13488,6 +13514,9 @@ msgid ""
 "argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
+"Умножает изображение, находящееся в памяти, на изображение <b>filename</b>, "
+"указанное в аргументе.\n"
+"Если позволяют настройки, результат будет иметь разрядность 32 бита на канал"
 
 #: src/core/command_def.h:73
 msgid ""
@@ -13566,6 +13595,12 @@ msgid ""
 "reference one. The algorithm will ignore all reference pixels whose values "
 "are outside of the [<b>low</b>, <b>high</b>] range"
 msgstr ""
+"Вычисляет линейную функцию между опорным изображением <b>reference</b> и "
+"изображением, находящимся в памяти.\n"
+"\n"
+"После этого функция применяется к текущему изображению, чтобы сопоставить "
+"его с опорным. Алгоритм игнорирует все значения опорных пикселей, "
+"находящиеся за приделами диапазона [<b>low</b>, <b>high</b>]"
 
 #: src/core/command_def.h:80
 msgid ""
@@ -13585,7 +13620,7 @@ msgstr ""
 
 #: src/core/command_def.h:81
 msgid "Computes and applies a logarithmic scale to the current image"
-msgstr ""
+msgstr "Вычисляет и применяет логарифмический масштаб к текущему изображению"
 
 #: src/core/command_def.h:82
 msgid "Lists files and directories in the working directory"
@@ -13601,6 +13636,14 @@ msgid ""
 "created with default file name '$(FITS_file_without_ext).json' and can be "
 "changed with the <b>-out=</b> option"
 msgstr ""
+"Сохраняет метаданные и статистику текущего загруженного изображения в "
+"формате JSON. Название файла необходимо, даже если изображение уже "
+"загружено. Данные изображения могут быть не прочитаны из файла, если это "
+"текущее загруженное изображение и если передан параметр "
+"<b>-stats_from_loaded</b>. Статистику можно отключить, передав аргумент "
+"<b>-nostats</b>. Файл, содержащий данные JSON, создается с именем файла по "
+"умолчанию '$(FITS_file_without_ext).json' и может быть изменен с помощью "
+"аргумента <b>-out=</b>"
 
 #: src/core/command_def.h:86
 msgid ""
@@ -13667,6 +13710,9 @@ msgid ""
 "Flips the image about the horizontal axis. Option <b>-bottomup</b> will only "
 "flip it if it's not already bottom-up"
 msgstr ""
+"Переворачивает изображение по горизонтали. Опция <b>-bottomup</b> "
+"переворачивает изображение только в том случае, если оно ещё не находится в "
+"ориентации снизу вверх"
 
 #: src/core/command_def.h:89
 msgid ""
@@ -13675,6 +13721,11 @@ msgid ""
 "avoid reading image data entirely if no flip is required. Image is "
 "overwritten if a flip was made"
 msgstr ""
+"Переворачивает изображение по горизонтали только при необходимости (если "
+"изображение уже не находится в ориентации снизу вверх). Принимает название "
+"файла как аргумент, позволяя не читать полностью данные изображения, если "
+"необходимость переворота отсутствует. После переворота изображение будет "
+"перезаписано"
 
 #: src/core/command_def.h:90
 msgid "Flips the image about the vertical axis"
@@ -13716,6 +13767,15 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
+"Применяет передаточную функцию полутонов к изображению, загруженному в "
+"настоящий момент.\n"
+"\n"
+"Необходимы три параметра: <b>low</b>, <b>midtones</b> и <b>high</b>, где "
+"параметр баланса полутонов определяет нелинейное растягивание гистограммы в "
+"диапазоне [0, 1].\n"
+"Необязательный аргумент <b>[channels]</b> можно использовать для указания "
+"каналов, к которым необходимо применить растягивание: это может быть R, G, "
+"B, RG, RB или GB. По умолчанию применяется ко всем каналам"
 
 #: src/core/command_def.h:94
 msgid ""
@@ -13723,6 +13783,9 @@ msgid ""
 "1-value for 32 bits, 65535-value for 16 bits. This does not change the "
 "display mode"
 msgstr ""
+"Изменяет значения пикселей загруженного в настоящий момент изображения на "
+"отрицательное представление, например, 1-значение для 32 бит, 65535-значение "
+"для 16 бит. Режим просмотра при этом не изменяется"
 
 #: src/core/command_def.h:95
 msgid ""
@@ -13733,6 +13796,12 @@ msgid ""
 "<b>nb_channel</b> being 1 or 3. It is not saved, but displayed and can be "
 "saved afterwards"
 msgstr ""
+"Создаёт новое изображение, заполненное нулями с размером <b>width</b> × "
+"<b>height</b>.\n"
+"\n"
+"Изображение имеет 32 битный формат и содержит <b>nb_channel</b> каналов. "
+"Значение аргумента <b>nb_channel</b> может быть 1 или 3. Изображение не "
+"сохраняется, но отображается и может быть сохранено позже"
 
 #: src/core/command_def.h:96
 msgid ""
@@ -13742,6 +13811,12 @@ msgid ""
 "stars with no B-V information will be kept, they can be excluded by "
 "specifying <b>-photo</b>"
 msgstr ""
+"Отображает звёзды из локального каталога по умолчанию для изображений, "
+"имеющих астрономическое решение, загруженных в графическом интерфейсе. "
+"Альтернативный каталог может быть указан с помощью аргумента <b>-catalog=</"
+"b>, принимающего значения tycho2, nomad, gaia, ppmxl, brightstars или apass. "
+"По умолчанию, сохраняются звёзды, не имеющие информации о показателе цвета B-"
+"V. Они могут быть исключены с помощью аргумента <b>-photo</b>"
 
 #: src/core/command_def.h:97
 msgid ""
@@ -13765,6 +13840,8 @@ msgid ""
 "Replaces null values by <b>level</b> values. Useful before an idiv or fdiv "
 "operation"
 msgstr ""
+"Заменяет пустые (null) значения значениями <b>level</b>. Полезно перед "
+"операциями idiv или fdiv"
 
 #: src/core/command_def.h:100
 msgid ""
@@ -13923,6 +14000,14 @@ msgid ""
 "<b><i>bayerpattern</i></b> specifies the Bayer matrix pattern to recreate: "
 "<i>bayerpattern</i> should be one of 'RGGB', 'BGGR', 'GRBG' or 'GBRG'"
 msgstr ""
+"Создаёт цветное изображение с шаблоном Байера из 4 отдельных изображений, "
+"содержащих данные из подканалов шаблона Байера CFA0, CFA1, CFA2 и CFA3 ("
+"Соответствующая команда для разбиения шаблона CFA на подканалы - "
+"<b>split_cfa</b>). Эта функция может использоваться как часть рабочего "
+"процесса для применения некоторой предобработки к отдельным подканалам "
+"шаблона Байера перед дебайеризацией. Пятый аргумент, <b><i>bayerpattern</i></"
+"b>, указывает шаблон Байера, который необходимо восстановить. "
+"<i>bayerpattern</i> должен быть 'RGGB', 'BGGR', 'GRBG' или 'GBRG'"
 
 #: src/core/command_def.h:108
 msgid ""
@@ -14001,6 +14086,11 @@ msgid ""
 "or a color image. Result image is called composed_rgb.fit or composed_lrgb."
 "fit unless another name is provided in the optional argument"
 msgstr ""
+"Создаёт композитное RGB изображение, используя три независимых изображения, "
+"или LRGB композитное изображение, используя дополнительное яркостное "
+"изображение и три монохромных изображения или цветное изображение. Итоговое "
+"изображение будет иметь название composed_rgb.fit или composed_lrgb.fit, "
+"если в необязательном аргументе не указано другое название"
 
 #: src/core/command_def.h:113
 msgid ""
@@ -14012,6 +14102,14 @@ msgid ""
 "opposite sign. The two images are then added to create the final image. This "
 "process is also called Larson Sekanina filter"
 msgstr ""
+"Создаёт два изображения с радиальным (<b>dR</b> пикселей) и вращательным "
+"(<b>dalpha</b> градусов) сдвигом по отношению к точке (<b>xc</b>, <b>yc</b>)."
+"\n"
+"\n"
+"Сдвиги между этими изображениями имеют одинаковую амплитуду, но "
+"противоположенные знаки. Далее изображения суммируются для создания "
+"итогового изображения. Этот процесс также называет фильтром Ларсона Секанина "
+"(Larson Sekanina filter)"
 
 #: src/core/command_def.h:114
 msgid ""
@@ -14085,6 +14183,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:119
+#, fuzzy
 msgid ""
 "Enhances the color saturation of the loaded image. Try iteratively to obtain "
 "best results.\n"
@@ -14098,6 +14197,19 @@ msgid ""
 "orange to yellow, 2 for yellow to cyan, 3 for cyan, 4 for cyan to magenta, 5 "
 "for magenta to pink, 6 for all (default)"
 msgstr ""
+"Улучшает насыщенность цвета загруженного изображения. Для получения "
+"наилучших результатов используйте итеративно.\n"
+"<b>amount</b> положительное значение увеличивает насыщенность цвета, "
+"отрицательное - уменьшает, 0 - ничего не делает, 1 - увеличивает "
+"насыщенность на 100%\n"
+"<b>background_factor</b> это коэффициент (медиана + σ), используемый для "
+"установки порога, выше которого будет происходить изменение пикселей. При "
+"правильном подборе, это позволяет не увеличивать насыщенность цвета фонового "
+"шума. Значение по умолчанию - 1. При установке 0 порог отключается.\n"
+"<b>hue_range_index</b> может быть [0, 6], что означает: 0 от розового до "
+"оранжевого, 1 от оранжевого до жёлтого, 2 от жёлтого до голубого, 3 для "
+"голубого, 4 от голубого до пурпурного, 5 от пурпурного до розового, 6 все "
+"цвета (значение по умолчанию)"
 
 #: src/core/command_def.h:120
 msgid ""
@@ -14301,6 +14413,7 @@ msgstr ""
 "если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:134
+#, fuzzy
 msgid ""
 "Crops the sequence given in argument <b>sequencename</b>.\n"
 "\n"
@@ -14309,6 +14422,13 @@ msgid ""
 "The output sequence name starts with the prefix \"cropped_\" unless "
 "otherwise specified with <b>-prefix=</b> option"
 msgstr ""
+"Кадрирует последовательность, указанную в аргументе <b>sequencename</b>.\n"
+"\n"
+"Выделение для кадрирования задаётся координатами верхнего левого угла, <b>x</"
+"b> и <b>y</b>, и шириной (<b>width</b>) и высотой (<b>height</b>) выделения."
+"\n"
+"Название итоговой последовательности будет начинаться с префикса cropped_\", "
+"если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:135
 msgid ""
@@ -14421,9 +14541,12 @@ msgstr ""
 "первом аргументе"
 
 #: src/core/command_def.h:143
+#, fuzzy
 msgid ""
 "Prints the FITS header value for the given key for all images in the sequence"
 msgstr ""
+"Выводит значение указанного ключевого слова заголовка FITS для всех "
+"изображений последовательности"
 
 #: src/core/command_def.h:144
 msgid ""
@@ -14668,10 +14791,13 @@ msgstr ""
 "Как правило, эта команда даёт лучший результат"
 
 #: src/core/command_def.h:160
+#, fuzzy
 msgid ""
 "Resets the magnitude calibration and reference star for the sequence. See "
 "SEQSETMAG"
 msgstr ""
+"Сбрасывает калибровку звёздной величины и опорную звезду для "
+"последовательности. См. SEQSETMAG"
 
 #: src/core/command_def.h:161
 msgid ""
@@ -14691,16 +14817,20 @@ msgstr ""
 "См. <b>get</b> для получения значений или списка переменных"
 
 #: src/core/command_def.h:163
+#, fuzzy
 msgid ""
 "Disables images to be saved with 32 bits per channel on processing. It uses "
 "16 bits instead"
 msgstr ""
+"Отключает сохранение изображений с разрядность 32 бита на канал при "
+"обработке. Вместо этого используются 16 бит"
 
 #: src/core/command_def.h:164
 msgid "Allows images to be saved with 32 bits per channel on processing"
 msgstr "Позволяет сохранение изображений с 32 битами на канал при обработке"
 
 #: src/core/command_def.h:165
+#, fuzzy
 msgid ""
 "Defines if images are compressed or not.\n"
 "\n"
@@ -14711,8 +14841,17 @@ msgid ""
 "256] range. For example, \"setcompress 1 -type=rice 16\" sets the rice "
 "compression with a quantization of 16"
 msgstr ""
+"Определяет, сжаты изображения или нет.\n"
+"\n"
+"<b>0</b> - сжатие отключено, <b>1</b> - сжатие включено.\n"
+"Если сжатие включено, тип сжатия должен бытья явно указан с помощью "
+"аргумента <b>-type=</b> (\"rice\", \"gzip1\", \"gzip2\").\n"
+"Связанное со сжатие значение квантования должно быть в диапазоне [0, 256]. "
+"Например, \"setcompress 1 -type=rice 16\" устанавливает тип сжатия rice с "
+"уровнем квантования 16"
 
 #: src/core/command_def.h:166
+#, fuzzy
 msgid ""
 "Defines the number of processing threads used for calculation.\n"
 "\n"
@@ -14720,6 +14859,11 @@ msgid ""
 "which is the number of CPU cores or twice this number if hyperthreading "
 "(Intel HT) is available"
 msgstr ""
+"Определяет количество потоков обработки, используемых для вычисления.\n"
+"\n"
+"Может быть равно числу виртуальных потоков, присутствующих в системе, т.е. "
+"числу ядер процессора или вдвое превышать это значение, если доступна "
+"технология гиперточности (Intel hyperthreading)"
 
 #: src/core/command_def.h:167
 msgid ""
@@ -14729,6 +14873,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:168
+#, fuzzy
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -14761,8 +14906,40 @@ msgid ""
 "if they are stars or not, to allow objects not shaped like stars to still be "
 "accepted (off by default)"
 msgstr ""
+"Определяет параметры определения звёзд для команд FINDSTAR и REGISTER.\n"
+"\n"
+"При отсутствии параметра отображаются текущие значения.\n"
+"Передача аргумента <b>reset</b> сбрасывает все значения к значениям по "
+"умолчанию. Вы всё ещё можете передавать значения после этого ключевого слова."
+"\n"
+"\n"
+"Настраиваемые значения:\n"
+"\n"
+"<b>-radius=</b> определяет радиус первоначального поискового окна и должно "
+"быть между 3 и 50.\n"
+"<b>-sigma=</b> определяет пороговое значение превышения уровня шума и должно "
+"быть больше или равно 0.05.\n"
+"<b>-roundness=</b> определяет минимальное значение округлости звёзд и должно "
+"быть между 0 и 0.95. Аргумент <b>-maxR</b> позволяет установить верхнюю "
+"границу округлости для визуализации только тех областей, где звёзды "
+"значительно вытянуты. Не меняйте для регистрации.\n"
+"<b>-minA</b> и <b>-maxA</b> определяют пределы минимальной и максимальной "
+"сохраняемых амплитуд звёзд, нормализованные между 0 и 1.\n"
+"<b>-focal=</b> определяет фокусное расстояние телескопа.\n"
+"<b>-pixelsize=</b> определяет размер пикселя сенсора.\n"
+"<b> -gaussian</b> и <b>-moffat</b> настраивает используемую модель решателя ("
+"по умолчанию - Гауссова).\n"
+"Если выбрана модель Моффата, аргумент <b>-minbeta=</b> определяет "
+"минимальное значение параметра β для которого будут приняты кандидаты в "
+"звёзды и должно быть больше или равно 0.0 и меньше чем 10.0.\n"
+"<b>-convergence=</b> определяет количество выполняемых повторов для подгонки "
+"PSF и должно быть установлено между 1 и 3 (более толерантное).\n"
+"<b>-relax=</b> ослабляет проверки, выполняемые для кандидатов в звёзды, "
+"чтобы определить, являются ли они звёздами или нет, и позволяет по-прежнему "
+"принимать объекты, не имеющие форму звёзд (по умолчанию отключено)"
 
 #: src/core/command_def.h:169
+#, fuzzy
 msgid ""
 "Calibrates the magnitude by selecting a star and giving the known apparent "
 "magnitude.\n"
@@ -14771,6 +14948,12 @@ msgid ""
 "afterwards, instead of an apparent magnitude relative to ADU values.\n"
 "To reset the magnitude constant see UNSETMAG"
 msgstr ""
+"Калибрует звёздную величину, выбирая звезду и задавая известную видимую "
+"звёздную величину.\n"
+"\n"
+"После этого все вычисления PSF будут возвращать откалиброванную видимую "
+"звёздную величину вместо видимой величины относительно значений ADU. Чтобы "
+"сбросить константу звёздной величины см. UNSETMAG"
 
 #: src/core/command_def.h:170
 msgid ""
@@ -14936,6 +15119,7 @@ msgid "Stop the live stacking session. Only possible after START_LS"
 msgstr "Останавливает сессию укладки на лету. Возможно только после START_LS"
 
 #: src/core/command_def.h:182
+#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -14947,6 +15131,15 @@ msgid ""
 "dither</b>.\n"
 "For RBF, the additional smoothing parameter is also available"
 msgstr ""
+"Вычисляет синтетический градиент фона, используя либо модель полиномиальной "
+"функции степени <b>degree</b>, либо модель радиально-базисной функции (если "
+"используется аргумент <b>-rbf</b>), и вычитает градиент из изображения.\n"
+"С помощью необязательных аргументов могут быть установлены число образцов в "
+"строке и допуск для исключения более ярких областей. Допуск указывается в "
+"единицах mad: медиана + допуск * mad.\n"
+"Шум, необходимый для низких динамических градиентов, может быть подмешан с "
+"помощью аргумента <b>-dither</b>.\n"
+"Для радиально-базисной функции также доступен параметр сглаживания"
 
 #: src/core/command_def.h:183
 msgid ""
@@ -16023,14 +16216,12 @@ msgid "factor for outer radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внешнего радиуса"
 
 #: src/core/settings.c:304
-#, fuzzy
 msgid "force flux aperture value"
-msgstr "принудительное значение"
+msgstr "значение апертуры светового потока"
 
 #: src/core/settings.c:305
-#, fuzzy
 msgid "forced aperture for flux computation"
-msgstr "принудительная апертура для вычисления светового потока"
+msgstr "значение апертуры для вычисления светового потока"
 
 #: src/core/settings.c:306
 msgid "minimum valid pixel value for photometry"
@@ -18115,10 +18306,13 @@ msgid "CSV file (*.csv)"
 msgstr "Файл CSV (*.csv)"
 
 #: src/gui/nina_light_curve.c:36
+#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list of "
 "reference stars created by the NINA exoplanet plugin"
 msgstr ""
+"Обрабатывает последовательность для получения световой кривой звезды, "
+"используя список опорных звёзд, созданных плагином экзопланет NINA"
 
 #: src/gui/nina_light_curve.c:40
 msgid "Use comparative stars selected for their color"
@@ -18133,10 +18327,13 @@ msgid "Display the light curve"
 msgstr "Показать световую кривую"
 
 #: src/gui/nina_light_curve.c:48
+#, fuzzy
 msgid ""
 "Color similar to the target mean they will get extincted the same way by the "
 "changing atmosphere"
 msgstr ""
+"Цвет, схожий с целевым, означает, что они точно так же исчзнут из-за "
+"изменения атмосферы"
 
 #: src/gui/nina_light_curve.c:49
 msgid "The AAVSO gives stars that are know to not be variable"
@@ -20790,8 +20987,9 @@ msgid "Average absolute deviation of the image."
 msgstr "Среднее абсолютное отклонение изображения."
 
 #: src/pixelMath/pixel_math_runner.c:110
+#, fuzzy
 msgid "Biweight midvariance of the image."
-msgstr ""
+msgstr "Двухвесовая средняя дисперсия изображения."
 
 #: src/pixelMath/pixel_math_runner.c:111
 msgid "Height in pixels of the specified image."
