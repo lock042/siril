@@ -449,7 +449,7 @@ gnuplot_ctrl * gnuplot_init()
 	com.gnuplot_handles[com.num_gnuplot_handles] = handle;
 	com.num_gnuplot_handles++;
 	g_mutex_unlock(&handle_mutex);
-	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
+	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 
@@ -598,7 +598,9 @@ int gnuplot_cmd(gnuplot_ctrl *  handle, char const *  cmd, ...)
 {
     int retval;
 	va_list ap ;
-
+#ifdef GPLOT_DEBUG
+	printf("GNUplot pointer: %p command: %s\n", handle, cmd);
+#endif
     va_start(ap, cmd);
     vfprintf(handle->gnucmd, cmd, ap);
     va_end(ap);
