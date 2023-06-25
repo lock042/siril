@@ -638,14 +638,30 @@ gpointer cut_profile(gpointer p) {
 				if (arg->fit->naxes[2] == 1 || (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO)) {
 					gnuplot_plot_xy_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
-						gnuplot_plot_xy_datfile_colheader_to_png(gplot, filename, legend, imagefilename);
+						gnuplot_ctrl *gplotpng = gnuplot_init();
+						if (tmpfile)
+							gnuplot_declaretmpfile(gplotpng, filename);
+						gnuplot_set_title(gplotpng, title);
+						gnuplot_set_xlabel(gplotpng, xlabel);
+						gnuplot_setstyle(gplotpng, "lines");
+						gnuplot_plot_xy_datfile_colheader_to_png(gplotpng, filename, legend, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
+						gnuplot_rmtmpfile(gplotpng, filename);
+						gnuplot_close(gplotpng);
 					}
 				} else {
 					gnuplot_plot_xrgb_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
+						gnuplot_ctrl *gplotpng = gnuplot_init();
+						if (tmpfile)
+							gnuplot_declaretmpfile(gplotpng, filename);
+						gnuplot_set_title(gplotpng, title);
+						gnuplot_set_xlabel(gplotpng, xlabel);
+						gnuplot_setstyle(gplotpng, "lines");
 						gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
+						gnuplot_rmtmpfile(gplotpng, filename);
+						gnuplot_close(gplotpng);
 					}
 				}
 			} else {
@@ -820,8 +836,16 @@ gpointer tri_cut(gpointer p) {
 			if (arg->display_graph) {
 				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
+					gnuplot_ctrl *gplotpng = gnuplot_init();
+					if (tmpfile)
+						gnuplot_declaretmpfile(gplotpng, filename);
+					gnuplot_set_title(gplotpng, title);
+					gnuplot_set_xlabel(gplotpng, xlabel);
+					gnuplot_setstyle(gplotpng, "lines");
 					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
+					gnuplot_rmtmpfile(gplotpng, filename);
+					gnuplot_close(gplotpng);
 				}
 			} else {
 				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
@@ -966,8 +990,16 @@ gpointer cfa_cut(gpointer p) {
 			if (arg->display_graph) {
 				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
+					gnuplot_ctrl *gplotpng = gnuplot_init();
+					if (tmpfile)
+						gnuplot_declaretmpfile(gplotpng, filename);
+					gnuplot_set_title(gplotpng, title);
+					gnuplot_set_xlabel(gplotpng, xlabel);
+					gnuplot_setstyle(gplotpng, "lines");
 					gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
+					gnuplot_rmtmpfile(gplotpng, filename);
+					gnuplot_close(gplotpng);
 				}
 			} else {
 				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
