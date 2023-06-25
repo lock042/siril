@@ -9222,6 +9222,7 @@ int process_profile(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
+	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
