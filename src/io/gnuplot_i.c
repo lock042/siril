@@ -428,7 +428,7 @@ gnuplot_ctrl * gnuplot_init()
 	com.gnuplot_handles[com.num_gnuplot_handles] = handle;
 	com.num_gnuplot_handles++;
 	g_mutex_unlock(&handle_mutex);
-	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 
@@ -1413,7 +1413,7 @@ void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filen
 			    handle->pstyle);
 
 	gnuplot_cmd(handle, "set term pop");
-	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
@@ -1431,7 +1431,7 @@ void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const*
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
 	gnuplot_cmd(handle, "set term pop");
-	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
@@ -1445,7 +1445,7 @@ void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 	gnuplot_cmd(handle, "plot for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
 	gnuplot_cmd(handle, "set term pop");
-	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
@@ -1459,7 +1459,7 @@ void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 	gnuplot_cmd(handle, "plot for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
 	gnuplot_cmd(handle, "set term pop");
-	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
@@ -1476,7 +1476,7 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
         gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename, handle->pstyle);
 	}
 	gnuplot_cmd(handle, "set term pop");
-	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
