@@ -1399,14 +1399,6 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
     return ;
 }
 
-/* WARNING:
- * The gnuplot_plot_xxx_to_png functions should *not* be used with the
- * same gnuplot_ctrl handle that has been used for a GUI plot, because
- * switching to a non-GUI gnuplot terminal type will remove the Close
- * binding and prevent Siril being able to properly close the gnuplot
- * process. A separate gnuplot_ctrl should be used for the png output.
- */
-
 void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
 		char const *curve_title, char const* png_filename)
 {
@@ -1419,6 +1411,11 @@ void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filen
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
+
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1433,6 +1430,10 @@ void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const*
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1443,6 +1444,10 @@ void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 
 	gnuplot_cmd(handle, "plot for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1453,6 +1458,10 @@ void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 
 	gnuplot_cmd(handle, "plot for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1467,6 +1476,10 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
     else
         gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
                 handle->pstyle);
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 /*
  * Not used in Siril yet
