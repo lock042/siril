@@ -75,8 +75,8 @@
 
 static gboolean gnuplot_checked = FALSE;
 static gboolean gnuplot_available = FALSE;
-
 static gboolean gnuplot_is_in_path = FALSE;
+static GMutex handle_mutex;
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_bin() {
@@ -444,10 +444,11 @@ gnuplot_ctrl * gnuplot_init()
         return NULL;
     }
     // Add handle to the list of gnuplot handles
+    g_mutex_lock(&handle_mutex);
     com.gnuplot_handles = realloc(com.gnuplot_handles, (com.num_gnuplot_handles + 1) * sizeof(gnuplot_ctrl*));
 	com.gnuplot_handles[com.num_gnuplot_handles] = handle;
 	com.num_gnuplot_handles++;
-
+	g_mutex_unlock(&handle_mutex);
 	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
@@ -464,16 +465,19 @@ gnuplot_ctrl * gnuplot_init()
 /*--------------------------------------------------------------------------*/
 
 void exit_com_gnuplot_handles() {
+	g_mutex_lock(&handle_mutex);
 	for (int i = com.num_gnuplot_handles - 1; i >= 0 ; i--) {
 		if (com.gnuplot_handles[i]) {
 			gnuplot_close(com.gnuplot_handles[i]);
 		}
 	}
+	g_mutex_unlock(&handle_mutex);
 }
 
 void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 	if (!com.gnuplot_handles)
 		return;
+	g_mutex_lock(&handle_mutex);
 	for (int i = 0; i < com.num_gnuplot_handles ; i++) {
 		if (com.gnuplot_handles && com.gnuplot_handles[i] && com.gnuplot_handles[i] == handle) {
 			com.gnuplot_handles[i] = NULL;
@@ -485,6 +489,7 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 	}
 	com.num_gnuplot_handles--;
 	com.gnuplot_handles = realloc(com.gnuplot_handles, com.num_gnuplot_handles * sizeof(gnuplot_ctrl*));
+	g_mutex_unlock(&handle_mutex);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -509,11 +514,12 @@ void gnuplot_close(gnuplot_ctrl * handle)
 		g_usleep(1000);
 		count++;
 	//	The handle is removed from com.gnuplot_handles and freed in child_watch_cb
-	if (!handle->running)
+		if (!handle->running)
 			break;
-	}
-	if (count > 2000) {  // Add a 2s timeout to prevent hangs
-		siril_log_message(_("Timeout exceeded waiting for GNUplot process to terminate.\n"));
+		if (count > 2000) {  // Add a 2s timeout to prevent hangs
+			siril_log_message(_("Timeout exceeded waiting for GNUplot process to terminate.\n"));
+			break;
+		}
 	}
 }
 
