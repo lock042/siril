@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-25 00:43+0000\n"
+"PO-Revision-Date: 2023-06-25 19:58+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -6095,7 +6095,7 @@ msgstr "Выбор изображений:"
 
 #: src/gui/siril3.glade:23072
 msgid "Simplified Drizzle x2"
-msgstr "Упрощённый Drizzle ×2"
+msgstr "Сверхразрешение (×2)"
 
 #: src/gui/siril3.glade:23076
 msgid ""
@@ -14183,7 +14183,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:119
-#, fuzzy
 msgid ""
 "Enhances the color saturation of the loaded image. Try iteratively to obtain "
 "best results.\n"
@@ -14200,12 +14199,12 @@ msgstr ""
 "Улучшает насыщенность цвета загруженного изображения. Для получения "
 "наилучших результатов используйте итеративно.\n"
 "<b>amount</b> положительное значение увеличивает насыщенность цвета, "
-"отрицательное - уменьшает, 0 - ничего не делает, 1 - увеличивает "
+"отрицательное — уменьшает, 0 - ничего не делает, 1 — увеличивает "
 "насыщенность на 100%\n"
 "<b>background_factor</b> это коэффициент (медиана + σ), используемый для "
 "установки порога, выше которого будет происходить изменение пикселей. При "
 "правильном подборе, это позволяет не увеличивать насыщенность цвета фонового "
-"шума. Значение по умолчанию - 1. При установке 0 порог отключается.\n"
+"шума. Значение по умолчанию — 1. При установке 0 порог отключается.\n"
 "<b>hue_range_index</b> может быть [0, 6], что означает: 0 от розового до "
 "оранжевого, 1 от оранжевого до жёлтого, 2 от жёлтого до голубого, 3 для "
 "голубого, 4 от голубого до пурпурного, 5 от пурпурного до розового, 6 все "
@@ -14413,7 +14412,6 @@ msgstr ""
 "если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:134
-#, fuzzy
 msgid ""
 "Crops the sequence given in argument <b>sequencename</b>.\n"
 "\n"
@@ -14541,7 +14539,6 @@ msgstr ""
 "первом аргументе"
 
 #: src/core/command_def.h:143
-#, fuzzy
 msgid ""
 "Prints the FITS header value for the given key for all images in the sequence"
 msgstr ""
@@ -14791,7 +14788,6 @@ msgstr ""
 "Как правило, эта команда даёт лучший результат"
 
 #: src/core/command_def.h:160
-#, fuzzy
 msgid ""
 "Resets the magnitude calibration and reference star for the sequence. See "
 "SEQSETMAG"
@@ -14817,7 +14813,6 @@ msgstr ""
 "См. <b>get</b> для получения значений или списка переменных"
 
 #: src/core/command_def.h:163
-#, fuzzy
 msgid ""
 "Disables images to be saved with 32 bits per channel on processing. It uses "
 "16 bits instead"
@@ -14830,7 +14825,6 @@ msgid "Allows images to be saved with 32 bits per channel on processing"
 msgstr "Позволяет сохранение изображений с 32 битами на канал при обработке"
 
 #: src/core/command_def.h:165
-#, fuzzy
 msgid ""
 "Defines if images are compressed or not.\n"
 "\n"
@@ -14846,12 +14840,11 @@ msgstr ""
 "<b>0</b> - сжатие отключено, <b>1</b> - сжатие включено.\n"
 "Если сжатие включено, тип сжатия должен бытья явно указан с помощью "
 "аргумента <b>-type=</b> (\"rice\", \"gzip1\", \"gzip2\").\n"
-"Связанное со сжатие значение квантования должно быть в диапазоне [0, 256]. "
-"Например, \"setcompress 1 -type=rice 16\" устанавливает тип сжатия rice с "
+"Значение квантования, связанное со сжатием, должно быть в диапазоне [0, 256]"
+". Например, \"setcompress 1 -type=rice 16\" устанавливает тип сжатия rice с "
 "уровнем квантования 16"
 
 #: src/core/command_def.h:166
-#, fuzzy
 msgid ""
 "Defines the number of processing threads used for calculation.\n"
 "\n"
@@ -14873,7 +14866,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:168
-#, fuzzy
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -14928,7 +14920,7 @@ msgstr ""
 "<b>-focal=</b> определяет фокусное расстояние телескопа.\n"
 "<b>-pixelsize=</b> определяет размер пикселя сенсора.\n"
 "<b> -gaussian</b> и <b>-moffat</b> настраивает используемую модель решателя ("
-"по умолчанию - Гауссова).\n"
+"по умолчанию — Гауссова).\n"
 "Если выбрана модель Моффата, аргумент <b>-minbeta=</b> определяет "
 "минимальное значение параметра β для которого будут приняты кандидаты в "
 "звёзды и должно быть больше или равно 0.0 и меньше чем 10.0.\n"
@@ -14939,7 +14931,6 @@ msgstr ""
 "принимать объекты, не имеющие форму звёзд (по умолчанию отключено)"
 
 #: src/core/command_def.h:169
-#, fuzzy
 msgid ""
 "Calibrates the magnitude by selecting a star and giving the known apparent "
 "magnitude.\n"
@@ -14952,8 +14943,8 @@ msgstr ""
 "звёздную величину.\n"
 "\n"
 "После этого все вычисления PSF будут возвращать откалиброванную видимую "
-"звёздную величину вместо видимой величины относительно значений ADU. Чтобы "
-"сбросить константу звёздной величины см. UNSETMAG"
+"звёздную величину вместо видимой величины относительно значений ADU.\n"
+"Чтобы сбросить константу звёздной величины см. UNSETMAG"
 
 #: src/core/command_def.h:170
 msgid ""
@@ -15119,7 +15110,6 @@ msgid "Stop the live stacking session. Only possible after START_LS"
 msgstr "Останавливает сессию укладки на лету. Возможно только после START_LS"
 
 #: src/core/command_def.h:182
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -17316,7 +17306,8 @@ msgstr ""
 "метаданных изображения.\n"
 "\n"
 "Вы также можете попробовать заглянуть в другой каталог или нажать на кнопку "
-"\"Уменьшить изображение\", особенно для изображений, выполненных с drizzle.\n"
+"\"Уменьшить изображение\", особенно для изображений, выполненных в режиме "
+"сверхразрешения (drizzle).\n"
 "\n"
 "Наконец, имейте в виду, что алгоритм поиска астрономического решения следует "
 "применять только к линейному изображению."
@@ -18306,7 +18297,6 @@ msgid "CSV file (*.csv)"
 msgstr "Файл CSV (*.csv)"
 
 #: src/gui/nina_light_curve.c:36
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list of "
 "reference stars created by the NINA exoplanet plugin"
@@ -18327,12 +18317,11 @@ msgid "Display the light curve"
 msgstr "Показать световую кривую"
 
 #: src/gui/nina_light_curve.c:48
-#, fuzzy
 msgid ""
 "Color similar to the target mean they will get extincted the same way by the "
 "changing atmosphere"
 msgstr ""
-"Цвет, схожий с целевым, означает, что они точно так же исчзнут из-за "
+"Цвет, схожий с целевым, означает, что они точно так же исчезнут из-за "
 "изменения атмосферы"
 
 #: src/gui/nina_light_curve.c:49
@@ -20987,7 +20976,6 @@ msgid "Average absolute deviation of the image."
 msgstr "Среднее абсолютное отклонение изображения."
 
 #: src/pixelMath/pixel_math_runner.c:110
-#, fuzzy
 msgid "Biweight midvariance of the image."
 msgstr "Двухвесовая средняя дисперсия изображения."
 
@@ -21801,9 +21789,9 @@ msgid ""
 msgstr ""
 "<b>Применить существующую регистрацию</b>: это не алгоритм, а, скорее, "
 "возможность применить выполненную ранее регистрацию, которая сохранена в "
-"файле seq. Метод интерполяции и упрощённый drizzle могут быть выбраны в "
-"разделе \"Результат регистрации\" и он может быть применён только к "
-"выбранным изображениям, чтобы избежать сохранения ненужных изображений."
+"файле seq. Метод интерполяции и режим сверхразрешения (drizzle) могут быть "
+"выбраны в разделе \"Результат регистрации\" и он может быть применён только "
+"к выбранным изображениям, чтобы избежать сохранения ненужных изображений."
 
 #: src/registration/registration.c:112 src/stacking/stacking.c:71
 msgid ""
