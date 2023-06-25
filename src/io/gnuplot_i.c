@@ -478,7 +478,7 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 		if (com.gnuplot_handles && com.gnuplot_handles[i] && com.gnuplot_handles[i] == handle) {
 			com.gnuplot_handles[i] = NULL;
 			for (int j = i ; j < com.num_gnuplot_handles - 1 ; j++) {
-				com.gnuplot_handles[i] = com.gnuplot_handles[i+1];
+				com.gnuplot_handles[j] = com.gnuplot_handles[j+1];
 			}
 			break;
 		}
@@ -504,13 +504,17 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 void gnuplot_close(gnuplot_ctrl * handle)
 {
 	gnuplot_cmd(handle, "print \"Terminate\"");
-
+	int count = 0;
 	while (TRUE) {
 		g_usleep(1000);
+		count++;
+	//	The handle is removed from com.gnuplot_handles and freed in child_watch_cb
 	if (!handle->running)
 			break;
 	}
-//	The handle is removed from com.gnuplot_handles and freed in child_watch_cb
+	if (count > 2000) {  // Add a 2s timeout to prevent hangs
+		siril_log_message(_("Timeout exceeded waiting for GNUplot process to terminate.\n"));
+	}
 }
 
 /*-------------------------------------------------------------------------*/
