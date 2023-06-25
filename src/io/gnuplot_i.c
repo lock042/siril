@@ -1470,12 +1470,11 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
     gnuplot_cmd(handle, "set term png size 800,600");
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    if (curve_title && curve_title[0] != '\0')
-        gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename,
-                offset, curve_title, handle->pstyle);
-    else
-        gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
-                handle->pstyle);
+    if (curve_title && curve_title[0] != '\0') {
+        gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename, offset, curve_title, handle->pstyle);
+	} else {
+        gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename, handle->pstyle);
+	}
 	gnuplot_cmd(handle, "set term pop");
 	gchar *cmd = g_strdup("bind \"Close\" \"print 'Terminate'\"\n");
 	gnuplot_cmd(handle, cmd);
