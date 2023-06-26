@@ -307,6 +307,30 @@ gpointer tmpwatcher (gpointer user_data) {
 		}
 		else if (g_str_has_prefix(buffer, "Terminate")) {
 			gnuplot_cmd(handle, "exit gnuplot\n");
+			g_source_remove(handle->source); // Cancel the callback
+			if (handle->ntmp) {
+				for (int i = 0 ; i < handle->ntmp ; i++) {
+					if (g_unlink(handle->tmp_filename_tbl[i]))
+						siril_debug_print("Error in g_unlink()\n");
+					free(handle->tmp_filename_tbl[i]);
+					handle->tmp_filename_tbl[i] = NULL;
+				}
+			}
+			free(handle->tmp_filename_tbl);
+			handle->tmp_filename_tbl = NULL;
+			handle->ntmp = 0;
+			handle->running = FALSE;
+			GPid pid = handle->child_pid;
+			g_autoptr(GError) error = NULL;
+			g_autoptr(GError) error2 = NULL;
+			if (!g_close(handle->child_fd_stdin, &error))
+				siril_debug_print("Callback error closing stdin: %s\n", error->message);
+			if (!g_close(handle->child_fd_stderr, &error2))
+				siril_debug_print("Callback error closing stderr: %s\n", error2->message);
+			null_handle_in_com_gnuplot_handles(handle);
+			free(handle);
+			handle = NULL;
+			g_spawn_close_pid(pid);
 			return GINT_TO_POINTER(1);
 		}
 		g_free(buffer);
@@ -368,6 +392,12 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	return;
 }
 
+static void warn_idle_removed() {
+#ifdef GPLOT_DEBUG
+	siril_debug_print("GNUplot child_watch_cb cancelled\n");
+#endif
+}
+
 gnuplot_ctrl * gnuplot_init()
 {
     gnuplot_ctrl *  handle ;
@@ -384,6 +414,7 @@ gnuplot_ctrl * gnuplot_init()
     gnuplot_setstyle(handle, "points") ;
     handle->ntmp = 0 ;
 	handle->thread = NULL;
+	handle->source = 0;
 
     gchar *bin = siril_get_gnuplot_bin();
     gchar* bin2[3];
@@ -408,7 +439,7 @@ gnuplot_ctrl * gnuplot_init()
 		free(handle);
         return NULL;
     }
-	g_child_watch_add(child_pid, child_watch_cb, handle);
+	handle->source = g_child_watch_add_full(G_PRIORITY_DEFAULT_IDLE, child_pid, child_watch_cb, handle, warn_idle_removed);
 	handle->running = TRUE;
     handle->gnucmd = fdopen(child_stdin, "w");
 	handle->child_fd_stderr = child_stderr;
