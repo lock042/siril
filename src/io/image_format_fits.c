@@ -3313,7 +3313,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes) {
 	int status = 0;
-	long naxes[3] = { 0 };
+	long naxes[3] = { 0L };
 	int bitpix = 0, naxis = -1;
 	fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
 	if (status) {
