@@ -306,8 +306,8 @@ gpointer tmpwatcher (gpointer user_data) {
 			}
 		}
 		else if (g_str_has_prefix(buffer, "Terminate")) {
-			gnuplot_cmd(handle, "exit gnuplot\n");
 			g_source_remove(handle->source); // Cancel the callback
+			gnuplot_cmd(handle, "exit gnuplot\n");
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
 					if (g_unlink(handle->tmp_filename_tbl[i]))
@@ -498,7 +498,9 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 		}
 	}
 	com.num_gnuplot_handles--;
-	com.gnuplot_handles = realloc(com.gnuplot_handles, com.num_gnuplot_handles * sizeof(gnuplot_ctrl*));
+	gnuplot_ctrl **tmp = realloc(com.gnuplot_handles, com.num_gnuplot_handles * sizeof(gnuplot_ctrl*));
+	if (tmp)
+		com.gnuplot_handles = tmp;
 	g_mutex_unlock(&handle_mutex);
 }
 
