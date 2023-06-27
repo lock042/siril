@@ -39,7 +39,7 @@ static int fitseq_multiple_close(fitseq *fitseq);
 static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	int status = 0;
 	int nb_hdu, ref_naxis = -1, ref_bitpix = 0, nb_images = 0;
-	long ref_naxes[3] = { 0l };
+	long ref_naxes[3] = { 0L };
 	gboolean homogeneous = TRUE;
 
 	fits_get_num_hdus(fptr, &nb_hdu, &status);
@@ -64,7 +64,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 
 		if (type != IMAGE_HDU) continue;
 
-		long naxes[3];
+		long naxes[3] = { 0L };
 		int naxis;
 		int bitpix;
 		fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
@@ -80,6 +80,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				memcpy(ref_naxes, naxes, sizeof naxes);
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
+				printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
 				if (naxes[2] != ref_naxes[2]) {
 					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
 					status = 1;
