@@ -9217,9 +9217,8 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	if(!gnuplot_is_available()) {
-		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
-		return CMD_GENERIC_ERROR;
+	if (!gnuplot_is_available()) {
+		siril_log_color_message(_("Warning: GNUplot not available. Data files will be generated for analysis in a third party tool but no GNUplot image can be produced.\n"), "salmon");
 	}
 
 	cut_args->display_graph = FALSE;

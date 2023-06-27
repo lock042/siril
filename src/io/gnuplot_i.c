@@ -174,12 +174,8 @@ gboolean gnuplot_is_available() {
 		if (is_available) {
 			gchar *msg = gnuplot_version_is_bad();
 			if (msg) {
-				if (!com.script) {
-					siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
-					control_window_switch_to_tab(OUTPUT_LOGS);
-				} else {
-					siril_log_color_message("%s\n", "red", msg);
-				}
+				control_window_switch_to_tab(OUTPUT_LOGS);
+				siril_log_color_message("%s\n", "red", msg);
 				is_available = FALSE;
 				g_free(msg);
 			}
@@ -498,9 +494,7 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 		}
 	}
 	com.num_gnuplot_handles--;
-	gnuplot_ctrl **tmp = realloc(com.gnuplot_handles, com.num_gnuplot_handles * sizeof(gnuplot_ctrl*));
-	if (tmp)
-		com.gnuplot_handles = tmp;
+	com.gnuplot_handles = realloc(com.gnuplot_handles, com.num_gnuplot_handles * sizeof(gnuplot_ctrl*));
 	g_mutex_unlock(&handle_mutex);
 }
 
