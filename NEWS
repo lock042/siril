@@ -16,6 +16,8 @@ siril 1.2.0 xx xx, xx
 * Added logging typed command in stdout
 * Improved path-checking and messages for astrometry.net local solver (Windows)
 * Prevent crash using recomposition tool eyedroppers without images loaded
+* Fix HaOiii script failure if input image has odd dimensions
+* Fix errors in GNUplot process handling
 * Fixed HaOiii script failure if input image has odd dimensions
 * Fixed crash with seqextract_HaOIII command
 
