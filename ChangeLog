@@ -10,8 +10,6 @@ xx/xx/xx
 * Prevent crash using recomposition tool eyedroppers without images loaded
 * Fix HaOiii script failure if input image has odd dimensions
 * Fix errors in GNUplot process handling
-* Fixed HaOiii script failure if input image has odd dimensions
-* Fixed crash with seqextract_HaOIII command
 
 siril 1.2.0-rc1
 06/01/23
