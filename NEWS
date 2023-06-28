@@ -5,7 +5,6 @@ siril 1.4.0 xx xx, xx
 * Add intensity profiling function
 * Fixed PRISM SITELAT/SITELONG keywords data
 * Improve RGB composition tool to do full homography registration
-* Fix issue with intensity profile plot failing to close if png plot also made
 
 siril 1.2.0 xx xx, xx
 
