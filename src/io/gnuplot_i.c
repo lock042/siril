@@ -1432,13 +1432,13 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
 void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
 		char const *curve_title, char const* png_filename)
 {
-    gnuplot_cmd(handle, "set term png size 800,600");
-    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+	gnuplot_cmd(handle, "set term png size 800,600");
+	gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    if (curve_title && curve_title[0] != '\0')
+	if (curve_title && curve_title[0] != '\0')
 	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) with %s title \"%s\"", dat_filename,
 			    handle->pstyle, curve_title);
-    else
+	else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
 
@@ -1451,15 +1451,14 @@ void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filen
 void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const* dat_filename,
 		char const *curve_title, char const* png_filename)
 {
-    gnuplot_cmd(handle, "set term png size 800,600");
-    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+	gnuplot_cmd(handle, "set term png size 800,600");
+	gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    if (curve_title && curve_title[0] != '\0')
+	if (curve_title && curve_title[0] != '\0')
 	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) with %s title columnheader", dat_filename,
 			    handle->pstyle);
-    else
-	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
-			    handle->pstyle);
+	else
+		gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename, handle->pstyle);
 	gnuplot_cmd(handle, "set term pop");
 	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
@@ -1469,8 +1468,8 @@ void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const*
 void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
 		char const* png_filename)
 {
-    gnuplot_cmd(handle, "set term png size 800,600");
-    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+	gnuplot_cmd(handle, "set term png size 800,600");
+	gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
 	gnuplot_cmd(handle, "plot for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
@@ -1483,8 +1482,8 @@ void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
 		char const* png_filename)
 {
-    gnuplot_cmd(handle, "set term png size 800,600");
-    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+	gnuplot_cmd(handle, "set term png size 800,600");
+	gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
 	gnuplot_cmd(handle, "plot for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
@@ -1497,13 +1496,13 @@ void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
         char const *curve_title, int offset, char const* png_filename)
 {
-    gnuplot_cmd(handle, "set term png size 800,600");
-    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+	gnuplot_cmd(handle, "set term png size 800,600");
+	gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    if (curve_title && curve_title[0] != '\0') {
-        gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename, offset, curve_title, handle->pstyle);
+	if (curve_title && curve_title[0] != '\0') {
+		gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename, offset, curve_title, handle->pstyle);
 	} else {
-        gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename, handle->pstyle);
+		gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename, handle->pstyle);
 	}
 	gnuplot_cmd(handle, "set term pop");
 	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
