@@ -71,7 +71,7 @@
 #endif
 
 // Uncomment the following line for lots of debug messages
-#define GPLOT_DEBUG
+//#define GPLOT_DEBUG
 
 static gboolean gnuplot_checked = FALSE;
 static gboolean gnuplot_available = FALSE;
