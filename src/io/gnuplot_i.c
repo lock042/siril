@@ -524,8 +524,8 @@ void gnuplot_close(gnuplot_ctrl * handle)
 			break;
 		if (count > 2000) { // Add a 2s timeout to prevent hangs
 			siril_log_message(_("Timeout exceeded waiting for GNUplot process to terminate.\n"));
-+			break;
-+		}
+			break;
+		}
 	}
 	null_handle_in_com_gnuplot_handles(handle);
 	free(handle);
