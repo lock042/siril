@@ -56,6 +56,10 @@
 
 #include "image_display.h"
 
+/* is gfit.icc_profile identical to the monitor profile, if so we can avoid the
+ * transform */
+static cmsBool identical = FALSE;
+
 /* remap index data, an index for each layer */
 static float last_pente;
 static display_mode last_mode;
@@ -106,6 +110,12 @@ static int allocate_full_surface(struct image_view *view) {
 		}
 	}
 	return 0;
+}
+
+void check_gfit_profile_identical_to_monitor() {
+	if (!com.headless)
+		identical = profiles_identical(gfit.icc_profile, gui.icc.monitor);
+	printf("gfit profile identical to monitor profile: %d\n", identical);
 }
 
 static void remaprgb(void) {
@@ -401,7 +411,7 @@ static void remap_all_vports() {
 	}
 
 	int norm = (int) get_normalized_value(&gfit);
-	if (com.pref.icc.use_extra_mem) {
+/*	if (com.pref.icc.use_extra_mem) {
 		size_t npixels = gfit.rx * gfit.ry;
 		size_t size = npixels * sizeof(WORD);
 		WORD *pixelbuf = calloc(gfit.rx * gfit.ry * 3, sizeof(WORD));
@@ -427,7 +437,7 @@ static void remap_all_vports() {
 			memcpy(pixelbuf + (2 * npixels), pixelbuf, size);
 		}
 		gboolean linear_and_really_do_it = !(gfit_icc_is_linear && com.pref.icc.no_lin_disp_tx);
-		if (com.icc.available && gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it) {
+		if (com.icc.available && gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it && !identical) {
 			cmsUInt32Number datasize = sizeof(WORD);
 			cmsUInt32Number bytesperline = gfit.rx * datasize;
 			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
@@ -476,7 +486,8 @@ static void remap_all_vports() {
 			}
 		}
 		free(pixelbuf);
-	} else {
+	} else
+*/	{
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -513,7 +524,8 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 			}
-			if (com.icc.available && gui.rendering_mode != STF_DISPLAY) {
+			gboolean linear_and_really_do_it = !(gfit_icc_is_linear && com.pref.icc.no_lin_disp_tx);
+			if (com.icc.available && gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it && !identical) {
 				cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
 								gui.icc.proofing_transform :
 								gui.icc.display_transform,

@@ -68,7 +68,6 @@ void initialize_icc_profiles_paths();
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
 cmsBool fit_icc_is_linear(fits *fit);
 void check_profile_correct(fits* fit);
-void fits_check_icc(fits *fit);
 void check_linear_and_convert_with_approval(fits *fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);

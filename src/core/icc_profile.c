@@ -25,6 +25,7 @@
 #include "core/OS_utils.h"
 #include "icc_profile.h"
 #include "icc_default_profiles.h"
+#include "gui/image_display.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -466,6 +467,7 @@ void refresh_icc_transforms() {
 			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
 	}
+	check_gfit_profile_identical_to_monitor();
 }
 
 unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
@@ -540,9 +542,9 @@ void check_profile_correct(fits* fit) {
 			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Defaulting to a linear profile. If this is incorrect, you should assign the correct profile using the Color Management tool.\n"), "salmon");
 		}
 	}
-	if (!fit->icc_profile) {
+	if (!fit->icc_profile)
 		fit->icc_profile =  copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
-	}
+	refresh_icc_transforms();
 }
 
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
@@ -577,16 +579,6 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 	} else {
 		// If there is no embedded profile we assume the usual sRGB D65 g22
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_out : com.icc.srgb_out);
-	}
-}
-
-// This function is for checking that a fits has an associated ICC profile during image ops, hence the
-// fallback assumption of a linear profile
-void fits_check_icc(fits *fit) {
-	if (!fit->icc_profile) {
-		// If there is no embedded profile we assume the usual sRGB D65 g22
-		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_linear : com.icc.working_linear);
-		siril_log_message(_("FITS did not contain an ICC profile: assigning a linear profile. If you stretched this image using an older version of Siril you may need to reassign the correct color space using the Color Management dialog.\n"));
 	}
 }
 
@@ -677,6 +669,8 @@ void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
 	bytesperplane = npixels * datasize;
 	cmsDoTransformLineStride(transform, buffer, buffer, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 	cmsDeleteTransform(transform);
+	if (fit == &gfit)
+		check_gfit_profile_identical_to_monitor();
 }
 
 /* Converts the color space of one fits to match a reference fits */
@@ -912,6 +906,8 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
 	}
+	if (fit == &gfit)
+		check_gfit_profile_identical_to_monitor();
 }
 
 // To be used by stretching functions to recommend converting to the nonlinear working profile
@@ -1032,6 +1028,7 @@ void update_profiles_after_gamut_change() {
 			}
 	}
 	g_mutex_unlock(&default_profiles_mutex);
+	refresh_icc_transforms();
 }
 
 /* This function wraps cmsCreateTransform within a gMutex.
@@ -1171,6 +1168,7 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 	}
 	gfit.icc_profile = copyICCProfile(target);
 	set_source_information();
+	refresh_icc_transforms();
 	notify_gfit_modified();
 }
 
