@@ -25,11 +25,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "gui/utils.h"
+#include "core/siril_log.h"
+//#include "gui/utils.h"
 
 // static variables
 
 #define GUIDE 20
+
+// TODO: these variables should not be static
+static char *fmtx = NULL, *fmty = NULL;
+
+static void spl_formatX(double v, char *buf, size_t bufsz) {
+	snprintf(buf, 128, fmtx, v);
+}
+
+static void spl_formatY(double v, char *buf, size_t bufsz) {
+	snprintf(buf, 128, fmty, v);
+}
 
 // static functions
 
@@ -85,24 +97,23 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->ylabel = NULL;
 	spl_data->xfmt = NULL;
 	spl_data->yfmt = NULL;
-	spl_data->datfilename = NULL;
-	spl_data->pngfilename = NULL;
 	spl_data->plottype = KPLOT_LINES;
 	spl_data->plotstype = KPLOTS_YERRORBAR;
 	spl_data->datamin = (point){ DBL_MAX, DBL_MAX};
 	spl_data->datamax = (point){ -DBL_MAX, -DBL_MAX};
 
-	// initializing kplotcfg
-	kplotcfg_defaults(&spl_data->kplotcfg);
-	// set_colors(&spl_data->kplotcfg);
-	spl_data->kplotcfg.ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
-	spl_data->kplotcfg.border = BORDER_ALL;
-	spl_data->kplotcfg.borderline.clr.type = KPLOTCTYPE_RGBA;
-	spl_data->kplotcfg.borderline.clr.rgba[0] = 0.5;
-	spl_data->kplotcfg.borderline.clr.rgba[1] = 0.5;
-	spl_data->kplotcfg.borderline.clr.rgba[2] = 0.5;
-	spl_data->kplotcfg.borderline.clr.rgba[3] = 1.0;
-	spl_data->kplotcfg.yaxislabelrot = M_PI_2 * 3.0;
+	// initializing kplot cfg structs
+	kplotcfg_defaults(&spl_data->cfgplot);
+	kdatacfg_defaults(&spl_data->cfgdata);
+	spl_data->cfgplot.ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
+	spl_data->cfgplot.border = BORDER_ALL;
+	spl_data->cfgplot.borderline.clr.type = KPLOTCTYPE_RGBA;
+	spl_data->cfgplot.borderline.clr.rgba[0] = 0.5;
+	spl_data->cfgplot.borderline.clr.rgba[1] = 0.5;
+	spl_data->cfgplot.borderline.clr.rgba[2] = 0.5;
+	spl_data->cfgplot.borderline.clr.rgba[3] = 1.0;
+	spl_data->cfgplot.yaxislabelrot = M_PI_2 * 3.0;
+	spl_data->cfgdata.line.sz = 0.5;
 }
 
 void clear_siril_plot_data(GtkWidget *widget, gpointer user_data) {
@@ -113,8 +124,6 @@ void clear_siril_plot_data(GtkWidget *widget, gpointer user_data) {
 	g_free(spl_data->ylabel);
 	g_free(spl_data->xfmt);
 	g_free(spl_data->yfmt);
-	g_free(spl_data->datfilename);
-	g_free(spl_data->pngfilename);
 
 	// freeing the xy plots
 	freexyplot(spl_data->plot);
@@ -157,18 +166,6 @@ void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt) {
 	if (spl_data->yfmt)
 		g_free(spl_data->yfmt);
 	spl_data->yfmt = g_strdup(yfmt);
-}
-
-void siril_plot_set_datfilename(siril_plot_data *spl_data, const gchar *datfilename) {
-	if (spl_data->datfilename)
-		g_free(spl_data->datfilename);
-	spl_data->datfilename = g_strdup(datfilename);
-}
-
-void siril_plot_set_pngfilename(siril_plot_data *spl_data, const gchar *pngfilename) {
-	if (spl_data->pngfilename)
-		g_free(spl_data->pngfilename);
-	spl_data->pngfilename = g_strdup(pngfilename);
 }
 
 // utilities
@@ -264,9 +261,145 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, size_t nb, double *x, 
 		if (y[i] > spl_data->datamax.y) spl_data->datamax.y = y[i];
 	}
 	return TRUE;
-
 }
 
+// draw the data contained in spl_data to the cairo context cr
+gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height) {
+	struct kdata *d1 = NULL, *d2 = NULL;
+	splxydata *plot = spl_data->plot;
+	splxydata *plots = spl_data->plots;
+	double color = 1.0;
+	if (spl_data->xlabel)
+		spl_data->cfgplot.xaxislabel = spl_data->xlabel;
+	if (spl_data->ylabel)
+		spl_data->cfgplot.yaxislabel = spl_data->ylabel;
+	if (spl_data->xfmt) {
+		if (fmtx)
+			g_free(fmtx);
+		fmtx = g_strdup(spl_data->xfmt);
+		spl_data->cfgplot.xticlabelfmt = spl_formatX;
+	}
+	if (spl_data->yfmt) {
+		if (fmty)
+			g_free(fmty);
+		fmty = g_strdup(spl_data->yfmt);
+		spl_data->cfgplot.yticlabelfmt = spl_formatY;
+	}
+
+	// computing the tics spacing and bounds
+	double xmin, xmax, ymin, ymax;
+	int nbticX,nbticY;
+	if (siril_plot_autotic(spl_data->datamin.x, spl_data->datamax.x, &nbticX, &xmin, &xmax) &&
+		siril_plot_autotic(spl_data->datamin.y, spl_data->datamax.y, &nbticY, &ymin, &ymax)) {
+		spl_data->cfgplot.extrema = 0x0F;
+		spl_data->cfgplot.extrema_xmin = xmin;
+		spl_data->cfgplot.extrema_xmax = xmax;
+		spl_data->cfgplot.extrema_ymin = ymin;
+		spl_data->cfgplot.extrema_ymax = ymax;
+		spl_data->cfgplot.xtics = nbticX;
+		spl_data->cfgplot.ytics = nbticY;
+	}
+
+	struct kplot *p = kplot_alloc(&spl_data->cfgplot);
+
+	// data plots
+	int nb_graphs = 0;
+
+	// xylines
+	while (plot) {
+		d1 = kdata_array_alloc(plot->data, plot->nb);
+		kplot_attach_data(p, d1, spl_data->plottype, &spl_data->cfgdata);
+		plot = plot->next;
+		kdata_destroy(d1);
+		d1 = NULL;
+		nb_graphs++;
+	}
+	// xy points with y error bars
+	while (plots) {
+		d2 = kdata_array_alloc(plot->data, plot->nb);
+		kplot_attach_data(p, d1, spl_data->plotstype, &spl_data->cfgdata);
+		plots = plots->nextplots;
+		kdata_destroy(d2);
+		d2 = NULL;
+		nb_graphs++;
+	}
+
+	// preparing the surfaces
+	double drawwidth = width;
+	double drawheight = height;
+	double top = 0.;
+	
+	// booking space for title
+	if (spl_data->title) {
+		top = SPL_TITLE_RATIO * height;
+		drawheight = height - top;
+	}
+
+	// painting the whole surface white
+	cairo_set_source_rgb(cr, color, color, color);
+	cairo_rectangle(cr, 0.0, 0.0, width, height);
+	cairo_fill(cr);
+
+	// creating a surface to draw the plot (accounting for title-reserved space if required)
+	cairo_surface_t *draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+	cairo_t *draw_cr = cairo_create(draw_surface);
+	cairo_font_options_t *options = cairo_font_options_create();
+	cairo_font_options_set_hint_style(options, CAIRO_HINT_STYLE_FULL);
+	kplot_draw(p, drawwidth, drawheight, draw_cr);
+	cairo_set_source_surface(cr, draw_surface, 0., top);
+	cairo_paint(cr);
+	cairo_surface_destroy(draw_surface);
+	kplot_free(p);
+
+	// writing the title if any
+	if (spl_data->title) {
+		cairo_save(cr); // save the orginal context
+		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+		cairo_select_font_face(cr, spl_data->cfgplot.axislabelfont.family, 
+		spl_data->cfgplot.axislabelfont.slant, spl_data->cfgplot.axislabelfont.weight);
+		cairo_set_font_size(cr, spl_data->cfgplot.axislabelfont.sz * 1.2);
+		cairo_font_options_t *options = cairo_font_options_create();
+		cairo_font_options_set_hint_style(options, CAIRO_HINT_STYLE_FULL);
+		cairo_text_extents_t te1;
+		cairo_text_extents(cr, spl_data->title, &te1); // getting the dimensions of the textbox
+		cairo_translate(cr, (int)((width - te1.width) * 0.5), (int)(top - te1.height * 0.5));
+		cairo_show_text(cr, spl_data->title);
+		cairo_stroke(cr);
+		cairo_restore(cr); // restore the orginal context
+	}
+	return TRUE;
+}
+
+gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
+	gboolean success = TRUE;
+	cairo_t *png_cr = NULL;
+	//create the surface
+	cairo_surface_t *png_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SIRIL_PLOT_PNG_WIDTH, SIRIL_PLOT_PNG_HEIGHT);
+	if (cairo_surface_status(png_surface)) {
+		siril_debug_print("Could not create png surface\n");
+		success = FALSE;
+	}
+	//create the context
+	if (success) {
+		png_cr = cairo_create(png_surface);
+		if (cairo_status(png_cr)) {
+			siril_debug_print("Could not create png context\n");
+			success = FALSE;
+		}
+	}
+
+	if (success && siril_plot_draw(png_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT)) {
+		siril_debug_print("Successfully created png plot\n");
+		if (!cairo_surface_write_to_png(png_surface, pngfilename))
+			siril_log_message(_("%s has been saved.\n"), pngfilename);
+		else
+			success = FALSE;
+	}
+	if (png_cr)
+		cairo_destroy(png_cr);
+	cairo_surface_destroy(png_surface);
+	return success;
+}
 
 
 

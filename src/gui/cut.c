@@ -669,7 +669,7 @@ gpointer cut_profile(gpointer p) {
 			siril_plot_add_xydata(spl_data, nbr_points, x, b, NULL, NULL);
 		}
 		if (arg->save_png_too)
-			siril_plot_set_pngfilename(spl_data, imagefilename);
+			siril_plot_save_png(spl_data, imagefilename);
 	}
 	g_free(title);
 	g_free(xlabel);

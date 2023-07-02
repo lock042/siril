@@ -25,9 +25,11 @@
 #include "gui/plot.h"
 #include "kplot.h"
 
-#define SIRIL_PLOT_WIDTH 800
-#define SIRIL_PLOT_HEIGHT 600
-#define SPL_TITLE_RATIO 0.1 // veritical proportion of the drawing area booked for title (if any)
+#define SIRIL_PLOT_DISPLAY_WIDTH 600
+#define SIRIL_PLOT_DISPLAY_HEIGHT 400
+#define SIRIL_PLOT_PNG_WIDTH 800
+#define SIRIL_PLOT_PNG_HEIGHT 600
+#define SPL_TITLE_RATIO 0.05 // veritical proportion of the drawing area booked for title (if any)
 
 typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
@@ -44,11 +46,10 @@ typedef struct siril_plot_data_struct {
 	gchar *ylabel; //ylabel
 	gchar *xfmt; // x axis number formatting
 	gchar *yfmt; // y axis number formatting
-	gchar *datfilename; // name of the datfile to be saved
-	gchar *pngfilename; // name of the pngfile to be saved
 	enum kplottype plottype;
 	enum kplotstype plotstype;
-	struct kplotcfg kplotcfg;
+	struct kplotcfg cfgplot;
+	struct kdatacfg cfgdata;
 	point datamin; // min x/y of data
 	point datamax; // max x/y of data
 } siril_plot_data;
@@ -61,10 +62,12 @@ void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
 void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);
 void siril_plot_set_xfmt(siril_plot_data *spl_data, const gchar *xfmt);
 void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt);
-void siril_plot_set_datfilename(siril_plot_data *spl_data, const gchar *datfilename);
-void siril_plot_set_pngfilename(siril_plot_data *spl_data, const gchar *pngfilename);
+// void siril_plot_set_datfilename(siril_plot_data *spl_data, const gchar *datfilename);
+// void siril_plot_set_pngfilename(siril_plot_data *spl_data, const gchar *pngfilename);
 
 gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax);
 gboolean siril_plot_add_xydata(siril_plot_data *spl_data, size_t nb, double *x, double *y, double *errp, double *errm);
+gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height);
+gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename);
 
 #endif /* SRC_IO_PLOT_H_ */
