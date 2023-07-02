@@ -663,13 +663,17 @@ gpointer cut_profile(gpointer p) {
 		siril_plot_set_xlabel(spl_data, xlabel);
 		siril_plot_set_xfmt(spl_data, "%0.0f");
 		siril_plot_set_yfmt(spl_data, (arg->fit->type == DATA_FLOAT) ? "%0.5f" : "%0.0f");
-		siril_plot_add_xydata(spl_data, nbr_points, x, r, NULL, NULL);
+		siril_plot_add_xydata(spl_data, legend, nbr_points, x, r, NULL, NULL);
 		if (arg->fit->naxes[2] > 1 || (arg->fit->naxes[2] == 3 && arg->mode != CUT_MONO)) {
-			siril_plot_add_xydata(spl_data, nbr_points, x, g, NULL, NULL);
-			siril_plot_add_xydata(spl_data, nbr_points, x, b, NULL, NULL);
+			siril_plot_add_xydata(spl_data, "x G", nbr_points, x, g, NULL, NULL);
+			siril_plot_add_xydata(spl_data, "x B", nbr_points, x, b, NULL, NULL);
 		}
 		if (arg->save_png_too)
 			siril_plot_save_png(spl_data, imagefilename);
+		if (!arg->display_graph) { // if not used for display we can free spl_data now
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
+		}
 	}
 	g_free(title);
 	g_free(xlabel);
@@ -704,7 +708,7 @@ END:
 	if (arg != &gui.cut)
 		free(arg);
 	if (!in_sequence) {
-		if (!use_gnuplot)
+		if (!use_gnuplot && arg->display_graph)
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
 	}

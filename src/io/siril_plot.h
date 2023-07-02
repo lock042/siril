@@ -34,18 +34,23 @@
 typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
 	int nb;		// number of points in the plot
-	struct siril_plot_xydata_struct *next; // pointer to the next plot
-	struct siril_plot_xydata_struct *nextplots; // pointer to the next plots (used for xyerr plots only)
+	gchar *label; // the name of the series
 } splxydata;
 
+typedef struct siril_plot_xyerrdata_struct {
+	splxydata *plots[3]; // data
+	int nb;		// number of points in the plot
+	gchar *label; // the name of the series
+} splxyerrdata;
+
 typedef struct siril_plot_data_struct {
-	splxydata *plot; // a splxydata structure to hold simple data plot (only data)
-	splxydata *plots; // a splxydata structure to hold data plots (data and errors)
+	GList *plot; // a list of splxydata structures to hold simple data plot (only data)
+	GList *plots; // a list of splxydata structures to hold data plots (data and errors)
 	gchar *title; // title
 	gchar *xlabel; //xlabel
 	gchar *ylabel; //ylabel
-	gchar *xfmt; // x axis number formatting
-	gchar *yfmt; // y axis number formatting
+	gchar *xfmt; // x axis number format
+	gchar *yfmt; // y axis number format
 	enum kplottype plottype;
 	enum kplotstype plotstype;
 	struct kplotcfg cfgplot;
@@ -55,18 +60,15 @@ typedef struct siril_plot_data_struct {
 } siril_plot_data;
 
 void init_siril_plot_data(siril_plot_data *spl_data);
-void clear_siril_plot_data(GtkWidget *widget, gpointer user_data);
+void free_siril_plot_data(siril_plot_data *spl_data);
 
 void siril_plot_set_title(siril_plot_data *spl_data, const gchar *title);
 void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
 void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);
 void siril_plot_set_xfmt(siril_plot_data *spl_data, const gchar *xfmt);
 void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt);
-// void siril_plot_set_datfilename(siril_plot_data *spl_data, const gchar *datfilename);
-// void siril_plot_set_pngfilename(siril_plot_data *spl_data, const gchar *pngfilename);
 
-gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax);
-gboolean siril_plot_add_xydata(siril_plot_data *spl_data, size_t nb, double *x, double *y, double *errp, double *errm);
+gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm);
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height);
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename);
 
