@@ -478,6 +478,11 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	}
 
 	args->n_cat = read_projected_catalog(input_stream, args->cstars, args->onlineCatalog);
+	if (args->n_cat <= 0) {
+		args->message = g_strdup(_("No stars have been retrieved from the online catalog. "
+					"This may mean that the servers are down. Note that you can install local catalogs."));
+		return 1;
+	}
 	g_object_unref(input_stream);
 	g_object_unref(catalog);
 	g_free(catalogStars);
