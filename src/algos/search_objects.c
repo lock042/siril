@@ -388,7 +388,11 @@ int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
 			if (!line[0] && first_blank) {
 				siril_log_color_message(_("No object from %s found in this FOV.\n"), "salmon", catalog_to_str(cat));
 				return 0;
-			}			
+			}
+			if (g_str_has_prefix(line, "#INFO	Error")) {		// case described here: https://gitlab.com/free-astro/siril/-/issues/1131#note_1446793482
+				siril_log_color_message(_("The VizieR server returned a connetion error. Try later.\n"), "salmon");
+				return 0;
+			}		
 			if (!line[0]) first_blank = TRUE;					// Loops until the begining is found
 			if (g_str_has_prefix(line, "-----")) unlock = TRUE;	// Flag line is found, unlock and go ahead
 			continue;
