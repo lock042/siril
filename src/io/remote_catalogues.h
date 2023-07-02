@@ -32,7 +32,7 @@ typedef enum {
 const char *catalog_to_str(online_catalog cat);
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
+gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type, gboolean photo);
 
 gchar *fetch_url(const gchar *url);
 void free_fetch_result(gchar *result);

@@ -570,7 +570,7 @@ void free_fetch_result(gchar *result) {
 }
 #endif
 
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, int type) {
+gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, int type, gboolean photo) {
 	GString *url;
 	gchar *coordinates = g_strdup_printf("%f+%f", siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center));
 	gchar *mag = g_strdup_printf("%2.2lf", mag_limit);
@@ -579,10 +579,13 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	switch (type) {
 	case CAT_NOMAD:
 		url = g_string_new(VIZIER_QUERY);
-//		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+		if (photo) {
+		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Vmag%20Bmag");
+		} else {
 		url = g_string_append(url, "I/297&-out.meta=huD&-out.add=_r&-sort=_r");
-//		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%NOMAD1%20Vmag%20Bmag");
 		url = g_string_append(url, "&-out.all");
+		}
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
 		url = g_string_append(url, coordinates);
@@ -798,7 +801,7 @@ gpointer search_in_online_vizier(gpointer p) {
 
 	if (!args->onlineCatalog) args->onlineCatalog = CAT_GCVS;
 	
-	gchar *url = get_catalog_url(center, args->limit_mag, fov, args->onlineCatalog);	
+	gchar *url = get_catalog_url(center, args->limit_mag, fov, args->onlineCatalog, FALSE);	
 	siril_log_message(_("Looking for objects according to %s in your field of view...\n"), catalog_to_str(args->onlineCatalog));
 
 	gchar *cleaned_url = url_cleanup(url);
@@ -879,7 +882,7 @@ GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_cent
 
 	if (output_stream) {
 		/* download and save */
-		gchar *url = get_catalog_url(catalog_center, mag, radius_arcmin, onlineCatalog);
+		gchar *url = get_catalog_url(catalog_center, mag, radius_arcmin, onlineCatalog, TRUE);
 		buffer = fetch_url(url);
 		g_free(url);
 
