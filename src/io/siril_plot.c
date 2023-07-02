@@ -258,7 +258,7 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t n
 
 // draw the data contained in spl_data to the cairo context cr
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height) {
-	struct kdata *d1 = NULL, *d2 = NULL;
+	struct kdata *d1 = NULL, *d2[3];
 	double color = 1.0;
 	if (spl_data->xlabel)
 		spl_data->cfgplot.xaxislabel = spl_data->xlabel;
@@ -305,15 +305,18 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		d1 = NULL;
 		nb_graphs++;
 	}
-	// // xy points with y error bars
-	// while (plots) {
-	// 	d2 = kdata_array_alloc(plot->data, plot->nb);
-	// 	kplot_attach_data(p, d1, spl_data->plotstype, &spl_data->cfgdata);
-	// 	plots = plots->nextplots;
-	// 	kdata_destroy(d2);
-	// 	d2 = NULL;
-	// 	nb_graphs++;
-	// }
+	// xy points with y error bars
+	for (GList *list = spl_data->plots; list; list = list->next) {
+		splxyerrdata *plot = (splxyerrdata *)list->data;
+		for (int i = 0; i < 3; i++) {
+			d2[i] = kdata_array_alloc(plot->plots[i]->data, plot->nb);
+		}
+		// TODO: the call to datacfg structure is different than in kplot_attach_data... need to sort this out
+		kplot_attach_datas(p, 3, d2, &spl_data->plottype, NULL, spl_data->plotstype); 
+		for (int i = 0; i < 3; i++)
+			kdata_destroy(d2[i]);
+		nb_graphs++;
+	}
 
 	// preparing the surfaces
 	double drawwidth = width;

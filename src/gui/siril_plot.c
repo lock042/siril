@@ -27,6 +27,8 @@
 static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	if (!spl_data)
 		return FALSE;
+	// siril_debug_print("Plot: %d\n", g_list_length(spl_data->plot));
+	// siril_debug_print("Plots: %d\n", g_list_length(spl_data->plots));
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
 }
 
