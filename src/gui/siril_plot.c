@@ -21,11 +21,6 @@
 #include "io/siril_plot.h"
 
 #include <cairo.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "gui/utils.h"
 #include "core/siril_log.h"
 
 // utilities

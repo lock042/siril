@@ -22,15 +22,11 @@
 
 #include <cairo.h>
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "core/siril_log.h"
-//#include "gui/utils.h"
 
 // static variables
 
-#define GUIDE 20
+#define GUIDE 20 // used to determine number of tics and spacing
 
 // TODO: these variables should not be static
 static char *fmtx = NULL, *fmty = NULL;
@@ -361,6 +357,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	return TRUE;
 }
 
+// draw the data contained in spl_data and saves as png file
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
 	gboolean success = TRUE;
 	cairo_t *png_cr = NULL;
