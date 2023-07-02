@@ -693,6 +693,7 @@ struct common_icc {
 	cmsHPROFILE *mono_linear;
 	cmsHPROFILE *working_standard;
 	cmsHPROFILE *mono_standard;
+	cmsHPROFILE *srgb_profile;
 	cmsHPROFILE *srgb_out;
 	cmsHPROFILE *working_out;
 	cmsHPROFILE *mono_out;

@@ -314,6 +314,7 @@ void initialize_profiles_and_transforms() {
 
 	// Working profiles
 	com.icc.mono_linear = gray_linear();
+	com.icc.srgb_profile = srgb_trc();
 	validate_custom_profiles();
 
 	// Target profiles for embedding in saved files
@@ -632,7 +633,7 @@ cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
 				free(block_a);
 				return FALSE;
 			}
-			ret_b = cmsSaveProfileToMem(a, (void*) block_b, &length_b);
+			ret_b = cmsSaveProfileToMem(b, (void*) block_b, &length_b);
 		}
 		if (!ret_b) {
 			free(block_a);

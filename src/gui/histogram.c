@@ -98,6 +98,9 @@ static void set_sat_histogram(gsl_histogram *histo);
 
 static gboolean autostretch_notify = FALSE;
 
+static cmsHTRANSFORM transform = NULL, inverse_transform = NULL;
+static cmsBool identical = FALSE;
+
 static int get_width_of_histo() {
 	return gtk_widget_get_allocated_width(lookup_widget("drawingarea_histograms"));
 }
@@ -137,7 +140,6 @@ static void init_toggles() {
 static void histo_startup() {
 	if (gfit.naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
 		setup_hsl();
-
 	init_toggles();
 	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
@@ -238,6 +240,7 @@ static void gfit_to_hsl() {
 static void hsluv_to_gfit (float* h, float* s, float* l) {
 	size_t npixels = gfit.rx * gfit.ry;
 	if (gfit.type == DATA_FLOAT) {
+
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
@@ -260,10 +263,41 @@ static void hsluv_to_gfit (float* h, float* s, float* l) {
 			gfit.pdata[BLAYER][i] = round_to_WORD(b * USHRT_MAX_DOUBLE);
 		}
 	}
+	if (!identical) {
+		siril_debug_print("Profiles not identical, pre-transforming\n");
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = bytesperline * gfit.ry;
+		void *buffer = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
+		cmsDoTransformLineStride(inverse_transform, buffer, buffer, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+	} else {
+		siril_debug_print("Profiles identical, no transform required\n");
+	}
 }
 
 static void gfit_to_hsluv() {
 	size_t npixels = gfit.rx * gfit.ry;
+	identical = profiles_identical(gfit.icc_profile, com.icc.srgb_profile);
+	if (!identical) {
+		siril_debug_print("Profiles not identical, pre-transforming\n");
+		cmsColorSpaceSignature sig = cmsGetColorSpace(gfit.icc_profile);
+		cmsUInt32Number format = get_planar_formatter_type(sig, gfit.type, FALSE);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = bytesperline * gfit.ry;
+		void *buffer = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
+		if (transform)
+			cmsDeleteTransform(transform);
+		transform = cmsCreateTransform(gfit.icc_profile, format, com.icc.srgb_profile, format, INTENT_PERCEPTUAL, 0);
+		if (inverse_transform)
+			cmsDeleteTransform(inverse_transform);
+		inverse_transform = cmsCreateTransform(com.icc.srgb_profile, format, gfit.icc_profile, format, INTENT_PERCEPTUAL, 0);
+
+		cmsDoTransformLineStride(transform, buffer, buffer, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+	} else {
+		siril_debug_print("Profiles identical, no transform required\n");
+	}
+
 	if (gfit.type == DATA_FLOAT) {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
@@ -292,6 +326,7 @@ static void gfit_to_hsluv() {
 	}
 	memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
 }
+
 static void histo_recompute() {
 	set_cursor("progress");
 	copy_backup_to_gfit();

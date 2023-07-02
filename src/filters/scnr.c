@@ -86,6 +86,8 @@ gpointer scnr(gpointer p) {
 	const cmsUInt32Number bytesperplane = (cmsUInt32Number) stride_size * sizeof(float);
 	int num_threads = com.max_thread;
 #ifndef EXCLUDE_FF
+/* Reset the plugins, will reload fast float but not threads, in order to
+   avoid thread management clash between OMP and pthreads */
 	cmsUnregisterPlugins();
 	cmsPlugin(cmsFastFloatExtensions());
 #endif
@@ -201,6 +203,7 @@ gpointer scnr(gpointer p) {
 		free(rgbfloat);
 	}
 #ifndef EXCLUDE_FF
+// Now we can restart the threading plugin
 	if (!com.headless) {
 		cmsPlugin(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
 	}
