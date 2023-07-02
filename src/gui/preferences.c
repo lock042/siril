@@ -39,6 +39,7 @@
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "stacking/stacking.h"
+#include "io/gnuplot_i.h"
 
 #include "preferences.h"
 #include "filters/starnet.h"
@@ -303,6 +304,7 @@ static void update_misc_preferences() {
 	com.pref.starnet_exe = gtk_file_chooser_get_filename(starnet_exe);
 	com.pref.starnet_weights = gtk_file_chooser_get_filename(starnet_weights);
 	com.pref.gnuplot_dir = gtk_file_chooser_get_filename(gnuplot_bin);
+	reset_gnuplot_check();
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));

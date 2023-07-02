@@ -499,11 +499,6 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
-	gboolean gplot_gui = (!(arg->seq));
-	if (gplot_gui)
-		siril_debug_print("Will use gui.gplot\n");
-	else
-		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
 	gchar* legend = NULL;
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
@@ -518,7 +513,7 @@ gpointer cut_profile(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	} else {
-		gplot = gnuplot_init(gplot_gui);
+		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -636,17 +631,17 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
 				if (arg->fit->naxes[2] == 1 || (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO)) {
-					gnuplot_plot_xy_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
 						gnuplot_plot_xy_datfile_colheader_to_png(gplot, filename, legend, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
 					}
+					gnuplot_plot_xy_from_datfile(gplot, filename);
 				} else {
-					gnuplot_plot_xrgb_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
 						gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
 					}
+					gnuplot_plot_xrgb_from_datfile(gplot, filename);
 				}
 			} else {
 				if (arg->fit->naxes[2] == 1) {
@@ -698,11 +693,6 @@ END:
 
 gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
-	gboolean gplot_gui = (!(arg->seq));
-	if (gplot_gui)
-		siril_debug_print("Will use gui.gplot\n");
-	else
-		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
 	int retval = 0;
 	gboolean tmpfile = FALSE;
 	char *filename = NULL, *imagefilename = NULL;
@@ -716,7 +706,7 @@ gpointer tri_cut(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	} else {
-		gplot = gnuplot_init(gplot_gui);
+		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -818,11 +808,11 @@ gpointer tri_cut(gpointer p) {
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
 					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
 				}
+				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 			} else {
 				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
@@ -864,7 +854,6 @@ END:
 
 gpointer cfa_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
-	gboolean gplot_gui = (!(arg->seq));
 	int retval = 0, ret = 0;
 	gboolean tmpfile = FALSE;
 	double *x = NULL, *r[4] = { 0 };
@@ -879,7 +868,7 @@ gpointer cfa_cut(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 	} else {
-		gplot = gnuplot_init(gplot_gui);
+		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -964,11 +953,11 @@ gpointer cfa_cut(gpointer p) {
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
 					gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
 				}
+				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 			} else {
 				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);

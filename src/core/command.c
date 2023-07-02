@@ -57,6 +57,7 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
+#include "io/gnuplot_i.h"
 #include "io/single_image.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
@@ -3118,6 +3119,7 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
+	reset_gnuplot_check();
 	return 0;
 }
 
@@ -5518,13 +5520,13 @@ int process_extractHaOIII(int nb) {
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
-		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
+		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling, com.max_thread))) {
 			ret = save1fits16(Ha, &f_Ha, 0) ||
 					save1fits16(OIII, &f_OIII, 0);
 		}
 	}
 	else if (gfit.type == DATA_FLOAT) {
-		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
+		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling, com.max_thread))) {
 			ret = save1fits32(Ha, &f_Ha, 0) ||
 					save1fits32(OIII, &f_OIII, 0);
 		}
@@ -9201,8 +9203,12 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			cut_args->mode = CUT_COLOR;
 		}
 	}
-	if (!cut_struct_is_valid(cut_args))
+	if (seq && seq->is_variable) {
+		siril_log_message(_("Error: sequence has variable sized images.\n"));
+		*err = CMD_GENERIC_ERROR;
+	} else if (!cut_struct_is_valid(cut_args)) {
 		*err = CMD_ARG_ERROR;
+	}
 	if (*err) {
 		free_cut_args(cut_args);
 		cut_args = NULL;
@@ -9216,6 +9222,11 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
+	if (!gnuplot_is_available()) {
+		siril_log_color_message(_("Warning: GNUplot not available. Data files will be generated for analysis in a third party tool but no GNUplot image can be produced.\n"), "salmon");
+	}
+
+	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
@@ -9237,6 +9248,11 @@ int process_seq_profile(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
+	}
+
+	if(!gnuplot_is_available()) {
+		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
+		return CMD_GENERIC_ERROR;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);
