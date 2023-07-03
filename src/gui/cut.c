@@ -706,13 +706,13 @@ END:
 	free(b);
 	arg->vport = -1;
 	gboolean in_sequence = (arg->seq != NULL);
-	if (arg != &gui.cut)
-		free(arg);
 	if (!in_sequence) {
 		if (!use_gnuplot && arg->display_graph)
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
 	}
+	if (arg != &gui.cut)
+		free(arg);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -887,13 +887,13 @@ END:
 		free(r[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
-	if (arg != &gui.cut)
-		free(arg);
 	if (!in_sequence) {
 		if (!use_gnuplot && arg->display_graph)
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
 	}
+	if (arg != &gui.cut)
+		free(arg);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -1054,13 +1054,13 @@ END:
 		clearfits(&cfa[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
-	if (arg != &gui.cut)
-		free(arg);
 	if (!in_sequence) {
 		if (!use_gnuplot && arg->display_graph)
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
 	}
+	if (arg != &gui.cut)
+		free(arg);
 	return GINT_TO_POINTER(retval);
 }
 
