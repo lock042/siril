@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-19 11:31+0000\n"
+"PO-Revision-Date: 2023-07-04 06:40+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -262,52 +262,52 @@ msgid ""
 msgstr "沿轮廓线生成单独的 R、G 和 B 轮廓。不适用于单色图像"
 
 #: src/gui/siril3.glade:1089
-#, fuzzy
 msgid "Manual coordinates"
-msgstr "无坐标"
+msgstr "手动坐标"
 
 #: src/gui/siril3.glade:1093
 msgid "Enter coordinates for the start and end points of the profile manually"
-msgstr ""
+msgstr "手动输入轮廓起点和终点的坐标"
 
 #: src/gui/siril3.glade:1103
 msgid "Spectrometric data"
-msgstr ""
+msgstr "光谱数据"
 
 #: src/gui/siril3.glade:1107
 msgid "Enter data relating to profiling along a spectrum"
-msgstr ""
+msgstr "输入与光谱分析相关的数据"
 
 #: src/gui/siril3.glade:1117
 msgid "Tri-Profile (mono)"
-msgstr ""
+msgstr "三轮廓（单色）"
 
 #: src/gui/siril3.glade:1121 src/gui/siril3.glade:1167
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile and do not use "
 "spectrometric data."
-msgstr ""
+msgstr "生成 3 个由给定像素数分隔的平行强度轮廓。三轮廓始终沿每个轮廓绘制亮度，不使用"
+"光谱数据。"
 
 #: src/gui/siril3.glade:1135
 msgid "Set offset step size for tri-profile"
-msgstr ""
+msgstr "设置三轮廓的偏移步长"
 
 #: src/gui/siril3.glade:1136 src/gui/siril3.glade:28814
 msgid "1"
 msgstr "1"
 
 #: src/gui/siril3.glade:1148
-#, fuzzy
 msgid "Save profile datafile"
-msgstr "将 PSF 保存到文件"
+msgstr "保存轮廓数据文件"
 
 #: src/gui/siril3.glade:1152
 msgid ""
 "Saves the GNUplot data file used to generate the profile in the working "
 "directory. The filename is based on the current image and includes a "
 "timestamp."
-msgstr ""
+msgstr "将用于生成轮廓的 GNUplot "
+"数据文件保存在工作目录中。文件名基于当前图像，并包含时间戳。"
 
 #: src/gui/siril3.glade:1183
 msgid ""
@@ -315,33 +315,35 @@ msgid ""
 "in .png format in the working directory: the GNUplot window will not appear. "
 "This mode automatically enables the \"Save plot as .png\" option."
 msgstr ""
+"应用于当前队列。如果选择此选项，将在工作目录中以.png格式生成图表：GNUplot "
+"窗口将不会出现。此模式自动启用“将图表另存为.png”选项。"
 
 #: src/gui/siril3.glade:1194
-#, fuzzy
 msgid "Save plot as .png"
-msgstr "保存图表"
+msgstr "将图表另存为png"
 
 #: src/gui/siril3.glade:1198
 msgid ""
 "Saves the plot in .png format as well as opening the GNUplot window. "
 "Sequence working relies on this so if this option is deactivated, sequence "
 "working will be deactivated too."
-msgstr ""
+msgstr "以.png格式保存图表，并打开 GNUplot "
+"窗口。队列工作依赖于此，因此如果禁用此选项，队列工作也将停用。"
 
 #: src/gui/siril3.glade:1209
 msgid "Measure in pixels"
-msgstr ""
+msgstr "以像素为单位进行测量"
 
 #: src/gui/siril3.glade:1213
 msgid ""
 "Measurements and the plot x axis will show distance in pixels. This option "
 "is overridden if spectrometry data is set."
-msgstr ""
+msgstr "测量值和图表 x "
+"轴将以像素为单位显示距离。如果设置了光谱数据，则此选项将被覆盖。"
 
 #: src/gui/siril3.glade:1225
-#, fuzzy
 msgid "Measure in arcsec"
-msgstr "FWHM已被转化为角秒"
+msgstr "以角秒为单位进行测量"
 
 #: src/gui/siril3.glade:1229
 msgid ""
@@ -349,47 +351,45 @@ msgid ""
 "This requires telescope focal length and sensor pixel size metadata in the "
 "FITS header. This option is overridden if spectrometry data is set."
 msgstr ""
+"如果可能，测量值和图表 x 轴将以角秒为单位显示距离。这需要 FITS 标头中的望远镜"
+"焦距和传感器像素尺寸元数据。如果设置了光谱数据，则此选项将被覆盖。"
 
 #: src/gui/siril3.glade:1264
 msgid ""
 "Sets a custom title for the plot. If the title ends with (), if a sequence "
 "is processed the current image number / total will be added inside the "
 "brackets (e.g. Title (1/n))."
-msgstr ""
+msgstr "设置图表的自定义标题。如果标题以 （） "
+"结尾，如果处理队列，则当前图像编号/总数将添加到括号内（例如标题 （1/n））。"
 
 #: src/gui/siril3.glade:1265 src/gui/cut.c:201 src/gui/cut.c:1476
 msgid "Intensity Profile"
-msgstr ""
+msgstr "强度轮廓"
 
 #: src/gui/siril3.glade:1274
 msgid "Plot Title"
-msgstr ""
+msgstr "图表标题"
 
 #: src/gui/siril3.glade:1327
-#, fuzzy
 msgid "Coordinates"
-msgstr "无坐标"
+msgstr "坐标"
 
 #: src/gui/siril3.glade:1389 src/gui/siril3.glade:1402
 #: src/gui/siril3.glade:1459 src/gui/siril3.glade:1472
-#, fuzzy
 msgid "-1"
-msgstr "1"
+msgstr "-1"
 
 #: src/gui/siril3.glade:1415
-#, fuzzy
 msgid "End"
-msgstr "已启用"
+msgstr "终点"
 
 #: src/gui/siril3.glade:1426 src/gui/siril3.glade:8682
-#, fuzzy
 msgid "y"
-msgstr "y0"
+msgstr "y"
 
 #: src/gui/siril3.glade:1437
-#, fuzzy
 msgid "Start"
-msgstr "StarNet"
+msgstr "起点"
 
 #: src/gui/siril3.glade:1448 src/gui/siril3.glade:8671
 #: src/gui/siril3.glade:21654
@@ -397,19 +397,18 @@ msgid "x"
 msgstr "x"
 
 #: src/gui/siril3.glade:1490
-#, fuzzy
 msgid ""
 "Find a star in the current selection and set the start point to its location"
-msgstr "警告：使用当前选区来检测星点\n"
+msgstr "在当前选择中查找一颗星点，并将起点设置为其位置"
 
 #: src/gui/siril3.glade:1491 src/gui/siril3.glade:1516
 msgid "*"
-msgstr ""
+msgstr "*"
 
 #: src/gui/siril3.glade:1515
 msgid ""
 "Find a star in the current selection and set the end point to its location"
-msgstr ""
+msgstr "在当前选择中查找一颗星点并将终点设置为其位置"
 
 #: src/gui/siril3.glade:1566
 msgid "Wavelets Layers Extraction"
@@ -1794,9 +1793,8 @@ msgid "Prefix of the image names resulting from the cropping process."
 msgstr "裁剪处理后的文件名前缀。"
 
 #: src/gui/siril3.glade:8490
-#, fuzzy
 msgid "Spectrometry"
-msgstr "天体测量"
+msgstr "光谱"
 
 #: src/gui/siril3.glade:8551
 #, fuzzy
