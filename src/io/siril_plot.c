@@ -68,7 +68,7 @@ static void free_list_plots(gpointer data) {
 
 // allocate a simple xy data structure
 static splxydata *alloc_xyplot_data(int nb) {
-	splxydata *plot = malloc(sizeof(splxydata));
+	splxydata *plot = g_slice_new(splxydata);
 	plot->data = calloc(nb, sizeof(struct kpair));
 	if (!plot->data) {
 		PRINT_ALLOC_ERR;
@@ -82,7 +82,7 @@ static splxydata *alloc_xyplot_data(int nb) {
 
 // allocate a xyerr data structure to hold data, errp and errm
 static splxyerrdata *alloc_xyerrplot_data(int nb) {
-	splxyerrdata *plots = malloc(sizeof(splxyerrdata));
+	splxyerrdata *plots = g_slice_new(splxyerrdata);
 	plots->label = NULL;
 	plots->nb = nb;
 	gboolean ok = TRUE;
