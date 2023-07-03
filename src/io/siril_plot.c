@@ -23,13 +23,15 @@
 #include <cairo.h>
 #include <pango/pangocairo.h>
 #include <math.h>
+#include "core/proto.h"
 #include "core/siril_log.h"
+
 
 // static variables
 
 #define GUIDE 20 // used to determine number of tics and spacing
 
-// TODO: these variables should not be static
+// TODO: these variables/functions should not be static
 static char *fmtx = NULL, *fmty = NULL;
 
 static void spl_formatX(double v, char *buf, size_t bufsz) {
@@ -97,6 +99,14 @@ static splxyerrdata *alloc_xyerrplot_data(int nb) {
 	return plots;
 }
 
+// allocate a legend entry
+static spllegend *new_legend_entry(spl_type type, double color[3]) {
+	spllegend *legend = g_slice_new(spllegend);
+	legend->type = type;
+	memcpy(legend->color, color, 3 * sizeof(double));
+	return legend;
+}
+
 // init/free spl_data
 
 void init_siril_plot_data(siril_plot_data *spl_data) {
@@ -124,6 +134,13 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->cfgplot.borderline.clr.rgba[3] = 1.0;
 	spl_data->cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 	spl_data->cfgdata.line.sz = 0.5;
+	size_t clrsz;
+
+	// we init the colors here to ease creating the legend entries
+	struct kplotccfg *cfgcolor;
+	kplotcfg_default_palette(&cfgcolor, &clrsz);
+	spl_data->cfgplot.clrsz = clrsz;
+	spl_data->cfgplot.clrs = cfgcolor;
 }
 
 void free_siril_plot_data(siril_plot_data *spl_data) {
@@ -137,8 +154,7 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	g_list_free_full(spl_data->plot, (GDestroyNotify)free_list_plot);
 	g_list_free_full(spl_data->plots, (GDestroyNotify)free_list_plots);
 	//freeing kplot cfg structures
-	// TODO: check if smthg is required
-
+	free(spl_data->cfgplot.clrs);
 }
 
 // setters
@@ -296,24 +312,38 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 
 	// data plots
 	int nb_graphs = 0;
+	GList *legend = NULL;
+	GString *legend_text = NULL;
 
 	// xylines
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
 		d1 = kdata_array_alloc(plot->data, plot->nb);
 		kplot_attach_data(p, d1, spl_data->plottype, &spl_data->cfgdata);
+		int index = nb_graphs % spl_data->cfgplot.clrsz;
+		legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XY, spl_data->cfgplot.clrs[index].rgba));
+		if (!nb_graphs)
+			legend_text = g_string_new((!plot->label) ? "\n" : plot->label); // in case the first label is empty
+		else
+			g_string_append_printf(legend_text, "\n%s", plot->label);
 		kdata_destroy(d1);
 		d1 = NULL;
 		nb_graphs++;
 	}
 	// xy points with y error bars
 	for (GList *list = spl_data->plots; list; list = list->next) {
-		splxyerrdata *plot = (splxyerrdata *)list->data;
+		splxyerrdata *plots = (splxyerrdata *)list->data;
 		for (int i = 0; i < 3; i++) {
-			d2[i] = kdata_array_alloc(plot->plots[i]->data, plot->nb);
+			d2[i] = kdata_array_alloc(plots->plots[i]->data, plots->nb);
 		}
 		// TODO: the call to datacfg structure is different than in kplot_attach_data... need to sort this out
 		kplot_attach_datas(p, 3, d2, &spl_data->plottype, NULL, spl_data->plotstype); 
+		int index = nb_graphs % spl_data->cfgplot.clrsz;
+		legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
+		if (!nb_graphs)
+			legend_text = g_string_new((!plots->label) ? "\n" : plots->label); // in case the first label is empty
+		else
+			g_string_append_printf(legend_text, "\n%s", plots->label);
 		for (int i = 0; i < 3; i++)
 			kdata_destroy(d2[i]);
 		nb_graphs++;
@@ -339,19 +369,19 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
 		pango_layout_set_text(layout, spl_data->title, -1);
 		// set max width to wrap title if required
-		pango_layout_set_width(layout, (width - 2 * TITLE_MARGIN) * PANGO_SCALE);
+		pango_layout_set_width(layout, (width - 2 * SIRIL_PLOT_MARGIN) * PANGO_SCALE);
 		pango_layout_set_wrap(layout,PANGO_WRAP_WORD);
 		desc = pango_font_description_new();
-		pango_font_description_set_size(desc, TITLE_SIZE * PANGO_SCALE);
+		pango_font_description_set_size(desc, SIRIL_PLOT_TITLE_SIZE * PANGO_SCALE);
 		pango_layout_set_font_description(layout, desc);
 		pango_font_description_free(desc);
 		pango_layout_get_size(layout, &pw, &ph);
 		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-		cairo_move_to(cr, (double)TITLE_MARGIN, (double)TITLE_MARGIN);
+		cairo_move_to(cr, (double)SIRIL_PLOT_MARGIN, (double)SIRIL_PLOT_MARGIN);
 		pango_cairo_show_layout(cr, layout);
 		g_object_unref(layout);
 		cairo_restore(cr); // restore the orginal context
-		top = (double)TITLE_MARGIN + (double)ph / PANGO_SCALE;
+		top = (double)SIRIL_PLOT_MARGIN + (double)ph / PANGO_SCALE;
 		drawheight = height - top;
 	}
 
@@ -363,34 +393,60 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	cairo_paint(cr);
 	cairo_destroy(draw_cr);
 	cairo_surface_destroy(draw_surface);
+	kplot_free(p);
+
+	// creating the legend
+
 	// TODO: the getters should be modified not to point to statics
 	// instead, k_plot_draw could return the kplotctx created internally
 	// This would give access to dims and offs which would be specific to the plot
 	// otherwise, we can't call this function in parallel threads
 	point range = (point){ get_dimx(),  get_dimy()};
 	point offset = (point){ get_offsx(),  get_offsy()};
-	  /* Create a PangoLayout, set the font and text */
+
 	PangoLayout *layout;
 	PangoFontDescription *desc;
 	int pw, ph;
-	layout = pango_cairo_create_layout (cr);
-	pango_layout_set_text(layout, "test", -1);
+	layout = pango_cairo_create_layout(cr);
 	desc = pango_font_description_new();
-	pango_font_description_set_size(desc, TITLE_SIZE * PANGO_SCALE);
+	pango_font_description_set_size(desc, SIRIL_PLOT_LEGEND_SIZE * PANGO_SCALE);
 	pango_layout_set_font_description(layout, desc);
 	pango_font_description_free(desc);
+
+	pango_layout_set_text(layout, legend_text->str, -1);
 	pango_layout_get_size(layout, &pw, &ph);
 	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-	cairo_move_to(cr, offset.x - (double)TITLE_MARGIN + range.x - (double)pw / PANGO_SCALE, top + offset.y + (double)TITLE_MARGIN);
+	double px0 = offset.x - (double)SIRIL_PLOT_MARGIN + range.x - (double)pw / PANGO_SCALE;
+	double py0 = top + offset.y + (double)SIRIL_PLOT_MARGIN;
+	cairo_move_to(cr, px0, py0);
 	pango_cairo_show_layout(cr, layout);
+
+	px0 -= 6. * SIRIL_PLOT_MARGIN;
+	PangoLayoutIter *iter = pango_layout_get_iter(layout);
+	int y0;
+	guint index = 0;
+	do {
+		GList *current_entry = g_list_nth(legend, index);
+		double color[3];
+		memcpy(color, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
+		if (iter == NULL)
+			break;
+		y0 = pango_layout_iter_get_baseline(iter);
+		double dy = (double)y0 / PANGO_SCALE - 0.5 * SIRIL_PLOT_LEGEND_SIZE;
+		cairo_move_to(cr, px0, py0 + dy);
+
+		cairo_set_source_rgb(cr, color[0], color[1], color[2]);
+		cairo_set_line_width(cr, 1.);
+		// TODO: use current_entry type to plot a segment (xydata) or a circle (xyerrdata)
+		cairo_rel_line_to(cr, 4. * SIRIL_PLOT_MARGIN, 0.);
+		cairo_stroke(cr);
+		index++;
+	} while (pango_layout_iter_next_line(iter));
 	g_object_unref(layout);
-	for (int i = 0; i < nb_graphs; i++) {
-		struct kdatacfg *cfgs;
-		size_t cfgsz;
-		int test = kplot_get_datacfg(p, i, &cfgs, &cfgsz);
-		int a = 0;
-	}
-	kplot_free(p);
+
+	// freeing
+	g_string_free(legend_text, TRUE);
+	g_list_free(legend);
 
 	return TRUE;
 }

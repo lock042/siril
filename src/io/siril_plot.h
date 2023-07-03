@@ -29,10 +29,14 @@
 #define SIRIL_PLOT_DISPLAY_HEIGHT 400
 #define SIRIL_PLOT_PNG_WIDTH 800
 #define SIRIL_PLOT_PNG_HEIGHT 600
-#define TITLE_SIZE 12
-#define TITLE_MARGIN 5
-#define LABEL_SIZE 10
+#define SIRIL_PLOT_TITLE_SIZE 12
+#define SIRIL_PLOT_MARGIN 5
+#define SIRIL_PLOT_LEGEND_SIZE 10.
 
+typedef enum {
+	SIRIL_PLOT_XY,
+	SIRIL_PLOT_XYERR
+} spl_type;
 typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
 	int nb;		// number of points in the plot
@@ -44,6 +48,11 @@ typedef struct siril_plot_xyerrdata_struct {
 	int nb;		// number of points in the plot
 	gchar *label; // the name of the series
 } splxyerrdata;
+
+typedef struct siril_plot_legend_struct {
+	spl_type type;
+	double color[3];
+} spllegend;
 
 typedef struct siril_plot_data_struct {
 	GList *plot; // a list of splxydata structures to hold simple data plot (only data)
