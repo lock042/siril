@@ -152,7 +152,7 @@ static void siril_app_activate(GApplication *application) {
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
-	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+	siril_log(LOG_METATRON, _("Welcome to %s v%s\n"), PACKAGE, VERSION);
 
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();

@@ -274,8 +274,23 @@ static void update_misc_preferences() {
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
 	com.pref.console_log_level = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("console_log_combo")));
-	com.log_threshold = com.pref.console_log_level + 2;
 	com.pref.gui_log_level = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("gui_log_combo")));
+	if (com.pref.console_log_level < LOG_INFO || com.pref.gui_log_level < LOG_INFO - 2) {
+		if (!siril_confirm_dialog(_("Developer log level"), _("You have selected to see debug log messages. These are "
+			"not translated and are only intended for use by the developers or for providing additional information "
+			"to help with bug rectification. They are not required for normal Siril operation. Do you really want to "
+			"activate debug logging?"), _("Confirm"))) {
+			if (com.pref.gui_log_level < LOG_INFO - 2) {
+				com.pref.gui_log_level = LOG_INFO - 2;
+				gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("gui_log_combo")), com.pref.gui_log_level);
+			}
+			if (com.pref.console_log_level < LOG_INFO - 2) {
+				com.pref.console_log_level = LOG_INFO - 2;
+				gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("console_log_combo")), com.pref.console_log_level);
+			}
+		}
+	}
+	com.log_threshold = com.pref.console_log_level + 2;
 	siril_log(LOG_METATRON, "Console log level set to %d\n", com.log_threshold);
 	if (!com.headless) {
 		gui.log_threshold = com.pref.gui_log_level + 2;

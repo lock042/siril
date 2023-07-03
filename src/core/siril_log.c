@@ -65,6 +65,7 @@ char* siril_log_va(logpriority priority, const char* format, va_list args) {
 	g_mutex_lock(&com.mutex);
 	char *color;
 	switch (priority) {
+	// Case fallthrough is intentional
 		case LOG_CRITICAL:
 		case LOG_ERROR:
 			color = "red";
@@ -79,6 +80,9 @@ char* siril_log_va(logpriority priority, const char* format, va_list args) {
 		case LOG_DEBUG_VERBOSE:
 		case LOG_DEBUG_EXTRA_VERBOSE:
 			color = "plum";
+			break;
+		case LOG_METATRON:
+			color = "bold";
 			break;
 		default:
 			color = NULL;
@@ -137,6 +141,12 @@ char* siril_log_color_message(const char* format, const char* color, ...) {
 }
 
 void siril_debug_print(const char* format, ...) {
+	// Don't waste time if we don't need to...
+	if (com.headless && com.log_threshold > LOG_DEBUG)
+		return;
+	if (min(com.log_threshold, gui.log_threshold) > LOG_DEBUG)
+		return;
+
 	va_list args;
 	va_start(args, format);
 	(void) siril_log_va(LOG_DEBUG, format, args);
