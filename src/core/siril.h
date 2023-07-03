@@ -288,7 +288,11 @@ typedef enum {
 	/* For debug messages that would have been printed in a siril_debug_log() call.
 	 * Messages at LOG_DEBUG and below are not translated as they are for the attention of developers */
 	LOG_DEBUG,
-	// For detailed informational messages about a process. Most siril_log_messages...
+	/* For detailed informational messages about a process. Stuff that many users won't care about but
+	 * which is still informational rather than debug. This is currently some of the siril_log_message()
+	 * usage and will need breaking out into this separate log level. */
+	LOG_DETAILED_INFO,
+	// For normal informational messages about a process. Most siril_log_messages...
 	LOG_INFO,
 	// For high-level informational messages about starting / completing a process only.
 	LOG_SUMMARY_INFO,
