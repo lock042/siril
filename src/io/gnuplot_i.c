@@ -73,7 +73,7 @@
 // Uncomment the following line for lots of debug messages
 //#define GPLOT_DEBUG
 
-static gboolean gnuplot_checked = FALSE;
+static gboolean gnuplot_checked = TRUE;
 static gboolean gnuplot_available = FALSE;
 static gboolean gnuplot_is_in_path = FALSE;
 static GMutex handle_mutex;

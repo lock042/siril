@@ -669,7 +669,7 @@ gpointer cut_profile(gpointer p) {
 			siril_plot_add_xydata(spl_data, "G", nbr_points, x, g, NULL, NULL);
 			siril_plot_add_xydata(spl_data, "B", nbr_points, x, b, NULL, NULL);
 		}
-		if (arg->save_png_too)
+		if (arg->save_png_too || !arg->display_graph)
 			siril_plot_save_png(spl_data, imagefilename);
 		if (!arg->display_graph) { // if not used for display we can free spl_data now
 			free_siril_plot_data(spl_data);
@@ -855,7 +855,7 @@ gpointer tri_cut(gpointer p) {
 		siril_plot_add_xydata(spl_data, NULL, nbr_points, x, r[0], NULL, NULL);
 		siril_plot_add_xydata(spl_data, NULL, nbr_points, x, r[1], NULL, NULL);
 		siril_plot_add_xydata(spl_data, NULL, nbr_points, x, r[2], NULL, NULL);
-		if (arg->save_png_too)
+		if (arg->save_png_too || !arg->display_graph)
 			siril_plot_save_png(spl_data, imagefilename);
 		if (!arg->display_graph) { // if not used for display we can free spl_data now
 			free_siril_plot_data(spl_data);
@@ -1022,7 +1022,7 @@ gpointer cfa_cut(gpointer p) {
 		siril_plot_add_xydata(spl_data, "CFA1", nbr_points, x, r[1], NULL, NULL);
 		siril_plot_add_xydata(spl_data, "CFA2", nbr_points, x, r[2], NULL, NULL);
 		siril_plot_add_xydata(spl_data, "CFA3", nbr_points, x, r[3], NULL, NULL);
-		if (arg->save_png_too)
+		if (arg->save_png_too || !arg->display_graph)
 			siril_plot_save_png(spl_data, imagefilename);
 		if (!arg->display_graph) { // if not used for display we can free spl_data now
 			free_siril_plot_data(spl_data);
