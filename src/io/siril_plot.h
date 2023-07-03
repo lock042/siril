@@ -29,7 +29,9 @@
 #define SIRIL_PLOT_DISPLAY_HEIGHT 400
 #define SIRIL_PLOT_PNG_WIDTH 800
 #define SIRIL_PLOT_PNG_HEIGHT 600
-#define SPL_TITLE_RATIO 0.05 // veritical proportion of the drawing area booked for title (if any)
+#define TITLE_SIZE 12
+#define TITLE_MARGIN 5
+#define LABEL_SIZE 10
 
 typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data

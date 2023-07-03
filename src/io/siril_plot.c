@@ -21,6 +21,7 @@
 #include "siril_plot.h"
 
 #include <cairo.h>
+#include <pango/pangocairo.h>
 #include <math.h>
 #include "core/siril_log.h"
 
@@ -322,41 +323,75 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	double drawwidth = width;
 	double drawheight = height;
 	double top = 0.;
-	
-	// booking space for title
-	if (spl_data->title) {
-		top = SPL_TITLE_RATIO * height;
-		drawheight = height - top;
-	}
 
 	// painting the whole surface white
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_rectangle(cr, 0.0, 0.0, width, height);
 	cairo_fill(cr);
 
+	// writing the title if any and booking space
+	if (spl_data->title) {
+		cairo_save(cr);
+		PangoLayout *layout;
+		PangoFontDescription *desc;
+		int pw, ph;
+		layout = pango_cairo_create_layout(cr);
+		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+		pango_layout_set_text(layout, spl_data->title, -1);
+		// set max width to wrap title if required
+		pango_layout_set_width(layout, (width - 2 * TITLE_MARGIN) * PANGO_SCALE);
+		pango_layout_set_wrap(layout,PANGO_WRAP_WORD);
+		desc = pango_font_description_new();
+		pango_font_description_set_size(desc, TITLE_SIZE * PANGO_SCALE);
+		pango_layout_set_font_description(layout, desc);
+		pango_font_description_free(desc);
+		pango_layout_get_size(layout, &pw, &ph);
+		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+		cairo_move_to(cr, (double)TITLE_MARGIN, (double)TITLE_MARGIN);
+		pango_cairo_show_layout(cr, layout);
+		g_object_unref(layout);
+		cairo_restore(cr); // restore the orginal context
+		top = (double)TITLE_MARGIN + (double)ph / PANGO_SCALE;
+		drawheight = height - top;
+	}
+
 	// creating a surface to draw the plot (accounting for title-reserved space if required)
 	cairo_surface_t *draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
 	cairo_t *draw_cr = cairo_create(draw_surface);
 	kplot_draw(p, drawwidth, drawheight, draw_cr);
-	cairo_set_source_surface(cr, draw_surface, 0., top);
+	cairo_set_source_surface(cr, draw_surface, 0., (int)top);
 	cairo_paint(cr);
+	cairo_destroy(draw_cr);
 	cairo_surface_destroy(draw_surface);
+	// TODO: the getters should be modified not to point to statics
+	// instead, k_plot_draw could return the kplotctx created internally
+	// This would give access to dims and offs which would be specific to the plot
+	// otherwise, we can't call this function in parallel threads
+	point range = (point){ get_dimx(),  get_dimy()};
+	point offset = (point){ get_offsx(),  get_offsy()};
+	  /* Create a PangoLayout, set the font and text */
+	PangoLayout *layout;
+	PangoFontDescription *desc;
+	int pw, ph;
+	layout = pango_cairo_create_layout (cr);
+	pango_layout_set_text(layout, "test", -1);
+	desc = pango_font_description_new();
+	pango_font_description_set_size(desc, TITLE_SIZE * PANGO_SCALE);
+	pango_layout_set_font_description(layout, desc);
+	pango_font_description_free(desc);
+	pango_layout_get_size(layout, &pw, &ph);
+	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+	cairo_move_to(cr, offset.x - (double)TITLE_MARGIN + range.x - (double)pw / PANGO_SCALE, top + offset.y + (double)TITLE_MARGIN);
+	pango_cairo_show_layout(cr, layout);
+	g_object_unref(layout);
+	for (int i = 0; i < nb_graphs; i++) {
+		struct kdatacfg *cfgs;
+		size_t cfgsz;
+		int test = kplot_get_datacfg(p, i, &cfgs, &cfgsz);
+		int a = 0;
+	}
 	kplot_free(p);
 
-	// writing the title if any
-	if (spl_data->title) {
-		cairo_save(cr); // save the orginal context
-		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-		cairo_select_font_face(cr, spl_data->cfgplot.axislabelfont.family, 
-		spl_data->cfgplot.axislabelfont.slant, spl_data->cfgplot.axislabelfont.weight);
-		cairo_set_font_size(cr, spl_data->cfgplot.axislabelfont.sz * 1.2);
-		cairo_text_extents_t te1;
-		cairo_text_extents(cr, spl_data->title, &te1); // getting the dimensions of the textbox
-		cairo_translate(cr, (int)((width - te1.width) * 0.5), (int)(top - te1.height * 0.5));
-		cairo_show_text(cr, spl_data->title);
-		cairo_stroke(cr);
-		cairo_restore(cr); // restore the orginal context
-	}
 	return TRUE;
 }
 
