@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/command.h" // for process_clear()
@@ -32,7 +33,7 @@
  * only newline. It is an allocated string and must not be freed. It can be
  * reused until next call to this function.
  */
-static char* siril_log_internal(const char* format, const char* color, va_list arglist) {
+static char* siril_log_internal(logpriority priority, const char* format, const char* color, va_list arglist) {
 	static char *msg = NULL;
 
 	if (msg == NULL) {
@@ -50,32 +51,96 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 		gui_log_message("\n", NULL);
 		return NULL;
 	}
-
-	g_print("log: %s", msg);
-	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
-	gui_log_message(msg, color);
+	if (priority >= com.log_threshold) {
+		g_print(_("loglevel %d: %s"), (int) priority, msg);
+		pipe_send_message(PIPE_LOG, PIPE_NA, msg);
+	}
+	if (priority >= gui.log_threshold)
+		gui_log_message(msg, color);
 
 	return msg;
 }
 
+char* siril_log_va(logpriority priority, const char* format, va_list args) {
+	g_mutex_lock(&com.mutex);
+	char *color;
+	switch (priority) {
+		case LOG_CRITICAL:
+		case LOG_ERROR:
+			color = "red";
+			break;
+		case LOG_WARNING:
+			color = "salmon";
+			break;
+		case LOG_SUMMARY_INFO:
+			color = "green";
+			break;
+		case LOG_DEBUG:
+		case LOG_DEBUG_VERBOSE:
+		case LOG_DEBUG_EXTRA_VERBOSE:
+			color = "plum";
+			break;
+		default:
+			color = NULL;
+	}
+	char *msg = siril_log_internal(priority, format, color, args);
+//	free(color);
+	g_mutex_unlock(&com.mutex);
+	return msg;
+}
+
+char* siril_log(logpriority priority, const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	char *msg = siril_log_va(priority, format, args);
+	va_end(args);
+	return msg;
+}
+
+/* Deprecated. Acts as siril_log(LOG_INFO...) and ideally all instances should
+ * be migrated for consistency, but the function is kept available to make it
+ * easier to merge MRs that are in-progress. In future new MRs should use
+ * siril_log() with the correct log priority.
+ */
 char* siril_log_message(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
-	g_mutex_lock(&com.mutex);
-	char *msg = siril_log_internal(format, NULL, args);
-	g_mutex_unlock(&com.mutex);
+	char *msg = siril_log_va(LOG_INFO, format, args);
 	va_end(args);
 	return msg;
 }
 
+/* Deprecated and ugly. Guesses the priority based on the color, but up to now
+ * use of siril_log_color_message hasn't been consistent, so all instances ought
+ * to be checked and converted to siril_log(). The function is kept available to
+ * make it easier to merge MRs that are in-progress but all new MRs should use
+ * siril_log()
+ */
 char* siril_log_color_message(const char* format, const char* color, ...) {
 	va_list args;
 	va_start(args, color);
-	g_mutex_lock(&com.mutex);
-	char *msg = siril_log_internal(format, color, args);
-	g_mutex_unlock(&com.mutex);
+//	g_mutex_lock(&com.mutex);
+	logpriority priority;
+	if (!strcmp(color, "red"))
+		priority = LOG_ERROR;
+	else if (!strcmp(color, "salmon"))
+		priority = LOG_WARNING;
+	else if (!strcmp(color, "green"))
+		priority = LOG_SUMMARY_INFO;
+	else
+		priority = LOG_INFO;
+//	char *msg = siril_log_internal(priority, format, color, args);
+	char *msg = siril_log_va(priority, format, args);
+//	g_mutex_unlock(&com.mutex);
 	va_end(args);
 	return msg;
+}
+
+void siril_debug_print(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	(void) siril_log_va(LOG_DEBUG, format, args);
+	va_end(args);
 }
 
 const char *format_time_diff(struct timeval t_start, struct timeval t_end) {

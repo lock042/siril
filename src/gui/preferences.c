@@ -273,6 +273,14 @@ static void update_misc_preferences() {
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
+	com.pref.console_log_level = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("console_log_combo")));
+	com.log_threshold = com.pref.console_log_level + 2;
+	com.pref.gui_log_level = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("gui_log_combo")));
+	siril_log(LOG_METATRON, "Console log level set to %d\n", com.log_threshold);
+	if (!com.headless) {
+		gui.log_threshold = com.pref.gui_log_level + 2;
+		siril_log(LOG_METATRON, "GUI log level set to %d\n", gui.log_threshold);
+	}
 }
 
 void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -657,6 +665,8 @@ void update_preferences_from_model() {
 	initialize_gnuplot_directory(pref->gnuplot_dir);
 	initialize_asnet_directory(pref->asnet_dir);
 
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("console_log_combo")), pref->console_log_level);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("gui_log_combo")), pref->gui_log_level);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);

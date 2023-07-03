@@ -35,9 +35,17 @@
 
 #define GLADE_FILE "siril3.glade"
 
-/* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
+/* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c
 #define siril_debug_print(fmt, ...) \
 	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+void siril_debug_print(const char* format, ...);
+#ifdef __cplusplus
+}
+#endif
 
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
 #define PRINT_ANOTHER_THREAD_RUNNING siril_log_message(_("Another task is already in progress, ignoring new request.\n"))
@@ -270,6 +278,31 @@ typedef enum {
 	EXT_ASNET,
 	EXT_GNUPLOT // not used for now
 } external_program;
+
+typedef enum {
+	/* For extra verbose debug messages such as outputting every element of a deconvolution kernel
+	 * You would normally only want to turn these on for a particular purpose */
+	LOG_DEBUG_EXTRA_VERBOSE,
+	// For verbose debug messages that would have been within their own #define DEBUG_XXX
+	LOG_DEBUG_VERBOSE,
+	/* For debug messages that would have been printed in a siril_debug_log() call.
+	 * Messages at LOG_DEBUG and below are not translated as they are for the attention of developers */
+	LOG_DEBUG,
+	// For detailed informational messages about a process. Most siril_log_messages...
+	LOG_INFO,
+	// For high-level informational messages about starting / completing a process only.
+	LOG_SUMMARY_INFO,
+	// For warning messages. Generally siril_log_color_message("XXX", "salmon");
+	LOG_WARNING,
+	// For error messages. Generally siril_log_color_message("XXX", "red");
+	LOG_ERROR,
+	// For critical error messages.
+	LOG_CRITICAL,
+	/* For messages that aren't errors but must always be printed.
+	 * These should be extremely rare, currently only used for
+	 * notification about changing the logging level itself. */
+	LOG_METATRON
+} logpriority;
 
 /* image data, exists once for each image */
 typedef struct {
@@ -673,6 +706,7 @@ struct guiinf {
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
 	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
+	logpriority log_threshold; // sets the threshold for log messages printed to the GUI
 };
 
 /* The global data structure of siril core */
@@ -732,7 +766,7 @@ struct cominf {
 #endif
 	gnuplot_ctrl **gnuplot_handles; // list of gnuplot handles
 	int num_gnuplot_handles; // how many gnuplot handles are in the list
-
+	logpriority log_threshold; // sets the threshold for log messages printed to the pipe
 };
 
 #ifndef MAIN

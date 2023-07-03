@@ -281,6 +281,10 @@ struct pref_struct {
 	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
 	gchar *gnuplot_dir;	// Location of gnuplot installation
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
+	int console_log_level;	// These are int not logpriority as these are the raw values
+							// from the comboboxes, they need to be converted to account for
+							// the hidden log levels not accessible to users
+	int gui_log_level;
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;

@@ -22,11 +22,13 @@
 #define _SIRIL_LOG_H
 
 #include <sys/time.h>
+#include "core/siril.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+char* siril_log(logpriority priority, const char* format, ...);
 char* siril_log_message(const char* format, ...);
 char* siril_log_color_message(const char* format, const char* color, ...);
 

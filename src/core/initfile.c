@@ -220,6 +220,10 @@ int checkinitfile() {
 		com.initfile = config_file;
 		retval = readinitfile(com.initfile);
 	}
+	com.log_threshold = com.pref.console_log_level + 2;
+	if (!com.headless)
+		gui.log_threshold = com.pref.gui_log_level + 2;
+
 	g_free(pathname);
 	return retval;
 }
