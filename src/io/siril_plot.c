@@ -445,7 +445,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		cairo_rel_line_to(cr, 4. * SIRIL_PLOT_MARGIN, 0.);
 		cairo_stroke(cr);
 		index++;
-	} while (pango_layout_iter_next_line(iter));
+	} while (pango_layout_iter_next_line(iter) && index < nb_graphs);
 	g_object_unref(layout);
 
 	// freeing

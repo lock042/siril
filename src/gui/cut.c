@@ -501,7 +501,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
-	gchar* legend = NULL;
+	gchar* legend = NULL, *spl_legend = NULL;
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
 	gboolean tmpfile = FALSE;
@@ -589,26 +589,32 @@ gpointer cut_profile(gpointer p) {
 			// Now the vport is defined, set the data to a channel or even luminance
 			if (arg->vport == 0) {
 				legend = g_strdup("x R");
+				spl_legend = g_strdup("R");
 			} else if (arg->vport == 1) {
 				for (int i = 0 ; i < nbr_points ; i++)
 					r[i] = g[i];
 				legend = g_strdup("x G");
+				spl_legend = g_strdup("G");
 			} else if (arg->vport == 2) {
 				for (int i = 0 ; i < nbr_points ; i++)
 					r[i] = b[i];
 				legend = g_strdup("x B");
+				spl_legend = g_strdup("B");
 			} else {
 				for (int i = 0 ; i < nbr_points ; i++) {
 					r[i] = (r[i] + g[i] + b[i]) / 3.0;
 				}
 				legend = g_strdup("x L");
+				spl_legend = g_strdup("L");
 			}
 		} else if (arg->fit->naxes[2] == 1) {
 			legend = g_strdup("x Mono");
+			spl_legend = g_strdup("Mono");
 		}
 		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, legend);
 	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
+		spl_legend = g_strdup("R");
 	}
 	if (retval) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
@@ -663,9 +669,8 @@ gpointer cut_profile(gpointer p) {
 		siril_plot_set_xlabel(spl_data, xlabel);
 		siril_plot_set_xfmt(spl_data, "%0.0f");
 		siril_plot_set_yfmt(spl_data, (arg->fit->type == DATA_FLOAT) ? "%0.5f" : "%0.0f");
-		//TODO: split legend to retrieve what's after "x "
-		siril_plot_add_xydata(spl_data, legend, nbr_points, x, r, NULL, NULL);
-		if (arg->fit->naxes[2] > 1 || (arg->fit->naxes[2] == 3 && arg->mode != CUT_MONO)) {
+		siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
+		if (arg->fit->naxes[2] == 3 && arg->mode != CUT_MONO) {
 			siril_plot_add_xydata(spl_data, "G", nbr_points, x, g, NULL, NULL);
 			siril_plot_add_xydata(spl_data, "B", nbr_points, x, b, NULL, NULL);
 		}
@@ -698,6 +703,7 @@ END:
 	g_free(filename);
 	g_free(imagefilename);
 	g_free(legend);
+	g_free(spl_legend);
 	g_free(arg->title);
 	arg->title = NULL;
 	free(x);
@@ -800,18 +806,30 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 	gchar *titletext = NULL;
+	gchar *spllabels[3];
+
 	if (arg->vport == 0) {
-		if (arg->fit->naxes[2] == 3)
+		if (arg->fit->naxes[2] == 3) {
 			titletext = g_strdup_printf("x R(-%dpx) R R(+%dpx)", (int) arg->step, (int) arg->step);
-		else
+			spllabels[1] = g_strdup("R");
+		} else {
 			titletext = g_strdup_printf("x Mono(-%dpx) Mono Mono(+%dpx)", (int) arg->step, (int) arg->step);
+			spllabels[1] = g_strdup("Mono");
+		}
+
 	}
-	else if (arg->vport == 1)
+	else if (arg->vport == 1) {
 		titletext = g_strdup_printf("x G(-%dpx) G G(+%dpx)", (int) arg->step, (int) arg->step);
-	else if (arg->vport == 2)
+		spllabels[1] = g_strdup("G");
+	} else if (arg->vport == 2) {
 		titletext = g_strdup_printf("x B(-%dpx) B B(+%dpx)", (int) arg->step, (int) arg->step);
-	else
+		spllabels[1] = g_strdup("B");
+	} else {
 		titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) arg->step, (int) arg->step);
+		spllabels[1] = g_strdup("L");
+	}
+	spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step);
+	spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step);
 
 	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, titletext);
 	g_free(titletext);
@@ -852,9 +870,9 @@ gpointer tri_cut(gpointer p) {
 		siril_plot_set_xfmt(spl_data, "%0.0f");
 		siril_plot_set_yfmt(spl_data, (arg->fit->type == DATA_FLOAT) ? "%0.5f" : "%0.0f");
 		//TODO: split legend to retrieve what's after "x "
-		siril_plot_add_xydata(spl_data, NULL, nbr_points, x, r[0], NULL, NULL);
-		siril_plot_add_xydata(spl_data, NULL, nbr_points, x, r[1], NULL, NULL);
-		siril_plot_add_xydata(spl_data, NULL, nbr_points, x, r[2], NULL, NULL);
+		siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
+		siril_plot_add_xydata(spl_data, spllabels[1], nbr_points, x, r[1], NULL, NULL);
+		siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
 		if (arg->save_png_too || !arg->display_graph)
 			siril_plot_save_png(spl_data, imagefilename);
 		if (!arg->display_graph) { // if not used for display we can free spl_data now
@@ -885,6 +903,7 @@ END:
 	arg->title = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
 		free(r[i]);
+		g_free(spllabels[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
 	if (!in_sequence) {
@@ -1194,7 +1213,7 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	if (gtk_toggle_button_get_active(seqbutton))
 		gtk_toggle_button_set_active(pngbutton, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
-	gtk_toggle_button_set_active(save_dat, (!(gnuplot_is_available())));
+	gtk_toggle_button_set_active(save_dat, FALSE);
 	gui.cut.save_dat = gtk_toggle_button_get_active(save_dat);
 
 }
