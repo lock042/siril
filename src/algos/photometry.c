@@ -33,12 +33,14 @@
 #include "algos/siril_wcs.h"
 #include "algos/search_objects.h"
 #include "algos/comparison_stars.h"
-#include "io/sequence.h"
-#include "opencv/opencv.h"
 #include "gui/PSF_list.h"
 #include "gui/plot.h"
 #include "gui/image_display.h"
+#include "gui/siril_plot.h"
 #include "io/gnuplot_i.h"
+#include "io/sequence.h"
+#include "io/siril_plot.h"
+#include "opencv/opencv.h"
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
 
@@ -295,8 +297,11 @@ void print_psf_error_summary(gint *code_sums) {
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs) {
 	int i, j;
 	gboolean use_gnuplot = gnuplot_is_available();
+	siril_plot_data *spl_data = NULL;
 	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
+		// siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
 	}
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -422,18 +427,17 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
 	} else {
 		siril_log_message(_("%s has been saved.\n"), filename);
-
+		gchar *subtitle = generate_lc_subtitle(lcargs->metadata, TRUE);
+		gchar *title = g_strdup_printf("Light curve of star %s%s",
+				target_descr, subtitle);
+		gchar *xlabel = g_strdup_printf("Julian date (+ %d)", julian0);
+		g_free(subtitle);
 		/*  data are computed, now plot the graph. */
 		if (use_gnuplot) {
 			gnuplot_ctrl *gplot = gnuplot_init();
 			if (gplot) {
 				/* Plotting light curve */
-				gchar *subtitle = generate_lc_subtitle(lcargs->metadata, TRUE);
-				gchar *title = g_strdup_printf("Light curve of star %s%s",
-						target_descr, subtitle);
-				g_free(subtitle);
 				gnuplot_set_title(gplot, title);
-				gchar *xlabel = g_strdup_printf("Julian date (+ %d)", julian0);
 				gnuplot_set_xlabel(gplot, xlabel);
 				gnuplot_reverse_yaxis(gplot);
 				gnuplot_setstyle(gplot, "errorbars");
@@ -450,12 +454,26 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 					// a png though
 					gnuplot_close(gplot);
 				}
-				g_free(title);
-				g_free(xlabel);
+		} else { // fallback with siril_plot
+			siril_plot_set_title(spl_data, title);
+			siril_plot_set_xlabel(spl_data, xlabel);
+			siril_plot_set_xfmt(spl_data, "%0.0f");
+			siril_plot_set_yfmt(spl_data, "%0.3f");
+			siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, date, vmag, err, NULL);
+			if (!display_graph) { // if not used for display we can free spl_data now
+				gchar *image_name = replace_ext(filename, ".png");
+				siril_plot_save_png(spl_data, image_name);
+				free_siril_plot_data(spl_data);
+				spl_data = NULL; // just in case we try to use it later on
+				g_free(image_name);
 			}
-			else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+		}
+		g_free(title);
+		g_free(xlabel);
 		}
 	}
+	if (display_graph && spl_data)
+		lcargs->spl_data = spl_data;
 
 	free(date);
 	free(vmag);
@@ -513,8 +531,10 @@ gpointer light_curve_worker(gpointer arg) {
 	/* analyse data and create the light curve */
 	if (!retval)
 		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, args->display_graph, args);
-
-	free_light_curve_args(args);
+	if (!retval && args->display_graph) {
+		siril_add_idle(create_new_siril_plot_window, args->spl_data);
+	}
+	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
 }

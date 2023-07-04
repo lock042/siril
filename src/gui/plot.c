@@ -41,6 +41,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
+#include "gui/siril_plot.h"
 #include "registration/registration.h"
 #include "kplot.h"
 #include "algos/PSF.h"
@@ -48,6 +49,7 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "io/gnuplot_i.h"
+#include "io/siril_plot.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
 #include "algos/astrometry_solver.h"
@@ -713,10 +715,10 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	gboolean use_gnuplot = gnuplot_is_available();
+	siril_plot_data *spl_data = NULL;
 	if (!use_gnuplot) {
-		siril_log_color_message(_("GNUplot not available: the light curve data will be "
-				"produced in %s but no image will be created. "
-				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
 	}
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -824,6 +826,13 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 			// gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+	} else { // fallback with siril_plot
+		siril_plot_set_title(spl_data, "Light Curve");
+		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_set_xfmt(spl_data, (julian0 && force_Julian) ? "%0.5f" : "0.0f");
+		siril_plot_set_yfmt(spl_data, "%0.1f");
+		siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, x, vmag, err, NULL);
+		create_new_siril_plot_window(spl_data);
 	}
 
 	/* Exporting data in a dat file */
@@ -834,7 +843,6 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	} else {
 		siril_log_message(_("%s has been saved.\n"), filename);
 	}
-
 	free(vmag);
 	free(err);
 	free(x);
