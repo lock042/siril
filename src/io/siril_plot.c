@@ -119,6 +119,9 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->yfmt = NULL;
 	spl_data->plottype = KPLOT_LINES;
 	spl_data->plotstype = KPLOTS_YERRORBAR;
+	spl_data->plotstypes[0] = KPLOT_POINTS;
+	spl_data->plotstypes[1] = KPLOT_HYPHENS;
+	spl_data->plotstypes[2] = KPLOT_HYPHENS;
 	spl_data->datamin = (point){ DBL_MAX, DBL_MAX};
 	spl_data->datamax = (point){ -DBL_MAX, -DBL_MAX};
 
@@ -136,6 +139,7 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->cfgplot.ticlabelfont.family = SIRIL_PLOT_FONT_FAMILY;
 	spl_data->cfgplot.axislabelfont.family = SIRIL_PLOT_FONT_FAMILY;
 	spl_data->cfgdata.line.sz = 0.5;
+	spl_data->cfgdata.point.sz = 0.5;
 	size_t clrsz;
 
 	// we init the colors here to ease creating the legend entries
@@ -340,7 +344,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 			d2[i] = kdata_array_alloc(plots->plots[i]->data, plots->nb);
 		}
 		// TODO: the call to datacfg structure is different than in kplot_attach_data... need to sort this out
-		kplot_attach_datas(p, 3, d2, &spl_data->plottype, NULL, spl_data->plotstype); 
+		// as we can't pass the cfg for xyerr bars
+		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, NULL, spl_data->plotstype); 
 		int index = nb_graphs % spl_data->cfgplot.clrsz;
 		legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
 		if (!nb_graphs)

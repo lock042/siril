@@ -261,6 +261,23 @@ kplot_mark(const struct kpair *kp,
 	cairo_stroke (ctx->cr);
 }
 
+static void
+kplot_hyphen(const struct kpair *kp,
+	const struct kplotpoint *p, struct kplotctx *ctx)
+{
+	struct kpair	 pair;
+
+	if (kp->x < ctx->minv.x || kp->x > ctx->maxv.x)
+		return;
+	if (kp->y < ctx->minv.y || kp->y > ctx->maxv.y)
+		return;
+	if (0 == kplotctx_point_to_real(kp, &pair, ctx))
+		return;
+	cairo_move_to (ctx->cr, pair.x - p->radius, pair.y);
+	cairo_line_to (ctx->cr, pair.x + p->radius, pair.y);
+	cairo_stroke (ctx->cr);
+}
+
 /*
  * When drawing points, arrange the drawing space.
  * It's the responsibility of kplot_arc() to avoid points that would be
@@ -352,6 +369,25 @@ kplotctx_draw_yerrline_basemarks(struct kplotctx *ctx,
 	}
 	cairo_restore(ctx->cr);
 }
+
+static void
+kplotctx_draw_yerrline_basehyphens(struct kplotctx *ctx,
+	size_t start, size_t end, const struct kplotdat *d)
+{
+	size_t		 i;
+
+	ksubwin_points(ctx);
+	kplotctx_point_init(ctx, &d->cfgs[0].point);
+	for (i = start; i < end; i++) {
+		if ( ! (kpair_vrfy(&d->datas[0]->pairs[i]) &&
+			kpair_vrfy(&d->datas[1]->pairs[i])))
+			continue;
+		kplot_hyphen(&d->datas[0]->pairs[i],
+			&d->cfgs[0].point, ctx);
+	}
+	cairo_restore(ctx->cr);
+}
+
 
 static void
 kplotctx_draw_yerrline_pairbars(struct kplotctx *ctx, 
@@ -447,6 +483,39 @@ kplotctx_draw_yerrline_pairmarks(struct kplotctx *ctx,
 		orig.y = d->datas[0]->pairs[i].y -
 			 d->datas[1]->pairs[i].y;
 		kplot_mark(&orig, &d->cfgs[1].point, ctx);
+	}
+
+	cairo_restore(ctx->cr);
+}
+
+static void
+kplotctx_draw_yerrline_pairhyphens(struct kplotctx *ctx,
+	size_t start, size_t end, const struct kplotdat *d)
+{
+	size_t	 	 i;
+	struct kpair	 orig;
+
+	ksubwin_points(ctx);
+	kplotctx_point_init(ctx, &d->cfgs[1].point);
+	for (i = start; i < end; i++) {
+		if ( ! (kpair_vrfy(&d->datas[0]->pairs[i]) &&
+			kpair_vrfy(&d->datas[1]->pairs[i])))
+			continue;
+		orig.x = d->datas[0]->pairs[i].x;
+		orig.y = d->datas[0]->pairs[i].y +
+			 d->datas[1]->pairs[i].y;
+		kplot_hyphen(&orig, &d->cfgs[1].point, ctx);
+	}
+
+	kplotctx_point_init(ctx, &d->cfgs[1].point);
+	for (i = start; i < end; i++) {
+		if ( ! (kpair_vrfy(&d->datas[0]->pairs[i]) &&
+			kpair_vrfy(&d->datas[1]->pairs[i])))
+			continue;
+		orig.x = d->datas[0]->pairs[i].x;
+		orig.y = d->datas[0]->pairs[i].y -
+			 d->datas[1]->pairs[i].y;
+		kplot_hyphen(&orig, &d->cfgs[1].point, ctx);
 	}
 
 	cairo_restore(ctx->cr);
@@ -597,6 +666,24 @@ kplotctx_draw_marks(struct kplotctx *ctx, const struct kplotdat *d)
 			continue;
 		kpair_set(d, i, &kp);
 		kplot_mark(&kp, &d->cfgs[0].point, ctx);
+	}
+	cairo_restore(ctx->cr);
+}
+
+static void
+kplotctx_draw_hyphens(struct kplotctx *ctx, const struct kplotdat *d)
+{
+	size_t		 i;
+	struct kpair	 kp;
+
+	ksubwin_points(ctx);
+	memset(&kp, 0, sizeof(struct kpair));
+	kplotctx_point_init(ctx, &d->cfgs[0].point);
+	for (i = 0; i < d->datas[0]->pairsz; i++) {
+		if ( ! kpair_vrfy(&d->datas[0]->pairs[i]))
+			continue;
+		kpair_set(d, i, &kp);
+		kplot_hyphen(&kp, &d->cfgs[0].point, ctx);
 	}
 	cairo_restore(ctx->cr);
 }
@@ -787,6 +874,9 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 			case (KPLOT_MARKS):
 				kplotctx_draw_marks(&ctx, d);
 				break;
+			case (KPLOT_HYPHENS):
+				kplotctx_draw_hyphens(&ctx, d);
+				break;
 			case (KPLOT_LINES):
 				kplotctx_draw_lines(&ctx, d);
 				break;
@@ -797,6 +887,10 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 			case (KPLOT_LINESMARKS):
 				kplotctx_draw_marks(&ctx, d);
 				kplotctx_draw_lines(&ctx, d);
+				break;
+			case (KPLOT_LINESHYPHENS):
+				kplotctx_draw_marks(&ctx, d);
+				kplotctx_draw_hyphens(&ctx, d);
 				break;
 			default:
 				abort();
@@ -819,6 +913,10 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 				kplotctx_draw_yerrline_basemarks
 					(&ctx, start, end, d);
 				break;
+			case (KPLOT_HYPHENS):
+				kplotctx_draw_yerrline_basehyphens
+					(&ctx, start, end, d);
+				break;
 			case (KPLOT_LINES):
 				kplotctx_draw_yerrline_baselines
 					(&ctx, start, end, d);
@@ -834,6 +932,11 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 					(&ctx, start, end, d);
 				kplotctx_draw_yerrline_baselines
 					(&ctx, start, end, d);
+			case (KPLOT_LINESHYPHENS):
+				kplotctx_draw_yerrline_basehyphens
+					(&ctx, start, end, d);
+				kplotctx_draw_yerrline_basehyphens
+					(&ctx, start, end, d);
 				break;
 			default:
 				abort();
@@ -846,6 +949,10 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 				break;
 			case (KPLOT_MARKS):
 				kplotctx_draw_yerrline_pairmarks
+					(&ctx, start, end, d);
+				break;
+			case (KPLOT_HYPHENS):
+				kplotctx_draw_yerrline_pairhyphens
 					(&ctx, start, end, d);
 				break;
 			case (KPLOT_LINES):
@@ -862,6 +969,11 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 				kplotctx_draw_yerrline_pairmarks
 					(&ctx, start, end, d);
 				kplotctx_draw_yerrline_pairlines
+					(&ctx, start, end, d);
+			case (KPLOT_LINESHYPHENS):
+				kplotctx_draw_yerrline_pairhyphens
+					(&ctx, start, end, d);
+				kplotctx_draw_yerrline_pairhyphens
 					(&ctx, start, end, d);
 				break;
 			default:

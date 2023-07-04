@@ -65,6 +65,7 @@ typedef struct siril_plot_data_struct {
 	gchar *yfmt; // y axis number format
 	enum kplottype plottype;
 	enum kplotstype plotstype;
+	enum kplottype plotstypes[3];
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
 	point datamin; // min x/y of data
