@@ -32,6 +32,7 @@
 #define SIRIL_PLOT_TITLE_SIZE 12
 #define SIRIL_PLOT_MARGIN 5
 #define SIRIL_PLOT_LEGEND_SIZE 10.
+#define SIRIL_PLOT_FONT_FAMILY "Sans"
 
 typedef enum {
 	SIRIL_PLOT_XY,

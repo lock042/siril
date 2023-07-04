@@ -133,6 +133,8 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->cfgplot.borderline.clr.rgba[2] = 0.5;
 	spl_data->cfgplot.borderline.clr.rgba[3] = 1.0;
 	spl_data->cfgplot.yaxislabelrot = M_PI_2 * 3.0;
+	spl_data->cfgplot.ticlabelfont.family = SIRIL_PLOT_FONT_FAMILY;
+	spl_data->cfgplot.axislabelfont.family = SIRIL_PLOT_FONT_FAMILY;
 	spl_data->cfgdata.line.sz = 0.5;
 	size_t clrsz;
 
@@ -373,6 +375,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		pango_layout_set_wrap(layout,PANGO_WRAP_WORD);
 		desc = pango_font_description_new();
 		pango_font_description_set_size(desc, SIRIL_PLOT_TITLE_SIZE * PANGO_SCALE);
+		pango_font_description_set_family(desc, SIRIL_PLOT_FONT_FAMILY);
 		pango_layout_set_font_description(layout, desc);
 		pango_font_description_free(desc);
 		pango_layout_get_size(layout, &pw, &ph);
@@ -410,6 +413,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	layout = pango_cairo_create_layout(cr);
 	desc = pango_font_description_new();
 	pango_font_description_set_size(desc, SIRIL_PLOT_LEGEND_SIZE * PANGO_SCALE);
+	pango_font_description_set_family(desc, SIRIL_PLOT_FONT_FAMILY);
 	pango_layout_set_font_description(layout, desc);
 	pango_font_description_free(desc);
 
