@@ -313,7 +313,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	struct kplot *p = kplot_alloc(&spl_data->cfgplot);
 
 	// data plots
-	int nb_graphs = 0;
+	int nb_graphs = 0, nb_xygraphs = 0;
 	GList *legend = NULL;
 	GString *legend_text = NULL;
 
@@ -331,6 +331,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		kdata_destroy(d1);
 		d1 = NULL;
 		nb_graphs++;
+		nb_xygraphs++;
 	}
 	// xy points with y error bars
 	for (GList *list = spl_data->plots; list; list = list->next) {
@@ -424,6 +425,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	double py0 = top + offset.y + (double)SIRIL_PLOT_MARGIN;
 	cairo_move_to(cr, px0, py0);
 	pango_cairo_show_layout(cr, layout);
+	cairo_stroke(cr);
 
 	px0 -= 6. * SIRIL_PLOT_MARGIN;
 	PangoLayoutIter *iter = pango_layout_get_iter(layout);
@@ -437,12 +439,14 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 			break;
 		y0 = pango_layout_iter_get_baseline(iter);
 		double dy = (double)y0 / PANGO_SCALE - 0.5 * SIRIL_PLOT_LEGEND_SIZE;
-		cairo_move_to(cr, px0, py0 + dy);
-
 		cairo_set_source_rgb(cr, color[0], color[1], color[2]);
 		cairo_set_line_width(cr, 1.);
-		// TODO: use current_entry type to plot a segment (xydata) or a circle (xyerrdata)
-		cairo_rel_line_to(cr, 4. * SIRIL_PLOT_MARGIN, 0.);
+		if (index < nb_xygraphs) {
+			cairo_move_to(cr, px0, py0 + dy);
+			cairo_rel_line_to(cr, 4. * SIRIL_PLOT_MARGIN, 0.);
+		} else {
+			cairo_arc(cr, px0 + 3. * SIRIL_PLOT_MARGIN, py0 + dy, 0.5 * SIRIL_PLOT_LEGEND_SIZE, 0., 2. * M_PI);
+		}
 		cairo_stroke(cr);
 		index++;
 	} while (pango_layout_iter_next_line(iter) && index < nb_graphs);
