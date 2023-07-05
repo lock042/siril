@@ -59,7 +59,11 @@ kplotctx_label_init(struct kplotctx *ctx)
 			i / (double)(ctx->cfg.xtics - 1);
 
 		/* Call out to xformat function. */
-		if (NULL == ctx->cfg.xticlabelfmt)
+		if (ctx->cfg.xticlabelfmtstr)
+			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, 
+				ctx->minv.x + offs *
+				(ctx->maxv.x - ctx->minv.x));
+		else if (NULL == ctx->cfg.xticlabelfmt)
 			snprintf(buf, sizeof(buf), "%g", 
 				ctx->minv.x + offs *
 				(ctx->maxv.x - ctx->minv.x));
@@ -103,7 +107,11 @@ kplotctx_label_init(struct kplotctx *ctx)
 		offs = 1 == ctx->cfg.ytics ? 0.5 : 
 			i / (double)(ctx->cfg.ytics - 1);
 
-		if (NULL == ctx->cfg.yticlabelfmt)
+		if (ctx->cfg.yticlabelfmtstr)
+			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, 
+				ctx->minv.y + offs *
+				(ctx->maxv.y - ctx->minv.y));
+		else if (NULL == ctx->cfg.yticlabelfmt)
 			snprintf(buf, sizeof(buf), "%g", 
 				ctx->minv.y + offs *
 				(ctx->maxv.y - ctx->minv.y));
@@ -217,7 +225,11 @@ kplotctx_label_init(struct kplotctx *ctx)
 		offs = 1 == ctx->cfg.xtics ? 0.5 : 
 			i / (double)(ctx->cfg.xtics - 1);
 
-		if (NULL == ctx->cfg.xticlabelfmt)
+		if (ctx->cfg.xticlabelfmtstr)
+			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, 
+				ctx->minv.x + offs *
+				(ctx->maxv.x - ctx->minv.x));
+		else if (NULL == ctx->cfg.xticlabelfmt)
 			snprintf(buf, sizeof(buf), "%g",
 				ctx->minv.x + offs *
 				(ctx->maxv.x - ctx->minv.x));
@@ -267,7 +279,11 @@ kplotctx_label_init(struct kplotctx *ctx)
 		offs = 1 == ctx->cfg.ytics ? 0.5 : 
 			i / (double)(ctx->cfg.ytics - 1);
 
-		if (NULL == ctx->cfg.yticlabelfmt)
+		if (ctx->cfg.yticlabelfmtstr)
+			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, 
+				ctx->minv.y + offs *
+				(ctx->maxv.y - ctx->minv.y));
+		else if (NULL == ctx->cfg.yticlabelfmt)
 			snprintf(buf, sizeof(buf), "%g", 
 				ctx->minv.y + offs *
 				(ctx->maxv.y - ctx->minv.y));

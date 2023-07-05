@@ -137,6 +137,8 @@ struct	kplotcfg {
 	double		  xticlabelrot;
 	void		(*xticlabelfmt)(double, char *, size_t);
 	void		(*yticlabelfmt)(double, char *, size_t);
+	char	 	*xticlabelfmtstr;
+	char	 	*yticlabelfmtstr;
 	double		  yticlabelpad;
 	double		  xticlabelpad;
 	struct kplotfont  ticlabelfont;

@@ -706,6 +706,8 @@ kplotcfg_defaults(struct kplotcfg *cfg)
 	cfg->ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
 	cfg->xticlabelpad = cfg->yticlabelpad = 15.0;
 	cfg->xtics = cfg->ytics = 5;
+	cfg->xticlabelfmtstr = NULL;
+	cfg->yticlabelfmtstr = NULL;
 
 	/* A bit of margin. */
 	cfg->margin = MARGIN_ALL;

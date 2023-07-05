@@ -31,16 +31,6 @@
 
 #define GUIDE 20 // used to determine number of tics and spacing
 
-// TODO: these variables/functions should not be static
-static char *fmtx = NULL, *fmty = NULL;
-
-static void spl_formatX(double v, char *buf, size_t bufsz) {
-	snprintf(buf, 128, fmtx, v);
-}
-
-static void spl_formatY(double v, char *buf, size_t bufsz) {
-	snprintf(buf, 128, fmty, v);
-}
 
 // static functions
 
@@ -196,7 +186,7 @@ void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt) {
 }
 
 // utilities
-static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax) {
+static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax, int *sig) {
 	double extent = vmax - vmin;
 	if (extent <= 0.)
 		return FALSE;
@@ -222,6 +212,9 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 	*tmin = floor(vmin / tics) * tics;
 	*tmax = ceil(vmax / tics) * tics;
 	*nbtics = (int)((*tmax - *tmin) / tics) + 1;
+	//computing number of decimals
+	double logtics = log10(tics);
+	*sig = abs((int)floor(min(0., logtics)));
 	// siril_debug_print("autotic:\t%g\t%g=>%d\t%g\t%g\n", vmin, vmax, *nbtics, *tmin, *tmax);
 	return TRUE;
 }
@@ -288,24 +281,12 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.xaxislabel = spl_data->xlabel;
 	if (spl_data->ylabel)
 		spl_data->cfgplot.yaxislabel = spl_data->ylabel;
-	if (spl_data->xfmt) {
-		if (fmtx)
-			g_free(fmtx);
-		fmtx = g_strdup(spl_data->xfmt);
-		spl_data->cfgplot.xticlabelfmt = spl_formatX;
-	}
-	if (spl_data->yfmt) {
-		if (fmty)
-			g_free(fmty);
-		fmty = g_strdup(spl_data->yfmt);
-		spl_data->cfgplot.yticlabelfmt = spl_formatY;
-	}
 
 	// computing the tics spacing and bounds
 	double xmin, xmax, ymin, ymax;
-	int nbticX,nbticY;
-	if (siril_plot_autotic(spl_data->datamin.x, spl_data->datamax.x, &nbticX, &xmin, &xmax) &&
-		siril_plot_autotic(spl_data->datamin.y, spl_data->datamax.y, &nbticY, &ymin, &ymax)) {
+	int nbticX,nbticY, sigX, sigY;
+	if (siril_plot_autotic(spl_data->datamin.x, spl_data->datamax.x, &nbticX, &xmin, &xmax, &sigX) &&
+		siril_plot_autotic(spl_data->datamin.y, spl_data->datamax.y, &nbticY, &ymin, &ymax, &sigY)) {
 		spl_data->cfgplot.extrema = 0x0F;
 		spl_data->cfgplot.extrema_xmin = xmin;
 		spl_data->cfgplot.extrema_xmax = xmax;
@@ -313,6 +294,24 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.extrema_ymax = ymax;
 		spl_data->cfgplot.xtics = nbticX;
 		spl_data->cfgplot.ytics = nbticY;
+		// if the formats are not forced by caller, they are adjusted
+		if (!spl_data->xfmt) {
+			g_free(spl_data->cfgplot.xticlabelfmtstr);
+			spl_data->cfgplot.xticlabelfmtstr = g_strdup_printf("%%.%df", sigX);
+		}
+		if (!spl_data->yfmt) {
+			g_free(spl_data->cfgplot.yticlabelfmtstr);
+			spl_data->cfgplot.yticlabelfmtstr = g_strdup_printf("%%.%df", sigY);
+		}
+	}
+	// if the formats are forced by caller, they are passed
+	if (spl_data->xfmt) {
+		g_free(spl_data->cfgplot.xticlabelfmtstr);
+		spl_data->cfgplot.xticlabelfmtstr = g_strdup(spl_data->xfmt);
+	}
+	if (spl_data->yfmt) {
+		g_free(spl_data->cfgplot.xticlabelfmtstr);
+		spl_data->cfgplot.yticlabelfmtstr = g_strdup(spl_data->yfmt);
 	}
 
 	struct kplot *p = kplot_alloc(&spl_data->cfgplot);
