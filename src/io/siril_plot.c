@@ -124,6 +124,7 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->plotstypes[2] = KPLOT_HYPHENS;
 	spl_data->datamin = (point){ DBL_MAX, DBL_MAX};
 	spl_data->datamax = (point){ -DBL_MAX, -DBL_MAX};
+	spl_data->show_legend = TRUE;
 
 	// initializing kplot cfg structs
 	kplotcfg_defaults(&spl_data->cfgplot);
@@ -326,12 +327,14 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		splxydata *plot = (splxydata *)list->data;
 		d1 = kdata_array_alloc(plot->data, plot->nb);
 		kplot_attach_data(p, d1, spl_data->plottype, &spl_data->cfgdata);
-		int index = nb_graphs % spl_data->cfgplot.clrsz;
-		legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XY, spl_data->cfgplot.clrs[index].rgba));
-		if (!nb_graphs)
-			legend_text = g_string_new((!plot->label) ? "\n" : plot->label); // in case the first label is empty
-		else
-			g_string_append_printf(legend_text, "\n%s", plot->label);
+		if (spl_data->show_legend) {
+			int index = nb_graphs % spl_data->cfgplot.clrsz;
+			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XY, spl_data->cfgplot.clrs[index].rgba));
+			if (!nb_graphs)
+				legend_text = g_string_new((!plot->label) ? "\n" : plot->label); // in case the first label is empty
+			else
+				g_string_append_printf(legend_text, "\n%s", plot->label);
+		}
 		kdata_destroy(d1);
 		d1 = NULL;
 		nb_graphs++;
@@ -345,15 +348,19 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		}
 		// TODO: the call to datacfg structure is different than in kplot_attach_data... need to sort this out
 		// as we can't pass the cfg for xyerr bars
-		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, NULL, spl_data->plotstype); 
-		int index = nb_graphs % spl_data->cfgplot.clrsz;
-		legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
-		if (!nb_graphs)
-			legend_text = g_string_new((!plots->label) ? "\n" : plots->label); // in case the first label is empty
-		else
-			g_string_append_printf(legend_text, "\n%s", plots->label);
-		for (int i = 0; i < 3; i++)
+		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, NULL, spl_data->plotstype);
+		if (spl_data->show_legend) {
+			int index = nb_graphs % spl_data->cfgplot.clrsz;
+			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
+			if (!nb_graphs)
+				legend_text = g_string_new((!plots->label) ? "\n" : plots->label); // in case the first label is empty
+			else
+				g_string_append_printf(legend_text, "\n%s", plots->label);
+		}
+		for (int i = 0; i < 3; i++) {
 			kdata_destroy(d2[i]);
+			d2[i] = NULL;
+		}
 		nb_graphs++;
 	}
 
@@ -404,62 +411,64 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	cairo_surface_destroy(draw_surface);
 	kplot_free(p);
 
-	// creating the legend
+	if (spl_data->show_legend) {
+		// creating the legend
 
-	// TODO: the getters should be modified not to point to statics
-	// instead, k_plot_draw could return the kplotctx created internally
-	// This would give access to dims and offs which would be specific to the plot
-	// otherwise, we can't call this function in parallel threads
-	point range = (point){ get_dimx(),  get_dimy()};
-	point offset = (point){ get_offsx(),  get_offsy()};
+		// TODO: the getters should be modified not to point to statics
+		// instead, k_plot_draw could return the kplotctx created internally
+		// This would give access to dims and offs which would be specific to the plot
+		// otherwise, we can't call this function in parallel threads
+		point range = (point){ get_dimx(),  get_dimy()};
+		point offset = (point){ get_offsx(),  get_offsy()};
 
-	PangoLayout *layout;
-	PangoFontDescription *desc;
-	int pw, ph;
-	layout = pango_cairo_create_layout(cr);
-	desc = pango_font_description_new();
-	pango_font_description_set_size(desc, SIRIL_PLOT_LEGEND_SIZE * PANGO_SCALE);
-	pango_font_description_set_family(desc, SIRIL_PLOT_FONT_FAMILY);
-	pango_layout_set_font_description(layout, desc);
-	pango_font_description_free(desc);
+		PangoLayout *layout;
+		PangoFontDescription *desc;
+		int pw, ph;
+		layout = pango_cairo_create_layout(cr);
+		desc = pango_font_description_new();
+		pango_font_description_set_size(desc, SIRIL_PLOT_LEGEND_SIZE * PANGO_SCALE);
+		pango_font_description_set_family(desc, SIRIL_PLOT_FONT_FAMILY);
+		pango_layout_set_font_description(layout, desc);
+		pango_font_description_free(desc);
 
-	pango_layout_set_text(layout, legend_text->str, -1);
-	pango_layout_get_size(layout, &pw, &ph);
-	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-	double px0 = offset.x - (double)SIRIL_PLOT_MARGIN + range.x - (double)pw / PANGO_SCALE;
-	double py0 = top + offset.y + (double)SIRIL_PLOT_MARGIN;
-	cairo_move_to(cr, px0, py0);
-	pango_cairo_show_layout(cr, layout);
-	cairo_stroke(cr);
-
-	px0 -= 6. * SIRIL_PLOT_MARGIN;
-	PangoLayoutIter *iter = pango_layout_get_iter(layout);
-	int y0;
-	guint index = 0;
-	do {
-		GList *current_entry = g_list_nth(legend, index);
-		double color[3];
-		memcpy(color, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
-		if (iter == NULL)
-			break;
-		y0 = pango_layout_iter_get_baseline(iter);
-		double dy = (double)y0 / PANGO_SCALE - 0.5 * SIRIL_PLOT_LEGEND_SIZE;
-		cairo_set_source_rgb(cr, color[0], color[1], color[2]);
-		cairo_set_line_width(cr, 1.);
-		if (index < nb_xygraphs) {
-			cairo_move_to(cr, px0, py0 + dy);
-			cairo_rel_line_to(cr, 4. * SIRIL_PLOT_MARGIN, 0.);
-		} else {
-			cairo_arc(cr, px0 + 3. * SIRIL_PLOT_MARGIN, py0 + dy, 0.5 * SIRIL_PLOT_LEGEND_SIZE, 0., 2. * M_PI);
-		}
+		pango_layout_set_text(layout, legend_text->str, -1);
+		pango_layout_get_size(layout, &pw, &ph);
+		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+		double px0 = offset.x - (double)SIRIL_PLOT_MARGIN + range.x - (double)pw / PANGO_SCALE;
+		double py0 = top + offset.y + (double)SIRIL_PLOT_MARGIN;
+		cairo_move_to(cr, px0, py0);
+		pango_cairo_show_layout(cr, layout);
 		cairo_stroke(cr);
-		index++;
-	} while (pango_layout_iter_next_line(iter) && index < nb_graphs);
-	g_object_unref(layout);
 
-	// freeing
-	g_string_free(legend_text, TRUE);
-	g_list_free(legend);
+		px0 -= 6. * SIRIL_PLOT_MARGIN;
+		PangoLayoutIter *iter = pango_layout_get_iter(layout);
+		int y0;
+		guint index = 0;
+		do {
+			GList *current_entry = g_list_nth(legend, index);
+			double color[3];
+			memcpy(color, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
+			if (iter == NULL)
+				break;
+			y0 = pango_layout_iter_get_baseline(iter);
+			double dy = (double)y0 / PANGO_SCALE - 0.5 * SIRIL_PLOT_LEGEND_SIZE;
+			cairo_set_source_rgb(cr, color[0], color[1], color[2]);
+			cairo_set_line_width(cr, 1.);
+			if (index < nb_xygraphs) {
+				cairo_move_to(cr, px0, py0 + dy);
+				cairo_rel_line_to(cr, 4. * SIRIL_PLOT_MARGIN, 0.);
+			} else {
+				cairo_arc(cr, px0 + 3. * SIRIL_PLOT_MARGIN, py0 + dy, 0.5 * SIRIL_PLOT_LEGEND_SIZE, 0., 2. * M_PI);
+			}
+			cairo_stroke(cr);
+			index++;
+		} while (pango_layout_iter_next_line(iter) && index < nb_graphs);
+		g_object_unref(layout);
+
+		// freeing
+		g_string_free(legend_text, TRUE);
+		g_list_free(legend);
+	}
 
 	return TRUE;
 }
