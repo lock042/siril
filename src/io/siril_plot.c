@@ -403,8 +403,9 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 
 	// creating a surface to draw the plot (accounting for title-reserved space if required)
 	cairo_surface_t *draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+	struct kplotctx ctx = { 0 };
 	cairo_t *draw_cr = cairo_create(draw_surface);
-	kplot_draw(p, drawwidth, drawheight, draw_cr);
+	kplot_draw(p, drawwidth, drawheight, draw_cr, &ctx);
 	cairo_set_source_surface(cr, draw_surface, 0., (int)top);
 	cairo_paint(cr);
 	cairo_destroy(draw_cr);
@@ -413,13 +414,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 
 	if (spl_data->show_legend) {
 		// creating the legend
-
-		// TODO: the getters should be modified not to point to statics
-		// instead, k_plot_draw could return the kplotctx created internally
-		// This would give access to dims and offs which would be specific to the plot
-		// otherwise, we can't call this function in parallel threads
-		point range = (point){ get_dimx(),  get_dimy()};
-		point offset = (point){ get_offsx(),  get_offsy()};
+		point range = (point){ ctx.dims.x,  ctx.dims.y};
+		point offset = (point){ ctx.offs.x,  ctx.offs.y};
 
 		PangoLayout *layout;
 		PangoFontDescription *desc;

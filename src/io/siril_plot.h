@@ -24,6 +24,7 @@
 #include "core/siril.h"
 #include "gui/plot.h"
 #include "kplot.h"
+#include "extern.h"
 
 #define SIRIL_PLOT_DISPLAY_WIDTH 600
 #define SIRIL_PLOT_DISPLAY_HEIGHT 400

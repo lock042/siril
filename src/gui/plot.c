@@ -1314,6 +1314,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
 	struct kdata *d1 = NULL, *ref_d = NULL, *mean_d = NULL, *curr_d = NULL;
+	struct kplotctx ctx = { 0 };
 
 	if (!plot_data || !widget)
 		return;
@@ -1429,7 +1430,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_rectangle(cr, 0.0, 0.0, width, height);
 	cairo_fill(cr);
-	kplot_draw(p, width, height, cr);
+	kplot_draw(p, width, height, cr, &ctx);
 
 	if (for_saving) {
 		gchar *timestamp, *filename;
@@ -1443,9 +1444,9 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		g_free(filename);
 	} else {
 		// caching more data
-		pdd.range = (point){ get_dimx(),  get_dimy()};
+		pdd.range = (point){ ctx.dims.x, ctx.dims.y};
 		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
-		pdd.offset = (point){ get_offsx(),  get_offsy()};
+		pdd.offset = (point){ ctx.offs.x, ctx.offs.y};
 		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
 		if (pdd.selected) free(pdd.selected);
 		pdd.selected = calloc(com.seq.number, sizeof(gboolean));

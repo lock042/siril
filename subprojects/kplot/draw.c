@@ -27,12 +27,6 @@
 #include "kplot.h"
 #include "extern.h"
 
-static double dimx = 0.0;
-static double dimy = 0.0;
-static double offsx = 0.0;
-static double offsy = 0.0;
-
-
 /*
  * Simple function to check that the double-precision values in the
  * kpair are valid: normal (or 0.0) values.
@@ -739,7 +733,7 @@ kplotcfg_defaults(struct kplotcfg *cfg)
 }
 
 void
-kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
+kplot_draw(struct kplot *p, double w, double h, cairo_t *cr, struct kplotctx *ctx_out)
 {
 	size_t	 	 i, start, end;
 	struct kplotctx	 ctx;
@@ -858,10 +852,8 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 	kplotctx_border_init(&ctx);
 	kplotctx_tic_init(&ctx);
 	
-	dimy = ctx.h = ctx.dims.y;
-	dimx = ctx.w = ctx.dims.x;
-	offsx = ctx.offs.x;
-	offsy = ctx.offs.y;
+	ctx.h = ctx.dims.y;
+	ctx.w = ctx.dims.x;
 
 	for (i = 0; i < p->datasz; i++) {
 		d = &p->datas[i];
@@ -988,6 +980,8 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 			break;
 		}
 	}
+	if (ctx_out) // if not NULL, we copy ctx data to be used ooutside
+		memcpy(ctx_out, &ctx, sizeof(struct kplotctx));
 }
 
 int
@@ -1027,28 +1021,4 @@ kplotcfg_default_palette(struct kplotccfg **pp, size_t *szp)
 	(*pp)[6].rgba[2] = 0x10 / 255.0;
 
 	return(1);
-}
-
-double
-get_dimx()
-{
-	return dimx;
-}
-
-double
-get_dimy()
-{
-	return dimy;
-}
-
-double
-get_offsx()
-{
-	return offsx;
-}
-
-double
-get_offsy()
-{
-	return offsy;
 }
