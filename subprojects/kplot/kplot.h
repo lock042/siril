@@ -170,6 +170,8 @@ struct	kplotcfg {
 	double		  extrema_xmax;
 	double		  extrema_ymin;
 	double		  extrema_ymax;
+	unsigned int 		xaxisrevert;
+	unsigned int		yaxisrevert;
 };
 
 struct 	kdata;

@@ -191,13 +191,20 @@ kdata_extrema_single(struct kplotdat *d, struct kplotctx *ctx)
 static inline void
 kpoint_to_real(const struct kpair *data, struct kpair *real,
 	const struct kpair *minv, const struct kpair *maxv,
-	double w, double h)
+	double w, double h, unsigned int xrevert, unsigned int yrevert)
 {
-
-	real->x = maxv->x == minv->x ? 0.0 :
-		w * (data->x - minv->x) / (maxv->x - minv->x);
-	real->y = maxv->y == minv->y ? h :
-		h - h * (data->y - minv->y) / (maxv->y - minv->y);
+	if (xrevert)
+		real->x = maxv->x == minv->x ? 0.0 :
+			w * (data->x - maxv->x) / (minv->x - maxv->x);
+	else 
+		real->x = maxv->x == minv->x ? 0.0 :
+			w * (data->x - minv->x) / (maxv->x - minv->x);
+	if (yrevert)
+		real->y = maxv->y == minv->y ? h :
+			h - h * (data->y - maxv->y) / (minv->y - maxv->y);
+	else
+		real->y = maxv->y == minv->y ? h :
+			h - h * (data->y - minv->y) / (maxv->y - minv->y);
 }
 
 /*
@@ -211,8 +218,9 @@ kplotctx_point_to_real(const struct kpair *data,
 
 	if ( ! kpair_vrfy(data))
 		return(0);
-	kpoint_to_real(data, real, 
-		&ctx->minv, &ctx->maxv, ctx->w, ctx->h);
+	kpoint_to_real(data, real,
+		&ctx->minv, &ctx->maxv, ctx->w, ctx->h,
+		ctx->cfg.xaxisrevert, ctx->cfg.yaxisrevert);
 	return(1);
 }
 

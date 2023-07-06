@@ -72,6 +72,8 @@ typedef struct siril_plot_data_struct {
 	point datamin; // min x/y of data
 	point datamax; // max x/y of data
 	gboolean show_legend;
+	gboolean revertX;
+	gboolean revertY;
 } siril_plot_data;
 
 void init_siril_plot_data(siril_plot_data *spl_data);

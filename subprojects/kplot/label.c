@@ -42,7 +42,7 @@ kplotctx_label_init(struct kplotctx *ctx)
 	char		buf[128];
 	size_t		i;
 	cairo_text_extents_t e;
-	double		maxh, maxw, offs, lastx, 
+	double		maxh, maxw, offs, v, lastx, 
 			lasty, firsty, w, h;
 
 	maxh = maxw = lastx = lasty = firsty = 0.0;
@@ -224,20 +224,16 @@ kplotctx_label_init(struct kplotctx *ctx)
 	for (i = 0; i < ctx->cfg.xtics; i++) {
 		offs = 1 == ctx->cfg.xtics ? 0.5 : 
 			i / (double)(ctx->cfg.xtics - 1);
-
+		v = (ctx->cfg.xaxisrevert) ? 
+		ctx->minv.x + (1. - offs) * (ctx->maxv.x - ctx->minv.x) :
+		ctx->minv.x + offs * (ctx->maxv.x - ctx->minv.x);
 		if (ctx->cfg.xticlabelfmtstr)
-			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, 
-				ctx->minv.x + offs *
-				(ctx->maxv.x - ctx->minv.x));
+			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.xticlabelfmt)
-			snprintf(buf, sizeof(buf), "%g",
-				ctx->minv.x + offs *
-				(ctx->maxv.x - ctx->minv.x));
+			snprintf(buf, sizeof(buf), "%g", v);
 		else
 			(*ctx->cfg.xticlabelfmt)
-				(ctx->minv.x + offs *
-				 (ctx->maxv.x - ctx->minv.x),
-				 buf, sizeof(buf));
+				(v, buf, sizeof(buf));
 
 		cairo_text_extents(ctx->cr, buf, &e);
 
@@ -278,20 +274,16 @@ kplotctx_label_init(struct kplotctx *ctx)
 	for (i = 0; i < ctx->cfg.ytics; i++) {
 		offs = 1 == ctx->cfg.ytics ? 0.5 : 
 			i / (double)(ctx->cfg.ytics - 1);
-
+		v = (ctx->cfg.yaxisrevert) ? 
+		ctx->minv.y + (1. - offs) * (ctx->maxv.y - ctx->minv.y) :
+		ctx->minv.y + offs * (ctx->maxv.y - ctx->minv.y);
 		if (ctx->cfg.yticlabelfmtstr)
-			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, 
-				ctx->minv.y + offs *
-				(ctx->maxv.y - ctx->minv.y));
+			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.yticlabelfmt)
-			snprintf(buf, sizeof(buf), "%g", 
-				ctx->minv.y + offs *
-				(ctx->maxv.y - ctx->minv.y));
+			snprintf(buf, sizeof(buf), "%g", v);
 		else
 			(*ctx->cfg.yticlabelfmt)
-				(ctx->minv.y + offs *
-				 (ctx->maxv.y - ctx->minv.y),
-				 buf, sizeof(buf));
+				(v, buf, sizeof(buf));
 
 		cairo_text_extents(ctx->cr, buf, &e);
 

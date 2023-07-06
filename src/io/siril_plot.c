@@ -115,6 +115,8 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->datamin = (point){ DBL_MAX, DBL_MAX};
 	spl_data->datamax = (point){ -DBL_MAX, -DBL_MAX};
 	spl_data->show_legend = TRUE;
+	spl_data->revertX = FALSE;
+	spl_data->revertY = FALSE;
 
 	// initializing kplot cfg structs
 	kplotcfg_defaults(&spl_data->cfgplot);
@@ -281,6 +283,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.xaxislabel = spl_data->xlabel;
 	if (spl_data->ylabel)
 		spl_data->cfgplot.yaxislabel = spl_data->ylabel;
+	spl_data->cfgplot.xaxisrevert = (spl_data->revertX) ? 1 : 0;
+	spl_data->cfgplot.yaxisrevert = (spl_data->revertY) ? 1 : 0;
 
 	// computing the tics spacing and bounds
 	double xmin, xmax, ymin, ymax;
