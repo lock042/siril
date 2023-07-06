@@ -454,12 +454,16 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 					// a png though
 					gnuplot_close(gplot);
 				}
+			}
 		} else { // fallback with siril_plot
 			siril_plot_set_title(spl_data, title);
 			siril_plot_set_xlabel(spl_data, xlabel);
-			siril_plot_set_xfmt(spl_data, "%0.0f");
-			siril_plot_set_yfmt(spl_data, "%0.3f");
-			siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, date, vmag, err, NULL);
+			spl_data->revertY = TRUE;
+			double *date0 = malloc(nb_valid_images * sizeof(double));
+			for (int i = 0; i < nb_valid_images; i++)
+				date0[i] = date[i] - julian0;
+			siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, date0, vmag, err, NULL);
+			free(date0);
 			if (!display_graph) { // if not used for display we can free spl_data now
 				gchar *image_name = replace_ext(filename, ".png");
 				siril_plot_save_png(spl_data, image_name);
@@ -470,7 +474,6 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 		}
 		g_free(title);
 		g_free(xlabel);
-		}
 	}
 	if (display_graph && spl_data)
 		lcargs->spl_data = spl_data;

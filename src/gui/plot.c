@@ -828,9 +828,8 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 	} else { // fallback with siril_plot
 		siril_plot_set_title(spl_data, "Light Curve");
+		spl_data->revertY = TRUE;
 		siril_plot_set_xlabel(spl_data, xlabel);
-		siril_plot_set_xfmt(spl_data, (julian0 && force_Julian) ? "%0.5f" : "0.0f");
-		siril_plot_set_yfmt(spl_data, "%0.1f");
 		siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, x, vmag, err, NULL);
 		create_new_siril_plot_window(spl_data);
 	}
