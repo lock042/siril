@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-07-07 07:40+0000\n"
+"PO-Revision-Date: 2023-07-09 04:40+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -18144,7 +18144,7 @@ msgstr ""
 msgid ""
 "Load an image using the rightt-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "使用右手边文件选择器加载图像，然后再尝试使用吸管设置 SP"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1364
