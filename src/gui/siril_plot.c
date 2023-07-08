@@ -102,7 +102,7 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 		}
 		g_free(labeltext);
 	} else {
-		gtk_label_set_text(GTK_LABEL(label), "-");
+		gtk_label_set_text(GTK_LABEL(label), "");
 	}
 	return TRUE;
 }
@@ -142,22 +142,23 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_container_add(GTK_CONTAINER(window), vbox);
 
-	// add the label
-	label = gtk_label_new("-");
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-	gtk_widget_set_halign(label, GTK_ALIGN_END);
-	// and cache its handle
-	g_object_set_data(G_OBJECT(window), "display_label_handle", label);
-
-	// and finally add the drawing area...
+	// add the drawing area
 	da = gtk_drawing_area_new();
 	gtk_widget_set_size_request(da, SIRIL_PLOT_DISPLAY_WIDTH, SIRIL_PLOT_DISPLAY_HEIGHT);
-	gtk_box_pack_end(GTK_BOX(vbox), da, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), da, TRUE, TRUE, 0);
 	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 	g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_siril_plot_draw), NULL);
 	g_signal_connect(G_OBJECT(da), "enter-notify-event", G_CALLBACK(on_siril_plot_enter_notify_event), NULL);
 	g_signal_connect(G_OBJECT(da), "leave-notify-event", G_CALLBACK(on_siril_plot_leave_notify_event), NULL);
 	g_signal_connect(G_OBJECT(da), "motion-notify-event", G_CALLBACK(on_siril_plot_motion_notify_event), NULL);
+
+	// add the label
+	label = gtk_label_new("-");
+	gtk_box_pack_end(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+	gtk_widget_set_halign(label, GTK_ALIGN_START);
+	// and cache its handle
+	g_object_set_data(G_OBJECT(window), "display_label_handle", label);
+
 	gtk_widget_show_all(window);
 	return FALSE;
 }
