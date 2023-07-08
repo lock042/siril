@@ -22,6 +22,7 @@
 
 #include <cairo.h>
 #include "core/siril_log.h"
+#include "gui/progress_and_log.h"
 
 // utilities
 static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
@@ -30,6 +31,15 @@ static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	// siril_debug_print("Plot: %d\n", g_list_length(spl_data->plot));
 	// siril_debug_print("Plots: %d\n", g_list_length(spl_data->plots));
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
+}
+
+static gboolean is_inside_grid(double x, double y, plot_draw_data_t pdd) {
+	if (x <= pdd.offset.x + pdd.range.x &&
+		x >= pdd.offset.x &&
+		y <= pdd.offset.y + pdd.range.y &&
+		y >= pdd.offset.y)
+			return TRUE;
+	return FALSE;
 }
 
 // callbacks
@@ -44,20 +54,68 @@ static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, 
 static gboolean on_siril_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
 	// retrieve the parent window and its attached spl_data
 	GtkWidget *window = gtk_widget_get_toplevel(widget);
+	if (!window)
+		return TRUE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	if (!spl_data || !widget)
-		return FALSE;
+	if (!spl_data)
+		return TRUE;
 
 	double width =  gtk_widget_get_allocated_width(widget);
 	double height = gtk_widget_get_allocated_height(widget);
 	if (!siril_plot_draw(cr, spl_data, width, height))
 		siril_debug_print("Problem while creating siril_plot\n");
-	return FALSE;
+	return TRUE;
+}
+
+static gboolean on_siril_plot_enter_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	set_cursor("tcross");
+	return TRUE;
+}
+
+static gboolean on_siril_plot_leave_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	set_cursor_waiting(FALSE);
+	return TRUE;
+}
+
+static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data) {
+	GtkWidget *window = gtk_widget_get_toplevel(widget);
+	if (!window)
+		return FALSE;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	GtkWidget *label = (GtkWidget *)g_object_get_data(G_OBJECT(window), "display_label_handle");
+	if (!spl_data || !label)
+		return TRUE;
+	double x = (double)event->x;
+	double y = (double)event->y;
+	if (is_inside_grid(x, y, spl_data->pdd)) {
+		if (!spl_data->revertX)
+			x = spl_data->pdd.datamin.x + (x - spl_data->pdd.offset.x) / spl_data->pdd.range.x * (spl_data->pdd.datamax.x - spl_data->pdd.datamin.x);
+		else
+			x = spl_data->pdd.datamax.x - (x - spl_data->pdd.offset.x) / spl_data->pdd.range.x * (spl_data->pdd.datamax.x - spl_data->pdd.datamin.x);
+		if (!spl_data->revertY)
+			y = spl_data->pdd.datamax.y - (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.datamax.y - spl_data->pdd.datamin.y);
+		else
+			y = spl_data->pdd.datamin.y + (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.datamax.y - spl_data->pdd.datamin.y);
+		gchar *fmt = g_strdup_printf("%s ; %s",
+		(spl_data->xfmt) ? spl_data->xfmt : spl_data->cfgplot.xticlabelfmtstr,
+		(spl_data->yfmt) ? spl_data->yfmt : spl_data->cfgplot.yticlabelfmtstr);
+		gchar *labeltext = g_strdup_printf(fmt, x, y);
+		if (labeltext) {
+			gtk_label_set_text(GTK_LABEL(label), labeltext);
+		}
+		g_free(fmt);
+		g_free(labeltext);
+	} else {
+		gtk_label_set_text(GTK_LABEL(label), "-");
+	}
+	return TRUE;
 }
 
 gboolean create_new_siril_plot_window(gpointer p) {
 	GtkWidget *window;
+	GtkWidget *vbox;
 	GtkWidget *da;
+	GtkWidget *label;
 	siril_plot_data *spl_data = (siril_plot_data *)p;
 
 	if (!spl_data_has_any_plot(spl_data)) {
@@ -72,15 +130,38 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	// attaching the spl_data to the window widget
 	g_object_set_data(G_OBJECT(window), "spl_data", spl_data);
 
-	// connecting the delete-event signal, triggered when the window is closed
+	// add css data to uniformize all backgrounds
+	GtkCssProvider *cssProvider = gtk_css_provider_new();
+	gchar *data = "window {color: grey; background: white;}\0";
+	gtk_css_provider_load_from_data(cssProvider, data, -1, NULL);
+	GtkStyleContext *styleContext = gtk_widget_get_style_context(window);
+	gtk_style_context_add_provider(styleContext, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+	// connect the delete-event signal, triggered when the window is closed
 	// the callback frees the attached spl_data
 	g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(on_siril_plot_window_closed), NULL);
+	gtk_container_set_border_width(GTK_CONTAINER(window), 5);
 
+	// add a vertical box
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_container_add(GTK_CONTAINER(window), vbox);
+
+	// add the label
+	label = gtk_label_new("-");
+	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+	gtk_widget_set_halign(label, GTK_ALIGN_END);
+	// and cache its handle
+	g_object_set_data(G_OBJECT(window), "display_label_handle", label);
+
+	// and finally add the drawing area...
 	da = gtk_drawing_area_new();
 	gtk_widget_set_size_request(da, SIRIL_PLOT_DISPLAY_WIDTH, SIRIL_PLOT_DISPLAY_HEIGHT);
-	gtk_container_add(GTK_CONTAINER(window), da);
-
+	gtk_box_pack_end(GTK_BOX(vbox), da, TRUE, TRUE, 0);
+	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 	g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_siril_plot_draw), NULL);
+	g_signal_connect(G_OBJECT(da), "enter-notify-event", G_CALLBACK(on_siril_plot_enter_notify_event), NULL);
+	g_signal_connect(G_OBJECT(da), "leave-notify-event", G_CALLBACK(on_siril_plot_leave_notify_event), NULL);
+	g_signal_connect(G_OBJECT(da), "motion-notify-event", G_CALLBACK(on_siril_plot_motion_notify_event), NULL);
 	gtk_widget_show_all(window);
 	return FALSE;
 }

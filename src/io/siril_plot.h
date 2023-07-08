@@ -74,6 +74,7 @@ typedef struct siril_plot_data_struct {
 	gboolean show_legend;
 	gboolean revertX;
 	gboolean revertY;
+	plot_draw_data_t pdd; // data for display interaction
 } siril_plot_data;
 
 void init_siril_plot_data(siril_plot_data *spl_data);

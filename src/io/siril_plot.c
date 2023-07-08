@@ -25,6 +25,7 @@
 #include <math.h>
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "gui/plot.h"
 
 
 // static variables
@@ -140,6 +141,9 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	kplotcfg_default_palette(&cfgcolor, &clrsz);
 	spl_data->cfgplot.clrsz = clrsz;
 	spl_data->cfgplot.clrs = cfgcolor;
+
+	// initializing the plot_draw_data
+	memset(&spl_data->pdd, 0, sizeof(plot_draw_data_t));
 }
 
 void free_siril_plot_data(siril_plot_data *spl_data) {
@@ -307,6 +311,11 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 			g_free(spl_data->cfgplot.yticlabelfmtstr);
 			spl_data->cfgplot.yticlabelfmtstr = g_strdup_printf("%%.%df", sigY);
 		}
+		spl_data->pdd.datamin = (point){xmin, ymin};
+		spl_data->pdd.datamax = (point){xmax, ymax};
+	} else {
+		spl_data->pdd.datamin = spl_data->datamin;
+		spl_data->pdd.datamax = spl_data->datamax;
 	}
 	// if the formats are forced by caller, they are passed
 	if (spl_data->xfmt) {
@@ -414,12 +423,11 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	cairo_destroy(draw_cr);
 	cairo_surface_destroy(draw_surface);
 	kplot_free(p);
+	spl_data->pdd.range = (point){ ctx.dims.x,  ctx.dims.y};
+	spl_data->pdd.offset = (point){ ctx.offs.x,  ctx.offs.y + top};
 
 	if (spl_data->show_legend) {
 		// creating the legend
-		point range = (point){ ctx.dims.x,  ctx.dims.y};
-		point offset = (point){ ctx.offs.x,  ctx.offs.y};
-
 		PangoLayout *layout;
 		PangoFontDescription *desc;
 		int pw, ph;
@@ -433,8 +441,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		pango_layout_set_text(layout, legend_text->str, -1);
 		pango_layout_get_size(layout, &pw, &ph);
 		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-		double px0 = offset.x - (double)SIRIL_PLOT_MARGIN + range.x - (double)pw / PANGO_SCALE;
-		double py0 = top + offset.y + (double)SIRIL_PLOT_MARGIN;
+		double px0 = spl_data->pdd.offset.x - (double)SIRIL_PLOT_MARGIN + spl_data->pdd.range.x - (double)pw / PANGO_SCALE;
+		double py0 = spl_data->pdd.offset.y + (double)SIRIL_PLOT_MARGIN;
 		cairo_move_to(cr, px0, py0);
 		pango_cairo_show_layout(cr, layout);
 		cairo_stroke(cr);

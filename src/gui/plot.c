@@ -41,7 +41,6 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
-#include "gui/siril_plot.h"
 #include "registration/registration.h"
 #include "kplot.h"
 #include "algos/PSF.h"
