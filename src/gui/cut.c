@@ -919,7 +919,7 @@ gpointer cfa_cut(gpointer p) {
 	char *filename = NULL,*imagefilename = NULL;
 	fits cfa[4];
 	memset(cfa, 0, 4 * sizeof(fits));
-	gboolean use_gnuplot = gnuplot_is_available();
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
 	siril_plot_data *spl_data = NULL;
 
