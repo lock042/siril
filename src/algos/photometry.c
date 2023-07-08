@@ -296,7 +296,7 @@ void print_psf_error_summary(gint *code_sums) {
  */
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs) {
 	int i, j;
-	gboolean use_gnuplot = gnuplot_is_available();
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	siril_plot_data *spl_data = NULL;
 	if (!use_gnuplot) {
 		// siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);

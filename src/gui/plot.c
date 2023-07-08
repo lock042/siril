@@ -714,7 +714,7 @@ static double get_error_for_time(pldata *plot, double time) {
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
-	gboolean use_gnuplot = gnuplot_is_available();
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	siril_plot_data *spl_data = NULL;
 	if (!use_gnuplot) {
 		spl_data = malloc(sizeof(siril_plot_data));

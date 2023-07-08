@@ -511,7 +511,7 @@ gpointer cut_profile(gpointer p) {
 	siril_plot_data *spl_data = NULL;
 
 	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
-	gboolean use_gnuplot = gnuplot_is_available();
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	if (!use_gnuplot) {
 		// siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
 		// control_window_switch_to_tab(OUTPUT_LOGS);
@@ -727,7 +727,7 @@ gpointer tri_cut(gpointer p) {
 	char *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	gboolean use_gnuplot = gnuplot_is_available();
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
 	siril_plot_data *spl_data = NULL;
 
@@ -1403,7 +1403,7 @@ void on_cut_save_checkbutton_toggled(GtkToggleButton *button, gpointer user_data
 }
 
 void on_cut_button_toggled(GtkToggleToolButton *button, gpointer user_data) {
-	if ((!gnuplot_is_available()) && (!(no_gnuplot_warning_given))) {
+	if ((!(com.pref.use_gnuplot && gnuplot_is_available())) && (!(no_gnuplot_warning_given))) {
 		// siril_message_dialog(GTK_MESSAGE_WARNING,
 		// 			_("GNUplot not available"),
 		// 			_("This functionality relies on GNUplot to generate graphs. Without it, profile data files can still be produced but you will need to use external software to display them."));
