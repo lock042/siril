@@ -313,9 +313,24 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		}
 		spl_data->pdd.datamin = (point){xmin, ymin};
 		spl_data->pdd.datamax = (point){xmax, ymax};
-	} else {
+	} else {  // fallback
+		spl_data->cfgplot.extrema = 0x0F;
+		spl_data->cfgplot.extrema_xmin = spl_data->datamin.x;
+		spl_data->cfgplot.extrema_xmax = spl_data->datamax.x;
+		spl_data->cfgplot.extrema_ymin = spl_data->datamin.y;
+		spl_data->cfgplot.extrema_ymax = spl_data->datamax.y;
+		spl_data->cfgplot.xtics = 5;
+		spl_data->cfgplot.ytics = 5;
 		spl_data->pdd.datamin = spl_data->datamin;
 		spl_data->pdd.datamax = spl_data->datamax;
+		if (!spl_data->xfmt) {
+			g_free(spl_data->cfgplot.xticlabelfmtstr);
+			spl_data->cfgplot.xticlabelfmtstr = g_strdup("%g");
+		}
+		if (!spl_data->yfmt) {
+			g_free(spl_data->cfgplot.yticlabelfmtstr);
+			spl_data->cfgplot.xticlabelfmtstr = g_strdup("%g");
+		}
 	}
 	// if the formats are forced by caller, they are passed
 	if (spl_data->xfmt) {

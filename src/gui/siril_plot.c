@@ -96,14 +96,10 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 			y = spl_data->pdd.datamax.y - (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.datamax.y - spl_data->pdd.datamin.y);
 		else
 			y = spl_data->pdd.datamin.y + (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.datamax.y - spl_data->pdd.datamin.y);
-		gchar *fmt = g_strdup_printf("%s ; %s",
-		(spl_data->xfmt) ? spl_data->xfmt : spl_data->cfgplot.xticlabelfmtstr,
-		(spl_data->yfmt) ? spl_data->yfmt : spl_data->cfgplot.yticlabelfmtstr);
-		gchar *labeltext = g_strdup_printf(fmt, x, y);
+		gchar *labeltext = g_strdup_printf("%10g ; %10g", x, y);
 		if (labeltext) {
 			gtk_label_set_text(GTK_LABEL(label), labeltext);
 		}
-		g_free(fmt);
 		g_free(labeltext);
 	} else {
 		gtk_label_set_text(GTK_LABEL(label), "-");
