@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-07-07 07:40+0000\n"
+"PO-Revision-Date: 2023-07-09 10:07+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -11927,18 +11927,17 @@ msgstr "错误：CFA 模式不能用于彩色图像或没有拜耳模式的单�
 
 #: src/core/command.c:9115
 msgid "Incorrect option follows -layer=, aborting.\n"
-msgstr ""
+msgstr "-layer= 后面的错误选项，异常中止。\n"
 
 #: src/core/command.c:9140 src/core/command.c:9148 src/core/command.c:9156
 #: src/core/command.c:9164
-#, fuzzy, c-format
+#, c-format
 msgid "Error: Could not parse %s values.\n"
-msgstr "无法解析目标坐标\n"
+msgstr "错误：无法分析 %s 值。\n"
 
 #: src/core/command.c:9170
-#, fuzzy
 msgid "Error: this option cannot be used for sequences.\n"
-msgstr "错误：无法打开队列\n"
+msgstr "错误：此选项不能用于队列。\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -17675,158 +17674,149 @@ msgid_plural "%d files selected"
 msgstr[0] "%d个文件已选择"
 
 #: src/gui/cut.c:199
-#, fuzzy
 msgid "Spectrogram"
-msgstr "星点直方图"
+msgstr "光谱图"
 
 #: src/gui/cut.c:213
 msgid "Error: CFA mode and tri-profile are mutually exclusive.\n"
-msgstr ""
+msgstr "错误：CFA 模式和三轮廓是互斥的。\n"
 
 #: src/gui/cut.c:217
 msgid "Error: color plot and tri-profile are mutually exclusive.\n"
-msgstr ""
+msgstr "错误：彩色图表和三轮廓是互斥的。\n"
 
 #: src/gui/cut.c:221
 msgid "Error: mono image is loaded: color mode is unavailable.\n"
-msgstr ""
+msgstr "错误：加载了单色图像：彩色模式不可用。\n"
 
 #: src/gui/cut.c:225
 msgid "Error: mono image is loaded: colored layers cannot be specified.\n"
-msgstr ""
+msgstr "错误：加载了单色图像：无法指定彩色图层。\n"
 
 #: src/gui/cut.c:229
 msgid "Error: color plot and CFA mode are mutually exclusive.\n"
-msgstr ""
+msgstr "错误：彩色图表和 CFA 模式是互斥的。\n"
 
 #: src/gui/cut.c:233
-#, fuzzy
 msgid "Error: start and finish points are the same.\n"
-msgstr "错误：所有星点FWHM必须拥有相同的单位。\n"
+msgstr "错误：起点和终点相同。\n"
 
 #: src/gui/cut.c:237
-#, fuzzy
 msgid "Error: variable image size in sequence.\n"
-msgstr "错误：图像尺寸调整失败...\n"
+msgstr "错误：队列中图像尺寸多变。\n"
 
 #: src/gui/cut.c:246
-#, fuzzy
 msgid "Error: wavenumber points are the same.\n"
-msgstr "错误：无法读取数据\n"
+msgstr "错误：波数点相同。\n"
 
 #: src/gui/cut.c:250
 msgid "Error: wavenumber for -wn1= is not set.\n"
-msgstr ""
+msgstr "错误：未设置 -wn1= 的波数。\n"
 
 #: src/gui/cut.c:254
 msgid "Error: wavenumber for -wn2= is not set.\n"
-msgstr ""
+msgstr "错误：未设置 -wn2= 的波数。\n"
 
 #: src/gui/cut.c:258
 msgid "Error: wavenumber1 set but corresponding location is not set.\n"
-msgstr ""
+msgstr "错误：设置了波数 1，但未设置相应的位置。\n"
 
 #: src/gui/cut.c:262
 msgid "Error: wavenumber2 set but corresponding location is not set.\n"
-msgstr ""
+msgstr "错误：设置了波数 2，但未设置相应的位置。\n"
 
 #: src/gui/cut.c:267 src/gui/cut.c:271
 msgid "Error: wavenumber point outside image dimensions.\n"
-msgstr ""
+msgstr "错误：波数点超出图像尺寸。\n"
 
 #: src/gui/cut.c:275
 msgid "Error: profile line endpoint outside image dimensions.\n"
-msgstr ""
+msgstr "错误：在图像尺寸之外的轮廓线端点。\n"
 
 #: src/gui/cut.c:279
 msgid "Error: spacing is set but tri-profile mode is not selected.\n"
-msgstr ""
+msgstr "错误：设置了间距，但未选择三轮廓模式。\n"
 
 #: src/gui/cut.c:283
-#, fuzzy
 msgid "Error: layer out of range.\n"
-msgstr "错误：文件路径太长！\n"
+msgstr "错误：图层超出范围。\n"
 
 #: src/gui/cut.c:313
 #, c-format
 msgid "Measurement: %.1f\""
-msgstr ""
+msgstr "测量值：%.1f\""
 
 #: src/gui/cut.c:318
 #, c-format
 msgid "Measurement: %d' %.1f\""
-msgstr ""
+msgstr "测量值： %d' %.1f\""
 
 #: src/gui/cut.c:322
 #, c-format
 msgid "Measurement: %dº %d' %.0f\""
-msgstr ""
+msgstr "测量值： %dº %d' %.0f\""
 
 #: src/gui/cut.c:326
 #, c-format
 msgid "Measurement: %.1f px"
-msgstr ""
+msgstr "测量值：%.1f px"
 
 #: src/gui/cut.c:331
 msgid "Warning: angular measurement > 10º. Error is > 1%\n"
-msgstr ""
+msgstr "警告：角度测量> 10º。误差> 1%\n"
 
 #: src/gui/cut.c:518 src/gui/cut.c:716 src/gui/cut.c:879
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Gnuplot was not found, the brightness profile data will be written to %s but "
 "no image will be created.\n"
-msgstr "未找到 Gnuplot，光度曲线数据将以 %s 生成，但不会创建图像。\n"
+msgstr "未找到 Gnuplot，光度轮廓数据将以 %s 生成，但不会创建图像。\n"
 
 #: src/gui/cut.c:614 src/gui/cut.c:801 src/gui/cut.c:947
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create the cut data file %s\n"
-msgstr "无法创建光度曲线数据文件 %s\n"
+msgstr "无法创建剪切数据文件 %s\n"
 
 #: src/gui/cut.c:626
 #, c-format
 msgid "Wavenumber / cm^{-1}"
-msgstr ""
+msgstr "波数 / cm^{-1}"
 
 #: src/gui/cut.c:629 src/gui/cut.c:813 src/gui/cut.c:960
 #, c-format
 msgid "Distance along cut / arcsec"
-msgstr ""
+msgstr "沿剪切的距离/角秒"
 
 #: src/gui/cut.c:631 src/gui/cut.c:815 src/gui/cut.c:962
 #, c-format
 msgid "Distance along cut / px"
-msgstr ""
+msgstr "沿剪切的距离/px"
 
 #: src/gui/cut.c:662 src/gui/cut.c:834 src/gui/cut.c:980
-#, fuzzy
 msgid "Communicating with gnuplot failed\n"
-msgstr "与 gnuplot 通信失败，仍在创建数据文件\n"
+msgstr "与 gnuplot 通信失败\n"
 
 #: src/gui/cut.c:890 src/gui/cut.c:896
-#, fuzzy
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
-msgstr "错误：无法将输出写入用户星表。\n"
+msgstr "错误：无法将 FITS 拆分为 CFA 子模式。\n"
 
 #: src/gui/cut.c:1066
-#, fuzzy
 msgid "No sequence is loaded"
 msgstr "无队列载入"
 
 #: src/gui/cut.c:1067
 msgid "The Apply to sequence option is checked, but no sequence is loaded."
-msgstr ""
+msgstr "选中“应用于队列”选项，但不加载任何队列。"
 
 #: src/gui/cut.c:1250 src/gui/cut.c:1280
-#, fuzzy
 msgid "No star detected"
-msgstr "无星点选择"
+msgstr "未检测到星点"
 
 #: src/gui/cut.c:1251 src/gui/cut.c:1281
 msgid ""
 "Siril cannot set the start coordinate as no star has been detected in the "
 "selection"
-msgstr ""
+msgstr "Siril 无法设置起始坐标，因为所选内容中未检测到星点"
 
 #: src/gui/cut.c:1255 src/gui/cut.c:1286 src/gui/statistics_list.c:203
 #, c-format
@@ -17835,19 +17825,19 @@ msgstr "无选择"
 
 #: src/gui/cut.c:1256 src/gui/cut.c:1287
 msgid "Siril cannot set the start coordinate as no selection is made"
-msgstr ""
+msgstr "Siril 无法设置起始坐标，因为未进行任何选择"
 
 #: src/gui/cut.c:1342
-#, fuzzy
 msgid "GNUplot not available"
-msgstr "不可用"
+msgstr "GNUplot 不可用"
 
 #: src/gui/cut.c:1343
 msgid ""
 "This functionality relies on GNUplot to generate graphs. Without it, profile "
 "data files can still be produced but you will need to use external software "
 "to display them."
-msgstr ""
+msgstr "此功能依赖于 GNUplot 来生成图形。没有它，仍然可以生成轮廓数据文件，但您需要使"
+"用外部软件来显示它们。"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
@@ -18809,21 +18799,20 @@ msgid "Image width, height, bit depth and number of channels must match"
 msgstr "图像宽度、高度、位深和通道数必须匹配"
 
 #: src/gui/remixer.c:1269 src/gui/remixer.c:1317
-#, fuzzy
 msgid "There is no starless image loaded"
-msgstr "文件中没有时间戳"
+msgstr "未加载无星图像"
 
 #: src/gui/remixer.c:1270
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "在尝试使用吸管设置 SP 之前，使用左侧文件选择器加载图像"
 
 #: src/gui/remixer.c:1318
 msgid ""
 "Load an image using the rightt-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "使用右手边文件选择器加载图像，然后再尝试使用吸管设置 SP"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1364
