@@ -217,7 +217,7 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 			}
 		} else {
 			cr--;
-			while (cr > cl && gsl_matrix_get(m_tmp, y, cr - 1) <= halfA) {
+			while (cr > 0 && cr > cl && gsl_matrix_get(m_tmp, y, cr - 1) <= halfA) {
 				cr--;
 			}
 		}
@@ -266,7 +266,7 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 			}
 		} else {
 			cr--;
-			while (cr > cl && gsl_matrix_get(m_tmp, y, cr - 1) <= halfA) {
+			while (cr > 0 && cr > cl && gsl_matrix_get(m_tmp, y, cr - 1) <= halfA) {
 				cr--;
 			}
 		}
