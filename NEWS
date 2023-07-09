@@ -5,6 +5,7 @@ siril 1.4.0 xx xx, xx
 * Add intensity profiling function
 * Fixed PRISM SITELAT/SITELONG keywords data
 * Improve RGB composition tool to do full homography registration
+* Added new init for PSF fitting of oversampled stars
 
 siril 1.2.0 xx xx, xx
 
