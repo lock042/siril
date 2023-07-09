@@ -571,6 +571,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 		ret = savefits(dest_filename, &fit);
 		free(filename_noext);
 		g_free(dest_filename);
+		clearfits(&fit);
 	}
 	return ret;
 }

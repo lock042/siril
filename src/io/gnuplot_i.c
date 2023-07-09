@@ -73,7 +73,10 @@
 // Uncomment the following line for lots of debug messages
 //#define GPLOT_DEBUG
 
+static gboolean gnuplot_checked = FALSE;
+static gboolean gnuplot_available = FALSE;
 static gboolean gnuplot_is_in_path = FALSE;
+static GMutex handle_mutex;
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_bin() {
@@ -116,59 +119,72 @@ gchar* gnuplot_version_is_bad() {
 	return retval;
 }
 
+void reset_gnuplot_check() {
+	gnuplot_checked = FALSE;
+}
+
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
-	gchar *bin = siril_get_gnuplot_bin();
-    if (!bin) return FALSE;
+	gboolean is_available;
+	if (gnuplot_checked) {
+		siril_debug_print("Using cached GNUplot availability check\n");
+		return gnuplot_available;
+	} else {
+		siril_debug_print("Checking GNUplot will run\n");
+		gchar *bin = siril_get_gnuplot_bin();
+		if (!bin) return FALSE;
 
-    gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-    g_free(bin);
-	if (is_available) {
-		gchar *msg = gnuplot_version_is_bad();
-		if (msg) {
-			if (!com.script) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
-				control_window_switch_to_tab(OUTPUT_LOGS);
-			} else {
+		is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+		g_free(bin);
+		if (is_available) {
+			gchar *msg = gnuplot_version_is_bad();
+			if (msg) {
 				siril_log_color_message("%s\n", "red", msg);
+				is_available = FALSE;
 			}
-			is_available = FALSE;
 			g_free(msg);
 		}
 	}
-    return is_available;
+	gnuplot_available = is_available;
+	gnuplot_checked = TRUE;
+	return is_available;
 }
 
 #else
 /* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
-	gboolean is_available;
-    gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
+	if (gnuplot_checked) {
+		siril_debug_print("Using cached GNUplot availability check\n");
+		return gnuplot_available;
+	} else {
+		siril_debug_print("Checking GNUplot will run\n");
+		gboolean is_available;
+		gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
 
-    int retval = system(str);
-    g_free(str);
-    if (WIFEXITED(retval)) {
-        gnuplot_is_in_path = TRUE;
-        is_available = (0 == WEXITSTATUS(retval));
-    } else {
-		gchar *bin = siril_get_gnuplot_bin();
-		is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-		g_free(bin);
-	}
-	if (is_available) {
-		gchar *msg = gnuplot_version_is_bad();
-		if (msg) {
-			if (!com.script) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
-				control_window_switch_to_tab(OUTPUT_LOGS);
-			} else {
-				siril_log_color_message("%s\n", "red", msg);
-			}
-			is_available = FALSE;
-			g_free(msg);
+		int retval = system(str);
+		g_free(str);
+		if (WIFEXITED(retval)) {
+			gnuplot_is_in_path = TRUE;
+			is_available = (0 == WEXITSTATUS(retval));
+		} else {
+			gchar *bin = siril_get_gnuplot_bin();
+			is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+			g_free(bin);
 		}
+		if (is_available) {
+			gchar *msg = gnuplot_version_is_bad();
+			if (msg) {
+				control_window_switch_to_tab(OUTPUT_LOGS);
+				siril_log_color_message("%s\n", "red", msg);
+				is_available = FALSE;
+				g_free(msg);
+			}
+
+		}
+		gnuplot_available = is_available;
+		gnuplot_checked = TRUE;
+		return is_available;
 	}
-    return is_available;
 }
 #endif
 
@@ -286,6 +302,7 @@ gpointer tmpwatcher (gpointer user_data) {
 			}
 		}
 		else if (g_str_has_prefix(buffer, "Terminate")) {
+			g_source_remove(handle->source); // Cancel the callback
 			gnuplot_cmd(handle, "exit gnuplot\n");
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
@@ -298,15 +315,18 @@ gpointer tmpwatcher (gpointer user_data) {
 			free(handle->tmp_filename_tbl);
 			handle->tmp_filename_tbl = NULL;
 			handle->ntmp = 0;
-			g_free(buffer);
-			g_object_unref(data_input);
-			g_object_unref(stream);
-
+			handle->running = FALSE;
+			GPid pid = handle->child_pid;
+			g_autoptr(GError) error = NULL;
+			g_autoptr(GError) error2 = NULL;
 			if (!g_close(handle->child_fd_stdin, &error))
-				siril_debug_print("%s\n", error->message);
+				siril_debug_print("Callback error closing stdin: %s\n", error->message);
 			if (!g_close(handle->child_fd_stderr, &error2))
-				siril_debug_print("%s\n", error->message);
-			handle->running = FALSE; // Don't free the handle here, it will be freed in gnuplot_close()
+				siril_debug_print("Callback error closing stderr: %s\n", error2->message);
+			null_handle_in_com_gnuplot_handles(handle);
+			free(handle);
+			handle = NULL;
+			g_spawn_close_pid(pid);
 			return GINT_TO_POINTER(1);
 		}
 		g_free(buffer);
@@ -358,14 +378,20 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GError) error2 = NULL;
 	if (!g_close(handle->child_fd_stdin, &error))
-		siril_debug_print("%s\n", error->message);
+		siril_debug_print("Callback error closing stdin: %s\n", error->message);
 	if (!g_close(handle->child_fd_stderr, &error2))
-		siril_debug_print("%s\n", error2->message);
+		siril_debug_print("Callback error closing stderr: %s\n", error2->message);
 	null_handle_in_com_gnuplot_handles(handle);
 	free(handle);
 	handle = NULL;
 	g_spawn_close_pid(pid);
 	return;
+}
+
+static void warn_idle_removed() {
+#ifdef GPLOT_DEBUG
+	siril_debug_print("GNUplot child_watch_cb cancelled\n");
+#endif
 }
 
 gnuplot_ctrl * gnuplot_init()
@@ -384,6 +410,7 @@ gnuplot_ctrl * gnuplot_init()
     gnuplot_setstyle(handle, "points") ;
     handle->ntmp = 0 ;
 	handle->thread = NULL;
+	handle->source = 0;
 
     gchar *bin = siril_get_gnuplot_bin();
     gchar* bin2[3];
@@ -408,7 +435,7 @@ gnuplot_ctrl * gnuplot_init()
 		free(handle);
         return NULL;
     }
-	g_child_watch_add(child_pid, child_watch_cb, handle);
+	handle->source = g_child_watch_add_full(G_PRIORITY_DEFAULT_IDLE, child_pid, child_watch_cb, handle, warn_idle_removed);
 	handle->running = TRUE;
     handle->gnucmd = fdopen(child_stdin, "w");
 	handle->child_fd_stderr = child_stderr;
@@ -423,10 +450,11 @@ gnuplot_ctrl * gnuplot_init()
         return NULL;
     }
     // Add handle to the list of gnuplot handles
+    g_mutex_lock(&handle_mutex);
     com.gnuplot_handles = realloc(com.gnuplot_handles, (com.num_gnuplot_handles + 1) * sizeof(gnuplot_ctrl*));
 	com.gnuplot_handles[com.num_gnuplot_handles] = handle;
 	com.num_gnuplot_handles++;
-
+	g_mutex_unlock(&handle_mutex);
 	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
@@ -443,27 +471,31 @@ gnuplot_ctrl * gnuplot_init()
 /*--------------------------------------------------------------------------*/
 
 void exit_com_gnuplot_handles() {
+	g_mutex_lock(&handle_mutex);
 	for (int i = com.num_gnuplot_handles - 1; i >= 0 ; i--) {
 		if (com.gnuplot_handles[i]) {
 			gnuplot_close(com.gnuplot_handles[i]);
 		}
 	}
+	g_mutex_unlock(&handle_mutex);
 }
 
 void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 	if (!com.gnuplot_handles)
 		return;
+	g_mutex_lock(&handle_mutex);
 	for (int i = 0; i < com.num_gnuplot_handles ; i++) {
 		if (com.gnuplot_handles && com.gnuplot_handles[i] && com.gnuplot_handles[i] == handle) {
 			com.gnuplot_handles[i] = NULL;
 			for (int j = i ; j < com.num_gnuplot_handles - 1 ; j++) {
-				com.gnuplot_handles[i] = com.gnuplot_handles[i+1];
+				com.gnuplot_handles[j] = com.gnuplot_handles[j+1];
 			}
 			break;
 		}
 	}
 	com.num_gnuplot_handles--;
 	com.gnuplot_handles = realloc(com.gnuplot_handles, com.num_gnuplot_handles * sizeof(gnuplot_ctrl*));
+	g_mutex_unlock(&handle_mutex);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -483,13 +515,18 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 void gnuplot_close(gnuplot_ctrl * handle)
 {
 	gnuplot_cmd(handle, "print \"Terminate\"");
-
+	int count = 0;
 	while (TRUE) {
 		g_usleep(1000);
-	if (!handle->running)
+		count++;
+	//	The handle is removed from com.gnuplot_handles and freed in child_watch_cb
+		if (!handle->running)
 			break;
+		if (count > 2000) {  // Add a 2s timeout to prevent hangs
+			siril_log_message(_("Timeout exceeded waiting for GNUplot process to terminate.\n"));
+			break;
+		}
 	}
-//	The handle is removed from com.gnuplot_handles and freed in child_watch_cb
 }
 
 /*-------------------------------------------------------------------------*/
@@ -567,7 +604,9 @@ int gnuplot_cmd(gnuplot_ctrl *  handle, char const *  cmd, ...)
 {
     int retval;
 	va_list ap ;
-
+#ifdef GPLOT_DEBUG
+	printf("GNUplot pointer: %p command: %s\n", handle, cmd);
+#endif
     va_start(ap, cmd);
     vfprintf(handle->gnucmd, cmd, ap);
     va_end(ap);
@@ -1378,6 +1417,15 @@ void gnuplot_plot_xcfa_from_datfile(gnuplot_ctrl * handle, char const* tmp_filen
     return ;
 }
 
+void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset)
+{
+    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
+    title                  = (title == NULL)      ? "(none)" : title;
+    gnuplot_cmd(handle, "%s \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s",
+           cmd, tmp_filename, x_offset, title, handle->pstyle);
+    return ;
+}
+
 void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
 		char const *curve_title, char const* png_filename)
 {
@@ -1390,6 +1438,11 @@ void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filen
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
+
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1404,6 +1457,10 @@ void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const*
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1414,6 +1471,10 @@ void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 
 	gnuplot_cmd(handle, "plot for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1424,15 +1485,10 @@ void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 
 	gnuplot_cmd(handle, "plot for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
 				dat_filename, handle->pstyle);
-}
-
-void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset)
-{
-    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
-    title                  = (title == NULL)      ? "(none)" : title;
-    gnuplot_cmd(handle, "%s \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s",
-           cmd, tmp_filename, x_offset, title, handle->pstyle);
-    return ;
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 
 void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
@@ -1441,12 +1497,15 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
     gnuplot_cmd(handle, "set term png size 800,600");
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    if (curve_title && curve_title[0] != '\0')
-        gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename,
-                offset, curve_title, handle->pstyle);
-    else
-        gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
-                handle->pstyle);
+    if (curve_title && curve_title[0] != '\0') {
+        gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename, offset, curve_title, handle->pstyle);
+	} else {
+        gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename, handle->pstyle);
+	}
+	gnuplot_cmd(handle, "set term pop");
+	gchar *cmd = g_strdup("bind \"Close\" \"unset output ; exit gnuplot\"\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
 }
 /*
  * Not used in Siril yet

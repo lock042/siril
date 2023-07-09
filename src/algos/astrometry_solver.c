@@ -124,7 +124,7 @@ double get_fov_arcmin(double resolution, int rx, int ry) {
 	return radius / 60.0;	// in arcminutes
 }
 
-/* get half field of view in arcmin, or angle from image centre, resolution in arcsec/px */
+/* get half field of view in degrees, or angle from image centre, resolution in arcsec/px */
 double get_radius_deg(double resolution, int rx, int ry) {
 	uint64_t sqr_radius = ((uint64_t) rx * (uint64_t) rx + (uint64_t) ry * (uint64_t) ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
