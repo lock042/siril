@@ -101,8 +101,6 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 			gtk_label_set_text(GTK_LABEL(label), labeltext);
 		}
 		g_free(labeltext);
-	} else {
-		gtk_label_set_text(GTK_LABEL(label), "");
 	}
 	return TRUE;
 }
@@ -128,7 +126,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 
 	// add css data to uniformize all backgrounds
 	GtkCssProvider *cssProvider = gtk_css_provider_new();
-	gchar *data = "window {color: grey; background: white;}\0";
+	gchar *data = "window {color: grey; background: white; font-size: 12px}\0";
 	gtk_css_provider_load_from_data(cssProvider, data, -1, NULL);
 	GtkStyleContext *styleContext = gtk_widget_get_style_context(window);
 	gtk_style_context_add_provider(styleContext, GTK_STYLE_PROVIDER(cssProvider), GTK_STYLE_PROVIDER_PRIORITY_USER);
@@ -153,7 +151,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	g_signal_connect(G_OBJECT(da), "motion-notify-event", G_CALLBACK(on_siril_plot_motion_notify_event), NULL);
 
 	// add the label
-	label = gtk_label_new("-");
+	label = gtk_label_new("0;0");
 	gtk_box_pack_end(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 	gtk_widget_set_halign(label, GTK_ALIGN_START);
 	// and cache its handle
