@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-07-09 04:40+0000\n"
+"PO-Revision-Date: 2023-07-10 06:40+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -18130,15 +18130,14 @@ msgid "Image width, height, bit depth and number of channels must match"
 msgstr "图像宽度、高度、位深和通道数必须匹配"
 
 #: src/gui/remixer.c:1269 src/gui/remixer.c:1317
-#, fuzzy
 msgid "There is no starless image loaded"
-msgstr "文件中没有时间戳"
+msgstr "未加载无星图像"
 
 #: src/gui/remixer.c:1270
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "在尝试使用吸管设置 SP 之前，使用左侧文件选择器加载图像"
 
 #: src/gui/remixer.c:1318
 msgid ""
