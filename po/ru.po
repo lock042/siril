@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-07-05 09:40+0000\n"
+"PO-Revision-Date: 2023-07-11 09:40+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -16111,8 +16111,8 @@ msgid ""
 "Splits the CFA image into four distinct files (one for each channel) and "
 "save them in files"
 msgstr ""
-"Разделяет изображение CFA на четыре отдельных файла (один для каждого канала)"
-" и сохраняет их в файлы"
+"Разделяет изображение CFA на четыре отдельных файла (по одному для каждого "
+"канала) и сохраняет их в файлы"
 
 #: src/core/command_def.h:179 src/core/command_def.h:177
 msgid ""
@@ -16315,8 +16315,8 @@ msgid ""
 "(from <b>from</b> to <b>to</b> included). See SELECT"
 msgstr ""
 "Позволяет массовую отмену выбора изображений в последовательности "
-"<b>sequencename</b> (начиная <b>с</b> и заканчивая <b>до</b> включительно). "
-"См. SELECT"
+"<b>sequencename</b> (начиная с <b>from</b> и заканчивая <b>to</b> "
+"включительно). См. SELECT"
 
 #: src/core/command_def.h:194 src/core/command_def.h:192
 msgid "Reset the magnitude calibration to 0. See SETMAG"
@@ -20940,13 +20940,12 @@ msgstr ""
 "Не удалось открыть файл FITS %s: не выглядит последовательностью FITS\n"
 
 #: src/io/fits_sequence.c:192 src/io/image_format_fits.c:2065
-#, fuzzy
 msgid ""
 "FITS images with 64 bits signed integer per pixel.channel are not "
 "supported.\n"
 msgstr ""
-"Изображения FITS с 64 битным целым числом со знаком на пиксель.канал не "
-"поддерживаются.\n"
+"Изображения FITS с данной разрядностью (64 бита целочисленное со знаком) на "
+"пиксель/канал не поддерживаются.\n"
 
 #: src/io/fits_sequence.c:212 src/stacking/median_and_mean.c:1076
 msgid "Your version of cfitsio does not support multi-threading\n"
