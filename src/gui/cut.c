@@ -1403,7 +1403,7 @@ void on_cut_save_checkbutton_toggled(GtkToggleButton *button, gpointer user_data
 }
 
 void on_cut_button_toggled(GtkToggleToolButton *button, gpointer user_data) {
-	if ((!(com.pref.use_gnuplot && gnuplot_is_available())) && (!(no_gnuplot_warning_given))) {
+	if ((com.pref.use_gnuplot && !gnuplot_is_available()) && (!(no_gnuplot_warning_given))) {
 		// siril_message_dialog(GTK_MESSAGE_WARNING,
 		// 			_("GNUplot not available"),
 		// 			_("This functionality relies on GNUplot to generate graphs. Without it, profile data files can still be produced but you will need to use external software to display them."));
