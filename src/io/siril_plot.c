@@ -66,7 +66,7 @@ static splxydata *alloc_xyplot_data(int nb) {
 	plot->data = calloc(nb, sizeof(struct kpair));
 	if (!plot->data) {
 		PRINT_ALLOC_ERR;
-		free(plot);
+		g_slice_free(splxydata, plot);
 		return NULL;
 	}
 	plot->nb = nb;
