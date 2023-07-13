@@ -934,6 +934,7 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr, struct kplotctx *ct
 					(&ctx, start, end, d);
 				kplotctx_draw_yerrline_baselines
 					(&ctx, start, end, d);
+				break;
 			case (KPLOT_LINESHYPHENS):
 				kplotctx_draw_yerrline_basehyphens
 					(&ctx, start, end, d);
@@ -972,6 +973,7 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr, struct kplotctx *ct
 					(&ctx, start, end, d);
 				kplotctx_draw_yerrline_pairlines
 					(&ctx, start, end, d);
+				break;
 			case (KPLOT_LINESHYPHENS):
 				kplotctx_draw_yerrline_pairhyphens
 					(&ctx, start, end, d);
