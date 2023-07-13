@@ -33,11 +33,11 @@ static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
 }
 
-static gboolean is_inside_grid(double x, double y, plot_draw_data_t pdd) {
-	if (x <= pdd.offset.x + pdd.range.x &&
-		x >= pdd.offset.x &&
-		y <= pdd.offset.y + pdd.range.y &&
-		y >= pdd.offset.y)
+static gboolean is_inside_grid(double x, double y, plot_draw_data_t *pdd) {
+	if (x <= pdd->offset.x + pdd->range.x &&
+		x >= pdd->offset.x &&
+		y <= pdd->offset.y + pdd->range.y &&
+		y >= pdd->offset.y)
 			return TRUE;
 	return FALSE;
 }
@@ -87,7 +87,7 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 		return TRUE;
 	double x = (double)event->x;
 	double y = (double)event->y;
-	if (is_inside_grid(x, y, spl_data->pdd)) {
+	if (is_inside_grid(x, y, &spl_data->pdd)) {
 		if (!spl_data->revertX)
 			x = spl_data->pdd.datamin.x + (x - spl_data->pdd.offset.x) / spl_data->pdd.range.x * (spl_data->pdd.datamax.x - spl_data->pdd.datamin.x);
 		else
