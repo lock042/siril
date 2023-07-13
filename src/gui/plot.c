@@ -41,6 +41,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
+#include "gui/siril_plot.h"
 #include "registration/registration.h"
 #include "kplot.h"
 #include "algos/PSF.h"
@@ -48,6 +49,7 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "io/gnuplot_i.h"
+#include "io/siril_plot.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
 #include "algos/astrometry_solver.h"
@@ -712,12 +714,8 @@ static double get_error_for_time(pldata *plot, double time) {
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
-	gboolean use_gnuplot = gnuplot_is_available();
-	if (!use_gnuplot) {
-		siril_log_color_message(_("GNUplot not available: the light curve data will be "
-				"produced in %s but no image will be created. "
-				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
-	}
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
+	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
 		return -1;
@@ -824,6 +822,14 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 			// gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
+		siril_plot_set_title(spl_data, "Light Curve");
+		spl_data->revertY = TRUE;
+		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, x, vmag, err, NULL);
+		create_new_siril_plot_window(spl_data);
 	}
 
 	/* Exporting data in a dat file */
@@ -834,7 +840,6 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	} else {
 		siril_log_message(_("%s has been saved.\n"), filename);
 	}
-
 	free(vmag);
 	free(err);
 	free(x);
@@ -1306,6 +1311,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
 	struct kdata *d1 = NULL, *ref_d = NULL, *mean_d = NULL, *curr_d = NULL;
+	struct kplotctx ctx = { 0 };
 
 	if (!plot_data || !widget)
 		return;
@@ -1421,7 +1427,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_rectangle(cr, 0.0, 0.0, width, height);
 	cairo_fill(cr);
-	kplot_draw(p, width, height, cr);
+	kplot_draw(p, width, height, cr, &ctx);
 
 	if (for_saving) {
 		gchar *timestamp, *filename;
@@ -1435,9 +1441,9 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		g_free(filename);
 	} else {
 		// caching more data
-		pdd.range = (point){ get_dimx(),  get_dimy()};
+		pdd.range = (point){ ctx.dims.x, ctx.dims.y};
 		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
-		pdd.offset = (point){ get_offsx(),  get_offsy()};
+		pdd.offset = (point){ ctx.offs.x, ctx.offs.y};
 		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
 		if (pdd.selected) free(pdd.selected);
 		pdd.selected = calloc(com.seq.number, sizeof(gboolean));

@@ -9245,7 +9245,7 @@ int process_seq_profile(int nb) {
 		seq = &com.seq;
 	}
 
-	if(!gnuplot_is_available()) {
+	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
 		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}
