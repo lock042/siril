@@ -298,11 +298,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	int i, j;
 	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	siril_plot_data *spl_data = NULL;
-	if (!use_gnuplot) {
-		// siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
-		spl_data = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_data);
-	}
+
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
 		return -1;
@@ -456,6 +452,8 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				}
 			}
 		} else { // fallback with siril_plot
+			spl_data = malloc(sizeof(siril_plot_data));
+			init_siril_plot_data(spl_data);
 			siril_plot_set_title(spl_data, title);
 			siril_plot_set_xlabel(spl_data, xlabel);
 			spl_data->revertY = TRUE;

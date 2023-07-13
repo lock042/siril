@@ -716,10 +716,6 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	siril_plot_data *spl_data = NULL;
-	if (!use_gnuplot) {
-		spl_data = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_data);
-	}
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
 		return -1;
@@ -827,6 +823,8 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		}
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
 		siril_plot_set_title(spl_data, "Light Curve");
 		spl_data->revertY = TRUE;
 		siril_plot_set_xlabel(spl_data, xlabel);

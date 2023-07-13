@@ -512,12 +512,7 @@ gpointer cut_profile(gpointer p) {
 
 	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
 	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
-	if (!use_gnuplot) {
-		// siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
-		// control_window_switch_to_tab(OUTPUT_LOGS);
-		spl_data = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_data);
-	} else {
+	if (use_gnuplot) {
 		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
@@ -665,6 +660,8 @@ gpointer cut_profile(gpointer p) {
 		}
 		else siril_log_message(_("Communicating with gnuplot failed\n"));
 	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_xlabel(spl_data, xlabel);
 		siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
@@ -732,12 +729,7 @@ gpointer tri_cut(gpointer p) {
 	siril_plot_data *spl_data = NULL;
 
 	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
-	if (!use_gnuplot) {
-		// siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
-		// control_window_switch_to_tab(OUTPUT_LOGS);
-		spl_data = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_data);
-	} else {
+	if (use_gnuplot) {
 		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
@@ -863,6 +855,8 @@ gpointer tri_cut(gpointer p) {
 			}
 		}
 	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_xlabel(spl_data, xlabel);
 		siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
@@ -924,12 +918,7 @@ gpointer cfa_cut(gpointer p) {
 	siril_plot_data *spl_data = NULL;
 
 	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
-	if (!use_gnuplot) {
-		// siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
-		// control_window_switch_to_tab(OUTPUT_LOGS);
-		spl_data = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_data);
-	} else {
+	if (use_gnuplot) {
 		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
@@ -1027,6 +1016,8 @@ gpointer cfa_cut(gpointer p) {
 			}
 		}
 	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_xlabel(spl_data, xlabel);
 		siril_plot_add_xydata(spl_data, "CFA0", nbr_points, x, r[0], NULL, NULL);
