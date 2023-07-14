@@ -23,6 +23,7 @@
 #include "algos/lcms_acceleration/lcms2_threaded.h"
 #include "core/siril.h"
 #include "core/OS_utils.h"
+#include "core/processing.h"
 #include "icc_profile.h"
 #include "icc_default_profiles.h"
 #include "gui/image_display.h"
@@ -301,12 +302,9 @@ void validate_custom_profiles() {
 void initialize_profiles_and_transforms() {
 	// Enable the fast float plugin (as long as the OS / lcms2 version blacklist isn't triggered)
 #ifndef EXCLUDE_FF
-	cmsPlugin(cmsFastFloatExtensions());
-	siril_log_message(_("lcms2 fast floating point plugin active.\n"));
-	if (!com.headless) {
-		cmsPlugin(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
-		siril_log_message(_("lcms2 multithreading plugin active.\n"));
-	}
+	com.icc.context_single = cmsCreateContext(cmsFastFloatExtensions(), NULL);
+	com.icc.context_threaded = cmsCreateContext(cmsFastFloatExtensions(), NULL);
+	cmsPluginTHR(com.icc.context_threaded, cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
 #endif
 
 	// Set alarm codes for soft proof out-of-gamut warning
@@ -411,14 +409,15 @@ cmsHTRANSFORM initialize_display_transform() {
 	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit.icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
 	g_mutex_lock(&monitor_profile_mutex);
-	transform = cmsCreateTransform(gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, 0);
+	// The display transform is always single threaded as OpenMP is used within the remap function
+	transform = cmsCreateTransformTHR(com.icc.context_single, gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, 0);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
 	return transform;
 }
 
-cmsHTRANSFORM initialize_export8_transform(fits* fit) {
+cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 	g_assert(com.icc.working_standard);
 	cmsHTRANSFORM transform = NULL;
 	if (fit->icc_profile == NULL)
@@ -426,7 +425,7 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit) {
 	cmsUInt32Number fit_signature = cmsGetColorSpace(fit->icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(fit_signature, fit->type, TRUE);
 	cmsUInt32Number desttype = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
-	transform = sirilCreateTransform(fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, 0);
+	transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, 0);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create export colorspace transform!\n");
 	return transform;
@@ -443,7 +442,8 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	cmsUInt32Number type = (gfit.naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	g_mutex_lock(&monitor_profile_mutex);
-	cmsHPROFILE proofing_transform = cmsCreateProofingTransform(
+	cmsHPROFILE proofing_transform = cmsCreateProofingTransformTHR(
+						com.icc.context_single,
 						gfit.icc_profile,
 						type,
 						gui.icc.monitor,
@@ -651,6 +651,7 @@ void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
 		from = copyICCProfile(to);
 		return;
 	}
+	gboolean threaded = !get_thread_run();
 	cmsColorSpaceSignature sig, ref_sig;
 	cmsUInt32Number src_type;
 	cmsUInt32Number datasize, bytesperline, bytesperplane;
@@ -663,7 +664,7 @@ void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
 	}
 	void *buffer = fit->type == DATA_FLOAT ? (void*) fit->fdata : (void*) fit->data;
 	src_type = get_planar_formatter_type(sig, fit->type, FALSE);
-	cmsHTRANSFORM transform = cmsCreateTransform(from, src_type, to, src_type, com.pref.icc.processing_intent, 0);
+	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), from, src_type, to, src_type, com.pref.icc.processing_intent, 0);
 	datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	bytesperline = fit->rx * datasize;
 	bytesperplane = npixels * datasize;
@@ -881,12 +882,13 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number srctype, desttype;
 	size_t npixels = fit->rx * fit->ry;
 	// convert to profile
+	gboolean threaded = !get_thread_run();
 	data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
 	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
 	cmsHTRANSFORM transform = NULL;
 	if (fit_colorspace_channels == target_colorspace_channels) {
-		transform = cmsCreateTransform(fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, 0);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, 0);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
 		return;
@@ -1043,10 +1045,10 @@ void update_profiles_after_gamut_change() {
  * clash.
  */
 
-cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags) {
+cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags) {
 	cmsHTRANSFORM transform = NULL;
 	g_mutex_lock(&default_profiles_mutex);
-	transform = cmsCreateTransform(Input, InputFormat, Output, OutputFormat, Intent, dwFlags);
+	transform = cmsCreateTransformTHR(Context, Input, InputFormat, Output, OutputFormat, Intent, dwFlags);
 	g_mutex_unlock(&default_profiles_mutex);
 	return transform;
 }

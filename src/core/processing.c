@@ -59,11 +59,6 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 	gboolean have_seqwriter = FALSE;
 
-#ifndef EXCLUDE_FF
-	cmsUnregisterPlugins();
-	cmsPlugin(cmsFastFloatExtensions());
-#endif
-
 	assert(args);
 	assert(args->seq);
 	assert(args->image_hook);
@@ -385,13 +380,6 @@ the_end:
 		args->retval = 1;
 	}
 	int retval = args->retval;	// so we can free args if needed in the idle
-
-#ifndef EXCLUDE_FF
-	if (!com.headless) {
-		cmsPlugin(cmsThreadedExtensions(com.max_thread, 0));
-	}
-#endif
-
 
 	if (!args->already_in_a_thread) {
 		gboolean run_idle;

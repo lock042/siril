@@ -542,6 +542,7 @@ int remixer() {
 						inr[1] = fit_right_calc.fpdata[1][i];
 						inr[2] = fit_right_calc.fpdata[2][i];
 					}
+					// TODO: This is very inefficient, it is threaded but fails to make use of SIMD
 					cmsDoTransform(to_lab, inl, labl, 1);
 					cmsDoTransform(to_lab, inr, labr, 1);
 
@@ -713,10 +714,10 @@ void initialize_remixer_transforms(fits* fit) {
 	dest_type = get_planar_formatter_type(ref_sig, fit->type, FALSE);
 	if (to_lab)
 		cmsDeleteTransform(to_lab);
-	to_lab = cmsCreateTransform(fit->icc_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, 0);
+	to_lab = cmsCreateTransformTHR(com.icc.context_single, fit->icc_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, 0);
 	if (from_lab)
 		cmsDeleteTransform(from_lab);
-	from_lab = cmsCreateTransform(lab_profile, dest_type, fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
+	from_lab = cmsCreateTransformTHR(com.icc.context_single, lab_profile, dest_type, fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 }
 
 /*** callbacks **/

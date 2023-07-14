@@ -411,83 +411,7 @@ static void remap_all_vports() {
 	}
 
 	int norm = (int) get_normalized_value(&gfit);
-/*	if (com.pref.icc.use_extra_mem) {
-		size_t npixels = gfit.rx * gfit.ry;
-		size_t size = npixels * sizeof(WORD);
-		WORD *pixelbuf = calloc(gfit.rx * gfit.ry * 3, sizeof(WORD));
-		if (gfit.type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-			for (int n = 0 ; n < npixels * gfit.naxes[2]; n++) {
-				pixelbuf[n] = roundf_to_WORD(gfit.fdata[n] * USHRT_MAX_SINGLE);
-			}
-		} else if (norm == UCHAR_MAX) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-			for (int n = 0 ; n < npixels * gfit.naxes[2] ; n++) {
-				pixelbuf[n] = gfit.data[n] << 8;
-			}
-		} else {
-			memcpy(pixelbuf, gfit.data, npixels * gfit.naxes[2] * sizeof(WORD));
-		}
-		if (gfit.naxes[2] == 1) {
-			memcpy(pixelbuf + npixels, pixelbuf, size);
-			memcpy(pixelbuf + (2 * npixels), pixelbuf, size);
-		}
-		gboolean linear_and_really_do_it = !(gfit_icc_is_linear && com.pref.icc.no_lin_disp_tx);
-		if (com.icc.available && gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it && !identical) {
-			cmsUInt32Number datasize = sizeof(WORD);
-			cmsUInt32Number bytesperline = gfit.rx * datasize;
-			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
-			cmsDoTransformLineStride(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
-							gui.icc.proofing_transform :
-							gui.icc.display_transform,
-							pixelbuf, pixelbuf, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		}
-		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-			for (int n = 0 ; n < npixels * gfit.naxes[2] ; n++) {
-				pixelbuf[n] = pixelbuf[n] >> 8;
-			}
-		}
-#ifdef _OPENMP
-#pragma omp parallel for simd collapse(3) num_threads(com.max_thread) schedule(static)
-#endif
-		for (int c = 0 ; c < 3 ; c++) {
-			for (int x = 0; x < gfit.rx; ++x) {
-				for (int y = 0; y < gfit.ry; ++y) {
-					BYTE dst_pixel_value = 0;
-					size_t n = x + y * gfit.rx;
-					WORD val = *(pixelbuf + c * npixels + n);
-					// STF mode does not use the sliders
-					if (gui.rendering_mode == STF_DISPLAY)
-						dst_pixel_value = index[val];
-					else if (gui.cut_over && val > gui.hi)	// cut
-						dst_pixel_value = 0;
-					else {
-						dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
-					}
-					dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
-					// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-					guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
-					switch (color) {
-						default:
-						case NORMAL_COLOR:
-							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
-							break;
-						case RAINBOW_COLOR:
-							*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
-					}
-				}
-			}
-		}
-		free(pixelbuf);
-	} else
-*/	{
+	{
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -497,10 +421,8 @@ static void remap_all_vports() {
 			guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
 
 			// Set up a buffer so that the color space transform can be carried out on
-			//a whole row at a time.
-			// This improves memory access and will allow for a degree of optimization
-			// via the lcms2 fast float plugin, but not as much as if extra memory is
-			// used and the entire image is transformed using cmsDoTransformLineStride
+			//a whole row at a time using OpenMP to parallelize rows and the single
+			// threaded lcms2 context to give SIMD parallelisation within the rows
 			WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
 			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
 			if (gfit.type == DATA_FLOAT) {

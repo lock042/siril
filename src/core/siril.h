@@ -698,6 +698,8 @@ struct common_icc {
 	cmsHPROFILE *srgb_out;
 	cmsHPROFILE *working_out;
 	cmsHPROFILE *mono_out;
+	cmsContext context_single;
+	cmsContext context_threaded;
 	gboolean available;
 };
 

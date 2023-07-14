@@ -25,6 +25,7 @@
 #include "algos/hsluv.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_app_dirs.h"
@@ -190,52 +191,6 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	clear_backup();
 	clear_hist_backup();
 }
-/*
-static void hsl_to_gfit (float* h, float* s, float* l) {
-	size_t npixels = gfit.rx * gfit.ry;
-	if (gfit.type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			hsl_to_rgbf(h[i], s[i], l[i], &gfit.fpdata[0][i], &gfit.fpdata[1][i], &gfit.fpdata[2][i]);
-		}
-	} else {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			float r, g, b;
-			hsl_to_rgbf(h[i], s[i], l[i], &r, &g, &b);
-			gfit.pdata[0][i] = roundf_to_WORD(r * USHRT_MAX_SINGLE);
-			gfit.pdata[1][i] = roundf_to_WORD(g * USHRT_MAX_SINGLE);
-			gfit.pdata[2][i] = roundf_to_WORD(b * USHRT_MAX_SINGLE);
-		}
-	}
-}
-
-static void gfit_to_hsl() {
-	size_t npixels = gfit.rx * gfit.ry;
-	if (gfit.type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++)
-			rgb_to_hslf(gfit.fpdata[0][i], gfit.fpdata[1][i], gfit.fpdata[2][i], &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
-	} else {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			float r = (float) gfit.pdata[0][i] / USHRT_MAX_SINGLE;
-			float g = (float) gfit.pdata[1][i] / USHRT_MAX_SINGLE;
-			float b = (float) gfit.pdata[2][i] / USHRT_MAX_SINGLE;
-			rgb_to_hslf(r, g, b, &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
-		}
-	}
-	memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
-}
-*/
 
 static void hsluv_to_gfit (float* h, float* s, float* l) {
 	size_t npixels = gfit.rx * gfit.ry;
@@ -264,14 +219,11 @@ static void hsluv_to_gfit (float* h, float* s, float* l) {
 		}
 	}
 	if (!identical) {
-		siril_debug_print("Profiles not identical, pre-transforming\n");
 		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit.rx * datasize;
 		cmsUInt32Number bytesperplane = bytesperline * gfit.ry;
 		void *buffer = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
 		cmsDoTransformLineStride(inverse_transform, buffer, buffer, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-	} else {
-		siril_debug_print("Profiles identical, no transform required\n");
 	}
 }
 
@@ -286,12 +238,13 @@ static void gfit_to_hsluv() {
 		cmsUInt32Number bytesperline = gfit.rx * datasize;
 		cmsUInt32Number bytesperplane = bytesperline * gfit.ry;
 		void *buffer = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
+		gboolean threaded = !get_thread_run();
 		if (transform)
 			cmsDeleteTransform(transform);
-		transform = cmsCreateTransform(gfit.icc_profile, format, com.icc.srgb_profile, format, INTENT_PERCEPTUAL, 0);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), gfit.icc_profile, format, com.icc.srgb_profile, format, INTENT_PERCEPTUAL, 0);
 		if (inverse_transform)
 			cmsDeleteTransform(inverse_transform);
-		inverse_transform = cmsCreateTransform(com.icc.srgb_profile, format, gfit.icc_profile, format, INTENT_PERCEPTUAL, 0);
+		inverse_transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), com.icc.srgb_profile, format, gfit.icc_profile, format, INTENT_PERCEPTUAL, 0);
 
 		cmsDoTransformLineStride(transform, buffer, buffer, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 	} else {

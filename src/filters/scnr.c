@@ -75,8 +75,8 @@ gpointer scnr(gpointer p) {
 	cielab_profile = cmsCreateLab4Profile(NULL);
 	src_type = TYPE_RGB_FLT_PLANAR;
 	dest_type = TYPE_Lab_FLT_PLANAR;
-	transform = cmsCreateTransform(args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
-	invtransform = cmsCreateTransform(cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
+	transform = cmsCreateTransformTHR(com.icc.context_threaded, args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
+	invtransform = cmsCreateTransformTHR(com.icc.context_threaded, cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 	cmsCloseProfile(cielab_profile);
 
 	const size_t stride_size = args->fit->rx;

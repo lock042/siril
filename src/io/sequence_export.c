@@ -511,7 +511,8 @@ static gpointer export_sequence(gpointer ptr) {
 				case EXPORT_MP4_H265:
 				case EXPORT_WEBM_VP9:
 #endif
-					transform = initialize_export8_transform(destfit);
+					gboolean threaded = !get_thread_run();
+					transform = initialize_export8_transform(destfit, threaded);
 					void *data = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
 					size_t npixels = destfit->rx * destfit->ry;
 					cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);

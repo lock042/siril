@@ -669,7 +669,8 @@ static gpointer extract_channels_ushort(gpointer p) {
 			cmsHPROFILE cielab_profile = cmsCreateLab4Profile(NULL);
 			cmsColorSpaceSignature sig = cmsGetColorSpace(args->fit->icc_profile);
 			cmsUInt32Number trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
-			cmsHTRANSFORM transform = cmsCreateTransform(args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
+			gboolean threaded = !get_thread_run();
+			cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
 			cmsCloseProfile(cielab_profile);
 			cmsUInt32Number datasize = sizeof(WORD);
 			cmsUInt32Number bytesperline = args->fit->rx * datasize;
@@ -765,7 +766,8 @@ static gpointer extract_channels_float(gpointer p) {
 			cmsHPROFILE cielab_profile = cmsCreateLab4Profile(NULL);
 			cmsColorSpaceSignature sig = cmsGetColorSpace(args->fit->icc_profile);
 			cmsUInt32Number trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
-			cmsHTRANSFORM transform = cmsCreateTransform(args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
+			gboolean threaded = !get_thread_run();
+			cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
 			cmsCloseProfile(cielab_profile);
 			cmsUInt32Number datasize = sizeof(float);
 			cmsUInt32Number bytesperline = args->fit->rx * datasize;
