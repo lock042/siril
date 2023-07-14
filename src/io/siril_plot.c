@@ -329,7 +329,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		}
 		if (!spl_data->yfmt) {
 			g_free(spl_data->cfgplot.yticlabelfmtstr);
-			spl_data->cfgplot.xticlabelfmtstr = g_strdup("%g");
+			spl_data->cfgplot.yticlabelfmtstr = g_strdup("%g");
 		}
 	}
 	// if the formats are forced by caller, they are passed
@@ -338,7 +338,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.xticlabelfmtstr = g_strdup(spl_data->xfmt);
 	}
 	if (spl_data->yfmt) {
-		g_free(spl_data->cfgplot.xticlabelfmtstr);
+		g_free(spl_data->cfgplot.yticlabelfmtstr);
 		spl_data->cfgplot.yticlabelfmtstr = g_strdup(spl_data->yfmt);
 	}
 
@@ -370,12 +370,12 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	// xy points with y error bars
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
+		const struct kdatacfg *cfgs[3];
 		for (int i = 0; i < 3; i++) {
 			d2[i] = kdata_array_alloc(plots->plots[i]->data, plots->nb);
+			cfgs[i] = &spl_data->cfgdata;
 		}
-		// TODO: the call to datacfg structure is different than in kplot_attach_data... need to sort this out
-		// as we can't pass the cfg for xyerr bars
-		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, NULL, spl_data->plotstype);
+		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, cfgs, spl_data->plotstype);
 		if (spl_data->show_legend) {
 			int index = nb_graphs % spl_data->cfgplot.clrsz;
 			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
