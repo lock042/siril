@@ -27,12 +27,6 @@
 #include "kplot.h"
 #include "extern.h"
 
-static double dimx = 0.0;
-static double dimy = 0.0;
-static double offsx = 0.0;
-static double offsy = 0.0;
-
-
 /*
  * Simple function to check that the double-precision values in the
  * kpair are valid: normal (or 0.0) values.
@@ -197,13 +191,20 @@ kdata_extrema_single(struct kplotdat *d, struct kplotctx *ctx)
 static inline void
 kpoint_to_real(const struct kpair *data, struct kpair *real,
 	const struct kpair *minv, const struct kpair *maxv,
-	double w, double h)
+	double w, double h, unsigned int xrevert, unsigned int yrevert)
 {
-
-	real->x = maxv->x == minv->x ? 0.0 :
-		w * (data->x - minv->x) / (maxv->x - minv->x);
-	real->y = maxv->y == minv->y ? h :
-		h - h * (data->y - minv->y) / (maxv->y - minv->y);
+	if (xrevert)
+		real->x = maxv->x == minv->x ? 0.0 :
+			w * (data->x - maxv->x) / (minv->x - maxv->x);
+	else 
+		real->x = maxv->x == minv->x ? 0.0 :
+			w * (data->x - minv->x) / (maxv->x - minv->x);
+	if (yrevert)
+		real->y = maxv->y == minv->y ? h :
+			h - h * (data->y - maxv->y) / (minv->y - maxv->y);
+	else
+		real->y = maxv->y == minv->y ? h :
+			h - h * (data->y - minv->y) / (maxv->y - minv->y);
 }
 
 /*
@@ -217,8 +218,9 @@ kplotctx_point_to_real(const struct kpair *data,
 
 	if ( ! kpair_vrfy(data))
 		return(0);
-	kpoint_to_real(data, real, 
-		&ctx->minv, &ctx->maxv, ctx->w, ctx->h);
+	kpoint_to_real(data, real,
+		&ctx->minv, &ctx->maxv, ctx->w, ctx->h,
+		ctx->cfg.xaxisrevert, ctx->cfg.yaxisrevert);
 	return(1);
 }
 
@@ -258,6 +260,23 @@ kplot_mark(const struct kpair *kp,
 	cairo_line_to (ctx->cr, pair.x + p->radius, pair.y + p->radius);
 	cairo_move_to (ctx->cr, pair.x - p->radius, pair.y + p->radius);
 	cairo_line_to (ctx->cr, pair.x + p->radius, pair.y - p->radius);
+	cairo_stroke (ctx->cr);
+}
+
+static void
+kplot_hyphen(const struct kpair *kp,
+	const struct kplotpoint *p, struct kplotctx *ctx)
+{
+	struct kpair	 pair;
+
+	if (kp->x < ctx->minv.x || kp->x > ctx->maxv.x)
+		return;
+	if (kp->y < ctx->minv.y || kp->y > ctx->maxv.y)
+		return;
+	if (0 == kplotctx_point_to_real(kp, &pair, ctx))
+		return;
+	cairo_move_to (ctx->cr, pair.x - p->radius, pair.y);
+	cairo_line_to (ctx->cr, pair.x + p->radius, pair.y);
 	cairo_stroke (ctx->cr);
 }
 
@@ -354,6 +373,25 @@ kplotctx_draw_yerrline_basemarks(struct kplotctx *ctx,
 }
 
 static void
+kplotctx_draw_yerrline_basehyphens(struct kplotctx *ctx,
+	size_t start, size_t end, const struct kplotdat *d)
+{
+	size_t		 i;
+
+	ksubwin_points(ctx);
+	kplotctx_point_init(ctx, &d->cfgs[0].point);
+	for (i = start; i < end; i++) {
+		if ( ! (kpair_vrfy(&d->datas[0]->pairs[i]) &&
+			kpair_vrfy(&d->datas[1]->pairs[i])))
+			continue;
+		kplot_hyphen(&d->datas[0]->pairs[i],
+			&d->cfgs[0].point, ctx);
+	}
+	cairo_restore(ctx->cr);
+}
+
+
+static void
 kplotctx_draw_yerrline_pairbars(struct kplotctx *ctx, 
 	size_t start, size_t end, const struct kplotdat *d)
 {
@@ -447,6 +485,39 @@ kplotctx_draw_yerrline_pairmarks(struct kplotctx *ctx,
 		orig.y = d->datas[0]->pairs[i].y -
 			 d->datas[1]->pairs[i].y;
 		kplot_mark(&orig, &d->cfgs[1].point, ctx);
+	}
+
+	cairo_restore(ctx->cr);
+}
+
+static void
+kplotctx_draw_yerrline_pairhyphens(struct kplotctx *ctx,
+	size_t start, size_t end, const struct kplotdat *d)
+{
+	size_t	 	 i;
+	struct kpair	 orig;
+
+	ksubwin_points(ctx);
+	kplotctx_point_init(ctx, &d->cfgs[1].point);
+	for (i = start; i < end; i++) {
+		if ( ! (kpair_vrfy(&d->datas[0]->pairs[i]) &&
+			kpair_vrfy(&d->datas[1]->pairs[i])))
+			continue;
+		orig.x = d->datas[0]->pairs[i].x;
+		orig.y = d->datas[0]->pairs[i].y +
+			 d->datas[1]->pairs[i].y;
+		kplot_hyphen(&orig, &d->cfgs[1].point, ctx);
+	}
+
+	kplotctx_point_init(ctx, &d->cfgs[1].point);
+	for (i = start; i < end; i++) {
+		if ( ! (kpair_vrfy(&d->datas[0]->pairs[i]) &&
+			kpair_vrfy(&d->datas[1]->pairs[i])))
+			continue;
+		orig.x = d->datas[0]->pairs[i].x;
+		orig.y = d->datas[0]->pairs[i].y -
+			 d->datas[1]->pairs[i].y;
+		kplot_hyphen(&orig, &d->cfgs[1].point, ctx);
 	}
 
 	cairo_restore(ctx->cr);
@@ -601,6 +672,24 @@ kplotctx_draw_marks(struct kplotctx *ctx, const struct kplotdat *d)
 	cairo_restore(ctx->cr);
 }
 
+static void
+kplotctx_draw_hyphens(struct kplotctx *ctx, const struct kplotdat *d)
+{
+	size_t		 i;
+	struct kpair	 kp;
+
+	ksubwin_points(ctx);
+	memset(&kp, 0, sizeof(struct kpair));
+	kplotctx_point_init(ctx, &d->cfgs[0].point);
+	for (i = 0; i < d->datas[0]->pairsz; i++) {
+		if ( ! kpair_vrfy(&d->datas[0]->pairs[i]))
+			continue;
+		kpair_set(d, i, &kp);
+		kplot_hyphen(&kp, &d->cfgs[0].point, ctx);
+	}
+	cairo_restore(ctx->cr);
+}
+
 void
 kplotfont_defaults(struct kplotfont *font)
 {
@@ -625,6 +714,8 @@ kplotcfg_defaults(struct kplotcfg *cfg)
 	cfg->ticlabel = TICLABEL_LEFT | TICLABEL_BOTTOM;
 	cfg->xticlabelpad = cfg->yticlabelpad = 15.0;
 	cfg->xtics = cfg->ytics = 5;
+	cfg->xticlabelfmtstr = NULL;
+	cfg->yticlabelfmtstr = NULL;
 
 	/* A bit of margin. */
 	cfg->margin = MARGIN_ALL;
@@ -652,7 +743,7 @@ kplotcfg_defaults(struct kplotcfg *cfg)
 }
 
 void
-kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
+kplot_draw(struct kplot *p, double w, double h, cairo_t *cr, struct kplotctx *ctx_out)
 {
 	size_t	 	 i, start, end;
 	struct kplotctx	 ctx;
@@ -771,10 +862,8 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 	kplotctx_border_init(&ctx);
 	kplotctx_tic_init(&ctx);
 	
-	dimy = ctx.h = ctx.dims.y;
-	dimx = ctx.w = ctx.dims.x;
-	offsx = ctx.offs.x;
-	offsy = ctx.offs.y;
+	ctx.h = ctx.dims.y;
+	ctx.w = ctx.dims.x;
 
 	for (i = 0; i < p->datasz; i++) {
 		d = &p->datas[i];
@@ -787,6 +876,9 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 			case (KPLOT_MARKS):
 				kplotctx_draw_marks(&ctx, d);
 				break;
+			case (KPLOT_HYPHENS):
+				kplotctx_draw_hyphens(&ctx, d);
+				break;
 			case (KPLOT_LINES):
 				kplotctx_draw_lines(&ctx, d);
 				break;
@@ -797,6 +889,10 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 			case (KPLOT_LINESMARKS):
 				kplotctx_draw_marks(&ctx, d);
 				kplotctx_draw_lines(&ctx, d);
+				break;
+			case (KPLOT_LINESHYPHENS):
+				kplotctx_draw_marks(&ctx, d);
+				kplotctx_draw_hyphens(&ctx, d);
 				break;
 			default:
 				abort();
@@ -819,6 +915,10 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 				kplotctx_draw_yerrline_basemarks
 					(&ctx, start, end, d);
 				break;
+			case (KPLOT_HYPHENS):
+				kplotctx_draw_yerrline_basehyphens
+					(&ctx, start, end, d);
+				break;
 			case (KPLOT_LINES):
 				kplotctx_draw_yerrline_baselines
 					(&ctx, start, end, d);
@@ -835,6 +935,12 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 				kplotctx_draw_yerrline_baselines
 					(&ctx, start, end, d);
 				break;
+			case (KPLOT_LINESHYPHENS):
+				kplotctx_draw_yerrline_basehyphens
+					(&ctx, start, end, d);
+				kplotctx_draw_yerrline_basehyphens
+					(&ctx, start, end, d);
+				break;
 			default:
 				abort();
 				break;
@@ -846,6 +952,10 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 				break;
 			case (KPLOT_MARKS):
 				kplotctx_draw_yerrline_pairmarks
+					(&ctx, start, end, d);
+				break;
+			case (KPLOT_HYPHENS):
+				kplotctx_draw_yerrline_pairhyphens
 					(&ctx, start, end, d);
 				break;
 			case (KPLOT_LINES):
@@ -864,6 +974,12 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 				kplotctx_draw_yerrline_pairlines
 					(&ctx, start, end, d);
 				break;
+			case (KPLOT_LINESHYPHENS):
+				kplotctx_draw_yerrline_pairhyphens
+					(&ctx, start, end, d);
+				kplotctx_draw_yerrline_pairhyphens
+					(&ctx, start, end, d);
+				break;
 			default:
 				abort();
 				break;
@@ -876,6 +992,8 @@ kplot_draw(struct kplot *p, double w, double h, cairo_t *cr)
 			break;
 		}
 	}
+	if (ctx_out) // if not NULL, we copy ctx data to be used ooutside
+		memcpy(ctx_out, &ctx, sizeof(struct kplotctx));
 }
 
 int
@@ -915,28 +1033,4 @@ kplotcfg_default_palette(struct kplotccfg **pp, size_t *szp)
 	(*pp)[6].rgba[2] = 0x10 / 255.0;
 
 	return(1);
-}
-
-double
-get_dimx()
-{
-	return dimx;
-}
-
-double
-get_dimy()
-{
-	return dimy;
-}
-
-double
-get_offsx()
-{
-	return offsx;
-}
-
-double
-get_offsy()
-{
-	return offsy;
 }

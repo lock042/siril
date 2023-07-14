@@ -170,6 +170,7 @@ src_files = [
   'io/seqwriter.c',
   'io/ser.c',
   'io/single_image.c',
+  'io/siril_plot.c',
   'io/SirilXISFReader.cpp',
 
   'livestacking/gui.c',
@@ -219,6 +220,7 @@ src_files = [
   'gui/siril_css.c',
   'gui/siril_intro.c',
   'gui/siril_preview.c',
+  'gui/siril_plot.c',
   'gui/siril-window.c',
   'gui/split_cfa.c',
   'gui/star_finder.c',
