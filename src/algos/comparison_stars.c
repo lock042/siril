@@ -350,6 +350,7 @@ int sort_compstars(struct compstars_arg *args) {
 	return nb_phot_stars == 0;
 }
 
+
 static int get_catstars(struct compstars_arg *args) {
 	if (!args->target_star) {
 		siril_log_color_message(_("No variable star selected\n"), "salmon");
