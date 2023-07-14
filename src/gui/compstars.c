@@ -32,6 +32,8 @@ static GtkWidget *delta_vmag_entry = NULL;
 static GtkWidget *delta_bv_entry = NULL;
 static GtkWidget *target_entry = NULL;
 static GtkWidget *apass_radio = NULL;
+static GtkWidget *radio2 = NULL;
+static GtkWidget *radio3 = NULL;
 
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data);
 
@@ -78,16 +80,25 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(delta_bv_entry), "margin-top", 0, NULL);
 
 	/* catalogue choice */
-	GtkWidget *radio2, *radiobox;
-	radiobox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	GtkWidget *labelct = gtk_label_new(_("Catalogue choice:"));
+	gtk_widget_set_halign(labelct, GTK_ALIGN_START);
+	g_object_set(G_OBJECT(labelct), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(labelct), "margin-top", 10, NULL);
+	g_object_set(G_OBJECT(labelct), "margin-bottom", 0, NULL);
+
+	GtkWidget *radiobox;
+	radiobox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	gtk_box_set_homogeneous(GTK_BOX(radiobox), TRUE);
 	gtk_widget_set_tooltip_text(radiobox, _("Recommended catalogue for this feature is APASS"));
 
 	apass_radio = gtk_radio_button_new_with_label_from_widget(NULL, _("APASS catalogue"));
 	radio2 = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON(apass_radio),
 			_("NOMAD catalogue"));
+	radio3 = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON(apass_radio),
+			_("Blind catalogue"));
 	gtk_container_add(GTK_CONTAINER(radiobox), apass_radio);
 	gtk_container_add(GTK_CONTAINER(radiobox), radio2);
+	gtk_container_add(GTK_CONTAINER(radiobox), radio3);
 	g_object_set(G_OBJECT(radiobox), "margin", 15, NULL);
 
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -98,6 +109,7 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), delta_vmag_entry);
 	gtk_container_add(GTK_CONTAINER(content_area), labelbv);
 	gtk_container_add(GTK_CONTAINER(content_area), delta_bv_entry);
+	gtk_container_add(GTK_CONTAINER(content_area), labelct);
 	gtk_container_add(GTK_CONTAINER(content_area), radiobox);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
 }
@@ -143,13 +155,16 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 		return;
 	}
 
-	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
+	int use_catal;
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio))) use_catal = CAT_APASS;
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radio2))) use_catal = CAT_NOMAD;
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radio3))) use_catal = CAT_UNDEF;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 	args->target_name = g_strdup(target_name);
 	args->narrow_fov = TRUE;
-	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
+	args->cat = use_catal;
 	args->delta_Vmag = delta_Vmag;
 	args->delta_BV = delta_BV;
 	args->nina_file = g_strdup("auto");

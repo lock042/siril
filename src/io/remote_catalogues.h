@@ -24,6 +24,7 @@ typedef enum {
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_ASNET = 100,	// solve-field local (astrometry.net)
+	CAT_UNDEF = 999,	// solve-field local (astrometry.net)
 } online_catalog;	// TODO: rename?
 
 const char *catalog_to_str(online_catalog cat);

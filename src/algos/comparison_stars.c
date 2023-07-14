@@ -476,6 +476,11 @@ void chk_compstars(struct compstars_arg *args) {
 gpointer compstars_worker(gpointer arg) {
 	int retval;
 	struct compstars_arg *args = (struct compstars_arg *) arg;
+	if (args->cat == CAT_UNDEF) {		// test for BLIND method
+		siril_log_color_message(_("Trying to use the new BLIND method, not yet implemented!! LOL.\n"), "red");
+		retval = 1;
+		goto end;
+	}
 	// 1. search for the variable star
 	retval = cached_object_lookup(args->target_name, &args->target_star);
 	if (retval)
