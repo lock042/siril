@@ -43,7 +43,7 @@ static gboolean is_inside_grid(double x, double y, plot_draw_data_t *pdd) {
 }
 
 // callbacks
-static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, gpointer data) {
+static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	siril_debug_print("Freeing siril_plot data and closing\n");
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(widget), "spl_data");
 	free_siril_plot_data(spl_data);
@@ -53,7 +53,7 @@ static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, 
 
 static gboolean on_siril_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
 	// retrieve the parent window and its attached spl_data
-	GtkWidget *window = gtk_widget_get_toplevel(widget);
+	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
 		return TRUE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
@@ -78,7 +78,7 @@ static gboolean on_siril_plot_leave_notify_event(GtkWidget *widget, GdkEvent *ev
 }
 
 static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data) {
-	GtkWidget *window = gtk_widget_get_toplevel(widget);
+	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
 		return FALSE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
@@ -105,11 +105,50 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 	return TRUE;
 }
 
+static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return FALSE;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	GtkWidget *menu = (GtkWidget *)g_object_get_data(G_OBJECT(window), "menu_handle");
+	if (!spl_data || !menu)
+		return TRUE;
+	if (event->button == GDK_BUTTON_SECONDARY) {
+		gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+	}
+	return TRUE;
+}
+
+static gboolean on_siril_plot_grid_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return FALSE;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !da)
+		return TRUE;
+	spl_data->cfgplot.grid = (gtk_check_menu_item_get_active(checkmenuitem)) ? GRID_ALL : 0;
+	gtk_widget_queue_draw(da);
+	return TRUE;
+}
+
+static gboolean on_siril_plot_legend_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return FALSE;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !da)
+		return TRUE;
+	spl_data->show_legend = gtk_check_menu_item_get_active(checkmenuitem);
+	gtk_widget_queue_draw(da);
+	return TRUE;
+}
+
 gboolean create_new_siril_plot_window(gpointer p) {
-	GtkWidget *window;
-	GtkWidget *vbox;
-	GtkWidget *da;
-	GtkWidget *label;
+	GtkWidget *window, *vbox, *da, *label, *menu;
+	GtkWidget *spl_menu_grid, *spl_menu_legend;
+	// GtkWidget *spl_menu_save_png, *spl_menu_save_dat, *spl_menu_sep;
 	siril_plot_data *spl_data = (siril_plot_data *)p;
 
 	// sanity checks
@@ -149,11 +188,14 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	da = gtk_drawing_area_new();
 	gtk_widget_set_size_request(da, SIRIL_PLOT_DISPLAY_WIDTH, SIRIL_PLOT_DISPLAY_HEIGHT);
 	gtk_box_pack_start(GTK_BOX(vbox), da, TRUE, TRUE, 0);
-	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
-	g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_siril_plot_draw), NULL);
-	g_signal_connect(G_OBJECT(da), "enter-notify-event", G_CALLBACK(on_siril_plot_enter_notify_event), NULL);
-	g_signal_connect(G_OBJECT(da), "leave-notify-event", G_CALLBACK(on_siril_plot_leave_notify_event), NULL);
-	g_signal_connect(G_OBJECT(da), "motion-notify-event", G_CALLBACK(on_siril_plot_motion_notify_event), NULL);
+	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
+	g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_siril_plot_draw), window);
+	g_signal_connect(G_OBJECT(da), "enter-notify-event", G_CALLBACK(on_siril_plot_enter_notify_event), window);
+	g_signal_connect(G_OBJECT(da), "leave-notify-event", G_CALLBACK(on_siril_plot_leave_notify_event), window);
+	g_signal_connect(G_OBJECT(da), "motion-notify-event", G_CALLBACK(on_siril_plot_motion_notify_event), window);
+	g_signal_connect(G_OBJECT(da), "button-press-event", G_CALLBACK(on_siril_plot_button_press_event), window);
+	// and cache its handle
+	g_object_set_data(G_OBJECT(window), "drawing_area_handle", da);
 
 	// add the label
 	label = gtk_label_new("0;0");
@@ -161,6 +203,25 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_widget_set_halign(label, GTK_ALIGN_START);
 	// and cache its handle
 	g_object_set_data(G_OBJECT(window), "display_label_handle", label);
+
+	// add the pop-up menu
+	menu = gtk_menu_new();
+	// grid
+	gtk_menu_attach_to_widget(GTK_MENU(menu), window, NULL);
+	spl_menu_grid = gtk_check_menu_item_new_with_label("Grid");
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(spl_menu_grid), TRUE);
+	g_signal_connect(G_OBJECT(spl_menu_grid), "toggled", G_CALLBACK(on_siril_plot_grid_toggled), window);
+
+	// legend
+	spl_menu_legend = gtk_check_menu_item_new_with_label("Legend");
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(spl_menu_legend), TRUE);
+	g_signal_connect(G_OBJECT(spl_menu_legend), "toggled", G_CALLBACK(on_siril_plot_legend_toggled), window);
+
+	gtk_container_add(GTK_CONTAINER(menu), spl_menu_grid);
+	gtk_container_add(GTK_CONTAINER(menu), spl_menu_legend);
+	gtk_widget_show_all(menu);
+	// and cache its handle
+	g_object_set_data(G_OBJECT(window), "menu_handle", menu);
 
 	gtk_widget_show_all(window);
 	return FALSE;
