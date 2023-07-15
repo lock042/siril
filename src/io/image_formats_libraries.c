@@ -787,8 +787,12 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = width * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(save_transform);
+		if (bitspersample != 32) {
+			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			cmsDeleteTransform(save_transform);
+		} else {
+			memcpy(dest, buf, bytesperplane * nsamples);
+		}
 		// 32 bit files are always saved in the working color space with the ICC profile
 		// embedded. If you want 32-bit sRGB output you need to convert the color space yourself.
 		gbuf[0] = (WORD *) dest;
