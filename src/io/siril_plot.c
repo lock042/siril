@@ -201,7 +201,7 @@ void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
 }
 
 // utilities
-static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax, int *sig) {
+static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax) {
 	double extent = vmax - vmin;
 	if (extent <= 0.)
 		return FALSE;
@@ -226,10 +226,7 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 	tics *= power;
 	*tmin = floor(vmin / tics) * tics;
 	*tmax = ceil(vmax / tics) * tics;
-	*nbtics = (int)((*tmax - *tmin) / tics) + 1;
-	//computing number of decimals
-	double logtics = log10(tics);
-	*sig = abs((int)floor(min(0., logtics)));
+	*nbtics = (int)round(((*tmax - *tmin) / tics)) + 1;
 	// siril_debug_print("autotic:\t%g\t%g=>%d\t%g\t%g\n", vmin, vmax, *nbtics, *tmin, *tmax);
 	return TRUE;
 }
@@ -301,9 +298,9 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 
 	// computing the tics spacing and bounds
 	double xmin, xmax, ymin, ymax;
-	int nbticX,nbticY, sigX, sigY;
-	if (siril_plot_autotic(spl_data->datamin.x, spl_data->datamax.x, &nbticX, &xmin, &xmax, &sigX) &&
-		siril_plot_autotic(spl_data->datamin.y, spl_data->datamax.y, &nbticY, &ymin, &ymax, &sigY)) {
+	int nbticX,nbticY;
+	if (siril_plot_autotic(spl_data->datamin.x, spl_data->datamax.x, &nbticX, &xmin, &xmax) &&
+		siril_plot_autotic(spl_data->datamin.y, spl_data->datamax.y, &nbticY, &ymin, &ymax)) {
 		spl_data->cfgplot.extrema = 0x0F;
 		spl_data->cfgplot.extrema_xmin = xmin;
 		spl_data->cfgplot.extrema_xmax = xmax;
