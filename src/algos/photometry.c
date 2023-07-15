@@ -458,6 +458,8 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 			siril_plot_set_xlabel(spl_data, xlabel);
 			siril_plot_set_yfmt(spl_data, "%g");
 			spl_data->revertY = TRUE;
+			siril_plot_set_savename(spl_data, "light_curve");
+			spl_data->forsequence = TRUE;
 			double *date0 = malloc(nb_valid_images * sizeof(double));
 			for (int i = 0; i < nb_valid_images; i++)
 				date0[i] = date[i] - julian0;

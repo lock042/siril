@@ -829,6 +829,8 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		spl_data->revertY = TRUE;
 		siril_plot_set_xlabel(spl_data, xlabel);
 		siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, x, vmag, err, NULL);
+		siril_plot_set_savename(spl_data, "light_curve");
+		spl_data->forsequence = TRUE;
 		create_new_siril_plot_window(spl_data);
 	}
 

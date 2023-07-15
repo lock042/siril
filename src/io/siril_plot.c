@@ -108,6 +108,8 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->ylabel = NULL;
 	spl_data->xfmt = NULL;
 	spl_data->yfmt = NULL;
+	spl_data->savename = NULL;
+	spl_data->forsequence = FALSE;
 	spl_data->plottype = KPLOT_LINES;
 	spl_data->plotstype = KPLOTS_YERRORBAR;
 	spl_data->plotstypes[0] = KPLOT_POINTS;
@@ -153,6 +155,7 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	g_free(spl_data->ylabel);
 	g_free(spl_data->xfmt);
 	g_free(spl_data->yfmt);
+	g_free(spl_data->savename);
 	// freeing the xy and xyerr plots
 	g_list_free_full(spl_data->plot, (GDestroyNotify)free_list_plot);
 	g_list_free_full(spl_data->plots, (GDestroyNotify)free_list_plots);
@@ -189,6 +192,12 @@ void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt) {
 	if (spl_data->yfmt)
 		g_free(spl_data->yfmt);
 	spl_data->yfmt = g_strdup(yfmt);
+}
+
+void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
+	if (spl_data->savename)
+		g_free(spl_data->savename);
+	spl_data->savename = g_strdup(savename);
 }
 
 // utilities

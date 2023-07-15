@@ -64,6 +64,8 @@ typedef struct siril_plot_data_struct {
 	gchar *ylabel; //ylabel
 	gchar *xfmt; // x axis number format
 	gchar *yfmt; // y axis number format
+	gchar *savename; // chain to be prepended when interactively saving (png, dat)
+	gboolean forsequence; // using for saving 
 	enum kplottype plottype;
 	enum kplotstype plotstype;
 	enum kplottype plotstypes[3];
@@ -85,6 +87,7 @@ void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
 void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);
 void siril_plot_set_xfmt(siril_plot_data *spl_data, const gchar *xfmt);
 void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt);
+void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename);
 
 gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm);
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height);

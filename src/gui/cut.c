@@ -665,6 +665,7 @@ gpointer cut_profile(gpointer p) {
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_xlabel(spl_data, xlabel);
 		siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
+		siril_plot_set_savename(spl_data, "profile");
 		if (arg->fit->naxes[2] == 3 && arg->mode != CUT_MONO) {
 			siril_plot_add_xydata(spl_data, "G", nbr_points, x, g, NULL, NULL);
 			siril_plot_add_xydata(spl_data, "B", nbr_points, x, b, NULL, NULL);
@@ -859,6 +860,7 @@ gpointer tri_cut(gpointer p) {
 		init_siril_plot_data(spl_data);
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_set_savename(spl_data, "profile");
 		siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
 		siril_plot_add_xydata(spl_data, spllabels[1], nbr_points, x, r[1], NULL, NULL);
 		siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
@@ -1020,6 +1022,7 @@ gpointer cfa_cut(gpointer p) {
 		init_siril_plot_data(spl_data);
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_set_savename(spl_data, "profile");
 		siril_plot_add_xydata(spl_data, "CFA0", nbr_points, x, r[0], NULL, NULL);
 		siril_plot_add_xydata(spl_data, "CFA1", nbr_points, x, r[1], NULL, NULL);
 		siril_plot_add_xydata(spl_data, "CFA2", nbr_points, x, r[2], NULL, NULL);

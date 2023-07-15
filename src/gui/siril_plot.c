@@ -21,8 +21,13 @@
 #include "io/siril_plot.h"
 
 #include <cairo.h>
+#include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/siril_date.h"
 #include "gui/progress_and_log.h"
+#include "gui/utils.h"
+#include "io/sequence.h"
+#include "io/single_image.h"
 
 // utilities
 static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
@@ -40,6 +45,36 @@ static gboolean is_inside_grid(double x, double y, plot_draw_data_t *pdd) {
 		y >= pdd->offset.y)
 			return TRUE;
 	return FALSE;
+}
+
+static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp){
+	gchar *temp = NULL, *timestamp = NULL;
+	GString *filename = NULL;
+	
+	filename = g_string_new(prepend);
+
+	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+		temp = g_path_get_basename(com.uniq->filename);
+	} else if (sequence_is_loaded() && !forsequence) {
+		char* seq_image_canonical_name = calloc(256, 1);
+		seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
+		temp = g_strdup(seq_image_canonical_name);
+		free(seq_image_canonical_name);
+	}
+	if (temp) {
+		gchar *tmp = remove_ext_from_filename(temp);
+		g_string_append_printf(filename, "_%s", temp);
+		g_free(temp);
+		g_free(tmp);
+	}
+
+		timestamp = build_timestamp_filename();
+	if (add_time_stamp) {
+		g_string_append_printf(filename, "_%s", timestamp);
+		g_free(timestamp);
+	}
+	g_string_append_printf(filename, "%s", ext);
+	return g_string_free(filename, FALSE);
 }
 
 // callbacks
@@ -119,36 +154,49 @@ static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButt
 	return TRUE;
 }
 
-static gboolean on_siril_plot_grid_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
+static void on_siril_plot_grid_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
-		return FALSE;
+		return;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
 	if (!spl_data || !da)
-		return TRUE;
+		return;
 	spl_data->cfgplot.grid = (gtk_check_menu_item_get_active(checkmenuitem)) ? GRID_ALL : 0;
 	gtk_widget_queue_draw(da);
-	return TRUE;
 }
 
-static gboolean on_siril_plot_legend_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
+static void on_siril_plot_legend_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
-		return FALSE;
+		return;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
 	if (!spl_data || !da)
-		return TRUE;
+		return;
 	spl_data->show_legend = gtk_check_menu_item_get_active(checkmenuitem);
 	gtk_widget_queue_draw(da);
-	return TRUE;
+	return;
+}
+
+static void on_siril_plot_save_png_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !da)
+		return;
+	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	siril_plot_save_png(spl_data, filename);
+	g_free(filename);
 }
 
 gboolean create_new_siril_plot_window(gpointer p) {
 	GtkWidget *window, *vbox, *da, *label, *menu;
 	GtkWidget *spl_menu_grid, *spl_menu_legend;
-	// GtkWidget *spl_menu_save_png, *spl_menu_save_dat, *spl_menu_sep;
+	GtkWidget *spl_menu_save_png, *spl_menu_save_dat, *spl_menu_sep;
 	siril_plot_data *spl_data = (siril_plot_data *)p;
 
 	// sanity checks
@@ -206,6 +254,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 
 	// add the pop-up menu
 	menu = gtk_menu_new();
+
 	// grid
 	gtk_menu_attach_to_widget(GTK_MENU(menu), window, NULL);
 	spl_menu_grid = gtk_check_menu_item_new_with_label("Grid");
@@ -217,8 +266,23 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(spl_menu_legend), TRUE);
 	g_signal_connect(G_OBJECT(spl_menu_legend), "toggled", G_CALLBACK(on_siril_plot_legend_toggled), window);
 
+	// sep
+	spl_menu_sep = gtk_separator_menu_item_new();
+
+	// save as png
+	spl_menu_save_png = gtk_menu_item_new_with_label("Save as PNG...");
+	g_signal_connect(G_OBJECT(spl_menu_save_png), "activate", G_CALLBACK(on_siril_plot_save_png_activate), window);
+
+	// save as dat
+	spl_menu_save_dat = gtk_menu_item_new_with_label("Export dat file...");
+
+	//fill the menu
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_grid);
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_legend);
+	gtk_container_add(GTK_CONTAINER(menu), spl_menu_sep);
+	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_png);
+	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_dat);
+
 	gtk_widget_show_all(menu);
 	// and cache its handle
 	g_object_set_data(G_OBJECT(window), "menu_handle", menu);
