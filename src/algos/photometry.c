@@ -456,7 +456,6 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 			init_siril_plot_data(spl_data);
 			siril_plot_set_title(spl_data, title);
 			siril_plot_set_xlabel(spl_data, xlabel);
-			siril_plot_set_yfmt(spl_data, "%g");
 			spl_data->revertY = TRUE;
 			siril_plot_set_savename(spl_data, "light_curve");
 			spl_data->forsequence = TRUE;

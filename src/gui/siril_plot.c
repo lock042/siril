@@ -176,7 +176,6 @@ static void on_siril_plot_legend_toggled(GtkCheckMenuItem *checkmenuitem, gpoint
 		return;
 	spl_data->show_legend = gtk_check_menu_item_get_active(checkmenuitem);
 	gtk_widget_queue_draw(da);
-	return;
 }
 
 static void on_siril_plot_save_png_activate(GtkMenuItem *menuitem, gpointer user_data) {
@@ -295,7 +294,6 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_sep);
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_png);
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_dat);
-
 	gtk_widget_show_all(menu);
 	// and cache its handle
 	g_object_set_data(G_OBJECT(window), "menu_handle", menu);
