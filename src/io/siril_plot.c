@@ -536,6 +536,111 @@ gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
 	return success;
 }
 
+// save the data to a dat file
+gboolean siril_plot_save_dat(siril_plot_data *spl_data, char *datfilename) {
+	GString *header = NULL;
+	FILE* fileout = NULL;
+	gboolean retval = TRUE;
+	double *data = NULL;
+
+	// TODO: for the time-being, we will assume that x of the first series
+	// is valid for all other series. May need to complexify this in the future
+	int nbpoints = 0, nbcols = 1, nbgraphs = 0, j = 0;
+	header = g_string_new("x");
+	// xylines
+	for (GList *list = spl_data->plot; list; list = list->next) {
+		splxydata *plot = (splxydata *)list->data;
+		gchar *label = (plot->label) ? g_strdup(plot->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
+		replace_spaces_from_str(label, '_');
+		g_string_append_printf(header, " %s", label);
+		g_free(label);
+		if (nbpoints == 0)
+			nbpoints = plot->nb;
+		nbgraphs++;
+		nbcols++;
+	}
+	// xy points with y error bars
+	for (GList *list = spl_data->plots; list; list = list->next) {
+		splxyerrdata *plots = (splxyerrdata *)list->data;
+		gchar *label = (plots->label) ? g_strdup(plots->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
+		replace_spaces_from_str(label, '_');
+		g_string_append_printf(header, " %s %s_err+ %s_err-", label, label, label);
+		g_free(label);
+		if (nbpoints == 0)
+			nbpoints = plots->nb;
+		nbgraphs++;
+		nbcols += 3;
+	}
+	siril_log_message("%s\n", header->str);
+
+	// gathering all the data
+	data = malloc(nbpoints * nbcols * sizeof(double));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+	for (GList *list = spl_data->plot; list; list = list->next) {
+		splxydata *plot = (splxydata *)list->data;
+		// adding x if none is present
+		if (j == 0) {
+			int index = j;
+			for (int i = 0; i < nbpoints; i++) {
+				data[index] = plot->data[i].x;
+				index += nbcols;
+			}
+			j++;
+		}
+		// adding y
+		int index = j;
+		for (int i = 0; i < nbpoints; i++) {
+			data[index] = plot->data[i].y;
+			index += nbcols;
+		}
+		j++;
+	}
+	for (GList *list = spl_data->plots; list; list = list->next) {
+		splxyerrdata *plots = (splxyerrdata *)list->data;
+		// adding x if none is present
+		if (j == 0) {
+			int index = j;
+			for (int i = 0; i < nbpoints; i++) {
+				data[index] = plots->plots[0]->data[i].x;
+				index += nbcols;
+			}
+			j++;
+		}
+		// adding ys
+		int index = j;
+		for (int i = 0; i < nbpoints; i++) {
+			for (int k = 0; k < 3; k++)
+				data[index + k] = plots->plots[k]->data[i].y;
+			index += nbcols;
+		}
+		j += 3;
+	}
+	fileout = g_fopen(datfilename, "w");
+	if (fileout == NULL) {
+		siril_log_message(_("Could not create %s, aborting\n"));
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+	fprintf(fileout, "%s", header->str);
+	int index = 0;
+	for (int r = 0 ; r < nbpoints ; r++) {
+		fprintf(fileout, "\n%g", data[index++]); // print newline and x
+		for (int c = 1 ; c < nbcols ; c++)
+			fprintf(fileout, " %g", data[index++]);
+	}
+	fclose(fileout);
+	siril_log_message(_("%s has been saved.\n"), datfilename);
+
+clean_and_exit:
+	g_string_free(header, TRUE);
+	free(data);
+	return retval;
+}
+
 
 
 

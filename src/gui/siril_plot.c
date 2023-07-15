@@ -63,7 +63,7 @@ static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequen
 	}
 	if (temp) {
 		gchar *tmp = remove_ext_from_filename(temp);
-		g_string_append_printf(filename, "_%s", temp);
+		g_string_append_printf(filename, "_%s", tmp);
 		g_free(temp);
 		g_free(tmp);
 	}
@@ -184,12 +184,24 @@ static void on_siril_plot_save_png_activate(GtkMenuItem *menuitem, gpointer user
 	if (!window)
 		return;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !da)
+	if (!spl_data)
 		return;
 	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_plot_save_png(spl_data, filename);
+	g_free(filename);
+}
+
+static void on_siril_plot_save_dat_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	if (!spl_data)
+		return;
+	gchar *filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, TRUE);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	siril_plot_save_dat(spl_data, filename);
 	g_free(filename);
 }
 
@@ -270,11 +282,12 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	spl_menu_sep = gtk_separator_menu_item_new();
 
 	// save as png
-	spl_menu_save_png = gtk_menu_item_new_with_label("Save as PNG...");
+	spl_menu_save_png = gtk_menu_item_new_with_label("Save view as PNG");
 	g_signal_connect(G_OBJECT(spl_menu_save_png), "activate", G_CALLBACK(on_siril_plot_save_png_activate), window);
 
 	// save as dat
-	spl_menu_save_dat = gtk_menu_item_new_with_label("Export dat file...");
+	spl_menu_save_dat = gtk_menu_item_new_with_label("Export dat file");
+	g_signal_connect(G_OBJECT(spl_menu_save_dat), "activate", G_CALLBACK(on_siril_plot_save_dat_activate), window);
 
 	//fill the menu
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_grid);
