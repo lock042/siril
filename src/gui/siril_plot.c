@@ -305,7 +305,7 @@ static void on_siril_plot_save_png_activate(GtkMenuItem *menuitem, gpointer user
 	if (!spl_data)
 		return;
 	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
-	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("PNG file (*.png)"), "*.png");
+	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("PNG files (*.png)"), "*.png");
 	if (outname) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		siril_plot_save_png(spl_data, outname);
@@ -323,7 +323,7 @@ static void on_siril_plot_save_svg_activate(GtkMenuItem *menuitem, gpointer user
 	if (!spl_data)
 		return;
 	gchar *filename = build_save_filename(spl_data->savename, ".svg", spl_data->forsequence, TRUE);
-	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("SVG file (*.svg)"), "*.svg");
+	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("SVG files (*.svg)"), "*.svg");
 	if (outname) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		siril_plot_save_svg(spl_data, outname);
@@ -341,7 +341,7 @@ static void on_siril_plot_save_dat_activate(GtkMenuItem *menuitem, gpointer user
 	if (!spl_data)
 		return;
 	gchar *filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, FALSE);
-	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT file (*.png)"), "*.dat");
+	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT files (*.dat)"), "*.dat");
 	if (outname) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		siril_plot_save_dat(spl_data, outname);
