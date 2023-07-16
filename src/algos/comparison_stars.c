@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
+//#ifndef _GNU_SOURCE
+//#define _GNU_SOURCE
+//#endif
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+//#include <fcntl.h>
+//#include <errno.h>
 #include <dirent.h>
 
 #include <gtk/gtk.h>
@@ -486,48 +486,45 @@ void chk_compstars(struct compstars_arg *args) {
 static int getmyfiles() {
 	struct dirent *pDirent;
 	DIR *pDir;
-///	sequence *seq;
 	char *ext = NULL;
 	int lst_valid = 0, lst_nbr = 0;
-///	siril_log_color_message(_("seqname %s \n"), "red", seq->seqname);
-	// Ensure correct argument count.
 
-
+	gchar *seq_basename = g_path_get_basename(com.seq.seqname);	// No need to check if a sequence exists as it's been done before 
 
 	// Ensure we can open directory.
-
 	pDir = opendir (g_get_current_dir ());
 	if (pDir == NULL) {
-		printf ("Cannot open directory '%s'\n", g_get_current_dir ());
+		//printf ("Cannot open directory '%s'\n", g_get_current_dir ());
 		return 1;
 	}
 
 	// Process each entry.
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	while ((pDirent = readdir(pDir)) != NULL) {
+	while ((pDirent = readdir(pDir)) != NULL) {		// Loop over all the files of the folder
 		lst_valid = FALSE;
+
+		// Looking for any file:
+		// - with a .lst extension (result of a 2-pass registration)
+		// - applied to the current loaded sequence
+		// - actually selected in the frame selector (TODO)
 		ext = strrchr(pDirent->d_name, '.');
-		if (ext && !strcmp(ext + 1, "lst")) {
+		if (ext && !strcmp(ext + 1, "lst") && g_str_has_prefix(pDirent->d_name, seq_basename)) {
 			lst_valid = TRUE;
 			lst_nbr++;
-			siril_log_color_message(_("Extension is %s for the file %s\n"), "red", get_filename_ext(pDirent->d_name), pDirent->d_name);
 		} 
 
+		// Open a new file
 		FILE* fp = fopen(pDirent->d_name, "r");
-//		if (fp != NULL)	fclose(fp);
 		if (!fp) {
-//			siril_log_message(_("Could not open file %s: %s\n"), pDirent->d_name, strerror(errno));
+			printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
+			fclose (fp);
 			continue;
 		}
 
 		char buf[512];
 		int nbr_lines = 0;
 		while (fgets(buf, 512, fp) && lst_valid) {
-//		if (lst_valid){
-//			fgets(buf, 512, fp);
-///			siril_log_color_message(_("Smth to show in %s\n"), "green", pDirent->d_name);
-			nbr_lines++;
 			if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
 				continue;
 			remove_trailing_eol(buf);
@@ -536,22 +533,28 @@ static int getmyfiles() {
 
 			gchar *type = tokens[0];
 			if (!strcasecmp(type, "#")) continue;	// skip comment line
-
+			nbr_lines++;
 			g_strfreev(tokens);
-			//g_strfreev(tokens);
+
 
 		}
-		if (lst_valid) siril_log_color_message(_("Nbr of lines: %d in %s\n"), "green", nbr_lines, pDirent->d_name);
-		fclose(fp);
-		
 
+		//Closing current file
+		fclose(fp);
 	}
+
+	// Duration calculation and display
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	
 	siril_log_color_message(_("Number of lst files %d \n"), "salmon", lst_nbr);
+	if (!lst_nbr){
+		siril_log_color_message(_("There is no registration data.\n"), "red");
+		siril_log_color_message(_("You should first perform the first step of a 2-Pass registration (without applying).\n"), "red");
+		return 1;
+	}
+
 	// Close directory and exit.
-	
 	closedir (pDir);
 	return 0;
 }
