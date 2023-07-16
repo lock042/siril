@@ -1175,7 +1175,33 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
+	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit.icc_profile);
+	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
+	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
+	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
+
+	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
+		return;
+	}
+	if (gfit_colorspace_channels != target_colorspace_channels) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
+		return;
+	}
+
+	// Do the transform
 	siril_colorspace_transform(&gfit, target);
+
+	// Assign the new color space to gfit
+	if (gfit.icc_profile) {
+		cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = NULL;
+	}
+	gfit.icc_profile = copyICCProfile(target);
+	set_source_information();
+	refresh_icc_transforms();
+	notify_gfit_modified();
+
 }
 
 void icc_channels_mismatch() {
