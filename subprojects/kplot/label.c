@@ -25,6 +25,8 @@
 #include "kplot.h"
 #include "extern.h"
 
+#define kplot_eps 1.e-15
+
 static void
 bbox_extents(struct kplotctx *ctx, const char *v, 
 	double *h, double *w, double rot)
@@ -60,6 +62,7 @@ kplotctx_label_init(struct kplotctx *ctx)
 		v = (ctx->cfg.xaxisrevert) ? 
 		ctx->minv.x + (1. - offs) * (ctx->maxv.x - ctx->minv.x) :
 		ctx->minv.x + offs * (ctx->maxv.x - ctx->minv.x);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		/* Call out to xformat function. */
 		if (ctx->cfg.xticlabelfmtstr)
 			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, v);
@@ -105,6 +108,7 @@ kplotctx_label_init(struct kplotctx *ctx)
 		v = (ctx->cfg.yaxisrevert) ? 
 		ctx->minv.y + (1. - offs) * (ctx->maxv.y - ctx->minv.y) :
 		ctx->minv.y + offs * (ctx->maxv.y - ctx->minv.y);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		if (ctx->cfg.yticlabelfmtstr)
 			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.yticlabelfmt)
@@ -219,6 +223,7 @@ kplotctx_label_init(struct kplotctx *ctx)
 		v = (ctx->cfg.xaxisrevert) ? 
 		ctx->minv.x + (1. - offs) * (ctx->maxv.x - ctx->minv.x) :
 		ctx->minv.x + offs * (ctx->maxv.x - ctx->minv.x);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		if (ctx->cfg.xticlabelfmtstr)
 			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.xticlabelfmt)
@@ -269,6 +274,7 @@ kplotctx_label_init(struct kplotctx *ctx)
 		v = (ctx->cfg.yaxisrevert) ? 
 		ctx->minv.y + (1. - offs) * (ctx->maxv.y - ctx->minv.y) :
 		ctx->minv.y + offs * (ctx->maxv.y - ctx->minv.y);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		if (ctx->cfg.yticlabelfmtstr)
 			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.yticlabelfmt)
