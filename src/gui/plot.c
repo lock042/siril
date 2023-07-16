@@ -199,11 +199,11 @@ static gboolean is_inside_selection(double x, double y) {
 	return FALSE;
 }
 
-static gboolean is_inside_grid(double x, double y) {
-	if (x <= pdd.offset.x + pdd.range.x + SEL_TOLERANCE &&
-		x >= pdd.offset.x - SEL_TOLERANCE &&
-		y <= pdd.offset.y + pdd.range.y + SEL_TOLERANCE &&
-		y >= pdd.offset.y - SEL_TOLERANCE)
+gboolean is_inside_grid(double x, double y, plot_draw_data_t *pdd) {
+	if (x <= pdd->offset.x + pdd->range.x + SEL_TOLERANCE &&
+		x >= pdd->offset.x - SEL_TOLERANCE &&
+		y <= pdd->offset.y + pdd->range.y + SEL_TOLERANCE &&
+		y >= pdd->offset.y - SEL_TOLERANCE)
 			return TRUE;
 	return FALSE;
 }
@@ -1076,13 +1076,13 @@ static void validate_combos() {
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 	validate_combos();
 	requires_seqlist_update = TRUE;
-	reset_plot_zoom();
+	reset_plot_zoom(&pdd);
 	drawPlot();
 }
 
 void reset_plot() {
 	free_plot_data();
-	reset_plot_zoom();
+	reset_plot_zoom(&pdd);
 	int layer;
 	if (sourceCombo) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
@@ -1869,7 +1869,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	} else {
 		set_cursor("tcross");
 	}
-	if (is_inside_grid(x, y)) {
+	if (is_inside_grid(x, y, &pdd)) {
 		double index, xpos, ypos;
 		gboolean getvals = get_index_of_frame(x, y, FALSE, &index, &xpos, &ypos);
 		gchar *tooltip_text;
@@ -1996,7 +1996,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			return TRUE;
 		}
 		// open or exclude image (if close enough to a data point)
-		if (is_inside_grid(x, y) && event->button == GDK_BUTTON_SECONDARY) {
+		if (is_inside_grid(x, y, &pdd) && event->button == GDK_BUTTON_SECONDARY) {
 			do_popup_singleframemenu(widget, event);
 			return TRUE;
 		}
@@ -2005,7 +2005,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
 		enum border_type border = is_over_selection_border(x, y);
 		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
-			reset_plot_zoom();
+			reset_plot_zoom(&pdd);
 			return TRUE;
 		} else if (is_inside_selection(x, y)) { // start moving selection
 			pdd.action = SELACTION_MOVING;
@@ -2126,7 +2126,7 @@ void on_menu_plot_item2_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		}
 	} else {
 		select_unselect_frames_from_list(pdd.selected, TRUE);
-		reset_plot_zoom();
+		reset_plot_zoom(&pdd);
 		drawPlot();
 	}
 }
@@ -2135,7 +2135,7 @@ void on_menu_plot_item3_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		return;
 	} else {
 		select_unselect_frames_from_list(pdd.selected, FALSE);
-		reset_plot_zoom();
+		reset_plot_zoom(&pdd);
 		drawPlot();
 	}
 }

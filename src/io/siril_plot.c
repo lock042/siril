@@ -120,6 +120,7 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->show_legend = TRUE;
 	spl_data->revertX = FALSE;
 	spl_data->revertY = FALSE;
+	spl_data->interactive = FALSE;
 
 	// initializing kplot cfg structs
 	kplotcfg_defaults(&spl_data->cfgplot);
@@ -297,10 +298,14 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	spl_data->cfgplot.yaxisrevert = (spl_data->revertY) ? 1 : 0;
 
 	// computing the tics spacing and bounds
+	double x1 = (!spl_data->interactive) ? spl_data->datamin.x : spl_data->pdd.datamin.x;
+	double x2 = (!spl_data->interactive) ? spl_data->datamax.x : spl_data->pdd.datamax.x;
+	double y1 = (!spl_data->interactive) ? spl_data->datamin.y : spl_data->pdd.datamin.y;
+	double y2 = (!spl_data->interactive) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
 	double xmin, xmax, ymin, ymax;
 	int nbticX,nbticY;
-	if (siril_plot_autotic(spl_data->datamin.x, spl_data->datamax.x, &nbticX, &xmin, &xmax) &&
-		siril_plot_autotic(spl_data->datamin.y, spl_data->datamax.y, &nbticY, &ymin, &ymax)) {
+	if (siril_plot_autotic(x1, x2, &nbticX, &xmin, &xmax) &&
+		siril_plot_autotic(y1, y2, &nbticY, &ymin, &ymax)) {
 		spl_data->cfgplot.extrema = 0x0F;
 		spl_data->cfgplot.extrema_xmin = xmin;
 		spl_data->cfgplot.extrema_xmax = xmax;
@@ -308,18 +313,18 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.extrema_ymax = ymax;
 		spl_data->cfgplot.xtics = nbticX;
 		spl_data->cfgplot.ytics = nbticY;
-		spl_data->pdd.datamin = (point){xmin, ymin};
-		spl_data->pdd.datamax = (point){xmax, ymax};
+		spl_data->pdd.pdatamin = (point){xmin, ymin};
+		spl_data->pdd.pdatamax = (point){xmax, ymax};
 	} else {  // fallback
 		spl_data->cfgplot.extrema = 0x0F;
-		spl_data->cfgplot.extrema_xmin = spl_data->datamin.x;
-		spl_data->cfgplot.extrema_xmax = spl_data->datamax.x;
-		spl_data->cfgplot.extrema_ymin = spl_data->datamin.y;
-		spl_data->cfgplot.extrema_ymax = spl_data->datamax.y;
+		spl_data->cfgplot.extrema_xmin = x1;
+		spl_data->cfgplot.extrema_xmax = x2;
+		spl_data->cfgplot.extrema_ymin = y1;
+		spl_data->cfgplot.extrema_ymax = y2;
 		spl_data->cfgplot.xtics = 5;
 		spl_data->cfgplot.ytics = 5;
-		spl_data->pdd.datamin = spl_data->datamin;
-		spl_data->pdd.datamax = spl_data->datamax;
+		spl_data->pdd.pdatamin = (point){x1, y1};
+		spl_data->pdd.pdatamax = (point){x2, y2};
 	}
 	// if the formats are forced by caller, they are passed
 	if (spl_data->xfmt) {

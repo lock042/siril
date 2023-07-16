@@ -21,6 +21,7 @@
 #include "io/siril_plot.h"
 
 #include <cairo.h>
+#include <math.h>
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -36,15 +37,6 @@ static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	// siril_debug_print("Plot: %d\n", g_list_length(spl_data->plot));
 	// siril_debug_print("Plots: %d\n", g_list_length(spl_data->plots));
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
-}
-
-static gboolean is_inside_grid(double x, double y, plot_draw_data_t *pdd) {
-	if (x <= pdd->offset.x + pdd->range.x &&
-		x >= pdd->offset.x &&
-		y <= pdd->offset.y + pdd->range.y &&
-		y >= pdd->offset.y)
-			return TRUE;
-	return FALSE;
 }
 
 static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp){
@@ -68,13 +60,34 @@ static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequen
 		g_free(tmp);
 	}
 
-		timestamp = build_timestamp_filename();
+	timestamp = build_timestamp_filename();
 	if (add_time_stamp) {
 		g_string_append_printf(filename, "_%s", timestamp);
 		g_free(timestamp);
 	}
 	g_string_append_printf(filename, "%s", ext);
 	return g_string_free(filename, FALSE);
+}
+
+static void convert_surface_to_plot(siril_plot_data *spl_data, double x, double y, double *xpl, double *ypl) {
+	if (!spl_data->revertX)
+		*xpl = spl_data->pdd.pdatamin.x + (x - spl_data->pdd.offset.x) / spl_data->pdd.range.x * (spl_data->pdd.pdatamax.x - spl_data->pdd.pdatamin.x);
+	else
+		*xpl = spl_data->pdd.pdatamax.x - (x - spl_data->pdd.offset.x) / spl_data->pdd.range.x * (spl_data->pdd.pdatamax.x - spl_data->pdd.pdatamin.x);
+	if (!spl_data->revertY)
+		*ypl = spl_data->pdd.pdatamax.y - (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.pdatamax.y - spl_data->pdd.pdatamin.y);
+	else
+		*ypl = spl_data->pdd.pdatamin.y + (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.pdatamax.y - spl_data->pdd.pdatamin.y);
+}
+
+static void reset_selection(plot_draw_data_t *pdd) {
+	pdd->action = SELACTION_NONE;
+	pdd->selection = (rectangled){0., 0., 0., 0.};
+}
+
+static void reset_zoom(siril_plot_data *spl_data) {
+	spl_data->pdd.datamin = spl_data->datamin;
+	spl_data->pdd.datamax = spl_data->datamax;
 }
 
 // callbacks
@@ -99,6 +112,28 @@ static gboolean on_siril_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer user
 	double height = gtk_widget_get_allocated_height(widget);
 	if (!siril_plot_draw(cr, spl_data, width, height))
 		siril_debug_print("Problem while creating siril_plot\n");
+	// drawing the selection box
+	if (fabs(spl_data->pdd.selection.w) > 1. || fabs(spl_data->pdd.selection.h) > 1.) {
+		double xc, yc, w, h;
+		if (spl_data->pdd.selection.w > 0) {
+			xc = spl_data->pdd.selection.x;
+			w = spl_data->pdd.selection.w;
+		} else {
+			w = -spl_data->pdd.selection.w;
+			xc = spl_data->pdd.selection.x - w;
+		}
+		if (spl_data->pdd.selection.h > 0) {
+			yc = spl_data->pdd.selection.y;
+			h = spl_data->pdd.selection.h;
+		} else {
+			h = -spl_data->pdd.selection.h;
+			yc = spl_data->pdd.selection.y - h;
+		}
+		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+		cairo_set_line_width(cr, 1.);
+		cairo_rectangle(cr, xc, yc, w, h);
+		cairo_stroke(cr);
+	}
 	return TRUE;
 }
 
@@ -118,25 +153,29 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 		return FALSE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *label = (GtkWidget *)g_object_get_data(G_OBJECT(window), "display_label_handle");
-	if (!spl_data || !label)
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !label || !da)
 		return TRUE;
 	double x = (double)event->x;
 	double y = (double)event->y;
+	double xpos, ypos;
+	
 	if (is_inside_grid(x, y, &spl_data->pdd)) {
-		if (!spl_data->revertX)
-			x = spl_data->pdd.datamin.x + (x - spl_data->pdd.offset.x) / spl_data->pdd.range.x * (spl_data->pdd.datamax.x - spl_data->pdd.datamin.x);
-		else
-			x = spl_data->pdd.datamax.x - (x - spl_data->pdd.offset.x) / spl_data->pdd.range.x * (spl_data->pdd.datamax.x - spl_data->pdd.datamin.x);
-		if (!spl_data->revertY)
-			y = spl_data->pdd.datamax.y - (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.datamax.y - spl_data->pdd.datamin.y);
-		else
-			y = spl_data->pdd.datamin.y + (y - spl_data->pdd.offset.y) / spl_data->pdd.range.y * (spl_data->pdd.datamax.y - spl_data->pdd.datamin.y);
-		gchar *labeltext = g_strdup_printf("%10g ; %10g", x, y);
+		// display cursor position in bottom left label
+		convert_surface_to_plot(spl_data, x, y, &xpos, &ypos);
+		gchar *labeltext = g_strdup_printf("%10g ; %10g", xpos, ypos);
 		if (labeltext) {
 			gtk_label_set_text(GTK_LABEL(label), labeltext);
 		}
 		g_free(labeltext);
+		// display selection box
+		if (spl_data->pdd.action == SELACTION_SELECTING) {
+			spl_data->pdd.selection.w = x - spl_data->pdd.start.x;
+			spl_data->pdd.selection.h = y - spl_data->pdd.start.y;
+			gtk_widget_queue_draw(da);
+		}
 	}
+
 	return TRUE;
 }
 
@@ -146,10 +185,54 @@ static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButt
 		return FALSE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *menu = (GtkWidget *)g_object_get_data(G_OBJECT(window), "menu_handle");
-	if (!spl_data || !menu)
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !menu || !da)
 		return TRUE;
+
+	// right-click pops-up menu
 	if (event->button == GDK_BUTTON_SECONDARY) {
 		gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+		return TRUE;
+	}
+
+	// single left-click draws selection (terminates when released)
+	// double left-click resets zoom
+	double x = (double)event->x;
+	double y = (double)event->y;
+	if (event->button == GDK_BUTTON_PRIMARY) {
+		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
+			reset_zoom(spl_data);
+			reset_selection(&spl_data->pdd);
+			gtk_widget_queue_draw(da);
+			return TRUE;
+		} else if (spl_data->pdd.action == SELACTION_NONE && is_inside_grid(x, y, &spl_data->pdd)) { // start drawing selection
+			spl_data->pdd.action = SELACTION_SELECTING;
+			spl_data->pdd.selection = (rectangled){x, y, 0., 0.};
+			spl_data->pdd.start = (point){x, y};
+			return TRUE;
+		}
+	}
+	return TRUE;
+}
+
+static gboolean on_siril_plot_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return FALSE;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !da)
+		return TRUE;
+	if (event->button == GDK_BUTTON_PRIMARY && spl_data->pdd.action == SELACTION_SELECTING) {
+		double x1, x2, y1, y2;
+		convert_surface_to_plot(spl_data, spl_data->pdd.selection.x, spl_data->pdd.selection.y, &x1, &y1);
+		convert_surface_to_plot(spl_data, spl_data->pdd.selection.x + spl_data->pdd.selection.w, spl_data->pdd.selection.y + spl_data->pdd.selection.h, &x2, &y2);
+		spl_data->pdd.datamin.x = max(min(x1, x2), spl_data->datamin.x);
+		spl_data->pdd.datamax.x = min(max(x1, x2), spl_data->datamax.x);
+		spl_data->pdd.datamin.y = max(min(y1, y2), spl_data->datamin.y);
+		spl_data->pdd.datamax.y = min(max(y1, y2), spl_data->datamax.y);
+		reset_selection(&spl_data->pdd);
+		gtk_widget_queue_draw(da);
 	}
 	return TRUE;
 }
@@ -222,6 +305,11 @@ gboolean create_new_siril_plot_window(gpointer p) {
 		return FALSE;
 	}
 
+	//prepare interactivity for spl_data
+	reset_zoom(spl_data);
+	reset_selection(&spl_data->pdd);
+	spl_data->interactive = TRUE;
+
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "Siril plot");
 	// attaching the spl_data to the window widget
@@ -253,6 +341,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	g_signal_connect(G_OBJECT(da), "leave-notify-event", G_CALLBACK(on_siril_plot_leave_notify_event), window);
 	g_signal_connect(G_OBJECT(da), "motion-notify-event", G_CALLBACK(on_siril_plot_motion_notify_event), window);
 	g_signal_connect(G_OBJECT(da), "button-press-event", G_CALLBACK(on_siril_plot_button_press_event), window);
+	g_signal_connect(G_OBJECT(da), "button-release-event", G_CALLBACK(on_siril_plot_button_release_event), window);
 	// and cache its handle
 	g_object_set_data(G_OBJECT(window), "drawing_area_handle", da);
 
