@@ -461,13 +461,14 @@ static void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro
 }
 
 static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **imagefilename, gboolean *hastmpfile) {
-	gchar *temp = NULL, *tempfilename = NULL;
+	gchar *temp = NULL, *tempfilename = NULL, *timestamp = NULL;
 	if (arg->filename) {
 		*filename = g_strdup(arg->filename);
 	} else {
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 			temp = g_path_get_basename(com.uniq->filename);
-			*filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
+			timestamp = build_timestamp_filename();
+			*filename = g_strdup_printf("profile_%s_%s.dat", temp, timestamp);
 			g_free(temp);
 			temp = NULL;
 		} else if (arg->seq) {
@@ -481,7 +482,8 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 			*filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
 			free(seq_image_canonical_name);
 		} else {
-			*filename = g_strdup_printf("profile_%s", build_timestamp_filename());
+			timestamp = build_timestamp_filename();
+			*filename = g_strdup_printf("profile_%s", timestamp);
 			siril_debug_print("%s\n", arg->filename);
 		}
 		tempfilename = profile_tmpfile();
@@ -491,6 +493,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 	temp = g_path_get_basename(*filename);
 	*imagefilename = replace_ext(temp, ".png");
 	g_free(temp);
+	g_free(timestamp);
 	temp = NULL;
 	if (*hastmpfile) {
 		g_free(*filename);
@@ -566,7 +569,7 @@ gpointer cut_profile(gpointer p) {
 						  arg->width, point_spacing_x, point_spacing_y);
 		}
 		if (arg->fit->naxes[2] > 1) {
-			if (abs(point_spacing_x == 1.) || abs(point_spacing_y == 1.)) { // Horizontal, no interpolation
+			if (fabs(point_spacing_x) == 1. || fabs(point_spacing_y) == 1.) { // Horizontal, no interpolation
 				g[i] = nointerp(arg->fit, arg->cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 1,
 								arg->width, (int) point_spacing_x, (int) point_spacing_y);
 				b[i] = nointerp(arg->fit, arg->cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 2,
@@ -777,7 +780,7 @@ gpointer tri_cut(gpointer p) {
 							arg->width, point_spacing_x, point_spacing_y);
 			}
 			if (arg->fit->naxes[2] > 1 && (!single_channel)) {
-				if (abs(point_spacing_x == 1.) || abs(point_spacing_y == 1.)) { // Horizontal, no interpolation
+				if (fabs(point_spacing_x) == 1. || fabs(point_spacing_y) == 1.) { // Horizontal, no interpolation
 					r[offset+1][i] += nointerp(arg->fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 1,
 									arg->width, (int) point_spacing_x, (int) point_spacing_y);
 					r[offset+1][i] += nointerp(arg->fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 2,
