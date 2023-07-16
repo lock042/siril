@@ -21,6 +21,9 @@
 #include "io/siril_plot.h"
 
 #include <cairo.h>
+#ifdef CAIRO_HAS_SVG_SURFACE
+#include <cairo/cairo-svg.h>
+#endif
 #include <math.h>
 #include "core/proto.h"
 #include "core/siril_log.h"
@@ -110,7 +113,7 @@ static gboolean on_siril_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer user
 
 	double width =  gtk_widget_get_allocated_width(widget);
 	double height = gtk_widget_get_allocated_height(widget);
-	if (!siril_plot_draw(cr, spl_data, width, height))
+	if (!siril_plot_draw(cr, spl_data, width, height, FALSE))
 		siril_debug_print("Problem while creating siril_plot\n");
 	// drawing the selection box
 	if (fabs(spl_data->pdd.selection.w) > 1. || fabs(spl_data->pdd.selection.h) > 1.) {
@@ -268,11 +271,26 @@ static void on_siril_plot_save_png_activate(GtkMenuItem *menuitem, gpointer user
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	if (!spl_data)
 		return;
-	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
+	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, FALSE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_plot_save_png(spl_data, filename);
 	g_free(filename);
 }
+
+#ifdef CAIRO_HAS_SVG_SURFACE
+static void on_siril_plot_save_svg_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	if (!spl_data)
+		return;
+	gchar *filename = build_save_filename(spl_data->savename, ".svg", spl_data->forsequence, TRUE);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	siril_plot_save_svg(spl_data, filename);
+	g_free(filename);
+}
+#endif
 
 static void on_siril_plot_save_dat_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	GtkWidget *window = (GtkWidget *)(user_data);
@@ -291,6 +309,9 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	GtkWidget *window, *vbox, *da, *label, *menu;
 	GtkWidget *spl_menu_grid, *spl_menu_legend;
 	GtkWidget *spl_menu_save_png, *spl_menu_save_dat, *spl_menu_sep;
+#ifdef CAIRO_HAS_SVG_SURFACE
+	GtkWidget *spl_menu_save_svg;
+#endif
 	siril_plot_data *spl_data = (siril_plot_data *)p;
 
 	// sanity checks
@@ -373,6 +394,12 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	spl_menu_save_png = gtk_menu_item_new_with_label("Save view as PNG");
 	g_signal_connect(G_OBJECT(spl_menu_save_png), "activate", G_CALLBACK(on_siril_plot_save_png_activate), window);
 
+#ifdef CAIRO_HAS_SVG_SURFACE
+	// save as svg
+	spl_menu_save_svg = gtk_menu_item_new_with_label("Save view as SVG");
+	g_signal_connect(G_OBJECT(spl_menu_save_svg), "activate", G_CALLBACK(on_siril_plot_save_svg_activate), window);
+#endif
+
 	// save as dat
 	spl_menu_save_dat = gtk_menu_item_new_with_label("Export dat file");
 	g_signal_connect(G_OBJECT(spl_menu_save_dat), "activate", G_CALLBACK(on_siril_plot_save_dat_activate), window);
@@ -382,6 +409,9 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_legend);
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_sep);
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_png);
+#ifdef CAIRO_HAS_SVG_SURFACE
+	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_svg);
+#endif
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_dat);
 	gtk_widget_show_all(menu);
 	// and cache its handle

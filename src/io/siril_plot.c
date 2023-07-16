@@ -21,6 +21,9 @@
 #include "siril_plot.h"
 
 #include <cairo.h>
+#ifdef CAIRO_HAS_SVG_SURFACE
+#include <cairo/cairo-svg.h>
+#endif
 #include <pango/pangocairo.h>
 #include <math.h>
 #include "core/proto.h"
@@ -287,7 +290,7 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t n
 }
 
 // draw the data contained in spl_data to the cairo context cr
-gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height) {
+gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg) {
 	struct kdata *d1 = NULL, *d2[3];
 	double color = 1.0;
 	if (spl_data->xlabel)
@@ -423,7 +426,15 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	}
 
 	// creating a surface to draw the plot (accounting for title-reserved space if required)
-	cairo_surface_t *draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+	cairo_surface_t *draw_surface = NULL;
+#ifdef CAIRO_HAS_SVG_SURFACE
+	if (!for_svg)
+		draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+	else
+		draw_surface = cairo_svg_surface_create_for_stream(NULL, NULL, drawwidth, drawheight);
+#else
+	draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+#endif
 	struct kplotctx ctx = { 0 };
 	cairo_t *draw_cr = cairo_create(draw_surface);
 	kplot_draw(p, drawwidth, drawheight, draw_cr, &ctx);
@@ -508,7 +519,7 @@ gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
 		}
 	}
 	// draw the plot and save the surface to png
-	if (success && siril_plot_draw(png_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT)) {
+	if (success && siril_plot_draw(png_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT, FALSE)) {
 		siril_debug_print("Successfully created png plot\n");
 		if (!cairo_surface_write_to_png(png_surface, pngfilename))
 			siril_log_message(_("%s has been saved.\n"), pngfilename);
@@ -520,6 +531,40 @@ gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
 	cairo_surface_destroy(png_surface);
 	return success;
 }
+
+#ifdef CAIRO_HAS_SVG_SURFACE
+// draw the data contained in spl_data and saves as svg file
+gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename) {
+	gboolean success = TRUE;
+	cairo_t *svg_cr = NULL;
+	//create the surface
+	
+	cairo_surface_t *svg_surface = cairo_svg_surface_create(svgfilename, SIRIL_PLOT_PNG_WIDTH, SIRIL_PLOT_PNG_HEIGHT);
+	if (cairo_surface_status(svg_surface)) {
+		siril_debug_print("Could not create svg surface\n");
+		success = FALSE;
+	}
+	cairo_svg_surface_set_document_unit(svg_surface, CAIRO_SVG_UNIT_PX);
+	//create the context
+	if (success) {
+		svg_cr = cairo_create(svg_surface);
+		if (cairo_status(svg_cr)) {
+			siril_debug_print("Could not create svg context\n");
+			success = FALSE;
+		}
+	}
+	// draw the plot and save the surface to svg
+	if (success && siril_plot_draw(svg_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT, TRUE))
+		siril_log_message(_("%s has been saved.\n"), svgfilename);
+	else
+		success = FALSE;
+
+	if (svg_cr)
+		cairo_destroy(svg_cr);
+	cairo_surface_destroy(svg_surface);
+	return success;
+}
+#endif
 
 // save the data to a dat file
 gboolean siril_plot_save_dat(siril_plot_data *spl_data, char *datfilename) {
