@@ -227,13 +227,15 @@ static gboolean on_siril_plot_button_release_event(GtkWidget *widget, GdkEventBu
 	if (!spl_data || !da)
 		return TRUE;
 	if (event->button == GDK_BUTTON_PRIMARY && spl_data->pdd.action == SELACTION_SELECTING) {
-		double x1, x2, y1, y2;
-		convert_surface_to_plot(spl_data, spl_data->pdd.selection.x, spl_data->pdd.selection.y, &x1, &y1);
-		convert_surface_to_plot(spl_data, spl_data->pdd.selection.x + spl_data->pdd.selection.w, spl_data->pdd.selection.y + spl_data->pdd.selection.h, &x2, &y2);
-		spl_data->pdd.datamin.x = max(min(x1, x2), spl_data->datamin.x);
-		spl_data->pdd.datamax.x = min(max(x1, x2), spl_data->datamax.x);
-		spl_data->pdd.datamin.y = max(min(y1, y2), spl_data->datamin.y);
-		spl_data->pdd.datamax.y = min(max(y1, y2), spl_data->datamax.y);
+		if (fabs(spl_data->pdd.selection.w) > 1. && fabs(spl_data->pdd.selection.h) > 1.) {
+			double x1, x2, y1, y2;
+			convert_surface_to_plot(spl_data, spl_data->pdd.selection.x, spl_data->pdd.selection.y, &x1, &y1);
+			convert_surface_to_plot(spl_data, spl_data->pdd.selection.x + spl_data->pdd.selection.w, spl_data->pdd.selection.y + spl_data->pdd.selection.h, &x2, &y2);
+			spl_data->pdd.datamin.x = max(min(x1, x2), spl_data->datamin.x);
+			spl_data->pdd.datamax.x = min(max(x1, x2), spl_data->datamax.x);
+			spl_data->pdd.datamin.y = max(min(y1, y2), spl_data->datamin.y);
+			spl_data->pdd.datamax.y = min(max(y1, y2), spl_data->datamax.y);
+		}
 		reset_selection(&spl_data->pdd);
 		gtk_widget_queue_draw(da);
 	}
