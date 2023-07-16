@@ -17,6 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <dirent.h>
+
 #include <gtk/gtk.h>
 #include "gui/utils.h"
 
@@ -472,6 +482,81 @@ void chk_compstars(struct compstars_arg *args) {
 	} else siril_log_message(_("No csv output file to create\n"));
 }
 
+
+static int getmyfiles() {
+	struct dirent *pDirent;
+	DIR *pDir;
+///	sequence *seq;
+	char *ext = NULL;
+	int lst_valid = 0, lst_nbr = 0;
+///	siril_log_color_message(_("seqname %s \n"), "red", seq->seqname);
+	// Ensure correct argument count.
+
+
+
+	// Ensure we can open directory.
+
+	pDir = opendir (g_get_current_dir ());
+	if (pDir == NULL) {
+		printf ("Cannot open directory '%s'\n", g_get_current_dir ());
+		return 1;
+	}
+
+	// Process each entry.
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	while ((pDirent = readdir(pDir)) != NULL) {
+		lst_valid = FALSE;
+		ext = strrchr(pDirent->d_name, '.');
+		if (ext && !strcmp(ext + 1, "lst")) {
+			lst_valid = TRUE;
+			lst_nbr++;
+			siril_log_color_message(_("Extension is %s for the file %s\n"), "red", get_filename_ext(pDirent->d_name), pDirent->d_name);
+		} 
+
+		FILE* fp = fopen(pDirent->d_name, "r");
+//		if (fp != NULL)	fclose(fp);
+		if (!fp) {
+//			siril_log_message(_("Could not open file %s: %s\n"), pDirent->d_name, strerror(errno));
+			continue;
+		}
+
+		char buf[512];
+		int nbr_lines = 0;
+		while (fgets(buf, 512, fp) && lst_valid) {
+//		if (lst_valid){
+//			fgets(buf, 512, fp);
+///			siril_log_color_message(_("Smth to show in %s\n"), "green", pDirent->d_name);
+			nbr_lines++;
+			if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
+				continue;
+			remove_trailing_eol(buf);
+			gchar **tokens = g_strsplit(buf, "\t", -1);
+			int length = g_strv_length(tokens);
+
+			gchar *type = tokens[0];
+			if (!strcasecmp(type, "#")) continue;	// skip comment line
+
+			g_strfreev(tokens);
+			//g_strfreev(tokens);
+
+		}
+		if (lst_valid) siril_log_color_message(_("Nbr of lines: %d in %s\n"), "green", nbr_lines, pDirent->d_name);
+		fclose(fp);
+		
+
+	}
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	
+	siril_log_color_message(_("Number of lst files %d \n"), "salmon", lst_nbr);
+	// Close directory and exit.
+	
+	closedir (pDir);
+	return 0;
+}
+
+
 // uses gfit
 gpointer compstars_worker(gpointer arg) {
 	int retval;
@@ -479,6 +564,7 @@ gpointer compstars_worker(gpointer arg) {
 	if (args->cat == CAT_UNDEF) {		// test for BLIND method
 		siril_log_color_message(_("Trying to use the new BLIND method, not yet implemented!! LOL.\n"), "red");
 		retval = 1;
+		getmyfiles();
 		goto end;
 	}
 	// 1. search for the variable star
