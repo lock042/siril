@@ -28,6 +28,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
+#include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "io/sequence.h"
@@ -91,6 +92,36 @@ static void reset_selection(plot_draw_data_t *pdd) {
 static void reset_zoom(siril_plot_data *spl_data) {
 	spl_data->pdd.datamin = spl_data->datamin;
 	spl_data->pdd.datamax = spl_data->datamax;
+}
+
+static void set_filter(GtkFileChooser *dialog, const gchar *name, const gchar *pattern) {
+	GtkFileFilter *f = gtk_file_filter_new();
+	gtk_file_filter_set_name(f, name);
+	gtk_file_filter_add_pattern(f, pattern);
+	gtk_file_chooser_add_filter(dialog, f);
+	gtk_file_chooser_set_filter(dialog, f);
+}
+
+static gchar* save_siril_plot_dialog(GtkWindow *parent, gchar *defaultfilename, gchar *filter_name, gchar *filter_pattern) {
+	SirilWidget *widgetdialog;
+	GtkFileChooser *dialog = NULL;
+	gint res;
+	gchar *savefilename = NULL;
+
+	widgetdialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
+	dialog = GTK_FILE_CHOOSER(widgetdialog);
+	gtk_file_chooser_set_current_folder(dialog, com.wd);
+	gtk_file_chooser_set_select_multiple(dialog, FALSE);
+	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
+	gtk_file_chooser_set_current_name(dialog, defaultfilename);
+	set_filter(dialog, filter_name, filter_pattern);
+
+	res = siril_dialog_run(widgetdialog);
+	if (res == GTK_RESPONSE_ACCEPT) {
+		savefilename = gtk_file_chooser_get_filename(dialog);
+	}
+	siril_widget_destroy(widgetdialog);
+	return savefilename;
 }
 
 // callbacks
@@ -273,10 +304,14 @@ static void on_siril_plot_save_png_activate(GtkMenuItem *menuitem, gpointer user
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	if (!spl_data)
 		return;
-	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, FALSE);
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	siril_plot_save_png(spl_data, filename);
+	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
+	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("PNG file (*.png)"), "*.png");
+	if (outname) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_plot_save_png(spl_data, outname);
+	}
 	g_free(filename);
+	g_free(outname);
 }
 
 #ifdef CAIRO_HAS_SVG_SURFACE
@@ -288,9 +323,13 @@ static void on_siril_plot_save_svg_activate(GtkMenuItem *menuitem, gpointer user
 	if (!spl_data)
 		return;
 	gchar *filename = build_save_filename(spl_data->savename, ".svg", spl_data->forsequence, TRUE);
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	siril_plot_save_svg(spl_data, filename);
+	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("SVG file (*.svg)"), "*.svg");
+	if (outname) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_plot_save_svg(spl_data, outname);
+	}
 	g_free(filename);
+	g_free(outname);
 }
 #endif
 
@@ -301,10 +340,14 @@ static void on_siril_plot_save_dat_activate(GtkMenuItem *menuitem, gpointer user
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	if (!spl_data)
 		return;
-	gchar *filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, TRUE);
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	siril_plot_save_dat(spl_data, filename);
+	gchar *filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, FALSE);
+	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT file (*.png)"), "*.dat");
+	if (outname) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_plot_save_dat(spl_data, outname);
+	}
 	g_free(filename);
+	g_free(outname);
 }
 
 gboolean create_new_siril_plot_window(gpointer p) {
