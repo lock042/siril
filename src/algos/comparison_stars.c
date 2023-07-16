@@ -527,18 +527,19 @@ static int getmyfiles() {
 		while (fgets(buf, 512, fp) && lst_valid) {
 			if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
 				continue;
+
 			remove_trailing_eol(buf);
 			gchar **tokens = g_strsplit(buf, "\t", -1);
-			int length = g_strv_length(tokens);
+			guint length = g_strv_length(tokens);
 
-			gchar *type = tokens[0];
-			if (!strcasecmp(type, "#")) continue;	// skip comment line
+			if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
+
+			double ra = g_ascii_strtod(tokens[2], NULL);
+			double dec = g_ascii_strtod(tokens[3], NULL);
+
 			nbr_lines++;
-			g_strfreev(tokens);
-
-
 		}
-
+		if (lst_valid) siril_log_color_message(_("FILE: %s with %d stars\n"), "red", pDirent->d_name, nbr_lines);
 		//Closing current file
 		fclose(fp);
 	}
@@ -546,7 +547,7 @@ static int getmyfiles() {
 	// Duration calculation and display
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	
+
 	siril_log_color_message(_("Number of lst files %d \n"), "salmon", lst_nbr);
 	if (!lst_nbr){
 		siril_log_color_message(_("There is no registration data.\n"), "red");
