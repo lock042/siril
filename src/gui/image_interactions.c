@@ -366,8 +366,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 
 	if (inside) {
-		/* if Alt is pressed, prepare to measure */
-		if (event->button == GDK_BUTTON_PRIMARY && (event->state & GDK_SHIFT_MASK) && (event->state & GDK_CONTROL_MASK)) {
+		/* if Ctrl-Shift is pressed, prepare to measure */
+		if (event->button == GDK_BUTTON_PRIMARY && (event->state & GDK_SHIFT_MASK) && (event->state & get_primary())) {
 			gui.measure_start.x = zoomed.x;
 			gui.measure_start.y = zoomed.y;
 			gui.measure_end.x = zoomed.x;
