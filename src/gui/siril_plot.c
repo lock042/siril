@@ -146,27 +146,29 @@ static gboolean on_siril_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer user
 	double height = gtk_widget_get_allocated_height(widget);
 	if (!siril_plot_draw(cr, spl_data, width, height, FALSE))
 		siril_debug_print("Problem while creating siril_plot\n");
-	// drawing the selection box
-	if (fabs(spl_data->pdd.selection.w) > 1. || fabs(spl_data->pdd.selection.h) > 1.) {
-		double xc, yc, w, h;
-		if (spl_data->pdd.selection.w > 0) {
-			xc = spl_data->pdd.selection.x;
-			w = spl_data->pdd.selection.w;
-		} else {
-			w = -spl_data->pdd.selection.w;
-			xc = spl_data->pdd.selection.x - w;
+	if (spl_data->pdd.action == SELACTION_SELECTING) {
+		// drawing the selection box
+		if (fabs(spl_data->pdd.selection.w) > 1. || fabs(spl_data->pdd.selection.h) > 1.) {
+			double xc, yc, w, h;
+			if (spl_data->pdd.selection.w > 0) {
+				xc = spl_data->pdd.selection.x;
+				w = spl_data->pdd.selection.w;
+			} else {
+				w = -spl_data->pdd.selection.w;
+				xc = spl_data->pdd.selection.x - w;
+			}
+			if (spl_data->pdd.selection.h > 0) {
+				yc = spl_data->pdd.selection.y;
+				h = spl_data->pdd.selection.h;
+			} else {
+				h = -spl_data->pdd.selection.h;
+				yc = spl_data->pdd.selection.y - h;
+			}
+			cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+			cairo_set_line_width(cr, 1.);
+			cairo_rectangle(cr, xc, yc, w, h);
+			cairo_stroke(cr);
 		}
-		if (spl_data->pdd.selection.h > 0) {
-			yc = spl_data->pdd.selection.y;
-			h = spl_data->pdd.selection.h;
-		} else {
-			h = -spl_data->pdd.selection.h;
-			yc = spl_data->pdd.selection.y - h;
-		}
-		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-		cairo_set_line_width(cr, 1.);
-		cairo_rectangle(cr, xc, yc, w, h);
-		cairo_stroke(cr);
 	}
 	return TRUE;
 }
@@ -207,9 +209,21 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 			spl_data->pdd.selection.w = x - spl_data->pdd.start.x;
 			spl_data->pdd.selection.h = y - spl_data->pdd.start.y;
 			gtk_widget_queue_draw(da);
+			return TRUE;
+		}
+		if (spl_data->pdd.action == SELACTION_MOVING) {
+			double x1, x2, y1, y2;
+			convert_surface_to_plot(spl_data, spl_data->pdd.start.x, spl_data->pdd.start.y, &x1, &y1);
+			convert_surface_to_plot(spl_data, x, y, &x2, &y2);
+			spl_data->pdd.datamin.x += x2 - x1;
+			spl_data->pdd.datamax.x += x2 - x1;
+			spl_data->pdd.datamin.y += y2 - y1;
+			spl_data->pdd.datamax.y += y2 - y1;
+			spl_data->pdd.start = (point){x, y};
+			gtk_widget_queue_draw(da);
+			return TRUE;
 		}
 	}
-
 	return TRUE;
 }
 
@@ -240,8 +254,13 @@ static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButt
 			gtk_widget_queue_draw(da);
 			return TRUE;
 		} else if (spl_data->pdd.action == SELACTION_NONE && is_inside_grid(x, y, &spl_data->pdd)) { // start drawing selection
-			spl_data->pdd.action = SELACTION_SELECTING;
-			spl_data->pdd.selection = (rectangled){x, y, 0., 0.};
+			if (event->state == GDK_CONTROL_MASK) {
+				spl_data->pdd.action = SELACTION_MOVING; // pan start
+				spl_data->autotic = FALSE;
+			} else {
+				spl_data->pdd.action = SELACTION_SELECTING; // selection
+				spl_data->pdd.selection = (rectangled){x, y, 0., 0.};
+			}
 			spl_data->pdd.start = (point){x, y};
 			return TRUE;
 		}
@@ -268,6 +287,11 @@ static gboolean on_siril_plot_button_release_event(GtkWidget *widget, GdkEventBu
 			spl_data->pdd.datamax.y = min(max(y1, y2), spl_data->datamax.y);
 		}
 		reset_selection(&spl_data->pdd);
+		gtk_widget_queue_draw(da);
+	}
+	if (event->button == GDK_BUTTON_PRIMARY && spl_data->pdd.action == SELACTION_MOVING) {
+		reset_selection(&spl_data->pdd);
+		spl_data->autotic = TRUE;
 		gtk_widget_queue_draw(da);
 	}
 	return TRUE;

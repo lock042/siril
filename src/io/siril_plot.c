@@ -121,6 +121,7 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->datamin = (point){ DBL_MAX, DBL_MAX};
 	spl_data->datamax = (point){ -DBL_MAX, -DBL_MAX};
 	spl_data->show_legend = TRUE;
+	spl_data->autotic = TRUE;
 	spl_data->revertX = FALSE;
 	spl_data->revertY = FALSE;
 	spl_data->interactive = FALSE;
@@ -307,7 +308,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	double y2 = (!spl_data->interactive) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
 	double xmin, xmax, ymin, ymax;
 	int nbticX,nbticY;
-	if (siril_plot_autotic(x1, x2, &nbticX, &xmin, &xmax) &&
+	if (spl_data->autotic &&
+		siril_plot_autotic(x1, x2, &nbticX, &xmin, &xmax) &&
 		siril_plot_autotic(y1, y2, &nbticY, &ymin, &ymax)) {
 		spl_data->cfgplot.extrema = 0x0F;
 		spl_data->cfgplot.extrema_xmin = xmin;
@@ -324,10 +326,12 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.extrema_xmax = x2;
 		spl_data->cfgplot.extrema_ymin = y1;
 		spl_data->cfgplot.extrema_ymax = y2;
-		spl_data->cfgplot.xtics = 5;
-		spl_data->cfgplot.ytics = 5;
 		spl_data->pdd.pdatamin = (point){x1, y1};
 		spl_data->pdd.pdatamax = (point){x2, y2};
+		if (!spl_data->autotic) {
+			spl_data->cfgplot.xtics = 5;
+			spl_data->cfgplot.ytics = 5;
+		}
 	}
 	// if the formats are forced by caller, they are passed
 	if (spl_data->xfmt) {

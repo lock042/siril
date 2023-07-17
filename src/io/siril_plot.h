@@ -73,6 +73,7 @@ typedef struct siril_plot_data_struct {
 	struct kdatacfg cfgdata;
 	point datamin; // min x/y of data
 	point datamax; // max x/y of data
+	gboolean autotic;
 	gboolean show_legend;
 	gboolean revertX;
 	gboolean revertY;
