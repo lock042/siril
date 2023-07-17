@@ -509,39 +509,42 @@ static int getmyfiles() {
 		// - applied to the current loaded sequence
 		// - actually selected in the frame selector (TODO)
 		ext = strrchr(pDirent->d_name, '.');
-		if (ext && !strcmp(ext + 1, "lst") && g_str_has_prefix(pDirent->d_name, seq_basename)) {
+		int goodfile = g_str_has_prefix(pDirent->d_name, seq_basename);
+		if (ext && !strcmp(ext + 1, "lst") && goodfile) {
 			lst_valid = TRUE;
 			lst_nbr++;
 		} 
 
-		// Open a new file
-		FILE* fp = fopen(pDirent->d_name, "r");
-		if (!fp) {
-			printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
-			fclose (fp);
-			continue;
-		}
-
-		char buf[512];
-		int nbr_lines = 0;
-		while (fgets(buf, 512, fp) && lst_valid) {
-			if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
+		// Open a new file, only if it is revelant
+		if (lst_valid){
+			FILE* fp = fopen(pDirent->d_name, "r");
+			if (!fp) {
+				printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
+				fclose (fp);
 				continue;
+			}
 
-			remove_trailing_eol(buf);
-			gchar **tokens = g_strsplit(buf, "\t", -1);
-			guint length = g_strv_length(tokens);
+			char buf[512];
+			int nbr_lines = 0;
+			while (fgets(buf, 512, fp) && lst_valid) {
+				if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
+					continue;
 
-			if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
+				remove_trailing_eol(buf);
+				gchar **tokens = g_strsplit(buf, "\t", -1);
+				guint length = g_strv_length(tokens);
 
-			double ra = g_ascii_strtod(tokens[2], NULL);
-			double dec = g_ascii_strtod(tokens[3], NULL);
+				if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
 
-			nbr_lines++;
+				double ra = g_ascii_strtod(tokens[2], NULL);
+				double dec = g_ascii_strtod(tokens[3], NULL);
+
+				nbr_lines++;
+			}
+			if (lst_valid) siril_log_color_message(_("FILE: %s with %d stars\n"), "red", pDirent->d_name, nbr_lines);
+			//Closing current file
+			fclose(fp);
 		}
-		if (lst_valid) siril_log_color_message(_("FILE: %s with %d stars\n"), "red", pDirent->d_name, nbr_lines);
-		//Closing current file
-		fclose(fp);
 	}
 
 	// Duration calculation and display
