@@ -504,34 +504,38 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	return TRUE;
 }
 
+cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height) {
+	cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+	if (cairo_surface_status(surface)) {
+		siril_debug_print("Could not create cairo surface\n");
+		return NULL;
+	}
+	cairo_t *cr = cairo_create(surface);
+	if (cairo_status(cr)) {
+		cairo_surface_destroy(surface);
+		siril_debug_print("Could not create cairo context\n");
+		return NULL;
+	}
+	if (!siril_plot_draw(cr, spl_data, (double)width, (double)height, FALSE)) {
+		siril_debug_print("Could not draw to cairo context\n");
+		cairo_surface_destroy(surface);
+		surface = NULL;
+	}
+	cairo_destroy(cr);
+	return surface;
+}
 // draw the data contained in spl_data and saves as png file
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
 	gboolean success = TRUE;
-	cairo_t *png_cr = NULL;
-	//create the surface
-	cairo_surface_t *png_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SIRIL_PLOT_PNG_WIDTH, SIRIL_PLOT_PNG_HEIGHT);
-	if (cairo_surface_status(png_surface)) {
-		siril_debug_print("Could not create png surface\n");
+	cairo_surface_t *png_surface = siril_plot_draw_to_image_surface(spl_data, SIRIL_PLOT_PNG_WIDTH, SIRIL_PLOT_PNG_HEIGHT);
+	if (!png_surface)
+		return FALSE;
+
+	siril_debug_print("Successfully created png plot\n");
+	if (!cairo_surface_write_to_png(png_surface, pngfilename))
+		siril_log_message(_("%s has been saved.\n"), pngfilename);
+	else
 		success = FALSE;
-	}
-	//create the context
-	if (success) {
-		png_cr = cairo_create(png_surface);
-		if (cairo_status(png_cr)) {
-			siril_debug_print("Could not create png context\n");
-			success = FALSE;
-		}
-	}
-	// draw the plot and save the surface to png
-	if (success && siril_plot_draw(png_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT, FALSE)) {
-		siril_debug_print("Successfully created png plot\n");
-		if (!cairo_surface_write_to_png(png_surface, pngfilename))
-			siril_log_message(_("%s has been saved.\n"), pngfilename);
-		else
-			success = FALSE;
-	}
-	if (png_cr)
-		cairo_destroy(png_cr);
 	cairo_surface_destroy(png_surface);
 	return success;
 }
