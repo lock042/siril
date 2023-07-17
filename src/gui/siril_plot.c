@@ -321,55 +321,35 @@ static void on_siril_plot_legend_toggled(GtkCheckMenuItem *checkmenuitem, gpoint
 	gtk_widget_queue_draw(da);
 }
 
-static void on_siril_plot_save_png_activate(GtkMenuItem *menuitem, gpointer user_data) {
+// generic save callback
+// the name of the caller is retrieved with gtk_widget_get_name
+// the appropriate save procedure is then called accordingly
+static void on_siril_plot_save_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	gchar *filename = NULL, *outname = NULL;
 	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
 		return;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	if (!spl_data)
 		return;
-	gchar *filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
-	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("PNG files (*.png)"), "*.png");
-	if (outname) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		siril_plot_save_png(spl_data, outname);
+	const gchar *widgetname = gtk_widget_get_name(GTK_WIDGET(menuitem));
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	if (!g_strcmp0(widgetname, "png")) {
+		filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
+		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("PNG files (*.png)"), "*.png")))
+			siril_plot_save_png(spl_data, outname);
+	} else if (!g_strcmp0(widgetname, "dat")) {
+		filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, FALSE);
+		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT files (*.dat)"), "*.dat")))
+			siril_plot_save_dat(spl_data, outname);
 	}
-	g_free(filename);
-	g_free(outname);
-}
-
 #ifdef CAIRO_HAS_SVG_SURFACE
-static void on_siril_plot_save_svg_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	GtkWidget *window = (GtkWidget *)(user_data);
-	if (!window)
-		return;
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	if (!spl_data)
-		return;
-	gchar *filename = build_save_filename(spl_data->savename, ".svg", spl_data->forsequence, TRUE);
-	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("SVG files (*.svg)"), "*.svg");
-	if (outname) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		siril_plot_save_svg(spl_data, outname);
+	else if (!g_strcmp0(widgetname, "svg")) {
+		filename = build_save_filename(spl_data->savename, ".svg", spl_data->forsequence, TRUE);
+		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("SVG files (*.svg)"), "*.svg")))
+			siril_plot_save_svg(spl_data, outname);
 	}
-	g_free(filename);
-	g_free(outname);
-}
 #endif
-
-static void on_siril_plot_save_dat_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	GtkWidget *window = (GtkWidget *)(user_data);
-	if (!window)
-		return;
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	if (!spl_data)
-		return;
-	gchar *filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, FALSE);
-	gchar *outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT files (*.dat)"), "*.dat");
-	if (outname) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		siril_plot_save_dat(spl_data, outname);
-	}
 	g_free(filename);
 	g_free(outname);
 }
@@ -461,17 +441,20 @@ gboolean create_new_siril_plot_window(gpointer p) {
 
 	// save as png
 	spl_menu_save_png = gtk_menu_item_new_with_label("Save view as PNG");
-	g_signal_connect(G_OBJECT(spl_menu_save_png), "activate", G_CALLBACK(on_siril_plot_save_png_activate), window);
+	gtk_widget_set_name(spl_menu_save_png, "png");
+	g_signal_connect(G_OBJECT(spl_menu_save_png), "activate", G_CALLBACK(on_siril_plot_save_activate), window);
 
 #ifdef CAIRO_HAS_SVG_SURFACE
 	// save as svg
 	spl_menu_save_svg = gtk_menu_item_new_with_label("Save view as SVG");
-	g_signal_connect(G_OBJECT(spl_menu_save_svg), "activate", G_CALLBACK(on_siril_plot_save_svg_activate), window);
+	gtk_widget_set_name(spl_menu_save_svg, "svg");
+	g_signal_connect(G_OBJECT(spl_menu_save_svg), "activate", G_CALLBACK(on_siril_plot_save_activate), window);
 #endif
 
 	// save as dat
 	spl_menu_save_dat = gtk_menu_item_new_with_label("Export dat file");
-	g_signal_connect(G_OBJECT(spl_menu_save_dat), "activate", G_CALLBACK(on_siril_plot_save_dat_activate), window);
+	gtk_widget_set_name(spl_menu_save_dat, "dat");
+	g_signal_connect(G_OBJECT(spl_menu_save_dat), "activate", G_CALLBACK(on_siril_plot_save_activate), window);
 
 	//fill the menu
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_grid);
