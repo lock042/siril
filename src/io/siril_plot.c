@@ -166,6 +166,8 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	g_list_free_full(spl_data->plots, (GDestroyNotify)free_list_plots);
 	//freeing kplot cfg structures
 	free(spl_data->cfgplot.clrs);
+	free(spl_data);
+	spl_data = NULL;
 }
 
 // setters
