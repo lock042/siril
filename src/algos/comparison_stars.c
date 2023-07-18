@@ -486,10 +486,13 @@ void chk_compstars(struct compstars_arg *args) {
 static int getmyfiles() {
 	struct dirent *pDirent;
 	DIR *pDir;
+
+
 	char *ext = NULL;
-	int lst_valid = 0, lst_nbr = 0;
+	int lst_valid = 0, lst_nbr = 0, used_lst_nbr = 0;
 
 	gchar *seq_basename = g_path_get_basename(com.seq.seqname);	// No need to check if a sequence exists as it's been done before 
+
 
 	// Ensure we can open directory.
 	pDir = opendir (g_get_current_dir ());
@@ -509,14 +512,19 @@ static int getmyfiles() {
 		// - applied to the current loaded sequence
 		// - actually selected in the frame selector (TODO)
 		ext = strrchr(pDirent->d_name, '.');
-		int goodfile = g_str_has_prefix(pDirent->d_name, seq_basename);
-		if (ext && !strcmp(ext + 1, "lst") && goodfile) {
+		int goodfile = ext // the file has an extension
+						&& !strcmp(ext + 1, "lst")	// this extension MUST be .lst
+						&& g_str_has_prefix(pDirent->d_name, seq_basename);	// The filename MUST begin with the current sequence name
+		if (goodfile) {
 			lst_valid = TRUE;
 			lst_nbr++;
 		} 
 
+
+
 		// Open a new file, only if it is revelant
-		if (lst_valid){
+		if (lst_valid && com.seq.imgparam[lst_nbr - 1].incl){	//The file MUST match a valid image in the sequence frame selector
+			used_lst_nbr++;
 			FILE* fp = fopen(pDirent->d_name, "r");
 			if (!fp) {
 				printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
@@ -551,7 +559,7 @@ static int getmyfiles() {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
-	siril_log_color_message(_("Number of lst files %d \n"), "salmon", lst_nbr);
+	siril_log_color_message(_("Number of used lst files %d / %d \n"), "salmon", used_lst_nbr, lst_nbr);
 	if (!lst_nbr){
 		siril_log_color_message(_("There is no registration data.\n"), "red");
 		siril_log_color_message(_("You should first perform the first step of a 2-Pass registration (without applying).\n"), "red");
