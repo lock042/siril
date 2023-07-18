@@ -4162,6 +4162,7 @@ int process_seq_crop(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						free(args->prefix);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -4749,6 +4750,7 @@ int process_seq_cosme(int nb) {
 			g_object_unref(file);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);
+			free(args->prefix);
 			free(args);
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 			return CMD_ARG_ERROR;
@@ -5641,6 +5643,7 @@ int process_seq_split_cfa(int nb) {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
+						free(args->seqEntry);
 						free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -5651,6 +5654,7 @@ int process_seq_split_cfa(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
+				free(args->seqEntry);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5765,6 +5769,7 @@ int process_seq_extractHa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -5813,6 +5818,7 @@ int process_seq_extractGreen(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);

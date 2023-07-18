@@ -1458,6 +1458,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+		free(reg_args->prefix);
 		free(reg_args);
 		unreserve_thread();
 		return;
