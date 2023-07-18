@@ -149,6 +149,13 @@ static gboolean save_siril_plot_to_clipboard(GtkWidget *window) {
 	return TRUE;
 
 }
+
+static GdkModifierType get_primary() {
+	return gdk_keymap_get_modifier_mask(
+			gdk_keymap_get_for_display(gdk_display_get_default()),
+			GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
+}
+
 // callbacks
 static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	siril_debug_print("Freeing siril_plot data and closing\n");
@@ -279,7 +286,7 @@ static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButt
 			gtk_widget_queue_draw(da);
 			return TRUE;
 		} else if (spl_data->pdd.action == SELACTION_NONE && is_inside_grid(x, y, &spl_data->pdd)) { // start drawing selection
-			if (event->state == GDK_CONTROL_MASK) {
+			if (event->state & get_primary()) {
 				spl_data->pdd.action = SELACTION_MOVING; // pan start
 				spl_data->autotic = FALSE;
 			} else {
