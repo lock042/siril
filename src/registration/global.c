@@ -861,7 +861,12 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->already_in_thread = TRUE;
 	sf_args->process_all_images = !regargs->filters.filter_included;
 	sf_args->save_to_file = !regargs->no_starlist;
+//	sf_args->save_eqcoords = FALSE;
+#ifdef HAVE_WCSLIB
+	sf_args->save_eqcoords = TRUE;	// managed in apply_findstar_to_sequence()
+#else
 	sf_args->save_eqcoords = FALSE;
+#endif
 	struct timeval t_start, t_end;
 
 	gettimeofday(&t_start, NULL);

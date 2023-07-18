@@ -544,12 +544,18 @@ static int getmyfiles() {
 
 				if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
 
-				double ra = g_ascii_strtod(tokens[2], NULL);
-				double dec = g_ascii_strtod(tokens[3], NULL);
-
+				double ra = g_ascii_strtod(tokens[15], NULL);
+				double dec = g_ascii_strtod(tokens[16], NULL);
+				double mag = g_ascii_strtod(tokens[13], NULL);
+				if (ra ==0.0 || dec == 0.0){
+					siril_log_color_message(_("Some WCS data are missing.\n"), "red");
+					siril_log_color_message(_("Plate solve the images of the sequence (seqplatesolve),\n"), "red");	
+					siril_log_color_message(_("then run a 2-pass registration.\n"), "red");	
+					return 1;				
+				}
 				nbr_lines++;
 			}
-			if (lst_valid) siril_log_color_message(_("FILE: %s with %d stars\n"), "red", pDirent->d_name, nbr_lines);
+			if (lst_valid) siril_debug_print(_("FILE: %s with %d stars\n"), pDirent->d_name, nbr_lines);
 			//Closing current file
 			fclose(fp);
 		}
@@ -559,12 +565,13 @@ static int getmyfiles() {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
-	siril_log_color_message(_("Number of used lst files %d / %d \n"), "salmon", used_lst_nbr, lst_nbr);
-	if (!lst_nbr){
-		siril_log_color_message(_("There is no registration data.\n"), "red");
-		siril_log_color_message(_("You should first perform the first step of a 2-Pass registration (without applying).\n"), "red");
+	if (lst_nbr == 0){
+		siril_log_color_message(_("There is no registration file for this sequence.\n"), "red");
+		siril_log_color_message(_("Perform the first step of a 2-Pass registration (without applying).\n"), "red");
 		return 1;
 	}
+
+	siril_log_color_message(_("Number of used lst files %d / %d \n"), "salmon", used_lst_nbr, lst_nbr);
 
 	// Close directory and exit.
 	closedir (pDir);
@@ -577,7 +584,7 @@ gpointer compstars_worker(gpointer arg) {
 	int retval;
 	struct compstars_arg *args = (struct compstars_arg *) arg;
 	if (args->cat == CAT_UNDEF) {		// test for BLIND method
-		siril_log_color_message(_("Trying to use the new BLIND method, not yet implemented!! LOL.\n"), "red");
+		siril_log_color_message(_("Trying to use the new BLIND method, not fully implemented!! LOL.\n"), "salmon");
 		retval = 1;
 		getmyfiles();
 		goto end;
