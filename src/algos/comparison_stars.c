@@ -317,9 +317,9 @@ static gboolean end_compstars(gpointer p) {
 
 #define ONE_ARCSEC 0.000277778
 /* determines if two stars are the same based on their coordinates */
-static gboolean is_same_star(psf_star *s1, psf_star *s2) {
-	return (fabs(s1->ra - s2->ra) < 2.0 * ONE_ARCSEC) &&
-			(fabs(s1->dec - s2->dec) < 2.0 * ONE_ARCSEC);
+static gboolean is_same_star(psf_star *s1, psf_star *s2, double as_rate) {
+	return (fabs(s1->ra - s2->ra) < as_rate * ONE_ARCSEC) &&
+			(fabs(s1->dec - s2->dec) < as_rate * ONE_ARCSEC);
 }
 
 int sort_compstars(struct compstars_arg *args) {
@@ -344,7 +344,7 @@ int sort_compstars(struct compstars_arg *args) {
 		if (is_inside_border(&gfit, args->cat_stars[i].ra, args->cat_stars[i].dec, 0.15) &&
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
 				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
-				!is_same_star(args->target_star, &args->cat_stars[i]) &&
+				!is_same_star(args->target_star, &args->cat_stars[i], 2.0) &&
 				args->cat_stars[i].s_mag < 0.015 && args->cat_stars[i].s_Bmag < 0.015) {	// Criteria #3: e_Vmag and e_Bmag < 0.015
 			args->comp_stars[nb_phot_stars] = duplicate_psf(&args->cat_stars[i]);
 			if (!args->comp_stars[nb_phot_stars]->star_name)
@@ -483,21 +483,18 @@ void chk_compstars(struct compstars_arg *args) {
 }
 
 
-static int getmyfiles() {
+static int getmyfiles(struct compstars_arg *args) {
 	struct dirent *pDirent;
 	DIR *pDir;
-
-
 	char *ext = NULL;
 	int lst_valid = 0, lst_nbr = 0, used_lst_nbr = 0;
 
 	gchar *seq_basename = g_path_get_basename(com.seq.seqname);	// No need to check if a sequence exists as it's been done before 
 
-
 	// Ensure we can open directory.
 	pDir = opendir (g_get_current_dir ());
 	if (pDir == NULL) {
-		//printf ("Cannot open directory '%s'\n", g_get_current_dir ());
+		printf ("Cannot open directory '%s'\n", g_get_current_dir ());
 		return 1;
 	}
 
@@ -519,8 +516,6 @@ static int getmyfiles() {
 			lst_valid = TRUE;
 			lst_nbr++;
 		} 
-
-
 
 		// Open a new file, only if it is revelant
 		if (lst_valid && com.seq.imgparam[lst_nbr - 1].incl){	//The file MUST match a valid image in the sequence frame selector
@@ -553,6 +548,11 @@ static int getmyfiles() {
 					siril_log_color_message(_("then run a 2-pass registration.\n"), "red");	
 					return 1;				
 				}
+
+				// Here, fill the structure
+
+// A VOIR 	!is_same_star(a
+
 				nbr_lines++;
 			}
 			if (lst_valid) siril_debug_print(_("FILE: %s with %d stars\n"), pDirent->d_name, nbr_lines);
@@ -586,7 +586,7 @@ gpointer compstars_worker(gpointer arg) {
 	if (args->cat == CAT_UNDEF) {		// test for BLIND method
 		siril_log_color_message(_("Trying to use the new BLIND method, not fully implemented!! LOL.\n"), "salmon");
 		retval = 1;
-		getmyfiles();
+		getmyfiles(args);
 		goto end;
 	}
 	// 1. search for the variable star
