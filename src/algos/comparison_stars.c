@@ -482,12 +482,87 @@ void chk_compstars(struct compstars_arg *args) {
 	} else siril_log_message(_("No csv output file to create\n"));
 }
 
+int sort_blind_compstars(struct compstars_arg *args) {
 
-static int getmyfiles(struct compstars_arg *args) {
+	int nb_phot_stars = 0;
+	args->comp_stars = malloc((args->nb_cat_stars + 1) * sizeof(psf_star *));
+	double BV0 = fabs(args->target_star->mag - args->target_star->Bmag);	// B-V of the target star
+
+	for (int i = 0; i < args->nb_cat_stars; i++) {
+		double d_mag = fabs(args->cat_stars[i].mag - args->target_star->mag);
+		double BVi = fabs(args->cat_stars[i].mag - args->cat_stars[i].Bmag);
+
+		// Criteria #0: the star has to be within the image and far from the borders
+		// (discards 15% of the width/height on both borders)
+		if (is_inside_border(&gfit, args->cat_stars[i].ra, args->cat_stars[i].dec, 0.15) &&
+				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
+				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
+				!is_same_star(args->target_star, &args->cat_stars[i], 2.0) &&
+				args->cat_stars[i].s_mag < 0.015 && args->cat_stars[i].s_Bmag < 0.015) {	// Criteria #3: e_Vmag and e_Bmag < 0.015
+			args->comp_stars[nb_phot_stars] = duplicate_psf(&args->cat_stars[i]);
+
+			if (!args->comp_stars[nb_phot_stars]->star_name)
+				args->comp_stars[nb_phot_stars]->star_name = g_strdup_printf("%d", nb_phot_stars+1);
+			nb_phot_stars++;
+		}
+		i++;
+	}
+	args->comp_stars[nb_phot_stars] = NULL;
+
+	siril_log_message(_("%d comparison stars after sort.\n"), nb_phot_stars);
+	args->nb_comp_stars = nb_phot_stars;
+	return nb_phot_stars == 0;
+}
+
+static int lst_parse_files(struct dirent *pDirent) {
+	FILE* fp = fopen(pDirent->d_name, "r");
+	if (!fp) {
+		printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
+		fclose (fp);
+		return -1;
+	}
+
+	char buf[512];
+	int nbr_stars = 0;
+	while (fgets(buf, 512, fp)) {
+		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
+			continue;
+
+		remove_trailing_eol(buf);
+		gchar **tokens = g_strsplit(buf, "\t", -1);
+		guint length = g_strv_length(tokens);
+
+		if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
+
+		double ra = g_ascii_strtod(tokens[15], NULL);
+		double dec = g_ascii_strtod(tokens[16], NULL);
+		double mag = g_ascii_strtod(tokens[13], NULL);
+		if (ra ==0.0 || dec == 0.0){
+			siril_log_color_message(_("Some WCS data are missing.\n"), "red");
+			siril_log_color_message(_("Plate solve the images of the sequence (seqplatesolve),\n"), "red");	
+			siril_log_color_message(_("then run a 2-pass registration.\n"), "red");	
+			return -1;				
+		}
+
+		// Here, fill the structure
+		// siril_log_color_message(_("Fred is here.\n"), "red");
+
+	// A VOIR 	!is_same_star(a
+
+		nbr_stars++;
+	}
+	
+	//Closing current file
+	fclose(fp);
+	return nbr_stars;
+}
+
+static int lst_get_files(struct compstars_arg *args) {
 	struct dirent *pDirent;
 	DIR *pDir;
 	char *ext = NULL;
-	int lst_valid = 0, lst_nbr = 0, used_lst_nbr = 0;
+	int lst_valid = 0, lst_nbr = 0, used_lst_nbr = 0, stars_lst_nbr = 0;
+	int st_lst_nbr = MAX_STARS;
 
 	gchar *seq_basename = g_path_get_basename(com.seq.seqname);	// No need to check if a sequence exists as it's been done before 
 
@@ -498,11 +573,12 @@ static int getmyfiles(struct compstars_arg *args) {
 		return 1;
 	}
 
-	// Process each entry.
+	// Process each entry (ie file of the CWD)
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	while ((pDirent = readdir(pDir)) != NULL) {		// Loop over all the files of the folder
 		lst_valid = FALSE;
+		stars_lst_nbr = 0;
 
 		// Looking for any file:
 		// - with a .lst extension (result of a 2-pass registration)
@@ -517,47 +593,13 @@ static int getmyfiles(struct compstars_arg *args) {
 			lst_nbr++;
 		} 
 
-		// Open a new file, only if it is revelant
+		// Open a new file (only if it is revelant) and parse data
 		if (lst_valid && com.seq.imgparam[lst_nbr - 1].incl){	//The file MUST match a valid image in the sequence frame selector
+			stars_lst_nbr = lst_parse_files(pDirent);
+			if (stars_lst_nbr == -1) return 1;
 			used_lst_nbr++;
-			FILE* fp = fopen(pDirent->d_name, "r");
-			if (!fp) {
-				printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
-				fclose (fp);
-				continue;
-			}
-
-			char buf[512];
-			int nbr_lines = 0;
-			while (fgets(buf, 512, fp) && lst_valid) {
-				if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
-					continue;
-
-				remove_trailing_eol(buf);
-				gchar **tokens = g_strsplit(buf, "\t", -1);
-				guint length = g_strv_length(tokens);
-
-				if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
-
-				double ra = g_ascii_strtod(tokens[15], NULL);
-				double dec = g_ascii_strtod(tokens[16], NULL);
-				double mag = g_ascii_strtod(tokens[13], NULL);
-				if (ra ==0.0 || dec == 0.0){
-					siril_log_color_message(_("Some WCS data are missing.\n"), "red");
-					siril_log_color_message(_("Plate solve the images of the sequence (seqplatesolve),\n"), "red");	
-					siril_log_color_message(_("then run a 2-pass registration.\n"), "red");	
-					return 1;				
-				}
-
-				// Here, fill the structure
-
-// A VOIR 	!is_same_star(a
-
-				nbr_lines++;
-			}
-			if (lst_valid) siril_debug_print(_("FILE: %s with %d stars\n"), pDirent->d_name, nbr_lines);
-			//Closing current file
-			fclose(fp);
+			st_lst_nbr = stars_lst_nbr < st_lst_nbr ? stars_lst_nbr : st_lst_nbr;	// Get the minimum nbr of detected stars in an image
+			siril_debug_print(_("FILE: %s with %d stars\n"), pDirent->d_name, stars_lst_nbr);
 		}
 	}
 
@@ -571,7 +613,7 @@ static int getmyfiles(struct compstars_arg *args) {
 		return 1;
 	}
 
-	siril_log_color_message(_("Number of used lst files %d / %d \n"), "salmon", used_lst_nbr, lst_nbr);
+	siril_log_color_message(_("Number of used lst files %d / %d (%d stars min)\n"), "salmon", used_lst_nbr, lst_nbr, st_lst_nbr);
 
 	// Close directory and exit.
 	closedir (pDir);
@@ -586,7 +628,7 @@ gpointer compstars_worker(gpointer arg) {
 	if (args->cat == CAT_UNDEF) {		// test for BLIND method
 		siril_log_color_message(_("Trying to use the new BLIND method, not fully implemented!! LOL.\n"), "salmon");
 		retval = 1;
-		getmyfiles(args);
+		lst_get_files(args);
 		goto end;
 	}
 	// 1. search for the variable star
