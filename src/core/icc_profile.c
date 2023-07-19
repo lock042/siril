@@ -903,6 +903,9 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		fit->icc_profile = copyICCProfile(profile);
 		if (!com.script && fit == &gfit) {
 			set_source_information();
+			if (gui.icc.display_transform)
+				cmsDeleteTransform(gui.icc.display_transform);
+			gui.icc.display_transform = initialize_display_transform();
 			notify_gfit_modified();
 		}
 	} else {

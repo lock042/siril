@@ -613,8 +613,8 @@ typedef struct draw_data {
 } draw_data_t;
 
 struct gui_icc {
-	cmsHPROFILE *monitor;
-	cmsHPROFILE *soft_proof;
+	cmsHPROFILE monitor;
+	cmsHPROFILE soft_proof;
 	gboolean available;
 	cmsHTRANSFORM *display_transform;
 	cmsHTRANSFORM *proofing_transform;
@@ -690,14 +690,14 @@ struct guiinf {
 };
 
 struct common_icc {
-	cmsHPROFILE *working_linear;
-	cmsHPROFILE *mono_linear;
-	cmsHPROFILE *working_standard;
-	cmsHPROFILE *mono_standard;
-	cmsHPROFILE *srgb_profile;
-	cmsHPROFILE *srgb_out;
-	cmsHPROFILE *working_out;
-	cmsHPROFILE *mono_out;
+	cmsHPROFILE working_linear;
+	cmsHPROFILE mono_linear;
+	cmsHPROFILE working_standard;
+	cmsHPROFILE mono_standard;
+	cmsHPROFILE srgb_profile;
+	cmsHPROFILE srgb_out;
+	cmsHPROFILE working_out;
+	cmsHPROFILE mono_out;
 	cmsContext context_single;
 	cmsContext context_threaded;
 	gboolean available;
