@@ -36,23 +36,6 @@
 #include "core/siril_app_dirs.h"
 #include "core/proto.h"
 
-#define DEFAULT_PATH_GV2g22 "Gray-siril-V2-g22.icc"
-#define DEFAULT_PATH_GV4g10 "Gray-siril-V4-g10.icc"
-#define DEFAULT_PATH_GV4g22 "Gray-siril-V4-g22.icc"
-#define DEFAULT_PATH_RGBV2g22 "sRGB-siril-V2-g22.icc"
-#define DEFAULT_PATH_RGBV4g10 "sRGB-siril-V4-g10.icc"
-#define DEFAULT_PATH_RGBV4g22 "sRGB-siril-V4-g22.icc"
-
-#define INDEX_CUSTOM_LINEAR 0
-#define INDEX_CUSTOM_TRC 1
-#define INDEX_CUSTOM_GRAY 2
-
-#define MAX_SYSTEM_ICC 2
-// The following two indices refer to user-provided screen and proof profiles
-// that may be stored in com.pref.icc but for which there are no defaults
-#define INDEX_CUSTOM_MONITOR 3
-#define INDEX_CUSTOM_PROOF 4
-
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
 void set_source_information();
@@ -171,6 +154,7 @@ void export_elle_stone_profiles() {
 	cmsCloseProfile(profile);
 }
 
+/* Check if a provided filename is non-null and points to a file that exists */
 gboolean validate_profile(gchar* filename) {
 	if (!filename)
 		return FALSE;
@@ -362,8 +346,9 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
 	}
 }
 
-// Loads a custom monitor profile from a path in com.pref.icc.icc_paths
-// The path must be set by the user in preferences, there is no default custom monitor profile
+/* Loads a custom monitor profile from a path in com.pref.icc.icc_paths
+ * The path must be set by the user in preferences: there is no default custom monitor profile
+ */
 int load_monitor_icc_profile(const char* filename) {
 	if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0') {
 	g_mutex_lock(&monitor_profile_mutex);
@@ -378,8 +363,9 @@ int load_monitor_icc_profile(const char* filename) {
 	} else return 1;
 }
 
-// Loads a custom proof profile from a path in com.pref.icc.icc_paths
-// The path must be set by the user in preferences, there is no default custom proof profile
+/* Loads a custom proof profile from a path in com.pref.icc.icc_paths
+ * The path must be set by the user in preferences: there is no default custom proof profile
+ */
 int load_soft_proof_icc_profile(const char* filename) {
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
 		g_mutex_lock(&soft_proof_profile_mutex);
@@ -399,8 +385,9 @@ void assign_linear_icc_profile(fits *fit) {
 	fit->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
 }
 
-// Even for mono images with a Gray profile, the display datatype is always RGB;
-// lcms2 takes care of populating all 3 output channels for us.
+/* Even for mono images with a Gray profile, the display datatype is always RGB;
+ * lcms2 takes care of populating all 3 output channels for us.
+ */
 cmsHTRANSFORM initialize_display_transform() {
 	g_assert(gui.icc.monitor);
 	cmsHTRANSFORM transform = NULL;
@@ -457,6 +444,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	return proofing_transform;
 }
 
+/* Refreshes the display and proofing transforms after a profile is changed. */
 void refresh_icc_transforms() {
 	if (gui.icc.available) {
 		if (gui.icc.display_transform != NULL)
@@ -488,7 +476,8 @@ unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
 
 /* Intended for use if a fits has no profile, to decide what to assign.
  * This is not definitive, but it checks the FITS header HISTORY for signs of
- * GHT, Asinh or Histogram stretches having been carried out. */
+ * GHT, Asinh or Histogram stretches (or autostretches) having been applied.
+ */
 gboolean fit_appears_stretched(fits* fit) {
 	GSList* entry = NULL;
 	if (fit->history) {
@@ -511,6 +500,9 @@ gboolean fit_appears_stretched(fits* fit) {
 	return FALSE;
 }
 
+/* Wrapper for cmsIsToneCurveLinear() that reads the relevant tone curve from
+ * fit->icc_profile and checks to see if it is linear
+ */
 cmsBool fit_icc_is_linear(fits *fit) {
 	cmsToneCurve *tonecurve;
 	if (fit->naxes[2] == 1) {
@@ -525,6 +517,15 @@ cmsBool fit_icc_is_linear(fits *fit) {
 	return cmsIsToneCurveLinear(tonecurve);
 }
 
+/* Provides a sanity check of the ICC profile attached to a fits. This is used
+ * because we shouldn't trust that an embedded profile in an imported file is
+ * sensible. This checks that the channel count matches; if there is no profile
+ * attached to the fits it also looks for evidence that the image has been
+ * stretched in the past, to decide whether to assign a linear or non-linear
+ * profile.
+ * TODO: should this assign the working non-linear profile rather than assume
+ * sRGB?
+ */
 void check_profile_correct(fits* fit) {
 	if (!fit->icc_profile) {
 		if (fit_appears_stretched(fit)) {
@@ -547,6 +548,11 @@ void check_profile_correct(fits* fit) {
 	refresh_icc_transforms();
 }
 
+/* This function returns a separate copy of the cmsHPROFILE provided as the
+ * argument. It is used so that a reference profile can be copied to many
+ * fits images without worrying about freeing the original when the fits is
+ * cleared.
+ */
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	cmsUInt32Number length = 0;
 	cmsUInt8Number* block = NULL;
@@ -568,9 +574,11 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 	return retval;
 }
 
-// This function is for initializing the profile during file
-// import from non-FITS formats, hence the fallback assumption
-// of a sRGB profile
+/* This function is for initializing the profile during file
+ * import from non-FITS formats. It assumes that if the image does not contain
+ * a profile then it should be considered sRGB. This is an industry-standard
+ * assumption.
+ */
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen) {
 	if (EmbedBuffer) {
 		// If there is an embedded profile we will use it
@@ -642,6 +650,7 @@ cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
 	return retval;
 }
 
+/* Converts the color space of a fits from one given profile to another */
 void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
 	if (!to) {
 		siril_log_color_message(_("Warning: reference image has no color profile. Cannot convert input to reference profile.\n"), "salmon");
@@ -674,9 +683,67 @@ void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
 		check_gfit_profile_identical_to_monitor();
 }
 
-/* Converts the color space of one fits to match a reference fits */
+/* Converts the color space of one fits to match a reference fits.
+ * Convenience wrapper to convert_fit_colorspace()
+ */
 void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
 	convert_fit_colorspace(input, input->icc_profile, reference->icc_profile);
+}
+
+void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
+	cmsUInt32Number fit_colorspace = cmsGetColorSpace(fit->icc_profile);
+	cmsUInt32Number fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
+	cmsUInt32Number target_colorspace = cmsGetColorSpace(profile);
+	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
+
+	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
+		return;
+	}
+	void *data = NULL;
+	cmsUInt32Number srctype, desttype;
+	size_t npixels = fit->rx * fit->ry;
+	// convert to profile
+	gboolean threaded = !get_thread_run();
+	data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
+	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
+	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
+	cmsHTRANSFORM transform = NULL;
+	if (fit_colorspace_channels == target_colorspace_channels) {
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, 0);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
+		return;
+	}
+	if (transform) {
+		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = fit->rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(transform, data, data, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(transform);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(profile);
+		if (!com.script && fit == &gfit) {
+			set_source_information();
+			refresh_icc_transforms();
+			notify_gfit_modified();
+		}
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
+	}
+	if (fit == &gfit)
+		check_gfit_profile_identical_to_monitor();
+}
+
+// To be used by stretching functions to recommend converting to the nonlinear working profile
+void check_linear_and_convert_with_approval(fits *fit) {
+	if (!fit_icc_is_linear(fit))
+		return;
+	if (siril_confirm_dialog(_("Recommend color space conversion"), _("The current image has a linear ICC profile. It looks like you're about to stretch the image: do you want to convert it to your nonlinear working color space now? (Recommended!)"), _("Convert"))) {
+		set_cursor_waiting(TRUE);
+		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		set_cursor_waiting(FALSE);
+	}
 }
 
 ///// Preferences callbacks
@@ -866,64 +933,6 @@ const char* default_system_icc_path() {
 	return "/Library/ColorSync/Profiles";
 #endif
 	return "/usr/share/color/icc";
-}
-
-void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
-	cmsUInt32Number fit_colorspace = cmsGetColorSpace(fit->icc_profile);
-	cmsUInt32Number fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
-	cmsUInt32Number target_colorspace = cmsGetColorSpace(profile);
-	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
-
-	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
-		return;
-	}
-	void *data = NULL;
-	cmsUInt32Number srctype, desttype;
-	size_t npixels = fit->rx * fit->ry;
-	// convert to profile
-	gboolean threaded = !get_thread_run();
-	data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
-	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
-	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
-	cmsHTRANSFORM transform = NULL;
-	if (fit_colorspace_channels == target_colorspace_channels) {
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, 0);
-	} else {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
-		return;
-	}
-	if (transform) {
-		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = fit->rx * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(transform, data, data, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(transform);
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(profile);
-		if (!com.script && fit == &gfit) {
-			set_source_information();
-			if (gui.icc.display_transform)
-				cmsDeleteTransform(gui.icc.display_transform);
-			gui.icc.display_transform = initialize_display_transform();
-			notify_gfit_modified();
-		}
-	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
-	}
-	if (fit == &gfit)
-		check_gfit_profile_identical_to_monitor();
-}
-
-// To be used by stretching functions to recommend converting to the nonlinear working profile
-void check_linear_and_convert_with_approval(fits *fit) {
-	if (!fit_icc_is_linear(fit))
-		return;
-	if (siril_confirm_dialog(_("Recommend color space conversion"), _("The current image has a linear ICC profile. It looks like you're about to stretch the image: do you want to convert it to your nonlinear working color space now? (Recommended!)"), _("Convert"))) {
-		set_cursor_waiting(TRUE);
-		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
-		set_cursor_waiting(FALSE);
-	}
 }
 
 static void reset_working_profile_to_srgb() {
@@ -1330,31 +1339,6 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 	}
 	g_free(filename);
 }
-
-/*
-void on_enable_icc_toggled(GtkToggleButton* button, gpointer user_data) {
-	gboolean status = gtk_toggle_button_get_active(button);
-	if (!status) {
-		if (siril_confirm_dialog(_("Are you sure?"), _("Disabling color management will result in an inconsistent appearance of your images when viewed in Siril and in other applications!"), _("Accept"))) {
-		gui.icc.available = FALSE;
-		com.icc.available = FALSE;
-		siril_log_color_message(_("Warning: color management disabled.\n"), "salmon");
-		} else {
-			gtk_toggle_button_set_active(button, TRUE);
-		}
-	} else {
-		com.icc.available = (com.icc.working_linear && com.icc.mono_linear && com.icc.working_out && com.icc.mono_out);
-		gui.icc.available = (com.icc.available); // && gui.icc_profile_rgb && gui.icc_profile_mono);
-		if (!com.icc.available)
-			siril_log_color_message(_("Error: could not enable color management.\n"), "red");
-		else if (!gui.icc.available)
-			siril_log_color_message(_("Warning: could not enable display color management.\n"), "red");
-		else
-			siril_log_color_message(_("Color management enabled...\n"), "green");
-	}
-	notify_gfit_modified();
-}
-*/
 
 void update_icc_enabled_widget(GtkWidget *dialog, gpointer user_data) {
 	// Set description
