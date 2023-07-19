@@ -247,10 +247,10 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 			double x1, x2, y1, y2;
 			convert_surface_to_plot(spl_data, spl_data->pdd.start.x, spl_data->pdd.start.y, &x1, &y1);
 			convert_surface_to_plot(spl_data, x, y, &x2, &y2);
-			spl_data->pdd.datamin.x += x2 - x1;
-			spl_data->pdd.datamax.x += x2 - x1;
-			spl_data->pdd.datamin.y += y2 - y1;
-			spl_data->pdd.datamax.y += y2 - y1;
+			spl_data->pdd.datamin.x += x1 - x2;
+			spl_data->pdd.datamax.x += x1 - x2;
+			spl_data->pdd.datamin.y += y1 - y2;
+			spl_data->pdd.datamax.y += y1 - y2;
 			spl_data->pdd.start = (point){x, y};
 			gtk_widget_queue_draw(da);
 			return TRUE;

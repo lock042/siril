@@ -330,7 +330,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.extrema_ymax = y2;
 		spl_data->pdd.pdatamin = (point){x1, y1};
 		spl_data->pdd.pdatamax = (point){x2, y2};
-		if (!spl_data->autotic) {
+		if (spl_data->autotic) {
 			spl_data->cfgplot.xtics = 5;
 			spl_data->cfgplot.ytics = 5;
 		}
