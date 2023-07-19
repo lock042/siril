@@ -208,7 +208,7 @@ void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
 }
 
 // utilities
-static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax) {
+static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax, int *sig) {
 	double extent = vmax - vmin;
 	if (extent <= 0.)
 		return FALSE;
@@ -234,6 +234,9 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 	*tmin = floor(vmin / tics) * tics;
 	*tmax = ceil(vmax / tics) * tics;
 	*nbtics = (int)round(((*tmax - *tmin) / tics)) + 1;
+	//computing number of decimals
+	double logtics = log10(tics);
+	*sig = abs((int)floor(min(0., logtics)));
 	// siril_debug_print("autotic:\t%g\t%g=>%d\t%g\t%g\n", vmin, vmax, *nbtics, *tmin, *tmax);
 	return TRUE;
 }
@@ -309,10 +312,10 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	double y1 = (!spl_data->interactive) ? spl_data->datamin.y : spl_data->pdd.datamin.y;
 	double y2 = (!spl_data->interactive) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
 	double xmin, xmax, ymin, ymax;
-	int nbticX,nbticY;
+	int nbticX, nbticY, sigX, sigY;
 	if (spl_data->autotic &&
-		siril_plot_autotic(x1, x2, &nbticX, &xmin, &xmax) &&
-		siril_plot_autotic(y1, y2, &nbticY, &ymin, &ymax)) {
+		siril_plot_autotic(x1, x2, &nbticX, &xmin, &xmax, &sigX) &&
+		siril_plot_autotic(y1, y2, &nbticY, &ymin, &ymax, &sigY)) {
 		spl_data->cfgplot.extrema = 0x0F;
 		spl_data->cfgplot.extrema_xmin = xmin;
 		spl_data->cfgplot.extrema_xmax = xmax;
@@ -322,6 +325,15 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.ytics = nbticY;
 		spl_data->pdd.pdatamin = (point){xmin, ymin};
 		spl_data->pdd.pdatamax = (point){xmax, ymax};
+		// if the formats are not forced by caller, they are adjusted
+		if (!spl_data->xfmt) {
+			g_free(spl_data->cfgplot.xticlabelfmtstr);
+			spl_data->cfgplot.xticlabelfmtstr = g_strdup_printf("%%.%df", sigX);
+		}
+		if (!spl_data->yfmt) {
+			g_free(spl_data->cfgplot.yticlabelfmtstr);
+			spl_data->cfgplot.yticlabelfmtstr = g_strdup_printf("%%.%df", sigY);
+		}
 	} else {  // fallback
 		spl_data->cfgplot.extrema = 0x0F;
 		spl_data->cfgplot.extrema_xmin = x1;
@@ -333,6 +345,14 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		if (spl_data->autotic) {
 			spl_data->cfgplot.xtics = 5;
 			spl_data->cfgplot.ytics = 5;
+			if (!spl_data->xfmt) {
+				g_free(spl_data->cfgplot.xticlabelfmtstr);
+				spl_data->cfgplot.xticlabelfmtstr = g_strdup("%g");
+			}
+			if (!spl_data->yfmt) {
+				g_free(spl_data->cfgplot.yticlabelfmtstr);
+				spl_data->cfgplot.yticlabelfmtstr = g_strdup("%g");
+			}
 		}
 	}
 	// if the formats are forced by caller, they are passed

@@ -206,7 +206,7 @@ static gboolean on_siril_plot_draw(GtkWidget *widget, cairo_t *cr, gpointer user
 }
 
 static gboolean on_siril_plot_enter_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	set_cursor("tcross");
+	set_cursor("crosshair");
 	return TRUE;
 }
 
@@ -289,6 +289,7 @@ static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButt
 			if (event->state & get_primary()) {
 				spl_data->pdd.action = SELACTION_MOVING; // pan start
 				spl_data->autotic = FALSE;
+				set_cursor("all-scroll");
 			} else {
 				spl_data->pdd.action = SELACTION_SELECTING; // selection
 				spl_data->pdd.selection = (rectangled){x, y, 0., 0.};
@@ -324,6 +325,7 @@ static gboolean on_siril_plot_button_release_event(GtkWidget *widget, GdkEventBu
 	if (event->button == GDK_BUTTON_PRIMARY && spl_data->pdd.action == SELACTION_MOVING) {
 		reset_selection(&spl_data->pdd);
 		spl_data->autotic = TRUE;
+		set_cursor("crosshair");
 		gtk_widget_queue_draw(da);
 	}
 	return TRUE;
