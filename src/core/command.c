@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <gsl/gsl_histogram.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -8905,7 +8906,8 @@ int process_show(int nb) {
 
 	GtkToggleToolButton *button = NULL;
 parse_coords:
-	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
+	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
+			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
 		// code from process_pcc
 		char *sep = strchr(word[next_arg], ',');
 		if (!sep) {
