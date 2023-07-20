@@ -469,7 +469,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	}
 
 	// Try to read embedded ICC profile data
-	cmsUInt32Number EmbedLen;
+	cmsUInt32Number EmbedLen = 0;
 	cmsUInt8Number* EmbedBuffer = NULL;
 	(void) TIFFGetField(tif, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer);
 
