@@ -1079,7 +1079,7 @@ int readjpg(const char* name, fits *fit){
 
 	// Check for an ICC profile
 	JOCTET *EmbedBuffer = NULL;
-	unsigned int EmbedLen;
+	unsigned int EmbedLen = 0;
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
 	if (jpeg_read_icc_profile(&cinfo, &EmbedBuffer, &EmbedLen)) {
 		siril_debug_print("Read ICC profile from JPEG\n");
@@ -1252,7 +1252,7 @@ int savejpg(const char *name, fits *fit, int quality){
 	JOCTET *EmbedBuffer = NULL;
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
 	if (com.icc.available) {
-		unsigned int EmbedLen;
+		unsigned int EmbedLen = 0;
 		EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &EmbedLen);
 		if (EmbedBuffer)
 			jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
@@ -1358,7 +1358,7 @@ int readpng(const char *name, fits* fit) {
 	}
 
 	cmsUInt8Number *embed = NULL;
-	cmsUInt32Number len;
+	cmsUInt32Number len = 0;
 	{
 		png_charp name;
 		int comp_type;
