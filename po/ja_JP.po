@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-02 12:29+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
-"Language-Team: Japanese <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/ja/>\n"
+"PO-Revision-Date: 2023-07-20 14:11+0000\n"
+"Last-Translator: yoshiharu yamashita <yamashita@tosslec.co.jp>\n"
+"Language-Team: Japanese <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/ja/>\n"
 "Language: ja_JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -105,7 +105,7 @@ msgstr ""
 #: src/gui/siril3.glade:352 src/gui/siril3.glade:1215 src/gui/siril3.glade:5163
 #: src/gui/siril3.glade:5431
 msgid "Amount"
-msgstr ""
+msgstr "量"
 
 #: src/gui/siril3.glade:387
 msgid ""
@@ -138,6 +138,8 @@ msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
 msgstr ""
+"シーケンスがロードされ、これがアクティブになっている場合は、ロードされたイメ"
+"ージだけでなく、シーケンスのすべてのイメージに対して処理を実行します。"
 
 #: src/gui/siril3.glade:443 src/gui/siril3.glade:1382 src/gui/siril3.glade:3964
 #: src/gui/siril3.glade:7873 src/gui/siril3.glade:15989
@@ -166,7 +168,7 @@ msgstr "画像を正規化"
 
 #: src/gui/siril3.glade:677
 msgid "Average"
-msgstr ""
+msgstr "平均"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
