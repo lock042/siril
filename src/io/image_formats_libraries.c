@@ -1630,10 +1630,12 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 			if (!fit->icc_profile)
 				fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
 			cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
-			cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, TRUE);
-			cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (samples_per_pixel == 1 ? com.icc.mono_out : (com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.pref.icc.export_intent, 0);
+			cmsUInt32Number trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16);
+			cmsHPROFILE output_profile = cmsOpenProfileFromMem(profile, profile_len);
+			cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, output_profile, trans_type, com.pref.icc.export_intent, 0);
+			cmsCloseProfile(output_profile);
 			cmsUInt32Number datasize = sizeof(WORD);
-			cmsUInt32Number bytesperline = gfit.rx * datasize;
+			cmsUInt32Number bytesperline = gfit.rx * datasize * fit->naxes[2];
 			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
 			cmsDoTransformLineStride(save_transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
