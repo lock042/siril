@@ -514,17 +514,23 @@ int sort_blind_compstars(struct compstars_arg *args) {
 	return nb_phot_stars == 0;
 }
 
-static int lst_parse_files(struct dirent *pDirent) {
-	FILE* fp = fopen(pDirent->d_name, "r");
-	if (!fp) {
+static int lst_parse_files(struct dirent *pDirent, struct compstars_arg *args, int used_lst_nbr, int st_lst_nbr) {
+	siril_log_message(_("used_lst_nbr: %d st_lst_nbr: %d \n"), used_lst_nbr, st_lst_nbr);
+	args->cat_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
+	args->comp_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
+
+	double ra = 0.0, dec = 0.0, mag = 0.0;
+
+	FILE* fd = fopen(pDirent->d_name, "r");
+	if (!fd) {
 		printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
-		fclose (fp);
+		fclose (fd);
 		return -1;
 	}
 
 	char buf[512];
 	int nbr_stars = 0;
-	while (fgets(buf, 512, fp)) {
+	while (fgets(buf, 512, fd)) {
 		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
 			continue;
 
@@ -533,25 +539,57 @@ static int lst_parse_files(struct dirent *pDirent) {
 		guint length = g_strv_length(tokens);
 
 		if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
+//		A = g_ascii_strtod(tokens[3], NULL);
+//		B = g_ascii_strtod(tokens[2], NULL);
+		mag = g_ascii_strtod(tokens[13], NULL);
+		ra = g_ascii_strtod(tokens[15], NULL);
+		dec = g_ascii_strtod(tokens[16], NULL);
 
+
+		args->cat_stars[nbr_stars].mag = mag;
+		args->cat_stars[nbr_stars].ra = ra;
+		args->cat_stars[nbr_stars].dec = dec;
+		args->comp_stars[nbr_stars] = duplicate_psf(&args->cat_stars[nbr_stars]);
+
+		//siril_log_message(_("ind: %d, mag: %lf, ra: %lf, dec: %lf \n"), nbr_stars, args->comp_stars[nbr_stars]->mag, args->comp_stars[nbr_stars]->ra, args->comp_stars[nbr_stars]->dec);
+		nbr_stars++;
+	}
+	
+	//Closing current file
+	fclose(fd);
+	return nbr_stars;
+}
+
+// Intended to check if the found files are compliant (WCS data are present)
+static int lst_chk_files(struct dirent *pDirent) {
+	FILE* fp = fopen(pDirent->d_name, "r");
+	if (!fp) {
+		printf ("Could not open file %s: %s\n", pDirent->d_name, strerror(errno));
+		fclose (fp);
+		return -1;
+	}
+	char buf[512];
+	int nbr_stars = 0;
+	while (fgets(buf, 512, fp)) {
+		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
+			continue;
+		remove_trailing_eol(buf);
+		gchar **tokens = g_strsplit(buf, "\t", -1);
+		guint length = g_strv_length(tokens);
+
+		if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
+
+		// Check for un-platesolved image
 		double ra = g_ascii_strtod(tokens[15], NULL);
 		double dec = g_ascii_strtod(tokens[16], NULL);
-		double mag = g_ascii_strtod(tokens[13], NULL);
 		if (ra ==0.0 || dec == 0.0){
 			siril_log_color_message(_("Some WCS data are missing.\n"), "red");
 			siril_log_color_message(_("Plate solve the images of the sequence (seqplatesolve),\n"), "red");	
 			siril_log_color_message(_("then run a 2-pass registration.\n"), "red");	
 			return -1;				
 		}
-
-		// Here, fill the structure
-		// siril_log_color_message(_("Fred is here.\n"), "red");
-
-	// A VOIR 	!is_same_star(a
-
 		nbr_stars++;
 	}
-	
 	//Closing current file
 	fclose(fp);
 	return nbr_stars;
@@ -583,7 +621,7 @@ static int lst_get_files(struct compstars_arg *args) {
 		// Looking for any file:
 		// - with a .lst extension (result of a 2-pass registration)
 		// - applied to the current loaded sequence
-		// - actually selected in the frame selector (TODO)
+		// - actually selected in the frame selector
 		ext = strrchr(pDirent->d_name, '.');
 		int goodfile = ext // the file has an extension
 						&& !strcmp(ext + 1, "lst")	// this extension MUST be .lst
@@ -593,14 +631,25 @@ static int lst_get_files(struct compstars_arg *args) {
 			lst_nbr++;
 		} 
 
-		// Open a new file (only if it is revelant) and parse data
+		// Opens a new file (only if it is valid), and retrieves:
+		// -the minimum detected stars number in the dataset
+		// -the number of .lst files 
+		// to accuratly size the forcoming arrays
 		if (lst_valid && com.seq.imgparam[lst_nbr - 1].incl){	//The file MUST match a valid image in the sequence frame selector
-			stars_lst_nbr = lst_parse_files(pDirent);
-			if (stars_lst_nbr == -1) return 1;
+			stars_lst_nbr = lst_chk_files(pDirent);
+			if (stars_lst_nbr == -1) return 1;		// Some WCS data are missing.
 			used_lst_nbr++;
-			st_lst_nbr = stars_lst_nbr < st_lst_nbr ? stars_lst_nbr : st_lst_nbr;	// Get the minimum nbr of detected stars in an image
-			siril_debug_print(_("FILE: %s with %d stars\n"), pDirent->d_name, stars_lst_nbr);
+			st_lst_nbr = min(stars_lst_nbr , st_lst_nbr);	// Get the minimum nbr of detected stars in an image
+			siril_debug_print(_("FILE: %s with %d stars\n"), pDirent->d_name, stars_lst_nbr);			
 		}
+
+		// Re-open the selected files
+		// parse the data to fill the arrays
+		if (lst_valid && com.seq.imgparam[lst_nbr - 1].incl) {
+			lst_parse_files(pDirent, args, used_lst_nbr, st_lst_nbr);
+			siril_log_color_message(_("2nd turn!!!.\n"), "red");
+		}
+
 	}
 
 	// Duration calculation and display
@@ -614,7 +663,6 @@ static int lst_get_files(struct compstars_arg *args) {
 	}
 
 	siril_log_color_message(_("Number of used lst files %d / %d (%d stars min)\n"), "salmon", used_lst_nbr, lst_nbr, st_lst_nbr);
-
 	// Close directory and exit.
 	closedir (pDir);
 	return 0;
@@ -625,10 +673,11 @@ static int lst_get_files(struct compstars_arg *args) {
 gpointer compstars_worker(gpointer arg) {
 	int retval;
 	struct compstars_arg *args = (struct compstars_arg *) arg;
+
 	if (args->cat == CAT_UNDEF) {		// test for BLIND method
 		siril_log_color_message(_("Trying to use the new BLIND method, not fully implemented!! LOL.\n"), "salmon");
 		retval = 1;
-		lst_get_files(args);
+		retval = lst_get_files(args);
 		goto end;
 	}
 	// 1. search for the variable star
