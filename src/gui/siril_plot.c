@@ -34,6 +34,9 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 
+#define SIRIL_PLOT_ZOOM_IN 1.5
+#define SIRIL_PLOT_ZOOM_OUT 1. / SIRIL_PLOT_ZOOM_IN
+
 // utilities
 static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	if (!spl_data)
@@ -92,6 +95,23 @@ static void reset_selection(plot_draw_data_t *pdd) {
 static void reset_zoom(siril_plot_data *spl_data) {
 	spl_data->pdd.datamin = spl_data->datamin;
 	spl_data->pdd.datamax = spl_data->datamax;
+}
+
+static gboolean update_zoom(siril_plot_data *spl_data, double x, double y, double scale) {
+	if (!spl_data)
+		return FALSE;
+	double x1, y1;
+	convert_surface_to_plot(spl_data, x, y, &x1, &y1);
+	double xrangep = (spl_data->pdd.pdatamax.x - x1) / scale;
+	double xrangem = (x1 - spl_data->pdd.pdatamin.x) / scale;
+	double yrangep = (spl_data->pdd.pdatamax.y - y1) / scale;
+	double yrangem = (y1 - spl_data->pdd.pdatamin.y) / scale;
+
+	spl_data->pdd.datamin.x = x1 - xrangem;
+	spl_data->pdd.datamax.x = x1 + xrangep;
+	spl_data->pdd.datamin.y = y1 - yrangem;
+	spl_data->pdd.datamax.y = y1 + yrangep;
+	return TRUE;
 }
 
 static void set_filter(GtkFileChooser *dialog, const gchar *name, const gchar *pattern) {
@@ -259,6 +279,41 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 	return TRUE;
 }
 
+static gboolean on_siril_plot_scroll_event(GtkWidget *widget, GdkEventScroll *event, gpointer user_data) {
+	GtkWidget *window = (GtkWidget *)(user_data);
+	if (!window)
+		return FALSE;
+	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !da)
+		return TRUE;
+	gboolean handled = FALSE;
+	if (event->state & get_primary()) {
+		point delta;
+		switch (event->direction) {
+		case GDK_SCROLL_SMOOTH:	// what's that?
+			gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
+			if (delta.y < 0) {
+				handled = update_zoom(spl_data, event->x, event->y, SIRIL_PLOT_ZOOM_IN);
+			}
+			if (delta.y > 0) {
+				handled = update_zoom(spl_data, event->x, event->y, SIRIL_PLOT_ZOOM_OUT);
+			}
+			break;
+		case GDK_SCROLL_DOWN:
+			handled = update_zoom(spl_data, event->x, event->y, SIRIL_PLOT_ZOOM_OUT);
+		case GDK_SCROLL_UP:
+			handled = update_zoom(spl_data, event->x, event->y, SIRIL_PLOT_ZOOM_IN);
+		default:
+			handled = FALSE;
+		}
+	}
+	if (handled) {
+		gtk_widget_queue_draw(da);
+	}
+	return TRUE;
+}
+
 static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
@@ -283,6 +338,7 @@ static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButt
 		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
 			reset_zoom(spl_data);
 			reset_selection(&spl_data->pdd);
+			spl_data->autotic = TRUE;
 			gtk_widget_queue_draw(da);
 			return TRUE;
 		} else if (spl_data->pdd.action == SELACTION_NONE && is_inside_grid(x, y, &spl_data->pdd)) { // start drawing selection
@@ -441,13 +497,16 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	da = gtk_drawing_area_new();
 	gtk_widget_set_size_request(da, SIRIL_PLOT_DISPLAY_WIDTH, SIRIL_PLOT_DISPLAY_HEIGHT);
 	gtk_box_pack_start(GTK_BOX(vbox), da, TRUE, TRUE, 0);
-	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK);
+	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
+	GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | 
+	GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
 	g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_siril_plot_draw), window);
 	g_signal_connect(G_OBJECT(da), "enter-notify-event", G_CALLBACK(on_siril_plot_enter_notify_event), window);
 	g_signal_connect(G_OBJECT(da), "leave-notify-event", G_CALLBACK(on_siril_plot_leave_notify_event), window);
 	g_signal_connect(G_OBJECT(da), "motion-notify-event", G_CALLBACK(on_siril_plot_motion_notify_event), window);
 	g_signal_connect(G_OBJECT(da), "button-press-event", G_CALLBACK(on_siril_plot_button_press_event), window);
 	g_signal_connect(G_OBJECT(da), "button-release-event", G_CALLBACK(on_siril_plot_button_release_event), window);
+	g_signal_connect(G_OBJECT(da), "scroll-event", G_CALLBACK(on_siril_plot_scroll_event), window);	
 	// and cache its handle
 	g_object_set_data(G_OBJECT(window), "drawing_area_handle", da);
 
