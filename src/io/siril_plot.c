@@ -154,6 +154,8 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 }
 
 void free_siril_plot_data(siril_plot_data *spl_data) {
+	if (!spl_data)
+		return;
 	// freeing gchars
 	g_free(spl_data->title);
 	g_free(spl_data->xlabel);
@@ -432,7 +434,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		int pw, ph;
 		layout = pango_cairo_create_layout(cr);
 		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
-		pango_layout_set_text(layout, spl_data->title, -1);
+		pango_layout_set_markup(layout, spl_data->title, -1);
 		// set max width to wrap title if required
 		pango_layout_set_width(layout, (width - 2 * SIRIL_PLOT_MARGIN) * PANGO_SCALE);
 		pango_layout_set_wrap(layout,PANGO_WRAP_WORD);
@@ -484,7 +486,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		pango_layout_set_font_description(layout, desc);
 		pango_font_description_free(desc);
 
-		pango_layout_set_text(layout, legend_text->str, -1);
+		pango_layout_set_markup(layout, legend_text->str, -1);
 		pango_layout_get_size(layout, &pw, &ph);
 		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
 		double px0 = spl_data->pdd.offset.x - (double)SIRIL_PLOT_MARGIN + spl_data->pdd.range.x - (double)pw / PANGO_SCALE;
@@ -597,7 +599,7 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename) {
 #endif
 
 // save the data to a dat file
-gboolean siril_plot_save_dat(siril_plot_data *spl_data, char *datfilename) {
+gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename, gboolean add_title) {
 	GString *header = NULL;
 	FILE* fileout = NULL;
 	gboolean retval = TRUE;
@@ -606,7 +608,11 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, char *datfilename) {
 	// TODO: for the time-being, we will assume that x of the first series
 	// is valid for all other series. May need to complexify this in the future
 	int nbpoints = 0, nbcols = 1, nbgraphs = 0, j = 0;
-	header = g_string_new("x");
+	if (add_title && spl_data->title) {
+		header = g_string_new(spl_data->title);
+		g_string_append_printf(header, "x");
+	} else
+		header = g_string_new("x");
 	// xylines
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
@@ -631,7 +637,6 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, char *datfilename) {
 		nbgraphs++;
 		nbcols += 3;
 	}
-	siril_log_message("%s\n", header->str);
 
 	// gathering all the data
 	data = malloc(nbpoints * nbcols * sizeof(double));

@@ -48,7 +48,6 @@
 #include "algos/siril_wcs.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "io/gnuplot_i.h"
 #include "io/siril_plot.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
@@ -78,7 +77,6 @@ static enum registration_source X_selected_source = r_FRAME;
 static int julian0 = 0;
 static int reglayer = 0;
 static gboolean is_fwhm = TRUE;
-static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
 static plot_draw_data_t pdd = { 0 };
@@ -714,7 +712,6 @@ static double get_error_for_time(pldata *plot, double time) {
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
-	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -810,43 +807,33 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 
 	/*  data are computed, now plot the graph. */
 
-	if (use_gnuplot) {
-		if ((gplot = gnuplot_init())) {
-			/* Plotting light curve */
-			gnuplot_set_title(gplot, _("Light Curve"));
-			gnuplot_set_xlabel(gplot, xlabel);
-			gnuplot_reverse_yaxis(gplot);
-			gnuplot_setstyle(gplot, "errorbars");
-			gnuplot_plot_xyyerr(gplot, x, vmag, err, nb_valid_images, "", 0);
-			// This is now handled at exit or via callback if the user closes the control_window
-			// gnuplot_close(gplot);
-		}
-		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
-	} else { // fallback with siril_plot
-		spl_data = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_data);
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	char add_title[128];
+	if (julian0) {
+		g_sprintf(add_title, "#JD_UT (+ %d)\n", julian0);
+		siril_plot_set_title(spl_data, add_title);
+	}
+	spl_data->revertY = TRUE;
+	siril_plot_set_xlabel(spl_data, xlabel);
+	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+	siril_plot_set_savename(spl_data, "light_curve");
+	spl_data->forsequence = TRUE;
+	int ret = 0;
+	if (!siril_plot_save_dat(spl_data, filename, (julian0) ? TRUE : FALSE)) {
+		ret = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL; // just in case we try to use it later on
+	} else {
 		siril_plot_set_title(spl_data, "Light Curve");
-		spl_data->revertY = TRUE;
-		siril_plot_set_xlabel(spl_data, xlabel);
-		siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, x, vmag, err, NULL);
-		siril_plot_set_savename(spl_data, "light_curve");
-		spl_data->forsequence = TRUE;
 		create_new_siril_plot_window(spl_data);
 	}
 
-	/* Exporting data in a dat file */
-	if ((gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, "JD_UT V-C err"))) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
-		else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
-	} else {
-		siril_log_message(_("%s has been saved.\n"), filename);
-	}
 	free(vmag);
 	free(err);
 	free(x);
 	free(real_x);
-	return 0;
+	return ret;
 }
 
 static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {

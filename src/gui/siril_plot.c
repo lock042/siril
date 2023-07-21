@@ -438,7 +438,7 @@ static void on_siril_plot_save_activate(GtkMenuItem *menuitem, gpointer user_dat
 	} else if (!g_strcmp0(widgetname, "dat")) {
 		filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, FALSE);
 		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT files (*.dat)"), "*.dat")))
-			siril_plot_save_dat(spl_data, outname);
+			siril_plot_save_dat(spl_data, outname, FALSE);
 	} else if (!g_strcmp0(widgetname, "cb")) {
 		save_siril_plot_to_clipboard(window);
 	}

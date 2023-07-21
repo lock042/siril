@@ -56,7 +56,6 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
-#include "io/gnuplot_i.h"
 #include "io/single_image.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
@@ -3114,7 +3113,6 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
-	reset_gnuplot_check();
 	return 0;
 }
 
@@ -9222,11 +9220,6 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
-		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
-		return CMD_GENERIC_ERROR;
-	}
-
 	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = TRUE;
 
@@ -9249,11 +9242,6 @@ int process_seq_profile(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
-	}
-
-	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
-		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
-		return CMD_GENERIC_ERROR;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);

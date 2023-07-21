@@ -1149,7 +1149,7 @@ artifacts may appear.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Saves the GNUplot data file used to generate the profile in the working directory. The filename is based on the current image and includes a timestamp.</property>
+                <property name="tooltip-text" translatable="yes">Saves the data file used to generate the profile in the working directory. The filename is based on the current image and includes a timestamp.</property>
                 <property name="draw-indicator">True</property>
                 <signal name="toggled" handler="on_cut_save_checkbutton_toggled" swapped="no"/>
               </object>
@@ -1180,7 +1180,7 @@ artifacts may appear.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Apply to the current sequence. If this is selected, plots will be generated in .png format in the working directory: the GNUplot window will not appear. This mode automatically enables the "Save plot as .png" option.</property>
+                <property name="tooltip-text" translatable="yes">Apply to the current sequence. If this is selected, plots will be generated in .png format in the working directory: the plot window will not appear. This mode automatically enables the "Save plot as .png" option.</property>
                 <property name="draw-indicator">True</property>
                 <signal name="toggled" handler="on_cut_apply_to_sequence_toggled" swapped="no"/>
               </object>
@@ -24954,8 +24954,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                     <property name="sensitive">False</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.
-WARNING: gnuplot must be installed.</property>
+                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.</property>
                                                     <property name="halign">start</property>
                                                     <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
                                                   </object>
@@ -26969,7 +26968,6 @@ WARNING: This option should not be checked for master stacking.</property>
                     <property name="action-name">win.cut</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">image_cut</property>
-                    <signal name="toggled" handler="on_cut_button_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -32500,7 +32498,7 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=2 n-rows=4 -->
+                          <!-- n-columns=2 n-rows=2 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -32603,58 +32601,6 @@ Torch-based StarNet versions only.</property>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">1</property>
                               </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="filechooser_gnuplot">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Select gnuplot binary location.</property>
-                                <property name="valign">center</property>
-                                <property name="action">select-folder</property>
-                                <property name="create-folders">False</property>
-                                <property name="show-hidden">True</property>
-                                <property name="title" translatable="yes">Select gnuplot installation directory</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="xpad">10</property>
-                                <property name="label" translatable="yes">Must point to a valid gnuplot installation directory.
-Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-like).</property>
-                                <attributes>
-                                  <attribute name="style" value="italic"/>
-                                </attributes>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="do_use_gnuplot_button">
-                                <property name="label" translatable="yes">Use gnuplot</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Tick this box to use gnuplot (whether it's in the path or if you've specified one above).
-If unticked, Siril will use its internal plotting tool</property>
-                                <property name="halign">start</property>
-                                <property name="draw-indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <placeholder/>
                             </child>
                           </object>
                         </child>

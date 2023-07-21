@@ -96,6 +96,6 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height);
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename);
 gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename);
-gboolean siril_plot_save_dat(siril_plot_data *spl_data, char *datfilename);
+gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename, gboolean add_title);
 
 #endif /* SRC_IO_PLOT_H_ */
