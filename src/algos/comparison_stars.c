@@ -530,7 +530,7 @@ static int lst_parse_files(struct dirent *pDirent, struct compstars_arg *args, i
 
 	char buf[512];
 	int nbr_stars = 0;
-	while (fgets(buf, 512, fd)) {
+	while (fgets(buf, 512, fd) && nbr_stars < st_lst_nbr) {
 		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
 			continue;
 
@@ -551,12 +551,13 @@ static int lst_parse_files(struct dirent *pDirent, struct compstars_arg *args, i
 		args->cat_stars[nbr_stars].dec = dec;
 		args->comp_stars[nbr_stars] = duplicate_psf(&args->cat_stars[nbr_stars]);
 
-		//siril_log_message(_("ind: %d, mag: %lf, ra: %lf, dec: %lf \n"), nbr_stars, args->comp_stars[nbr_stars]->mag, args->comp_stars[nbr_stars]->ra, args->comp_stars[nbr_stars]->dec);
+		siril_log_message(_("ind: %d, mag: %lf, ra: %lf, dec: %lf \n"), nbr_stars, args->comp_stars[nbr_stars]->mag, args->comp_stars[nbr_stars]->ra, args->comp_stars[nbr_stars]->dec);
 		nbr_stars++;
 	}
 	
 	//Closing current file
 	fclose(fd);
+
 	return nbr_stars;
 }
 
