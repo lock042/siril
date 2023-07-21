@@ -34,8 +34,10 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 
-#define SIRIL_PLOT_ZOOM_IN 1.5
-#define SIRIL_PLOT_ZOOM_OUT 1. / SIRIL_PLOT_ZOOM_IN
+#define SIRIL_PLOT_ZOOM_OUT 1.5
+#define SIRIL_PLOT_ZOOM_IN 1. / SIRIL_PLOT_ZOOM_OUT
+#define SIRIL_PLOT_MAX_ZOOM 1000.
+#define SIRIL_PLOT_MIN_ZOOM 0.5
 
 // utilities
 static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
@@ -102,10 +104,14 @@ static gboolean update_zoom(siril_plot_data *spl_data, double x, double y, doubl
 		return FALSE;
 	double x1, y1;
 	convert_surface_to_plot(spl_data, x, y, &x1, &y1);
-	double xrangep = (spl_data->pdd.pdatamax.x - x1) / scale;
-	double xrangem = (x1 - spl_data->pdd.pdatamin.x) / scale;
-	double yrangep = (spl_data->pdd.pdatamax.y - y1) / scale;
-	double yrangem = (y1 - spl_data->pdd.pdatamin.y) / scale;
+	double xrangeorig = spl_data->datamax.x - spl_data->datamin.x;
+	double xrangep = (spl_data->pdd.pdatamax.x - x1) * scale;
+	double xrangem = (x1 - spl_data->pdd.pdatamin.x) * scale;
+	double yrangep = (spl_data->pdd.pdatamax.y - y1) * scale;
+	double yrangem = (y1 - spl_data->pdd.pdatamin.y) * scale;
+	double xrangezoomratio = xrangeorig/ (xrangep + xrangem);
+	if (xrangezoomratio > SIRIL_PLOT_MAX_ZOOM || xrangezoomratio < SIRIL_PLOT_MIN_ZOOM)
+		return FALSE;
 
 	spl_data->pdd.datamin.x = x1 - xrangem;
 	spl_data->pdd.datamax.x = x1 + xrangep;
@@ -309,6 +315,7 @@ static gboolean on_siril_plot_scroll_event(GtkWidget *widget, GdkEventScroll *ev
 		}
 	}
 	if (handled) {
+		spl_data->autotic = TRUE;
 		gtk_widget_queue_draw(da);
 	}
 	return TRUE;
