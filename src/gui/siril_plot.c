@@ -112,6 +112,11 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	GtkWidget *label;
 	siril_plot_data *spl_data = (siril_plot_data *)p;
 
+	// sanity checks
+	if (!spl_data) {
+		siril_debug_print("Passed an empty spl_data structure\n");
+		return FALSE;
+	}
 	if (!spl_data_has_any_plot(spl_data)) {
 		siril_debug_print("Trying to display plot that contains no data, freeing and aborting\n");
 		free_siril_plot_data(spl_data);
