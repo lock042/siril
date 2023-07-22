@@ -1347,6 +1347,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		} else {
 			kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
 		}
+		kdata_destroy(d1);
 		plot = plot->next;
 		nb_graphs++;
 	}
@@ -1379,6 +1380,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 				d1 = kdata_array_alloc(sorted_data, plot_data->nb);
 				kplot_attach_data(p, d1, KPLOT_LINES, NULL);
 				free(sorted_data);
+				kdata_destroy(d1);
 			}
 		} else if (use_photometry){
 			int nb_data = max_data - min_data + 1;
@@ -1390,15 +1392,18 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 			mean_d = kdata_array_alloc(avg, nb_data);
 			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
 			free(avg);
+			kdata_destroy(mean_d);
 		}
 
 		if (ref.x > -DBL_MAX && ref.y > -DBL_MAX) {
 			ref_d = kdata_array_alloc(&ref, 1);
 			kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
+			kdata_destroy(ref_d);
 		}
 		if (curr.x > -DBL_MAX && curr.y > -DBL_MAX) {
 			curr_d = kdata_array_alloc(&curr, 1);
 			kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
+			kdata_destroy(curr_d);
 		}
 	}
 
@@ -1462,14 +1467,6 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	}
 	free_colors(&cfgplot);
 	kplot_free(p);
-	if (d1)
-		kdata_destroy(d1);
-	if (curr_d)
-		kdata_destroy(curr_d);
-	if (ref_d)
-		kdata_destroy(ref_d);
-	if (mean_d)
-		kdata_destroy(mean_d);
 }
 
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
