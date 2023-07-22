@@ -533,7 +533,7 @@ gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 			g_string_append_printf(str, "%sAAVSO chart %s", first ? "" : " - ", metadata->AAVSO_chartid);
 	}
 	if (!for_plot)
-		g_string_append(str, "\n#"); // in that case it's the first line...
+		g_string_append(str, "\n"); // in that case it's the first line...
 
 	return g_string_free(str, FALSE);
 }

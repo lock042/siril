@@ -610,9 +610,9 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	int nbpoints = 0, nbcols = 1, nbgraphs = 0, j = 0;
 	if (add_title && spl_data->title) {
 		header = g_string_new(spl_data->title);
-		g_string_append_printf(header, "x");
+		g_string_append_printf(header, "#x");
 	} else
-		header = g_string_new("x");
+		header = g_string_new("#x");
 	// xylines
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
