@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2021-09-26 15:27+0200\n"
-"Last-Translator: \n"
-"Language-Team: \n"
+"PO-Revision-Date: 2023-07-20 14:11+0000\n"
+"Last-Translator: yoshiharu yamashita <yamashita@tosslec.co.jp>\n"
+"Language-Team: Japanese <https://weblate.pixls.us/projects/siril/"
+"siril-application/ja/>\n"
 "Language: ja_JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.0\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:8859
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -107,7 +108,7 @@ msgstr ""
 #: src/gui/siril3.glade:352 src/gui/siril3.glade:1788 src/gui/siril3.glade:5736
 #: src/gui/siril3.glade:6004
 msgid "Amount"
-msgstr ""
+msgstr "量"
 
 #: src/gui/siril3.glade:387
 msgid ""
@@ -140,6 +141,8 @@ msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
 msgstr ""
+"シーケンスがロードされ、これがアクティブになっている場合は、ロードされたイメ"
+"ージだけでなく、シーケンスのすべてのイメージに対して処理を実行します。"
 
 #: src/gui/siril3.glade:443 src/gui/siril3.glade:1955 src/gui/siril3.glade:4537
 #: src/gui/siril3.glade:8446 src/gui/siril3.glade:16857
@@ -168,7 +171,7 @@ msgstr "画像を正規化"
 
 #: src/gui/siril3.glade:677
 msgid "Average"
-msgstr ""
+msgstr "平均"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
@@ -236,7 +239,7 @@ msgstr "<b>FITS 形式</b>"
 
 #: src/gui/siril3.glade:1059
 msgid "Mono"
-msgstr ""
+msgstr "白黒"
 
 #: src/gui/siril3.glade:1063
 msgid "Generates a single luminance profile along the profile line"
@@ -244,13 +247,14 @@ msgstr ""
 
 #: src/gui/siril3.glade:1074
 msgid "Color"
-msgstr ""
+msgstr "カラー"
 
 #: src/gui/siril3.glade:1078
 msgid ""
 "Generates separate R, G and B profiles along the profile line. Not "
 "applicable for mono images"
-msgstr ""
+msgstr "プロファイルラインに沿って個別のR、G、Bプロファイルを生成します。モノラル画像"
+"には適用されません"
 
 #: src/gui/siril3.glade:1089
 #, fuzzy
@@ -259,7 +263,7 @@ msgstr "座標なし"
 
 #: src/gui/siril3.glade:1093
 msgid "Enter coordinates for the start and end points of the profile manually"
-msgstr ""
+msgstr "プロファイルの始点と終点の座標を手動で入力する"
 
 #: src/gui/siril3.glade:1103
 msgid "Spectrometric data"
@@ -279,6 +283,9 @@ msgid ""
 "pixels. Tri-profiles always plot luminance along each profile and do not use "
 "spectrometric data."
 msgstr ""
+"指定されたピクセル数で区切られた3つの平行強度プロファイルを生成します。トライ"
+"プロファイルは常に各プロファイルに沿って輝度をプロットし、分光データは使用し"
+"ません。"
 
 #: src/gui/siril3.glade:1135
 msgid "Set offset step size for tri-profile"
@@ -299,6 +306,8 @@ msgid ""
 "directory. The filename is based on the current image and includes a "
 "timestamp."
 msgstr ""
+"プロファイルの生成に使用したGNUplotデータファイルを作業ディレクトリに保存しま"
+"す。ファイル名は現在の画像に基づいており、タイムスタンプが含まれています。"
 
 #: src/gui/siril3.glade:1183
 msgid ""
@@ -306,6 +315,9 @@ msgid ""
 "in .png format in the working directory: the GNUplot window will not appear. "
 "This mode automatically enables the \"Save plot as .png\" option."
 msgstr ""
+"現在のシーケンスに適用します。これを選択すると、プロットは作業ディレクトリに."
+"png形式で生成されます:GNUplotウィンドウは表示されません。このモードでは、「プ"
+"ロットを.pngとして保存」オプションが自動的に有効になります。"
 
 #: src/gui/siril3.glade:1194
 #, fuzzy
@@ -318,6 +330,9 @@ msgid ""
 "Sequence working relies on this so if this option is deactivated, sequence "
 "working will be deactivated too."
 msgstr ""
+"プロットを.png形式で保存し、GNUplotウィンドウを開きます。シーケンス作業はこれ"
+"に依存しているため、このオプションを無効にすると、シーケンス作業も無効になり"
+"ます。"
 
 #: src/gui/siril3.glade:1209
 msgid "Measure in pixels"
@@ -327,7 +342,8 @@ msgstr ""
 msgid ""
 "Measurements and the plot x axis will show distance in pixels. This option "
 "is overridden if spectrometry data is set."
-msgstr ""
+msgstr "測定値とプロットのx軸は、距離をピクセル単位で示します。このオプションは、分光"
+"データが設定されている場合に上書きされます。"
 
 #: src/gui/siril3.glade:1225
 #, fuzzy
