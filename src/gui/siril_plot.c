@@ -52,6 +52,8 @@ static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequen
 	gchar *temp = NULL, *timestamp = NULL;
 	GString *filename = NULL;
 	
+	if (!prepend)
+		return NULL;
 	filename = g_string_new(prepend);
 
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
