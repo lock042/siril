@@ -440,7 +440,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 		siril_plot_set_title(spl_data, titleimg);
 		if (!display_graph) { // if not used for display we can free spl_data now
 			gchar *image_name = replace_ext(filename, ".png");
-			siril_plot_save_png(spl_data, image_name);
+			siril_plot_save_png(spl_data, image_name, 0, 0);
 			free_siril_plot_data(spl_data);
 			spl_data = NULL; // just in case we try to use it later on
 			g_free(image_name);

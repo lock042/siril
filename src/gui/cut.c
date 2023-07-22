@@ -576,7 +576,7 @@ gpointer cut_profile(gpointer p) {
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
-		siril_plot_save_png(spl_data, imagefilename);
+		siril_plot_save_png(spl_data, imagefilename, 0, 0);
 	if (!arg->display_graph) { // if not used for display we can free spl_data now
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on
@@ -721,7 +721,7 @@ gpointer tri_cut(gpointer p) {
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
-		siril_plot_save_png(spl_data, imagefilename);
+		siril_plot_save_png(spl_data, imagefilename, 0, 0);
 	if (!arg->display_graph) { // if not used for display we can free spl_data now
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on
@@ -841,7 +841,7 @@ gpointer cfa_cut(gpointer p) {
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
-		siril_plot_save_png(spl_data, imagefilename);
+		siril_plot_save_png(spl_data, imagefilename, 0, 0);
 	if (!arg->display_graph) { // if not used for display we can free spl_data now
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on

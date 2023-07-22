@@ -549,9 +549,9 @@ cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int
 	return surface;
 }
 // draw the data contained in spl_data and saves as png file
-gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
+gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int width, int height) {
 	gboolean success = TRUE;
-	cairo_surface_t *png_surface = siril_plot_draw_to_image_surface(spl_data, SIRIL_PLOT_PNG_WIDTH, SIRIL_PLOT_PNG_HEIGHT);
+	cairo_surface_t *png_surface = siril_plot_draw_to_image_surface(spl_data, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT);
 	if (!png_surface)
 		return FALSE;
 
@@ -566,12 +566,12 @@ gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
 
 #ifdef CAIRO_HAS_SVG_SURFACE
 // draw the data contained in spl_data and saves as svg file
-gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename) {
+gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int width, int height) {
 	gboolean success = TRUE;
 	cairo_t *svg_cr = NULL;
 	//create the surface
 	
-	cairo_surface_t *svg_surface = cairo_svg_surface_create(svgfilename, SIRIL_PLOT_PNG_WIDTH, SIRIL_PLOT_PNG_HEIGHT);
+	cairo_surface_t *svg_surface = cairo_svg_surface_create(svgfilename, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT);
 	if (cairo_surface_status(svg_surface)) {
 		siril_debug_print("Could not create svg surface\n");
 		success = FALSE;

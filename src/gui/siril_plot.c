@@ -152,13 +152,9 @@ static gchar* save_siril_plot_dialog(GtkWindow *parent, gchar *defaultfilename, 
 	return savefilename;
 }
 
-static gboolean save_siril_plot_to_clipboard(GtkWidget *window) {
-	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !da)
+static gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height) {
+	if (!spl_data)
 		return TRUE;
-	double width =  gtk_widget_get_allocated_width(da);
-	double height = gtk_widget_get_allocated_height(da);
 
 	cairo_surface_t *surface = siril_plot_draw_to_image_surface(spl_data, width, height);
 	if (!surface)
@@ -431,26 +427,30 @@ static void on_siril_plot_save_activate(GtkMenuItem *menuitem, gpointer user_dat
 	if (!window)
 		return;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
-	if (!spl_data)
+	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
+	if (!spl_data || !da)
 		return;
+	int width =  gtk_widget_get_allocated_width(da);
+	int height = gtk_widget_get_allocated_height(da);
+	
 	const gchar *widgetname = gtk_widget_get_name(GTK_WIDGET(menuitem));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!g_strcmp0(widgetname, "png")) {
 		filename = build_save_filename(spl_data->savename, ".png", spl_data->forsequence, TRUE);
 		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("PNG files (*.png)"), "*.png")))
-			siril_plot_save_png(spl_data, outname);
+			siril_plot_save_png(spl_data, outname, width, height);
 	} else if (!g_strcmp0(widgetname, "dat")) {
 		filename = build_save_filename(spl_data->savename, ".dat", spl_data->forsequence, FALSE);
 		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("DAT files (*.dat)"), "*.dat")))
 			siril_plot_save_dat(spl_data, outname, FALSE);
 	} else if (!g_strcmp0(widgetname, "cb")) {
-		save_siril_plot_to_clipboard(window);
+		save_siril_plot_to_clipboard(spl_data, width, height);
 	}
 #ifdef CAIRO_HAS_SVG_SURFACE
 	else if (!g_strcmp0(widgetname, "svg")) {
 		filename = build_save_filename(spl_data->savename, ".svg", spl_data->forsequence, TRUE);
 		if ((outname = save_siril_plot_dialog(GTK_WINDOW(window), filename, _("SVG files (*.svg)"), "*.svg")))
-			siril_plot_save_svg(spl_data, outname);
+			siril_plot_save_svg(spl_data, outname, width, height);
 	}
 #endif
 	g_free(filename);
