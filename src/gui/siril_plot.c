@@ -506,7 +506,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_box_pack_start(GTK_BOX(vbox), da, TRUE, TRUE, 0);
 	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
 	GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | 
-	GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
+	GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK );
 	g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_siril_plot_draw), window);
 	g_signal_connect(G_OBJECT(da), "enter-notify-event", G_CALLBACK(on_siril_plot_enter_notify_event), window);
 	g_signal_connect(G_OBJECT(da), "leave-notify-event", G_CALLBACK(on_siril_plot_leave_notify_event), window);
