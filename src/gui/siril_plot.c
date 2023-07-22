@@ -308,8 +308,10 @@ static gboolean on_siril_plot_scroll_event(GtkWidget *widget, GdkEventScroll *ev
 			break;
 		case GDK_SCROLL_DOWN:
 			handled = update_zoom(spl_data, event->x, event->y, SIRIL_PLOT_ZOOM_OUT);
+			break;
 		case GDK_SCROLL_UP:
 			handled = update_zoom(spl_data, event->x, event->y, SIRIL_PLOT_ZOOM_IN);
+			break;
 		default:
 			handled = FALSE;
 		}
