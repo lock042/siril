@@ -2,9 +2,11 @@ siril 1.4.0 xx xx, xx
 
 * Added comparison star list creation from Siril
 * Allowed object search with their common name, from the annotations catalogues
-* Add intensity profiling function
+* Added intensity profiling function
+* Added internal plotting tool (siril_plot) to be used with profiling and light_curves
+* Added functionalities to kplot (hyphen markers, revert axes, removed statics)
 * Fixed PRISM SITELAT/SITELONG keywords data
-* Improve RGB composition tool to do full homography registration
+* Improved RGB composition tool to do full homography registration
 
 siril 1.2.0 xx xx, xx
 
