@@ -293,7 +293,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
  ****/
 
 static CURL *curl;
-static const int DEFAULT_FETCH_RETRIES = 10;
+static const int DEFAULT_FETCH_RETRIES = 3;
 
 struct ucontent {
 	char *data;
@@ -329,7 +329,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 
 static char *fetch_url(const char *url) {
 	struct ucontent *content = malloc(sizeof(struct ucontent));
-	char *result = NULL, *error = NULL;
+	char *result = NULL;
 	long code;
 	int retries;
 	unsigned int s;
@@ -363,7 +363,7 @@ retrieve:
 		case 502:
 		case 503:
 		case 504:
-			siril_log_message(_("Failed to download page %s (error %ld)\n"), url, code);
+			siril_debug_print("Failed to download page %s (error %ld)\n", url, code);
 
 			if (retries) {
 				s = 2 * (DEFAULT_FETCH_RETRIES - retries) + 2;
@@ -373,6 +373,8 @@ retrieve:
 				free(content->data);
 				retries--;
 				goto retrieve;
+			} else {
+				siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive. (%s)\n"), "salmon", DEFAULT_FETCH_RETRIES, content->data);
 			}
 
 			break;
@@ -381,20 +383,17 @@ retrieve:
 				// special case of ephemcc where we need to parse the output
 				gchar **token = g_strsplit(content->data, "\n", -1);
 				int nlines = g_strv_length(token);
-				int line;
-				for (line = 0; line < nlines; line++) {
+				for (int line = 0; line < nlines; line++) {
 					if (token[line][0] != '\0' && token[line][0] != '#') {
-						error = siril_log_message(_("Fetch failed with code %ld\n%s\n"), code, token[line]);
+						siril_log_message(_("Fetch failed with code %ld\n%s\n"), code, token[line]);
 						break;
 					}
 				}
 				g_strfreev(token);
 			}
-			if (!error)
-				error = siril_log_message(_("Fetch failed with code %ld\n%s"), code, content->data);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Online service error"), error);
 		}
 	}
+	else siril_log_color_message(_("Internet Connection failure.\n"), "red");
 
 	curl_easy_cleanup(curl);
 	curl = NULL;
@@ -415,7 +414,7 @@ static gchar *fetch_url(const gchar *url) {
 	siril_debug_print("fetch_url(): %s\n", url);
 
 	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
-		siril_log_message(_("Error loading url: [%s] - %s\n"), url, error->message);
+		siril_log_color_message(_("Server unreachable or unresponsive. (%s)\n"), "salmon", error->message);
 		g_clear_error(&error);
 	}
 	g_object_unref(file);
@@ -1362,6 +1361,11 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	}
 
 	args->n_cat = read_catalog(input_stream, args->cstars, args->onlineCatalog);
+	if (args->n_cat <= 0) {
+		args->message = g_strdup(_("No stars have been retrieved from the online catalog. "
+					"This may mean that the servers are down. Note that you can install local catalogs."));
+		return 1;
+	}
 	g_object_unref(input_stream);
 	g_object_unref(catalog);
 	g_free(catalogStars);
@@ -2228,6 +2232,13 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov
+	if (args->onlineCatalog == CAT_AUTO) {
+		if (args->limit_mag <= 12.5)
+			args->onlineCatalog = CAT_TYCHO2;
+		else if (args->limit_mag <= 17.0)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = CAT_GAIADR3;
+	}
 }
 
 static int astrometry_prepare_hook(struct generic_seq_args *arg) {
