@@ -189,7 +189,8 @@
         },
         {
             "name" : "libheif",
-            "config-opts": [ "--disable-gdk-pixbuf" ],
+            "buildsystem": "cmake",
+            "config-opts": [ "-DWITH_GDK_PIXBUF=OFF" ],
             "cleanup": [ "/bin" ],
             "modules": [
                 {
