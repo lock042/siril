@@ -333,7 +333,7 @@ int savebmp(const char *name, fits *fit) {
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
 		gboolean threaded = !get_thread_run();
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
 		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit.rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
@@ -539,19 +539,19 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	if (max_val == UCHAR_MAX) {
 		/* 8-bit file */
 		unsigned char *tmpbuf = NULL;
-		WORD *olddata;
 		if (fit->naxes[2] == 1)
 			stride = fit->rx;
 		else
 			stride = fit->rx * 3;
 		tmpbuf = malloc(stride * fit->ry);
-		olddata = fit->data;
-		fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-		if (fit->data == NULL || tmpbuf == NULL) {
+		WORD *newdata = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+		if (newdata)
+			fit->data = newdata;
+		if (newdata == NULL || tmpbuf == NULL) {
 			PRINT_ALLOC_ERR;
 			fclose(file);
-			if (olddata && !fit->data)
-				free(olddata);
+			if (fit->data)
+				free(fit->data);
 			if (tmpbuf)
 				free(tmpbuf);
 			fit->data = NULL;
@@ -604,15 +604,17 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 		} else {
 			/* RGB 16-bit image */
-			WORD *tmpbuf, *olddata = fit->data;
+			WORD *tmpbuf;
 			stride = fit->rx * 3 * sizeof(WORD);
 			tmpbuf = malloc(stride * fit->ry);
-			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-			if (fit->data == NULL || tmpbuf == NULL) {
+			WORD *newdata = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+			if (newdata)
+				fit->data = newdata;
+			if (newdata == NULL || tmpbuf == NULL) {
 				PRINT_ALLOC_ERR;
 				fclose(file);
-				if (olddata && !fit->data)
-					free(olddata);
+				if (fit->data)
+					free(fit->data);
 				if (tmpbuf)
 					free(tmpbuf);
 				fit->data = NULL;
@@ -679,8 +681,7 @@ static int saveppm(const char *name, fits *fit) {
 		}
 		// Transform the data
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-		size_t npixels = fit->rx * fit->ry;
-		size_t nchans = fit->naxes[2];
+		const size_t npixels = fit->rx * fit->ry;
 		if (src_is_float) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 		} else {
@@ -689,7 +690,7 @@ static int saveppm(const char *name, fits *fit) {
 		gboolean threaded = !get_thread_run();
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
 		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit.rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
@@ -756,8 +757,7 @@ static int savepgm(const char *name, fits *fit) {
 		}
 		// Transform the data
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-		size_t npixels = fit->rx * fit->ry;
-		size_t nchans = fit->naxes[2];
+		const size_t npixels = fit->rx * fit->ry;
 		if (src_is_float) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 		} else {
@@ -766,7 +766,7 @@ static int savepgm(const char *name, fits *fit) {
 		gboolean threaded = get_thread_run();
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.working_out), trans_type, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
 		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit.rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
@@ -828,7 +828,6 @@ int saveNetPBM(const char *name, fits *fit) {
 	free(filename);
 	return retval;
 }
-
 
 static int pictofit(const WORD *buf, fits *fit) {
 	WORD *data, *olddata = fit->data;

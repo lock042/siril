@@ -1629,7 +1629,6 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		// Apply ICC transform
 			if (!fit->icc_profile)
 				fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
-			cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 			cmsUInt32Number trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16);
 			cmsHPROFILE output_profile = cmsOpenProfileFromMem(profile, profile_len);
 			cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, output_profile, trans_type, com.pref.icc.export_intent, 0);
