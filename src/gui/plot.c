@@ -839,8 +839,12 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 }
 
 static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
-	GError *error = NULL;
+	if (!plot) {
+		fprintf(stderr, "exportCSV: Nothing to export\n");
+		return 1;
+	}
 
+	GError *error = NULL;
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
 			G_FILE_CREATE_NONE, NULL, &error);
@@ -1002,10 +1006,12 @@ static void validate_combos() {
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
-	gtk_widget_set_visible(varCurve, use_photometry);
-	gtk_widget_set_visible(buttonNINA, sequence_is_loaded());
-	gtk_widget_set_visible(buttonSaveCSV, TRUE);
-	gtk_widget_set_visible(buttonSavePrt, TRUE);
+	gtk_widget_set_visible(varCurve, TRUE);
+	gtk_widget_set_sensitive(varCurve, use_photometry);
+	gtk_widget_set_visible(buttonNINA, TRUE);
+	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
+	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
+	gtk_widget_set_visible(buttonSavePrt, !(plot_data == NULL));
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
 	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
@@ -1058,10 +1064,10 @@ static void validate_combos() {
 }
 
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
-	validate_combos();
 	requires_seqlist_update = TRUE;
 	reset_plot_zoom();
 	drawPlot();
+	validate_combos();
 }
 
 void reset_plot() {
