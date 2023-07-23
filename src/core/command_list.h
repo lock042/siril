@@ -113,7 +113,7 @@ static command commands[] = {
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
 	{"nomad", 0, "nomad [limit_magnitude] [-catalog=] [-photo]", process_nomad, STR_NOMAD, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE, REQ_CMD_SINGLE_IMAGE}, /* replaces null values by level */
+	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -184,7 +184,7 @@ static command commands[] = {
 #ifdef HAVE_LIBTIFF
 	{"seqstarnet", 1, "seqstarnet sequencename [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_seq_starnet, STR_SEQSTARNET, TRUE, REQ_CMD_NONE},
 #endif
-	{"seqstat", 2, "seqstat sequencename output [option] [-cfa]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},
+	{"seqstat", 2, "seqstat sequencename output_file [option] [-cfa]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 1, "seqtilt sequencename", process_seq_tilt, STR_SEQTILT, TRUE, REQ_CMD_NO_THREAD},
 	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE },
@@ -226,7 +226,7 @@ static command commands[] = {
 
 	{"threshlo", 1, "threshlo level", process_threshlo, STR_THRESHLO, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"thresh", 2, "thresh lo hi", process_thresh, STR_THRESH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* threshes hi and lo */
+	{"thresh", 2, "thresh lo hi", process_thresh, STR_THRESH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"tilt", 0, "tilt [clear]", process_tilt, STR_TILT, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"unclipstars", 0, "unclipstars", process_unclip, STR_SYNTHSTARUNCLIP, TRUE, REQ_CMD_SINGLE_IMAGE},
