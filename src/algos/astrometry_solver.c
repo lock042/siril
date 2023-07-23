@@ -771,8 +771,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		attempt++;
 		CHECK_FOR_CANCELLATION;
 	}
-	if (args->ret)	// give generic error message
+	if (args->ret) {
+		args->message = g_strdup(_("Could not match stars from the catalogue"));
 		goto clearup;
+	}
 
 	double conv = DBL_MAX;
 	solution->px_cat_center = siril_world_cs_ref(args->cat_center);
