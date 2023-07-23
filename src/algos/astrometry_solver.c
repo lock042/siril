@@ -1348,6 +1348,13 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov
+	if (args->onlineCatalog == CAT_AUTO) {
+		if (args->limit_mag <= 12.5)
+			args->onlineCatalog = CAT_TYCHO2;
+		else if (args->limit_mag <= 17.0)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = CAT_GAIADR3;
+	}
 }
 
 static int astrometry_prepare_hook(struct generic_seq_args *arg) {

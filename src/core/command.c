@@ -8452,7 +8452,9 @@ int process_pcc(int nb) {
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
 		args->use_local_cat = local_cat;
-		args->onlineCatalog = cat;
+		if (!local_cat && cat == CAT_AUTO)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
