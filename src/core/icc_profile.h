@@ -52,29 +52,26 @@ typedef enum {
 cmsHPROFILE gray_srgbtrc();
 cmsHPROFILE srgb_trc();
 
+void validate_custom_profiles();
 void initialize_profiles_and_transforms();
-void initialize_icc_preferences_widgets();
+cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);
 void assign_linear_icc_profile(fits *fit);
 cmsHTRANSFORM initialize_display_transform();
-cmsHTRANSFORM initialize_proofing_transform();
 cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded);
-cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);
-const char* default_system_icc_path();
+cmsHTRANSFORM initialize_proofing_transform();
 void refresh_icc_transforms();
-void validate_custom_profiles();
-int load_display_icc_profile(const char* filename);
-int load_proof_icc_profile(const char* filename);
-void initialize_icc_profiles_paths();
-void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
+unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len);
 cmsBool fit_icc_is_linear(fits *fit);
 void check_profile_correct(fits* fit);
-void check_linear_and_convert_with_approval(fits *fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
+void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
-unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len);
-cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
-void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference);
 void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to);
+void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference);
+void check_linear_and_convert_with_approval(fits *fit);
+const char* default_system_icc_path();
+cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
 void update_profiles_after_gamut_change();
+void initialize_icc_preferences_widgets();
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */
