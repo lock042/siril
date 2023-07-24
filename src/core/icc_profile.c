@@ -21,8 +21,8 @@
 #include <glib.h>
 #include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include "algos/lcms_acceleration/lcms2_threaded.h"
-#include "core/icc_profile.h"
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "icc_profile.h"
@@ -36,10 +36,6 @@
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "core/proto.h"
-
-/*cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
-cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
-void set_source_information();*/
 
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
@@ -72,7 +68,7 @@ static cmsHPROFILE rec2020_trcv2() {
 static cmsHPROFILE gray_linear() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_g10_icc, Gray_elle_V4_g10_icc_len);
 }
-static cmsHPROFILE gray_srgbtrc() {
+cmsHPROFILE gray_srgbtrc() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_srgbtrc_icc, Gray_elle_V4_srgbtrc_icc_len);
 }
 static cmsHPROFILE gray_rec709trc() {
@@ -661,6 +657,79 @@ void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
 	convert_fit_colorspace(input, input->icc_profile, reference->icc_profile);
 }
 
+static void set_source_information() {
+	if (!gfit.icc_profile) {
+		siril_debug_print("Target profile is NULL\n");
+		return;
+	}
+	// Set description
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
+	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
+	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
+	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+	char *buffer = NULL;
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+		gtk_label_set_text(label, buffer);
+		free(buffer);
+	}
+
+	// Set manufacturer
+	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", buffer, length);
+		gtk_label_set_text(mfr_label, buffer);
+		free(buffer);
+	}
+
+	// Set copyright
+	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", buffer, length);
+		gtk_label_set_text(copyright_label, buffer);
+		free(buffer);
+	}
+}
+
+static void set_target_information() {
+	if (!target) {
+		return;
+	}
+	// Set description
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
+	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_target_mfr_label");
+	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_target_copyright_label");
+	int length = cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", NULL, 0);
+	char *buffer = NULL;
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", buffer, length);
+		gtk_label_set_text(label, buffer);
+		free(buffer);
+	}
+
+	// Set manufacturer
+	length = cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", buffer, length);
+		gtk_label_set_text(mfr_label, buffer);
+		free(buffer);
+	}
+
+	// Set copyright
+	length = cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", NULL, 0);
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", buffer, length);
+		gtk_label_set_text(copyright_label, buffer);
+		free(buffer);
+	}
+}
+
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number fit_colorspace = cmsGetColorSpace(fit->icc_profile);
 	cmsUInt32Number fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
@@ -1035,77 +1104,6 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 }
 
 //////// GUI callbacks for the color management dialog
-static void set_source_information() {
-	if (!gfit.icc_profile) {
-		siril_debug_print("Target profile is NULL\n");
-		return;
-	}
-	// Set description
-	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
-	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
-	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
-	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
-	char *buffer = NULL;
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
-		gtk_label_set_text(label, buffer);
-		free(buffer);
-	}
-
-	// Set manufacturer
-	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", buffer, length);
-		gtk_label_set_text(mfr_label, buffer);
-		free(buffer);
-	}
-
-	// Set copyright
-	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", buffer, length);
-		gtk_label_set_text(copyright_label, buffer);
-		free(buffer);
-	}
-}
-static void set_target_information() {
-	if (!target) {
-		return;
-	}
-	// Set description
-	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
-	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_target_mfr_label");
-	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_target_copyright_label");
-	int length = cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", NULL, 0);
-	char *buffer = NULL;
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", buffer, length);
-		gtk_label_set_text(label, buffer);
-		free(buffer);
-	}
-
-	// Set manufacturer
-	length = cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", buffer, length);
-		gtk_label_set_text(mfr_label, buffer);
-		free(buffer);
-	}
-
-	// Set copyright
-	length = cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", buffer, length);
-		gtk_label_set_text(copyright_label, buffer);
-		free(buffer);
-	}
-}
 
 void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
