@@ -615,8 +615,8 @@ typedef struct draw_data {
 struct gui_icc {
 	cmsHPROFILE monitor;
 	cmsHPROFILE soft_proof;
-	cmsHTRANSFORM *display_transform;
-	cmsHTRANSFORM *proofing_transform;
+	cmsHTRANSFORM display_transform;
+	cmsHTRANSFORM proofing_transform;
 };
 
 /* The global data structure of siril gui */

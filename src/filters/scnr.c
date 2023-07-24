@@ -22,8 +22,6 @@
 #include "core/proto.h"
 #include "core/undo.h"
 #include "core/icc_profile.h"
-#include "algos/lcms_acceleration/lcms2_fast_float.h"
-#include "algos/lcms_acceleration/lcms2_threaded.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
@@ -75,8 +73,9 @@ gpointer scnr(gpointer p) {
 	cielab_profile = cmsCreateLab4Profile(NULL);
 	src_type = TYPE_RGB_FLT_PLANAR;
 	dest_type = TYPE_Lab_FLT_PLANAR;
-	transform = cmsCreateTransformTHR(com.icc.context_threaded, args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
-	invtransform = cmsCreateTransformTHR(com.icc.context_threaded, cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
+	// Use the single threaded lcms2 context as the transform will be done a line at a time within the OMP outer loop
+	transform = cmsCreateTransformTHR(com.icc.context_single, args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
+	invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
 	cmsCloseProfile(cielab_profile);
 
 	const size_t stride_size = args->fit->rx;
@@ -85,12 +84,6 @@ gpointer scnr(gpointer p) {
 	const cmsUInt32Number bytesperline = (cmsUInt32Number) args->fit->rx * sizeof(float);
 	const cmsUInt32Number bytesperplane = (cmsUInt32Number) stride_size * sizeof(float);
 	int num_threads = com.max_thread;
-#ifndef EXCLUDE_FF
-/* Reset the plugins, will reload fast float but not threads, in order to
-   avoid thread management clash between OMP and pthreads */
-	cmsUnregisterPlugins();
-	cmsPlugin(cmsFastFloatExtensions());
-#endif
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(num_threads) schedule(static)
 #endif
@@ -202,13 +195,6 @@ gpointer scnr(gpointer p) {
 		free(l);
 		free(rgbfloat);
 	}
-#ifndef EXCLUDE_FF
-// Now we can restart the threading plugin
-	if (!com.headless) {
-		cmsPlugin(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
-	}
-#endif
-
 	cmsDeleteTransform(transform);
 	cmsDeleteTransform(invtransform);
 	/* normalize in case of preserve, it can under/overshoot */

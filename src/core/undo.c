@@ -312,7 +312,8 @@ int undo_display_data(int dir) {
 			}
 			com.hist_display--;
 			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
-/**/			undo_get_data(&gfit, &com.history[com.hist_display]);
+/* TODO: consider undo of ICC profile changes, currently these do not undo */
+			undo_get_data(&gfit, &com.history[com.hist_display]);
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
