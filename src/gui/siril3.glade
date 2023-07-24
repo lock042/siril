@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -32313,23 +32313,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="can-focus">False</property>
                                         <property name="orientation">vertical</property>
                                         <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkCheckButton" id="icc_use_extra_mem">
-                                            <property name="label" translatable="yes">Use additional memory to speed up display transform</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">False</property>
-                                            <property name="tooltip-text" translatable="yes">When checked, this option enables optimization of the display color space transform by allowing the transform to process the entire image at once, rather than one pixel row at a time. This requires additional memory equal to one 16-bit copy of the image. Usually it should be enabled unless you are working with extremely large images on low-memory systems.</property>
-                                            <property name="halign">start</property>
-                                            <property name="active">True</property>
-                                            <property name="draw-indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
                                         <child>
                                           <object class="GtkCheckButton" id="icc_no_lin_disp_tx">
                                             <property name="label" translatable="yes">Disable display transform for images with linear ICC profiles</property>
