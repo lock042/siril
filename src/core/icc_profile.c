@@ -174,7 +174,8 @@ void validate_custom_profiles() {
 			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
 			if (!gui.icc.monitor) {
 				gui.icc.monitor = srgb_trc();
-				siril_log_color_message(_("Error opening custom monitor profile. Monitor profile set to sRGB.\n"), "red");
+				siril_log_color_message(_("Error opening custom monitor profile. "
+								"Monitor profile set to sRGB.\n"), "red");
 			}
 		} else {
 			if (gui.icc.monitor)

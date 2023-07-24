@@ -528,6 +528,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		free(data);
 		free(fdata);
 		g_free(description);
+		free(embed);
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -1016,6 +1017,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		break;
 	default:
 		siril_log_message(_("This image type is not handled.\n"));
+		free(xdata);
 		return -1;
 	}
 
@@ -1522,6 +1524,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	FILE *p_png_file = g_fopen(filename, "wb");
 	if (p_png_file == NULL) {
+		free(filename);
 		return ret;
 	}
 
@@ -1534,6 +1537,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL) {
 		fclose(p_png_file);
+		free(filename);
 		return ret;
 	}
 
@@ -1542,6 +1546,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	if (info_ptr == NULL) {
 		fclose(p_png_file);
 		png_destroy_write_struct(&png_ptr, NULL);
+		free(filename);
 		return ret;
 	}
 
@@ -1552,6 +1557,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		/* If we get here, we had a problem writing the file */
 		fclose(p_png_file);
 		png_destroy_write_struct(&png_ptr, &info_ptr);
+		free(filename);
 		return ret;
 	}
 
