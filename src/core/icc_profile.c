@@ -302,12 +302,12 @@ void initialize_profiles_and_transforms() {
 
 	// Target profiles for embedding in saved files
 	com.icc.srgb_out = srgb_trcv2();
-//	com.icc.mono_out = gray_srgbtrcv2();
+	com.icc.mono_out = gray_srgbtrcv2();
 
 	// ICC availability
-	com.icc.available = (com.icc.working_linear && com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
-	gui.icc.available = (com.icc.available); // && gui.icc_profile_rgb && gui.icc_profile_mono);
-	if ((com.headless && !com.icc.available) || (!com.headless && !gui.icc.available)) {
+	gboolean available = (com.icc.working_linear && com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
+	gboolean gui_available = available && gui.icc.monitor;
+	if ((com.headless && !available) || (!com.headless && !gui_available)) {
 		siril_log_message(_("Error: standard color management profiles "
 							"could not be loaded. Cannot continue. "
 							"Please report this error.\n"));
@@ -446,7 +446,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 
 /* Refreshes the display and proofing transforms after a profile is changed. */
 void refresh_icc_transforms() {
-	if (gui.icc.available) {
+	if (!com.headless) {
 		if (gui.icc.display_transform != NULL)
 			cmsDeleteTransform(gui.icc.display_transform);
 		gui.icc.display_transform = initialize_display_transform();
@@ -802,15 +802,13 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 		g_free(com.pref.icc.icc_path_monitor);
 		com.pref.icc.icc_path_monitor = NULL;
 		cmsCloseProfile(gui.icc.monitor);
-		if (com.icc.available) {
-			gui.icc.monitor = srgb_trc();
-			if (gui.icc.monitor) {
-				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
-			} else {
-				siril_log_color_message(_("Error: standard sRGB ICC profile could not be loaded.\n"), "red");
-				com.icc.available = FALSE;
-			}
-		} else gui.icc.monitor = NULL;
+		gui.icc.monitor = srgb_trc();
+		if (gui.icc.monitor) {
+			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
+		} else {
+			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+			exit(1);
+		}
 	}
 	g_mutex_unlock(&monitor_profile_mutex);
 	gtk_toggle_button_set_active(togglebutton, FALSE);
@@ -869,8 +867,8 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 			if (gui.icc.monitor) {
 				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 			} else {
-				siril_log_color_message(_("Error: standard sRGB ICC profile could not be loaded. Color management is disabled.\n"), "red");
-				com.icc.available = FALSE;
+				siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+				exit(1);
 			}
 		}
 	} else {
@@ -878,8 +876,8 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 		if (gui.icc.monitor) {
 			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 		} else {
-			siril_log_color_message(_("Error: standard sRGB ICC profile could not be loaded. Color management is disabled.\n"), "red");
-			com.icc.available = FALSE;
+			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+			exit(1);
 		}
 	}
 	g_mutex_unlock(&monitor_profile_mutex);
@@ -1341,13 +1339,6 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 	g_free(filename);
 }
 
-void update_icc_enabled_widget(GtkWidget *dialog, gpointer user_data) {
-	// Set description
-	set_source_information();
-	GtkToggleButton* active_button = (GtkToggleButton*) lookup_widget("enable_icc");
-	gtk_toggle_button_set_active(active_button, com.icc.available);
-}
-
 void on_icc_gamut_visualisation_clicked() {
 	GtkWidget *win = lookup_widget("icc_gamut_dialog");
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
@@ -1365,7 +1356,6 @@ void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_target_information();
 	GtkFileChooser* fc = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
 	gtk_file_chooser_set_current_folder(fc, default_system_icc_path());
-
 }
 
 void on_icc_export_clicked(GtkButton *button, gpointer user_data) {

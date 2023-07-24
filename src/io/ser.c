@@ -914,9 +914,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	// Initialize the ICC profile. As no profile is passed, a sRGB or Gray g22 profile
 	// will be set.
 	// Note: there is an assumption here that SER will always be in sRGB / Gray-g22
-	if (com.icc.available) {
-		fits_initialize_icc(fit, NULL, 0);
-	}
+	fits_initialize_icc(fit, NULL, 0);
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;

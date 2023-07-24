@@ -751,80 +751,71 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	void *dest = NULL;
 	cmsHTRANSFORM save_transform = NULL;
 	gboolean threaded = !get_thread_run();
-	if (com.icc.available) {
-		// Check the fit has a profile. If not, assign a linear one
-		if (fit->icc_profile == NULL) {
-			assign_linear_icc_profile(fit);
-		}
-		// Transform the data
-		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-		size_t npixels = fit->rx * fit->ry;
-		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
-		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-		}
-		// Check what is the appropriate color space to save in
-		if (bitspersample == 8) {
-			if (nsamples == 1) {
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
-			} else if (com.pref.icc.export_8bit_method == EXPORT_SRGB) {
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
-			} else {
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
-			}
-		} else if (bitspersample == 16) {
-			if (nsamples == 1) {
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
-			} else if (com.pref.icc.export_16bit_method == EXPORT_SRGB) {
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
-			} else {
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
-			}
-		}
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = width * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		if (bitspersample != 32) {
-			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(save_transform);
-		} else {
-			memcpy(dest, buf, bytesperplane * nsamples);
-		}
-		// 32 bit files are always saved in the working color space with the ICC profile
-		// embedded. If you want 32-bit sRGB output you need to convert the color space yourself.
-		gbuf[0] = (WORD *) dest;
-		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
-		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
-		gbuff[0] = (float *) dest;
-		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
-		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
-		// Generate the correct profile and assign it to the TIFF
-		if (bitspersample == 8) {
-			profile = get_icc_profile_data((nsamples == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
-		} else if (bitspersample == 16) {
-			profile = get_icc_profile_data((nsamples == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
-		}
-		else {
-			if (fit->icc_profile) {
-				profile = get_icc_profile_data(fit->icc_profile, &profile_len);
-			} else {
-				// This is a weird situation. I don't think we can reach this case but
-				// better safe than sorry.
-				profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear, &profile_len);
-			}
-		}
-		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
-	} else {
-		// If color management is disabled we revert to the old Siril behaviour and
-		// assume the user has edited the file on a sRGB monitor, and that is therefore
-		// how it should be saved. This is not guaranteed to look right in all
-		// software but it's the best we can do.
-		profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_out : com.icc.srgb_out, &profile_len);
-		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
+	// Check the fit has a profile. If not, assign a linear one
+	if (fit->icc_profile == NULL) {
+		assign_linear_icc_profile(fit);
 	}
+	// Transform the data
+	buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+	size_t npixels = fit->rx * fit->ry;
+	cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+	cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
+	if (src_is_float) {
+		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+	} else {
+		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+	}
+	// Check what is the appropriate color space to save in
+	if (bitspersample == 8) {
+		if (nsamples == 1) {
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+		} else if (com.pref.icc.export_8bit_method == EXPORT_SRGB) {
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+		} else {
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
+		}
+	} else if (bitspersample == 16) {
+		if (nsamples == 1) {
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+		} else if (com.pref.icc.export_16bit_method == EXPORT_SRGB) {
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+		} else {
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
+		}
+	}
+	cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	cmsUInt32Number bytesperline = width * datasize;
+	cmsUInt32Number bytesperplane = npixels * datasize;
+	if (bitspersample != 32) {
+		cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+	} else {
+		memcpy(dest, buf, bytesperplane * nsamples);
+	}
+	// 32 bit files are always saved in the working color space with the ICC profile
+	// embedded. If you want 32-bit sRGB output you need to convert the color space yourself.
+	gbuf[0] = (WORD *) dest;
+	gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+	gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+	gbuff[0] = (float *) dest;
+	gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+	gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
+	// Generate the correct profile and assign it to the TIFF
+	if (bitspersample == 8) {
+		profile = get_icc_profile_data((nsamples == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
+	} else if (bitspersample == 16) {
+		profile = get_icc_profile_data((nsamples == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
+	}
+	else {
+		if (fit->icc_profile) {
+			profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+		} else {
+			// This is a weird situation. I don't think we can reach this case but
+			// better safe than sorry.
+			profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear, &profile_len);
+		}
+	}
+	TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 
 	switch (bitspersample) {
 	case 8:
@@ -1181,31 +1172,30 @@ int savejpg(const char *name, fits *fit, int quality){
 	void *buf = NULL;
 	void *dest = NULL;
 	gboolean threaded = !get_thread_run();
-	if (com.icc.available) {
-		gboolean src_is_float = (fit->type == DATA_FLOAT);
-		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-		size_t npixels = fit->rx * fit->ry;
-		size_t nchans = fit->naxes[2];
-		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
-		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		if (src_is_float) {
-			dest = (float*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-		} else {
-			dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-		}
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.pref.icc.export_intent, 0);
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(save_transform);
-		gbuf[0] = (WORD*) dest;
-		gbuf[1] = (WORD*) dest + npixels;
-		gbuf[2] = (WORD*) dest + 2 * npixels;
-		gbuff[0] = (float*) dest;
-		gbuff[1] = (float*) dest + npixels;
-		gbuff[2] = (float*) dest + 2 * npixels;
+	gboolean src_is_float = (fit->type == DATA_FLOAT);
+	buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+	size_t npixels = fit->rx * fit->ry;
+	size_t nchans = fit->naxes[2];
+	cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+	cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
+	if (src_is_float) {
+		dest = (float*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+	} else {
+		dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 	}
+	cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out)), trans_type, com.pref.icc.export_intent, 0);
+	cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	cmsUInt32Number bytesperline = gfit.rx * datasize;
+	cmsUInt32Number bytesperplane = npixels * datasize;
+	cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+	cmsDeleteTransform(save_transform);
+	gbuf[0] = (WORD*) dest;
+	gbuf[1] = (WORD*) dest + npixels;
+	gbuf[2] = (WORD*) dest + 2 * npixels;
+	gbuff[0] = (float*) dest;
+	gbuff[1] = (float*) dest + npixels;
+	gbuff[2] = (float*) dest + 2 * npixels;
+
 	jpeg_set_defaults(&cinfo);
 	jpeg_set_quality(&cinfo, quality, TRUE);
 
@@ -1251,14 +1241,12 @@ int savejpg(const char *name, fits *fit, int quality){
 	// Write the ICC profile
 	JOCTET *EmbedBuffer = NULL;
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
-	if (com.icc.available) {
-		unsigned int EmbedLen = 0;
-		EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &EmbedLen);
-		if (EmbedBuffer)
-			jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
-		else
-			siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
-	}
+	unsigned int EmbedLen = 0;
+	EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &EmbedLen);
+	if (EmbedBuffer)
+		jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
+	else
+		siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
 #endif
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
 
@@ -1600,17 +1588,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		samples_per_pixel = 1;
 	}
 
-	if (com.icc.available) {
-		if (bytes_per_sample == 1) {
-			profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
-		} else {
-			profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
-		}
-	} else // if color management is disabled we assume the sRGB TRC, either mono or RGB
-		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.icc.srgb_out), &profile_len);
-
-	if (profile_len > 0) {
-		png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
+	if (bytes_per_sample == 1) {
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
+	} else {
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 	}
 
 	/* Write the file header information.  REQUIRED */
@@ -1625,38 +1606,34 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		/* swap bytes of 16 bit files to most significant bit first */
 		png_set_swap(png_ptr);
 		data = convert_data(fit);
-		if (com.icc.available) {
 		// Apply ICC transform
-			if (!fit->icc_profile)
-				fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
-			cmsUInt32Number trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16);
-			cmsHPROFILE output_profile = cmsOpenProfileFromMem(profile, profile_len);
-			cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, output_profile, trans_type, com.pref.icc.export_intent, 0);
-			cmsCloseProfile(output_profile);
-			cmsUInt32Number datasize = sizeof(WORD);
-			cmsUInt32Number bytesperline = gfit.rx * datasize * fit->naxes[2];
-			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
-			cmsDoTransformLineStride(save_transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(save_transform);
-		}
+		if (!fit->icc_profile)
+			fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
+		cmsUInt32Number trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16);
+		cmsHPROFILE output_profile = cmsOpenProfileFromMem(profile, profile_len);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, output_profile, trans_type, com.pref.icc.export_intent, 0);
+		cmsCloseProfile(output_profile);
+		cmsUInt32Number datasize = sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize * fit->naxes[2];
+		cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
+		cmsDoTransformLineStride(save_transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
 		data8 = convert_data8(fit);
-		if (com.icc.available) {
 		// Apply ICC transform
-			cmsHTRANSFORM save_transform;
-			if (samples_per_pixel == 1)
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single),fit->icc_profile, TYPE_GRAY_8, com.icc.mono_out, TYPE_GRAY_8, com.pref.icc.export_intent, 0);
-			else
-				save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, TYPE_RGB_8, (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), TYPE_RGB_8, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform;
+		if (samples_per_pixel == 1)
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single),fit->icc_profile, TYPE_GRAY_8, com.icc.mono_out, TYPE_GRAY_8, com.pref.icc.export_intent, 0);
+		else
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, TYPE_RGB_8, (com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), TYPE_RGB_8, com.pref.icc.export_intent, 0);
 
-			cmsUInt32Number datasize = sizeof(BYTE);
-			cmsUInt32Number bytesperline = gfit.rx * datasize;
-			cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
-			cmsDoTransformLineStride(save_transform, data8, data8, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(save_transform);
-		}
+		cmsUInt32Number datasize = sizeof(BYTE);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
+		cmsDoTransformLineStride(save_transform, data8, data8, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
 	}

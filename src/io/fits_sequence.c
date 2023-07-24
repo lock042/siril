@@ -189,12 +189,10 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 		return -1;
 	}
 
-	if (com.icc.available) {
-		// Attempt to read an embedded ICC profile, if one is present
-		fitseq->icc_profile = read_icc_profile_from_fptr(fitseq->fptr);
-		if (fitseq->icc_profile) {
-			siril_log_message(_("ICC profile read from FITS cube\n"));
-		}
+	// Attempt to read an embedded ICC profile, if one is present
+	fitseq->icc_profile = read_icc_profile_from_fptr(fitseq->fptr);
+	if (fitseq->icc_profile) {
+		siril_log_message(_("ICC profile read from FITS cube\n"));
 	}
 
 	if (fits_movabs_hdu(fitseq->fptr, fitseq->hdu_index[0], NULL, &status)) {
@@ -272,7 +270,7 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	}
 	// Attempt to add the FITSEQ ICC profile if one exists, otherwise
 	// assign a linear profile.
-	if (com.icc.available && !status) {
+	if (!status) {
 		if (fitseq->icc_profile) {
 			dest->icc_profile = copyICCProfile(fitseq->icc_profile);
 		} else {

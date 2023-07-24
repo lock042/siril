@@ -665,36 +665,17 @@ static gpointer extract_channels_ushort(gpointer p) {
 		}
 		break;
 	case EXTRACT_CIELAB:
-		if (com.icc.available) {
-			cmsHPROFILE cielab_profile = cmsCreateLab4Profile(NULL);
-			cmsColorSpaceSignature sig = cmsGetColorSpace(args->fit->icc_profile);
-			cmsUInt32Number trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
-			gboolean threaded = !get_thread_run();
-			cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
-			cmsCloseProfile(cielab_profile);
-			cmsUInt32Number datasize = sizeof(WORD);
-			cmsUInt32Number bytesperline = args->fit->rx * datasize;
-			cmsUInt32Number bytesperplane = args->fit->rx * args->fit->ry * datasize;
-			cmsDoTransformLineStride(transform, args->fit->data, args->fit->data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(transform);
-		} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-			for (size_t i = 0; i < n; i++) {
-				double x, y, z, L, a, b;
-				double red = (double) buf[RLAYER][i] / USHRT_MAX_DOUBLE;
-				double green = (double) buf[GLAYER][i] / USHRT_MAX_DOUBLE;
-				double blue = (double) buf[BLAYER][i] / USHRT_MAX_DOUBLE;
-				rgb_to_xyz(red, green, blue, &x, &y, &z);
-				xyz_to_LAB(x, y, z, &L, &a, &b);
-				buf[RLAYER][i] = round_to_WORD(L / 100. * USHRT_MAX_DOUBLE);// 0 < L < 100
-				buf[GLAYER][i] = round_to_WORD(
-						((a + 128) / 255.) * USHRT_MAX_DOUBLE);	// -128 < a < 127
-				buf[BLAYER][i] = round_to_WORD(
-						((b + 128) / 255.) * USHRT_MAX_DOUBLE);	// -128 < b < 127
-			}
-		}
+		cmsHPROFILE cielab_profile = cmsCreateLab4Profile(NULL);
+		cmsColorSpaceSignature sig = cmsGetColorSpace(args->fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
+		gboolean threaded = !get_thread_run();
+		cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
+		cmsCloseProfile(cielab_profile);
+		cmsUInt32Number datasize = sizeof(WORD);
+		cmsUInt32Number bytesperline = args->fit->rx * datasize;
+		cmsUInt32Number bytesperplane = args->fit->rx * args->fit->ry * datasize;
+		cmsDoTransformLineStride(transform, args->fit->data, args->fit->data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(transform);
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
@@ -762,34 +743,17 @@ static gpointer extract_channels_float(gpointer p) {
 		}
 		break;
 	case EXTRACT_CIELAB:
-		if (com.icc.available) {
-			cmsHPROFILE cielab_profile = cmsCreateLab4Profile(NULL);
-			cmsColorSpaceSignature sig = cmsGetColorSpace(args->fit->icc_profile);
-			cmsUInt32Number trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
-			gboolean threaded = !get_thread_run();
-			cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
-			cmsCloseProfile(cielab_profile);
-			cmsUInt32Number datasize = sizeof(float);
-			cmsUInt32Number bytesperline = args->fit->rx * datasize;
-			cmsUInt32Number bytesperplane = args->fit->rx * args->fit->ry * datasize;
-			cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-			cmsDeleteTransform(transform);
-		} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-			for (size_t i = 0; i < n; i++) {
-				double x, y, z, L, a, b;
-				double red = (double) buf[RLAYER][i];
-				double green = (double) buf[GLAYER][i];
-				double blue = (double) buf[BLAYER][i];
-				rgb_to_xyz(red, green, blue, &x, &y, &z);
-				xyz_to_LAB(x, y, z, &L, &a, &b);
-				buf[RLAYER][i] = (float) (L / 100.);		// 0 < L < 100
-				buf[GLAYER][i] = (float) ((a + 128.) / 255.);	// -128 < a < 127
-				buf[BLAYER][i] = (float) ((b + 128.) / 255.);	// -128 < b < 127
-			}
-		}
+		cmsHPROFILE cielab_profile = cmsCreateLab4Profile(NULL);
+		cmsColorSpaceSignature sig = cmsGetColorSpace(args->fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
+		gboolean threaded = !get_thread_run();
+		cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, 0);
+		cmsCloseProfile(cielab_profile);
+		cmsUInt32Number datasize = sizeof(float);
+		cmsUInt32Number bytesperline = args->fit->rx * datasize;
+		cmsUInt32Number bytesperplane = args->fit->rx * args->fit->ry * datasize;
+		cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(transform);
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {

@@ -2828,11 +2828,10 @@ int process_autostretch(int nb) {
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
 		apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 	}
-	if (com.icc.available) {
-		if (gfit.icc_profile)
-			cmsCloseProfile(gfit.icc_profile);
-		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
-	}
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+
 	char log[90];
 	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
 			shadows_clipping, target_bg, linked ? "linked" : "unlinked");

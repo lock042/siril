@@ -615,7 +615,6 @@ typedef struct draw_data {
 struct gui_icc {
 	cmsHPROFILE monitor;
 	cmsHPROFILE soft_proof;
-	gboolean available;
 	cmsHTRANSFORM *display_transform;
 	cmsHTRANSFORM *proofing_transform;
 };
@@ -700,7 +699,6 @@ struct common_icc {
 	cmsHPROFILE mono_out;
 	cmsContext context_single;
 	cmsContext context_threaded;
-	gboolean available;
 };
 
 /* The global data structure of siril core */

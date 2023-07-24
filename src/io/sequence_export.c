@@ -503,29 +503,27 @@ static gpointer export_sequence(gpointer ptr) {
 // Apply colorspace conversion to sRGB if required
 		cmsHTRANSFORM *transform = NULL;
 		gboolean threaded;
-		if (com.icc.available) {
-			// Fallthrough is intentional
-			switch (args->output) {
-				case EXPORT_AVI:
+		// Fallthrough is intentional
+		switch (args->output) {
+			case EXPORT_AVI:
 #ifdef HAVE_FFMPEG
-				case EXPORT_MP4:
-				case EXPORT_MP4_H265:
-				case EXPORT_WEBM_VP9:
+			case EXPORT_MP4:
+			case EXPORT_MP4_H265:
+			case EXPORT_WEBM_VP9:
 #endif
-					threaded = !get_thread_run();
-					transform = initialize_export8_transform(destfit, threaded);
-					void *data = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
-					size_t npixels = destfit->rx * destfit->ry;
-					cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-					cmsUInt32Number bytesperline = gfit.rx * datasize;
-					cmsUInt32Number bytesperplane = npixels * datasize;
-					cmsDoTransformLineStride(transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-					cmsDeleteTransform(transform);
-					transform = NULL;
-					break;
-				default:
-					break;
-			}
+				threaded = !get_thread_run();
+				transform = initialize_export8_transform(destfit, threaded);
+				void *data = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
+				size_t npixels = destfit->rx * destfit->ry;
+				cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+				cmsUInt32Number bytesperline = gfit.rx * datasize;
+				cmsUInt32Number bytesperplane = npixels * datasize;
+				cmsDoTransformLineStride(transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+				cmsDeleteTransform(transform);
+				transform = NULL;
+				break;
+			default:
+				break;
 		}
 		switch (args->output) {
 			case EXPORT_FITS:

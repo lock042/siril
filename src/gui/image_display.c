@@ -205,25 +205,25 @@ static void remap(int vport) {
 		siril_debug_print("data is not loaded yet\n");
 		return;
 	}
-	if (com.icc.available) {
-		// Set the display transform in case it is missing
-		if (gfit.icc_profile == NULL) {
-			// In all cases where the profile should have come from a loaded file or
-			// been assumed, this will be set. So it is safe to assume we should assign
-			// a linear profile if one is missing.
-			assign_linear_icc_profile(&gfit);
-		}
-		if (!gui.icc.display_transform) {
-			gui.icc.display_transform = initialize_display_transform();
-		}
 
-		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
-			// No need to nullcheck gui.icc.soft_proof because it is done
-			// in the GUI rendering mode setting callback
-			if (!gui.icc.proofing_transform)
-				gui.icc.proofing_transform = initialize_proofing_transform();
-		}
+	// Set the display transform in case it is missing
+	if (gfit.icc_profile == NULL) {
+		// In all cases where the profile should have come from a loaded file or
+		// been assumed, this will be set. So it is safe to assume we should assign
+		// a linear profile if one is missing.
+		assign_linear_icc_profile(&gfit);
 	}
+	if (!gui.icc.display_transform) {
+		gui.icc.display_transform = initialize_display_transform();
+	}
+
+	if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
+		// No need to nullcheck gui.icc.soft_proof because it is done
+		// in the GUI rendering mode setting callback
+		if (!gui.icc.proofing_transform)
+			gui.icc.proofing_transform = initialize_proofing_transform();
+	}
+
 	struct image_view *view = &gui.view[vport];
 	if (allocate_full_surface(view))
 		return;
@@ -362,26 +362,24 @@ static void remap_all_vports() {
 		return;
 	}
 	gboolean gfit_icc_is_linear = TRUE;
-	if (com.icc.available) {
-		// Set the display transform in case it is missing
-		if (gfit.icc_profile == NULL) {
-			// In all cases where the profile should have come from a loaded file or
-			// been assumed, this will be set. So it is safe to assume we should assign
-			// a linear profile if one is missing.
-			assign_linear_icc_profile(&gfit);
-		}
-		gfit_icc_is_linear = fit_icc_is_linear(&gfit);
+	// Set the display transform in case it is missing
+	if (gfit.icc_profile == NULL) {
+		// In all cases where the profile should have come from a loaded file or
+		// been assumed, this will be set. So it is safe to assume we should assign
+		// a linear profile if one is missing.
+		assign_linear_icc_profile(&gfit);
+	}
+	gfit_icc_is_linear = fit_icc_is_linear(&gfit);
 
-		if (!gui.icc.display_transform) {
-			gui.icc.display_transform = initialize_display_transform();
-		}
+	if (!gui.icc.display_transform) {
+		gui.icc.display_transform = initialize_display_transform();
+	}
 
-		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
-			// No need to nullcheck gui.icc.soft_proof because it is done
-			// in the GUI rendering mode setting callback
-			if (!gui.icc.proofing_transform)
-				gui.icc.proofing_transform = initialize_proofing_transform();
-		}
+	if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
+		// No need to nullcheck gui.icc.soft_proof because it is done
+		// in the GUI rendering mode setting callback
+		if (!gui.icc.proofing_transform)
+			gui.icc.proofing_transform = initialize_proofing_transform();
 	}
 
 	if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
@@ -446,7 +444,7 @@ static void remap_all_vports() {
 					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 			}
 			gboolean linear_and_really_do_it = !(gfit_icc_is_linear && com.pref.icc.no_lin_disp_tx);
-			if (com.icc.available && gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it && !identical) {
+			if (gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it && !identical) {
 				cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
 								gui.icc.proofing_transform :
 								gui.icc.display_transform,
