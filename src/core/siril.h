@@ -617,6 +617,7 @@ struct gui_icc {
 	cmsHPROFILE soft_proof;
 	cmsHTRANSFORM display_transform;
 	cmsHTRANSFORM proofing_transform;
+	cmsUInt32Number proofing_flags;
 };
 
 /* The global data structure of siril gui */
@@ -699,6 +700,11 @@ struct common_icc {
 	cmsHPROFILE mono_out;
 	cmsContext context_single;
 	cmsContext context_threaded;
+	/* This sets BPC for rendering. It is in com. because it
+	 * is also used as the processing intent for non-rendering
+	 * color transforms. */
+	cmsUInt32Number rendering_flags;
+
 };
 
 /* The global data structure of siril core */

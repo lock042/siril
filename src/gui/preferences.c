@@ -238,6 +238,11 @@ static void update_user_interface_preferences() {
 	com.pref.icc.working_gamut = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("working_gamut")));
 	com.pref.icc.export_8bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
 	com.pref.icc.export_16bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
+	com.pref.icc.rendering_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")));
+	com.icc.rendering_flags |= ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC));
+	com.pref.icc.proofing_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_proofing_bpc")));
+	gui.icc.proofing_flags = ((com.pref.icc.proofing_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.proofing_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
+
 }
 
 static void update_FITS_options_preferences() {
@@ -700,10 +705,11 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")), pref->icc.rendering_intent);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")), pref->icc.proofing_intent);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")), pref->icc.export_intent);
-//	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_processing_intent")), pref->icc.processing_intent);
 	initialize_icc_preferences_widgets();
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("icc_no_lin_disp_tx")), pref->icc.no_lin_disp_tx);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")), pref->icc.rendering_bpc);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_proofing_bpc")), pref->icc.proofing_bpc);
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->mem_mode == AMOUNT);
@@ -858,6 +864,18 @@ void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data) {
 	gtk_widget_set_sensitive(std, (choice == 2));
 	gtk_widget_set_sensitive(gray, (choice == 2));
 	update_custom_gamut = TRUE;
+}
+
+void on_combo_rendering_intent_changed(GtkComboBox *combo, gpointer user_data) {
+	if (gtk_combo_box_get_active(combo) == INTENT_ABSOLUTE_COLORIMETRIC) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")), FALSE);
+	}
+}
+
+void on_combo_proofing_intent_changed(GtkComboBox *combo, gpointer user_data) {
+	if (gtk_combo_box_get_active(combo) == INTENT_ABSOLUTE_COLORIMETRIC) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_proofing_bpc")), FALSE);
+	}
 }
 
 gchar *get_swap_dir() {

@@ -714,10 +714,10 @@ void initialize_remixer_transforms(fits* fit) {
 	dest_type = get_planar_formatter_type(ref_sig, fit->type, FALSE);
 	if (to_lab)
 		cmsDeleteTransform(to_lab);
-	to_lab = cmsCreateTransformTHR(com.icc.context_single, fit->icc_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, 0);
+	to_lab = cmsCreateTransformTHR(com.icc.context_single, fit->icc_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 	if (from_lab)
 		cmsDeleteTransform(from_lab);
-	from_lab = cmsCreateTransformTHR(com.icc.context_single, lab_profile, dest_type, fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
+	from_lab = cmsCreateTransformTHR(com.icc.context_single, lab_profile, dest_type, fit->icc_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 }
 
 /*** callbacks **/

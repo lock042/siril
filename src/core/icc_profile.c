@@ -287,11 +287,17 @@ void initialize_profiles_and_transforms() {
 	com.icc.context_single = cmsCreateContext(cmsFastFloatExtensions(), NULL);
 	com.icc.context_threaded = cmsCreateContext(cmsFastFloatExtensions(), NULL);
 	cmsPluginTHR(com.icc.context_threaded, cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
+#else
+	com.icc.context_single = cmsCreateContext(NULL, NULL);
+	com.icc.context_threaded = cmsCreateContext(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
 #endif
 
 	// Set alarm codes for soft proof out-of-gamut warning
 	cmsUInt16Number alarmcodes[16] = { 65535, 0, 65535, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	cmsSetAlarmCodes(alarmcodes); // Out of gamut colours will be shown in magenta
+
+	com.icc.rendering_flags |= ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC));
+	gui.icc.proofing_flags = ((com.pref.icc.proofing_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.proofing_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
 
 	// Working profiles
 	com.icc.mono_linear = gray_linear();
@@ -363,7 +369,7 @@ cmsHTRANSFORM initialize_display_transform() {
 	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
 	g_mutex_lock(&monitor_profile_mutex);
 	// The display transform is always single threaded as OpenMP is used within the remap function
-	transform = cmsCreateTransformTHR(com.icc.context_single, gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, 0);
+	transform = cmsCreateTransformTHR(com.icc.context_single, gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
@@ -378,7 +384,7 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 	cmsUInt32Number fit_signature = cmsGetColorSpace(fit->icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(fit_signature, fit->type, TRUE);
 	cmsUInt32Number desttype = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR);
-	transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, 0);
+	transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, (fit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard), desttype, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create export colorspace transform!\n");
 	return transform;
@@ -388,7 +394,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	g_assert(gui.icc.monitor);
 	if (gfit.icc_profile == NULL || gui.icc.soft_proof == NULL)
 		return NULL;
-	cmsUInt32Number flags = cmsFLAGS_SOFTPROOFING;
+	cmsUInt32Number flags = gui.icc.proofing_flags;
 	if (gui.cut_over) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
@@ -640,7 +646,7 @@ void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
 	}
 	void *buffer = fit->type == DATA_FLOAT ? (void*) fit->fdata : (void*) fit->data;
 	src_type = get_planar_formatter_type(sig, fit->type, FALSE);
-	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), from, src_type, to, src_type, com.pref.icc.processing_intent, 0);
+	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), from, src_type, to, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 	datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	bytesperline = fit->rx * datasize;
 	bytesperplane = npixels * datasize;
@@ -750,7 +756,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
 	cmsHTRANSFORM transform = NULL;
 	if (fit_colorspace_channels == target_colorspace_channels) {
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, 0);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Transform not supported"), _("Transforms between color spaces with different numbers of channels not yet supported - this is coming soon..."));
 		return;

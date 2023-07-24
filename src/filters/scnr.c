@@ -74,8 +74,8 @@ gpointer scnr(gpointer p) {
 	src_type = TYPE_RGB_FLT_PLANAR;
 	dest_type = TYPE_Lab_FLT_PLANAR;
 	// Use the single threaded lcms2 context as the transform will be done a line at a time within the OMP outer loop
-	transform = cmsCreateTransformTHR(com.icc.context_single, args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
-	invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
+	transform = cmsCreateTransformTHR(com.icc.context_single, args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 	cmsCloseProfile(cielab_profile);
 
 	const size_t stride_size = args->fit->rx;

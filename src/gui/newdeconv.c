@@ -1215,8 +1215,8 @@ gpointer deconvolve(gpointer p) {
 		gboolean threaded = !get_thread_run();
 		src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
 		dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), the_fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, 0);
-		inverse_transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), cielab_profile, dest_type, the_fit->icc_profile, src_type, com.pref.icc.processing_intent, 0);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), the_fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+		inverse_transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), cielab_profile, dest_type, the_fit->icc_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
 		cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);

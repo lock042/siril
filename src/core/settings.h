@@ -266,6 +266,8 @@ typedef struct icc_params {
 	export_icc_type export_8bit_method;
 	export_icc_type export_16bit_method;
 	gboolean no_lin_disp_tx;
+	gboolean rendering_bpc;
+	gboolean proofing_bpc;
 } icc_params;
 
 /**

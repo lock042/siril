@@ -218,7 +218,9 @@ preferences pref_init = {
 		.custom_icc_gray = NULL,
 		.export_8bit_method = EXPORT_SRGB,
 		.export_16bit_method = EXPORT_WORKING,
-		.no_lin_disp_tx = TRUE
+		.no_lin_disp_tx = TRUE,
+		.rendering_bpc = FALSE,
+		.proofing_bpc = TRUE
 	}
 };
 
@@ -414,6 +416,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "working_gamut", STYPE_INT, N_("color mangement working gamut"), &com.pref.icc.working_gamut },
 	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
 	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },
+	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },
+	{ "gui", "icc_proofing_bpc", STYPE_BOOL, N_("enable proofing BPC"), &com.pref.icc.proofing_bpc },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
