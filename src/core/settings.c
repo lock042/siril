@@ -219,7 +219,7 @@ preferences pref_init = {
 		.export_8bit_method = EXPORT_SRGB,
 		.export_16bit_method = EXPORT_WORKING,
 		.no_lin_disp_tx = TRUE,
-		.rendering_bpc = FALSE,
+		.rendering_bpc = TRUE,
 		.proofing_bpc = TRUE
 	}
 };

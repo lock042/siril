@@ -32741,6 +32741,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Enable BPC for rendering. This is not normally required but may be useful if an image has a malformed source profile.</property>
+                                        <property name="active">True</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -32756,6 +32757,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Enable BPC for soft proofing. This should normally be enabled for most intents: it is automatically disabled if Absolute Colorimetric is selected, as BPC is contrary to the spirit of that intent.</property>
+                                        <property name="active">True</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
