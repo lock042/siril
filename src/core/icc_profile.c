@@ -519,17 +519,17 @@ cmsBool fit_icc_is_linear(fits *fit) {
 
 /* Provides a sanity check of the ICC profile attached to a fits. This is used
  * because we shouldn't trust that an embedded profile in an imported file is
- * sensible. This checks that the channel count matches; if there is no profile
- * attached to the fits it also looks for evidence that the image has been
- * stretched in the past, to decide whether to assign a linear or non-linear
- * profile.
- * TODO: should this assign the working non-linear profile rather than assume
- * sRGB?
+ * sensible. FIrst it checks that the channel count matches. Also, if there is
+ * no profile attached to the fits it also looks for evidence that the image has
+ * been stretched in the past, to decide whether to assign a linear or non-
+ * linear profile.
  */
 void check_profile_correct(fits* fit) {
 	if (!fit->icc_profile) {
 		if (fit_appears_stretched(fit)) {
+			control_window_switch_to_tab(OUTPUT_LOGS);
 			siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile: if this is wrong you can assign the correct color space using the Color Management dialog.\n"));
+			// sRGB because this is the implicit assumption made in older versions
 			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 		} else {
 			siril_log_message(_("FITS did not contain an ICC profile: assigning a linear profile.\n"));
@@ -540,6 +540,7 @@ void check_profile_correct(fits* fit) {
 		if (chans != fit->naxes[2]) {
 			cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = NULL;
+			control_window_switch_to_tab(OUTPUT_LOGS);
 			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Defaulting to a linear profile. If this is incorrect, you should assign the correct profile using the Color Management tool.\n"), "salmon");
 		}
 	}

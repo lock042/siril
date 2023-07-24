@@ -22,12 +22,10 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
-#include "algos/hsluv.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
-#include "core/processing.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
@@ -99,9 +97,6 @@ static void set_sat_histogram(gsl_histogram *histo);
 
 static gboolean autostretch_notify = FALSE;
 
-static cmsHTRANSFORM transform = NULL, inverse_transform = NULL;
-static cmsBool identical = FALSE;
-
 static int get_width_of_histo() {
 	return gtk_widget_get_allocated_width(lookup_widget("drawingarea_histograms"));
 }
@@ -141,6 +136,7 @@ static void init_toggles() {
 static void histo_startup() {
 	if (gfit.naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
 		setup_hsl();
+
 	init_toggles();
 	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
@@ -192,89 +188,46 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	clear_hist_backup();
 }
 
-static void hsluv_to_gfit (float* h, float* s, float* l) {
+static void hsl_to_gfit (float* h, float* s, float* l) {
 	size_t npixels = gfit.rx * gfit.ry;
 	if (gfit.type == DATA_FLOAT) {
-
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			double r, g, b;
-			hsluv2rgb((double) h[i], (double) s[i] * 100.f, (double) l[i], &r, &g, &b);
-			gfit.fpdata[RLAYER][i] = r;
-			gfit.fpdata[GLAYER][i] = g;
-			gfit.fpdata[BLAYER][i] = b;
+			hsl_to_rgbf(h[i], s[i], l[i], &gfit.fpdata[0][i], &gfit.fpdata[1][i], &gfit.fpdata[2][i]);
 		}
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			double r, g, b;
-			hsluv2rgb((double) h[i], (double) s[i] * 100.f, (double) l[i], &r, &g, &b);
-			gfit.pdata[RLAYER][i] = round_to_WORD(r * USHRT_MAX_DOUBLE);
-			gfit.pdata[GLAYER][i] = round_to_WORD(g * USHRT_MAX_DOUBLE);
-			gfit.pdata[BLAYER][i] = round_to_WORD(b * USHRT_MAX_DOUBLE);
+			float r, g, b;
+			hsl_to_rgbf(h[i], s[i], l[i], &r, &g, &b);
+			gfit.pdata[0][i] = roundf_to_WORD(r * USHRT_MAX_SINGLE);
+			gfit.pdata[1][i] = roundf_to_WORD(g * USHRT_MAX_SINGLE);
+			gfit.pdata[2][i] = roundf_to_WORD(b * USHRT_MAX_SINGLE);
 		}
-	}
-	if (!identical) {
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
-		cmsUInt32Number bytesperplane = bytesperline * gfit.ry;
-		void *buffer = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
-		cmsDoTransformLineStride(inverse_transform, buffer, buffer, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 	}
 }
 
-static void gfit_to_hsluv() {
+static void gfit_to_hsl() {
 	size_t npixels = gfit.rx * gfit.ry;
-	identical = profiles_identical(gfit.icc_profile, com.icc.srgb_profile);
-	if (!identical) {
-		siril_debug_print("Profiles not identical, pre-transforming\n");
-		cmsColorSpaceSignature sig = cmsGetColorSpace(gfit.icc_profile);
-		cmsUInt32Number format = get_planar_formatter_type(sig, gfit.type, FALSE);
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
-		cmsUInt32Number bytesperplane = bytesperline * gfit.ry;
-		void *buffer = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
-		gboolean threaded = !get_thread_run();
-		if (transform)
-			cmsDeleteTransform(transform);
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), gfit.icc_profile, format, com.icc.srgb_profile, format, INTENT_PERCEPTUAL, 0);
-		if (inverse_transform)
-			cmsDeleteTransform(inverse_transform);
-		inverse_transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), com.icc.srgb_profile, format, gfit.icc_profile, format, INTENT_PERCEPTUAL, 0);
-
-		cmsDoTransformLineStride(transform, buffer, buffer, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-	} else {
-		siril_debug_print("Profiles identical, no transform required\n");
-	}
-
 	if (gfit.type == DATA_FLOAT) {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			double h, s, l;
-			rgb2hsluv((double) gfit.fpdata[0][i], (double) gfit.fpdata[1][i], (double) gfit.fpdata[2][i], &h, &s, &l);
-			huebuf[i] = (float) h;
-			satbuf_orig[i] = (float) s / 100.f;
-			lumbuf[i] = (float) l;
-		}
+		for (size_t i = 0 ; i < npixels ; i++)
+			rgb_to_hslf(gfit.fpdata[0][i], gfit.fpdata[1][i], gfit.fpdata[2][i], &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			double h, s, l;
 			float r = (float) gfit.pdata[0][i] / USHRT_MAX_SINGLE;
 			float g = (float) gfit.pdata[1][i] / USHRT_MAX_SINGLE;
 			float b = (float) gfit.pdata[2][i] / USHRT_MAX_SINGLE;
-			rgb2hsluv((double) r, (double) g, (double) b, &h, &s, &l);
-			huebuf[i] = (float) h;
-			satbuf_orig[i] = (float) s / 100.f;
-			lumbuf[i] = (float) l;
+			rgb_to_hslf(r, g, b, &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
 		}
 	}
 	memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
@@ -298,7 +251,7 @@ static void histo_recompute() {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
 		if (_payne_colourstretchmodel == COL_SAT) {
 			apply_linked_ght_to_fbuf_indep(satbuf_orig, satbuf_working, gfit.rx * gfit.ry, 1, &params_ght, TRUE);
-			hsluv_to_gfit(huebuf, satbuf_working, lumbuf);
+			hsl_to_gfit(huebuf, satbuf_working, lumbuf);
 		} else {
 			apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
 		}
@@ -1014,7 +967,7 @@ static void setup_hsl() {
 	if (lumbuf)
 		free(lumbuf);
 	lumbuf = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
-	gfit_to_hsluv();
+	gfit_to_hsl();
 	set_sat_histogram(computeHistoSat(satbuf_working));
 	if (hist_sat_backup)
 		gsl_histogram_free(hist_sat_backup);
@@ -1412,7 +1365,6 @@ void toggle_histogram_window_visibility(int _invocation) {
 			setup_ght_dialog();
 			updateGHTcontrols();
 		}
-		check_linear_and_convert_with_approval(&gfit);
 		if (gui.rendering_mode == LINEAR_DISPLAY)
 			setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 		siril_open_dialog("histogram_dialog");

@@ -51,8 +51,6 @@ siril_common_SOURCES = \
 	algos/fix_xtrans_af.h \
 	algos/geometry.c \
 	algos/geometry.h \
-	algos/hsluv.c \
-	algos/hsluv.h \
 	algos/io_wave.c \
 	algos/median_fast.c \
 	algos/noise.c \
