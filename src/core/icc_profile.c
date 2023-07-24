@@ -21,6 +21,7 @@
 #include <glib.h>
 #include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include "algos/lcms_acceleration/lcms2_threaded.h"
+#include "core/icc_profile.h"
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
@@ -36,9 +37,9 @@
 #include "core/siril_app_dirs.h"
 #include "core/proto.h"
 
-cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
+/*cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 cmsHTRANSFORM sirilCreateTransform(cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
-void set_source_information();
+void set_source_information();*/
 
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
@@ -48,43 +49,43 @@ static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
 ////// Functions //////
 
-cmsHPROFILE srgb_linear() {
+static cmsHPROFILE srgb_linear() {
 	return cmsOpenProfileFromMem(sRGB_elle_V4_g10_icc, sRGB_elle_V4_g10_icc_len);
 }
 cmsHPROFILE srgb_trc() {
 	return cmsOpenProfileFromMem(sRGB_elle_V4_srgbtrc_icc, sRGB_elle_V4_srgbtrc_icc_len);
 }
-cmsHPROFILE srgb_trcv2() {
+static cmsHPROFILE srgb_trcv2() {
 	return cmsOpenProfileFromMem(sRGB_elle_V2_srgbtrc_icc, sRGB_elle_V2_srgbtrc_icc_len);
 }
 
-cmsHPROFILE rec2020_linear() {
+static cmsHPROFILE rec2020_linear() {
 	return cmsOpenProfileFromMem(Rec2020_elle_V4_g10_icc, Rec2020_elle_V4_g10_icc_len);
 }
-cmsHPROFILE rec2020_trc() {
+static cmsHPROFILE rec2020_trc() {
 	return cmsOpenProfileFromMem(Rec2020_elle_V4_rec709_icc, Rec2020_elle_V4_rec709_icc_len);
 }
-cmsHPROFILE rec2020_trcv2() {
+static cmsHPROFILE rec2020_trcv2() {
 	return cmsOpenProfileFromMem(Rec2020_elle_V2_rec709_icc, Rec2020_elle_V2_rec709_icc_len);
 }
 
-cmsHPROFILE gray_linear() {
+static cmsHPROFILE gray_linear() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_g10_icc, Gray_elle_V4_g10_icc_len);
 }
-cmsHPROFILE gray_srgbtrc() {
+static cmsHPROFILE gray_srgbtrc() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_srgbtrc_icc, Gray_elle_V4_srgbtrc_icc_len);
 }
-cmsHPROFILE gray_rec709trc() {
+static cmsHPROFILE gray_rec709trc() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_rec709_icc, Gray_elle_V4_rec709_icc_len);
 }
-cmsHPROFILE gray_srgbtrcv2() {
+static cmsHPROFILE gray_srgbtrcv2() {
 	return cmsOpenProfileFromMem(Gray_elle_V2_srgbtrc_icc, Gray_elle_V2_srgbtrc_icc_len);
 }
-cmsHPROFILE gray_rec709trcv2() {
+static cmsHPROFILE gray_rec709trcv2() {
 	return cmsOpenProfileFromMem(Gray_elle_V2_rec709_icc, Gray_elle_V2_rec709_icc_len);
 }
 
-void export_profile(cmsHPROFILE profile) {
+static void export_profile(cmsHPROFILE profile) {
 	char *filename = NULL;
 	int length;
 	length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
@@ -105,7 +106,7 @@ void export_profile(cmsHPROFILE profile) {
 	free(filename);
 }
 
-void export_elle_stone_profiles() {
+static void export_elle_stone_profiles() {
 	cmsHPROFILE profile;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -155,7 +156,7 @@ void export_elle_stone_profiles() {
 }
 
 /* Check if a provided filename is non-null and points to a file that exists */
-gboolean validate_profile(gchar* filename) {
+static gboolean validate_profile(gchar* filename) {
 	if (!filename)
 		return FALSE;
 	if (filename[0] == '\0')
@@ -347,38 +348,6 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
 	}
 }
 
-/* Loads a custom monitor profile from a path in com.pref.icc.icc_paths
- * The path must be set by the user in preferences: there is no default custom monitor profile
- */
-int load_monitor_icc_profile(const char* filename) {
-	if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0') {
-	g_mutex_lock(&monitor_profile_mutex);
-		if (gui.icc.monitor)
-			cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = cmsOpenProfileFromFile(filename, "r");
-	g_mutex_unlock(&soft_proof_profile_mutex);
-		if (!gui.icc.monitor)
-			return 1;
-		else
-			return 0;
-	} else return 1;
-}
-
-/* Loads a custom proof profile from a path in com.pref.icc.icc_paths
- * The path must be set by the user in preferences: there is no default custom proof profile
- */
-int load_soft_proof_icc_profile(const char* filename) {
-	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
-		g_mutex_lock(&soft_proof_profile_mutex);
-		gui.icc.soft_proof = cmsOpenProfileFromFile(filename, "r");
-		g_mutex_unlock(&soft_proof_profile_mutex);
-		if (!gui.icc.soft_proof)
-			return 1;
-		else
-			return 0;
-	} else return 1;
-}
-
 void assign_linear_icc_profile(fits *fit) {
 	if (fit->icc_profile) {
 		cmsCloseProfile(fit->icc_profile);
@@ -479,7 +448,7 @@ unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
  * This is not definitive, but it checks the FITS header HISTORY for signs of
  * GHT, Asinh or Histogram stretches (or autostretches) having been applied.
  */
-gboolean fit_appears_stretched(fits* fit) {
+static gboolean fit_appears_stretched(fits* fit) {
 	GSList* entry = NULL;
 	if (fit->history) {
 		entry = fit->history;
@@ -748,12 +717,152 @@ void check_linear_and_convert_with_approval(fits *fit) {
 	}
 }
 
+const char* default_system_icc_path() {
+#ifdef _WIN32
+	return "C:\\Windows\\System32\\spool\\drivers\\color";
+#endif
+#ifdef _MACOS
+	return "/Library/ColorSync/Profiles";
+#endif
+	return "/usr/share/color/icc";
+}
+
+/* This function wraps cmsCreateTransform within a gMutex.
+ * It should always be used when one of the profiles in com.icc
+ * is used to create the transform, to prevent bad things happening
+ * if the user changes the profile at the same time as Siril is trying
+ * to create the transform. It is not required for transforms solely using
+ * gui.icc.display or gui.icc.soft_proof, as they have their own
+ * gMutices. It is also not required for creating transforms between
+ * fit->icc_profile and another profile (such as the temporary one created
+ * when carrying out autostretches), as there is no risk of a concurrency
+ * clash.
+ */
+
+cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags) {
+	cmsHTRANSFORM transform = NULL;
+	g_mutex_lock(&default_profiles_mutex);
+	transform = cmsCreateTransformTHR(Context, Input, InputFormat, Output, OutputFormat, Intent, dwFlags);
+	g_mutex_unlock(&default_profiles_mutex);
+	return transform;
+}
+
+static void reset_working_profile_to_srgb() {
+	if (com.icc.working_linear)
+		cmsCloseProfile(com.icc.working_linear);
+	com.icc.working_linear = srgb_linear();
+	if (com.icc.working_standard)
+		cmsCloseProfile(com.icc.working_standard);
+	com.icc.working_standard = srgb_trc();
+	if (com.icc.working_out)
+		cmsCloseProfile(com.icc.working_out);
+	com.icc.working_out = srgb_trcv2();
+	if (com.icc.mono_standard)
+		cmsCloseProfile(com.icc.mono_standard);
+	com.icc.mono_standard = gray_srgbtrc();
+	if (com.icc.mono_out)
+		cmsCloseProfile(com.icc.mono_out);
+	com.icc.mono_out = gray_srgbtrcv2();
+	com.pref.icc.working_gamut = TYPE_SRGB;
+}
+
+static void error_loading_profile() {
+	siril_message_dialog(GTK_MESSAGE_ERROR, _("Error loading profile"),
+						 _("The selected profile could not be loaded or did not contain a valid ICC profile. Defaulting to sRGB."));
+	reset_working_profile_to_srgb();
+}
+
+static void reset_custom_to_srgb() {
+	siril_log_color_message(_("Error: the custom workspace profiles are not all set and / or valid. Defaulting to sRGB.\n"), "red");
+	reset_working_profile_to_srgb();
+}
+
 ///// Preferences callbacks
 
 // Being able to alter the monitor and soft_proof profiles and intents from the GTK thread means all operations
 // that use these profiles need to go inside mutexes to prevent the profiles being ripped out from under them.
 // This is not required for profiles in FITS structures as these are not subject to thread contention issues in
 // the same way.
+
+void update_profiles_after_gamut_change() {
+	siril_log_message(_("Updating working profiles.\n"));
+	working_gamut_type working_gamut = com.pref.icc.working_gamut;
+	g_mutex_lock(&default_profiles_mutex);
+	switch (working_gamut) {
+		case TYPE_SRGB:
+			if (com.icc.working_linear)
+				cmsCloseProfile(com.icc.working_linear);
+			com.icc.working_linear = srgb_linear();
+			if (com.icc.working_standard)
+				cmsCloseProfile(com.icc.working_standard);
+			com.icc.working_standard = srgb_trc();
+			if (com.icc.working_out)
+				cmsCloseProfile(com.icc.working_out);
+			com.icc.working_out = srgb_trcv2();
+			if (com.icc.mono_standard)
+				cmsCloseProfile(com.icc.mono_standard);
+			com.icc.mono_standard = gray_srgbtrc();
+			if (com.icc.mono_out)
+				cmsCloseProfile(com.icc.mono_out);
+			com.icc.mono_out = gray_srgbtrcv2();
+			break;
+		case TYPE_REC2020:
+			if (com.icc.working_linear)
+				cmsCloseProfile(com.icc.working_linear);
+			com.icc.working_linear = rec2020_linear();
+			if (com.icc.working_standard)
+				cmsCloseProfile(com.icc.working_standard);
+			com.icc.working_standard = rec2020_trc();
+			if (com.icc.working_out)
+				cmsCloseProfile(com.icc.working_out);
+			com.icc.working_out = rec2020_trcv2();
+			if (com.icc.mono_standard)
+				cmsCloseProfile(com.icc.mono_standard);
+			com.icc.mono_standard = gray_rec709trc();
+			if (com.icc.mono_out)
+				cmsCloseProfile(com.icc.mono_out);
+			com.icc.mono_out = gray_rec709trcv2();
+			break;
+		case TYPE_CUSTOM:
+			if (!(com.pref.icc.custom_icc_linear && com.pref.icc.custom_icc_trc && com.pref.icc.custom_icc_gray)) {
+				reset_custom_to_srgb();
+				break;
+			}
+			if (com.icc.working_linear)
+				cmsCloseProfile(com.icc.working_linear);
+			if (!(com.pref.icc.custom_icc_linear && (com.icc.working_linear = cmsOpenProfileFromFile(com.pref.icc.custom_icc_linear, "r")))) {
+				error_loading_profile();
+				break;
+			}
+			// Custom profiles will also be used for the output profile
+			if (com.icc.working_standard)
+				cmsCloseProfile(com.icc.working_standard);
+			if (!(com.pref.icc.custom_icc_trc && (com.icc.working_standard =
+						cmsOpenProfileFromFile(com.pref.icc.custom_icc_trc, "r")))) {
+				error_loading_profile();
+				break;
+			} else {
+				// copy to working_out as we don't require a separate profile for embedding in a custom profile set
+				if (com.icc.working_out)
+					cmsCloseProfile(com.icc.working_out);
+				com.icc.working_out = copyICCProfile(com.icc.working_standard);
+			}
+
+			// Custom profiles will also be used for the output profile
+			if (com.icc.mono_standard)
+				cmsCloseProfile(com.icc.mono_standard);
+			if (!(com.pref.icc.custom_icc_gray && (com.icc.mono_standard =
+						cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r")))) {
+				error_loading_profile();
+			} else {
+				if (com.icc.mono_out)
+					cmsCloseProfile(com.icc.mono_out);
+				com.icc.mono_out = copyICCProfile(com.icc.mono_standard);
+			}
+	}
+	g_mutex_unlock(&default_profiles_mutex);
+	refresh_icc_transforms();
+}
 
 void initialize_icc_preferences_widgets() {
 	GtkToggleButton *monitortogglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
@@ -925,148 +1034,8 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	refresh_icc_transforms();
 }
 
-const char* default_system_icc_path() {
-#ifdef _WIN32
-	return "C:\\Windows\\System32\\spool\\drivers\\color";
-#endif
-#ifdef _MACOS
-	return "/Library/ColorSync/Profiles";
-#endif
-	return "/usr/share/color/icc";
-}
-
-static void reset_working_profile_to_srgb() {
-	if (com.icc.working_linear)
-		cmsCloseProfile(com.icc.working_linear);
-	com.icc.working_linear = srgb_linear();
-	if (com.icc.working_standard)
-		cmsCloseProfile(com.icc.working_standard);
-	com.icc.working_standard = srgb_trc();
-	if (com.icc.working_out)
-		cmsCloseProfile(com.icc.working_out);
-	com.icc.working_out = srgb_trcv2();
-	if (com.icc.mono_standard)
-		cmsCloseProfile(com.icc.mono_standard);
-	com.icc.mono_standard = gray_srgbtrc();
-	if (com.icc.mono_out)
-		cmsCloseProfile(com.icc.mono_out);
-	com.icc.mono_out = gray_srgbtrcv2();
-	com.pref.icc.working_gamut = TYPE_SRGB;
-}
-
-void error_loading_profile() {
-	siril_message_dialog(GTK_MESSAGE_ERROR, _("Error loading profile"),
-						 _("The selected profile could not be loaded or did not contain a valid ICC profile. Defaulting to sRGB."));
-	reset_working_profile_to_srgb();
-}
-
-static void reset_custom_to_srgb() {
-	siril_log_color_message(_("Error: the custom workspace profiles are not all set and / or valid. Defaulting to sRGB.\n"), "red");
-	reset_working_profile_to_srgb();
-}
-
-void update_profiles_after_gamut_change() {
-	siril_log_message(_("Updating working profiles.\n"));
-	working_gamut_type working_gamut = com.pref.icc.working_gamut;
-	g_mutex_lock(&default_profiles_mutex);
-	switch (working_gamut) {
-		case TYPE_SRGB:
-			if (com.icc.working_linear)
-				cmsCloseProfile(com.icc.working_linear);
-			com.icc.working_linear = srgb_linear();
-			if (com.icc.working_standard)
-				cmsCloseProfile(com.icc.working_standard);
-			com.icc.working_standard = srgb_trc();
-			if (com.icc.working_out)
-				cmsCloseProfile(com.icc.working_out);
-			com.icc.working_out = srgb_trcv2();
-			if (com.icc.mono_standard)
-				cmsCloseProfile(com.icc.mono_standard);
-			com.icc.mono_standard = gray_srgbtrc();
-			if (com.icc.mono_out)
-				cmsCloseProfile(com.icc.mono_out);
-			com.icc.mono_out = gray_srgbtrcv2();
-			break;
-		case TYPE_REC2020:
-			if (com.icc.working_linear)
-				cmsCloseProfile(com.icc.working_linear);
-			com.icc.working_linear = rec2020_linear();
-			if (com.icc.working_standard)
-				cmsCloseProfile(com.icc.working_standard);
-			com.icc.working_standard = rec2020_trc();
-			if (com.icc.working_out)
-				cmsCloseProfile(com.icc.working_out);
-			com.icc.working_out = rec2020_trcv2();
-			if (com.icc.mono_standard)
-				cmsCloseProfile(com.icc.mono_standard);
-			com.icc.mono_standard = gray_rec709trc();
-			if (com.icc.mono_out)
-				cmsCloseProfile(com.icc.mono_out);
-			com.icc.mono_out = gray_rec709trcv2();
-			break;
-		case TYPE_CUSTOM:
-			if (!(com.pref.icc.custom_icc_linear && com.pref.icc.custom_icc_trc && com.pref.icc.custom_icc_gray)) {
-				reset_custom_to_srgb();
-				break;
-			}
-			if (com.icc.working_linear)
-				cmsCloseProfile(com.icc.working_linear);
-			if (!(com.pref.icc.custom_icc_linear && (com.icc.working_linear = cmsOpenProfileFromFile(com.pref.icc.custom_icc_linear, "r")))) {
-				error_loading_profile();
-				break;
-			}
-			// Custom profiles will also be used for the output profile
-			if (com.icc.working_standard)
-				cmsCloseProfile(com.icc.working_standard);
-			if (!(com.pref.icc.custom_icc_trc && (com.icc.working_standard =
-						cmsOpenProfileFromFile(com.pref.icc.custom_icc_trc, "r")))) {
-				error_loading_profile();
-				break;
-			} else {
-				// copy to working_out as we don't require a separate profile for embedding in a custom profile set
-				if (com.icc.working_out)
-					cmsCloseProfile(com.icc.working_out);
-				com.icc.working_out = copyICCProfile(com.icc.working_standard);
-			}
-
-			// Custom profiles will also be used for the output profile
-			if (com.icc.mono_standard)
-				cmsCloseProfile(com.icc.mono_standard);
-			if (!(com.pref.icc.custom_icc_gray && (com.icc.mono_standard =
-						cmsOpenProfileFromFile(com.pref.icc.custom_icc_gray, "r")))) {
-				error_loading_profile();
-			} else {
-				if (com.icc.mono_out)
-					cmsCloseProfile(com.icc.mono_out);
-				com.icc.mono_out = copyICCProfile(com.icc.mono_standard);
-			}
-	}
-	g_mutex_unlock(&default_profiles_mutex);
-	refresh_icc_transforms();
-}
-
-/* This function wraps cmsCreateTransform within a gMutex.
- * It should always be used when one of the profiles in com.icc
- * is used to create the transform, to prevent bad things happening
- * if the user changes the profile at the same time as Siril is trying
- * to create the transform. It is not required for transforms solely using
- * gui.icc.display or gui.icc.soft_proof, as they have their own
- * gMutices. It is also not required for creating transforms between
- * fit->icc_profile and another profile (such as the temporary one created
- * when carrying out autostretches), as there is no risk of a concurrency
- * clash.
- */
-
-cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags) {
-	cmsHTRANSFORM transform = NULL;
-	g_mutex_lock(&default_profiles_mutex);
-	transform = cmsCreateTransformTHR(Context, Input, InputFormat, Output, OutputFormat, Intent, dwFlags);
-	g_mutex_unlock(&default_profiles_mutex);
-	return transform;
-}
-
 //////// GUI callbacks for the color management dialog
-void set_source_information() {
+static void set_source_information() {
 	if (!gfit.icc_profile) {
 		siril_debug_print("Target profile is NULL\n");
 		return;
@@ -1102,7 +1071,7 @@ void set_source_information() {
 		free(buffer);
 	}
 }
-void set_target_information() {
+static void set_target_information() {
 	if (!target) {
 		return;
 	}
@@ -1216,7 +1185,7 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 
 }
 
-void icc_channels_mismatch() {
+static void icc_channels_mismatch() {
 	siril_message_dialog(GTK_MESSAGE_ERROR, _("ICC Profile Mismatch"), _("The number of channels in the image and in the profile do not match."));
 }
 
