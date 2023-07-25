@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-19 11:31+0000\n"
+"PO-Revision-Date: 2023-07-09 10:07+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -262,52 +262,52 @@ msgid ""
 msgstr "沿轮廓线生成单独的 R、G 和 B 轮廓。不适用于单色图像"
 
 #: src/gui/siril3.glade:1089
-#, fuzzy
 msgid "Manual coordinates"
-msgstr "无坐标"
+msgstr "手动坐标"
 
 #: src/gui/siril3.glade:1093
 msgid "Enter coordinates for the start and end points of the profile manually"
-msgstr ""
+msgstr "手动输入轮廓起点和终点的坐标"
 
 #: src/gui/siril3.glade:1103
 msgid "Spectrometric data"
-msgstr ""
+msgstr "光谱数据"
 
 #: src/gui/siril3.glade:1107
 msgid "Enter data relating to profiling along a spectrum"
-msgstr ""
+msgstr "输入与光谱分析相关的数据"
 
 #: src/gui/siril3.glade:1117
 msgid "Tri-Profile (mono)"
-msgstr ""
+msgstr "三轮廓（单色）"
 
 #: src/gui/siril3.glade:1121 src/gui/siril3.glade:1167
 msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile and do not use "
 "spectrometric data."
-msgstr ""
+msgstr "生成 3 个由给定像素数分隔的平行强度轮廓。三轮廓始终沿每个轮廓绘制亮度，不使用"
+"光谱数据。"
 
 #: src/gui/siril3.glade:1135
 msgid "Set offset step size for tri-profile"
-msgstr ""
+msgstr "设置三轮廓的偏移步长"
 
 #: src/gui/siril3.glade:1136 src/gui/siril3.glade:28814
 msgid "1"
 msgstr "1"
 
 #: src/gui/siril3.glade:1148
-#, fuzzy
 msgid "Save profile datafile"
-msgstr "将 PSF 保存到文件"
+msgstr "保存轮廓数据文件"
 
 #: src/gui/siril3.glade:1152
 msgid ""
 "Saves the GNUplot data file used to generate the profile in the working "
 "directory. The filename is based on the current image and includes a "
 "timestamp."
-msgstr ""
+msgstr "将用于生成轮廓的 GNUplot "
+"数据文件保存在工作目录中。文件名基于当前图像，并包含时间戳。"
 
 #: src/gui/siril3.glade:1183
 msgid ""
@@ -315,33 +315,35 @@ msgid ""
 "in .png format in the working directory: the GNUplot window will not appear. "
 "This mode automatically enables the \"Save plot as .png\" option."
 msgstr ""
+"应用于当前队列。如果选择此选项，将在工作目录中以.png格式生成图表：GNUplot "
+"窗口将不会出现。此模式自动启用“将图表另存为.png”选项。"
 
 #: src/gui/siril3.glade:1194
-#, fuzzy
 msgid "Save plot as .png"
-msgstr "保存图表"
+msgstr "将图表另存为png"
 
 #: src/gui/siril3.glade:1198
 msgid ""
 "Saves the plot in .png format as well as opening the GNUplot window. "
 "Sequence working relies on this so if this option is deactivated, sequence "
 "working will be deactivated too."
-msgstr ""
+msgstr "以.png格式保存图表，并打开 GNUplot "
+"窗口。队列工作依赖于此，因此如果禁用此选项，队列工作也将停用。"
 
 #: src/gui/siril3.glade:1209
 msgid "Measure in pixels"
-msgstr ""
+msgstr "以像素为单位进行测量"
 
 #: src/gui/siril3.glade:1213
 msgid ""
 "Measurements and the plot x axis will show distance in pixels. This option "
 "is overridden if spectrometry data is set."
-msgstr ""
+msgstr "测量值和图表 x "
+"轴将以像素为单位显示距离。如果设置了光谱数据，则此选项将被覆盖。"
 
 #: src/gui/siril3.glade:1225
-#, fuzzy
 msgid "Measure in arcsec"
-msgstr "FWHM已被转化为角秒"
+msgstr "以角秒为单位进行测量"
 
 #: src/gui/siril3.glade:1229
 msgid ""
@@ -349,47 +351,45 @@ msgid ""
 "This requires telescope focal length and sensor pixel size metadata in the "
 "FITS header. This option is overridden if spectrometry data is set."
 msgstr ""
+"如果可能，测量值和图表 x 轴将以角秒为单位显示距离。这需要 FITS 标头中的望远镜"
+"焦距和传感器像素尺寸元数据。如果设置了光谱数据，则此选项将被覆盖。"
 
 #: src/gui/siril3.glade:1264
 msgid ""
 "Sets a custom title for the plot. If the title ends with (), if a sequence "
 "is processed the current image number / total will be added inside the "
 "brackets (e.g. Title (1/n))."
-msgstr ""
+msgstr "设置图表的自定义标题。如果标题以 （） "
+"结尾，如果处理队列，则当前图像编号/总数将添加到括号内（例如标题 （1/n））。"
 
 #: src/gui/siril3.glade:1265 src/gui/cut.c:201 src/gui/cut.c:1476
 msgid "Intensity Profile"
-msgstr ""
+msgstr "强度轮廓"
 
 #: src/gui/siril3.glade:1274
 msgid "Plot Title"
-msgstr ""
+msgstr "图表标题"
 
 #: src/gui/siril3.glade:1327
-#, fuzzy
 msgid "Coordinates"
-msgstr "无坐标"
+msgstr "坐标"
 
 #: src/gui/siril3.glade:1389 src/gui/siril3.glade:1402
 #: src/gui/siril3.glade:1459 src/gui/siril3.glade:1472
-#, fuzzy
 msgid "-1"
-msgstr "1"
+msgstr "-1"
 
 #: src/gui/siril3.glade:1415
-#, fuzzy
 msgid "End"
-msgstr "已启用"
+msgstr "终点"
 
 #: src/gui/siril3.glade:1426 src/gui/siril3.glade:8682
-#, fuzzy
 msgid "y"
-msgstr "y0"
+msgstr "y"
 
 #: src/gui/siril3.glade:1437
-#, fuzzy
 msgid "Start"
-msgstr "StarNet"
+msgstr "起点"
 
 #: src/gui/siril3.glade:1448 src/gui/siril3.glade:8671
 #: src/gui/siril3.glade:21654
@@ -397,19 +397,18 @@ msgid "x"
 msgstr "x"
 
 #: src/gui/siril3.glade:1490
-#, fuzzy
 msgid ""
 "Find a star in the current selection and set the start point to its location"
-msgstr "警告：使用当前选区来检测星点\n"
+msgstr "在当前选择中查找一颗星点，并将起点设置为其位置"
 
 #: src/gui/siril3.glade:1491 src/gui/siril3.glade:1516
 msgid "*"
-msgstr ""
+msgstr "*"
 
 #: src/gui/siril3.glade:1515
 msgid ""
 "Find a star in the current selection and set the end point to its location"
-msgstr ""
+msgstr "在当前选择中查找一颗星点并将终点设置为其位置"
 
 #: src/gui/siril3.glade:1566
 msgid "Wavelets Layers Extraction"
@@ -1794,24 +1793,22 @@ msgid "Prefix of the image names resulting from the cropping process."
 msgstr "裁剪处理后的文件名前缀。"
 
 #: src/gui/siril3.glade:8490
-#, fuzzy
 msgid "Spectrometry"
-msgstr "天体测量"
+msgstr "光谱"
 
 #: src/gui/siril3.glade:8551
-#, fuzzy
 msgid "Profile width / px"
-msgstr "轮廓类型:"
+msgstr "轮廓宽度/像素"
 
 #: src/gui/siril3.glade:8562
 msgid ""
 "Set the width of the cut. The median pixel value perpendicular to the cut "
 "will be used."
-msgstr ""
+msgstr "设置剪切的宽度。将使用垂直于剪切的中值像素值。"
 
 #: src/gui/siril3.glade:8573
 msgid "Pick wavenumber 1"
-msgstr ""
+msgstr "选择波数 1"
 
 #: src/gui/siril3.glade:8577 src/gui/siril3.glade:8591
 msgid ""
@@ -1820,15 +1817,17 @@ msgid ""
 "images, the start or central wavenumber. Note: these points snap to the "
 "profile line and are reset if the profile line is moved."
 msgstr ""
+"在轮廓线上选取一个与已知波数对应的点。通常，这将是一条已知的谱线，或者对于真"
+"正的光谱仪图像，是起始波数或中心波数。注意： "
+"这些点捕捉到轮廓线，并在移动轮廓线时重置。"
 
 #: src/gui/siril3.glade:8587
 msgid "Pick wavenumber 2"
-msgstr ""
+msgstr "选择波数 2"
 
 #: src/gui/siril3.glade:8603 src/gui/siril3.glade:8617
-#, fuzzy
 msgid "Enter the wavenumber corresponding to the selected point"
-msgstr "选择与三个所提取的图像对应的色彩空间"
+msgstr "输入所选点对应的波数"
 
 #: src/gui/siril3.glade:8604 src/gui/siril3.glade:8618
 #: src/gui/siril3.glade:12554 src/gui/siril3.glade:12574
@@ -1841,14 +1840,13 @@ msgstr "0"
 
 #: src/gui/siril3.glade:8693
 msgid "The wavenumber is the spatial frequency 1 / λ"
-msgstr ""
+msgstr "波数为空间频率1/λ"
 
 #: src/gui/siril3.glade:8694
 msgid "wavenumber / cm<sup>-1</sup>"
-msgstr ""
+msgstr "波数 / cm<sup>-1</sup>"
 
 #: src/gui/siril3.glade:8706
-#, fuzzy
 msgid "wavelength / nm"
 msgstr "波长 / nm"
 
@@ -1857,7 +1855,8 @@ msgid ""
 "This is a convenience function to allow a known wavelength to be entered "
 "instead of wavenumbers. Since wavenumber is required for the plot x axis, "
 "the value entered will be converted to wavenumber"
-msgstr ""
+msgstr "这是一个方便的功能，允许输入已知波长而不是波数。由于图表 x "
+"轴需要波数，因此输入的值将转换为波数"
 
 #: src/gui/siril3.glade:8783
 msgid "Image Denoising"
@@ -3817,32 +3816,28 @@ msgstr "CFA3"
 msgid ""
 "Select the image containing the CFA0 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
-msgstr ""
-"选择包含 CFA0 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA0 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA0 前缀。"
 
 #: src/gui/siril3.glade:16009
 msgid ""
 "Select the image containing the CFA1 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA1 prefix."
-msgstr ""
-"选择包含 CFA1 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA1 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA1 前缀。"
 
 #: src/gui/siril3.glade:16023
 msgid ""
 "Select the image containing the CFA2 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA2 prefix."
-msgstr ""
-"选择包含 CFA2 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA2 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA2 前缀。"
 
 #: src/gui/siril3.glade:16037
 msgid ""
 "Select the image containing the CFA3 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA3 prefix."
-msgstr ""
-"选择包含 CFA3 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA3 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA3 前缀。"
 
 #: src/gui/siril3.glade:16054
@@ -3876,7 +3871,7 @@ msgstr "GRBG"
 
 #: src/gui/siril3.glade:16100
 msgid "Bayer Pattern"
-msgstr "Bayer滤镜模式"
+msgstr "拜耳模式"
 
 #: src/gui/siril3.glade:16119
 msgid ""
@@ -6755,7 +6750,7 @@ msgstr ""
 msgid ""
 "Make an intensity profile cut, showing a graph of the pixel value along a "
 "line between two points"
-msgstr ""
+msgstr "进行强度轮廓切割，沿两点之间的线显示像素值的图形"
 
 #: src/gui/siril3.glade:26845
 msgid "Shrink the image"
@@ -6973,10 +6968,10 @@ msgid ""
 "to allow SER files converted from films to be demosaiced, monochrome SER "
 "will be forced as CFA with the configured pattern."
 msgstr ""
-"点选此项，Siril会自动应用文件头中的Bayer滤镜排列模式和XY轴偏置。如果结果看上"
-"去不妥，关闭本选项，在下面自行手动选择Bayer滤镜的排列模式。\n"
-"不选此项，下面设定的Bayer滤镜排列模式将被使用。警告：若SER视频文件转化为彩"
-"色，单色SER将被强制以CFA格式处理。"
+"点选此项，Siril会自动应用文件头中的拜耳模式和XY轴偏置。如果结果看上去不妥，关"
+"闭本选项，在下面自行手动选择拜耳模式。\n"
+"不选此项，下面设定的拜耳模式将被使用。警告：若SER视频文件转化为彩色，单色SER"
+"将被强制以CFA格式处理。"
 
 #: src/gui/siril3.glade:28625
 msgid "Debayer FITS files in top-down if no explicit keywords found"
@@ -7010,11 +7005,11 @@ msgstr "警告：对于SER动态去马赛克，RCD算法将一直被使用。"
 
 #: src/gui/siril3.glade:28663 src/gui/siril3.glade:28676
 msgid "Select your camera's Bayer pattern."
-msgstr "选择相机的Bayer滤镜排列模式。"
+msgstr "选择相机的拜耳模式。"
 
 #: src/gui/siril3.glade:28665
 msgid "Bayer/mosaic pattern: "
-msgstr "Bayer滤镜排列模式: "
+msgstr "拜耳滤镜/马赛克模式: "
 
 #: src/gui/siril3.glade:28695
 msgid "Select an interpolation method to perform demosaicing."
@@ -8856,7 +8851,7 @@ msgstr "图像解析"
 #: src/algos/astrometry_solver.c:989 src/algos/astrometry_solver.c:1005
 #, c-format
 msgid "cygwin/bin was not found at %s - ignoring\n"
-msgstr ""
+msgstr "在%s处找不到 cygwin/bin - 忽略\n"
 
 #: src/algos/astrometry_solver.c:1046
 msgid "solve-field was not found, set its path in the preferences\n"
@@ -9152,7 +9147,7 @@ msgstr "在超过一个通道的图像上无法执行debayer\n"
 #: src/algos/demosaicing.c:1240 src/algos/extraction.c:163 src/io/ser.c:841
 #: src/io/ser.c:1072
 msgid "No Bayer pattern found in the header file.\n"
-msgstr "在文件头中无法找到拜耳阵列排列信息。\n"
+msgstr "在文件头中无法找到拜耳模式信息。\n"
 
 #: src/algos/demosaicing.c:1243 src/algos/extraction.c:166 src/io/ser.c:845
 #: src/io/ser.c:1076
@@ -9160,8 +9155,7 @@ msgstr "在文件头中无法找到拜耳阵列排列信息。\n"
 msgid ""
 "Bayer pattern found in header (%s) is different from Bayer pattern in "
 "settings (%s). Overriding settings.\n"
-msgstr ""
-"文件头中含有的拜耳滤镜排列模式 (%s) 不同于设置中的排列 (%s)。 设置被覆盖。\n"
+msgstr "文件头中含有的拜耳模式 (%s) 不同于设置中的拜耳模式 (%s)。 设置被覆盖。\n"
 
 #: src/algos/demosaicing.c:1252
 msgid "XTRANS Sensor detected. Using special algorithm.\n"
@@ -10234,7 +10228,7 @@ msgstr "未保存的拜耳模式合并"
 
 #: src/core/command.c:847
 msgid "Bayer pattern merge"
-msgstr "Bayer模式合并"
+msgstr "拜耳模式合并"
 
 #: src/core/command.c:877
 msgid "Could not understand the requested operator\n"
@@ -11929,22 +11923,21 @@ msgstr "String out: %s\n"
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
-msgstr ""
+msgstr "错误：CFA 模式不能用于彩色图像或没有拜耳模式的单色图像。\n"
 
 #: src/core/command.c:9115
 msgid "Incorrect option follows -layer=, aborting.\n"
-msgstr ""
+msgstr "-layer= 后面的错误选项，异常中止。\n"
 
 #: src/core/command.c:9140 src/core/command.c:9148 src/core/command.c:9156
 #: src/core/command.c:9164
-#, fuzzy, c-format
+#, c-format
 msgid "Error: Could not parse %s values.\n"
-msgstr "无法解析目标坐标\n"
+msgstr "错误：无法分析 %s 值。\n"
 
 #: src/core/command.c:9170
-#, fuzzy
 msgid "Error: this option cannot be used for sequences.\n"
-msgstr "错误：无法打开队列\n"
+msgstr "错误：此选项不能用于队列。\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -13543,6 +13536,46 @@ msgid ""
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
 "Title\"."
 msgstr ""
+"Generates an intensity profile plot between 2 points in the image. The "
+"arguments may be provided in any order. The arguments <b>-to=x,y</b> and "
+"<b>-from=x,y</b> are mandatory.\n"
+"\n"
+"The argument <b>-layer=<i>{red | green | blue | lum | col}</i></b> specifies "
+"which channel (or luminance or colour) to plot if the image is color. This "
+"can be used in conjunction with spectrometric options. It may also be used "
+"with the <b>-tri</b> option, which generates 3 parallel equispaced profiles "
+"each separated by <b>-spacing=</b> pixels, but note that for tri profiles "
+"the <i><b>col</b></i> option will be treated the same as <i><b>lum</b></i>.\n"
+"\n"
+"The option <b>-cfa</b> selects CFA mode, which generates 4 profiles: 1 for "
+"each CFA channel in a Bayer patterned image. This option cannot be used with "
+"color images or mono images with no Bayer pattern, and cannot be used at the "
+"same time as the <b>-tri</b> option.\n"
+"\n"
+"The option <b>-arcsec</b> causes the x axis to display distance in arcsec, "
+"if the necessary metadata is available. This option is overridden if "
+"spectrometric options are provided. If not provided or if metadata is not "
+"available, distance will be shown in pixel units.\n"
+"\n"
+"The argument <b>-savedat</b> will cause the GNUplot data files to be saved: "
+"the filename will be written to the log. Alternatively the argument "
+"<b>-filename=</b> can be used to specify a filename to write the data file "
+"to. (The <b>-filename=</b> option implies <b>-savedat</b>.)\n"
+"\n"
+"<b>Spectrometric Options</b>\n"
+"\n"
+"If spectrometric options are provided, all of the following must be provided:"
+" <b>-wavenumber1=</b> and <b>-wavenumber2=</b> specify 2 wavenumbers in "
+"cm<sup>-1</sup>, and <b>-wn1=x,y</b> and <b>-wn2=x,y</b> specify points in "
+"the image corresponding to those wavenumbers. As a convenience, "
+"<b>-wavelength1=</b> and <b>-wavelength2=</b> may be used instead to provide "
+"wavelengths in nm. These are always converted and the plot axis always shows "
+"wavenumber. The optional spectrometric argument <b>-width=</b> may be "
+"provided, which specifies how many pixels should be averaged perpendicular "
+"to the profile line.\n"
+"\n"
+"The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
+"Title\"."
 
 #: src/core/command_def.h:108
 msgid ""
@@ -14416,6 +14449,47 @@ msgid ""
 "Sequence (1 / 5)\", the given title should end with () (e.g. \"My Sequence "
 "()\" and the numbers will be populated automatically."
 msgstr ""
+"Generates an intensity profile plot between 2 points in each image in the "
+"sequence. The arguments may be provided in any order. The arguments "
+"<b>-to=x,y</b> and <b>-from=x,y</b> are mandatory.\n"
+"\n"
+"The argument <b>-layer=<i>{red | green | blue | lum | col}</i></b> specifies "
+"which channel (or luminance or colour) to plot if the image is color. This "
+"can be used in conjunction with spectrometric options. It may also be used "
+"with the <b>-tri</b> option, which generates 3 parallel equispaced profiles "
+"each separated by <b>-spacing=</b> pixels, but note that for tri profiles "
+"the <i><b>col</b></i> option will be treated the same as <i><b>lum</b></i>.\n"
+"\n"
+"The option <b>-cfa</b> selects CFA mode, which generates 4 profiles: 1 for "
+"each CFA channel in a Bayer patterned image. This option cannot be used with "
+"color images or mono images with no Bayer pattern, and cannot be used at the "
+"same time as the <b>-tri</b> option.\n"
+"\n"
+"The option <b>-arcsec</b> causes the x axis to display distance in arcsec, "
+"if the necessary metadata is available. This option is overridden if "
+"spectrometric options are provided. If not provided or if metadata is not "
+"available, distance will be shown in pixel units.\n"
+"\n"
+"The <b>-savedat</b> argument may be provided if it is desired to keep the "
+"GNUplot data files: by default they will be deleted.\n"
+"\n"
+"<b>Spectrometric Options</b>\n"
+"\n"
+"If spectrometric options are provided, all of the following must be provided:"
+" <b>-wavenumber1=</b> and <b>-wavenumber2=</b> specify 2 wavenumbers in "
+"cm<sup>-1</sup>, and <b>-wn1=x,y</b> and <b>-wn2=x,y</b> specify points in "
+"the image corresponding to those wavenumbers. As a convenience, "
+"<b>-wavelength1=</b> and <b>-wavelength2=</b> may be used instead to provide "
+"wavelengths in nm. These are always converted and the plot axis always shows "
+"wavenumber. The optional spectrometric argument <b>-width=</b> may be "
+"provided, which specifies how many pixels should be averaged perpendicular "
+"to the profile line.\n"
+"\n"
+"The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
+"Title\". If processing a sequence and it is desired to have the current "
+"image number and total number of images displayed in the format \"My "
+"Sequence (1 / 5)\", the given title should end with () (e.g. \"My Sequence ()"
+"\" and the numbers will be populated automatically."
 
 #: src/core/command_def.h:154
 msgid ""
@@ -16015,7 +16089,7 @@ msgstr "使用文件头中的模式"
 
 #: src/core/settings.c:293
 msgid "index of the Bayer pattern"
-msgstr "拜耳滤镜模式指标"
+msgstr "拜耳模式指标"
 
 #: src/core/settings.c:294
 msgid "type of interpolation"
@@ -17600,158 +17674,149 @@ msgid_plural "%d files selected"
 msgstr[0] "%d个文件已选择"
 
 #: src/gui/cut.c:199
-#, fuzzy
 msgid "Spectrogram"
-msgstr "星点直方图"
+msgstr "光谱图"
 
 #: src/gui/cut.c:213
 msgid "Error: CFA mode and tri-profile are mutually exclusive.\n"
-msgstr ""
+msgstr "错误：CFA 模式和三轮廓是互斥的。\n"
 
 #: src/gui/cut.c:217
 msgid "Error: color plot and tri-profile are mutually exclusive.\n"
-msgstr ""
+msgstr "错误：彩色图表和三轮廓是互斥的。\n"
 
 #: src/gui/cut.c:221
 msgid "Error: mono image is loaded: color mode is unavailable.\n"
-msgstr ""
+msgstr "错误：加载了单色图像：彩色模式不可用。\n"
 
 #: src/gui/cut.c:225
 msgid "Error: mono image is loaded: colored layers cannot be specified.\n"
-msgstr ""
+msgstr "错误：加载了单色图像：无法指定彩色图层。\n"
 
 #: src/gui/cut.c:229
 msgid "Error: color plot and CFA mode are mutually exclusive.\n"
-msgstr ""
+msgstr "错误：彩色图表和 CFA 模式是互斥的。\n"
 
 #: src/gui/cut.c:233
-#, fuzzy
 msgid "Error: start and finish points are the same.\n"
-msgstr "错误：所有星点FWHM必须拥有相同的单位。\n"
+msgstr "错误：起点和终点相同。\n"
 
 #: src/gui/cut.c:237
-#, fuzzy
 msgid "Error: variable image size in sequence.\n"
-msgstr "错误：图像尺寸调整失败...\n"
+msgstr "错误：队列中图像尺寸多变。\n"
 
 #: src/gui/cut.c:246
-#, fuzzy
 msgid "Error: wavenumber points are the same.\n"
-msgstr "错误：无法读取数据\n"
+msgstr "错误：波数点相同。\n"
 
 #: src/gui/cut.c:250
 msgid "Error: wavenumber for -wn1= is not set.\n"
-msgstr ""
+msgstr "错误：未设置 -wn1= 的波数。\n"
 
 #: src/gui/cut.c:254
 msgid "Error: wavenumber for -wn2= is not set.\n"
-msgstr ""
+msgstr "错误：未设置 -wn2= 的波数。\n"
 
 #: src/gui/cut.c:258
 msgid "Error: wavenumber1 set but corresponding location is not set.\n"
-msgstr ""
+msgstr "错误：设置了波数 1，但未设置相应的位置。\n"
 
 #: src/gui/cut.c:262
 msgid "Error: wavenumber2 set but corresponding location is not set.\n"
-msgstr ""
+msgstr "错误：设置了波数 2，但未设置相应的位置。\n"
 
 #: src/gui/cut.c:267 src/gui/cut.c:271
 msgid "Error: wavenumber point outside image dimensions.\n"
-msgstr ""
+msgstr "错误：波数点超出图像尺寸。\n"
 
 #: src/gui/cut.c:275
 msgid "Error: profile line endpoint outside image dimensions.\n"
-msgstr ""
+msgstr "错误：在图像尺寸之外的轮廓线端点。\n"
 
 #: src/gui/cut.c:279
 msgid "Error: spacing is set but tri-profile mode is not selected.\n"
-msgstr ""
+msgstr "错误：设置了间距，但未选择三轮廓模式。\n"
 
 #: src/gui/cut.c:283
-#, fuzzy
 msgid "Error: layer out of range.\n"
-msgstr "错误：文件路径太长！\n"
+msgstr "错误：图层超出范围。\n"
 
 #: src/gui/cut.c:313
 #, c-format
 msgid "Measurement: %.1f\""
-msgstr ""
+msgstr "测量值：%.1f\""
 
 #: src/gui/cut.c:318
 #, c-format
 msgid "Measurement: %d' %.1f\""
-msgstr ""
+msgstr "测量值： %d' %.1f\""
 
 #: src/gui/cut.c:322
 #, c-format
 msgid "Measurement: %dº %d' %.0f\""
-msgstr ""
+msgstr "测量值： %dº %d' %.0f\""
 
 #: src/gui/cut.c:326
 #, c-format
 msgid "Measurement: %.1f px"
-msgstr ""
+msgstr "测量值：%.1f px"
 
 #: src/gui/cut.c:331
 msgid "Warning: angular measurement > 10º. Error is > 1%\n"
-msgstr ""
+msgstr "警告：角度测量> 10º。误差> 1%\n"
 
 #: src/gui/cut.c:518 src/gui/cut.c:716 src/gui/cut.c:879
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Gnuplot was not found, the brightness profile data will be written to %s but "
 "no image will be created.\n"
-msgstr "未找到 Gnuplot，光度曲线数据将以 %s 生成，但不会创建图像。\n"
+msgstr "未找到 Gnuplot，光度轮廓数据将以 %s 生成，但不会创建图像。\n"
 
 #: src/gui/cut.c:614 src/gui/cut.c:801 src/gui/cut.c:947
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create the cut data file %s\n"
-msgstr "无法创建光度曲线数据文件 %s\n"
+msgstr "无法创建剪切数据文件 %s\n"
 
 #: src/gui/cut.c:626
 #, c-format
 msgid "Wavenumber / cm^{-1}"
-msgstr ""
+msgstr "波数 / cm^{-1}"
 
 #: src/gui/cut.c:629 src/gui/cut.c:813 src/gui/cut.c:960
 #, c-format
 msgid "Distance along cut / arcsec"
-msgstr ""
+msgstr "沿剪切的距离/角秒"
 
 #: src/gui/cut.c:631 src/gui/cut.c:815 src/gui/cut.c:962
 #, c-format
 msgid "Distance along cut / px"
-msgstr ""
+msgstr "沿剪切的距离/px"
 
 #: src/gui/cut.c:662 src/gui/cut.c:834 src/gui/cut.c:980
-#, fuzzy
 msgid "Communicating with gnuplot failed\n"
-msgstr "与 gnuplot 通信失败，仍在创建数据文件\n"
+msgstr "与 gnuplot 通信失败\n"
 
 #: src/gui/cut.c:890 src/gui/cut.c:896
-#, fuzzy
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
-msgstr "错误：无法将输出写入用户星表。\n"
+msgstr "错误：无法将 FITS 拆分为 CFA 子模式。\n"
 
 #: src/gui/cut.c:1066
-#, fuzzy
 msgid "No sequence is loaded"
 msgstr "无队列载入"
 
 #: src/gui/cut.c:1067
 msgid "The Apply to sequence option is checked, but no sequence is loaded."
-msgstr ""
+msgstr "选中“应用于队列”选项，但不加载任何队列。"
 
 #: src/gui/cut.c:1250 src/gui/cut.c:1280
-#, fuzzy
 msgid "No star detected"
-msgstr "无星点选择"
+msgstr "未检测到星点"
 
 #: src/gui/cut.c:1251 src/gui/cut.c:1281
 msgid ""
 "Siril cannot set the start coordinate as no star has been detected in the "
 "selection"
-msgstr ""
+msgstr "Siril 无法设置起始坐标，因为所选内容中未检测到星点"
 
 #: src/gui/cut.c:1255 src/gui/cut.c:1286 src/gui/statistics_list.c:203
 #, c-format
@@ -17760,19 +17825,19 @@ msgstr "无选择"
 
 #: src/gui/cut.c:1256 src/gui/cut.c:1287
 msgid "Siril cannot set the start coordinate as no selection is made"
-msgstr ""
+msgstr "Siril 无法设置起始坐标，因为未进行任何选择"
 
 #: src/gui/cut.c:1342
-#, fuzzy
 msgid "GNUplot not available"
-msgstr "不可用"
+msgstr "GNUplot 不可用"
 
 #: src/gui/cut.c:1343
 msgid ""
 "This functionality relies on GNUplot to generate graphs. Without it, profile "
 "data files can still be produced but you will need to use external software "
 "to display them."
-msgstr ""
+msgstr "此功能依赖于 GNUplot 来生成图形。没有它，仍然可以生成轮廓数据文件，但您需要使"
+"用外部软件来显示它们。"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
@@ -18734,21 +18799,20 @@ msgid "Image width, height, bit depth and number of channels must match"
 msgstr "图像宽度、高度、位深和通道数必须匹配"
 
 #: src/gui/remixer.c:1269 src/gui/remixer.c:1317
-#, fuzzy
 msgid "There is no starless image loaded"
-msgstr "文件中没有时间戳"
+msgstr "未加载无星图像"
 
 #: src/gui/remixer.c:1270
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "在尝试使用吸管设置 SP 之前，使用左侧文件选择器加载图像"
 
 #: src/gui/remixer.c:1318
 msgid ""
 "Load an image using the rightt-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "使用右手边文件选择器加载图像，然后再尝试使用吸管设置 SP"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1364
@@ -20554,7 +20618,7 @@ msgstr "强制 SER 拜耳模式为 %s，如首选项中所设置的那样\n"
 
 #: src/io/ser.c:889 src/io/ser.c:1138
 msgid "This type of Bayer pattern is not handled yet.\n"
-msgstr "这个类型的拜耳滤镜排列模式尚未被支持。\n"
+msgstr "这个类型的拜耳模式尚未被支持。\n"
 
 #: src/io/ser.c:1086
 msgid "For a demosaiced image, layer has to be R, G or B (0 to 2).\n"

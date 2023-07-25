@@ -32500,7 +32500,7 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=2 n-rows=3 -->
+                          <!-- n-columns=2 n-rows=4 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -32636,6 +32636,25 @@ Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-like).
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">2</property>
                               </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="do_use_gnuplot_button">
+                                <property name="label" translatable="yes">Use gnuplot</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Tick this box to use gnuplot (whether it's in the path or if you've specified one above).
+If unticked, Siril will use its internal plotting tool</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
                             </child>
                           </object>
                         </child>

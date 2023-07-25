@@ -134,7 +134,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	clear_all_photometry_and_plot();
 	init_plot_colors();
 
-	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
+	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	gboolean use_c1 = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_comp1));
 	gboolean use_c2 = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_comp2));
 

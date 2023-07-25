@@ -7,6 +7,7 @@
 #include "core/settings.h"
 #include "algos/astrometry_solver.h"
 #include "algos/PSF.h"
+#include "io/siril_plot.h"
 
 struct photometry_struct {
 	double mag;	// magnitude
@@ -51,6 +52,9 @@ struct light_curve_args {
 
 	// metadata from the NINA file created by Siril
 	struct compstars_arg *metadata;
+
+	// spl_data for siril_plot if the light curve is displayed
+	siril_plot_data *spl_data;
 };
 
 void free_light_curve_args(struct light_curve_args *args);
