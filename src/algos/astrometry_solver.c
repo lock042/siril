@@ -293,7 +293,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
  ****/
 
 static CURL *curl;
-static const int DEFAULT_FETCH_RETRIES = 10;
+static const int DEFAULT_FETCH_RETRIES = 3;
 
 struct ucontent {
 	char *data;
@@ -329,7 +329,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 
 static char *fetch_url(const char *url) {
 	struct ucontent *content = malloc(sizeof(struct ucontent));
-	char *result = NULL, *error = NULL;
+	char *result = NULL;
 	long code;
 	int retries;
 	unsigned int s;
@@ -363,7 +363,7 @@ retrieve:
 		case 502:
 		case 503:
 		case 504:
-			siril_log_message(_("Failed to download page %s (error %ld)\n"), url, code);
+			siril_debug_print("Failed to download page %s (error %ld)\n", url, code);
 
 			if (retries) {
 				s = 2 * (DEFAULT_FETCH_RETRIES - retries) + 2;
@@ -373,6 +373,8 @@ retrieve:
 				free(content->data);
 				retries--;
 				goto retrieve;
+			} else {
+				siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive. (%s)\n"), "salmon", DEFAULT_FETCH_RETRIES, content->data);
 			}
 
 			break;
@@ -381,20 +383,17 @@ retrieve:
 				// special case of ephemcc where we need to parse the output
 				gchar **token = g_strsplit(content->data, "\n", -1);
 				int nlines = g_strv_length(token);
-				int line;
-				for (line = 0; line < nlines; line++) {
+				for (int line = 0; line < nlines; line++) {
 					if (token[line][0] != '\0' && token[line][0] != '#') {
-						error = siril_log_message(_("Fetch failed with code %ld\n%s\n"), code, token[line]);
+						siril_log_message(_("Fetch failed with code %ld\n%s\n"), code, token[line]);
 						break;
 					}
 				}
 				g_strfreev(token);
 			}
-			if (!error)
-				error = siril_log_message(_("Fetch failed with code %ld\n%s"), code, content->data);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Online service error"), error);
 		}
 	}
+	else siril_log_color_message(_("Internet Connection failure.\n"), "red");
 
 	curl_easy_cleanup(curl);
 	curl = NULL;
@@ -415,7 +414,7 @@ static gchar *fetch_url(const gchar *url) {
 	siril_debug_print("fetch_url(): %s\n", url);
 
 	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
-		siril_log_message(_("Error loading url: [%s] - %s\n"), url, error->message);
+		siril_log_color_message(_("Server unreachable or unresponsive. (%s)\n"), "salmon", error->message);
 		g_clear_error(&error);
 	}
 	g_object_unref(file);
@@ -1362,6 +1361,11 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	}
 
 	args->n_cat = read_catalog(input_stream, args->cstars, args->onlineCatalog);
+	if (args->n_cat <= 0) {
+		args->message = g_strdup(_("No stars have been retrieved from the online catalog. "
+					"This may mean that the servers are down. Note that you can install local catalogs."));
+		return 1;
+	}
 	g_object_unref(input_stream);
 	g_object_unref(catalog);
 	g_free(catalogStars);
@@ -1656,8 +1660,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		attempt++;
 		CHECK_FOR_CANCELLATION;
 	}
-	if (args->ret)	// give generic error message
+	if (args->ret) {
+		args->message = g_strdup(_("Could not match stars from the catalogue"));
 		goto clearup;
+	}
 
 	double conv = DBL_MAX;
 	solution->px_cat_center = siril_world_cs_ref(args->cat_center);
@@ -1864,16 +1870,29 @@ clearup:
 /*********************** finding asnet bash first **********************/
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
+	// searching user-defined path if any
 	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
-		return g_build_filename(com.pref.asnet_dir, NULL);
+		gchar *testdir = g_build_filename(com.pref.asnet_dir, "bin", NULL);
+		// only testing for dir existence, which will catch most path defintion errors
+		// this is lighter than testing for existence of bash.exe with G_FILE_TEST_IS_EXECUTABLE flag
+		if (!g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
+			siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
+			g_free(testdir);
+		} else {
+			siril_debug_print("cygwin/bin found at %s\n", testdir);
+			g_free(testdir);
+			return g_build_filename(com.pref.asnet_dir, NULL);
+		}
 	}
+	// searching default location %localappdata%/cygwin_ansvr
 	const gchar *localappdata = g_get_user_data_dir();
-	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", NULL);
+	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", "bin", NULL);
 	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
-		siril_debug_print("cygwin_ansvr found at %s\n", testdir);
+		siril_debug_print("cygwin/bin found at %s\n", testdir);
 		g_free(testdir);
 		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	}
+	siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
 	g_free(testdir);
 	return NULL;
 }
@@ -1910,7 +1929,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #ifdef _WIN32
 	gchar *asnet_shell = siril_get_asnet_bash();
 	if (!asnet_shell) {
-		siril_log_color_message(_("asnet_ansvr directory is not set - aborting\n"), "red");
 		return 1;
 	}
 #else
@@ -2214,6 +2232,13 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov
+	if (args->onlineCatalog == CAT_AUTO) {
+		if (args->limit_mag <= 12.5)
+			args->onlineCatalog = CAT_TYCHO2;
+		else if (args->limit_mag <= 17.0)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = CAT_GAIADR3;
+	}
 }
 
 static int astrometry_prepare_hook(struct generic_seq_args *arg) {

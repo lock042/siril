@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-12 10:41+0200\n"
-"PO-Revision-Date: 2023-06-09 10:40+0000\n"
+"PO-Revision-Date: 2023-07-10 06:40+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -3584,32 +3584,28 @@ msgstr "CFA3"
 msgid ""
 "Select the image containing the CFA0 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
-msgstr ""
-"选择包含 CFA0 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA0 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA0 前缀。"
 
 #: src/gui/siril3.glade:15141
 msgid ""
 "Select the image containing the CFA1 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA1 prefix."
-msgstr ""
-"选择包含 CFA1 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA1 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA1 前缀。"
 
 #: src/gui/siril3.glade:15155
 msgid ""
 "Select the image containing the CFA2 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA2 prefix."
-msgstr ""
-"选择包含 CFA2 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA2 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA2 前缀。"
 
 #: src/gui/siril3.glade:15169
 msgid ""
 "Select the image containing the CFA3 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA3 prefix."
-msgstr ""
-"选择包含 CFA3 拜耳子阵列的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
+msgstr "选择包含 CFA3 拜耳子模式的图像。如果这是使用 Siril 的 Split CFA 函数生成的，"
 "它将具有 CFA3 前缀。"
 
 #: src/gui/siril3.glade:15186
@@ -3643,7 +3639,7 @@ msgstr "GRBG"
 
 #: src/gui/siril3.glade:15232
 msgid "Bayer Pattern"
-msgstr "Bayer滤镜模式"
+msgstr "拜耳模式"
 
 #: src/gui/siril3.glade:15251
 msgid ""
@@ -6726,10 +6722,10 @@ msgid ""
 "to allow SER files converted from films to be demosaiced, monochrome SER "
 "will be forced as CFA with the configured pattern."
 msgstr ""
-"点选此项，Siril会自动应用文件头中的Bayer滤镜排列模式和XY轴偏置。如果结果看上"
-"去不妥，关闭本选项，在下面自行手动选择Bayer滤镜的排列模式。\n"
-"不选此项，下面设定的Bayer滤镜排列模式将被使用。警告：若SER视频文件转化为彩"
-"色，单色SER将被强制以CFA格式处理。"
+"点选此项，Siril会自动应用文件头中的拜耳模式和XY轴偏置。如果结果看上去不妥，关"
+"闭本选项，在下面自行手动选择拜耳模式。\n"
+"不选此项，下面设定的拜耳模式将被使用。警告：若SER视频文件转化为彩色，单色SER"
+"将被强制以CFA格式处理。"
 
 #: src/gui/siril3.glade:27724
 msgid "Debayer FITS files in top-down if no explicit keywords found"
@@ -6763,11 +6759,11 @@ msgstr "警告：对于SER动态去马赛克，RCD算法将一直被使用。"
 
 #: src/gui/siril3.glade:27762 src/gui/siril3.glade:27775
 msgid "Select your camera's Bayer pattern."
-msgstr "选择相机的Bayer滤镜排列模式。"
+msgstr "选择相机的拜耳模式。"
 
 #: src/gui/siril3.glade:27764
 msgid "Bayer/mosaic pattern: "
-msgstr "Bayer滤镜排列模式: "
+msgstr "拜耳滤镜/马赛克模式: "
 
 #: src/gui/siril3.glade:27794
 msgid "Select an interpolation method to perform demosaicing."
@@ -8960,7 +8956,7 @@ msgstr "在超过一个通道的图像上无法执行debayer\n"
 #: src/algos/demosaicing.c:1240 src/algos/extraction.c:163 src/io/ser.c:841
 #: src/io/ser.c:1072
 msgid "No Bayer pattern found in the header file.\n"
-msgstr "在文件头中无法找到拜耳阵列排列信息。\n"
+msgstr "在文件头中无法找到拜耳模式信息。\n"
 
 #: src/algos/demosaicing.c:1243 src/algos/extraction.c:166 src/io/ser.c:845
 #: src/io/ser.c:1076
@@ -8968,8 +8964,7 @@ msgstr "在文件头中无法找到拜耳阵列排列信息。\n"
 msgid ""
 "Bayer pattern found in header (%s) is different from Bayer pattern in "
 "settings (%s). Overriding settings.\n"
-msgstr ""
-"文件头中含有的拜耳滤镜排列模式 (%s) 不同于设置中的排列 (%s)。 设置被覆盖。\n"
+msgstr "文件头中含有的拜耳模式 (%s) 不同于设置中的拜耳模式 (%s)。 设置被覆盖。\n"
 
 #: src/algos/demosaicing.c:1252
 msgid "XTRANS Sensor detected. Using special algorithm.\n"
@@ -10026,7 +10021,7 @@ msgstr "未保存的拜耳模式合并"
 
 #: src/core/command.c:844
 msgid "Bayer pattern merge"
-msgstr "Bayer模式合并"
+msgstr "拜耳模式合并"
 
 #: src/core/command.c:874
 msgid "Could not understand the requested operator\n"
@@ -15664,7 +15659,7 @@ msgstr "使用文件头中的模式"
 
 #: src/core/settings.c:292
 msgid "index of the Bayer pattern"
-msgstr "拜耳滤镜模式指标"
+msgstr "拜耳模式指标"
 
 #: src/core/settings.c:293
 msgid "type of interpolation"
@@ -18135,21 +18130,20 @@ msgid "Image width, height, bit depth and number of channels must match"
 msgstr "图像宽度、高度、位深和通道数必须匹配"
 
 #: src/gui/remixer.c:1269 src/gui/remixer.c:1317
-#, fuzzy
 msgid "There is no starless image loaded"
-msgstr "文件中没有时间戳"
+msgstr "未加载无星图像"
 
 #: src/gui/remixer.c:1270
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "在尝试使用吸管设置 SP 之前，使用左侧文件选择器加载图像"
 
 #: src/gui/remixer.c:1318
 msgid ""
 "Load an image using the rightt-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr ""
+msgstr "使用右手边文件选择器加载图像，然后再尝试使用吸管设置 SP"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1364
@@ -19822,7 +19816,7 @@ msgstr "强制 SER 拜耳模式为 %s，如首选项中所设置的那样\n"
 
 #: src/io/ser.c:889 src/io/ser.c:1138
 msgid "This type of Bayer pattern is not handled yet.\n"
-msgstr "这个类型的拜耳滤镜排列模式尚未被支持。\n"
+msgstr "这个类型的拜耳模式尚未被支持。\n"
 
 #: src/io/ser.c:1086
 msgid "For a demosaiced image, layer has to be R, G or B (0 to 2).\n"

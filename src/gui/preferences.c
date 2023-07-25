@@ -342,6 +342,11 @@ void initialize_asnet_directory(const gchar *path) {
 	}
 }
 
+void on_asnet_clear_clicked(GtkButton *button, gpointer user_data) {
+	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	gtk_file_chooser_set_filename(asnet_dir, "\0");
+}
+
 void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
 	reset_swapdir();
 }

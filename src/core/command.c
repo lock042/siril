@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <gsl/gsl_histogram.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -8439,7 +8440,9 @@ int process_pcc(int nb) {
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
 		args->use_local_cat = local_cat;
-		args->onlineCatalog = cat;
+		if (!local_cat && cat == CAT_AUTO)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
@@ -8907,7 +8910,8 @@ int process_show(int nb) {
 
 	GtkToggleToolButton *button = NULL;
 parse_coords:
-	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
+	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
+			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
 		// code from process_pcc
 		char *sep = strchr(word[next_arg], ',');
 		if (!sep) {

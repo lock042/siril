@@ -9,7 +9,9 @@ xx/xx/xx
 * Improved path-checking and messages for astrometry.net local solver (Windows)
 * Prevent crash using recomposition tool eyedroppers without images loaded
 * Fix HaOiii script failure if input image has odd dimensions
+* Fixed crash with seqextract_HaOIII command
 * Fix errors in GNUplot process handling
+* Fixed crash when trying to export csv from empty plot
 
 siril 1.2.0-rc1
 06/01/23
