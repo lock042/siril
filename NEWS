@@ -6,7 +6,8 @@ siril 1.4.0 xx xx, xx
 * Added internal plotting tool (siril_plot) to be used with profiling and light_curves
 * Added functionalities to kplot (hyphen markers, revert axes, removed statics)
 * Fixed PRISM SITELAT/SITELONG keywords data
-* Improved RGB composition tool to do full homography registration
+* Improve RGB composition tool to do full homography registration
+* Added new init for PSF fitting of oversampled stars
 
 siril 1.2.0 xx xx, xx
 
