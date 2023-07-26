@@ -511,6 +511,7 @@ typedef struct _GNUPLOT_CTRL_ {
     /** Number of temporary files */
     int ntmp ;
 	GThread* thread;
+	guint source; // Reference for the callback
 	int child_fd_stdin;
 	int child_fd_stderr;
 	GPid child_pid;

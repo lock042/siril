@@ -57,6 +57,7 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
+#include "io/gnuplot_i.h"
 #include "io/single_image.h"
 #include "io/catalogues.h"
 #include "io/FITS_symlink.h"
@@ -3111,6 +3112,7 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
+	reset_gnuplot_check();
 	return 0;
 }
 
