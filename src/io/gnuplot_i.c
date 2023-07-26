@@ -71,7 +71,7 @@
 #endif
 
 // Uncomment the following line for lots of debug messages
-#define GPLOT_DEBUG
+// #define GPLOT_DEBUG
 
 static gboolean gnuplot_checked = FALSE;
 static gboolean gnuplot_available = FALSE;
@@ -360,7 +360,8 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 		return;
 	}
 #ifdef GPLOT_DEBUG
-	siril_debug_print("Closing handle %zu via callback\n", (size_t) handle->thread);
+	if (handle->thread)
+		siril_debug_print("Closing handle %zu via callback\n", (size_t) handle->thread);
 #endif
 	if (handle->ntmp) {
 		for (int i = 0 ; i < handle->ntmp ; i++) {
@@ -400,7 +401,7 @@ gnuplot_ctrl * gnuplot_init()
     /*
      * Structure initialization:
      */
-    handle = (gnuplot_ctrl*)malloc(sizeof(gnuplot_ctrl)) ;
+    handle = (gnuplot_ctrl*)malloc(sizeof(gnuplot_ctrl));
 	handle->tmp_filename_tbl = calloc(1, sizeof(char*));
 	handle->tmp_filename_tbl[0] = NULL;
 	handle->ntmp = 0;
@@ -514,7 +515,6 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 void gnuplot_close(gnuplot_ctrl * handle)
 {
 	gnuplot_cmd(handle, "print \"Terminate\"");
-
 	int count = 0;
 	while (TRUE) {
 		g_usleep(1000);
@@ -522,14 +522,11 @@ void gnuplot_close(gnuplot_ctrl * handle)
 		//	The handle is removed from com.gnuplot_handles and freed in child_watch_cb
 		if (!handle->running)
 			break;
-		if (count > 2000) { // Add a 2s timeout to prevent hangs
+		if (count > 2000) {// Add a 2s timeout to prevent hangs
 			siril_log_message(_("Timeout exceeded waiting for GNUplot process to terminate.\n"));
 			break;
 		}
 	}
-	null_handle_in_com_gnuplot_handles(handle);
-	free(handle);
-	handle = NULL;
 }
 
 /*-------------------------------------------------------------------------*/
