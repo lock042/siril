@@ -42,6 +42,8 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 
+#include "io/sequence.h"
+
 // area is not recovering another at least half their size (assumed square and identical)
 static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 	int half_size = area->w / 2;
@@ -514,12 +516,74 @@ int sort_blind_compstars(struct compstars_arg *args) {
 	return nb_phot_stars == 0;
 }
 
-static int lst_parse_files(struct dirent *pDirent, struct compstars_arg *args, int used_lst_nbr, int st_lst_nbr) {
-	siril_log_message(_("used_lst_nbr: %d st_lst_nbr: %d \n"), used_lst_nbr, st_lst_nbr);
-	args->cat_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
-	args->comp_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
 
-	double ra = 0.0, dec = 0.0, mag = 0.0;
+struct lst_stars {
+	int x, y;
+	double **mag_est[MAX_STARS + 1];
+	float sx, sy;
+	int R;
+	gboolean has_saturated;
+	gboolean iscolor;
+};
+typedef struct lst_stars starl;
+
+
+static int lst_parse_files(struct dirent *pDirent, sequence *seq, int used_lst_nbr, int st_lst_nbr) {
+	seq = &com.seq;
+	double magg = 10.5;
+	psf_star **psfs = seq->photometry[used_lst_nbr];
+
+	starl *candidates;
+	candidates = malloc(MAX_STARS * sizeof(starl));
+	candidates[used_lst_nbr].mag_est[used_lst_nbr] = {11.0};
+	candidates[used_lst_nbr+1].mag_est = 11.1;
+	candidates[used_lst_nbr+2].mag_est = 11.2;
+
+/*	psf_star *candid;
+	candid = malloc(MAX_SEQPSF * sizeof(psf_star));
+	candid[used_lst_nbr].mag = magg * used_lst_nbr;
+*/
+
+	struct generic_seq_args *args = create_default_seqargs(seq);
+//	struct psf_star **aargs = (psf_star *) seq->photometry;
+//	com.seq.photometry[used_lst_nbr][used_lst_nbr]->mag = 5.8;
+	psf_star *star = new_psf_star();
+//	psf_star *star = com.seq.photometry[used_lst_nbr][used_lst_nbr];
+
+//	psf_star **cstars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
+
+//	psfs[used_lst_nbr] = &candidates[used_lst_nbr];
+
+	siril_log_message(_("Num of images:\n"));
+	siril_log_message(_("seq->number: %d\n"), args->seq->number);
+	star->mag = 10.0;
+	star->mag = magg * used_lst_nbr;
+	args->seq->photometry[used_lst_nbr] = &star;
+
+//	com.seq.photometry[used_lst_nbr + 3][used_lst_nbr + 3] = star;
+//	args->seq->photometry[1][1]->mag = 12.9;
+//	args->seq->photometry[1][2]->mag = 12.91;
+//	args->seq->photometry[2][2]->mag = 12.95;
+
+	siril_log_message(_("seq->reference_image#2: %d \n"), seq->reference_image);
+
+	if (!seq->photometry[0]) {
+		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		//siril_log_color_message(_("MAX_SEQPSF: %d \n"), "red", MAX_SEQPSF);
+		return -1;
+
+	}
+	
+
+
+
+
+///	args->cat_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
+///	args->comp_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
+
+//struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+
+//	double ra = 0.0, dec = 0.0, mag = 0.0;
 
 	FILE* fd = fopen(pDirent->d_name, "r");
 	if (!fd) {
@@ -536,22 +600,23 @@ static int lst_parse_files(struct dirent *pDirent, struct compstars_arg *args, i
 
 		remove_trailing_eol(buf);
 		gchar **tokens = g_strsplit(buf, "\t", -1);
-		guint length = g_strv_length(tokens);
+//		guint length = g_strv_length(tokens);
 
 		if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
-//		A = g_ascii_strtod(tokens[3], NULL);
-//		B = g_ascii_strtod(tokens[2], NULL);
-		mag = g_ascii_strtod(tokens[13], NULL);
-		ra = g_ascii_strtod(tokens[15], NULL);
-		dec = g_ascii_strtod(tokens[16], NULL);
+
+//		mag = g_ascii_strtod(tokens[13], NULL);
+//		seq->photometry[0][0]->mag = g_strdup(mag);
+//		ra = g_ascii_strtod(tokens[15], NULL);
+//		dec = g_ascii_strtod(tokens[16], NULL);
 
 
-		args->cat_stars[nbr_stars].mag = mag;
+/*		args->cat_stars[nbr_stars].mag = mag;
 		args->cat_stars[nbr_stars].ra = ra;
 		args->cat_stars[nbr_stars].dec = dec;
 		args->comp_stars[nbr_stars] = duplicate_psf(&args->cat_stars[nbr_stars]);
 
 		siril_log_message(_("ind: %d, mag: %lf, ra: %lf, dec: %lf \n"), nbr_stars, args->comp_stars[nbr_stars]->mag, args->comp_stars[nbr_stars]->ra, args->comp_stars[nbr_stars]->dec);
+*/
 		nbr_stars++;
 	}
 	
@@ -576,7 +641,7 @@ static int lst_chk_files(struct dirent *pDirent) {
 			continue;
 		remove_trailing_eol(buf);
 		gchar **tokens = g_strsplit(buf, "\t", -1);
-		guint length = g_strv_length(tokens);
+//		guint length = g_strv_length(tokens);
 
 		if (g_str_has_prefix(tokens[0], "#")) continue;	// skip comment line
 
@@ -596,7 +661,10 @@ static int lst_chk_files(struct dirent *pDirent) {
 	return nbr_stars;
 }
 
-static int lst_get_files(struct compstars_arg *args) {
+//static int lst_get_files(sequence *seq) {
+static int lst_get_files(gpointer arg) {	
+//	struct sequence *seq = (struct sequence *)arg;
+	struct light_curve_args *args = (struct light_curve_args *)arg;
 	struct dirent *pDirent;
 	DIR *pDir;
 	char *ext = NULL;
@@ -647,7 +715,8 @@ static int lst_get_files(struct compstars_arg *args) {
 		// Re-open the selected files
 		// parse the data to fill the arrays
 		if (lst_valid && com.seq.imgparam[lst_nbr - 1].incl) {
-			lst_parse_files(pDirent, args, used_lst_nbr, st_lst_nbr);
+			//lst_parse_files(pDirent, &com.seq, used_lst_nbr, st_lst_nbr);
+			lst_parse_files(pDirent, args->seq, used_lst_nbr, st_lst_nbr);
 			siril_log_color_message(_("2nd turn!!!.\n"), "red");
 		}
 
@@ -674,6 +743,8 @@ static int lst_get_files(struct compstars_arg *args) {
 gpointer compstars_worker(gpointer arg) {
 	int retval;
 	struct compstars_arg *args = (struct compstars_arg *) arg;
+//	struct sequence *argss = (struct sequence *) arg;
+//	sequence *seq = NULL;
 
 	if (args->cat == CAT_UNDEF) {		// test for BLIND method
 		siril_log_color_message(_("Trying to use the new BLIND method, not fully implemented!! LOL.\n"), "salmon");

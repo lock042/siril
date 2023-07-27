@@ -733,6 +733,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 				ref_valid_count[r]++;
 		}
 	}
+	
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1)
 		return -1;
