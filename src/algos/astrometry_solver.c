@@ -656,7 +656,7 @@ gpointer plate_solver(gpointer p) {
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
 			if (args->verbose)
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
-			if (get_photo_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
+			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars, FALSE)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 				args->ret = ERROR_PHOTOMETRY;
 			}
