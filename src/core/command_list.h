@@ -7,7 +7,7 @@
 #include "core/command_def.h"
 #include "core/command_extra.h"
 
-#define CMD_CAT(CMD) "\n\n<i>- Information from command "#CMD" follows -</i>\n"
+#define CMD_CAT(CMD) N_("\n\n<i>- Information from command "#CMD" follows -</i>\n")
 
 static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable */
