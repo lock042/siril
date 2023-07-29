@@ -7,6 +7,8 @@
 #include "core/command_def.h"
 #include "core/command_extra.h"
 
+#define CMD_CAT(CMD) "\n\n<i>- Information from command "#CMD" follows -</i>\n"
+
 static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable */
 	{"addmax", 1, "addmax filename", process_addmax, STR_ADDMAX, FALSE, REQ_CMD_SINGLE_IMAGE},
@@ -78,9 +80,9 @@ static command commands[] = {
 	{"idiv", 1, "idiv filename", process_imoper, STR_IDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"invght", 1, "invght -D= [-B=] [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels]", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"invmodasinh", 1, "invmodasinh -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels]", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"invmtf", 3, "invmtf low mid high [channels]", process_mtf, STR_INVMTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"invght", 1, "invght -D= [-B=] [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels]", process_invght, STR_INVGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invmodasinh", 1, "invmodasinh -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels]", process_invmodasinh, STR_INVMODASINH CMD_CAT(MODASINH) STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invmtf", 3, "invmtf low mid high [channels]", process_mtf, STR_INVMTF CMD_CAT(MTF) STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"jsonmetadata", 1, "jsonmetadata FITS_file [-stats_from_loaded] [-nostats] [-out=]", process_jsonmetadata, STR_JSONMETADATA, TRUE, REQ_CMD_NONE},
