@@ -757,8 +757,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	 * make sure that the max of stars is BRIGHTEST_STARS */
 	int n = min(min(nb_stars, args->n_cat), BRIGHTEST_STARS);
 
-	double scale_min = args->scale - 0.2;
-	double scale_max = args->scale + 0.2;
+	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
+	double scale_min = 1.0 / (args->scale * a);
+	double scale_max = a / args->scale;
 	int attempt = 1;
 	while (args->ret && attempt <= 3) {
 		free_stars(&star_list_A);
@@ -766,10 +767,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
 				scale_min, scale_max, &H, TRUE,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
-		if (attempt == 1) {
+		if (attempt == 2) {
 			scale_min = -1.0;
 			scale_max = -1.0;
-			nobj += 10;
 		} else {
 			nobj += 30;
 		}
