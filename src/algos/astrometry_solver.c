@@ -758,8 +758,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	int n = min(min(nb_stars, args->n_cat), BRIGHTEST_STARS);
 
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
+	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
 	double scale_min = 1.0 / (args->scale * a);
-	double scale_max = a / args->scale;
+	double scale_max = 1.0 / (args->scale * b);
 	int attempt = 1;
 	while (args->ret && attempt <= 3) {
 		free_stars(&star_list_A);
