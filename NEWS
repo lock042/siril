@@ -9,7 +9,6 @@ siril 1.4.0 xx xx, xx
 * Improved RGB composition tool to do full homography registration
 * Added new init for PSF fitting of oversampled stars
 * Fixed all command descriptions
-* Improved error detection and messages for astrometry
 
 siril 1.2.0 xx xx, xx
 
@@ -28,6 +27,7 @@ siril 1.2.0 xx xx, xx
 * Fixed crash when trying to export csv from empty plot
 * Fixed deleting RA/Dec info when undoing an astrometry solve
 * Improved error detection and messages for astrometry
+* Fixed sampling range specification for siril internal solver
 
 siril 1.2.0-rc1 June 1, 2023
 
