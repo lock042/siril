@@ -15,6 +15,7 @@ siril 1.2.0 xx xx, xx
 * Fixed deleting RA/Dec info when undoing an astrometry solve
 * Improved error detection and messages for astrometry
 * Fixed sampling range specification for siril internal solver
+* Fixed all command descriptions
 
 siril 1.2.0-rc1 June 1, 2023
 
