@@ -528,8 +528,8 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_sampling">
-    <property name="upper">10000</property>
+  <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="upper">50</property>
     <property name="value">15</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -29879,14 +29879,70 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkCheckButton" id="astrometry_update_fields">
-                                    <property name="label" translatable="yes">Update default focal length and pixel size from the result</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
-                                    <property name="margin-start">12</property>
-                                    <property name="draw-indicator">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkCheckButton" id="astrometry_update_fields">
+                                        <property name="label" translatable="yes">Update default focal length and pixel size from the result</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="spacing">6</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Sampling tolerance (%):</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_sampling_tolerance">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow. Given sampling is multiplied or divided by 1 + this / 100.</property>
+                                            <property name="halign">start</property>
+                                            <property name="width-chars">9</property>
+                                            <property name="input-purpose">digits</property>
+                                            <property name="adjustment">adj_sampling_tolerance</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                 </child>
                                 <child type="label">
@@ -29916,7 +29972,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=2 n-rows=9 -->
+                                  <!-- n-columns=2 n-rows=8 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -29938,33 +29994,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Sampling tolerance (%):</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="spin_asnet_sampling">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow. Given sampling is multiplied or divided by 1 + this / 100.</property>
-                                        <property name="halign">start</property>
-                                        <property name="width-chars">9</property>
-                                        <property name="input-purpose">digits</property>
-                                        <property name="adjustment">adj_asnet_sampling</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkSpinButton" id="spin_asnet_radius">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
@@ -29977,7 +30006,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">2</property>
+                                        <property name="top-attach">1</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -29989,7 +30018,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">2</property>
+                                        <property name="top-attach">1</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30003,7 +30032,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">3</property>
+                                        <property name="top-attach">2</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30017,7 +30046,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">4</property>
+                                        <property name="top-attach">3</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30029,7 +30058,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">5</property>
+                                        <property name="top-attach">4</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30044,7 +30073,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">5</property>
+                                        <property name="top-attach">4</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30071,7 +30100,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">6</property>
+                                        <property name="top-attach">5</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30089,7 +30118,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">6</property>
+                                        <property name="top-attach">5</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30103,7 +30132,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">8</property>
+                                        <property name="top-attach">7</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -30117,7 +30146,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">7</property>
+                                        <property name="top-attach">6</property>
                                       </packing>
                                     </child>
                                     <child>
