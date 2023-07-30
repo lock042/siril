@@ -12,7 +12,9 @@ xx/xx/xx
 * Fixed crash with seqextract_HaOIII command
 * Fix errors in GNUplot process handling
 * Fixed crash when trying to export csv from empty plot
-* Fixed deleting ra/dec info when undoing an astrometry solve
+* Fixed deleting RA/Dec info when undoing an astrometry solve
+* Improved error detection and messages for astrometry
+* Fixed sampling range specification for siril internal solver
 
 siril 1.2.0-rc1
 06/01/23
