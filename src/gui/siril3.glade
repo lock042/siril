@@ -29924,7 +29924,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                           <object class="GtkSpinButton" id="spin_sampling_tolerance">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
-                                            <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow. Given sampling is multiplied or divided by 1 + this / 100.</property>
+                                            <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow.</property>
                                             <property name="halign">start</property>
                                             <property name="width-chars">9</property>
                                             <property name="input-purpose">digits</property>
