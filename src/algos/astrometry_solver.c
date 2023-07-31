@@ -1074,7 +1074,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	char low_scale[16], high_scale[16], time_limit[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
-	sprintf(low_scale, "%.3f", args->scale / a);
+	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
+	sprintf(low_scale, "%.3f", args->scale * b);
 	sprintf(high_scale, "%.3f", args->scale * a);
 	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
 #ifndef _WIN32
