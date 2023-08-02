@@ -427,7 +427,7 @@ int read_projected_catalog(GInputStream *stream, psf_star **cstars, online_catal
 #ifdef HAVE_LIBCURL // the alternative is glib-networking, see the else below
 
 static CURL *curl;
-static const int DEFAULT_FETCH_RETRIES = 10;
+static const int DEFAULT_FETCH_RETRIES = 3;
 
 struct ucontent {
 	char *data;
@@ -465,7 +465,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 
 char *fetch_url(const gchar *url) {
 	struct ucontent *content = malloc(sizeof(struct ucontent));
-	char *result = NULL, *error = NULL;
+	char *result = NULL;
 	long code;
 	int retries;
 	unsigned int s;
@@ -499,7 +499,7 @@ retrieve:
 		case 502:
 		case 503:
 		case 504:
-			siril_log_message(_("Failed to download page %s (error %ld)\n"), url, code);
+			siril_debug_print("Failed to download page %s (error %ld)\n", url, code);
 
 			if (retries) {
 				s = 2 * (DEFAULT_FETCH_RETRIES - retries) + 2;
@@ -509,29 +509,26 @@ retrieve:
 				free(content->data);
 				retries--;
 				goto retrieve;
+			} else {
+				siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive. (%s)\n"), "salmon", DEFAULT_FETCH_RETRIES, content->data);
 			}
-
 			break;
 		default:
 			if (content->data[0] == '#') {
 				// special case of ephemcc where we need to parse the output
 				gchar **token = g_strsplit(content->data, "\n", -1);
 				int nlines = g_strv_length(token);
-				int line;
-				for (line = 0; line < nlines; line++) {
+				for (int line = 0; line < nlines; line++) {
 					if (token[line][0] != '\0' && token[line][0] != '#') {
-						error = siril_log_message(_("Fetch failed with code %ld\n%s\n"), code, token[line]);
+						siril_log_message(_("Fetch failed with code %ld\n%s\n"), code, token[line]);
 						break;
 					}
 				}
 				g_strfreev(token);
 			}
-			if (!error)
-				error = siril_log_message(_("Fetch failed with code %ld\n%s"), code, content->data);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Online service error"), error);
-			// TODO: this GUI code happens only for curl, not the alternative, to remove?
 		}
 	}
+	else siril_log_color_message(_("Internet Connection failure.\n"), "red");
 
 	curl_easy_cleanup(curl);
 	curl = NULL;
@@ -558,7 +555,7 @@ gchar *fetch_url(const gchar *url) {
 	siril_debug_print("fetch_url(): %s\n", url);
 
 	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
-		siril_log_message(_("Error loading url: [%s] - %s\n"), url, error->message);
+		siril_log_color_message(_("Server unreachable or unresponsive. (%s)\n"), "salmon", error->message);
 		g_clear_error(&error);
 	}
 	g_object_unref(file);
