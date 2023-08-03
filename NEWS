@@ -6,7 +6,7 @@ siril 1.4.0 xx xx, xx
 * Added internal plotting tool (siril_plot) to be used with profiling and light_curves
 * Added functionalities to kplot (hyphen markers, revert axes, removed statics)
 * Fixed PRISM SITELAT/SITELONG keywords data
-* Improve RGB composition tool to do full homography registration
+* Improved RGB composition tool to do full homography registration
 * Added new init for PSF fitting of oversampled stars
 
 siril 1.2.0 xx xx, xx
@@ -24,7 +24,10 @@ siril 1.2.0 xx xx, xx
 * Fixed HaOiii script failure if input image has odd dimensions
 * Fixed crash with seqextract_HaOIII command
 * Fixed crash when trying to export csv from empty plot
-* Fixed deleting ra/dec info when undoing an astrometry solve
+* Fixed deleting RA/Dec info when undoing an astrometry solve
+* Improved error detection and messages for astrometry
+* Fixed sampling range specification for siril internal solver
+* Fixed all command descriptions
 
 siril 1.2.0-rc1 June 1, 2023
 
