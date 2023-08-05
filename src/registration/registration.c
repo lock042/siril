@@ -1117,7 +1117,8 @@ static void update_filters_registration(int update_adjustment) {
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
-	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL;
+	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
+	*interpolation_algo = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1141,6 +1142,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		toggle_reg_clamp = lookup_widget("toggle_reg_clamp");
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
+		interpolation_algo = lookup_widget("ComboBoxRegInter");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1187,7 +1189,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* registration data exists for the selected layer */
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
 
-	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
+	if (nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
 		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
 		} else if (method->method_ptr == &register_comet) {
@@ -1201,7 +1203,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		}
 		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
 		gtk_widget_set_visible(onlyshift, method->method_ptr == &register_3stars);
-		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg) || (method->method_ptr == &register_star_alignment));
+		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(interpolation_algo));
+		gtk_widget_set_sensitive(toggle_reg_clamp, ((method->method_ptr == &register_apply_reg) || (method->method_ptr == &register_star_alignment))
+				&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4) );
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
@@ -1221,7 +1225,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
 			if (sequence_is_loaded()) {
-				if (method && method->sel == REQUIRES_NO_SELECTION) {
+				if (method->sel == REQUIRES_NO_SELECTION) {
 					gtk_label_set_text(labelreginfo, _("Select images in the sequence"));
 				} else {
 					gtk_label_set_text(labelreginfo, _("Select an area in image first, and select images in the sequence"));
@@ -1242,14 +1246,14 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
-	if (method && ((method->method_ptr == &register_comet) ||
+	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
 			(method->method_ptr == &register_multi_step_global) ||
 			(method->method_ptr == &register_3stars && nbselstars <= 1))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
-	} else if (method && method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
+	} else if (method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 	} else {
