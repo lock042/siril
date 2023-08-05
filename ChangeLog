@@ -18,6 +18,7 @@ xx/xx/xx
 * Fixed all command descriptions
 * Fixed SER orientation after AVI conversion
 * Fixed rescaling float images upon loading when not in [0,1] range (#1155)
+* Fixed initialization of guide image for clamping (#1114)
 
 siril 1.2.0-rc1
 06/01/23

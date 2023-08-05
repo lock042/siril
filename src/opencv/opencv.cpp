@@ -232,6 +232,15 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 	return 0;
 }
 
+// int guide image for clamping
+static void init_guide(fits *image, unsigned int target_rx, unsigned int target_ry, Mat *guide) {
+	if (image->type == DATA_USHORT) {
+		*guide = Mat(target_ry, target_rx, (image->naxes[2] == 1) ? CV_16UC1 : CV_16UC3, Scalar(0));
+	} else {
+		*guide = Mat(target_ry, target_rx, (image->naxes[2] == 1) ? CV_32FC1 : CV_32FC3, Scalar(0.0f));
+	}
+}
+
 /* resizes image to the sizes toX * toY, and stores it back in image */
 int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
 	Mat in, out;
@@ -244,6 +253,7 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean 
 
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 		Mat guide, tmp1;
+		init_guide(image, toX, toY, &guide);
 		// Create guide image
 		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
 		tmp1 = (out < CLAMPING_FACTOR * guide);
@@ -489,6 +499,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 		Mat guide, tmp1;
+		init_guide(image, target_rx, target_ry, &guide);
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
 		tmp1 = (out < guide * CLAMPING_FACTOR);
