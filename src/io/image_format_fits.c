@@ -1111,13 +1111,15 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
-static void convert_floats(int bitpix, float *data, size_t nbdata, double max, double min) {
+static void convert_floats(int bitpix, float *data, size_t nbdata) {
 	size_t i;
 	switch (bitpix) {
 		case BYTE_IMG:
 			for (i = 0; i < nbdata; i++)
 				data[i] = data[i] * INV_UCHAR_MAX_SINGLE;
 			break;
+		case FLOAT_IMG:
+			siril_log_message(_("Normalizing input data to our float range [0, 1]\n"));
 		default:
 		case USHORT_IMG:	// siril 0.9 native
 			for (i = 0; i < nbdata; i++)
@@ -1129,11 +1131,6 @@ static void convert_floats(int bitpix, float *data, size_t nbdata, double max, d
 				data[i] = (32768.f + data[i]) * INV_USHRT_MAX_SINGLE;
 			}
 			break;
-		case FLOAT_IMG:
-			siril_log_message(_("Normalizing input data from [%f, %f] to our float range [0, 1]\n"), min, max);
-			for (i = 0; i < nbdata; i++) {
-				data[i] = (data[i] - min) / (max - min);
-			}
 	}
 }
 
@@ -1301,7 +1298,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				|| fit->bitpix == BYTE_IMG) || fit->data_max > 2.0) { // needed for some FLOAT_IMG
-			convert_floats(fit->bitpix, fit->fdata, nbdata, fit->data_max, fit->data_min);
+			convert_floats(fit->bitpix, fit->fdata, nbdata);
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
@@ -1378,9 +1375,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
-				float mini, maxi;
-				fit_stats(fptr, &mini, &maxi);
-				convert_floats(bitpix, dest, nbdata, (double) maxi, (double) mini);
+				convert_floats(bitpix, dest, nbdata);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
