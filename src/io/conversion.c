@@ -1297,14 +1297,14 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 			fits_flip_top_to_bottom(fit);
 		}
 		if (ser_write_frame_from_fit(writer->ser, fit, writer->index)) {
-			siril_log_color_message(_("Error while converting to SER\n"), "red");
+			siril_log_color_message(_("Error while converting to SER (no space left?)\n"), "red");
 		}
 		else retval = WRITE_OK;
 		finish_write_seq(writer, retval == WRITE_OK);
 	}
 	else if (writer->fitseq) {
 		if (fitseq_write_image(writer->fitseq, fit, writer->index)) {
-			siril_log_color_message(_("Error while converting to FITSEQ\n"), "red");
+			siril_log_color_message(_("Error while converting to FITSEQ (no space left?)\n"), "red");
 		}
 		else retval = WRITE_OK;
 		finish_write_seq(writer, retval == WRITE_OK);
