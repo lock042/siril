@@ -157,7 +157,7 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 	return 0;
 }
 
-static int get_projected_stars_from_local_catalogue(const char *path, double ra, double dec, double radius, gboolean use_proper_motion, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
+static int get_projected_stars_from_local_catalogue(const char *path, double ra, double dec, double radius, gboolean use_proper_motion, fits *fit, float max_mag, pcc_star **stars, int *nb_stars, gboolean photo_only) {
 	deepStarData *trixel_stars;
 	uint32_t trixel_nb_stars;
 	if (read_trixels_from_catalogue(path, ra, dec, radius, &trixel_stars, &trixel_nb_stars))
@@ -183,7 +183,7 @@ static int get_projected_stars_from_local_catalogue(const char *path, double ra,
 	int j = 0;
 	for (int i = 0; i < trixel_nb_stars; i++) {
 		// filter out stars with no valid photometry
-		if (trixel_stars[i].B >= 30000 || trixel_stars[i].V >= 30000)
+		if (photo_only && (trixel_stars[i].B >= 30000 || trixel_stars[i].V >= 30000))
 			continue;
 		if (trixel_stars[i].V >= mag_threshold)
 			continue;
@@ -253,7 +253,7 @@ static int update_coords_with_proper_motion(double *ra, double *dec, double dRA,
 /* get stars with coordinates projected on image (pcc_star), only those that
  * have B-V photometric information, up to the max_mag magnitude.
  * fit must have WCS inforation */
-int get_photo_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
+int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars, gboolean photo_only) {
 	if (!has_wcs(fit))
 		return 1;
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
@@ -266,7 +266,7 @@ int get_photo_stars_from_local_catalogues(double ra, double dec, double radius, 
 				ra, dec, radius,
 				// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
 				/* catalogue != 2 */ FALSE, fit, max_mag,
-				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
+				catalogue_stars + catalogue, catalogue_nb_stars + catalogue, photo_only);
 		if (retval)
 			break;
 		total_nb_stars += catalogue_nb_stars[catalogue];

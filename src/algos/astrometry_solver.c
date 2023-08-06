@@ -656,7 +656,7 @@ gpointer plate_solver(gpointer p) {
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
 			if (args->verbose)
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
-			if (get_photo_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
+			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars, FALSE)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 				args->ret = ERROR_PHOTOMETRY;
 			}
@@ -757,8 +757,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	 * make sure that the max of stars is BRIGHTEST_STARS */
 	int n = min(min(nb_stars, args->n_cat), BRIGHTEST_STARS);
 
-	double scale_min = args->scale - 0.2;
-	double scale_max = args->scale + 0.2;
+	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
+	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
+	double scale_min = 1.0 / (args->scale * a);
+	double scale_max = 1.0 / (args->scale * b);
 	int attempt = 1;
 	while (args->ret && attempt <= 3) {
 		free_stars(&star_list_A);
@@ -766,10 +768,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
 				scale_min, scale_max, &H, TRUE,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
-		if (attempt == 1) {
+		if (attempt == 2) {
 			scale_min = -1.0;
 			scale_max = -1.0;
-			nobj += 10;
 		} else {
 			nobj += 30;
 		}
@@ -1073,7 +1074,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	char low_scale[16], high_scale[16], time_limit[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
-	sprintf(low_scale, "%.3f", args->scale / a);
+	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
+	sprintf(low_scale, "%.3f", args->scale * b);
 	sprintf(high_scale, "%.3f", args->scale * a);
 	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
 #ifndef _WIN32
