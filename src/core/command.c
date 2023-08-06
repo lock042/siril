@@ -8450,7 +8450,9 @@ int process_pcc(int nb) {
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
 		args->use_local_cat = local_cat;
-		args->onlineCatalog = cat;
+		if (!local_cat && cat == CAT_AUTO)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
@@ -8675,7 +8677,7 @@ int process_nomad(int nb) {
 
 	if (cat == CAT_AUTO) {
 		// stars coordinates are the raw wcs2pix values, so FITS/WCS coordinates
-		if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
+		if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars, photometric)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			return CMD_GENERIC_ERROR;
 		}
