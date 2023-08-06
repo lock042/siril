@@ -46,6 +46,7 @@
 #include "registration/registration.h"
 #include "algos/noise.h"
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "stacking/sum.h"
 #include "opencv/opencv.h"
 
@@ -541,6 +542,8 @@ static gboolean end_stacking(gpointer p) {
 		/* copy result to gfit if success */
 		clearfits(&gfit);
 		memcpy(&gfit, &args->result, sizeof(fits));
+		if (has_wcsdata(&gfit))
+			load_WCS_from_memory(&gfit);
 
 		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
