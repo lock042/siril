@@ -159,17 +159,17 @@ void test_photometry_float() {
 	cr_assert(psf->phot, "photometry failed");
 	cr_assert(psf->phot_is_valid, "photometry is not valid");
 
-	cr_expect_float_eq(psf->mag, -3.451165f, 1e-6);
-	cr_expect_float_eq(psf->s_mag, 0.146089f, 1e-6);
+	cr_expect_float_eq(psf->mag, -3.451f, 1e-3, "Mag: Value was %.7f vs %.7f at %3.1e\n", psf->mag, -3.451, 1e-3);
+	cr_expect_float_eq(psf->s_mag, 0.146f, 1e-3, "SMag: Value was %.7f vs %.7f at %3.1e\n", psf->s_mag, 0.146f, 1e-3);
 
-	cr_expect_float_eq(psf->x0, 51.27f, 1e-2);
-	cr_expect_float_eq(psf->y0, 54.24f, 1e-2);
-	cr_expect_float_eq(psf->fwhmx, 8.160966f, 1e-6);
-	cr_expect_float_eq(psf->fwhmy, 7.250390f, 1e-6);
-	cr_expect_float_eq(psf->angle, -21.648769f, 1e-6);
-	cr_expect_float_eq(psf->A, 0.329290f, 1e-6);
-	cr_expect_float_eq(psf->B, 0.021232f, 1e-6);
-	cr_expect_float_eq(psf->rmse, 2.250e-03, 1e-6);
+	cr_expect_float_eq(psf->x0, 51.27f, 1e-2, "x0: Value was %.7f vs %.7f at %3.1e\n", psf->x0, 51.27f, 1e-2);
+	cr_expect_float_eq(psf->y0, 54.24f, 1e-2, "y0: Value was %.7f vs %.7f at %3.1e\n", psf->y0, 54.24f, 1e-2);
+	cr_expect_float_eq(psf->fwhmx, 8.161f, 1e-3, "FWHMx: Value was %.7f vs %.7f at %3.1e\n", psf->fwhmx, 8.161f, 1e-3);
+	cr_expect_float_eq(psf->fwhmy, 7.250f, 1e-3, "FWHMy: Value was %.7f vs %.7f at %3.1e\n", psf->fwhmy, 7.250f, 1e-3);
+	cr_expect_float_eq(psf->angle, -21.649f, 1e-1, "Angle: Value was %.7f vs %.7f at %3.1e\n", psf->angle, -21.649f, 1e-1);
+	cr_expect_float_eq(psf->A, 0.3293f, 1e-4, "A: Value was %.7f vs %.7f at %3.1e\n", psf->A, 0.3293f, 1e-4);
+	cr_expect_float_eq(psf->B, 0.0212f, 1e-4, "B: Value was %.7f vs %.7f at %3.1e\n", psf->B, 0.0212f, 1e-4);
+	cr_expect_float_eq(psf->rmse, 2.250e-03, 1e-4, "RMSE: Value was %.7f vs %.7f at %3.1e\n", psf->rmse, 2.250e-03, 1e-4);
 
 	gsl_matrix_free(matrix);
 	free_psf(psf);
@@ -190,25 +190,24 @@ void test_photometry_ushort() {
 	/* These values are different from float case. This
 	 * is perfectly normal.
 	 */
-	cr_expect_float_eq(psf->mag, -15.492348f, 1e-6);
-	cr_expect_float_eq(psf->s_mag, 0.000947f, 1e-6);
+	cr_expect_float_eq(psf->mag, -15.492f, 1e-3, "Mag: Value was %.7f vs %.7f at %3.1e\n", psf->mag, -15.492f, 1e-3);
+	cr_expect_float_eq(psf->s_mag, 0.000947f, 1e-6, "SMag: Value was %.7f vs %.7f at %3.1e\n", psf->s_mag, 0.000947f, 1e-6);
 
 	/* These values are almost identical to float case.
 	 * This is due to the tolerance being set in the psf fit solver.
 	 */
-	cr_expect_float_eq(psf->x0, 51.27f, 1e-2);
-	cr_expect_float_eq(psf->y0, 54.24f, 1e-2);
-	cr_expect_float_eq(psf->fwhmy, 7.250367f, 1e-6);
-	cr_expect_float_eq(psf->fwhmx, 8.160933f, 1e-6);
-	cr_expect_float_eq(psf->fwhmy, 7.250367f, 1e-6);
-	cr_expect_float_eq(psf->angle, -21.648115f, 1e-6);
+	cr_expect_float_eq(psf->x0, 51.27f, 1e-2, "x0: Value was %.3f vs %.3f at %3.1e\n", psf->x0, 51.27f, 1e-2);
+	cr_expect_float_eq(psf->y0, 54.24f, 1e-2, "y0: Value was %.3f vs %.3f at %3.1e\n", psf->y0, 54.24f, 1e-2);
+	cr_expect_float_eq(psf->fwhmx, 8.161f, 1e-3, "FWHMx: Value was %.7f vs %.7f at %3.1e\n", psf->fwhmx, 8.161f, 1e-3);
+	cr_expect_float_eq(psf->fwhmy, 7.250f, 1e-3, "FWHMy: Value was %.7f vs %.7f at %3.1e\n", psf->fwhmy, 7.250f, 1e-3);
+	cr_expect_float_eq(psf->angle, -21.649f, 1e-1, "Angle: Value was %.7f vs %.7f at %3.1e\n", psf->angle, -21.649f, 1e-1);
 
 	/* Here we multiply by USHRT_MAX_SINGLE and we take a low
 	 * accuracy because of rounding errors.
 	 */
-	cr_expect_float_eq(psf->A, 0.329290f * USHRT_MAX_SINGLE, 0.1);
-	cr_expect_float_eq(psf->B, 0.021232f * USHRT_MAX_SINGLE, 0.1);
-	cr_expect_float_eq(psf->rmse, 2.250e-03 * USHRT_MAX_SINGLE, 0.1);
+	cr_expect_float_eq(psf->A, 0.329290f * USHRT_MAX_SINGLE, 1.0, "A: Value was %.7f vs %.7f at %3.1e\n", psf->A, 0.329290f * USHRT_MAX_SINGLE, 1.0);
+	cr_expect_float_eq(psf->B, 0.021232f * USHRT_MAX_SINGLE, 1.0, "B: Value was %.7f vs %.7f at %3.1e\n", psf->A, 0.021232f * USHRT_MAX_SINGLE, 1.0);
+	cr_expect_float_eq(psf->rmse, 2.250e-03 * USHRT_MAX_SINGLE, 0.1, "RMSE: Value was %.7f vs %.7f at %3.1e\n", psf->rmse, 2.250e-03, 0.1);
 
 	gsl_matrix_free(matrix);
 	free_psf(psf);

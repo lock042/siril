@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <gsl/gsl_histogram.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -4162,6 +4163,7 @@ int process_seq_crop(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						free(args->prefix);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -5641,6 +5643,7 @@ int process_seq_split_cfa(int nb) {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
+						free(args->seqEntry);
 						free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -5651,6 +5654,7 @@ int process_seq_split_cfa(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
+				free(args->seqEntry);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5765,6 +5769,7 @@ int process_seq_extractHa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -5813,6 +5818,7 @@ int process_seq_extractGreen(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -8446,7 +8452,9 @@ int process_pcc(int nb) {
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
 		args->use_local_cat = local_cat;
-		args->onlineCatalog = cat;
+		if (!local_cat && cat == CAT_AUTO)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
@@ -8671,7 +8679,7 @@ int process_nomad(int nb) {
 
 	if (cat == CAT_AUTO) {
 		// stars coordinates are the raw wcs2pix values, so FITS/WCS coordinates
-		if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
+		if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars, photometric)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			return CMD_GENERIC_ERROR;
 		}
@@ -8980,7 +8988,8 @@ int process_show(int nb) {
 
 	GtkToggleToolButton *button = NULL;
 parse_coords:
-	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
+	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
+			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
 		// code from process_pcc
 		char *sep = strchr(word[next_arg], ',');
 		if (!sep) {
@@ -9245,7 +9254,7 @@ int process_seq_profile(int nb) {
 		seq = &com.seq;
 	}
 
-	if(!gnuplot_is_available()) {
+	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
 		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}

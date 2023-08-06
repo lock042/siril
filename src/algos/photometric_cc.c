@@ -436,7 +436,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	int retval = 0;
 	if (args->use_local_cat) {
 		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
-		if (get_photo_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars)) {
+		if (get_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars, TRUE)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			retval = 1;
 		}

@@ -268,6 +268,8 @@ siril_common_SOURCES = \
 	gui/siril_intro.h \
 	gui/siril_preview.c \
 	gui/siril_preview.h \
+	gui/siril_plot.c \
+	gui/siril_plot.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
 	gui/split_cfa.c \
@@ -313,6 +315,8 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	io/siril_plot.c \
+	io/siril_plot.h \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \
