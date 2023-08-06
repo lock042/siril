@@ -20,6 +20,7 @@ xx/xx/xx
 * Fixed rescaling float images upon loading when not in [0,1] range (#1155)
 * Fixed initialization of guide image for clamping (#1114)
 * Fixed disabling weighting in the GUI when widget is not visible (#1158)
+* Fixed output_norm behavior for stacking to ignore border values (#1159)
 
 siril 1.2.0-rc1
 06/01/23
