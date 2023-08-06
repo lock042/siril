@@ -199,6 +199,14 @@ static guint64 get_used_RAM_memory() {
 }
 
 /**
+ * Test if disk contain free space
+ * @return
+ */
+gboolean is_space_disk_available(gchar *disk) {
+	return (!(find_space(disk) < 1.0));
+}
+
+/**
  * Updates RAM memory used by siril, available free disk space
  * and displays information on the control window.
  * @return always return TRUE
