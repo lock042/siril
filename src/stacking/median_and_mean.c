@@ -385,6 +385,8 @@ static void norm_to_0_1_range(fits *fit) {
 #endif
 	for (int i = 1; i < n; i++) {
 		float tmp = fit->fdata[i];
+		if (tmp == 0.f)
+			continue;
 		if (tmp < mini)
 			mini = tmp;
 		if (tmp > maxi)
@@ -395,7 +397,7 @@ static void norm_to_0_1_range(fits *fit) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (int i = 0; i < n; i++) {
-		fit->fdata[i] = (fit->fdata[i] - mini) / (maxi - mini);
+		fit->fdata[i] = (fit->fdata[i] == 0.f) ? 0.f : (fit->fdata[i] - mini) / (maxi - mini);
 	}
 }
 
