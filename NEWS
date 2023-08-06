@@ -33,6 +33,7 @@ siril 1.2.0 xx xx, xx
 * Fixed initialization of guide image for clamping (#1114)
 * Fixed disabling weighting in the GUI when widget is not visible (#1158)
 * Fixed output_norm behavior for stacking to ignore border values (#1159)
+* Fixed the check for the no space left condition in the conversion (#1108)
 
 siril 1.2.0-rc1 June 1, 2023
 
