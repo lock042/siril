@@ -1393,9 +1393,16 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				}
 
 				if (args->use_32bit_output) {
+					// if we renormalize afterwards, we keep the data as is
+					// otherwise, we clamp in the [0,1] range
 					if (itype == DATA_USHORT)
-						fit.fpdata[my_block->channel][pdata_idx] = min(double_ushort_to_float_range(result), 1.f);
-					else	fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ? (float)result : min((float)result, 1.f); // no clipping if 32b output with output_norm activated
+						fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ?
+																	double_ushort_to_float_range(result) :
+																	set_float_in_interval(double_ushort_to_float_range(result), 0.f, 1.f);
+					else
+						fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ?
+																	(float)result :
+																	set_float_in_interval((float)result, 0.f, 1.f);
 				} else {
 					/* in case of 8bit data we may want to normalize to 16bits */
 					if (args->output_norm) {
