@@ -637,7 +637,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 	if (error) *error = PSF_NO_ERR;
 	double bg = background(fit, layer, area, SINGLE_THREADED);
 	double sat;
-	if (bg == 1.0) {
+	if (bg == -1.0) {
 		if (error) *error = PSF_ERR_INVALID_IMAGE;
 		return NULL;
 	}
