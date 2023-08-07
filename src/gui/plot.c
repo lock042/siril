@@ -197,11 +197,11 @@ static gboolean is_inside_selection(double x, double y) {
 	return FALSE;
 }
 
-gboolean is_inside_grid(double x, double y, plot_draw_data_t *pdd) {
-	if (x <= pdd->offset.x + pdd->range.x + SEL_TOLERANCE &&
-		x >= pdd->offset.x - SEL_TOLERANCE &&
-		y <= pdd->offset.y + pdd->range.y + SEL_TOLERANCE &&
-		y >= pdd->offset.y - SEL_TOLERANCE)
+gboolean is_inside_grid(double x, double y, plot_draw_data_t *pddstruct) {
+	if (x <= pddstruct->offset.x + pddstruct->range.x + SEL_TOLERANCE &&
+		x >= pddstruct->offset.x - SEL_TOLERANCE &&
+		y <= pddstruct->offset.y + pddstruct->range.y + SEL_TOLERANCE &&
+		y >= pddstruct->offset.y - SEL_TOLERANCE)
 			return TRUE;
 	return FALSE;
 }
