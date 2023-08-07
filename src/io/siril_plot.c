@@ -617,24 +617,32 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	// xylines
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
+		if (nbpoints == 0)
+			nbpoints = plot->nb;
+		else if (plot->nb != nbpoints) {
+			siril_debug_print("Cannot export to *.dat series of different length, skipping\n");
+			continue;
+		}
 		gchar *label = (plot->label) ? g_strdup(plot->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
 		replace_spaces_from_str(label, '_');
 		g_string_append_printf(header, " %s", label);
 		g_free(label);
-		if (nbpoints == 0)
-			nbpoints = plot->nb;
 		nbgraphs++;
 		nbcols++;
 	}
 	// xy points with y error bars
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
+		if (nbpoints == 0)
+			nbpoints = plots->nb;
+		else if (plots->nb != nbpoints) {
+			siril_debug_print("Cannot export to *.dat series of different length, skipping\n");
+			continue;
+		}
 		gchar *label = (plots->label) ? g_strdup(plots->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
 		replace_spaces_from_str(label, '_');
 		g_string_append_printf(header, " %s %s_err+ %s_err-", label, label, label);
 		g_free(label);
-		if (nbpoints == 0)
-			nbpoints = plots->nb;
 		nbgraphs++;
 		nbcols += 3;
 	}
