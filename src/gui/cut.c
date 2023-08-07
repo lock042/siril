@@ -249,11 +249,11 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		return FALSE;
 	}
 	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wn1= is not set.\n"));
+		siril_log_message(_("Error: wavenumber for -wavenumber1= is not set.\n"));
 		return FALSE;
 	}
 	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wn2= is not set.\n"));
+		siril_log_message(_("Error: wavenumber for -wavenumber2= is not set.\n"));
 		return FALSE;
 	}
 	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
