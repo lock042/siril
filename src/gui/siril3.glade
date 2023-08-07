@@ -1286,13 +1286,13 @@ artifacts may appear.</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_wn1">
     <property name="upper">100000</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">100</property>
+    <property name="step-increment">0.1</property>
+    <property name="page-increment">100.</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_wn2">
     <property name="upper">100000</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">100</property>
+    <property name="step-increment">0.1</property>
+    <property name="page-increment">100.</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_xfinish">
     <property name="lower">-1</property>
@@ -8609,6 +8609,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="tooltip-text" translatable="yes">Enter the wavenumber corresponding to the selected point</property>
                 <property name="text" translatable="yes">0</property>
                 <property name="adjustment">adj_cut_wn1</property>
+                <property name="digits">1</property>
                 <signal name="value-changed" handler="on_cut_spin_wavenumber1_value_changed" swapped="no"/>
               </object>
               <packing>
@@ -8623,6 +8624,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="tooltip-text" translatable="yes">Enter the wavenumber corresponding to the selected point</property>
                 <property name="text" translatable="yes">0</property>
                 <property name="adjustment">adj_cut_wn2</property>
+                <property name="digits">1</property>
                 <signal name="value-changed" handler="on_cut_spin_wavenumber2_value_changed" swapped="no"/>
               </object>
               <packing>
@@ -8722,6 +8724,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
                 <property name="adjustment">cut_adj_wavelength1</property>
+                <property name="digits">1</property>
                 <signal name="value-changed" handler="on_cut_spin_wavelength1_value_changed" swapped="no"/>
               </object>
               <packing>
@@ -8735,6 +8738,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
                 <property name="adjustment">cut_adj_waveleength2</property>
+                <property name="digits">1</property>
                 <signal name="value-changed" handler="on_cut_spin_wavelength2_value_changed" swapped="no"/>
               </object>
               <packing>

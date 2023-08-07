@@ -9132,11 +9132,11 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wavenumber2=")) {
 			arg += 13;
-			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+			cut_args->wavenumber2 = g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-wavelength1=")) {
 			arg += 13;
-			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+			cut_args->wavenumber1 = 10000000. / g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-wavelength2=")) {
 			arg += 13;
@@ -9160,7 +9160,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wn1at=")) {
 			gchar *value;
-			value = arg + 6;
+			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
 				siril_log_color_message(_("Error: Could not parse -wn1at values.\n"), "red");
 				break;
@@ -9168,7 +9168,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wn2at=")) {
 			gchar *value;
-			value = arg + 6;
+			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
 				siril_log_color_message(_("Error: Could not parse -wn2at values.\n"), "red");
 				break;
@@ -9224,7 +9224,7 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	cut_args->display_graph = FALSE;
+	cut_args->display_graph = (!com.script); // we can display the plot if not in a script
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
