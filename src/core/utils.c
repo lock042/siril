@@ -1526,4 +1526,3 @@ int display_to_fits(double dx, double dy, double *fx, double *fy, int ry) {
        *fy = ry - dy;
        return 0;
 }
-

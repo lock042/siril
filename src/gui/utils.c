@@ -169,13 +169,14 @@ void set_GUI_DiskSpace(gint64 space, const gchar *label) {
 	gboolean set_class = FALSE;
 
 	if (space > 0) {
-		if (space < 1073741824) { // we want to warn user of space is less than 1GiB
+		if (space < 1073741824) { // we want to warn user if space is less than 1GiB
 			set_class = TRUE;
 		}
 		gchar *mem = g_format_size_full(space, G_FORMAT_SIZE_IEC_UNITS);
 		str = g_strdup_printf(_("Disk Space: %s"), mem);
 		g_free(mem);
 	} else {
+		set_class = TRUE;
 		str = g_strdup(_("Disk Space: N/A"));
 	}
 	set_label_text_from_main_thread(label, str,
@@ -196,7 +197,7 @@ void unset_suggested(GtkWidget *widget) {
 
 /* Managing GUI calls *
  * We try to separate core concerns from GUI (GTK+) concerns to keep the core
- * code efficient and clean, and avoir calling GTK+ functions in threads other
+ * code efficient and clean, and avoid calling GTK+ functions in threads other
  * than the main GTK+ thread.
  * GTK+ functions calls should be grouped in idle functions: these are
  * functions called by the GTK+ main thread whenever it's idle. The problem is
