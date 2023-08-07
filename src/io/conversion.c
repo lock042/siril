@@ -19,7 +19,7 @@
 */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#include <config.h>
 #endif
 
 #ifdef _WIN32
@@ -1311,7 +1311,12 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	}
 	else if (writer->filename) {
 		if (savefits(writer->filename, fit)) {
-			siril_log_color_message(_("Error while converting to FITS (no space left?)\n"), "red");
+			siril_log_color_message(_("Error while converting to FITS\n"), "red");
+			/* We test if there's any space left. If not, we remove the image */
+			if (!is_space_disk_available(com.wd)) {
+				siril_log_color_message(_("No space left!\n"), "red");
+				g_unlink(writer->filename);
+			}
 		}
 		else {
 			retval = WRITE_OK;
@@ -1324,6 +1329,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	else {
 		siril_log_color_message(_("Error while converting, unknown output\n"), "red");
 	}
+
 
 	free(writer);
 	return retval;
