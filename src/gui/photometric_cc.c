@@ -175,6 +175,7 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
 	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 
 	// not sure about this one. Fails for a lot of images
 	//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
@@ -242,7 +243,7 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
 		have_local_cat = local_catalogues_available();
 	}
-	if (gtk_combo_box_get_active(combo) == 1 || !have_local_cat)
+	if (gtk_combo_box_get_active(combo) == 1 || !have_local_cat) // 1 = APASS
 		gtk_label_set_text(photocat_label, _("(online catalogue)"));
 	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
 }

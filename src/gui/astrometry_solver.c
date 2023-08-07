@@ -44,6 +44,7 @@ enum {
 	N_COLUMNS
 };
 
+void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data);
 static GtkListStore *list_IPS = NULL;
 extern struct sky_object platedObject[RESOLVER_NUMBER];
 
@@ -84,6 +85,9 @@ static void initialize_ips_dialog() {
 	gtk_widget_grab_focus(button_ips_ok);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
+
+	on_comboastro_catalog_changed(GTK_COMBO_BOX(catalog_box_ips), NULL);
+	gtk_label_set_text(GTK_LABEL(lookup_widget("photometric_catalog_label")), "");
 }
 
 void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
@@ -709,3 +713,14 @@ void set_focal_and_pixel_pitch() {
 	gtk_entry_set_text(pitch, buf);
 }
 
+void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
+	static gboolean have_local_cat = FALSE;
+	static GtkLabel *astrocat_label = NULL;
+	if (!astrocat_label) {
+		astrocat_label = GTK_LABEL(lookup_widget("astrometry_catalog_label"));
+		have_local_cat = local_catalogues_available();
+	}
+	if (gtk_combo_box_get_active(combo) == 2 || gtk_combo_box_get_active(combo) == 3 || !have_local_cat) // 2 = GAIA, 3 = PPMXL
+		gtk_label_set_text(astrocat_label, _("(online catalogue)"));
+	else gtk_label_set_text(astrocat_label, _("(local catalogue)"));
+}
