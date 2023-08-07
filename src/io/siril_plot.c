@@ -570,15 +570,14 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int w
 	gboolean success = TRUE;
 	cairo_t *svg_cr = NULL;
 	//create the surface
-	
 	cairo_surface_t *svg_surface = cairo_svg_surface_create(svgfilename, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT);
 	if (cairo_surface_status(svg_surface)) {
 		siril_debug_print("Could not create svg surface\n");
 		success = FALSE;
 	}
-	cairo_svg_surface_set_document_unit(svg_surface, CAIRO_SVG_UNIT_PX);
 	//create the context
 	if (success) {
+		cairo_svg_surface_set_document_unit(svg_surface, CAIRO_SVG_UNIT_PX);
 		svg_cr = cairo_create(svg_surface);
 		if (cairo_status(svg_cr)) {
 			siril_debug_print("Could not create svg context\n");
@@ -588,8 +587,10 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int w
 	// draw the plot and save the surface to svg
 	if (success && siril_plot_draw(svg_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT, TRUE))
 		siril_log_message(_("%s has been saved.\n"), svgfilename);
-	else
+	else {
 		success = FALSE;
+		siril_debug_print("Could not draw to svg context\n");
+	}
 
 	if (svg_cr)
 		cairo_destroy(svg_cr);
