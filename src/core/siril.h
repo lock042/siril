@@ -42,7 +42,8 @@
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
 #define PRINT_ANOTHER_THREAD_RUNNING siril_log_message(_("Another task is already in progress, ignoring new request.\n"))
 
-#ifndef RT_INCLUDE
+#ifndef __cplusplus
+// excluding from C++ because it conflicts with stl
 #undef max
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -54,6 +55,7 @@
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+
 
 #define SWAPD(a,b) { double temp = (a); (a) = (b); (b) = temp; }
 
@@ -128,6 +130,7 @@ typedef enum {
 	TYPEPNM = (1 << 8),
 	TYPEPIC = (1 << 9),
 	TYPERAW = (1 << 10),
+	TYPEXISF = (1 << 11),
 	TYPEAVI = (1 << 20),
 	TYPESER = (1 << 21),
 } image_type;
@@ -167,10 +170,10 @@ typedef enum {
 #define SCALED_IMAGE -3		// the single image has a different size than
 				// the loaded sequence
 
-#define MAX_STARS 200000		// maximum length of com.stars
+#define MAX_STARS 200000	// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
 #define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
-#define DEF_BOX_RADIUS 5 // default radius of the box in starfinder_conf
+#define DEF_BOX_RADIUS 5	// default radius of the box in starfinder_conf
 
 #define INDEX_MAX 65535		// maximum index for images
 
@@ -180,6 +183,7 @@ typedef struct guiinf guiinfo;
 typedef struct cominf cominfo;
 typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
+typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
 /* global structures */
@@ -485,6 +489,38 @@ typedef struct {
 	int x, y;
 } pointi;
 
+typedef enum {
+	CUT_MONO,
+	CUT_COLOR
+} cut_mode;
+
+typedef struct cut_struct {
+	point cut_start;			// point marking start of cut line
+	point cut_end;			// point dragged while selecting the cut line
+	point cut_wn1;				// point for wavenumber 1 for spectroscopic cut
+	point cut_wn2;				// point for wavenumber 2 for spectroscopic cut
+	gboolean cut_measure;		// Whether or not to measure cuts
+	double wavenumber1;
+	double wavenumber2;
+	gboolean tri;
+	gboolean cfa;
+	cut_mode mode;
+	int width;
+	int step;
+	gboolean display_graph;
+	gboolean save_png_too; // Only takes effect if display_graph == TRUE - ignored otherwise
+	char* filename;
+	gchar* title; // this is the working copy of the title
+	gchar* user_title; // this is the title set by the user, may include brackets
+	gboolean title_has_sequence_numbers;
+	fits* fit;
+	sequence* seq;
+	int imgnumber;
+	gboolean save_dat;
+	gboolean pref_as;
+	int vport;
+} cut_struct;
+
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
@@ -511,11 +547,34 @@ typedef struct _GNUPLOT_CTRL_ {
     /** Number of temporary files */
     int ntmp ;
 	GThread* thread;
+	guint source; // Reference for the callback
 	int child_fd_stdin;
 	int child_fd_stderr;
 	GPid child_pid;
 	gboolean running;
 } gnuplot_ctrl ;
+
+/* the structure storing information for each layer to be composed
+ * (one layer = one source image) and one associated colour */
+typedef struct {
+	/* widgets data */
+	GtkButton *remove_button;
+	GtkDrawingArea *color_w;		// the simulated color chooser
+	GtkFileChooserButton *chooser;	// the file choosers
+	GtkLabel *label;				// the labels
+	GtkSpinButton *spinbutton_x;	// the X spin button
+	GtkSpinButton *spinbutton_y;	// the Y spin button
+	GtkSpinButton *spinbutton_r;	// the rotation spin button
+	GtkToggleButton *centerbutton;	// the button to set the center
+	double spinbutton_x_value;
+	double spinbutton_y_value;
+	double spinbutton_r_value;
+	/* useful data */
+	GdkRGBA color;					// real color of the layer
+	GdkRGBA saturated_color;		// saturated color of the layer
+	fits the_fit;					// the fits for layers
+	point center;
+} layer;
 
 /* The rendering of the main image is cached. As it can be much larger than the
  * widget in which it's displayed, it can take a lot of time to transform it
@@ -571,6 +630,9 @@ struct guiinf {
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 
+	point measure_start;	// quick alt-drag measurement
+	point measure_end;
+
 	void (*draw_extra)(draw_data_t *dd);
 
 	/*********** Color mapping **********/
@@ -586,6 +648,8 @@ struct guiinf {
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
+	cut_struct cut;				// Struct to hold data relating to intensity
+								// profile cuts
 	pointi start;			// where the mouse was originally clicked to
 	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection
@@ -608,6 +672,7 @@ struct guiinf {
 	int cmd_hist_size;		// allocated size
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
+	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
 };
 
 /* The global data structure of siril core */

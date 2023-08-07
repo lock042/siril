@@ -14,7 +14,6 @@ RUN apt-get update -qyy \
         libcfitsio-dev \
         libfftw3-dev \
         libgsl-dev \
-        libconfig-dev \
         libopencv-dev \
         librsvg2-dev \
         libraw-dev \
@@ -35,5 +34,9 @@ RUN apt-get update -qyy \
         python3-pip \
         libjson-glib-dev \
         gcovr \
+        libzstd-dev \
+        liblz4-dev \
+        libpugixml-dev \
+        libxisf-dev \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* 
+    && rm -rf /var/lib/apt/lists/*

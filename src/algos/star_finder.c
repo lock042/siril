@@ -102,11 +102,11 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT; //crit 16
 	}
-	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) {
-		// if star center off from original candidate detection by more than sigma radius
-		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
-		return SF_CENTER_OFF; //crit 10
-	}
+	// if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) {
+	// 	// if star center off from original candidate detection by more than sigma radius
+	// 	if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
+	// 	return SF_CENTER_OFF; //crit 10
+	// }
 	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {
 		// criteria gets looser as guessed fwhm gets larger than kernel
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
@@ -1134,7 +1134,7 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 		curr_findstar_args->starfile = star_filename;
 
 	int retval = 0;
-	if (!check_starfile_date(args->seq, i, star_filename) ||
+	if (args->seq->type == SEQ_INTERNAL || !check_starfile_date(args->seq, i, star_filename) ||
 			!check_star_list(star_filename, curr_findstar_args))
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 
@@ -1143,18 +1143,6 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	return retval;
 }
 
-void free_findstar_args(struct starfinder_data *args) {
-#ifdef HAVE_WCSLIB
-	wcsfree(args->ref_wcs);
-#endif
-	if (args->startable)
-		g_free(args->startable);
-	if (args->starfile)
-		g_free(args->starfile);
-	free(args);
-	printf("findstar_args freed\n");
-	return;
-}
 
 gboolean end_findstar_sequence(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
@@ -1170,8 +1158,7 @@ gboolean end_findstar_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
-	free_findstar_args(findstar_args);
-	printf("findstar_args have been freed\n");
+	free(findstar_args);
 	free(p);
 	return end_generic(NULL);
 }
@@ -1184,6 +1171,11 @@ int findstar_finalize_hook (struct generic_seq_args *args) {
 			free(data->ref_wcs);
 	}
 #endif
+	if (data->startable)
+		g_free(data->startable);
+	if (data->starfile)
+		g_free(data->starfile);
+	printf("findstar_args have been freed\n");
 	return 0;
 }
 
@@ -1201,7 +1193,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	args->has_output = FALSE;
 	args->load_new_sequence = FALSE;
 	args->user = findstar_args;
-	args->idle_function = end_findstar_sequence; // needed in order to free ref_wcs
+	args->idle_function = end_findstar_sequence;
 	args->already_in_a_thread = findstar_args->already_in_thread;
 
 	if (findstar_args->save_to_file && findstar_args->save_eqcoords) {

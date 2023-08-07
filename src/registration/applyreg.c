@@ -285,6 +285,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	regargs->imgparam[out_index].rx = rx_out;
 	regargs->imgparam[out_index].ry = ry_out;
+	regargs->imgparam[out_index].date_obs = args->seq->imgparam[in_index].date_obs;
 	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
@@ -358,12 +359,12 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-
-		// explicit sequence creation to copy imgparam and regparam
-		create_output_sequence_for_apply_reg(regargs);
-		// will be loaded in the idle function if (load_new_sequence)
-		regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
-
+		if (!(args->seq->type == SEQ_INTERNAL)) {
+			// explicit sequence creation to copy imgparam and regparam
+			create_output_sequence_for_apply_reg(regargs);
+			// will be loaded in the idle function if (load_new_sequence)
+			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
+		}
 	}
 	else {
 		siril_log_message(_("Transformation aborted.\n"));
@@ -568,8 +569,8 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	// check the consistency of output images size if -interp=none
-	if (regargs->interpolation == OPENCV_NONE && regargs->x2upscale) {
-		siril_log_color_message(_("Applying registration with upscaling when interpolation is set to none is not allowed, aborting\n"), "red");
+	if (regargs->interpolation == OPENCV_NONE && (regargs->x2upscale || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
+		siril_log_color_message(_("Applying registration with changes in output image sizeis not allowed when interpolation is set to none , aborting\n"), "red");
 		return FALSE;
 	}
 

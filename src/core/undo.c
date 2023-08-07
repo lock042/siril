@@ -172,11 +172,13 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	if (fit->naxes[2] > 1) {
 		fit->pdata[GLAYER] = fit->data + n;
 		fit->pdata[BLAYER] = fit->data + n * 2;
+	} else {
+		fit->pdata[GLAYER] = fit->pdata[BLAYER] = fit->pdata[RLAYER];
 	}
 	memcpy(&fit->wcsdata, &hist->wcsdata, sizeof(wcs_info));
 	fit->focal_length = hist->focal_length;
 	if (!has_wcsdata(fit)) {
-		free_wcs(fit, FALSE);
+		free_wcs(fit, TRUE);
 	} else {
 		load_WCS_from_memory(fit);
 	}
@@ -225,11 +227,13 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	if (fit->naxes[2] > 1) {
 		fit->fpdata[GLAYER] = fit->fdata + n;
 		fit->fpdata[BLAYER] = fit->fdata + n * 2;
+	} else {
+		fit->fpdata[GLAYER] = fit->fpdata[BLAYER] = fit->fpdata[RLAYER];
 	}
 	memcpy(&fit->wcsdata, &hist->wcsdata, sizeof(wcs_info));
 	fit->focal_length = hist->focal_length;
 	if (!has_wcsdata(fit)) {
-		free_wcs(fit, FALSE);
+		free_wcs(fit, TRUE);
 	} else {
 		load_WCS_from_memory(fit);
 	}

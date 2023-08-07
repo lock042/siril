@@ -51,6 +51,10 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose);
 #endif
 
+#ifdef HAVE_LIBXISF
+int readxisf(const char *name, fits *fit, gboolean force_float);
+#endif
+
 #ifdef HAVE_LIBJPEG
 int readjpg(const char*, fits*);
 int savejpg(const char*, fits*, int);

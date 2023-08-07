@@ -86,6 +86,7 @@ typedef enum {
 	TORCH = 8,
 } starnet_version;
 
+
 /***********************************************************************************************/
 
 
@@ -279,6 +280,7 @@ struct pref_struct {
 	gchar *starnet_exe;	// Location of starnet++ executable
 	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
 	gchar *gnuplot_dir;	// Location of gnuplot installation
+	gboolean use_gnuplot; // use gnuplot (instead of siril_plot)
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
 
 	star_finder_params starfinder_conf;

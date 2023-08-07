@@ -47,6 +47,7 @@
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
 #define MIN_HALF_RADIUS     1		// Minimum radius around center pixel to initialize FWHM
+#define MIN_LARGE_SAMPLING     3	// Minimum FWHM to use a more sophisticated PSF initialization
 #define XTOL 1e-3
 #define GTOL 1e-3
 #define FTOL 1e-3
@@ -55,7 +56,9 @@
 
 const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 
-static gsl_matrix *removeHotPixels(gsl_matrix *in) {
+// we also zero at bg level so that we don't have to bother substracting bg
+// in all the subsequent operations
+static gsl_matrix *prepare_init_matrix(gsl_matrix *in, double bg, gboolean frompeaker) {
 	size_t width = in->size2;
 	size_t height = in->size1;
 	size_t x, y;
@@ -66,10 +69,14 @@ static gsl_matrix *removeHotPixels(gsl_matrix *in) {
 	}
 
 	gsl_matrix_memcpy (out, in);
+	if (frompeaker) {
+		gsl_matrix_add_constant(out, -bg);
+		return out;
+	}
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
 			double a = get_median_gsl(in, x, y, width, height, 1, FALSE, FALSE);
-			gsl_matrix_set(out, y, x, a);
+			gsl_matrix_set(out, y, x, a - bg);
 		}
 	}
 	return out;
@@ -102,53 +109,230 @@ static double FWHM_from_s(double s, double beta, starprofile profile) {
 }
 
 /* Compute initial values for the algorithm from data in the pixel value matrix */
-static gsl_vector* psf_init_data(gsl_matrix* z, double bg) {
-	gsl_vector *MaxV = gsl_vector_alloc(5);
+static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) {
+	gsl_vector *MaxV = gsl_vector_alloc(6);
 	if (!MaxV) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 	double max, halfA;
+	double S = 0., Ixx = 0., Iyy = 0., Ixy = 0., Sx = 0., Sy = 0.;
 	size_t NbRows = z->size1; //y
 	size_t NbCols = z->size2; //x
 	size_t i, j;
 
 	/* find maximum */
-	/* first we remove hot pixels in the matrix */
-	gsl_matrix *m_tmp = removeHotPixels(z);
+	/* first we remove hot pixels in the matrix if not coming from the peaker
+	   to make sure we get a real maximum. Otherwise we just remove the bakcground
+	*/
+	gsl_matrix *m_tmp = prepare_init_matrix(z, bg, frompeaker);
 	if (!m_tmp) return NULL;
-	max = gsl_matrix_max(m_tmp);
-	gsl_matrix_max_index(m_tmp, &i, &j); // i=y , j=x
-	gsl_vector_set(MaxV, 1, j); // x0
-	gsl_vector_set(MaxV, 2, i); // y0
-	halfA = (max - bg) * 0.5; // half amplitude
-	gsl_vector_set(MaxV, 0, max - bg); // A
+	// if the data is coming from the peaker, we know the central pixel is already
+	// the max intensity pixel. We don't bother searching it as it may catch another 
+	// brighter star located in the box
+	if (!frompeaker) {
+		max = gsl_matrix_max(m_tmp);
+		gsl_matrix_max_index(m_tmp, &i, &j); // i=y , j=x
+	} else {
+		max = gsl_matrix_get(m_tmp, NbRows / 2, NbCols / 2);
+		i = NbRows / 2;
+		j = NbCols / 2;
+	}
+	halfA = max * 0.5; // half amplitude
+	gsl_vector_set(MaxV, 0, max); // A
 
-	int ii1 = (int) gsl_vector_get(MaxV, 2) + MIN_HALF_RADIUS;
-	int ii2 = (int) gsl_vector_get(MaxV, 2) - MIN_HALF_RADIUS;
-	int jj1 = (int) gsl_vector_get(MaxV, 1) + MIN_HALF_RADIUS;
-	int jj2 = (int) gsl_vector_get(MaxV, 1) - MIN_HALF_RADIUS;
-	int perm1 = (int) gsl_vector_get(MaxV, 2);
-	int perm2 = (int) gsl_vector_get(MaxV, 1);
+	int yc = (int)i;
+	int xc = (int)j;
+	int ii1 = yc + MIN_HALF_RADIUS;
+	int ii2 = yc - MIN_HALF_RADIUS;
+	int jj1 = xc + MIN_HALF_RADIUS;
+	int jj2 = xc - MIN_HALF_RADIUS;
 
-	while (ii1 < NbRows - 1 && gsl_matrix_get(m_tmp, ii1, perm2) - bg > halfA) {
+	while (ii1 < NbRows - 1 && gsl_matrix_get(m_tmp, ii1 + 1, xc) > halfA) {
 		ii1++;
 	}
-	while (ii2 > 0 && gsl_matrix_get(m_tmp, ii2, perm2) - bg > halfA) {
+	while (ii2 > 0 && gsl_matrix_get(m_tmp, ii2 - 1, xc) > halfA) {
 		ii2--;
 	}
 
-	while (jj1 < NbCols - 1 && gsl_matrix_get(m_tmp, perm1, jj1) - bg > halfA) {
+	while (jj1 < NbCols - 1 && gsl_matrix_get(m_tmp, yc, jj1 + 1) > halfA) {
 		jj1++;
 	}
-	while (jj2 > 0 && gsl_matrix_get(m_tmp, perm1, jj2) - bg > halfA) {
+	while (jj2 > 0 && gsl_matrix_get(m_tmp, yc, jj2 - 1) > halfA) {
 		jj2--;
 	}
-	gsl_vector_set(MaxV, 1, (double)(jj1 + jj2 + 1) / 2.0); //x0
-	gsl_vector_set(MaxV, 2, (double)(ii1 + ii2 + 1) / 2.0); //y0
-	gsl_vector_set(MaxV, 3, jj1 - jj2); //FWHM x
-	gsl_vector_set(MaxV, 4, ii1 - ii2); //FWHM y
+	double FWHMx = jj1 - jj2;
+	double FWHMy = ii1 - ii2;
+
+	if (min(FWHMx, FWHMy) < MIN_LARGE_SAMPLING) {
+		gsl_vector_set(MaxV, 1, (double)(jj1 + jj2 + 1) / 2.0); //x0
+		gsl_vector_set(MaxV, 2, (double)(ii1 + ii2 + 1) / 2.0); //y0
+		gsl_vector_set(MaxV, 3, max(FWHMx, FWHMy)); //FWHM x
+		gsl_vector_set(MaxV, 4, min(FWHMx, FWHMy)); //FWHM y
+		gsl_vector_set(MaxV, 5, 0.); //angle
+		gsl_matrix_free(m_tmp);
+		return MaxV;
+	}
+
+	// If the star is large enough, we will make a smarter init for the fitting:
+	// This is based on computing centroid, fwhm, roundness and angle of the trace
+	// of the star above the half amplitude. We use the trace instead of the actual
+	// data in order to be resilient to outlier values.
+	// In order to only account for the star (and not data from an adjacent star 
+	// also in the box), we use the central row of the trace first, and then move 
+	// downwards. We only select pixels which are adjacent to the previous row by moving
+	// left and right cursors. For the right cursor, this means:
+	// - If the pixel one down the previous right boundary is >halfA, we search if we need
+	//  to move right (and stop when we don't find a new pixel > halfA or hit the end of the row)
+	// -If not, we move left until we find again a pixel > halfA or we hit the left cursor
+	// We then do same for the left cursor on same row until the cursors are same and 
+	// we are not anymore above halfA
+	// And again, starting from the central row but upwards
+	// For all the pixels above halfA, we compute their zero, first and second moments
+	// wrt origin.
+	// Centroid position wrt origin is then simply M1/M0
+	// Inertia matrix about the centroid is assembled by correcting each M2 by 
+	// M0.xx, M0.yy and M0.xy
+	// Then assuming that the trace is an ellipse, we use Singular Value Decomposition
+	// to find the principal inertia moments and the rotation (angle)
+	// From the inertia moments, we can then calculate main FWHM and roundness
+	// As positions are 0 at the center of first pixel, 0.5 is added to centroids to 
+	// keep consistency with the convention.
+
+	// There is still a shortfall with this init, which is that for saturated stars,
+	// the amplitude is unknown and we will definitely init the optimization 
+	// with too small a value. But there's no quick and esay way to estimate A,
+	// so we'll have to live with that for now.
+
+	// computing moments
+	gboolean goon = TRUE;
+	int y = yc, cr = jj1, cl = jj2;
+
+	// we will scan each row downwards to check pixel above halfA and adjacent to the previous row
+	while (goon) {
+		double y2 = SQR((double)y);
+		if (cr < NbCols - 1 && gsl_matrix_get(m_tmp, y, cr) > halfA) {// we continue expanding right
+			while (cr < NbCols - 1 && gsl_matrix_get(m_tmp, y, cr + 1) > halfA) {
+				cr++;
+			}
+		} else {
+			cr--;
+			while (cr > 0 && cr > cl && gsl_matrix_get(m_tmp, y, cr - 1) <= halfA) {
+				cr--;
+			}
+		}
+		if (cl >= 0 && gsl_matrix_get(m_tmp, y, cl) > halfA) {// we continue expanding left
+			while (cl > 1 && gsl_matrix_get(m_tmp, y, cl - 1) > halfA) {
+				cl--;
+			}
+		} else {
+			if (cl < cr) {
+				cl++;
+				while (cl < cr && gsl_matrix_get(m_tmp, y, cl + 1) <= halfA) {
+					cl++;
+				}
+			}
+		}
+		if (cr == cl && gsl_matrix_get(m_tmp, y, cr) <= halfA) {
+			goon = FALSE;
+			break;
+		}
+		// we've found all the valid pixels, we can compute all the useful quantities
+		for (int x = cl; x <= cr; x++) {
+			double x2 = SQR((double)x);
+			S += 1.;
+			Sx += (double)x;
+			Sy += (double)y;
+			Ixx += y2;
+			Iyy += x2;
+			Ixy += (double)(x * y);
+		}
+		y++;
+		if (y == NbRows)
+			break;
+	}
+
+	goon = TRUE;
+	y = yc - 1, cr = jj1, cl = jj2;
+	if (y < 0)
+		goon = FALSE;
+
+	// we will scan each row upwards to check pixel above halfA and adjacent to the previous row
+	while (goon) {
+		double y2 = SQR((double)y);
+		if (cr < NbCols - 1 && gsl_matrix_get(m_tmp, y, cr) > halfA) {// we continue expanding right
+			while (cr < NbCols - 1 && gsl_matrix_get(m_tmp, y, cr + 1) > halfA) {
+				cr++;
+			}
+		} else {
+			cr--;
+			while (cr > 0 && cr > cl && gsl_matrix_get(m_tmp, y, cr - 1) <= halfA) {
+				cr--;
+			}
+		}
+		if (cl >= 0 && gsl_matrix_get(m_tmp, y, cl) > halfA) {// we continue expanding left
+			while (cl > 1 && gsl_matrix_get(m_tmp, y, cl - 1) > halfA) {
+				cl--;
+			}
+		} else {
+			if (cl < cr) {
+				cl++;
+				while (cl < cr && gsl_matrix_get(m_tmp, y, cl + 1) <= halfA) {
+					cl++;
+				}
+			}
+		}
+		if (cr == cl && gsl_matrix_get(m_tmp, y, cr) <= halfA) {
+			goon = FALSE;
+			break;
+		}
+		// we've found all the valid pixels, we can compute all the useful quantities
+		for (int x = cl; x <= cr; x++) {
+			double x2 = SQR((double)x);
+			S += 1.;
+			Sx += (double)x;
+			Sy += (double)y;
+			Ixx += y2;
+			Iyy += x2;
+			Ixy += (double)(x * y);
+		}
+		y--;
+		if (y < 0)
+			break;
+	}
+
 	gsl_matrix_free(m_tmp);
+	// centroid coordinates
+	double x0 = Sx / S;
+	double y0 = Sy / S;
+
+	// inertia moments about the x/y axes at centroid
+	Ixx -= S * y0 * y0;
+	Iyy -= S * x0 * x0;
+	Ixy -= S * x0 * y0;
+
+	// SVD terms from https://lucidar.me/en/mathematics/singular-value-decomposition-of-a-2x2-matrix/
+	double Su00 = Ixx * Ixx + Ixy * Ixy;
+	double Su01 = (Ixx + Iyy) * Ixy;
+	double Su11 = Iyy * Iyy + Ixy * Ixy;
+
+	double ang = 90 + 0.5 * atan2( 2 * Su01, Su00 - Su11) * 180. / M_PI; //(eq 4)
+	double SUsum = Su00 + Su11; // (eq7)
+	double SUdif = sqrt(SQR(Su00 - Su11) + 4 * SQR(Su01)); // (eq7)
+
+	// Inertia moment in the principal axes
+	Iyy = sqrt((SUsum + SUdif) * 0.5); // (eq6)
+	Ixx = sqrt((SUsum - SUdif) * 0.5); // (eq6)
+
+	double r = sqrt(Ixx / Iyy);
+	double FWHM = 2 * sqrt(S / M_PI / r);
+
+	// vector init
+	gsl_vector_set(MaxV, 1, x0 + 0.5); //x0
+	gsl_vector_set(MaxV, 2, y0 + 0.5); //y0
+	gsl_vector_set(MaxV, 3, FWHM); //FWHM x
+	gsl_vector_set(MaxV, 4, FWHM * r); //FWHM y
+	gsl_vector_set(MaxV, 5, ang); //angle
 	return MaxV;
 }
 
@@ -442,7 +626,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 
 	max_iter = MAX_ITER_ANGLE * ((k < NbRows * NbCols) ? 3 : 1) * convergence * ((profile == PSF_GAUSSIAN) ? 1 : 2);
 
-	MaxV = psf_init_data(z, background);
+	MaxV = psf_init_data(z, background, from_peaker);
 	if (!MaxV) {
 		PRINT_ALLOC_ERR;
 		if (error) *error = PSF_ERR_ALLOC;
@@ -453,13 +637,20 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 
 	double beta = (profile == PSF_GAUSSIAN) ? -1. : 2; // TODO: to be changed if we implement PSF_MOFFAT_BFIXED
 	double fbeta = (profile == PSF_GAUSSIAN) ? 0. : acos(2. * beta / MOFFAT_BETA_UBOUND - 1.);
-	double fr = acos(2. * 0.5 - 1.); // r = 0.5 *(cos(fc)+1) to bound it between 0 and 1 - we init at r = 0.5 to be able to start in a place where the direction of variation is well defined
 
 	struct PSF_data d = { n, y, NbRows, NbCols, 0. , mask };
-	double FWHM = max(gsl_vector_get(MaxV, 3), gsl_vector_get(MaxV, 4));
-	double a_init = (gsl_vector_get(MaxV, 3) > gsl_vector_get(MaxV, 4)) ? 0. : M_PI / 2;
-	double x0_init = (from_peaker) ? (double)(NbCols - 1) * 0.5 : gsl_vector_get(MaxV, 1);
-	double y0_init = (from_peaker) ? (double)(NbRows - 1) * 0.5 : gsl_vector_get(MaxV, 2);
+	double FWHM = gsl_vector_get(MaxV, 3);
+	double roundness = gsl_vector_get(MaxV, 4) / gsl_vector_get(MaxV, 3);
+	double a_init = gsl_vector_get(MaxV, 5) * M_PI / 180.; // angle in radians
+	// if roundness is 1., we decrease it a bit so as not to be stuck on the boundary
+	// as it is messes up the initial gradient calcs
+	if (roundness == 1.) {
+		roundness = 0.9;
+		a_init = 0.;
+	}
+	double fr = acos(2. * roundness - 1.); // r = 0.5 *(cos(fc)+1) to bound it between 0 and 1
+	double x0_init = gsl_vector_get(MaxV, 1);
+	double y0_init = gsl_vector_get(MaxV, 2);
 	double x_init[8] = { background, // B
 						gsl_vector_get(MaxV, 0), // A
 						x0_init, // x0
@@ -913,6 +1104,11 @@ gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, doub
 	return TRUE;
 }
 
+void psf_star_init(psf_star *s) {
+	memset(s, 0, sizeof(psf_star));
+	s->units = "px";
+}
+
 psf_star *new_psf_star() {
 	psf_star *star = calloc(1, sizeof(psf_star));
 	star->phot = NULL;
@@ -931,10 +1127,13 @@ psf_star *duplicate_psf(psf_star *psf) {
 	} else {
 		new_psf->phot = NULL;
 	}
+	if (psf->star_name)
+		new_psf->star_name = g_strdup(psf->star_name);
 	return new_psf;
 }
 
 void free_psf(psf_star *psf) {
 	if (psf->phot) free(psf->phot);
+	if (psf->star_name) g_free(psf->star_name);
 	free(psf);
 }

@@ -67,6 +67,8 @@ static char *CVF[] = { "CVF", "EGAIN", NULL };
 static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
+static char *SITELAT[] = { "SITELAT", "SITE-LAT", "OBSLAT", NULL };
+static char *SITELONG[] = { "SITELONG", "SITE-LON", "OBSLONG", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -83,21 +85,55 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 static void read_fits_locdata_header(fits *fit) {
 	int status = 0;
 	char sitelat_dump[FLEN_VALUE] = { 0 };
+	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
 	char sitelong_dump[FLEN_VALUE] = { 0 };
+	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
 
 	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TSTRING, "*LAT", &sitelat_dump, NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases in TSTRING style
-	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TSTRING, "*LON*", &sitelong_dump, NULL, &status);	// Handles SITELONG and SITE-LON keyword cases in TSTRING style
+	__tryToFindKeywords(fit->fptr, TSTRING, SITELAT, &sitelat_dump, &status);
 
-	d_sitelat_dump = parse_dms(sitelat_dump);
-	d_sitelong_dump = parse_dms(sitelong_dump);
+	if (status == 0) {
+		gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
+		gsize token_size = g_strv_length(token);
+		if (token_size > 1 && token[1])	{	// Denotes presence of ":"
+			for (int i = 0; i < token_size; ++i) {
+				g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
+				if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
+				d_sitelat_dump = parse_dms(sitelat_dump_tmp);
+			}
+		} else d_sitelat_dump = parse_dms(sitelat_dump);
+
+		g_strfreev(token);
+	}
+
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TSTRING, SITELONG, &sitelong_dump, &status);
+
+	if (status == 0) {
+		gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
+		gsize token_size = g_strv_length(token);
+		if (token_size > 1 && token[1])	{
+			for (int i = 0; i < token_size; ++i) {
+				g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
+				if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
+				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
+			}
+		} else d_sitelong_dump = parse_dms(sitelong_dump);
+
+		g_strfreev(token);
+	}
+
 	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
-		fit->sitelat = strtod(sitelat_dump, NULL);
-		fit->sitelong = strtod(sitelong_dump, NULL);
+		gchar *end;
+		fit->sitelat = g_ascii_strtod(sitelat_dump, &end);
+		if (sitelat_dump == end) {
+			siril_debug_print("Cannot read SITELAT\n");
+		}
+		fit->sitelong = g_ascii_strtod(sitelong_dump, &end);
+		if (sitelong_dump == end) {
+			siril_debug_print("Cannot read SITELONG\n");
+		}
 	} else {
 		fit->sitelat = d_sitelat_dump;
 		fit->sitelong = d_sitelong_dump;
@@ -1075,13 +1111,15 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
-static void convert_floats(int bitpix, float *data, size_t nbdata, double max, double min) {
+static void convert_floats(int bitpix, float *data, size_t nbdata) {
 	size_t i;
 	switch (bitpix) {
 		case BYTE_IMG:
 			for (i = 0; i < nbdata; i++)
 				data[i] = data[i] * INV_UCHAR_MAX_SINGLE;
 			break;
+		case FLOAT_IMG:
+			siril_log_message(_("Normalizing input data to our float range [0, 1]\n"));
 		default:
 		case USHORT_IMG:	// siril 0.9 native
 			for (i = 0; i < nbdata; i++)
@@ -1093,11 +1131,6 @@ static void convert_floats(int bitpix, float *data, size_t nbdata, double max, d
 				data[i] = (32768.f + data[i]) * INV_USHRT_MAX_SINGLE;
 			}
 			break;
-		case FLOAT_IMG:
-			siril_log_message(_("Normalizing input data from [%f, %f] to our float range [0, 1]\n"), min, max);
-			for (i = 0; i < nbdata; i++) {
-				data[i] = (data[i] - min) / (max - min);
-			}
 	}
 }
 
@@ -1265,7 +1298,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				|| fit->bitpix == BYTE_IMG) || fit->data_max > 2.0) { // needed for some FLOAT_IMG
-			convert_floats(fit->bitpix, fit->fdata, nbdata, fit->data_max, fit->data_min);
+			convert_floats(fit->bitpix, fit->fdata, nbdata);
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
@@ -1342,9 +1375,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
-				float mini, maxi;
-				fit_stats(fptr, &mini, &maxi);
-				convert_floats(bitpix, dest, nbdata, (double) maxi, (double) mini);
+				convert_floats(bitpix, dest, nbdata);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -1877,29 +1908,50 @@ int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomo
 	return *status;
 }
 
-// reset a fit data structure, deallocates everything in it and zero the data
-void clearfits(fits *fit) {
+// reset a fit data structure, deallocates everything in it but keep the data:
+// useful in processing internal_fits in SEQ_INTERNAL sequences
+void clearfits_header(fits *fit) {
 	if (fit == NULL)
 		return;
-	if (fit->data)
-		free(fit->data);
-	if (fit->fdata)
-		free(fit->fdata);
-	if (fit->header)
+	if (fit->header) {
 		free(fit->header);
-	if (fit->history)
+		fit->header = NULL;
+	}
+	if (fit->history) {
 		g_slist_free_full(fit->history, g_free);
-	if (fit->date_obs)
+		fit->history = NULL;
+	}
+	if (fit->date_obs) {
 		g_date_time_unref(fit->date_obs);
-	if (fit->date)
+		fit->date_obs = NULL;
+	}
+	if (fit->date) {
 		g_date_time_unref(fit->date);
+		fit->date = NULL;
+	}
 	if (fit->stats) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			free_stats(fit->stats[i]);
 		free(fit->stats);
+		fit->stats = NULL;
 	}
 	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
+}
+
+// reset a fit data structure, deallocates everything in it and zero the data
+void clearfits(fits *fit) {
+	if (fit == NULL)
+		return;
+	if (fit->data) {
+		free(fit->data);
+		fit->data = NULL;
+	}
+	if (fit->fdata) {
+		free(fit->fdata);
+		fit->fdata = NULL;
+	}
+	clearfits_header(fit);
 }
 
 /* Read a rectangular section of a FITS image in Siril's format, pointed by its
@@ -2377,13 +2429,13 @@ int save_opened_fits(fits *f) {
 		break;
 	case USHORT_IMG:
 		if (f->type == DATA_FLOAT) {
-			WORD *data = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
-			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, data, &status)) {
+			WORD *datau = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, datau, &status)) {
 				report_fits_error(status);
-				g_free(data);
+				g_free(datau);
 				return 1;
 			}
-			free(data);
+			free(datau);
 		} else {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
@@ -3282,7 +3334,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes) {
 	int status = 0;
-	long naxes[3] = { 0 };
+	long naxes[3] = { 0L };
 	int bitpix = 0, naxis = -1;
 	fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
 	if (status) {
@@ -3390,7 +3442,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 		// average exposure
 		exposure += current->exposure;
 
-		/* to add if one day we keep FITS comments: discrepencies in
+		/* to add if one day we keep FITS comments: discrepancies in
 		 * various fields like exposure, instrument, observer,
 		 * telescope, ... */
 		image_count++;

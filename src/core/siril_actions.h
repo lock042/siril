@@ -59,6 +59,7 @@ void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_d
 void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data);
@@ -120,6 +121,7 @@ void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

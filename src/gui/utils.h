@@ -19,6 +19,7 @@
  */
 #ifndef SRC_GUI_UTILS_H_
 #define SRC_GUI_UTILS_H_
+#include "core/siril.h"
 
 typedef enum {
 	FILE_CONVERSION,
@@ -32,6 +33,8 @@ typedef enum {
 
 
 GtkWidget* lookup_widget (const gchar *widget_name);
+GObject* lookup_gobject(const gchar *gobject_name);
+GtkAdjustment* lookup_adjustment(const gchar *adjustment_name);
 void control_window_switch_to_tab(main_tabs tab);
 GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf);
@@ -46,5 +49,6 @@ void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *cl
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
 gboolean check_ok_if_cfa();
+point closest_point_on_line(point in, point p1, point p2);
 
 #endif /* SRC_GUI_UTILS_H_ */

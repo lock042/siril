@@ -528,8 +528,8 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_sampling">
-    <property name="upper">10000</property>
+  <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="upper">50</property>
     <property name="value">15</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -970,6 +970,579 @@ artifacts may appear.</property>
     <property name="value">100</property>
     <property name="step-increment">50</property>
     <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_tricut_step">
+    <property name="lower">1</property>
+    <property name="upper">9999</property>
+    <property name="value">1</property>
+    <property name="step-increment">2</property>
+    <property name="page-increment">2</property>
+  </object>
+  <object class="GtkDialog" id="cut_dialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Profile</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_cut_close_button_clicked" swapped="no"/>
+    <signal name="show" handler="on_cut_dialog_show" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="cut_close_button">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_cut_close_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_apply_button">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_cut_apply_button_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=2 n-rows=7 -->
+          <object class="GtkGrid">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">6</property>
+            <property name="column-homogeneous">True</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">&lt;b&gt;Type of Profile&lt;/b&gt;</property>
+                <property name="use-markup">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_radio_mono">
+                <property name="label" translatable="yes">Mono</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Generates a single luminance profile along the profile line</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_radio_color">
+                <property name="label" translatable="yes">Color</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Generates separate R, G and B profiles along the profile line. Not applicable for mono images</property>
+                <property name="draw-indicator">True</property>
+                <property name="group">cut_radio_mono</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_manual_coords_button">
+                <property name="label" translatable="yes">Manual coordinates</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Enter coordinates for the start and end points of the profile manually</property>
+                <signal name="clicked" handler="on_cut_manual_coords_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_spectroscopic_button">
+                <property name="label" translatable="yes">Spectrometric data</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Enter data relating to profiling along a spectrum</property>
+                <signal name="clicked" handler="on_cut_spectroscopic_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_tri_cut">
+                <property name="label" translatable="yes">Tri-Profile (mono)</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
+                <property name="draw-indicator">True</property>
+                <property name="group">cut_radio_mono</property>
+                <signal name="toggled" handler="on_cut_tri_cut_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_tricut_step">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Set offset step size for tri-profile</property>
+                <property name="text" translatable="yes">1</property>
+                <property name="adjustment">adj_cut_tricut_step</property>
+                <property name="value">1</property>
+                <signal name="value-changed" handler="on_cut_tricut_step_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cut_save_checkbutton">
+                <property name="label" translatable="yes">Save profile datafile</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Saves the GNUplot data file used to generate the profile in the working directory. The filename is based on the current image and includes a timestamp.</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_save_checkbutton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_cfa">
+                <property name="label" translatable="yes">CFA</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
+                <property name="draw-indicator">True</property>
+                <property name="group">cut_radio_mono</property>
+                <signal name="toggled" handler="on_cut_cfa_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cut_apply_to_sequence">
+                <property name="label" translatable="yes">Apply to sequence</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Apply to the current sequence. If this is selected, plots will be generated in .png format in the working directory: the GNUplot window will not appear. This mode automatically enables the "Save plot as .png" option.</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_apply_to_sequence_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cut_save_png">
+                <property name="label" translatable="yes">Save plot as .png</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Saves the plot in .png format as well as opening the GNUplot window. Sequence working relies on this so if this option is deactivated, sequence working will be deactivated too.</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_save_png_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_dist_pref_px">
+                <property name="label" translatable="yes">Measure in pixels</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Measurements and the plot x axis will show distance in pixels. This option is overridden if spectrometry data is set.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_dist_pref_as_group_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_dist_pref_as">
+                <property name="label" translatable="yes">Measure in arcsec</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If possible, measurements and the plot x axis will show distance in arcsec. This requires telescope focal length and sensor pixel size metadata in the FITS header. This option is overridden if spectrometry data is set.</property>
+                <property name="draw-indicator">True</property>
+                <property name="group">cut_dist_pref_px</property>
+                <signal name="toggled" handler="on_cut_dist_pref_as_group_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <object class="GtkEntry" id="cut_title">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Sets a custom title for the plot. If the title ends with (), if a sequence is processed the current image number / total will be added inside the brackets (e.g. Title (1/n)).</property>
+                    <property name="text" translatable="yes">Intensity Profile</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Plot Title</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_wn1">
+    <property name="upper">100000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_wn2">
+    <property name="upper">100000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_xfinish">
+    <property name="lower">-1</property>
+    <property name="upper">1</property>
+    <property name="value">-1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_xstart">
+    <property name="lower">-1</property>
+    <property name="upper">1</property>
+    <property name="value">-1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_yfinish">
+    <property name="lower">-1</property>
+    <property name="upper">1</property>
+    <property name="value">-1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_ystart">
+    <property name="lower">-1</property>
+    <property name="upper">1</property>
+    <property name="value">-1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkDialog" id="cut_coords_dialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Coordinates</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_cut_coords_dialog_hide" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="cut_coords_cancel_button">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_cut_coords_cancel_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_coords_apply_button">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_cut_coords_apply_button_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=4 n-rows=3 -->
+          <object class="GtkGrid" id="cut_controls_manualcoords">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">6</property>
+            <child>
+              <object class="GtkSpinButton" id="cut_xstart_spin">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="text" translatable="yes">-1</property>
+                <property name="adjustment">adj_cut_xstart</property>
+                <property name="value">-1</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_yfinish_spin">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="text" translatable="yes">-1</property>
+                <property name="adjustment">adj_cut_yfinish</property>
+                <property name="value">-1</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="cut_finishlabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">End</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="cut_ylabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">y</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="cut_startlabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Start</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="cut_xlabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">x</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_ystart_spin">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="text" translatable="yes">-1</property>
+                <property name="adjustment">adj_cut_ystart</property>
+                <property name="value">-1</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_xfinish_spin">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="text" translatable="yes">-1</property>
+                <property name="adjustment">adj_cut_xfinish</property>
+                <property name="value">-1</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolbar">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="show-arrow">False</property>
+                <child>
+                  <object class="GtkToolButton" id="start_select_from_star">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Find a star in the current selection and set the start point to its location</property>
+                    <property name="label" translatable="yes">*</property>
+                    <property name="use-underline">True</property>
+                    <signal name="clicked" handler="on_start_select_from_star_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolbar">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="show-arrow">False</property>
+                <child>
+                  <object class="GtkToolButton" id="end_select_from_star">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Find a star in the current selection and set the end point to its location</property>
+                    <property name="label" translatable="yes">*</property>
+                    <property name="use-underline">True</property>
+                    <signal name="clicked" handler="on_end_select_from_star_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="GtkAdjustment" id="adj_diameter">
     <property name="lower">1</property>
@@ -4081,6 +4654,12 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="value">90</property>
     <property name="step-increment">10</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_lum_r">
+    <property name="lower">-360</property>
+    <property name="upper">360</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_lum_x">
     <property name="lower">-1000</property>
@@ -7911,6 +8490,296 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/curve.svg</property>
   </object>
+  <object class="GtkAdjustment" id="cut_adj_waveleength2">
+    <property name="upper">10000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="cut_adj_wavelength1">
+    <property name="upper">10000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="cut_width_spin">
+    <property name="lower">1</property>
+    <property name="upper">49</property>
+    <property name="value">1</property>
+    <property name="step-increment">2</property>
+    <property name="page-increment">2</property>
+  </object>
+  <object class="GtkDialog" id="cut_spectroscopy_dialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Spectrometry</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_cut_spectroscopy_dialog_hide" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="cut_spectro_cancel_button">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_cut_spectro_cancel_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_spectro_apply_button">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_cut_spectro_apply_button_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=5 n-rows=4 -->
+          <object class="GtkGrid">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="column-homogeneous">True</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Profile width / px</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_width">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Set the width of the cut. The median pixel value perpendicular to the cut will be used.</property>
+                <property name="adjustment">cut_width_spin</property>
+                <signal name="value-changed" handler="on_cut_spin_width_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_wavenumber1">
+                <property name="label" translatable="yes">Pick wavenumber 1</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <signal name="clicked" handler="on_cut_wavenumber1_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_wavenumber2">
+                <property name="label" translatable="yes">Pick wavenumber 2</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <signal name="clicked" handler="on_cut_wavenumber2_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavenumber1">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Enter the wavenumber corresponding to the selected point</property>
+                <property name="text" translatable="yes">0</property>
+                <property name="adjustment">adj_cut_wn1</property>
+                <signal name="value-changed" handler="on_cut_spin_wavenumber1_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavenumber2">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Enter the wavenumber corresponding to the selected point</property>
+                <property name="text" translatable="yes">0</property>
+                <property name="adjustment">adj_cut_wn2</property>
+                <signal name="value-changed" handler="on_cut_spin_wavenumber2_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn1_x">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn1_y">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn2_x">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn2_y">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">x</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">y</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">The wavenumber is the spatial frequency 1 / λ</property>
+                <property name="label" translatable="yes">wavenumber / cm&lt;sup&gt;-1&lt;/sup&gt;</property>
+                <property name="use-markup">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">wavelength / nm</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength1">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_wavelength1</property>
+                <signal name="value-changed" handler="on_cut_spin_wavelength1_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength2">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_waveleength2</property>
+                <signal name="value-changed" handler="on_cut_spin_wavelength2_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="denoise-modulation-adjustment">
     <property name="upper">1</property>
     <property name="value">1</property>
@@ -8785,6 +9654,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
       <pattern>*.fts</pattern>
       <pattern>*.tif</pattern>
       <pattern>*.tiff</pattern>
+      <pattern>*.fz</pattern>
     </patterns>
   </object>
   <object class="GtkDialog" id="composition_dialog">
@@ -8804,6 +9674,36 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkButton" id="compositing_reload_all">
+                <property name="label" translatable="yes">Reload all</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Reload all input images into their respective compositing layers. This is necessary if you aren't happy with the alignment results and wish to re-do the alignment, for example with a different framing method.</property>
+                <signal name="clicked" handler="on_compositing_reload_all_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="compositing_save_all">
+                <property name="label" translatable="yes">Save all</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">Save all the layer images with the prefix &lt;i&gt;comp_&lt;/i&gt;. After alignment the aligned and framed images will be saved, so if you prefer to combine them using PixelMath you can still use this tool as a simple means of aligning them.</property>
+                <signal name="clicked" handler="on_compositing_save_all_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="compositing_reset">
                 <property name="label" translatable="yes">Clear</property>
                 <property name="visible">True</property>
@@ -8814,7 +9714,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -8828,7 +9728,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -8857,7 +9757,7 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
           </packing>
         </child>
         <child>
-          <!-- n-columns=6 n-rows=2 -->
+          <!-- n-columns=8 n-rows=2 -->
           <object class="GtkGrid" id="grid_layers">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -8865,29 +9765,18 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
             <property name="row-spacing">6</property>
             <property name="column-spacing">8</property>
             <child>
-              <object class="GtkLabel" id="label_alignments">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Layer alignments</property>
-              </object>
-              <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">0</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spinbutton_lum_x">
+              <object class="GtkSpinButton" id="spinbutton_lum_r">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="text">0</property>
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                <property name="adjustment">adjustment_lum_x</property>
+                <property name="adjustment">adjustment_lum_r</property>
+                <property name="digits">3</property>
               </object>
               <packing>
-                <property name="left-attach">4</property>
+                <property name="left-attach">6</property>
                 <property name="top-attach">1</property>
               </packing>
             </child>
@@ -8900,9 +9789,26 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                 <property name="adjustment">adjustment_lum_y</property>
+                <property name="digits">1</property>
               </object>
               <packing>
                 <property name="left-attach">5</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spinbutton_lum_x">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="text">0</property>
+                <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                <property name="adjustment">adjustment_lum_x</property>
+                <property name="digits">1</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
                 <property name="top-attach">1</property>
               </packing>
             </child>
@@ -8948,6 +9854,70 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="label_alignments">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the x-axis shift.
+In other alignment modes, shows the x-axis shift applied to the layer.</property>
+                <property name="label" translatable="yes">x alignment</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the y-axis shift.
+In other alignment modes, shows the y-axis shift applied to the layer.</property>
+                <property name="label" translatable="yes">y alignment</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">In manual alignment mode, sets the rotation around the center of the image.
+In other alignment modes, shows the rotation applied to the layer around the origin.
+Rotation is shown in degrees anticlockwise.</property>
+                <property name="label" translatable="yes">rotation</property>
+              </object>
+              <packing>
+                <property name="left-attach">6</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="centerbutton_lum">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Set rotation center for this layer</property>
+                <signal name="toggled" handler="on_centerbutton_toggled" swapped="no"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="stock">gtk-cdrom</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">7</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
               <placeholder/>
             </child>
             <child>
@@ -8974,6 +9944,22 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
             <property name="margin-top">2</property>
             <property name="spacing">10</property>
             <child>
+              <object class="GtkButton" id="compositing_linear_match">
+                <property name="label" translatable="yes">Linear match</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Linear match the input layer images to the first layer.
+This is important if you are not coloring the layers with pure R, pure G and pure B.</property>
+                <signal name="clicked" handler="on_compositing_linear_match_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="composition_layers_autoadjust">
                 <property name="label" translatable="yes">Adjust layers brightness</property>
                 <property name="visible">True</property>
@@ -8985,12 +9971,12 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkButton" id="composition_rgbcolor">
-                <property name="label" translatable="yes">Finalize colour balance</property>
+                <property name="label" translatable="yes">Color calibration</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
@@ -9002,7 +9988,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -9023,6 +10009,22 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="fill">True</property>
                 <property name="pack-type">end</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="compositing_pcc_active">
+                <property name="label" translatable="yes">photometric</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">When checked, photometric color calibration is used.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -9046,7 +10048,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
           </packing>
         </child>
         <child>
-          <!-- n-columns=4 n-rows=3 -->
+          <!-- n-columns=5 n-rows=3 -->
           <object class="GtkGrid" id="grid19">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -9054,14 +10056,80 @@ Modifying parameters in this windows afterward will void the colour balance, and
             <property name="column-spacing">8</property>
             <child>
               <object class="GtkLabel" id="label_ref">
+                <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Align layers on this reference layer:</property>
+                <property name="label" translatable="yes">Use this alignment method:</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">0</property>
                 <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_align">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">and this framing method:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_msg">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+                <property name="width">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="compositing_align_method_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <items>
+                  <item translatable="yes">Image pattern alignment (planetary/deep-sky)</item>
+                  <item translatable="yes">One star registration (deep-sky)</item>
+                </items>
+                <signal name="changed" handler="on_compositing_align_method_combo_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="compositing_align_framing_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Select framing method for deep-sky alignment:
+First channel - frame to the first channel (always L in luminance mode);
+Max - frame to the maximum extent of the aligned images;
+Min - frame to the minimum overlap of all aligned images;
+COG - frame to the centre of gravity of the pixels in the set of aligned images.</property>
+                <property name="active">2</property>
+                <items>
+                  <item translatable="yes">First channel</item>
+                  <item translatable="yes">Max</item>
+                  <item translatable="yes">Min</item>
+                  <item translatable="yes">COG</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -9074,69 +10142,13 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <signal name="clicked" handler="on_button_align_clicked" swapped="no"/>
               </object>
               <packing>
-                <property name="left-attach">3</property>
+                <property name="left-attach">4</property>
                 <property name="top-attach">0</property>
                 <property name="height">2</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="label_align">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">and using this alignment method:</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="compositing_align_method_combo">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <items>
-                  <item translatable="yes">Image pattern alignment (planetary/deep-sky)</item>
-                  <item translatable="yes">One star registration (deep-sky)</item>
-                </items>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label_msg">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                </attributes>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="compositing_align_layer_combo">
-                <property name="sensitive">False</property>
-                <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">For LRGB composition, the reference layer should be luminance.</property>
-                <items>
-                  <item translatable="yes">Luminance</item>
-                  <item translatable="yes">Red</item>
-                  <item translatable="yes">Green</item>
-                  <item translatable="yes">Blue</item>
-                </items>
-                <signal name="changed" handler="on_compositing_align_layer_combo_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">0</property>
-              </packing>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -11221,6 +12233,11 @@ Note that luminance based models are not generally invertible.</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/cm.svg</property>
   </object>
+  <object class="GtkImage" id="image_cut">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">pixmaps/cut.svg</property>
+  </object>
   <object class="GtkImage" id="image_export">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -11503,7 +12520,6 @@ Note that luminance based models are not generally invertible.</property>
             </child>
             <child>
               <object class="GtkButton">
-                <property name="name">undo-button</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -13087,7 +14103,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">5</property>
+                    <property name="sort-column-id">7</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_fwhmx">
                         <property name="alignment">right</property>
@@ -13107,7 +14123,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">6</property>
+                    <property name="sort-column-id">8</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_fwhmy">
                         <property name="alignment">right</property>
@@ -13126,7 +14142,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">7</property>
+                    <property name="sort-column-id">9</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_mag">
                         <property name="alignment">right</property>
@@ -13146,7 +14162,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">8</property>
+                    <property name="sort-column-id">10</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_beta">
                         <property name="alignment">right</property>
@@ -13166,7 +14182,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">9</property>
+                    <property name="sort-column-id">11</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_r">
                         <property name="alignment">right</property>
@@ -13186,7 +14202,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">10</property>
+                    <property name="sort-column-id">12</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_angle">
                         <property name="alignment">right</property>
@@ -13206,7 +14222,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">11</property>
+                    <property name="sort-column-id">13</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_rmse">
                         <property name="alignment">right</property>
@@ -23859,6 +24875,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
+                                                    <property name="halign">end</property>
                                                     <property name="action-name">win.nina_light_curve</property>
                                                   </object>
                                                   <packing>
@@ -23866,6 +24883,23 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="fill">True</property>
                                                     <property name="pack-type">end</property>
                                                     <property name="position">4</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="comp_stars_button">
+                                                    <property name="label" translatable="yes">Comparison stars</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
+Output is a csv file compatible with NINA Exoplanet</property>
+                                                    <property name="action-name">win.compstars</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">5</property>
                                                   </packing>
                                                 </child>
                                               </object>
@@ -25937,6 +26971,21 @@ WARNING: This option should not be checked for master stacking.</property>
                     <property name="action-name">win.photometry</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">photometry</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleToolButton" id="cut_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Make an intensity profile cut, showing a graph of the pixel value along a line between two points</property>
+                    <property name="action-name">win.cut</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">image_cut</property>
+                    <signal name="toggled" handler="on_cut_button_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -28846,14 +29895,70 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkCheckButton" id="astrometry_update_fields">
-                                    <property name="label" translatable="yes">Update default focal length and pixel size from the result</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
-                                    <property name="margin-start">12</property>
-                                    <property name="draw-indicator">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkCheckButton" id="astrometry_update_fields">
+                                        <property name="label" translatable="yes">Update default focal length and pixel size from the result</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="spacing">6</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Sampling tolerance (%):</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_sampling_tolerance">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow.</property>
+                                            <property name="halign">start</property>
+                                            <property name="width-chars">9</property>
+                                            <property name="input-purpose">digits</property>
+                                            <property name="adjustment">adj_sampling_tolerance</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                 </child>
                                 <child type="label">
@@ -28905,33 +30010,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Sampling tolerance (%):</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="spin_asnet_sampling">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow. Given sampling is multiplied or divided by 1 + this / 100.</property>
-                                        <property name="halign">start</property>
-                                        <property name="width-chars">9</property>
-                                        <property name="input-purpose">digits</property>
-                                        <property name="adjustment">adj_asnet_sampling</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkSpinButton" id="spin_asnet_radius">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
@@ -28944,7 +30022,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">2</property>
+                                        <property name="top-attach">1</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -28956,7 +30034,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">2</property>
+                                        <property name="top-attach">1</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -28970,7 +30048,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">3</property>
+                                        <property name="top-attach">2</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -28984,7 +30062,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">4</property>
+                                        <property name="top-attach">3</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -28996,7 +30074,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">5</property>
+                                        <property name="top-attach">4</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -29011,7 +30089,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">5</property>
+                                        <property name="top-attach">4</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -29038,7 +30116,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">6</property>
+                                        <property name="top-attach">5</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -29056,7 +30134,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">6</property>
+                                        <property name="top-attach">5</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -29072,6 +30150,23 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                         <property name="left-attach">0</property>
                                         <property name="top-attach">7</property>
                                       </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="asnet_clear">
+                                        <property name="label" translatable="yes">Clear</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="halign">end</property>
+                                        <signal name="clicked" handler="on_asnet_clear_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">6</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
                                     </child>
                                     <child>
                                       <placeholder/>
@@ -31450,7 +32545,7 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=2 n-rows=3 -->
+                          <!-- n-columns=2 n-rows=4 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -31586,6 +32681,25 @@ Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-like).
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">2</property>
                               </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="do_use_gnuplot_button">
+                                <property name="label" translatable="yes">Use gnuplot</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Tick this box to use gnuplot (whether it's in the path or if you've specified one above).
+If unticked, Siril will use its internal plotting tool</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
                             </child>
                           </object>
                         </child>

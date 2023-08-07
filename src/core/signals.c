@@ -86,7 +86,7 @@ static void signal_handled(int s) {
 		backtrace_symbols_fd(stack, size, fileno((FILE*) stdout));
 #endif
 	}
-	undo_flush();
+//	undo_flush(); // don't want to add code here. It will freeze on it and never exit.
 	exit(EXIT_FAILURE);
 }
 

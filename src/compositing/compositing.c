@@ -24,12 +24,14 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"
@@ -40,8 +42,10 @@
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
+#include "gui/linear_match.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
+#include "gui/photometric_cc.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
 #include "gui/colors.h"
@@ -67,36 +71,25 @@ static coloring_type_enum coloring_type = HSL;
 /* The result is stored in gfit.
  * gfit.rx and gfit.ry are the reference 1x1 binning output image size. */
 
+// Absolute maximum possible layers
 #define MAX_LAYERS 8
-
-/* the structure storing information for each layer to be composed
- * (one layer = one source image) and one associated colour */
-typedef struct {
-	/* widgets data */
-	GtkButton *remove_button;
-	GtkDrawingArea *color_w;	// the simulated color chooser
-	GtkFileChooserButton *chooser;	// the file choosers
-	GtkLabel *label;		// the labels
-	GtkSpinButton *spinbutton_x;	// the X spin button
-	GtkSpinButton *spinbutton_y;	// the Y spin button
-
-	/* useful data */
-	GdkRGBA color;			// real color of the layer
-	GdkRGBA saturated_color;	// saturated color of the layer
-	fits the_fit;			// the fits for layers
-} layer;
+// Working limit (dependent on memory check)
+static int maximum_layers = MAX_LAYERS;
 
 /* the list of layers. It is dynamic in content but fixed in size.
  * The first element is reserved for luminance and cannot be removed. */
 static layer *layers[MAX_LAYERS+1];	// NULL terminated
 static int layers_count = 1;		// the glade has only luminance
+static unsigned int orig_rx[MAX_LAYERS] = { 0 }; // these are used to hold the original layer image
+static unsigned int orig_ry[MAX_LAYERS] = { 0 }; // dimensions before any upscaling
 
 static int luminance_mode = 0;		// 0 if luminance is not used
 
-static struct registration_method *reg_methods[3];
+static struct registration_method *reg_methods[5];
 
 static sequence *seq = NULL;		// the sequence of layers, for alignments and normalization
 static norm_coeff *coeff = NULL;	// the normalization coefficients
+static transformation_type the_type = HOMOGRAPHY_TRANSFORMATION; // always HOMOGRAPHY_TRANSFORMATION unless using the shift-only method
 
 static GdkRGBA list_of_12_palette_colors[12];
 static const char *list_of_12_color_names[12] = {
@@ -120,10 +113,12 @@ static GtkGrid *grid_layers = NULL;
 static GtkButton *add_button = NULL;
 
 /******* internal functions *******/
+static void remove_layer(int layer);
 static void add_the_layer_add_button();
 static void grid_add_row(int layer, int index, int first_time);
 static void grid_remove_row(int layer, int free_the_row);
 static int has_fit(int layer);
+static int number_of_images_loaded();
 static void update_compositing_registration_interface();
 static float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y);
 static void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA *rgbpixel, float vlayer_pixel_value);
@@ -137,6 +132,7 @@ static void clear_pixel(GdkRGBA *pixel);
 static void update_result(int and_refresh);
 static void populate_filter_lists();
 static void coeff_clear();
+int register_manual(struct registration_args *regargs);
 
 /* callbacks for programatic GTK */
 void on_layer_remove(const GtkButton *button, gpointer user_data);
@@ -145,8 +141,48 @@ gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventBut
 gboolean on_color_button_motion_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data);
 gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data);
 void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data);
+void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data);
+
 
 /********************************************************/
+
+/* mem_limits function */
+/* A bit like the sequence compute_mem_limits functions except this one is used
+ * to set a maximum on the number of layers that can be added, based on the size
+ * of the first one loaded. */
+static void compute_compositor_mem_limits(fits* fit) {
+	unsigned int MB_per_image, MB_per_scaled_image, MB_avail, required;
+	float overlap_allowance = 1.5f;
+	int limit = compute_nb_images_fit_memory_from_fit(fit, 1.0, FALSE, &MB_per_image, &MB_per_scaled_image, &MB_avail);
+	if (limit > 0) {
+		uint64_t float_channel_size = fit->rx * fit->ry * sizeof(float) / BYTES_IN_A_MB;
+		required = float_channel_size * 2;
+		limit = (MB_avail - (3.f * float_channel_size) * overlap_allowance) / required;
+		// UI limitations make it practically difficult to deal with > 10 images
+		// regardless of memory constraints, so we retain 10 as an upper bound.
+		if (limit > 8) {
+			limit = 8;
+		}
+		if (limit < 3) {
+			siril_log_color_message(_("Warning: memory limit check determines that fewer than 3 images of this size can be composited. RGB composition is not possible without freeing up more memory.\n"), "salmon");
+		} else if (limit < 4) {
+			siril_log_color_message(_("Warning: memory limit check determines that fewer than 4 images of this size can be composited. LRGB composition is not possible without freeing up more memory.\n"), "salmon");
+		} else {
+			siril_log_message(_("Based on the available memory and initial image dimensions, up to %d images may be composited (the maximum can never exceed 8).\n"), limit);
+		}
+	}
+	maximum_layers = limit;
+	// Ensure layers exceeding the limit are removed from the GUI
+	for (int layer = MAX_LAYERS ; layer > limit ; layer--) {
+		remove_layer(layer);
+	}
+	int count = 0;
+	while (layers[count])
+		count++;
+	if (count == maximum_layers)
+		gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
+
+}
 
 /* the compositing menu callback */
 
@@ -155,9 +191,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data);
  * reserved to the luminance layer. */
 layer *create_layer(int index) {
 	layer *ret = malloc(sizeof(layer));
-
 	/* create the widgets and set properties and signals */
-	//ret->remove_button = GTK_BUTTON(gtk_button_new_from_icon_name("list-remove", GTK_ICON_SIZE_BUTTON));
 	ret->remove_button = GTK_BUTTON(gtk_button_new());
 	gtk_button_set_image(ret->remove_button,
 			gtk_image_new_from_icon_name("list-remove", GTK_ICON_SIZE_BUTTON));
@@ -181,24 +215,49 @@ layer *create_layer(int index) {
 	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser),
 			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
 			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
-	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
-	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
+	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
 
 	ret->label = GTK_LABEL(gtk_label_new(_("not loaded")));
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
 	g_object_ref(G_OBJECT(ret->label));	// don't destroy it on removal from grid
 
-	ret->spinbutton_x = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-1000.0, 1000.0, 1.0));
+	ret->spinbutton_x = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 0.1));
 	gtk_spin_button_set_value(ret->spinbutton_x, 0.0);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_x), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_x));	// don't destroy it on removal from grid
 
-	ret->spinbutton_y = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-1000.0, 1000.0, 1.0));
+	ret->spinbutton_y = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-10000.0, 10000.0, 0.1));
 	gtk_spin_button_set_value(ret->spinbutton_y, 0.0);
 	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_y), FALSE);
 	g_object_ref(G_OBJECT(ret->spinbutton_y));	// don't destroy it on removal from grid
 
+	ret->spinbutton_r = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(-360.0, 360.0, 0.001));
+	gtk_spin_button_set_value(ret->spinbutton_r, 0.0);
+	gtk_widget_set_sensitive(GTK_WIDGET(ret->spinbutton_r), FALSE);
+	g_object_ref(G_OBJECT(ret->spinbutton_r));	// don't destroy it on removal from grid
+
+	ret->centerbutton = GTK_TOGGLE_BUTTON(gtk_toggle_button_new());
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ret->centerbutton), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(ret->centerbutton), FALSE);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->centerbutton), _("Set rotation center for this layer"));
+	gtk_button_set_image(GTK_BUTTON(ret->centerbutton), gtk_image_new_from_icon_name("gtk-cdrom", GTK_ICON_SIZE_BUTTON));
+	g_signal_connect(ret->centerbutton, "toggled", G_CALLBACK(on_centerbutton_toggled), NULL);
+	g_object_ref(G_OBJECT(ret->centerbutton));	// don't destroy it on removal from grid
+
 	/* set other layer data */
+	if (number_of_images_loaded() > 0) {
+		// If we have images loaded, set the layer center to the center of the image
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]->the_fit.rx != 0) {
+				ret->center.x = layers[layer]->the_fit.rx / 2.0;
+				ret->center.y = layers[layer]->the_fit.ry / 2.0;
+				break;
+			}
+		}
+	} else {
+		// Otherwise initialize it to zero
+		memset(&ret->center, 0, sizeof(point));
+	}
 	memset(&ret->the_fit, 0, sizeof(fits));
 	assert(index >= 2);	// 1 is luminance
 	if (index <= 7)		// copy default RGB colours
@@ -216,7 +275,7 @@ void on_layer_add(GtkButton *button, gpointer user_data) {
 
 	/* move down the plus button */
 	gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
-	if (layers_count < MAX_LAYERS)
+	if (layers_count < maximum_layers)
 		add_the_layer_add_button();
 
 	/* add the new layer */
@@ -247,19 +306,15 @@ static void add_the_layer_add_button() {
 		gtk_widget_show(GTK_WIDGET(add_button));
 }
 
-/* callback of the '-' button that is clicked to remove a layer in the list */
-void on_layer_remove(const GtkButton *button, gpointer user_data) {
-	int layer, refresh = 0;
-	for (layer = 1; layers[layer]; layer++)
-		if (layers[layer]->remove_button == button)
-			break;
-	if (!layers[layer]) return;
-
-	if (layer != MAX_LAYERS-1) {
+static void remove_layer(int layer) {
+	// Abort if the layer we are asked to remove does not exist
+	if (!layers[layer])
+		return;
+	int refresh = 0;
+	if (layer != maximum_layers-1) {
 		// the add button is not present if we're at the maximum number of layers
 		gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
 	}
-
 	if (has_fit(layer)) {
 		clearfits(&layers[layer]->the_fit);
 		refresh = 1;
@@ -284,6 +339,17 @@ void on_layer_remove(const GtkButton *button, gpointer user_data) {
 		update_result(1);
 }
 
+/* callback of the '-' button that is clicked to remove a layer in the list */
+void on_layer_remove(const GtkButton *button, gpointer user_data) {
+	int layer;
+	for (layer = 1; layers[layer]; layer++)
+		if (layers[layer]->remove_button == button)
+			break;
+	if (!layers[layer]) return;
+
+	remove_layer(layer);
+}
+
 static void grid_remove_row(int layer, int free_the_row) {
 	GtkContainer *cont = GTK_CONTAINER(grid_layers);
 	if (!layers[layer]) return;
@@ -293,6 +359,8 @@ static void grid_remove_row(int layer, int free_the_row) {
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->label));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_x));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_y));
+	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_r));
+	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->centerbutton));
 	if (free_the_row) {
 		g_object_unref(G_OBJECT(layers[layer]->remove_button));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->color_w));	// don't destroy it on removal from grid
@@ -300,6 +368,8 @@ static void grid_remove_row(int layer, int free_the_row) {
 		g_object_unref(G_OBJECT(layers[layer]->label));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_x));	// don't destroy it on removal from grid
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_y));	// don't destroy it on removal from grid
+		g_object_unref(G_OBJECT(layers[layer]->spinbutton_r));	// don't destroy it on removal from grid
+		g_object_unref(G_OBJECT(layers[layer]->centerbutton));	// don't destroy it on removal from grid
 	}
 }
 
@@ -311,6 +381,8 @@ static void grid_add_row(int layer, int index, int first_time) {
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->label),		3, index, 1, 1);
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_x),	4, index, 1, 1);
 	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_y),	5, index, 1, 1);
+	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->spinbutton_r),	6, index, 1, 1);
+	gtk_grid_attach(grid_layers, GTK_WIDGET(layers[layer]->centerbutton),	7, index, 1, 1);
 
 	if (first_time) {
 		gtk_widget_show(GTK_WIDGET(layers[layer]->remove_button));
@@ -319,6 +391,8 @@ static void grid_add_row(int layer, int index, int first_time) {
 		gtk_widget_show(GTK_WIDGET(layers[layer]->label));
 		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_x));
 		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_y));
+		gtk_widget_show(GTK_WIDGET(layers[layer]->spinbutton_r));
+		gtk_widget_show(GTK_WIDGET(layers[layer]->centerbutton));
 	}
 }
 
@@ -352,6 +426,8 @@ void open_compositing_window() {
 		layers[0]->label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_lum"));
 		layers[0]->spinbutton_x = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_x"));
 		layers[0]->spinbutton_y = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_y"));
+		layers[0]->spinbutton_r = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_r"));
+		layers[0]->centerbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "centerbutton_lum"));
 
 		for (i=1; i<4; i++) {
 			/* Create the three default layers */
@@ -362,10 +438,12 @@ void open_compositing_window() {
 		/* the list below depends on the content of the glade file. It
 		 * should be done in the same way as in registration.c, but it
 		 * woud be easier if the two glades are merged. */
-		reg_methods[0] = new_reg_method(_("One star registration (deep-sky)"), &register_shift_fwhm, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
-		reg_methods[1] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+		reg_methods[0] = new_reg_method(_("Deep Sky (two-step global star registration)"), &register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[1] = new_reg_method(_("Planetary (DFT image pattern alignment)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
+		reg_methods[2] = new_reg_method(_("Planetary (KOMBAT image pattern alignment)"), &register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
+		reg_methods[3] = new_reg_method(_("Manual alignment"), &register_manual, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 
-		reg_methods[2] = NULL;
+		reg_methods[4] = NULL;
 		update_compositing_registration_interface();
 		/* fill compositing_align_method_combo */
 		GtkComboBoxText *aligncombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
@@ -376,9 +454,9 @@ void open_compositing_window() {
 			i++;
 		}
 		if (i > 0) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(aligncombo), com.pref.gui.reg_settings);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(aligncombo), 0);
 		}
-
+		update_compositing_registration_interface();
 		compositing_loaded = 1;
 	} else {
 		/* not the first load, update the CWD just in case it changed in the meantime */
@@ -423,6 +501,16 @@ static int no_color_available() {	// don't test luminance
 /* the 'enable luminance' checkbox callback */
 void on_composition_use_lum_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	luminance_mode = gtk_toggle_button_get_active(togglebutton);
+
+	// Reset the luminance file if it is toggled off when the maximum number
+	// of files are loaded.
+	if (!luminance_mode && layers[0]->the_fit.rx != 0 && number_of_images_loaded() == maximum_layers) {
+		clearfits(&layers[0]->the_fit);
+		gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(layers[0]->chooser));
+		gtk_label_set_text((GtkLabel*)layers[0]->label, _("not loaded"));
+	}
+
+	// Update the result if necessary
 	if (has_fit(0) && number_of_images_loaded() >= 1)
 		update_result(1);
 }
@@ -467,9 +555,11 @@ static void check_gfit_is_ours() {
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	if (!create_uniq_from_gfit(strdup(_("Unsaved compositing result")), FALSE))
+	char *temp = strdup(_("Unsaved compositing result"));
+	if (!create_uniq_from_gfit(temp, FALSE))
 		com.uniq->comment = strdup(_("Compositing result image"));
-
+	else
+		free(temp);
 	initialize_display_mode();
 	update_zoom_label();
 	display_filename();
@@ -480,28 +570,49 @@ static void check_gfit_is_ours() {
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
 	set_display_mode();
+	update_MenuItem();
 	redraw(REMAP_ALL);
 
 	sequence_list_change_current();
 }
 
+// Called from the filechooser
 static void update_metadata() {
 	int nb = number_of_images_loaded();
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
+	int firstlayer = -1;
 	for (int i = 0; layers[i] ; i++)
-		if (has_fit(i))
+		if (has_fit(i)) {
+			if (firstlayer == -1)
+				firstlayer = i;
 			f[j++] = &layers[i]->the_fit;
+		}
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(&gfit);
+	load_WCS_from_memory(&layers[firstlayer]->the_fit);
+	free(f);
+}
+
+// Called after alignment
+static void update_comp_metadata(fits *fit) {
+	int nb = number_of_images_loaded();
+	fits **f = malloc((nb + 1) * sizeof(fits *));
+	int j = 0;
+	for (int i = 0; i < nb ; i++)
+		if (seq->internal_fits[i])
+			f[j++] = seq->internal_fits[i];
+	f[j] = NULL;
+
+	merge_fits_headers_to_result2(&gfit, f);
+	load_WCS_from_memory(fit);
 	free(f);
 }
 
 /* callback for the file chooser's file selection: try to load the pointed file, allocate the
  * destination image if this is the first image, and update the result. */
-void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
+void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) {
 	int layer, retval;
 	char buf[48], *filename;
 
@@ -512,14 +623,25 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	check_gfit_is_ours();
 
 	for (layer = 0; layers[layer]; layer++)
-		if (layers[layer]->chooser == widget)
+		if (layers[layer]->chooser == chooser)
 			break;
 	if (!layers[layer]) return;	// not found
 	/* layer is the number of the opened layer */
 
-	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
+	// If this layer doesn't already have a fit loaded, and
+	// we already have the maximum number of images loaded,
+	// error message and return. This may happen because the
+	// memory check function can't be too strict about removing
+	// layers, it has to allow for either luminance or non-
+	// luminance compositions
+	if (layers[layer]->the_fit.rx == 0 && number_of_images_loaded() == maximum_layers) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"), _("The meximum number of images of this size has been reached based on available memory limits."));
+		return;
+	}
+
+	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
 	if (!filename) return;
-	if (layers[layer]->the_fit.rx == 0) {	// already loaded image
+	if (layers[layer]->the_fit.rx != 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
 	}
 	if ((retval = read_single_image(filename, &layers[layer]->the_fit,
@@ -530,7 +652,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 		/* first we want test that we load a single-channel image */
 		if (layers[layer]->the_fit.naxes[2] > 1) {
 			gtk_label_set_markup(layers[layer]->label, _("<span foreground=\"red\">ERROR</span>"));
-			gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Only single channel images can be load"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Only single channel images can be loaded"));
 			retval = 1;
 		} else {
 			/* Force first tab to be Red and not B&W if an image was already loaded */
@@ -539,13 +661,14 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
 			close_tab();
 
+			if (number_of_images_loaded() == 1) { // set orig_rx and orig_ry, and check memory limits
+				orig_rx[layer] = layers[layer]->the_fit.rx;
+				orig_ry[layer] = layers[layer]->the_fit.ry;
+				compute_compositor_mem_limits(&layers[layer]->the_fit);
+			}
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||
 							gfit.ry != layers[layer]->the_fit.ry)) {
-				/* TODO: handle the binning cases. Values should be stored
-				 * in, or even taken from fit->binning_x and binning_y */
-				//if (layers[layer]->the_fit.binning_x > 1 ||
-				//layers[layer]->the_fit.binning_y > 1)
 				if (gfit.rx < layers[layer]->the_fit.rx ||
 						gfit.ry < layers[layer]->the_fit.ry) {
 					siril_log_message(_("The first loaded image should have the greatest sizes for now\n"));
@@ -559,12 +682,16 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 							layers[layer]->the_fit.ry, gfit.rx, gfit.ry);
 						sprintf(buf, _("OK upscaled from %ux%u"),
 								layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
-						cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_AREA, FALSE);
+						cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_LANCZOS4, TRUE);
 						gtk_label_set_text(layers[layer]->label, buf);
+						layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
+						layers[layer]->center.y = layers[layer]->the_fit.ry / 2.0;
 						gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Image loaded, and upscaled"));
 				}
 			}
 			else if (!retval) {
+				layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
+				layers[layer]->center.y = layers[layer]->the_fit.ry / 2.0;
 				sprintf(buf, _("OK %ux%u"), layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
 				gtk_label_set_text(layers[layer]->label, buf);
 				gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Image loaded"));
@@ -583,8 +710,24 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	}
 	if (retval) {
 		clearfits(&layers[layer]->the_fit);
+		orig_rx[layer] = 0;
+		orig_ry[layer] = 0;
 		return;
 	}
+	// Check if we have a color image. If so, show the RGB viewport. But set a variable so if the
+	// user switches back to a mono viewport and then loads another layer it won't change again -
+	// at that point it's up to them.
+	if (number_of_images_loaded() > 1) {
+		GtkNotebook* notebook = (GtkNotebook*) lookup_widget("notebook1");
+		gtk_notebook_set_current_page(notebook, 3);
+		gui.cvport = 3;
+		redraw(REMAP_ALL);
+		update_display_selection();	// update the dimensions of the selection when switching page
+		update_display_fwhm();
+	}
+
+
+	update_compositing_registration_interface();
 
 	// enable the color balance finalization button
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
@@ -623,58 +766,212 @@ void create_the_internal_sequence() {
 			}
 		}
 	}
-
+	seq->bitpix = gfit.bitpix;
 	seq->rx = gfit.rx;
 	seq->ry = gfit.ry;
 }
 
+void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data) {
+	// First, get the state of this centerbutton
+	gboolean state = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
+	// If state == active, ensure all the other centerbuttons are inactivated
+	if (state) {
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				if (layers[layer]->centerbutton != button) {
+					// Suppress the callback while deactivating each of the other buttons
+					g_signal_handlers_block_by_func(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), on_centerbutton_toggled, NULL);
+					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
+					g_signal_handlers_unblock_by_func(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), on_centerbutton_toggled, NULL);
+				} else {
+					// Set gui.comp_layer_centering to the current layer
+					gui.comp_layer_centering = layers[layer];
+					redraw(REDRAW_OVERLAY);
+				}
+			}
+		}
+		// Set the mouse_status to allow the image_interactions callbacks to set the center point
+		mouse_status = MOUSE_ACTION_GET_COMP_CENTER_COORDINATE;
+	} else {
+		// Reset the mouse status
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	}
+}
+
+
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
+	// Set gui.comp_layer_centering to NULL so that center points cease to be drawn
+	gui.comp_layer_centering = NULL;
+	// Ensure the transformation type is set correctly
+	struct registration_method *method;
+	framing_type framing;
+	GtkComboBox *regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
+	method = reg_methods[gtk_combo_box_get_active(regcombo)];
+	GtkComboBox *framingcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_framing_combo"));
+	framing = (framing_type) gtk_combo_box_get_active(framingcombo);
+	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
+		the_type = SHIFT_TRANSFORMATION;
+	else
+		the_type = HOMOGRAPHY_TRANSFORMATION;
+
+	gboolean two_step = (method->method_ptr == register_multi_step_global ||
+		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
+
+	// Avoid crash if gfit has been closed since populating the layers
+	if (!gfit.data && !gfit.fdata) {
+		update_result(1);
+	}
+
+	// Avoid crash if the size of gfit is larger than the input images
+	// This can happen if compositing is run twice in a row with a
+	// framing type that increases its dimensions
+	check_gfit_is_ours();
+
+	// Check the input images are still all the same size. Size changes
+	// can happen if a prior composition failed to align some images.
+	gboolean variable = FALSE;
+	int start = luminance_mode ? 0 : 1;
+	int rx = layers[start]->the_fit.rx;
+	int ry = layers[start]->the_fit.ry;
+	for (int i = start ; i < layers_count ; i++) {
+		if (layers[i]->the_fit.rx != 0 && (rx != layers[i]->the_fit.rx || ry != layers[i]->the_fit.ry)) {
+			char buf[48];
+			sprintf(buf, _("NOT OK: %ux%u"), layers[i]->the_fit.rx, layers[i]->the_fit.ry);
+			gtk_label_set_text(layers[i]->label, buf);
+			variable = TRUE;
+		}
+	}
+	if (variable) {
+		siril_log_color_message(_("The image sizes are not consistent. This may happen as the result of previous alignment operations. Please reload the input images.\n"), "red");
+		return;
+	}
+
 	int i = 0;
 	struct registration_args regargs = { 0 };
-	struct registration_method *method;
 	char *msg;
-	GtkComboBox *regcombo;
 
 	create_the_internal_sequence();
-
 	/* align it */
-	regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
-	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 
 	regargs.seq = seq;
+	regargs.no_output = FALSE;
 	get_the_registration_area(&regargs, method);
-	regargs.layer = 0;	// TODO: fix with dynamic layers list
+	regargs.layer = 0;
+	seq->reference_image = 0;
+	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
+	regargs.interpolation = OPENCV_LANCZOS4;
+	regargs.clamp = TRUE;
+	regargs.framing = framing;
+	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
+	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
+						framing != FRAMING_CURRENT) ? TRUE : FALSE;
+	regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
+
+	// Update the spinbutton values if we are doing manual reg
+	// This avoids GTK calls from threads
+	if (method->method_ptr == register_manual) {
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				layers[layer]->spinbutton_x_value = gtk_spin_button_get_value(layers[layer]->spinbutton_x);
+				layers[layer]->spinbutton_y_value = gtk_spin_button_get_value(layers[layer]->spinbutton_y);
+				layers[layer]->spinbutton_r_value = gtk_spin_button_get_value(layers[layer]->spinbutton_r);
+			}
+		}
+	}
 
 	msg = siril_log_message(_("Starting registration using method: %s\n"), method->name);
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
-	if (method->method_ptr(&regargs))
+	int ret1 = (method->method_ptr(&regargs));
+	free(regargs.imgparam);
+	regargs.imgparam = NULL;
+	free(regargs.regparam);
+	regargs.regparam = NULL;
+	if (ret1) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
-	else set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+		set_cursor_waiting(FALSE);
+		com.run_thread = FALSE;	// fix for the cancelling check in processing
+		return;
+	}
+	if (two_step) {
+		int count_A = 0;
+		int count_B = 0;
+		for (int index = 0 ; index < layers_count - start ; index++) {
+			int layer = index + start;
+			if (layers[layer]->the_fit.rx != 0) {
+				count_B++;
+				if (seq->imgparam[index].incl) count_A++;
+			}
+		}
+		if (count_A != count_B) {
+			if (!siril_confirm_dialog(_("Incomplete alignment"),
+					_("Some images did not align correctly. Proceed to see the "
+					"partially aligned result? (This may alter image dimensions "
+					"in which case the images must be re-loaded to retry "
+					"alignment.)"), _("Proceed"))) {
+				set_cursor_waiting(FALSE);
+				com.run_thread = FALSE;	// fix for the cancelling check in processing
+				return;
+			}
+		}
+		if (luminance_mode) {
+			// Set the reference image to 0 (i.e. Luminance)
+			regargs.seq->reference_image = 0;
+			siril_log_message(_("Using Luminance channel as reference.\n"));
+		}
+		int ret2 = register_apply_reg(&regargs);
+		free(regargs.imgparam);
+		regargs.imgparam = NULL;
+		free(regargs.regparam);
+		regargs.regparam = NULL;
+		if (ret2) {
+			set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
+			set_cursor_waiting(FALSE);
+			com.run_thread = FALSE;	// fix for the cancelling check in processing
+			return;
+		}
+	}
+	// update WCS etc.
+	update_comp_metadata(seq->internal_fits[seq->reference_image]);
+	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
 
 	/* display the values */
-	if (!luminance_mode)
-		i = 1;
+	if (method->method_ptr != register_manual) {
+		if (!luminance_mode)
+			i = 1;
 
-	for (int j=0; i<layers_count; i++) {
-		if (has_fit(i)) {
-			double dx, dy;
-			translation_from_H(seq->regparam[0][j].H, &dx, &dy);
-			gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
-			gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
-			j++;
+		for (int j=0; i<layers_count; i++) {
+			if (has_fit(i)) {
+				double dx, dy, rotation;
+				translation_from_H(seq->regparam[0][j].H, &dx, &dy);
+				rotation = atan2(seq->regparam[0][j].H.h01, seq->regparam[0][j].H.h00) * 180 / M_PI;
+				gtk_spin_button_set_value(layers[i]->spinbutton_x, dx);
+				gtk_spin_button_set_value(layers[i]->spinbutton_y, dy);
+				gtk_spin_button_set_value(layers[i]->spinbutton_r, rotation);
+				j++;
+			}
 		}
 	}
-
 	/* align the image and display it.
 	 * Layers are aligned against the reference layer, with zeros where there is not data */
 	update_result(1);
+	// reset the transformation type so that it is always in this state by default
+	the_type = HOMOGRAPHY_TRANSFORMATION;
+	// Reset rotation centers: owing to the change of framing the previous rotation centers
+	// cannot be relied on. Note this means only one rotation should be carried out at a time.
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer]) {
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
+			layers[layer]->center.x = gfit.rx / 2.0;
+			layers[layer]->center.y = gfit.ry / 2.0;
+		}
+	}
 }
 
 float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
@@ -693,15 +990,23 @@ float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
 static float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y) {
 	int realX = x, realY = y;
 	if (seq && seq->regparam && reg_layer < seq->number && reg_layer >= 0) {
-		double dx, dy;
-		translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
+		double dx = 0.0, dy = 0.0;
+		// Not needed except for shift transformation
+		if (the_type == SHIFT_TRANSFORMATION)
+			translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
 		// all images have one layer, hence the 0 below
 		realX = x - round_to_int(dx);
-		if (realX < 0 || realX >= gfit.rx) return 0.0f;
+		if (realX < 0 || realX >= layers[fits_index]->the_fit.rx) return 0.0f;
 		realY = y - round_to_int(dy);
-		if (realY < 0 || realY >= gfit.ry) return 0.0f;
+		if (realY < 0 || realY >= layers[fits_index]->the_fit.ry) return 0.0f;
 	}
-	float pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * gfit.rx];
+	float pixel_value;
+	if (layers[fits_index]->the_fit.type == DATA_FLOAT)
+		pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * layers[fits_index]->the_fit.rx];
+	else if (layers[fits_index]->the_fit.type == DATA_USHORT)
+		pixel_value = (float) layers[fits_index]->the_fit.pdata[0][realX + realY * layers[fits_index]->the_fit.rx] / USHRT_MAX_SINGLE;
+	else
+		pixel_value = 0.f;
 	if (coeff) {
 		// normalization
 		pixel_value = get_normalized_pixel_value(fits_index, pixel_value);
@@ -738,16 +1043,10 @@ static void update_compositing_registration_interface() {
 	if (!gui.builder) return;
 	GtkLabel *label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_msg"));
 	GtkComboBox *combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
-	//int ref_layer = gtk_combo_box_get_active(GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_layer_combo")));
 	int sel_method = gtk_combo_box_get_active(combo);
-	/* select default method as function of selection size */
-	if (sel_method == -1 && com.selection.w > 0 && com.selection.h > 0) {
-		if (com.selection.w > 180 || com.selection.h > 180)
-			gtk_combo_box_set_active(combo, 0);	// activate DFT
-		else gtk_combo_box_set_active(combo, 1);	// activate FWHM
-	}
 
-	if (com.selection.w <= 0 && com.selection.h <= 0) {
+	if (com.selection.w <= 0 && com.selection.h <= 0 && (sel_method == 1 || sel_method == 2)) {
+		// DFT shift ad KOMBAT require a selection to be made
 		gtk_label_set_text(label, _("An image area must be selected for align"));
 		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
 	/*} else if (ref_layer == -1 || (!luminance_mode && ref_layer == 0)) {
@@ -764,8 +1063,43 @@ static void update_compositing_registration_interface() {
 }
 
 /* callback for changes of the selected reference layer */
-void on_compositing_align_layer_combo_changed(GtkComboBox *widget, gpointer user_data) {
+
+void on_compositing_align_method_combo_changed(GtkComboBox *widget, gpointer user_data) {
 	update_compositing_registration_interface();
+	int sel_method = gtk_combo_box_get_active(widget);
+	if (sel_method == 3) { // Prepare for manual alignment
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				// Make the spinbuttons and centerbutton sensitive to input
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_x), TRUE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_y), TRUE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_r), TRUE);
+				// When changing method we always want to set all the center buttons to be inactive initially
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->centerbutton), TRUE);
+				// Zero the spinbuttons
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(layers[layer]->spinbutton_x), 0.0);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(layers[layer]->spinbutton_y), 0.0);
+				gtk_spin_button_set_value(GTK_SPIN_BUTTON(layers[layer]->spinbutton_r), 0.0);
+				layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
+				layers[layer]->center.y = layers[layer]->the_fit.ry  /2.0;
+			}
+		}
+	} else {
+		gui.comp_layer_centering = NULL;
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		for (int layer = 0 ; layer < maximum_layers ; layer++) {
+			if (layers[layer]) {
+				// Make the spinbuttons and centerbutton insensitive to input
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_x), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_y), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->spinbutton_r), FALSE);
+				gtk_widget_set_sensitive(GTK_WIDGET(layers[layer]->centerbutton), FALSE);
+				// When changing method we always want to set all the center buttons to be inactive initially
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
+			}
+		}
+	}
 }
 
 void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer user_data) {
@@ -776,9 +1110,12 @@ void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer use
 /* Image composition without luminance. Used for RGB composition for example.
  * Result is in gfit. */
 static void colors_align_and_compose() {
-	int x, y, i = 0;	// i is browsing the 1D buffer, i = y * rx + x
+	int x, y;
 	if (no_color_available()) return;
 	fprintf(stdout, "colour layers only composition\n");
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
+#endif
 	for (y = 0; y < gfit.ry; ++y) {
 		for (x = 0; x < gfit.rx; ++x) {
 			int layer;
@@ -794,10 +1131,10 @@ static void colors_align_and_compose() {
 			}
 
 			rgb_pixel_limiter(&pixel);
-			gfit.fpdata[RLAYER][i] = pixel.red;
-			gfit.fpdata[GLAYER][i] = pixel.green;
-			gfit.fpdata[BLAYER][i] = pixel.blue;
-			i++;
+			size_t dst_index = y * gfit.rx + x;
+			gfit.fpdata[RLAYER][dst_index] = pixel.red;
+			gfit.fpdata[GLAYER][dst_index] = pixel.green;
+			gfit.fpdata[BLAYER][dst_index] = pixel.blue;
 		}
 	}
 }
@@ -883,6 +1220,7 @@ static void luminance_and_colors_align_and_compose() {
 }
 
 void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
+	gui.comp_layer_centering = NULL;
 	siril_close_dialog("composition_dialog");
 }
 
@@ -1092,6 +1430,7 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 }
 
 void reset_compositing_module() {
+	gui.comp_layer_centering = NULL;
 	if (!compositing_loaded)
 		return;
 
@@ -1136,6 +1475,7 @@ void reset_compositing_module() {
 	gtk_widget_set_tooltip_text(GTK_WIDGET(layers[0]->label), _("not loaded"));
 
 	update_compositing_registration_interface();
+	on_compositing_align_method_combo_changed((GtkComboBox*)lookup_widget("compositing_align_method_combo"), NULL);
 }
 
 void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
@@ -1246,11 +1586,353 @@ static void coeff_clear() {
 }
 
 void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	GtkWidget *win = lookup_widget("color_calibration");
-	initialize_calibration_interface();
+	gboolean photometric = gtk_toggle_button_get_active((GtkToggleButton*) lookup_widget("compositing_pcc_active"));
+	GtkWidget *win = NULL;
+	if (photometric) {
+		win = lookup_widget("ImagePlateSolver_Dial");
+		initialize_photometric_cc_dialog();
+	} else {
+		win = lookup_widget("color_calibration");
+		initialize_calibration_interface();
+	}
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */
 	gtk_widget_show(win);
+
+	if(photometric)
+		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 }
 
+void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
+	if (number_of_images_loaded() < 1)
+		return;
+
+	// Clear the image data and the sequence, if populated
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layers[layer]->the_fit.rx != 0)
+			clearfits(&layers[layer]->the_fit);
+	}
+	if (seq) {
+		free_sequence(seq, TRUE);
+		seq = NULL;
+	}
+	close_single_image();
+
+	// Ensure the first image that was loaded before is reloaded first, as the first image to be
+	// loaded must be the largest dimensions
+	int biggest_layer;
+	for (biggest_layer = 0 ; biggest_layer < maximum_layers ; biggest_layer++) {
+		if (layers[biggest_layer])
+			break;
+	}
+	for (int layer = 1 ; layer < maximum_layers ; layer++) {
+		if (orig_rx[layer] > layers[biggest_layer]->the_fit.rx && orig_ry[layer] > layers[biggest_layer]->the_fit.ry)
+			biggest_layer = layer;
+	}
+	on_filechooser_file_set(layers[biggest_layer]->chooser, NULL);
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layer != biggest_layer) {
+			on_filechooser_file_set(layers[layer]->chooser, NULL);
+		}
+	}
+	siril_log_message(_("All images reloaded successfully.\n"));
+	update_result(1);
+}
+
+void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
+	if (number_of_images_loaded() == 0) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No layers loaded: no files to save"));
+		return;
+	}
+	int retval = 0;
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layers[layer]->the_fit.rx != 0) {
+			gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(layers[layer]->chooser));
+			gchar *basename = g_path_get_basename(filename);
+			gchar *prepended_filename = g_strdup_printf("comp_%s", basename);
+			retval += savefits(prepended_filename, &layers[layer]->the_fit);
+			g_free(prepended_filename);
+			g_free(basename);
+			g_free(filename);
+		}
+	}
+	if (!retval) {
+		siril_log_color_message(_("All layer images saved correctly.\n"), "green");
+	} else {
+		siril_log_color_message(_("Error encountered in saving one or more files. Check previous log messages for details.\n"), "red");
+	}
+}
+
+void on_compositing_linear_match_clicked(GtkButton *button, gpointer *user_data) {
+	int error = 0;
+	if (number_of_images_loaded() < 2) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("At least 2 images must be loaded to perform linear matching."));
+		return;
+	}
+	int ref_layer = -1;
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layers[layer] && layers[layer]->the_fit.rx != 0) {
+			ref_layer = layer;
+			break;
+		}
+	}
+	fits *ref = &layers[ref_layer]->the_fit;
+	for (int layer = 0 ; layer < maximum_layers ; layer++) {
+		if (layer == ref_layer)
+			continue;
+		if (layers[layer] && layers[layer]->the_fit.rx != 0) {
+			double a[3] = { 0.0 }, b[3] = { 0.0 };
+			double low = 1.e-7;
+			double high = 0.875;
+			if (!find_linear_coeff(&layers[layer]->the_fit, ref, low, high, a, b, NULL)) {
+				apply_linear_to_fits(&layers[layer]->the_fit, a, b);
+			} else {
+				siril_log_message(_("Unable to find linear match coefficients for layer %d. Skipping...\n"), layer);
+				error++;
+			}
+		}
+		set_progress_bar_data(_("Linear match layers"), (double) layer / (double) maximum_layers);
+	}
+	set_progress_bar_data(_("Linear match layers complete"), 1.0);
+	if (error)
+		siril_log_color_message(_("Error: failed to match %d layers with the reference layer.\n"), "red", error);
+	update_result(1);
+}
+
+/*********************************
+ *                               *
+ * Manual registration functions *
+ *                               *
+ *********************************
+ * This registration function takes the shift and rotation values entered in the
+ * spinbutton boxes, generates a homography matrix from them and applies it to the
+ * set of images.
+ */
+
+int manual_align_prepare_results(struct generic_seq_args *args) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+
+	if (!regargs->no_output) {
+		// allocate destination sequence data
+		regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
+		regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
+		if (!regargs->imgparam  || !regargs->regparam) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		if (seq_prepare_hook(args))
+			return 1;
+	}
+
+	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
+	if (!sadata->success) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	return 0;
+}
+
+int manual_align_prepare_hook(struct generic_seq_args *args) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	fits fit = { 0 };
+	/* read the reference frame to get sadata->ref.x and ref.y, and check
+	   it isn't a CFA sequence */
+	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
+		siril_log_message(_("Could not load reference image\n"));
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		return 1;
+	}
+	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
+		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
+
+	siril_log_color_message(_("Reference Image:\n"), "green");
+	sadata->ref.x = fit.rx;
+	sadata->ref.y = fit.ry;
+	// For internal sequences the data / fdata pointer still
+	// points to the original memory in seq->internal_fits.
+	// It must not be freed by clearfits here so we set the
+	// pointers in fit to NULL
+	if (args->seq->type == SEQ_INTERNAL) {
+		fit.data = NULL;
+		fit.fdata = NULL;
+	}
+	clearfits(&fit);
+
+	if (regargs->x2upscale) {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 2.0;
+		} else {
+			sadata->ref.x *= 2.0;
+			sadata->ref.y *= 2.0;
+		}
+	}
+	else {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 1.0;
+		}
+	}
+	int retval = manual_align_prepare_results(args);
+	if (!retval)
+		sadata->current_regdata = regargs->regparam;
+	return retval;
+}
+
+Homography H_from_translation_and_rotation(double dx, double dy, double dr, point center) {
+	double alpha = cos(dr);
+	double beta = sin(dr);
+	Homography H = { alpha,	beta,	dx + (1 - alpha) * center.x - beta * center.y,
+					 -beta,	alpha,	dy + beta * center.x + (1 - alpha) * center.y,
+					 0,		0,		1 };
+	return H;
+}
+
+int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	int offset = luminance_mode ? 0 : 1;
+	if (regargs->no_output) {
+		/* if "save transformation only", we choose to initialize all frames
+		 * to exclude status. If registration is ok, the status is
+		 * set to include */
+		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+	}
+	if (layers[in_index + offset] && layers[in_index + offset]->the_fit.rx != 0) {
+		double dx = layers[in_index + offset]->spinbutton_x_value;
+		double dy = layers[in_index + offset]->spinbutton_y_value;
+		double dr = layers[in_index + offset]->spinbutton_r_value;
+		// Convert dr to radians
+		dr *= M_PI;
+		dr /= 180.0;
+		point* center = &layers[in_index + offset]->center;
+		if (dx == 0.0 && dy == 0.0 && dr == 0.0) {
+			regargs->reference_image = in_index;
+		}
+		regargs->seq->regparam[regargs->layer][in_index].H = H_from_translation_and_rotation(dx, dy, dr, *center);
+	} else {
+		args->seq->imgparam[in_index].incl = FALSE;
+		return 1;
+	}
+	if (!regargs->no_output) {
+		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		regargs->imgparam[out_index].rx = sadata->ref.x;
+		regargs->imgparam[out_index].ry = sadata->ref.y;
+		cvGetEye(&regargs->regparam[out_index].H);
+
+		if (regargs->x2upscale) {
+			fit->pixel_size_x /= 2;
+			fit->pixel_size_y /= 2;
+		}
+	} else {
+		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
+		// seems like not but this could backfire at some point
+		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+	}
+	sadata->success[out_index] = 1;
+	return 0;
+}
+
+int manual_align_finalize_hook(struct generic_seq_args *args) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	int failed = 0;
+	// images may have been excluded but selnum wasn't updated
+	fix_selnum(args->seq, FALSE);
+	if (!args->retval) {
+		for (int i = 0; i < args->nb_filtered_images; i++)
+			if (!sadata->success[i])
+				failed++;
+		regargs->new_total = args->nb_filtered_images - failed;
+
+		if (!regargs->no_output) {
+			if (failed) {
+				// regargs->imgparam and regargs->regparam may have holes caused by images
+				// that failed to be registered - compact them
+				for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
+					while (!sadata->success[j] && j < args->nb_filtered_images) j++;
+					g_assert(sadata->success[j]);
+					if (i != j) {
+						regargs->imgparam[i] = regargs->imgparam[j];
+						regargs->regparam[i] = regargs->regparam[j];
+					}
+				}
+			}
+
+			seq_finalize_hook(args);
+		}
+	} else {
+		regargs->new_total = 0;
+		free(args->seq->regparam[regargs->layer]);
+		args->seq->regparam[regargs->layer] = NULL;
+
+		if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
+			fitseq_close_and_delete_file(args->new_fitseq);
+			free(args->new_fitseq);
+		}
+	}
+
+	if (sadata->success) free(sadata->success);
+	free(sadata);
+	args->user = NULL;
+	if (!args->retval) {
+		siril_log_message(_("Registration finished.\n"));
+		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
+		str = g_strdup_printf(str, args->nb_filtered_images);
+		siril_log_color_message(str, "green");
+		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+
+		g_free(str);
+	}
+	else {
+		siril_log_message(_("Registration aborted.\n"));
+	}
+	return regargs->new_total == 0;
+}
+
+int manual_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
+			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
+	if (limit > com.max_thread)
+		limit = com.max_thread;
+	return limit;
+}
+
+int register_manual(struct registration_args *regargs) {
+	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
+	if (regargs->filters.filter_included) {
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = regargs->seq->selnum;
+	}
+	args->compute_mem_limits_hook = manual_align_compute_mem_limits;
+	args->prepare_hook = manual_align_prepare_hook;
+	args->image_hook = manual_align_image_hook;
+	args->finalize_hook = manual_align_finalize_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Manual registration");
+	args->has_output = !regargs->no_output;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
+	args->new_seq_prefix = regargs->prefix;
+	args->load_new_sequence = !regargs->no_output;
+	args->already_in_a_thread = TRUE;
+
+	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
+	if (!sadata) {
+		free(args);
+		return -1;
+	}
+	sadata->regargs = regargs;
+	args->user = sadata;
+
+	generic_sequence_worker(args);
+
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
+}
 

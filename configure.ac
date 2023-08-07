@@ -54,7 +54,7 @@ if test "x$remember_set_CFLAGS" = "x"; then
 fi
 
 CFLAGS="-D_FILE_OFFSET_BITS=64 -Werror=unknown-pragmas -Werror=unused-label -fno-common -ftree-vectorize -fno-math-errno $CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CFLAGS -std=c++14"
+CXXFLAGS="$CFLAGS -std=c++17"
 
 if test "x$SIRIL_UNSTABLE" = "xyes"; then
   AC_DEFINE(SIRIL_UNSTABLE, 1,
@@ -245,6 +245,11 @@ PKG_CHECK_MODULES(LIBHEIF, [libheif],
 		  [AC_DEFINE([HAVE_LIBHEIF], [1], [Using HEIF images])],
 		  AC_MSG_WARN([libheif not found. Not using HEIF importer and exporter.]))
 
+dnl check heif lib
+PKG_CHECK_MODULES(LIBXISF, [libxisf],
+		  [AC_DEFINE([HAVE_LIBXISF], [1], [Using XISF images >= 0.2.5])],
+		  AC_MSG_WARN([libxisf not found. Not using XISF importer and exporter.]))
+
 dnl check ffms2
 PKG_CHECK_MODULES(FFMS2, [ffms2],
 		  [AC_DEFINE([HAVE_FFMS2], [1], [Using FFMS2])],
@@ -310,11 +315,6 @@ dnl Check for json-glib
 PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
 		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
 		  AC_MSG_WARN([json-glib not found. Not using automatic updates.]))
-
-dnl check libconfig
-PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],
-		  [AC_DEFINE([HAVE_LIBCONFIG], [1], [Using libconfig])],
-		  AC_MSG_WARN([libconfig not found. Old configuration file will not be read.]))
 
 dnl ================================================================
 dnl Collect some arguments.

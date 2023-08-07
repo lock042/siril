@@ -1,6 +1,8 @@
 #ifndef PIPP_AVI_WRITE_DIB_H
 #define PIPP_AVI_WRITE_DIB_H
 
+#include <cstdint>
+
 #include "pipp_video_write.h"
 #include "pipp_avi_write.h"
 

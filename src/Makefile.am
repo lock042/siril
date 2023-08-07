@@ -37,6 +37,8 @@ siril_common_SOURCES = \
 	algos/ccd-inspector.h \
 	algos/colors.c \
 	algos/colors.h \
+	algos/comparison_stars.c \
+	algos/comparison_stars.h \
 	algos/Def_Math.h \
 	algos/Def_Wavelet.h \
 	algos/Def_Mem.h \
@@ -64,8 +66,12 @@ siril_common_SOURCES = \
 	algos/quality.h \
 	algos/quantize.c \
 	algos/reconstr.c \
-	algos/sorting.h \
+	algos/search_objects.c \
+	algos/search_objects.h \
+	algos/siril_wcs.h \
+	algos/siril_wcs.c \
 	algos/sorting.c \
+	algos/sorting.h \
 	algos/star_finder.c \
 	algos/star_finder.h \
 	algos/statistics.c \
@@ -73,9 +79,6 @@ siril_common_SOURCES = \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
 	algos/transform.c \
-	algos/search_objects.c \
-	algos/siril_wcs.h \
-	algos/siril_wcs.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
 	compositing/compositing.c \
@@ -204,10 +207,13 @@ siril_common_SOURCES = \
 	gui/background_extraction.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
+	gui/compstars.c \
+	gui/compstars.h \
 	gui/conversion.c \
 	gui/conversion.h \
 	gui/colors.c \
 	gui/colors.h \
+	gui/cut.c \
 	gui/dialog_preview.c \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
@@ -262,6 +268,8 @@ siril_common_SOURCES = \
 	gui/siril_intro.h \
 	gui/siril_preview.c \
 	gui/siril_preview.h \
+	gui/siril_plot.c \
+	gui/siril_plot.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
 	gui/split_cfa.c \
@@ -271,8 +279,6 @@ siril_common_SOURCES = \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \
-	io/catalogues.c \
-	io/catalogues.h \
 	io/Astro-TIFF.c \
 	io/Astro-TIFF.h \
 	io/kstars/binfile.h \
@@ -291,10 +297,14 @@ siril_common_SOURCES = \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
 	io/image_formats_libraries.c \
+	io/local_catalogues.c \
+	io/local_catalogues.h \
 	io/mp4_output.c \
 	io/mp4_output.h \
 	io/path_parse.c \
 	io/path_parse.h \
+	io/remote_catalogues.c \
+	io/remote_catalogues.h \
 	io/seqfile.c \
 	io/sequence.c \
 	io/sequence.h \
@@ -305,6 +315,8 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	io/siril_plot.c \
+	io/siril_plot.h \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \
@@ -366,6 +378,7 @@ siril_common_LDADD = \
 	$(LIBHEIF_LIBS) \
 	$(LIBTIFF_LIBS) \
 	$(LIBPNG_LIBS) \
+	$(LIBXISF_LIBS) \
 	$(FFTW_LIBS) \
 	$(CFITSIO_LIBS) \
 	$(GSL_LIBS) \
@@ -391,6 +404,9 @@ siril_common_SOURCES += \
 	io/avi_pipp/pipp_video_write.h \
 	io/avi_pipp/avi_writer.cpp \
 	io/avi_pipp/avi_writer.h \
+	io/SirilXISFReader.cpp \
+	io/SirilXISFReader.h \
+	io/SirilXISFWraper.h \
 	opencv/opencv.cpp \
 	opencv/opencv.h \
 	opencv/kombat/kombat.cpp \

@@ -112,8 +112,6 @@ static char *filter_tooltip_text[] = {
 	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
 };
 
-int register_kombat(struct registration_args *args);
-
 /* callback for the selected area event */
 void _reg_selected_area_callback() {
 	if (!com.headless)
@@ -560,13 +558,21 @@ int register_kombat(struct registration_args *args) {
 	/* we want pattern (the selection) to be located on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 			&args->selection, FALSE, -1);
-
 	/* we load reference image just to get dimensions of images,
 	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
 	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
 	full.x = full.y = 0;
 	full.w = fit_ref.rx;
 	full.h = fit_ref.ry;
+	/* if we are calling this with an internal sequence we must avoid
+	 * freeing fit_ref pixel data as seq_read_frame only copies the data
+	 * pointers across from the internal_fits**; it is not a true copy
+	 * that can be freed independently. */
+	if (args->seq->type == SEQ_INTERNAL) {
+		fit_ref.data = NULL;
+		fit_ref.fdata = NULL;
+		clearfits(&fit_ref);
+	}
 
 	if (ret || ret2 || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
 		siril_log_message(
@@ -582,7 +588,6 @@ int register_kombat(struct registration_args *args) {
 
 	/* we want pattern position on the reference image */
 	kombat_find_template(ref_idx, args, &fit_templ, &fit_ref, &ref_align, NULL, NULL);
-
 	/* main part starts here */
 	int max_threads;
 #ifdef _OPENMP
@@ -596,7 +601,7 @@ int register_kombat(struct registration_args *args) {
 		caches[i] = NULL;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ || args->seq->type == SEQ_INTERNAL) && fits_is_reentrant()))
 #endif
 		for (frame = 0; frame < args->seq->number; frame++) {
 			if (abort)
@@ -1117,7 +1122,8 @@ static void update_filters_registration(int update_adjustment) {
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
-	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL;
+	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
+	*interpolation_algo = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1141,6 +1147,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		toggle_reg_clamp = lookup_widget("toggle_reg_clamp");
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
+		interpolation_algo = lookup_widget("ComboBoxRegInter");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1187,7 +1194,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* registration data exists for the selected layer */
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
 
-	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
+	if (nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
 		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
 		} else if (method->method_ptr == &register_comet) {
@@ -1201,7 +1208,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		}
 		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
 		gtk_widget_set_visible(onlyshift, method->method_ptr == &register_3stars);
-		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg) || (method->method_ptr == &register_star_alignment));
+		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(interpolation_algo));
+		gtk_widget_set_sensitive(toggle_reg_clamp, ((method->method_ptr == &register_apply_reg) || (method->method_ptr == &register_star_alignment))
+				&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4) );
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
@@ -1221,7 +1230,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
 			if (sequence_is_loaded()) {
-				if (method && method->sel == REQUIRES_NO_SELECTION) {
+				if (method->sel == REQUIRES_NO_SELECTION) {
 					gtk_label_set_text(labelreginfo, _("Select images in the sequence"));
 				} else {
 					gtk_label_set_text(labelreginfo, _("Select an area in image first, and select images in the sequence"));
@@ -1242,14 +1251,14 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
-	if (method && ((method->method_ptr == &register_comet) ||
+	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
 			(method->method_ptr == &register_multi_step_global) ||
 			(method->method_ptr == &register_3stars && nbselstars <= 1))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
-	} else if (method && method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
+	} else if (method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 	} else {
@@ -1453,6 +1462,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+		free(reg_args->prefix);
 		free(reg_args);
 		unreserve_thread();
 		return;
@@ -1464,7 +1474,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
 	}
-	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) && 
+	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
 		reg_args->matchSelection && reg_args->seq->is_variable) {
 		siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
 		free(reg_args);
@@ -1472,7 +1482,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) && 
+	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
 		!reg_args->matchSelection) {
 		delete_selected_area(); // othersie it is enforced
 	}
@@ -1680,6 +1690,7 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 		}
 	}
 	copyfits(destfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	copy_fits_metadata(destfit, fit);
 	clearfits(destfit);
 	return 0;
 }

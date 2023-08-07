@@ -33,6 +33,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
+#include "core/siril_world_cs.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -40,14 +41,19 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
+#include "gui/siril_plot.h"
 #include "registration/registration.h"
 #include "kplot.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "io/gnuplot_i.h"
+#include "io/siril_plot.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
+#include "algos/astrometry_solver.h"
+#include "algos/comparison_stars.h"
 
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
 
@@ -60,7 +66,7 @@ static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
-		*buttonNINA = NULL;
+		*buttonNINA = NULL, *buttonCompStars = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -708,12 +714,8 @@ static double get_error_for_time(pldata *plot, double time) {
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
-	gboolean use_gnuplot = gnuplot_is_available();
-	if (!use_gnuplot) {
-		siril_log_color_message(_("GNUplot not available: the light curve data will be "
-				"produced in %s but no image will be created. "
-				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
-	}
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
+	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
 		return -1;
@@ -820,6 +822,14 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 			// gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
+		siril_plot_set_title(spl_data, "Light Curve");
+		spl_data->revertY = TRUE;
+		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, x, vmag, err, NULL);
+		create_new_siril_plot_window(spl_data);
 	}
 
 	/* Exporting data in a dat file */
@@ -830,7 +840,6 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	} else {
 		siril_log_message(_("%s has been saved.\n"), filename);
 	}
-
 	free(vmag);
 	free(err);
 	free(x);
@@ -839,8 +848,12 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 }
 
 static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
-	GError *error = NULL;
+	if (!plot) {
+		fprintf(stderr, "exportCSV: Nothing to export\n");
+		return 1;
+	}
 
+	GError *error = NULL;
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
 			G_FILE_CREATE_NONE, NULL, &error);
@@ -991,6 +1004,7 @@ static void fill_plot_statics() {
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
 		buttonNINA = lookup_widget("nina_button");
+		buttonCompStars = lookup_widget("comp_stars_button");
 	}
 }
 
@@ -1002,10 +1016,14 @@ static void validate_combos() {
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
-	gtk_widget_set_visible(varCurve, use_photometry);
-	gtk_widget_set_visible(buttonNINA, sequence_is_loaded());
-	gtk_widget_set_visible(buttonSaveCSV, TRUE);
-	gtk_widget_set_visible(buttonSavePrt, TRUE);
+	gtk_widget_set_visible(varCurve, TRUE);
+	gtk_widget_set_sensitive(varCurve, use_photometry);
+	gtk_widget_set_visible(buttonNINA, TRUE);
+	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
+	gtk_widget_set_visible(buttonCompStars, TRUE);
+	gtk_widget_set_sensitive(buttonCompStars, sequence_is_loaded());
+	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
+	gtk_widget_set_visible(buttonSavePrt, !(plot_data == NULL));
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
 	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
@@ -1058,10 +1076,10 @@ static void validate_combos() {
 }
 
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
-	validate_combos();
 	requires_seqlist_update = TRUE;
 	reset_plot_zoom();
 	drawPlot();
+	validate_combos();
 }
 
 void reset_plot() {
@@ -1076,6 +1094,7 @@ void reset_plot() {
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
 		gtk_widget_set_visible(buttonNINA, FALSE);
+		gtk_widget_set_visible(buttonCompStars, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
 		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
@@ -1223,6 +1242,34 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	siril_widget_destroy(widgetdialog);
 }
 
+void on_ButtonCompStars_clicked(GtkButton *button, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return;
+	}
+
+	/* TODO
+	if (!com.target_star) {
+		siril_log_color_message(_("You have to identify the Variable star (Search in GUI or catsearch in ClI)\n"), "red");
+		return;
+	}
+
+	com.wide_field = FALSE;
+	com.used_cat = CAT_AAVSO;
+	get_compstars();
+
+	double dmag = 6.0;
+	do {		// This is the auto-sort process for GUI use
+		dmag = dmag * 0.9;
+	} while (sort_compstars (dmag, 0.5) > 8);
+
+	chk_compstars();
+	*/
+	set_cursor_waiting(FALSE);
+}
+
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	save_dialog(".csv", exportCSV);
@@ -1268,6 +1315,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
 	struct kdata *d1 = NULL, *ref_d = NULL, *mean_d = NULL, *curr_d = NULL;
+	struct kplotctx ctx = { 0 };
 
 	if (!plot_data || !widget)
 		return;
@@ -1383,7 +1431,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_rectangle(cr, 0.0, 0.0, width, height);
 	cairo_fill(cr);
-	kplot_draw(p, width, height, cr);
+	kplot_draw(p, width, height, cr, &ctx);
 
 	if (for_saving) {
 		gchar *timestamp, *filename;
@@ -1397,9 +1445,9 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		g_free(filename);
 	} else {
 		// caching more data
-		pdd.range = (point){ get_dimx(),  get_dimy()};
+		pdd.range = (point){ ctx.dims.x, ctx.dims.y};
 		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
-		pdd.offset = (point){ get_offsx(),  get_offsy()};
+		pdd.offset = (point){ ctx.offs.x, ctx.offs.y};
 		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
 		if (pdd.selected) free(pdd.selected);
 		pdd.selected = calloc(com.seq.number, sizeof(gboolean));
@@ -2050,7 +2098,7 @@ void on_menu_plot_item1_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		if (index > 0) {
 			index--;
 
-			exclude_single_frame(index);
+			exclude_include_single_frame(index);
 			update_seqlist(use_photometry ? 0 : reglayer);
 		}
 	} else { // Zoom to selection

@@ -31,6 +31,9 @@
 #ifdef HAVE_LIBHEIF
 #include <libheif/heif.h>
 #endif
+#ifdef HAVE_LIBXISF
+#include "io/SirilXISFWraper.h"
+#endif
 
 #include "dialog_preview.h"
 
@@ -110,7 +113,11 @@ static gboolean end_update_preview_cb(gpointer p) {
 		if (im_type == TYPEAVI || im_type == TYPESER ||
 				(im_type == TYPEFITS && fitseq_is_fitseq(args->filename, NULL)))
 			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "video", GTK_ICON_SIZE_DIALOG);
-		else gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image", GTK_ICON_SIZE_DIALOG);
+		else {
+			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image", GTK_ICON_SIZE_DIALOG);
+			if (args->description)
+				info_str = args->description;
+		}
 		gtk_image_set_pixel_size(GTK_IMAGE(preview->image), com.pref.gui.thumbnail_size);
 	}
 
@@ -158,7 +165,31 @@ static gpointer update_preview(gpointer p) {
 	if (im_type == TYPEFITS) {
 		/* try FITS file */
 		pixbuf = get_thumbnail_from_fits(args->filename, &args->description);
-	} else if (im_type == TYPESER) {
+	}
+#ifdef HAVE_LIBXISF
+	else if (im_type == TYPEXISF) {
+		GdkPixbuf *pixtmp = get_thumbnail_from_xisf(args->filename, &args->description);
+
+		if (pixtmp) {
+			/* The size of the XISF thumbnails is different. We want to resize it */
+			const int MAX_SIZE = com.pref.gui.thumbnail_size;
+
+			int w = gdk_pixbuf_get_width(pixtmp);
+			int h = gdk_pixbuf_get_height(pixtmp);
+
+			const int x = (int) ceil((float) w / MAX_SIZE);
+			const int y = (int) ceil((float) h / MAX_SIZE);
+			const int pixScale = (x > y) ? x : y;	// picture scale factor
+			const int Ws = w / pixScale; 			// picture width in pixScale blocks
+			const int Hs = h / pixScale; 			// -//- height pixScale
+
+			pixbuf = gdk_pixbuf_scale_simple(pixtmp, Ws, Hs, GDK_INTERP_BILINEAR);
+
+			g_object_unref(pixtmp);
+		}
+	}
+#endif
+	else if (im_type == TYPESER) {
 		pixbuf = get_thumbnail_from_ser(args->filename, &args->description);
 	} else {
 		if (im_type != TYPEUNDEF && !siril_get_thumbnail_exiv(args->filename, &buffer, &size,

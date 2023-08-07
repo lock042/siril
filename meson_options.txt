@@ -54,6 +54,12 @@ option('libheif',
  description: 'build with HEIF support'
 )
 
+option('libXISF',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with XISF support'
+)
+
 option('ffms2',
  type : 'boolean',
  value : 'true',
@@ -71,12 +77,6 @@ option('enable-libcurl',
  value: 'platform-default',
  description: 'Use libcurl instead of GIO',
  choices: [ 'yes', 'no', 'platform-default' ]
-)
-
-option('libconfig',
- type : 'boolean',
- value : 'false',
- description: 'build with libconfig support'
 )
 
 option('criterion',

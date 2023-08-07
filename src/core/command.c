@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <gsl/gsl_histogram.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,14 +57,17 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
+#include "io/gnuplot_i.h"
 #include "io/single_image.h"
-#include "io/catalogues.h"
+#include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/plot.h"
+#include "gui/cut.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -109,6 +113,7 @@
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
 #include "algos/annotate.h"
+#include "algos/comparison_stars.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -1059,8 +1064,8 @@ int process_makepsf(int nb) {
 	reset_conv_args(data);
 	cmd_errors status = CMD_OK;
 
-	char *arg = word[1];
-	if (!g_strcmp0(arg, "clear")) {
+	char *arg_1 = word[1];
+	if (!g_strcmp0(arg_1, "clear")) {
 		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			status = CMD_GENERIC_ERROR;
@@ -1070,7 +1075,7 @@ int process_makepsf(int nb) {
 		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
 		goto terminate_makepsf;
 	} else {
-		if (!g_strcmp0(arg, "save")) {
+		if (!g_strcmp0(arg_1, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			if (!word[2] || word[2][0] == '\0') {
 				on_bdeconv_savekernel_clicked(NULL, NULL);
@@ -1086,7 +1091,7 @@ int process_makepsf(int nb) {
 		}
 		reset_conv_kernel();
 		status = CMD_ARG_ERROR; // setting to this value as it will be the most likely error from now on
-		if (!g_strcmp0(arg, "blind")) {
+		if (!g_strcmp0(arg_1, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "blind");
 				status = CMD_GENERIC_ERROR;
@@ -1167,7 +1172,7 @@ int process_makepsf(int nb) {
 			image_cfa_warning_check();
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "stars")) {
+		} else if (!g_strcmp0(arg_1, "stars")) {
 			data->recalc_ks = FALSE;
 			gboolean force_ks = FALSE;
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
@@ -1222,7 +1227,7 @@ int process_makepsf(int nb) {
 			image_cfa_warning_check();
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "manual")) {
+		} else if (!g_strcmp0(arg_1, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
 			data->psftype = PSF_MANUAL;
 			for (int i = 2; i < nb; i++) {
@@ -1369,7 +1374,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only,data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "load")) {
+		} else if (!g_strcmp0(arg_1, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {
 				if (load_kernel(word[2])) {
@@ -1382,7 +1387,7 @@ int process_makepsf(int nb) {
 			status = CMD_OK;
 			goto terminate_makepsf;
 		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg_1);
 		}
 	}
 terminate_makepsf:
@@ -3156,6 +3161,7 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
+	reset_gnuplot_check();
 	return 0;
 }
 
@@ -4028,6 +4034,7 @@ int process_light_curve(int nb) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
+		init_plot_colors();
 	}
 	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
 	int refimage = 0;
@@ -4202,6 +4209,7 @@ int process_seq_crop(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						free(args->prefix);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -5576,13 +5584,13 @@ int process_extractHaOIII(int nb) {
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
-		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
+		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling, com.max_thread))) {
 			ret = save1fits16(Ha, &f_Ha, 0) ||
 					save1fits16(OIII, &f_OIII, 0);
 		}
 	}
 	else if (gfit.type == DATA_FLOAT) {
-		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
+		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling, com.max_thread))) {
 			ret = save1fits32(Ha, &f_Ha, 0) ||
 					save1fits32(OIII, &f_OIII, 0);
 		}
@@ -5702,6 +5710,7 @@ int process_seq_split_cfa(int nb) {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
+						free(args->seqEntry);
 						free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -5712,6 +5721,7 @@ int process_seq_split_cfa(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
+				free(args->seqEntry);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5826,6 +5836,7 @@ int process_seq_extractHa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -5874,6 +5885,7 @@ int process_seq_extractGreen(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -6411,7 +6423,7 @@ int process_convert(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	char *destroot = strdup(word[1]);
+	gchar *destroot = g_strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = !raw_only;
@@ -8088,6 +8100,9 @@ int process_capabilities(int nb) {
 #ifdef HAVE_LIBTIFF
 	siril_log_message("Can read and write TIFF and Astro-TIFF files\n");
 #endif
+#ifdef HAVE_LIBXISF
+	siril_log_message("Can read XISF files\n");
+#endif
 #ifdef HAVE_LIBHEIF
 	siril_log_message("Can read HEIF files\n");
 #endif
@@ -8504,7 +8519,9 @@ int process_pcc(int nb) {
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
 		args->use_local_cat = local_cat;
-		args->onlineCatalog = cat;
+		if (!local_cat && cat == CAT_AUTO)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
@@ -8729,7 +8746,7 @@ int process_nomad(int nb) {
 
 	if (cat == CAT_AUTO) {
 		// stars coordinates are the raw wcs2pix values, so FITS/WCS coordinates
-		if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
+		if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars, photometric)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			return CMD_GENERIC_ERROR;
 		}
@@ -8835,26 +8852,92 @@ int process_catsearch(int nb){
 		return CMD_FOR_PLATE_SOLVED;
 	}
 	set_cursor_waiting(TRUE);
-
-	gchar *result;
+	gchar *name = NULL;
 	if (nb > 2) {
-		// replace with build_string_from_words(word+1);
-		GString *str = g_string_new(word[1]);
-		int i = 2;
-		while (i < nb && word[i]) {
-			g_string_append_printf(str, " %s", word[i]);
-			i++;
-		}
-		gchar *name = g_string_free(str, FALSE);
-		result = search_object(name);
-		g_free(name);
+		name = build_string_from_words(word + 1);
 	} else {
-		result = search_object(word[1]);
+		name = g_strdup(word[1]);
 	}
 
-	if (result && !parse_buffer(result, 20.0)) {
+	gboolean found_it = cached_object_lookup(name, NULL) == 0;
+	if (found_it)
 		siril_add_idle(end_process_catsearch, NULL);
+	else siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
+	g_free(name);
+
+	return CMD_OK;
+}
+
+int process_findcompstars(int nb) {
+	// findcompstars star_name [-narrow] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-out=nina_file.csv]
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
 	}
+	const char *target = word[1];
+	gboolean narrow = FALSE;
+	online_catalog used_cat = CAT_APASS;
+	double delta_Vmag = 3.0, delta_BV = 0.5;
+	const char *nina_file = NULL;
+
+	int arg_idx = 2;
+	while (arg_idx < nb) {
+		if (!g_strcmp0(word[arg_idx], "-narrow"))
+			narrow = TRUE;
+		else if (!g_strcmp0(word[arg_idx], "-wide"))
+			narrow = FALSE;
+		else if (g_str_has_prefix(word[arg_idx], "-catalog=")) {
+			const char *cat = word[arg_idx] + 9;
+			if (!g_ascii_strcasecmp(cat, "nomad"))
+				used_cat = CAT_NOMAD;
+			else if (!g_ascii_strcasecmp(cat, "apass"))
+				used_cat = CAT_APASS;
+			else {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strncasecmp(word[arg_idx], "-dvmag=", 7)) {
+			const char *val = word[arg_idx] + 7;
+			gchar *end;
+			delta_Vmag = g_ascii_strtod(val, &end);
+			if (end == val || delta_Vmag < 0.0 || delta_Vmag > 6.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strncasecmp(word[arg_idx], "-dbv=", 5)) {
+			const char *val = word[arg_idx] + 5;
+			gchar *end;
+			delta_BV = g_ascii_strtod(val, &end);
+			if (end == val || delta_BV < 0.0 || delta_BV > 0.7) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[arg_idx], "-out=")) {
+			nina_file = word[arg_idx] + 5;
+			if (nina_file[0] == '\0') {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Unknown option provided: %s\n"), word[arg_idx]);
+			return CMD_ARG_ERROR;
+		}
+		arg_idx++;
+	}
+
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	args->target_name = g_strdup(target);
+	args->narrow_fov = narrow;
+	args->cat = used_cat;
+	args->delta_Vmag = delta_Vmag;
+	args->delta_BV = delta_BV;
+	args->nina_file = g_strdup(nina_file);
+
+	start_in_new_thread(compstars_worker, args);
 	return CMD_OK;
 }
 
@@ -8972,7 +9055,8 @@ int process_show(int nb) {
 
 	GtkToggleToolButton *button = NULL;
 parse_coords:
-	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
+	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
+			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
 		// code from process_pcc
 		char *sep = strchr(word[next_arg], ',');
 		if (!sep) {
@@ -9003,7 +9087,7 @@ parse_coords:
 		return CMD_ARG_ERROR;
 	}
 
-	add_object_in_catalogue(name, coords, TRUE, TRUE);	// with the first TRUE, it's in tmp
+	add_object_in_catalogue(name, coords, FALSE, USER_TEMP_CAT_INDEX);
 
 display:
 	/* display the new 'found_object' */
@@ -9014,6 +9098,243 @@ display:
 		refresh_found_objects();
 		redraw(REDRAW_OVERLAY);
 	}
-	siril_world_cs_unref(coords);
+	if (coords)
+		siril_world_cs_unref(coords);
 	return CMD_OK;
 }
+
+int read_cut_pair(char *value, point *pair) {
+	char *end;
+	pair->x = (double) g_ascii_strtoull(value, &end, 10);
+	if (end == value)
+		return CMD_ARG_ERROR;
+	if (*end != ',')
+		return CMD_ARG_ERROR;
+	end++;
+	value = end;
+	pair->y = (double) g_ascii_strtoull(value, &end, 10);
+	if (end == value)
+		return CMD_ARG_ERROR;
+	return CMD_OK;
+}
+
+cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
+	cut_struct *cut_args = calloc(1, sizeof(cut_struct));
+	initialize_cut_struct(cut_args);
+	int start = (seq) ? 2 : 1;
+	*err = CMD_OK;
+	if (seq)
+		cut_args->seq = seq;
+	else
+		cut_args->fit = &gfit;
+	int nb_layers = (cut_args->seq) ? cut_args->seq->nb_layers : cut_args->fit->naxes[2];
+	for (int i = start; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(word[i], "-tri")) {
+			cut_args->tri = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-cfa")) {
+			fits reffit = { 0 };
+			if (seq) {
+				// loading the sequence reference image's metadata to read its bayer pattern
+				int image_to_load = sequence_find_refimage(seq);
+				if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+					siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+					*err = CMD_SEQUENCE_NOT_FOUND;
+					break;
+				}
+			} else {
+				reffit = gfit;
+			}
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.bayer_pattern);
+			if ((reffit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
+				siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+			cut_args->cfa = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-savedat")) {
+			cut_args->save_dat = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-arcsec")) {
+			cut_args->pref_as = TRUE;
+		}
+		else if (g_str_has_prefix(word[i], "-width=")) {
+			arg += 7;
+			cut_args->width = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-spacing=")) {
+			arg += 9;
+			cut_args->step = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-layer=")) {
+			arg += 7;
+			if (g_str_has_prefix(arg, "red"))
+				cut_args->vport = 0;
+			else if (g_str_has_prefix(arg, "green"))
+				cut_args->vport = 1;
+			else if (g_str_has_prefix(arg, "blue"))
+				cut_args->vport = 2;
+			else if (g_str_has_prefix(arg, "lum")) {
+				if (nb_layers == 1) {
+					cut_args->vport = 0;
+					cut_args->mode = CUT_MONO;
+				} else {
+					cut_args->vport = 3;
+					cut_args->mode = CUT_MONO;
+				}
+			} else if (g_str_has_prefix(arg, "col")) {
+				cut_args->vport = 0;
+				cut_args->mode = CUT_COLOR;
+			} else {
+				siril_log_message(_("Incorrect option follows -layer=, aborting.\n"));
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber1=")) {
+			arg += 13;
+			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber2=")) {
+			arg += 13;
+			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavelength1=")) {
+			arg += 13;
+			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavelength2=")) {
+			arg += 13;
+			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-from=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
+				siril_log_color_message(_("Error: Could not parse -from values.\n"), "red");
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-to=")) {
+			gchar *value;
+			value = arg + 4;
+			if ((*err = read_cut_pair(value, &cut_args->cut_end))) {
+				siril_log_color_message(_("Error: Could not parse -to values.\n"), "red");
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wn1at=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
+				siril_log_color_message(_("Error: Could not parse -wn1at values.\n"), "red");
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-wn2at=")) {
+			gchar *value;
+			value = arg + 6;
+			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
+				siril_log_color_message(_("Error: Could not parse -wn2at values.\n"), "red");
+				break;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-filename=")) {
+			if (seq) {
+				siril_log_color_message(_("Error: this option cannot be used for sequences.\n"), "red");
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+			arg += 10;
+			if (cut_args->filename)
+				g_free(cut_args->filename);
+			cut_args->filename = g_strdup(arg);
+			cut_args->save_dat = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-title=")) {
+			arg += 7;
+			if (arg && arg[0] != '\0') {
+				if (cut_args->user_title)
+					g_free(cut_args->user_title);
+				cut_args->user_title = g_strdup(arg);
+				siril_debug_print("title: %s\n", arg);
+			}
+		}
+	}
+	if (cut_args->vport == -1) {
+		if (nb_layers == 1) {
+			cut_args->vport = 0;
+			cut_args->mode = CUT_MONO;
+		} else {
+			cut_args->vport = 3;
+			cut_args->mode = CUT_COLOR;
+		}
+	}
+	if (seq && seq->is_variable) {
+		siril_log_message(_("Error: sequence has variable sized images.\n"));
+		*err = CMD_GENERIC_ERROR;
+	} else if (!cut_struct_is_valid(cut_args)) {
+		*err = CMD_ARG_ERROR;
+	}
+	if (*err) {
+		free_cut_args(cut_args);
+		cut_args = NULL;
+	}
+	return cut_args;
+}
+
+int process_profile(int nb) {
+	cmd_errors err;
+	cut_struct *cut_args = parse_cut_args(nb, NULL, &err);
+	if (err)
+		return err;
+
+	if (!gnuplot_is_available()) {
+		siril_log_color_message(_("Warning: GNUplot not available. Data files will be generated for analysis in a third party tool but no GNUplot image can be produced.\n"), "salmon");
+	}
+
+	cut_args->display_graph = FALSE;
+	cut_args->save_png_too = TRUE;
+
+	if (cut_args->cfa)
+		start_in_new_thread(cfa_cut, cut_args);
+	else if (cut_args->tri)
+		start_in_new_thread(tri_cut, cut_args);
+	else
+		start_in_new_thread(cut_profile, cut_args);
+
+	return CMD_OK;
+}
+
+int process_seq_profile(int nb) {
+	cmd_errors err;
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
+		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+
+	cut_struct *cut_args = parse_cut_args(nb, seq, &err);
+	if (err)
+		return err;
+
+	cut_args->display_graph = FALSE;
+	cut_args->save_png_too = FALSE;
+
+	apply_cut_to_sequence(cut_args);
+
+	return CMD_OK;
+}
+
