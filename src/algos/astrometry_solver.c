@@ -124,7 +124,7 @@ double get_fov_arcmin(double resolution, int rx, int ry) {
 	return radius / 60.0;	// in arcminutes
 }
 
-/* get half field of view in arcmin, or angle from image centre, resolution in arcsec/px */
+/* get half field of view in degrees, or angle from image centre, resolution in arcsec/px */
 double get_radius_deg(double resolution, int rx, int ry) {
 	uint64_t sqr_radius = ((uint64_t) rx * (uint64_t) rx + (uint64_t) ry * (uint64_t) ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
@@ -478,6 +478,11 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	}
 
 	args->n_cat = read_projected_catalog(input_stream, args->cstars, args->onlineCatalog);
+	if (args->n_cat <= 0) {
+		args->message = g_strdup(_("No stars have been retrieved from the online catalog. "
+					"This may mean that the servers are down. Note that you can install local catalogs."));
+		return 1;
+	}
 	g_object_unref(input_stream);
 	g_object_unref(catalog);
 	g_free(catalogStars);
@@ -651,7 +656,7 @@ gpointer plate_solver(gpointer p) {
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
 			if (args->verbose)
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
-			if (get_photo_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
+			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars, FALSE)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 				args->ret = ERROR_PHOTOMETRY;
 			}
@@ -752,8 +757,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	 * make sure that the max of stars is BRIGHTEST_STARS */
 	int n = min(min(nb_stars, args->n_cat), BRIGHTEST_STARS);
 
-	double scale_min = args->scale - 0.2;
-	double scale_max = args->scale + 0.2;
+	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
+	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
+	double scale_min = 1.0 / (args->scale * a);
+	double scale_max = 1.0 / (args->scale * b);
 	int attempt = 1;
 	while (args->ret && attempt <= 3) {
 		free_stars(&star_list_A);
@@ -761,18 +768,19 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
 				scale_min, scale_max, &H, TRUE,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
-		if (attempt == 1) {
+		if (attempt == 2) {
 			scale_min = -1.0;
 			scale_max = -1.0;
-			nobj += 10;
 		} else {
 			nobj += 30;
 		}
 		attempt++;
 		CHECK_FOR_CANCELLATION;
 	}
-	if (args->ret)	// give generic error message
+	if (args->ret) {
+		args->message = g_strdup(_("Could not match stars from the catalogue"));
 		goto clearup;
+	}
 
 	double conv = DBL_MAX;
 	solution->px_cat_center = siril_world_cs_ref(args->cat_center);
@@ -1066,7 +1074,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	char low_scale[16], high_scale[16], time_limit[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
-	sprintf(low_scale, "%.3f", args->scale / a);
+	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
+	sprintf(low_scale, "%.3f", args->scale * b);
 	sprintf(high_scale, "%.3f", args->scale * a);
 	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
 #ifndef _WIN32
@@ -1341,6 +1350,13 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov
+	if (args->onlineCatalog == CAT_AUTO) {
+		if (args->limit_mag <= 12.5)
+			args->onlineCatalog = CAT_TYCHO2;
+		else if (args->limit_mag <= 17.0)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = CAT_GAIADR3;
+	}
 }
 
 static int astrometry_prepare_hook(struct generic_seq_args *arg) {

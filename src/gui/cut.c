@@ -27,7 +27,9 @@
 #include "gui/image_interactions.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
+#include "io/siril_plot.h"
 #include "gui/progress_and_log.h"
+#include "gui/siril_plot.h"
 #include "algos/demosaicing.h"
 #include "algos/PSF.h"
 #include "core/proto.h"
@@ -499,26 +501,19 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
-	gboolean gplot_gui = (!(arg->seq));
-	if (gplot_gui)
-		siril_debug_print("Will use gui.gplot\n");
-	else
-		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
-	gchar* legend = NULL;
+	gchar* legend = NULL, *spl_legend = NULL;
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
 	gboolean tmpfile = FALSE;
 	gchar *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
+	siril_plot_data *spl_data = NULL;
 
 	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
-	gboolean use_gnuplot = gnuplot_is_available();
-	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-	} else {
-		gplot = gnuplot_init(gplot_gui);
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
+	if (use_gnuplot) {
+		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -589,26 +584,32 @@ gpointer cut_profile(gpointer p) {
 			// Now the vport is defined, set the data to a channel or even luminance
 			if (arg->vport == 0) {
 				legend = g_strdup("x R");
+				spl_legend = g_strdup("R");
 			} else if (arg->vport == 1) {
 				for (int i = 0 ; i < nbr_points ; i++)
 					r[i] = g[i];
 				legend = g_strdup("x G");
+				spl_legend = g_strdup("G");
 			} else if (arg->vport == 2) {
 				for (int i = 0 ; i < nbr_points ; i++)
 					r[i] = b[i];
 				legend = g_strdup("x B");
+				spl_legend = g_strdup("B");
 			} else {
 				for (int i = 0 ; i < nbr_points ; i++) {
 					r[i] = (r[i] + g[i] + b[i]) / 3.0;
 				}
 				legend = g_strdup("x L");
+				spl_legend = g_strdup("L");
 			}
 		} else if (arg->fit->naxes[2] == 1) {
 			legend = g_strdup("x Mono");
+			spl_legend = g_strdup("Mono");
 		}
 		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, legend);
 	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
+		spl_legend = g_strdup("R");
 	}
 	if (retval) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
@@ -617,36 +618,36 @@ gpointer cut_profile(gpointer p) {
 		if (!(tmpfile || ((arg->seq) && !arg->save_dat)))
 			siril_log_message(_("%s has been saved.\n"), filename);
 	}
+	/* Plotting cut profile */
+	gchar *xlabel = NULL, *title = NULL;
+	title = cut_make_title(arg, xscale); // must be freed with g_free()
+	if (xscale) {
+		xlabel = g_strdup_printf(_("Wavenumber / cm^{-1}"));
+	} else {
+		if (arg->pref_as && conversionfactor != -DBL_MAX) {
+			xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+		} else {
+			xlabel = g_strdup_printf(_("Distance along cut / px"));
+		}
+	}
 	if (use_gnuplot) {
 		if (gplot) {
-			/* Plotting cut profile */
-			gchar *xlabel = NULL, *title = NULL;
-			title = cut_make_title(arg, xscale); // must be freed with g_free()
-			if (xscale) {
-				xlabel = g_strdup_printf(_("Wavenumber / cm^{-1}"));
-			} else {
-				if (arg->pref_as && conversionfactor != -DBL_MAX) {
-					xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
-				} else {
-					xlabel = g_strdup_printf(_("Distance along cut / px"));
-				}
-			}
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
 				if (arg->fit->naxes[2] == 1 || (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO)) {
-					gnuplot_plot_xy_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
 						gnuplot_plot_xy_datfile_colheader_to_png(gplot, filename, legend, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
 					}
+					gnuplot_plot_xy_from_datfile(gplot, filename);
 				} else {
-					gnuplot_plot_xrgb_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
 						gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
 					}
+					gnuplot_plot_xrgb_from_datfile(gplot, filename);
 				}
 			} else {
 				if (arg->fit->naxes[2] == 1) {
@@ -656,11 +657,27 @@ gpointer cut_profile(gpointer p) {
 				}
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
-			g_free(title);
-			g_free(xlabel);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed\n"));
+	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
+		siril_plot_set_title(spl_data, title);
+		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
+		if (arg->fit->naxes[2] == 3 && arg->mode != CUT_MONO) {
+			siril_plot_add_xydata(spl_data, "G", nbr_points, x, g, NULL, NULL);
+			siril_plot_add_xydata(spl_data, "B", nbr_points, x, b, NULL, NULL);
+		}
+		if (arg->save_png_too || !arg->display_graph)
+			siril_plot_save_png(spl_data, imagefilename);
+		if (!arg->display_graph) { // if not used for display we can free spl_data now
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
+		}
 	}
+	g_free(title);
+	g_free(xlabel);
 
 END:
 	// Clean up
@@ -681,6 +698,7 @@ END:
 	g_free(filename);
 	g_free(imagefilename);
 	g_free(legend);
+	g_free(spl_legend);
 	g_free(arg->title);
 	arg->title = NULL;
 	free(x);
@@ -689,34 +707,30 @@ END:
 	free(b);
 	arg->vport = -1;
 	gboolean in_sequence = (arg->seq != NULL);
+	if (!in_sequence) {
+		if (!use_gnuplot && arg->display_graph)
+			siril_add_idle(create_new_siril_plot_window, spl_data);
+		siril_add_idle(end_generic, NULL);
+	}
 	if (arg != &gui.cut)
 		free(arg);
-	if (!in_sequence)
-		siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
 gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
-	gboolean gplot_gui = (!(arg->seq));
-	if (gplot_gui)
-		siril_debug_print("Will use gui.gplot\n");
-	else
-		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
 	int retval = 0;
 	gboolean tmpfile = FALSE;
 	char *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	gboolean use_gnuplot = gnuplot_is_available();
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
+	siril_plot_data *spl_data = NULL;
 
 	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
-	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-	} else {
-		gplot = gnuplot_init(gplot_gui);
+	if (use_gnuplot) {
+		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -782,18 +796,30 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 	gchar *titletext = NULL;
+	gchar *spllabels[3];
+
 	if (arg->vport == 0) {
-		if (arg->fit->naxes[2] == 3)
+		if (arg->fit->naxes[2] == 3) {
 			titletext = g_strdup_printf("x R(-%dpx) R R(+%dpx)", (int) arg->step, (int) arg->step);
-		else
+			spllabels[1] = g_strdup("R");
+		} else {
 			titletext = g_strdup_printf("x Mono(-%dpx) Mono Mono(+%dpx)", (int) arg->step, (int) arg->step);
+			spllabels[1] = g_strdup("Mono");
+		}
+
 	}
-	else if (arg->vport == 1)
+	else if (arg->vport == 1) {
 		titletext = g_strdup_printf("x G(-%dpx) G G(+%dpx)", (int) arg->step, (int) arg->step);
-	else if (arg->vport == 2)
+		spllabels[1] = g_strdup("G");
+	} else if (arg->vport == 2) {
 		titletext = g_strdup_printf("x B(-%dpx) B B(+%dpx)", (int) arg->step, (int) arg->step);
-	else
+		spllabels[1] = g_strdup("B");
+	} else {
 		titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) arg->step, (int) arg->step);
+		spllabels[1] = g_strdup("L");
+	}
+	spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step);
+	spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step);
 
 	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, titletext);
 	g_free(titletext);
@@ -804,34 +830,47 @@ gpointer tri_cut(gpointer p) {
 		if (!(tmpfile || ((arg->seq) && !arg->save_dat)))
 			siril_log_message(_("%s has been saved.\n"), filename);
 	}
+	/* Plotting cut profile */
+	gchar *xlabel = NULL, *title = NULL;
+	title = cut_make_title(arg, FALSE); // must be freed with g_free()
+	if (arg->pref_as && conversionfactor != -DBL_MAX) {
+		xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+	} else {
+		xlabel = g_strdup_printf(_("Distance along cut / px"));
+	}
 	if (use_gnuplot) {
 		if (gplot) {
-			/* Plotting cut profile */
-			gchar *xlabel = NULL, *title = NULL;
-			title = cut_make_title(arg, FALSE); // must be freed with g_free()
-			if (arg->pref_as && conversionfactor != -DBL_MAX) {
-				xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
-			} else {
-				xlabel = g_strdup_printf(_("Distance along cut / px"));
-			}
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
 					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
 				}
+				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 			} else {
 				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
-			g_free(title);
-			g_free(xlabel);
+		}
+	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
+		siril_plot_set_title(spl_data, title);
+		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
+		siril_plot_add_xydata(spl_data, spllabels[1], nbr_points, x, r[1], NULL, NULL);
+		siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
+		if (arg->save_png_too || !arg->display_graph)
+			siril_plot_save_png(spl_data, imagefilename);
+		if (!arg->display_graph) { // if not used for display we can free spl_data now
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
 		}
 	}
-	else siril_log_message(_("Communicating with gnuplot failed\n"));
+	g_free(title);
+	g_free(xlabel);
 
 END:
 	// Clean up
@@ -853,33 +892,34 @@ END:
 	arg->title = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
 		free(r[i]);
+		g_free(spllabels[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
+	if (!in_sequence) {
+		if (!use_gnuplot && arg->display_graph)
+			siril_add_idle(create_new_siril_plot_window, spl_data);
+		siril_add_idle(end_generic, NULL);
+	}
 	if (arg != &gui.cut)
 		free(arg);
-	if (!in_sequence)
-		siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
 gpointer cfa_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
-	gboolean gplot_gui = (!(arg->seq));
 	int retval = 0, ret = 0;
 	gboolean tmpfile = FALSE;
 	double *x = NULL, *r[4] = { 0 };
 	char *filename = NULL,*imagefilename = NULL;
 	fits cfa[4];
 	memset(cfa, 0, 4 * sizeof(fits));
-	gboolean use_gnuplot = gnuplot_is_available();
+	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
+	siril_plot_data *spl_data = NULL;
 
 	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
-	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be written to %s but no image will be created.\n"), filename);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-	} else {
-		gplot = gnuplot_init(gplot_gui);
+	if (use_gnuplot) {
+		gplot = gnuplot_init();
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -951,34 +991,48 @@ gpointer cfa_cut(gpointer p) {
 		if (!(tmpfile || ((arg->seq) && !arg->save_dat)))
 			siril_log_message(_("%s has been saved.\n"), filename);
 	}
+	/* Plotting cut profile */
+	gchar *xlabel = NULL, *title = NULL;
+	title = cut_make_title(arg, FALSE); // must be freed with g_free()
+	if (arg->pref_as && conversionfactor != -DBL_MAX) {
+		xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+	} else {
+		xlabel = g_strdup_printf(_("Distance along cut / px"));
+	}
 	if (use_gnuplot) {
 		if (gplot) {
-			/* Plotting cut profile */
-			gchar *xlabel = NULL, *title = NULL;
-			title = cut_make_title(arg, FALSE); // must be freed with g_free()
-			if (arg->pref_as && conversionfactor != -DBL_MAX) {
-				xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
-			} else {
-				xlabel = g_strdup_printf(_("Distance along cut / px"));
-			}			gnuplot_set_title(gplot, title);
+			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
 					gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
 				}
+				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 			} else {
 				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
-			g_free(title);
-			g_free(xlabel);
+		}
+	} else { // fallback with siril_plot
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
+		siril_plot_set_title(spl_data, title);
+		siril_plot_set_xlabel(spl_data, xlabel);
+		siril_plot_add_xydata(spl_data, "CFA0", nbr_points, x, r[0], NULL, NULL);
+		siril_plot_add_xydata(spl_data, "CFA1", nbr_points, x, r[1], NULL, NULL);
+		siril_plot_add_xydata(spl_data, "CFA2", nbr_points, x, r[2], NULL, NULL);
+		siril_plot_add_xydata(spl_data, "CFA3", nbr_points, x, r[3], NULL, NULL);
+		if (arg->save_png_too || !arg->display_graph)
+			siril_plot_save_png(spl_data, imagefilename);
+		if (!arg->display_graph) { // if not used for display we can free spl_data now
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
 		}
 	}
-	else siril_log_message(_("Communicating with gnuplot failed\n"));
-
+	g_free(title);
+	g_free(xlabel);
 END:
 	// Clean up
 	if (tmpfile && arg->seq) {
@@ -1002,10 +1056,13 @@ END:
 		clearfits(&cfa[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
+	if (!in_sequence) {
+		if (!use_gnuplot && arg->display_graph)
+			siril_add_idle(create_new_siril_plot_window, spl_data);
+		siril_add_idle(end_generic, NULL);
+	}
 	if (arg != &gui.cut)
 		free(arg);
-	if (!in_sequence)
-		siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -1139,7 +1196,7 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	if (gtk_toggle_button_get_active(seqbutton))
 		gtk_toggle_button_set_active(pngbutton, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
-	gtk_toggle_button_set_active(save_dat, (!(gnuplot_is_available())));
+	gtk_toggle_button_set_active(save_dat, FALSE);
 	gui.cut.save_dat = gtk_toggle_button_get_active(save_dat);
 
 }
@@ -1337,10 +1394,10 @@ void on_cut_save_checkbutton_toggled(GtkToggleButton *button, gpointer user_data
 }
 
 void on_cut_button_toggled(GtkToggleToolButton *button, gpointer user_data) {
-	if ((!gnuplot_is_available()) && (!(no_gnuplot_warning_given))) {
-		siril_message_dialog(GTK_MESSAGE_WARNING,
-					_("GNUplot not available"),
-					_("This functionality relies on GNUplot to generate graphs. Without it, profile data files can still be produced but you will need to use external software to display them."));
+	if ((com.pref.use_gnuplot && !gnuplot_is_available()) && (!(no_gnuplot_warning_given))) {
+		// siril_message_dialog(GTK_MESSAGE_WARNING,
+		// 			_("GNUplot not available"),
+		// 			_("This functionality relies on GNUplot to generate graphs. Without it, profile data files can still be produced but you will need to use external software to display them."));
 		no_gnuplot_warning_given = TRUE;
 	}
 }

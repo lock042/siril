@@ -17,35 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_CORE_OS_UTILS_H_
-#define SRC_CORE_OS_UTILS_H_
 
-#include <glib.h>
+#ifndef SRC_GUI_SIRIL_PLOT_H_
+#define SRC_GUI_SIRIL_PLOT_H_
 
 #include "core/siril.h"
 
-gboolean is_space_disk_available(gchar *disk);
-gboolean update_displayed_memory();
-int test_available_space(gint64 req_size);
+gboolean create_new_siril_plot_window(gpointer p);
 
-guint64 get_available_memory();
-int get_max_memory_in_MB();
-void log_used_mem(gchar *when);
-
-int get_available_cpu_cgroups();
-
-void init_num_procs();
-
-long get_pathmax(void);
-
-GInputStream *siril_input_stream_from_stdin();
-
-#ifdef _WIN32
-gchar *get_special_folder(int csidl);
-int ReconnectIO(int OpenNewConsole);
-char* siril_real_path(const char *source);
-#endif
-
-gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
-
-#endif /* SRC_CORE_OS_UTILS_H_ */
+#endif /* SRC_GUI_PLOT_H_ */

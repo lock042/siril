@@ -2,9 +2,12 @@ siril 1.4.0 xx xx, xx
 
 * Added comparison star list creation from Siril
 * Allowed object search with their common name, from the annotations catalogues
-* Add intensity profiling function
+* Added intensity profiling function
+* Added internal plotting tool (siril_plot) to be used with profiling and light_curves
+* Added functionalities to kplot (hyphen markers, revert axes, removed statics)
 * Fixed PRISM SITELAT/SITELONG keywords data
-* Improve RGB composition tool to do full homography registration
+* Improved RGB composition tool to do full homography registration
+* Added new init for PSF fitting of oversampled stars
 
 siril 1.2.0 xx xx, xx
 
@@ -17,6 +20,21 @@ siril 1.2.0 xx xx, xx
 * Improved path-checking and messages for astrometry.net local solver (Windows)
 * Prevent crash using recomposition tool eyedroppers without images loaded
 * Fix HaOiii script failure if input image has odd dimensions
+* Fix errors in GNUplot process handling
+* Fixed HaOiii script failure if input image has odd dimensions
+* Fixed crash with seqextract_HaOIII command
+* Fixed crash when trying to export csv from empty plot
+* Fixed deleting RA/Dec info when undoing an astrometry solve
+* Improved error detection and messages for astrometry
+* Fixed sampling range specification for siril internal solver
+* Fixed all command descriptions
+* Fixed SER orientation after AVI conversion
+* Fixed rescaling float images upon loading when not in [0,1] range (#1155)
+* Fixed initialization of guide image for clamping (#1114)
+* Fixed disabling weighting in the GUI when widget is not visible (#1158)
+* Fixed output_norm behavior for stacking to ignore border values (#1159)
+* Fixed the check for the no space left condition in the conversion (#1108)
+* Fixed DATE_OBS missing on seqapplyreg if interp was set to NONE (#1156)
 
 siril 1.2.0-rc1 June 1, 2023
 

@@ -25,9 +25,11 @@ struct 	kpair {
 enum	kplottype {
 	KPLOT_POINTS,
 	KPLOT_MARKS,
+	KPLOT_HYPHENS,
 	KPLOT_LINES,
 	KPLOT_LINESPOINTS,
-	KPLOT_LINESMARKS
+	KPLOT_LINESMARKS,
+	KPLOT_LINESHYPHENS
 };
 
 enum	ksmthtype {
@@ -135,6 +137,8 @@ struct	kplotcfg {
 	double		  xticlabelrot;
 	void		(*xticlabelfmt)(double, char *, size_t);
 	void		(*yticlabelfmt)(double, char *, size_t);
+	char	 	*xticlabelfmtstr;
+	char	 	*yticlabelfmtstr;
 	double		  yticlabelpad;
 	double		  xticlabelpad;
 	struct kplotfont  ticlabelfont;
@@ -166,14 +170,17 @@ struct	kplotcfg {
 	double		  extrema_xmax;
 	double		  extrema_ymin;
 	double		  extrema_ymax;
+	unsigned int 		xaxisrevert;
+	unsigned int		yaxisrevert;
 };
 
 struct 	kdata;
 struct	kplot;
+struct 	kplotctx;
 
 __BEGIN_DECLS
 
-void		 kdata_destroy(struct kdata *);
+void	kdata_destroy(struct kdata *);
 int		 kdata_get(const struct kdata *, size_t, struct kpair *);
 
 int		 kdata_array_add(struct kdata *, size_t, double);
@@ -234,18 +241,11 @@ int		 kplot_attach_smooth(struct kplot *, struct kdata *,
 int		 kplot_attach_datas(struct kplot *, size_t, 
 			struct kdata **, const enum kplottype *, 
 			const struct kdatacfg *const *, enum kplotstype);
-void		 kplot_draw(struct kplot *, double, double, cairo_t *);
-void		 kplot_free(struct kplot *);
-int		 kplot_get_datacfg(struct kplot *, size_t,
+void	kplot_draw(struct kplot *, double, double, cairo_t *, struct kplotctx *);
+void	kplot_free(struct kplot *);
+int		kplot_get_datacfg(struct kplot *, size_t,
 			struct kdatacfg **, size_t *);
 struct kplotcfg	*kplot_get_plotcfg(struct kplot *);
-
-/* getter added by C. Richard - 2020 */
-double get_dimx();
-double get_dimy();
-double get_offsx();
-double get_offsy();
-
 
 __END_DECLS
 

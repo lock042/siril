@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <gsl/gsl_histogram.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,6 +57,7 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
+#include "io/gnuplot_i.h"
 #include "io/single_image.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
@@ -1024,8 +1026,8 @@ int process_makepsf(int nb) {
 	reset_conv_args(data);
 	cmd_errors status = CMD_OK;
 
-	char *arg = word[1];
-	if (!g_strcmp0(arg, "clear")) {
+	char *arg_1 = word[1];
+	if (!g_strcmp0(arg_1, "clear")) {
 		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			status = CMD_GENERIC_ERROR;
@@ -1035,7 +1037,7 @@ int process_makepsf(int nb) {
 		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
 		goto terminate_makepsf;
 	} else {
-		if (!g_strcmp0(arg, "save")) {
+		if (!g_strcmp0(arg_1, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			if (!word[2] || word[2][0] == '\0') {
 				on_bdeconv_savekernel_clicked(NULL, NULL);
@@ -1051,7 +1053,7 @@ int process_makepsf(int nb) {
 		}
 		reset_conv_kernel();
 		status = CMD_ARG_ERROR; // setting to this value as it will be the most likely error from now on
-		if (!g_strcmp0(arg, "blind")) {
+		if (!g_strcmp0(arg_1, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "blind");
 				status = CMD_GENERIC_ERROR;
@@ -1131,7 +1133,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "stars")) {
+		} else if (!g_strcmp0(arg_1, "stars")) {
 			data->recalc_ks = FALSE;
 			gboolean force_ks = FALSE;
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
@@ -1185,7 +1187,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "manual")) {
+		} else if (!g_strcmp0(arg_1, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
 			data->psftype = PSF_MANUAL;
 			for (int i = 2; i < nb; i++) {
@@ -1332,7 +1334,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only,data);
 			return CMD_OK;
-		} else if (!g_strcmp0(arg, "load")) {
+		} else if (!g_strcmp0(arg_1, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {
 				if (load_kernel(word[2])) {
@@ -1345,7 +1347,7 @@ int process_makepsf(int nb) {
 			status = CMD_OK;
 			goto terminate_makepsf;
 		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg_1);
 		}
 	}
 terminate_makepsf:
@@ -3113,6 +3115,7 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
+	reset_gnuplot_check();
 	return 0;
 }
 
@@ -4160,6 +4163,7 @@ int process_seq_crop(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						free(args->prefix);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -5513,13 +5517,13 @@ int process_extractHaOIII(int nb) {
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
-		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
+		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling, com.max_thread))) {
 			ret = save1fits16(Ha, &f_Ha, 0) ||
 					save1fits16(OIII, &f_OIII, 0);
 		}
 	}
 	else if (gfit.type == DATA_FLOAT) {
-		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
+		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling, com.max_thread))) {
 			ret = save1fits32(Ha, &f_Ha, 0) ||
 					save1fits32(OIII, &f_OIII, 0);
 		}
@@ -5639,6 +5643,7 @@ int process_seq_split_cfa(int nb) {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
+						free(args->seqEntry);
 						free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -5649,6 +5654,7 @@ int process_seq_split_cfa(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
+				free(args->seqEntry);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5763,6 +5769,7 @@ int process_seq_extractHa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -5811,6 +5818,7 @@ int process_seq_extractGreen(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free(args->seqEntry);
 						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
@@ -8444,7 +8452,9 @@ int process_pcc(int nb) {
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
 		args->use_local_cat = local_cat;
-		args->onlineCatalog = cat;
+		if (!local_cat && cat == CAT_AUTO)
+			args->onlineCatalog = CAT_NOMAD;
+		else args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
@@ -8669,7 +8679,7 @@ int process_nomad(int nb) {
 
 	if (cat == CAT_AUTO) {
 		// stars coordinates are the raw wcs2pix values, so FITS/WCS coordinates
-		if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
+		if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars, photometric)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			return CMD_GENERIC_ERROR;
 		}
@@ -8978,7 +8988,8 @@ int process_show(int nb) {
 
 	GtkToggleToolButton *button = NULL;
 parse_coords:
-	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
+	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
+			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
 		// code from process_pcc
 		char *sep = strchr(word[next_arg], ',');
 		if (!sep) {
@@ -9137,7 +9148,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-from";
+				siril_log_color_message(_("Error: Could not parse -from values.\n"), "red");
 				break;
 			}
 		}
@@ -9145,7 +9156,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 4;
 			if ((*err = read_cut_pair(value, &cut_args->cut_end))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-to";
+				siril_log_color_message(_("Error: Could not parse -to values.\n"), "red");
 				break;
 			}
 		}
@@ -9153,7 +9164,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn1at";
+				siril_log_color_message(_("Error: Could not parse -wn1at values.\n"), "red");
 				break;
 			}
 		}
@@ -9161,7 +9172,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn2at";
+				siril_log_color_message(_("Error: Could not parse -wn2at values.\n"), "red");
 				break;
 			}
 		}
@@ -9196,8 +9207,12 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			cut_args->mode = CUT_COLOR;
 		}
 	}
-	if (!cut_struct_is_valid(cut_args))
+	if (seq && seq->is_variable) {
+		siril_log_message(_("Error: sequence has variable sized images.\n"));
+		*err = CMD_GENERIC_ERROR;
+	} else if (!cut_struct_is_valid(cut_args)) {
 		*err = CMD_ARG_ERROR;
+	}
 	if (*err) {
 		free_cut_args(cut_args);
 		cut_args = NULL;
@@ -9211,6 +9226,11 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
+	if (!gnuplot_is_available()) {
+		siril_log_color_message(_("Warning: GNUplot not available. Data files will be generated for analysis in a third party tool but no GNUplot image can be produced.\n"), "salmon");
+	}
+
+	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
@@ -9232,6 +9252,11 @@ int process_seq_profile(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
+	}
+
+	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
+		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
+		return CMD_GENERIC_ERROR;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);
