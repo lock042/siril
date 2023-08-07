@@ -2573,7 +2573,13 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	save_opened_fits(f);
+	if (save_opened_fits(f)) {
+	    status = 0;
+	    fits_close_file(f->fptr, &status);
+	    f->fptr = NULL;
+		g_free(filename);
+		return 1;
+	}
 
 	if (com.pref.fits_save_icc) {
 		if (!(f->icc_profile)) {
