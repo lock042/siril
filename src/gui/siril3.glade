@@ -528,12 +528,6 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_sampling_tolerance">
-    <property name="upper">50</property>
-    <property name="value">15</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="adj_asnet_spi_order">
     <property name="upper">6</property>
     <property name="step-increment">1</property>
@@ -2635,6 +2629,12 @@ If the parameters is null, so no filter is apply at all.</property>
     <action-widgets>
       <action-widget response="0">rgradient_Apply</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="upper">50</property>
+    <property name="value">15</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_satu_bkg">
     <property name="upper">2</property>
@@ -13195,7 +13195,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=3 n-rows=3 -->
+                  <!-- n-columns=4 n-rows=3 -->
                   <object class="GtkGrid" id="GtkGridIPS2">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -13278,6 +13278,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                           <item>PPMXL</item>
                           <item>Bright stars</item>
                         </items>
+                        <signal name="changed" handler="on_comboastro_catalog_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -13343,6 +13344,25 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="left-attach">2</property>
                         <property name="top-attach">1</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="astrometry_catalog_label">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">The NOMAD catalogue can be installed locally to not rely on an Internet connection for this operation.</property>
+                        <property name="margin-left">4</property>
+                        <property name="margin-start">4</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>
