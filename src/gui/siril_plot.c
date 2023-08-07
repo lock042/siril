@@ -59,10 +59,9 @@ static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequen
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 		temp = g_path_get_basename(com.uniq->filename);
 	} else if (sequence_is_loaded() && !forsequence) {
-		char* seq_image_canonical_name = calloc(256, 1);
+		char seq_image_canonical_name[256] = "";
 		seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
 		temp = g_strdup(seq_image_canonical_name);
-		free(seq_image_canonical_name);
 	}
 	if (temp) {
 		gchar *tmp = remove_ext_from_filename(temp);
