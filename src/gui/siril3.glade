@@ -13349,7 +13349,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       <object class="GtkLabel" id="astrometry_catalog_label">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">The NOMAD catalogue can be installed locally to not rely on an Internet connection for this operation.</property>
+                        <property name="tooltip-text" translatable="yes">The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to not rely on an Internet connection for this operation.</property>
                         <property name="margin-left">4</property>
                         <property name="margin-start">4</property>
                       </object>
