@@ -414,7 +414,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	gchar *titleimg = g_strdup_printf("%s %s%s",
 			_("Light curve of star"), target_descr, subtitleimg);
 	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
-	gchar *titledat = g_strdup_printf("%sJD_UT (+ %d)\n#", subtitledat, julian0);
+	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
 
 	spl_data = malloc(sizeof(siril_plot_data));

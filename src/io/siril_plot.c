@@ -610,6 +610,8 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	// is valid for all other series. May need to complexify this in the future
 	int nbpoints = 0, nbcols = 1, nbgraphs = 0, j = 0;
 	if (add_title && spl_data->title) {
+		// spl_data->title is assumed to have the # signs at each line start as necessary
+		// and to finish by a \n character
 		header = g_string_new(spl_data->title);
 		g_string_append_printf(header, "#x");
 	} else

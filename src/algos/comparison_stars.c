@@ -515,12 +515,12 @@ end:
 gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 	if (!metadata)
 		return g_strdup("");
-	GString *str = for_plot ? g_string_new("\n ") : g_string_new("");
+	GString *str = g_string_new("");
 	gboolean first = TRUE;
 	if (metadata->nb_comp_stars > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0) {
 		if (for_plot)
 			g_string_append_printf(str,
-				"<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f</span>",
+				"\n<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f</span>",
 				metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
 		else g_string_append_printf(str, "#%d %s delta Vmag = %.2f, delta BV = %.2f",
 					metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
@@ -528,13 +528,13 @@ gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 	}
 	if (metadata->AAVSO_chartid) {
 		if (for_plot)
-			g_string_append_printf(str, "<span size=\"small\">%sAAVSO chart %s</span>", first ? "" : " - ", metadata->AAVSO_chartid);
+			g_string_append_printf(str, "<span size=\"small\">%sAAVSO chart %s</span>", first ? "\n" : " - ", metadata->AAVSO_chartid);
 		else
-			g_string_append_printf(str, "%sAAVSO chart %s", first ? "" : " - ", metadata->AAVSO_chartid);
+			g_string_append_printf(str, "%sAAVSO chart %s", first ? "#" : " - ", metadata->AAVSO_chartid);
+		first = FALSE;
 	}
-	if (!for_plot)
-		g_string_append(str, "\n"); // in that case it's the first line...
-
+	if (!for_plot && !first)
+		g_string_append(str, "\n");
 	return g_string_free(str, FALSE);
 }
 
