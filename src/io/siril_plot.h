@@ -64,6 +64,8 @@ typedef struct siril_plot_data_struct {
 	gchar *ylabel; //ylabel
 	gchar *xfmt; // x axis number format
 	gchar *yfmt; // y axis number format
+	gchar *savename; // chain to be prepended when interactively saving (png, dat)
+	gboolean forsequence; // using for saving 
 	enum kplottype plottype;
 	enum kplotstype plotstype;
 	enum kplottype plotstypes[3];
@@ -71,10 +73,12 @@ typedef struct siril_plot_data_struct {
 	struct kdatacfg cfgdata;
 	point datamin; // min x/y of data
 	point datamax; // max x/y of data
+	gboolean autotic;
 	gboolean show_legend;
 	gboolean revertX;
 	gboolean revertY;
 	plot_draw_data_t pdd; // data for display interaction
+	gboolean interactive; // true if GUI display
 } siril_plot_data;
 
 void init_siril_plot_data(siril_plot_data *spl_data);
@@ -85,9 +89,13 @@ void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
 void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);
 void siril_plot_set_xfmt(siril_plot_data *spl_data, const gchar *xfmt);
 void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt);
+void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename);
 
 gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm);
-gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height);
-gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename);
+gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg);
+cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height);
+gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int width, int height);
+gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int width, int height);
+gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename, gboolean add_title);
 
 #endif /* SRC_IO_PLOT_H_ */
