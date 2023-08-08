@@ -528,12 +528,6 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_sampling_tolerance">
-    <property name="upper">50</property>
-    <property name="value">15</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="adj_asnet_spi_order">
     <property name="upper">6</property>
     <property name="step-increment">1</property>
@@ -2635,6 +2629,12 @@ If the parameters is null, so no filter is apply at all.</property>
     <action-widgets>
       <action-widget response="0">rgradient_Apply</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="upper">50</property>
+    <property name="value">15</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_satu_bkg">
     <property name="upper">2</property>
@@ -5074,15 +5074,36 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                 <property name="can-focus">False</property>
                                 <property name="left-padding">12</property>
                                 <child>
-                                  <object class="GtkCheckButton" id="check_button_icc_profile">
-                                    <property name="label" translatable="yes">ICC profile</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Embed sRGB ICC profile in the image</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">&lt;b&gt;ICC Profile&lt;/b&gt;</property>
+                                        <property name="use-markup">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="icc_save_label">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -29681,6 +29702,7 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Embed ICC profiles in FITS files. This should be left on in almost all cases, unless you need interoperability with a program that fails to handle FITS with embedded ICC profiles.</property>
                                 <property name="halign">start</property>
                                 <property name="active">True</property>
                                 <property name="draw-indicator">True</property>

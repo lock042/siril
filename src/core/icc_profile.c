@@ -700,6 +700,19 @@ static void set_source_information() {
 	}
 }
 
+void set_icc_description_in_TIFF() {
+	// Set description
+	GtkLabel* label = (GtkLabel*) lookup_widget("icc_save_label");
+	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+	char *buffer = NULL;
+	if (length) {
+		buffer = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+		gtk_label_set_text(label, buffer);
+		free(buffer);
+	}
+}
+
 static void set_target_information() {
 	if (!target) {
 		return;

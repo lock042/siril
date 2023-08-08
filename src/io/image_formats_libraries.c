@@ -649,7 +649,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	return retval;
 }
 
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc) {
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
 	if (!com.script && !com.headless) {
 		/*******************************************************************
 		 * If the user saves a tif from the graphical menu, he can set
@@ -671,8 +671,6 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 		gtk_text_buffer_get_end_iter(copybuf, &itFin);
 		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
 
-		GtkToggleButton *icc_toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_icc_profile"));
-		*embeded_icc = gtk_toggle_button_get_active(icc_toggle);
 	}
 }
 

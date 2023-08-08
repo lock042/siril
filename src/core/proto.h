@@ -45,7 +45,7 @@ int readpic(const char *name, fits *fit);
 #ifdef HAVE_LIBTIFF
 gboolean get_tiff_compression();
 int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose);
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright);
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		const char *description, const char *copyright,
 		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose);

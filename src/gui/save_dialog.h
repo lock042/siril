@@ -8,7 +8,6 @@ struct savedial_data {
 	gboolean tiff_compression;
 	char *description;
 	char *copyright;
-	gboolean embeded_icc;
 	gint quality;
 	const gchar *filename;
 	int bitpix;
