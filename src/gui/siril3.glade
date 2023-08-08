@@ -1195,7 +1195,7 @@ artifacts may appear.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Saves the plot in .png format as well as opening the GNUplot window. Sequence working relies on this so if this option is deactivated, sequence working will be deactivated too.</property>
+                <property name="tooltip-text" translatable="yes">Saves the plot in .png format as well as opening the plot window. Sequence working relies on this so if this option is deactivated, sequence working will be deactivated too.</property>
                 <property name="draw-indicator">True</property>
                 <signal name="toggled" handler="on_cut_save_png_toggled" swapped="no"/>
               </object>
