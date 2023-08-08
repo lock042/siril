@@ -24,6 +24,7 @@
 
 #include "core/siril.h"
 
+gboolean is_space_disk_available(gchar *disk);
 gboolean update_displayed_memory();
 int test_available_space(gint64 req_size);
 
