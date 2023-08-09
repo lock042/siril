@@ -1001,13 +1001,14 @@ static void fill_plot_statics() {
 static void validate_combos() {
 	fill_plot_statics();
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
+	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	if (!use_photometry) {
 		reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(layer_selector));
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_visible(varCurve, TRUE);
-	gtk_widget_set_sensitive(varCurve, use_photometry);
+	gtk_widget_set_sensitive(varCurve, use_photometry && current_selected_source == MAGNITUDE);
 	gtk_widget_set_visible(buttonNINA, TRUE);
 	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
@@ -1028,6 +1029,7 @@ static void validate_combos() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 		X_selected_source = r_FRAME;
 		gtk_widget_set_sensitive(comboX, FALSE);
+		gtk_widget_set_sensitive(combo, TRUE);
 	} else {
 		while (i < (G_N_ELEMENTS(registration_labels)) - 1) { // do not write 'Frame' as possible Y value
 			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _(registration_labels[i]));
