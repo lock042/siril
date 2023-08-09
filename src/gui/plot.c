@@ -48,7 +48,6 @@
 #include "algos/siril_wcs.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "io/gnuplot_i.h"
 #include "io/siril_plot.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
@@ -78,7 +77,6 @@ static enum registration_source X_selected_source = r_FRAME;
 static int julian0 = 0;
 static int reglayer = 0;
 static gboolean is_fwhm = TRUE;
-static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
 static plot_draw_data_t pdd = { 0 };
@@ -199,11 +197,11 @@ static gboolean is_inside_selection(double x, double y) {
 	return FALSE;
 }
 
-static gboolean is_inside_grid(double x, double y) {
-	if (x <= pdd.offset.x + pdd.range.x + SEL_TOLERANCE &&
-		x >= pdd.offset.x - SEL_TOLERANCE &&
-		y <= pdd.offset.y + pdd.range.y + SEL_TOLERANCE &&
-		y >= pdd.offset.y - SEL_TOLERANCE)
+gboolean is_inside_grid(double x, double y, plot_draw_data_t *pddstruct) {
+	if (x <= pddstruct->offset.x + pddstruct->range.x + SEL_TOLERANCE &&
+		x >= pddstruct->offset.x - SEL_TOLERANCE &&
+		y <= pddstruct->offset.y + pddstruct->range.y + SEL_TOLERANCE &&
+		y >= pddstruct->offset.y - SEL_TOLERANCE)
 			return TRUE;
 	return FALSE;
 }
@@ -714,7 +712,6 @@ static double get_error_for_time(pldata *plot, double time) {
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
-	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -810,41 +807,33 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 
 	/*  data are computed, now plot the graph. */
 
-	if (use_gnuplot) {
-		if ((gplot = gnuplot_init())) {
-			/* Plotting light curve */
-			gnuplot_set_title(gplot, _("Light Curve"));
-			gnuplot_set_xlabel(gplot, xlabel);
-			gnuplot_reverse_yaxis(gplot);
-			gnuplot_setstyle(gplot, "errorbars");
-			gnuplot_plot_xyyerr(gplot, x, vmag, err, nb_valid_images, "", 0);
-			// This is now handled at exit or via callback if the user closes the control_window
-			// gnuplot_close(gplot);
-		}
-		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
-	} else { // fallback with siril_plot
-		spl_data = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_data);
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	char add_title[128];
+	if (julian0) {
+		g_sprintf(add_title, "#JD_UT (+ %d)\n", julian0);
+		siril_plot_set_title(spl_data, add_title);
+	}
+	spl_data->revertY = TRUE;
+	siril_plot_set_xlabel(spl_data, xlabel);
+	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+	siril_plot_set_savename(spl_data, "light_curve");
+	spl_data->forsequence = TRUE;
+	int ret = 0;
+	if (!siril_plot_save_dat(spl_data, filename, (julian0) ? TRUE : FALSE)) {
+		ret = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL; // just in case we try to use it later on
+	} else {
 		siril_plot_set_title(spl_data, "Light Curve");
-		spl_data->revertY = TRUE;
-		siril_plot_set_xlabel(spl_data, xlabel);
-		siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, x, vmag, err, NULL);
 		create_new_siril_plot_window(spl_data);
 	}
 
-	/* Exporting data in a dat file */
-	if ((gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, "JD_UT V-C err"))) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
-		else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
-	} else {
-		siril_log_message(_("%s has been saved.\n"), filename);
-	}
 	free(vmag);
 	free(err);
 	free(x);
 	free(real_x);
-	return 0;
+	return ret;
 }
 
 static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
@@ -1077,14 +1066,14 @@ static void validate_combos() {
 
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 	requires_seqlist_update = TRUE;
-	reset_plot_zoom();
+	reset_plot_zoom(&pdd);
 	drawPlot();
 	validate_combos();
 }
 
 void reset_plot() {
 	free_plot_data();
-	reset_plot_zoom();
+	reset_plot_zoom(&pdd);
 	int layer;
 	if (sourceCombo) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
@@ -1362,6 +1351,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		} else {
 			kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
 		}
+		kdata_destroy(d1);
 		plot = plot->next;
 		nb_graphs++;
 	}
@@ -1394,6 +1384,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 				d1 = kdata_array_alloc(sorted_data, plot_data->nb);
 				kplot_attach_data(p, d1, KPLOT_LINES, NULL);
 				free(sorted_data);
+				kdata_destroy(d1);
 			}
 		} else if (use_photometry){
 			int nb_data = max_data - min_data + 1;
@@ -1405,15 +1396,18 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 			mean_d = kdata_array_alloc(avg, nb_data);
 			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
 			free(avg);
+			kdata_destroy(mean_d);
 		}
 
 		if (ref.x > -DBL_MAX && ref.y > -DBL_MAX) {
 			ref_d = kdata_array_alloc(&ref, 1);
 			kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
+			kdata_destroy(ref_d);
 		}
 		if (curr.x > -DBL_MAX && curr.y > -DBL_MAX) {
 			curr_d = kdata_array_alloc(&curr, 1);
 			kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
+			kdata_destroy(curr_d);
 		}
 	}
 
@@ -1477,14 +1471,6 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	}
 	free_colors(&cfgplot);
 	kplot_free(p);
-	if (d1)
-		kdata_destroy(d1);
-	if (curr_d)
-		kdata_destroy(curr_d);
-	if (ref_d)
-		kdata_destroy(ref_d);
-	if (mean_d)
-		kdata_destroy(mean_d);
 }
 
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
@@ -1871,7 +1857,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	} else {
 		set_cursor("tcross");
 	}
-	if (is_inside_grid(x, y)) {
+	if (is_inside_grid(x, y, &pdd)) {
 		double index, xpos, ypos;
 		gboolean getvals = get_index_of_frame(x, y, FALSE, &index, &xpos, &ypos);
 		gchar *tooltip_text;
@@ -1998,7 +1984,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			return TRUE;
 		}
 		// open or exclude image (if close enough to a data point)
-		if (is_inside_grid(x, y) && event->button == GDK_BUTTON_SECONDARY) {
+		if (is_inside_grid(x, y, &pdd) && event->button == GDK_BUTTON_SECONDARY) {
 			do_popup_singleframemenu(widget, event);
 			return TRUE;
 		}
@@ -2007,7 +1993,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
 		enum border_type border = is_over_selection_border(x, y);
 		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
-			reset_plot_zoom();
+			reset_plot_zoom(&pdd);
 			return TRUE;
 		} else if (is_inside_selection(x, y)) { // start moving selection
 			pdd.action = SELACTION_MOVING;
@@ -2128,7 +2114,7 @@ void on_menu_plot_item2_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		}
 	} else {
 		select_unselect_frames_from_list(pdd.selected, TRUE);
-		reset_plot_zoom();
+		reset_plot_zoom(&pdd);
 		drawPlot();
 	}
 }
@@ -2137,7 +2123,7 @@ void on_menu_plot_item3_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		return;
 	} else {
 		select_unselect_frames_from_list(pdd.selected, FALSE);
-		reset_plot_zoom();
+		reset_plot_zoom(&pdd);
 		drawPlot();
 	}
 }

@@ -915,7 +915,7 @@ static void draw_cut_line(const draw_data_t* dd) {
 		double point_spacing_x = delta.x / nbr_points;
 		double point_spacing_y = delta.y / nbr_points;
 		step = gtk_spin_button_get_value(tri_cut_spin_step);
-		double line_r[3] = { 0.58, 0.0, 0.34 }; // These colours match the 3 lines plotted by GNUplot
+		double line_r[3] = { 0.58, 0.0, 0.34 }; // These colours match the 3 lines plotted by siril plot
 		double line_g[3] = { 0.0, 0.62, 0.70 };
 		double line_b[3] = { 0.83, 0.45, 0.91 };
 		for (int offset = -1 ; offset < 2 ; offset++) {
@@ -931,7 +931,7 @@ static void draw_cut_line(const draw_data_t* dd) {
 			cairo_restore(cr);
 		}
 	} else {
-		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by GNUplot
+		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by siril plot
 		cairo_save(cr);
 		cairo_move_to(cr, gui.cut.cut_start.x, gui.cut.cut_start.y);
 		cairo_line_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);

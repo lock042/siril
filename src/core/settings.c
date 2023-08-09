@@ -66,7 +66,6 @@ preferences pref_init = {
 	.starnet_exe = NULL,
 	.starnet_weights = NULL,
 	.gnuplot_dir = NULL,
-	.use_gnuplot=FALSE,
 	.asnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
@@ -295,8 +294,8 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
 	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
+// TODO: remove when we release 1.4. For now, it's kept to avoid having the key removed when switching back and forth to 1.2/1.3
 	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
-	{ "core", "use_gnuplot", STYPE_BOOL, N_("use gnuplot (instead of Siril internal plot tool)"), &com.pref.use_gnuplot },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
 #else

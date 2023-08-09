@@ -25,6 +25,8 @@
 #include "kplot.h"
 #include "extern.h"
 
+#define kplot_eps 1.e-15
+
 static void
 bbox_extents(struct kplotctx *ctx, const char *v, 
 	double *h, double *w, double rot)
@@ -57,21 +59,18 @@ kplotctx_label_init(struct kplotctx *ctx)
 	for (i = 0; i < ctx->cfg.xtics; i++) {
 		offs = 1 == ctx->cfg.xtics ? 0.5 : 
 			i / (double)(ctx->cfg.xtics - 1);
-
+		v = (ctx->cfg.xaxisrevert) ? 
+		ctx->minv.x + (1. - offs) * (ctx->maxv.x - ctx->minv.x) :
+		ctx->minv.x + offs * (ctx->maxv.x - ctx->minv.x);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		/* Call out to xformat function. */
 		if (ctx->cfg.xticlabelfmtstr)
-			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, 
-				ctx->minv.x + offs *
-				(ctx->maxv.x - ctx->minv.x));
+			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.xticlabelfmt)
-			snprintf(buf, sizeof(buf), "%g", 
-				ctx->minv.x + offs *
-				(ctx->maxv.x - ctx->minv.x));
+			snprintf(buf, sizeof(buf), "%g", v);
 		else
 			(*ctx->cfg.xticlabelfmt)
-				(ctx->minv.x + offs *
-				 (ctx->maxv.x - ctx->minv.x),
-				 buf, sizeof(buf));
+				(v, buf, sizeof(buf));
 
 		cairo_text_extents(ctx->cr, buf, &e);
 
@@ -106,20 +105,17 @@ kplotctx_label_init(struct kplotctx *ctx)
 	for (i = 0; i < ctx->cfg.ytics; i++) {
 		offs = 1 == ctx->cfg.ytics ? 0.5 : 
 			i / (double)(ctx->cfg.ytics - 1);
-
+		v = (ctx->cfg.yaxisrevert) ? 
+		ctx->minv.y + (1. - offs) * (ctx->maxv.y - ctx->minv.y) :
+		ctx->minv.y + offs * (ctx->maxv.y - ctx->minv.y);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		if (ctx->cfg.yticlabelfmtstr)
-			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, 
-				ctx->minv.y + offs *
-				(ctx->maxv.y - ctx->minv.y));
+			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.yticlabelfmt)
-			snprintf(buf, sizeof(buf), "%g", 
-				ctx->minv.y + offs *
-				(ctx->maxv.y - ctx->minv.y));
+			snprintf(buf, sizeof(buf), "%g", v);
 		else
 			(*ctx->cfg.yticlabelfmt)
-				(ctx->minv.y + offs *
-				 (ctx->maxv.y - ctx->minv.y),
-				 buf, sizeof(buf));
+				(v, buf, sizeof(buf));
 
 		cairo_text_extents(ctx->cr, buf, &e);
 
@@ -227,6 +223,7 @@ kplotctx_label_init(struct kplotctx *ctx)
 		v = (ctx->cfg.xaxisrevert) ? 
 		ctx->minv.x + (1. - offs) * (ctx->maxv.x - ctx->minv.x) :
 		ctx->minv.x + offs * (ctx->maxv.x - ctx->minv.x);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		if (ctx->cfg.xticlabelfmtstr)
 			snprintf(buf, sizeof(buf), ctx->cfg.xticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.xticlabelfmt)
@@ -277,6 +274,7 @@ kplotctx_label_init(struct kplotctx *ctx)
 		v = (ctx->cfg.yaxisrevert) ? 
 		ctx->minv.y + (1. - offs) * (ctx->maxv.y - ctx->minv.y) :
 		ctx->minv.y + offs * (ctx->maxv.y - ctx->minv.y);
+		v = (fabs(v) < kplot_eps) ? 0.0 : v;
 		if (ctx->cfg.yticlabelfmtstr)
 			snprintf(buf, sizeof(buf), ctx->cfg.yticlabelfmtstr, v);
 		else if (NULL == ctx->cfg.yticlabelfmt)

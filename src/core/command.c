@@ -58,7 +58,6 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
-#include "io/gnuplot_i.h"
 #include "io/single_image.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
@@ -3119,7 +3118,6 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
-	reset_gnuplot_check();
 	return 0;
 }
 
@@ -9138,11 +9136,11 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wavenumber2=")) {
 			arg += 13;
-			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+			cut_args->wavenumber2 = g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-wavelength1=")) {
 			arg += 13;
-			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+			cut_args->wavenumber1 = 10000000. / g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-wavelength2=")) {
 			arg += 13;
@@ -9166,7 +9164,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wn1at=")) {
 			gchar *value;
-			value = arg + 6;
+			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
 				siril_log_color_message(_("Error: Could not parse -wn1at values.\n"), "red");
 				break;
@@ -9174,7 +9172,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wn2at=")) {
 			gchar *value;
-			value = arg + 6;
+			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
 				siril_log_color_message(_("Error: Could not parse -wn2at values.\n"), "red");
 				break;
@@ -9230,11 +9228,7 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	if (!gnuplot_is_available()) {
-		siril_log_color_message(_("Warning: GNUplot not available. Data files will be generated for analysis in a third party tool but no GNUplot image can be produced.\n"), "salmon");
-	}
-
-	cut_args->display_graph = FALSE;
+	cut_args->display_graph = (!com.script); // we can display the plot if not in a script
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
@@ -9256,11 +9250,6 @@ int process_seq_profile(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
-	}
-
-	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
-		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
-		return CMD_GENERIC_ERROR;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);
