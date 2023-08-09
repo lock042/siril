@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-08 13:32+0200\n"
-"PO-Revision-Date: 2023-08-08 21:49+0000\n"
+"PO-Revision-Date: 2023-08-09 22:12+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/fr/>\n"
@@ -12979,11 +12979,11 @@ msgstr ""
 
 #: src/core/command_def.h:11
 msgid "Returns the background level of the loaded image"
-msgstr "Renvoie le niveau de fond de ciel de l'image chargée"
+msgstr "Retourne le niveau d'arrière-plan de l'image chargée en mémoire"
 
 #: src/core/command_def.h:12
 msgid "Returns the background noise level of the loaded image"
-msgstr "Renvoie le niveau de bruit de fond de l'image chargée"
+msgstr "Renvoie le niveau du bruit de fond de l'image chargée en mémoire"
 
 #: src/core/command_def.h:13
 msgid ""
@@ -13157,7 +13157,9 @@ msgstr ""
 
 #: src/core/command_def.h:18
 msgid "Lists Siril capabilities, based on compilation options and runtime"
-msgstr "Liste des fonctionnalités de Siril, en fonction de la compilation"
+msgstr ""
+"Affiche les fonctionnalités de Siril, en fonction de la compilation et de "
+"l'exécution"
 
 #: src/core/command_def.h:19
 msgid ""
@@ -13200,7 +13202,7 @@ msgid ""
 "at least 50 of them"
 msgstr ""
 "Renvoie les coordonnées du centre de gravité de l'image. Seuls les pixels "
-"dont la valeur est supérieure à 15,7% de l'ADU maximale et dont les quatre "
+"dont la valeur est supérieure à 15,7 % de l'ADU maximale et dont les quatre "
 "voisins remplissent les mêmes conditions sont utilisés pour le calculer, et "
 "il n'est calculé que s'il y en a au moins 50"
 
@@ -13461,9 +13463,10 @@ msgid ""
 "selected area if one has been selected or in the whole image. The entropy is "
 "one way of measuring the noise or the details in an image"
 msgstr ""
-"Calcule l'entropie de l'image chargée sur le canal affiché, uniquement dans "
-"la zone sélectionnée si une zone a été sélectionnée ou dans l'image entière. "
-"L'entropie est une façon de mesurer le bruit ou les détails d'une image"
+"Calcule l'entropie de l'image chargée sur la couche affichée, uniquement "
+"dans la zone sélectionnée si une zone a été sélectionnée ou dans l'image "
+"entière. L'entropie est une façon de mesurer le bruit ou les détails d'une "
+"image"
 
 #: src/core/command_def.h:37
 msgid "Quits the application"
@@ -13792,8 +13795,8 @@ msgid ""
 "CFA is used"
 msgstr ""
 "Égalise l'intensité moyenne des couches RVB dans l'image CFA chargée. Il "
-"s'agit du même processus que celui utilisé sur les flats lors de "
-"l'étalonnage, lorsque l'option \"égaliser CFA\" est utilisée"
+"s'agit du même processus que celui utilisé sur les images flats lors de la "
+"calibration, lorsque l'option \"equalize CFA\" est utilisée"
 
 #: src/core/command_def.h:63
 msgid "Lists the available commands or help for one command"
@@ -13835,8 +13838,8 @@ msgid ""
 "the center for a closer inspection (GUI only)"
 msgstr ""
 "Divise l'image chargée en une mosaïque de neuf panneaux montrant les coins "
-"de l'image et le centre pour une inspection plus approfondie (Interface "
-"graphique seulement)"
+"et le centre de l'image pour une inspection plus approfondie (interface "
+"graphique uniquement)"
 
 #: src/core/command_def.h:69
 msgid ""
@@ -13983,12 +13986,12 @@ msgid ""
 "temporary result will be in the file live_stack_00001.fit until a new option "
 "to change it is added"
 msgstr ""
-"Traite l'image fournie pour l'empiler en direct. Cette opération n'est "
-"possible qu'après START_LS. Le processus implique l'étalonnage du fichier "
-"entrant s'il est configuré dans START_LS, un dématriçage s'il s'agit d'une "
-"image OSC, l'enregistrement et l'empilement. Le résultat temporaire sera "
-"dans le fichier live_stack_00001.fit jusqu'à ce qu'une nouvelle option "
-"permettant de le modifier soit ajoutée"
+"Traite l'image fournie pour le livestacking. Cette opération n'est possible "
+"qu'après START_LS. Le processus implique la calibration du fichier entrant "
+"s'il est configuré dans START_LS, le dématriçage s'il s'agit d'une image "
+"couleur, l'alignement et l'empilement. Le résultat temporaire sera dans le "
+"fichier live_stack_00001.fit jusqu'à ce qu'une nouvelle option permettant de "
+"le modifier soit ajoutée"
 
 #: src/core/command_def.h:80
 msgid ""
@@ -14651,7 +14654,7 @@ msgstr ""
 
 #: src/core/command_def.h:108
 msgid "Rescans the scripts folders and updates the Scripts menu"
-msgstr "Réorganise les dossiers de scripts et met à jour le menu Scripts"
+msgstr "Re-scan les dossiers de scripts et met à jour le menu Scripts"
 
 #: src/core/command_def.h:109
 msgid ""
@@ -14704,7 +14707,7 @@ msgid ""
 msgstr ""
 "Crée une composition RVB à l'aide de trois images indépendantes, ou une "
 "composition LRVB à l'aide de l'image de luminance optionnelle et de trois "
-"images monochromes ou d'une image couleur. L'image résultat est appelée "
+"images monochromes ou d'une image couleur. L'image résultante est appelée "
 "composed_rgb.fit ou composed_lrgb.fit à moins qu'un autre nom ne soit fourni "
 "dans l'argument optionnel"
 
@@ -15622,7 +15625,7 @@ msgid ""
 "Forbids images to be saved with 32 bits per channel on processing, use 16 "
 "bits instead"
 msgstr ""
-"Interdit d'enregistrer les images avec 32 bits par canal lors du traitement, "
+"Empêche d'enregistrer les images avec 32 bits par canal lors du traitement, "
 "utiliser 16 bits à la place"
 
 #: src/core/command_def.h:163
@@ -16199,7 +16202,7 @@ msgstr ""
 
 #: src/core/command_def.h:191
 msgid "Resets the magnitude calibration to 0. See SETMAG"
-msgstr "Réinitialise l'étalonnage de la magnitude à 0. Voir SETMAG"
+msgstr "Remet l'étalonnage de la magnitude à 0. Voir SETMAG"
 
 #: src/core/command_def.h:192
 msgid ""
