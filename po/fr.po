@@ -3126,7 +3126,8 @@ msgstr "Sel"
 
 #: src/gui/siril3.glade:12406 src/gui/siril3.glade:24832
 #: src/gui/siril3.glade:24867 src/gui/plot.c:139 src/gui/plot.c:1571
-#: src/gui/plot.c:1599 src/gui/sequence_list.c:514
+#: src/gui/plot.c:1599 src/gui/sequence_list.c:514 src/gui/plot.c:1569
+#: src/gui/plot.c:1597
 msgid "Quality"
 msgstr "Qualité"
 
@@ -4421,7 +4422,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "Séquences"
 
-#: src/gui/siril3.glade:16462 src/gui/histogram.c:1250
+#: src/gui/siril3.glade:16462 src/gui/histogram.c:1250 src/gui/histogram.c:1246
 msgid "Histogram Transformation"
 msgstr "Transformation de l'histogramme"
 
@@ -6520,9 +6521,9 @@ msgstr ""
 "lorsque la distance focale du télescope est trop courte pour la taille d'un "
 "pixel. On peut considérer que le système est sous-échantillonné lorsque la "
 "FWHM est inférieure à 2 pixels.\n"
-"Le vrai nom de cette méthode devrait être \"empilement en super-"
-"résolution\", mais pour une meilleure compréhension, nous l'avons appelée "
-"\"Drizzle Simplifié x2\".\n"
+"Le vrai nom de cette méthode devrait être \"empilement en super-résolution"
+"\", mais pour une meilleure compréhension, nous l'avons appelée \"Drizzle "
+"Simplifié x2\".\n"
 "\n"
 "ATTENTION : la contrepartie de cette technique est que la quantité de "
 "mémoire et d'espace disque nécessaire pour créer de telles images est "
@@ -7199,6 +7200,7 @@ msgstr ""
 "leur temps d'intégration."
 
 #: src/gui/siril3.glade:25395 src/gui/plot.c:1577 src/gui/plot.c:1605
+#: src/gui/plot.c:1575 src/gui/plot.c:1603
 msgid "Number of stars"
 msgstr "Nombre d'étoiles"
 
@@ -8864,9 +8866,8 @@ msgstr "La commande \"Requires\" est obligatoire dans les scripts"
 
 #: src/gui/siril3.glade:31928
 msgid ""
-"If this option is checked, scripts cannot be executed without the "
-"\"requires\" command. That ensures the compatibility between scripts and "
-"Siril.\n"
+"If this option is checked, scripts cannot be executed without the \"requires"
+"\" command. That ensures the compatibility between scripts and Siril.\n"
 "\n"
 "<span foreground=\"red\"><b>WARNING: uncheck this option only if you know "
 "what you are doing!</b></span>"
@@ -9638,6 +9639,7 @@ msgstr "Impossible de projeter le catalogue d'étoiles."
 
 #: src/algos/astrometry_solver.c:473 src/algos/astrometry_solver.c:476
 #: src/io/remote_catalogues.c:917 src/io/remote_catalogues.c:920
+#: src/io/remote_catalogues.c:902 src/io/remote_catalogues.c:905
 #, c-format
 msgid "Could not load the star catalog (%s)."
 msgstr "Impossible de télécharger le catalogue d'étoiles (%s)."
@@ -9663,8 +9665,8 @@ msgstr ""
 #: src/algos/astrometry_solver.c:508
 #, c-format
 msgid ""
-"Plate solving image from local catalogues for a field of view of %.2f "
-"degrees%s, using a limit magnitude of %.2f\n"
+"Plate solving image from local catalogues for a field of view of %.2f degrees"
+"%s, using a limit magnitude of %.2f\n"
 msgstr ""
 "La résolution astrométrique provenant d'un catalogue local pour un champ de "
 "vision de %.2f degrés%s, en utilisant une magnitude limite de %.2f\n"
@@ -9969,7 +9971,7 @@ msgstr ""
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
 #: src/gui/histogram.c:1621 src/gui/remixer.c:1276 src/gui/remixer.c:1324
-#: src/gui/statistics_list.c:224
+#: src/gui/statistics_list.c:224 src/gui/histogram.c:1617
 msgid "Error: statistics computation failed.\n"
 msgstr "Erreur : échec du calcul des statistiques.\n"
 
@@ -10055,7 +10057,8 @@ msgstr "Aucune étoile variable sélectionnée\n"
 
 #: src/algos/comparison_stars.c:359 src/core/command.c:8632
 #: src/core/command.c:8727 src/core/command.c:8771 src/core/command.c:8787
-#: src/core/command.c:8948 src/gui/plot.c:1240
+#: src/core/command.c:8948 src/gui/plot.c:1240 src/core/command.c:8782
+#: src/core/command.c:8805 src/core/command.c:8966 src/gui/plot.c:1238
 msgid "This command only works on plate solved images\n"
 msgstr ""
 "Cette commande ne fonctionne que sur les images résolues par astrométrie\n"
@@ -10773,6 +10776,7 @@ msgid "Object %s was found in the %s catalogue, RA = %f, Dec = %f\n"
 msgstr "L'objet %s a été trouvé dans le catalogue %s, RA = %f, Dec = %f\n"
 
 #: src/algos/search_objects.c:380 src/io/remote_catalogues.c:749
+#: src/core/command.c:8796
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
 msgstr ""
@@ -10780,7 +10784,7 @@ msgstr ""
 "traitement.\n"
 
 #: src/algos/search_objects.c:520 src/io/remote_catalogues.c:674
-#: src/io/remote_catalogues.c:758
+#: src/io/remote_catalogues.c:758 src/io/remote_catalogues.c:743
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
@@ -11280,6 +11284,7 @@ msgstr "Paramètre %s inconnu, abandon.\n"
 #: src/core/command.c:2800 src/core/command.c:3892 src/core/command.c:4619
 #: src/core/command.c:4624 src/core/command.c:7846 src/core/command.c:8432
 #: src/core/command.c:8662 src/core/command.c:8924 src/core/command.c:8999
+#: src/core/command.c:8942 src/core/command.c:9017
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "Argument non valide %s, abandon.\n"
@@ -11516,8 +11521,8 @@ msgid ""
 "Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \"."
 "tif\"\n"
 msgstr ""
-"Erreur : le nom du fichier doit avoir l'extension \".fit\", \".fits\", \"."
-"fts\" ou \".tif\"\n"
+"Erreur : le nom du fichier doit avoir l'extension \".fit\", \".fits\", \".fts"
+"\" ou \".tif\"\n"
 
 #: src/core/command.c:1057 src/core/command.c:1139
 #, c-format
@@ -11874,6 +11879,7 @@ msgstr ""
 
 #: src/core/command.c:2574 src/core/command.c:2588 src/core/command.c:4641
 #: src/core/command.c:8903 src/pixelMath/pixel_math_runner.c:1092
+#: src/core/command.c:8921
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "Impossible d'ouvrir le fichier : %s\n"
@@ -11899,6 +11905,7 @@ msgstr "Impossible de sauvegarder l'image miroir : %s\n"
 #: src/core/command.c:8373 src/core/command.c:8385 src/core/command.c:8409
 #: src/core/command.c:8652 src/core/command.c:8747 src/core/command.c:8809
 #: src/core/command.c:8818 src/core/command.c:8827 src/core/command.c:8834
+#: src/core/command.c:8836 src/core/command.c:8845 src/core/command.c:8852
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Argument non valide pour %s, abandon.\n"
@@ -12931,7 +12938,7 @@ msgid "Missing arguments for rejection stacking.\n"
 msgstr "Arguments manquants pour l'empilement des rejets.\n"
 
 #: src/core/command.c:7557 src/core/command.c:9057 src/core/preprocess.c:663
-#: src/core/preprocess.c:988
+#: src/core/preprocess.c:988 src/core/command.c:9075
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "Impossible de charger l'image de référence de la séquence, abandon.\n"
 
@@ -13208,7 +13215,7 @@ msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "Les images doivent avoir les mêmes dimensions et être monochromes\n"
 
 #: src/core/command.c:8333 src/core/command.c:8345 src/core/command.c:8977
-#: src/core/command.c:8989
+#: src/core/command.c:8989 src/core/command.c:8995 src/core/command.c:9007
 msgid "Could not parse target coordinates\n"
 msgstr "Impossible d'analyser les coordonnées de la cible\n"
 
@@ -13318,68 +13325,70 @@ msgstr ""
 msgid "Could not compute image resolution\n"
 msgstr "Impossible de calculer la résolution de l'image\n"
 
-#: src/core/command.c:8839 src/core/command.c:8881
+#: src/core/command.c:8839 src/core/command.c:8881 src/core/command.c:8857
+#: src/core/command.c:8899
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "Option inconnue fournie : %s\n"
 
-#: src/core/command.c:8892 src/core/command.c:8913
+#: src/core/command.c:8892 src/core/command.c:8913 src/core/command.c:8910
+#: src/core/command.c:8931
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 "Le livestacking doit d'abord être initialisé avec la commande START_LS\n"
 
-#: src/core/command.c:8896
+#: src/core/command.c:8896 src/core/command.c:8914
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 "Le livestacking a été configuré pour utiliser la surveillance des fichiers, "
 "pas cette commande\n"
 
-#: src/core/command.c:8938
+#: src/core/command.c:8938 src/core/command.c:8956
 #, c-format
 msgid "String in: %s\n"
 msgstr "Chaîne d'entrée : %s\n"
 
-#: src/core/command.c:8939
+#: src/core/command.c:8939 src/core/command.c:8957
 #, c-format
 msgid "String out: %s\n"
 msgstr "Chaîne de sortie : %s\n"
 
-#: src/core/command.c:9066
+#: src/core/command.c:9066 src/core/command.c:9084
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr ""
 
-#: src/core/command.c:9106
+#: src/core/command.c:9106 src/core/command.c:9124
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9131
+#: src/core/command.c:9131 src/core/command.c:9149
 #, fuzzy
 msgid "Error: Could not parse -from values.\n"
 msgstr "Impossible d'analyser les coordonnées de la cible\n"
 
-#: src/core/command.c:9139
+#: src/core/command.c:9139 src/core/command.c:9157
 #, fuzzy
 msgid "Error: Could not parse -to values.\n"
 msgstr "Impossible d'analyser les coordonnées de la cible\n"
 
-#: src/core/command.c:9147
+#: src/core/command.c:9147 src/core/command.c:9165
 #, fuzzy
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "Impossible d'analyser les coordonnées de la cible\n"
 
-#: src/core/command.c:9155
+#: src/core/command.c:9155 src/core/command.c:9173
 #, fuzzy
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "Impossible d'analyser les coordonnées de la cible\n"
 
-#: src/core/command.c:9161
+#: src/core/command.c:9161 src/core/command.c:9179
 #, fuzzy
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Erreur : Impossible d'ouvrir la séquence\n"
 
-#: src/core/command.c:9191
+#: src/core/command.c:9191 src/core/command.c:9209
 #, fuzzy
 msgid "Error: sequence has variable sized images.\n"
 msgstr "Erreur : échec de la recherche dans le fichier.\n"
@@ -13506,8 +13515,8 @@ msgid ""
 "in argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -13582,8 +13591,8 @@ msgid ""
 "argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -14012,8 +14021,8 @@ msgstr ""
 "exporte uniquement les données du filtre rouge pour H-Alpha sous la forme "
 "d'un nouveau fichier FITS demi-taille (comme EXTRACTHA) et conserve les "
 "trois autres pour O-III avec un remplacement interpolé pour le pixel rouge. "
-"Les noms des fichiers de sortie commencent par le préfixe \"Ha_\" et "
-"\"OIII_\"\n"
+"Les noms des fichiers de sortie commencent par le préfixe \"Ha_\" et \"OIII_"
+"\"\n"
 "\n"
 "L'argument facultatif <b>-resample={ha|oiii}</b> définit s'il faut "
 "suréchantillonner l'image Ha ou sous-échantillonner l'image OIII pour avoir "
@@ -14885,8 +14894,8 @@ msgid ""
 "If <b>str</b> starts with <i>$def</i> prefix, it will be recognized as a "
 "reserved keyword and looked for in the strings stored in gui_prepro."
 "dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib or gui_prepro."
-"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or "
-"<i>$defstack</i> respectively.\n"
+"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or <i>"
+"$defstack</i> respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
 "Analyse la chaîne <b>str</b> en utilisant les informations contenues dans "
@@ -14902,8 +14911,8 @@ msgstr ""
 "Si <b>str</b> commence par le préfixe <i>$def</i>, il sera reconnu comme un "
 "mot clé réservé et recherché dans les chaînes stockées dans gui_prepro."
 "dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib ou gui_prepro."
-"stack_default pour <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> ou "
-"<i>$defstack</i> respectivement.\n"
+"stack_default pour <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> ou <i>"
+"$defstack</i> respectivement.\n"
 "Le mot clé <i>$seqname$</i> peut également être utilisé lors du chargement "
 "d'une séquence"
 
@@ -15095,8 +15104,8 @@ msgid ""
 "width=</b> may be provided, which specifies how many pixels should be "
 "averaged perpendicular to the profile line.\n"
 "\n"
-"The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
-"Title\""
+"The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My Title"
+"\""
 msgstr ""
 
 #: src/core/command_def.h:107
@@ -15222,8 +15231,8 @@ msgstr ""
 "selected</b> est passée, dans ce cas les images exclues ne seront pas "
 "traitées\n"
 "\n"
-"S'il est créé, le nom de la séquence de sortie commence par le préfixe "
-"\"r_\" sauf indication contraire avec l'option <b>-prefix=</b>"
+"S'il est créé, le nom de la séquence de sortie commence par le préfixe \"r_"
+"\" sauf indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:110
 msgid "Rescans the scripts folders and updates the Scripts menu"
@@ -15748,8 +15757,8 @@ msgid ""
 msgstr ""
 "Même commande que EXTRACT_HAOIII mais pour la séquence <b>sequencename</b>.\n"
 "\n"
-"Les noms des séquences de sortie commencent par le préfixe \"Ha_\" et "
-"\"OIII_\""
+"Les noms des séquences de sortie commencent par le préfixe \"Ha_\" et \"OIII_"
+"\""
 
 #: src/core/command_def.h:139
 msgid ""
@@ -15869,9 +15878,8 @@ msgstr ""
 "Le motif de Bayer à reconstruire doit être fourni comme deuxième argument "
 "parmi RGGB, BGGR, GBRG ou GRBG.\n"
 "\n"
-"Les noms de fichiers d'entrée contiennent le préfixe d'identification "
-"\"CFA_\" et un nombre sauf indication contraire avec l'option <b>-prefix=</"
-"b>.\n"
+"Les noms de fichiers d'entrée contiennent le préfixe d'identification \"CFA_"
+"\" et un nombre sauf indication contraire avec l'option <b>-prefix=</b>.\n"
 "\n"
 "Remarque : les 4 ensembles de fichiers d'entrée <b>doivent</b> être présents "
 "et <b>doivent</b> être nommés de manière cohérente, la seule différence "
@@ -15905,8 +15913,8 @@ msgstr ""
 #: src/core/command_def.h:151
 #, fuzzy
 msgid ""
-"Plate solve a sequence. A new sequence will be created with the prefix "
-"\"ps_\".\n"
+"Plate solve a sequence. A new sequence will be created with the prefix \"ps_"
+"\".\n"
 "If images have already been plate solved, they will just be copied, unless "
 "the <b>-platesolve</b> argument is passed to force a new solve. If WCS or "
 "other image metadata are erroneous or missing, arguments must be passed:\n"
@@ -15983,6 +15991,11 @@ msgid ""
 "Sequence (1 / 5)\", the given title should end with () (e.g. \"My Sequence "
 "()\" and the numbers will be populated automatically)"
 msgstr ""
+"Génère un tracé du profil d'intensité entre 2 points de chaque image de la "
+"séquence. Si l'on traite une séquence et que l'on souhaite que le numéro de "
+"l'image en cours et le nombre total d'images soient affichés dans le format "
+"\"Ma séquence (1 / 5)\", le titre donné doit se terminer par () (par "
+"exemple, \"Ma séquence ()\" et les nombres seront remplis automatiquement)"
 
 #: src/core/command_def.h:153
 #, fuzzy
@@ -18891,11 +18904,11 @@ msgstr "Cyril Richard <cyril@free-astro.org>"
 msgid "Visit the Siril website"
 msgstr "Visiter le site de Siril"
 
-#: src/gui/astrometry_solver.c:325
+#: src/gui/astrometry_solver.c:325 src/gui/astrometry_solver.c:314
 msgid "Photometry failed.\n"
 msgstr "Échec de la photométrie.\n"
 
-#: src/gui/astrometry_solver.c:327
+#: src/gui/astrometry_solver.c:327 src/gui/astrometry_solver.c:316
 msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
@@ -18903,7 +18916,7 @@ msgstr ""
 "La photométrie n'a pas pu être réalisée. Vous pouvez essayer d'ajuster les "
 "paramètres dans les préférences de Siril."
 
-#: src/gui/astrometry_solver.c:331
+#: src/gui/astrometry_solver.c:331 src/gui/astrometry_solver.c:320
 msgid ""
 "Plate Solving failed. The image could not be aligned with the reference "
 "stars.\n"
@@ -18911,7 +18924,7 @@ msgstr ""
 "La résolution astrométrique a échoué. L'image n'a pas pu être alignée sur "
 "les étoiles de référence.\n"
 
-#: src/gui/astrometry_solver.c:334
+#: src/gui/astrometry_solver.c:334 src/gui/astrometry_solver.c:323
 msgid ""
 "This is usually because the initial parameters (pixel size, focal length, "
 "initial coordinates) are too far from the real metadata of the image.\n"
@@ -18933,11 +18946,11 @@ msgstr ""
 "Enfin, gardez à l'esprit que la résolution astrométrique devrait seulement "
 "s'utiliser sur des images linéaires."
 
-#: src/gui/astrometry_solver.c:467
+#: src/gui/astrometry_solver.c:467 src/gui/astrometry_solver.c:456
 msgid "No object found\n"
 msgstr "Aucun objet trouvé\n"
 
-#: src/gui/astrometry_solver.c:561
+#: src/gui/astrometry_solver.c:561 src/gui/astrometry_solver.c:550
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr ""
@@ -18945,38 +18958,39 @@ msgstr ""
 "nom\n"
 
 #: src/gui/astrometry_solver.c:562 src/gui/astrometry_solver.c:656
+#: src/gui/astrometry_solver.c:551 src/gui/astrometry_solver.c:645
 msgid "No coordinates"
 msgstr "Aucune coordonnées"
 
-#: src/gui/astrometry_solver.c:572
+#: src/gui/astrometry_solver.c:572 src/gui/astrometry_solver.c:561
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr "Il n'y a aucun mot clé stocké dans l'entête du fichier.\n"
 
-#: src/gui/astrometry_solver.c:573
+#: src/gui/astrometry_solver.c:573 src/gui/astrometry_solver.c:562
 msgid "No metadata"
 msgstr "Aucune métadonnée"
 
-#: src/gui/astrometry_solver.c:657
+#: src/gui/astrometry_solver.c:657 src/gui/astrometry_solver.c:646
 msgid "Please enter object coordinates."
 msgstr "Veuillez saisir les coordonnées de l'objet."
 
-#: src/gui/astrometry_solver.c:669
+#: src/gui/astrometry_solver.c:669 src/gui/astrometry_solver.c:658
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr "La sélection n'est pas utilisée avec le solveur astrometry.net\n"
 
-#: src/gui/astrometry_solver.c:718
+#: src/gui/astrometry_solver.c:718 src/gui/astrometry_solver.c:707
 msgid "No catalog"
 msgstr "Aucun catalogue"
 
-#: src/gui/astrometry_solver.c:718
+#: src/gui/astrometry_solver.c:718 src/gui/astrometry_solver.c:707
 msgid "Cannot download the online star catalog."
 msgstr "Impossible de télécharger le catalogue d'étoiles en ligne."
 
-#: src/gui/astrometry_solver.c:730
+#: src/gui/astrometry_solver.c:730 src/gui/astrometry_solver.c:719
 msgid "Astrometric solution detected"
 msgstr "Solution astrométrique detectée"
 
-#: src/gui/astrometry_solver.c:731
+#: src/gui/astrometry_solver.c:731 src/gui/astrometry_solver.c:720
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
@@ -18984,17 +18998,19 @@ msgstr ""
 "La solution astrométrique contenue dans l'image va être effacée par la "
 "transformation géométrique et aucun retour en arrière n'est possible."
 
-#: src/gui/astrometry_solver.c:733
+#: src/gui/astrometry_solver.c:733 src/gui/astrometry_solver.c:722
 msgid "Process"
 msgstr "Traiter"
 
 #. 2 = GAIA, 3 = PPMXL
 #. 1 = APASS
 #: src/gui/astrometry_solver.c:759 src/gui/photometric_cc.c:248
+#: src/gui/astrometry_solver.c:748
 msgid "(online catalogue)"
 msgstr "(catalogue en ligne)"
 
 #: src/gui/astrometry_solver.c:760 src/gui/photometric_cc.c:249
+#: src/gui/astrometry_solver.c:749
 msgid "(local catalogue)"
 msgstr "(catalogue local)"
 
@@ -19610,7 +19626,7 @@ msgstr ""
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1612
 #: src/gui/photometric_cc.c:202 src/gui/photometric_cc.c:220
-#: src/gui/remixer.c:1264 src/gui/remixer.c:1312
+#: src/gui/remixer.c:1264 src/gui/remixer.c:1312 src/gui/histogram.c:1608
 msgid "There is no selection"
 msgstr "Il n'y a aucune sélection"
 
@@ -19668,10 +19684,13 @@ msgstr "Veuillez-vous rentre à <a href=\""
 
 #: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1031
 #: src/gui/histogram.c:1037 src/gui/histogram.c:1692 src/gui/histogram.c:1709
+#: src/gui/histogram.c:1027 src/gui/histogram.c:1033 src/gui/histogram.c:1688
+#: src/gui/histogram.c:1705
 msgid "Channels warning"
 msgstr "Avertissement sur les canaux"
 
 #: src/gui/histogram.c:144 src/gui/histogram.c:1032 src/gui/histogram.c:1710
+#: src/gui/histogram.c:1028 src/gui/histogram.c:1706
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
@@ -19681,6 +19700,7 @@ msgstr ""
 "Luminance pondérée uniforme."
 
 #: src/gui/histogram.c:150 src/gui/histogram.c:1038 src/gui/histogram.c:1693
+#: src/gui/histogram.c:1034 src/gui/histogram.c:1689
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -19697,77 +19717,78 @@ msgstr "Permet d'appliquer ou non l'étirement au canal monochrome"
 msgid "Red channel"
 msgstr "Rouge"
 
-#: src/gui/histogram.c:1158
+#: src/gui/histogram.c:1158 src/gui/histogram.c:1154
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Transf. histogramme (mid=%.3f, lo=%.3f, hi=%.3f)"
 
-#: src/gui/histogram.c:1165
+#: src/gui/histogram.c:1165 src/gui/histogram.c:1161
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1168
+#: src/gui/histogram.c:1168 src/gui/histogram.c:1164
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1171
+#: src/gui/histogram.c:1171 src/gui/histogram.c:1167
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH pivot : %.3f, montant : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1174
+#: src/gui/histogram.c:1174 src/gui/histogram.c:1170
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV pivot : %.3f, montant : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1177
+#: src/gui/histogram.c:1177 src/gui/histogram.c:1173
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr "GHS LINEAR BP : %.2f"
 
-#: src/gui/histogram.c:1183
+#: src/gui/histogram.c:1183 src/gui/histogram.c:1179
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS SAT pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1186
+#: src/gui/histogram.c:1186 src/gui/histogram.c:1182
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV SAT pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1189
+#: src/gui/histogram.c:1189 src/gui/histogram.c:1185
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH SAT pivot : %.3f, montant : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1192
+#: src/gui/histogram.c:1192 src/gui/histogram.c:1188
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV SAT pivot : %.3f, montant : %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1195
+#: src/gui/histogram.c:1195 src/gui/histogram.c:1191
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr "GHS LINEAR SAT BP : %.2f"
 
-#: src/gui/histogram.c:1244
+#: src/gui/histogram.c:1244 src/gui/histogram.c:1240
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 "Impossible de calculer les paramètres d'auto-ajustement, en utilisant les "
 "valeurs par défaut.\n"
 
-#: src/gui/histogram.c:1264
+#: src/gui/histogram.c:1264 src/gui/histogram.c:1260
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Transformations hyperboliques généralisées"
 
-#: src/gui/histogram.c:1292 src/gui/histogram.c:1681
+#: src/gui/histogram.c:1292 src/gui/histogram.c:1681 src/gui/histogram.c:1288
+#: src/gui/histogram.c:1677
 msgid "Clicking on the histogram sets SP"
 msgstr "Cliquer sur l'histogramme définit SP"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1573
+#: src/gui/histogram.c:1573 src/gui/histogram.c:1569
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
@@ -19775,26 +19796,27 @@ msgstr ""
 "point focal de l'étirement.\n"
 
 #: src/gui/histogram.c:1613 src/gui/remixer.c:1265 src/gui/remixer.c:1313
+#: src/gui/histogram.c:1609
 msgid "Make a selection of the point or area to set SP"
 msgstr "Faites une sélection du point ou de la zone pour définir SP"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1652
+#: src/gui/histogram.c:1652 src/gui/histogram.c:1648
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 "Le point de préservation des hautes lumières ne peut pas être réglé plus bas "
 "que le point focal de l'étirement.\n"
 
-#: src/gui/histogram.c:1679
+#: src/gui/histogram.c:1679 src/gui/histogram.c:1675
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr "Cliquer sur l'histogramme d'étirement linéaire définit BP"
 
-#: src/gui/histogram.c:1816
+#: src/gui/histogram.c:1816 src/gui/histogram.c:1812
 msgid "Midtone Transfer Function"
 msgstr "Fonction de transfert des tons moyens"
 
-#: src/gui/histogram.c:1846
+#: src/gui/histogram.c:1846 src/gui/histogram.c:1842
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Fonction de transfert hyperbolique généralisée"
 
@@ -20286,6 +20308,7 @@ msgid "Photometric Color Calibration"
 msgstr "Étalonnage des couleurs par photométrie"
 
 #: src/gui/plot.c:123 src/gui/plot.c:1529 src/gui/sequence_list.c:539
+#: src/gui/plot.c:1527
 msgid "Amplitude"
 msgstr "Amplitude"
 
@@ -20298,6 +20321,7 @@ msgid "SNR"
 msgstr "SNR"
 
 #: src/gui/plot.c:619 src/gui/plot.c:1327 src/gui/plot.c:1608
+#: src/gui/plot.c:1325 src/gui/plot.c:1606
 msgid "Frames"
 msgstr "Images"
 
@@ -20316,87 +20340,95 @@ msgstr ""
 msgid "%s has been saved.\n"
 msgstr "%s a été sauvegardé.\n"
 
-#: src/gui/plot.c:1204
+#: src/gui/plot.c:1204 src/gui/plot.c:1202
 #, c-format
 msgid "Output files (*%s)"
 msgstr "Fichiers de sortie (*%s)"
 
-#: src/gui/plot.c:1440
+#: src/gui/plot.c:1440 src/gui/plot.c:1438
 #, c-format
 msgid "Saved plot to image %s\n"
 msgstr "Enregistrement du graphique dans l'image %s\n"
 
 #: src/gui/plot.c:1523 src/gui/plot.c:1556 src/gui/plot.c:1584
+#: src/gui/plot.c:1521 src/gui/plot.c:1554 src/gui/plot.c:1582
 msgid "Star roundness (1 is round)"
 msgstr "Rondeur de l'étoile (1 = rond parfait)"
 
 #: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
+#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
 msgid "FWHM ('')"
 msgstr "FWHM ('')"
 
 #: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
+#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
 msgid "FWHM (px)"
 msgstr "FWHM (px)"
 
-#: src/gui/plot.c:1533
+#: src/gui/plot.c:1533 src/gui/plot.c:1531
 msgid "Star magnitude (absolute)"
 msgstr "Magnitude de l'étoile (absolue)"
 
-#: src/gui/plot.c:1535
+#: src/gui/plot.c:1535 src/gui/plot.c:1533
 msgid "Star magnitude (relative, use setmag)"
 msgstr "Magnitude de l'étoile (relative, utilisez \"setmag\")"
 
 #: src/gui/plot.c:1538 src/gui/plot.c:1574 src/gui/plot.c:1602
+#: src/gui/plot.c:1536 src/gui/plot.c:1572 src/gui/plot.c:1600
 msgid "Background value"
 msgstr "Valeur de fond du ciel"
 
-#: src/gui/plot.c:1541
+#: src/gui/plot.c:1541 src/gui/plot.c:1539
 msgid "Star position on X axis"
 msgstr "Position de l'étoile sur l'axe X"
 
-#: src/gui/plot.c:1544
+#: src/gui/plot.c:1544 src/gui/plot.c:1542
 msgid "Star position on Y axis"
 msgstr "Position de l'étoile sur l'axe Y"
 
-#: src/gui/plot.c:1547
+#: src/gui/plot.c:1547 src/gui/plot.c:1545
 msgid "SNR (dB)"
 msgstr "SNR (dB)"
 
-#: src/gui/plot.c:1562 src/gui/plot.c:1590
+#: src/gui/plot.c:1562 src/gui/plot.c:1590 src/gui/plot.c:1560
+#: src/gui/plot.c:1588
 msgid "wFWHM ('')"
 msgstr "wFWHM ('')"
 
-#: src/gui/plot.c:1562 src/gui/plot.c:1590
+#: src/gui/plot.c:1562 src/gui/plot.c:1590 src/gui/plot.c:1560
+#: src/gui/plot.c:1588
 msgid "wFWHM (px)"
 msgstr "wFWHM (px)"
 
-#: src/gui/plot.c:1565 src/gui/plot.c:1593
+#: src/gui/plot.c:1565 src/gui/plot.c:1593 src/gui/plot.c:1563
+#: src/gui/plot.c:1591
 msgid "Shift on X axis"
 msgstr "Décalage sur l'axe X"
 
-#: src/gui/plot.c:1568 src/gui/plot.c:1596
+#: src/gui/plot.c:1568 src/gui/plot.c:1596 src/gui/plot.c:1566
+#: src/gui/plot.c:1594
 msgid "Shift on Y axis"
 msgstr "Décalage sur l'axe Y"
 
-#: src/gui/plot.c:1917
+#: src/gui/plot.c:1917 src/gui/plot.c:1915
 #, c-format
 msgid "Exclude Frame %d"
 msgstr "Exclure image %d"
 
-#: src/gui/plot.c:1919
+#: src/gui/plot.c:1919 src/gui/plot.c:1917
 #, c-format
 msgid "Show Frame %d"
 msgstr "Afficher l'image %d"
 
-#: src/gui/plot.c:1956
+#: src/gui/plot.c:1956 src/gui/plot.c:1954
 msgid "Zoom to selection"
 msgstr "Zoomer sur la sélection"
 
-#: src/gui/plot.c:1957
+#: src/gui/plot.c:1957 src/gui/plot.c:1955
 msgid "Only keep points within selection"
 msgstr "Ne conservez que les points de la sélection"
 
-#: src/gui/plot.c:1962
+#: src/gui/plot.c:1962 src/gui/plot.c:1960
 msgid "Exclude selected points"
 msgstr "Exclut les points sélectionnés"
 
@@ -22124,21 +22156,22 @@ msgstr ""
 msgid "URL: %s\n"
 msgstr "URL : %s\n"
 
-#: src/io/remote_catalogues.c:792
+#: src/io/remote_catalogues.c:792 src/io/remote_catalogues.c:777
 msgid "Using already downloaded star catalogue\n"
 msgstr "Utilisation d'un catalogue d'étoiles déjà téléchargé\n"
 
 #: src/io/remote_catalogues.c:799 src/io/remote_catalogues.c:828
+#: src/io/remote_catalogues.c:784 src/io/remote_catalogues.c:813
 #, c-format
 msgid "Cannot create catalogue file %s for plate solving (%s)\n"
 msgstr "Impossible de créer le fichier catalogue %s pour l'astrométrie (%s)\n"
 
-#: src/io/remote_catalogues.c:852
+#: src/io/remote_catalogues.c:852 src/io/remote_catalogues.c:837
 #, c-format
 msgid "Can't open catalog file %s for PCC: %s\n"
 msgstr "Impossible d'ouvrir le fichier catalogue %s pour PCC : %s\n"
 
-#: src/io/remote_catalogues.c:1088
+#: src/io/remote_catalogues.c:1088 src/io/remote_catalogues.c:1073
 #, c-format
 msgid ""
 "name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
@@ -23918,8 +23951,8 @@ msgstr "Impossible de procéder à l'alignement KOMBAT pour l'image %d\n"
 #, c-format
 msgid "Register: KOMBAT could not find alignment pattern on image #%d.\n"
 msgstr ""
-"Alignement : KOMBAT n'a pas pu trouver de motif d'alignement sur l'image "
-"#%d.\n"
+"Alignement : KOMBAT n'a pas pu trouver de motif d'alignement sur l'image #"
+"%d.\n"
 
 #: src/registration/registration.c:727
 msgid "Registration PSF: failed to compute PSF for reference frame at least\n"
@@ -24535,6 +24568,42 @@ msgstr "Mise à l'échelle de la séquence pour l’empilement"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "L'empilement se fera sans mise à l'échelle (désactivation du 'drizzle')\n"
+
+#: src/core/command_def.h:76
+#, fuzzy
+msgid ""
+"Analyses several stars with aperture photometry in a sequence of images and "
+"produces a light curve for one, calibrated by the others. The first "
+"coordinates, in pixels if <b>-at=</b> is used or in degrees if <b>-wcs=</b> "
+"is used, are for the star whose light will be plotted, the others for the "
+"comparison stars.\n"
+"Alternatively, a list of target and reference stars can be passed in the "
+"format of the NINA exolpanet plugin star list, with the <b>-ninastars=</b> "
+"option. Siril will verify that all reference stars can be used before "
+"actually using them. A data file is created in the current directory named "
+"light_curve.dat, Siril plots the result to a PNG image if available\n"
+"The ring radii for aperture photometry can either be configured in the "
+"settings or set to a factor of the reference image's FWHM if <b>-autoring</"
+"b> is passed.\n"
+"\n"
+"See also SEQPSF for operations on single star"
+msgstr ""
+"Analyse plusieurs étoiles par photométrie d'ouverture dans une séquence "
+"d'images et produit une courbe de lumière pour l'une, calibrée par les "
+"autres. Les premières coordonnées, en pixels si <b>-at=</b> est utilisé ou "
+"en degrés si <b>-wcs=</b> est utilisé, sont pour l'étoile dont la lumière "
+"sera tracée, les autres pour les étoiles de comparaison.\n"
+"Alternativement, une liste d'étoiles cibles et de référence peut être "
+"transmise au format de la liste d'étoiles du plug-in NINA exolpanet, avec "
+"l'option <b>-ninastars=</b>. Siril vérifiera que toutes les étoiles de "
+"référence peuvent être utilisées avant de les utiliser réellement. Un "
+"fichier de données est créé dans le répertoire courant nommé light_curve."
+"dat, gnuplot trace le résultat dans une image PNG si disponible\n"
+"Les rayons de l'anneau pour la photométrie d'ouverture peuvent être "
+"configurés dans les paramètres ou définis sur un facteur du FWHM de l'image "
+"de référence si <b>-autoring</b> est passé.\n"
+"\n"
+"Voir aussi SEQPSF pour les opérations sur une seule étoile"
 
 #~ msgid "Select gnuplot binary location."
 #~ msgstr "Sélectionnez l'emplacement du binaire de gnuplot."
@@ -26693,12 +26762,12 @@ msgstr ""
 #~ "adaptatif à contraste limité"
 
 #~ msgid ""
-#~ "Convert DSLR RAW files into Siril's FITS images. The argument "
-#~ "\"basename\" is the basename of the new sequence. The option \"-debayer\" "
-#~ "applies demosaicing to images while \"-fitseq\" is an option that sets "
-#~ "the output file type to a FITS sequence. \"-start=index\" sets the "
-#~ "starting index parameter. It is possible to convert files in another "
-#~ "directory with the \"-out=\" option"
+#~ "Convert DSLR RAW files into Siril's FITS images. The argument \"basename"
+#~ "\" is the basename of the new sequence. The option \"-debayer\" applies "
+#~ "demosaicing to images while \"-fitseq\" is an option that sets the output "
+#~ "file type to a FITS sequence. \"-start=index\" sets the starting index "
+#~ "parameter. It is possible to convert files in another directory with the "
+#~ "\"-out=\" option"
 #~ msgstr ""
 #~ "Convertissez les fichiers RAW d'APN en images FITS de Siril. L'argument "
 #~ "\"basename\" est le nom de base de la nouvelle séquence. L'option \"-"
@@ -27385,8 +27454,8 @@ msgstr ""
 #~ "changed with the button Change dir on the right, or with the cd command."
 #~ msgstr ""
 #~ "Le répertoire de travail dans lequel les fichiers vont être lus et à "
-#~ "partir duquel on va écrire. Peut être changé avec le bouton \"Modifier "
-#~ "rep\" sur la droite, ou en ligne de commande."
+#~ "partir duquel on va écrire. Peut être changé avec le bouton \"Modifier rep"
+#~ "\" sur la droite, ou en ligne de commande."
 
 #~ msgid "High"
 #~ msgstr "Hauteur"
@@ -27566,8 +27635,8 @@ msgstr ""
 #~ "don't have this kind of information available for channel #%d.\n"
 #~ msgstr ""
 #~ "Erreur dans le tri des images de la séquence en fonction de la qualité : "
-#~ "certaines images n'ont pas les informations nécessaires sur le canal "
-#~ "#%d.\n"
+#~ "certaines images n'ont pas les informations nécessaires sur le canal #"
+#~ "%d.\n"
 
 #~ msgid "Based on FWHM < %.2f (%d images)"
 #~ msgstr "Basé sur la FWHM < %.2f (%d images)"
