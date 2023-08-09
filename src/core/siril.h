@@ -679,7 +679,7 @@ struct common_icc {
 	 * is also used as the processing intent for non-rendering
 	 * color transforms. */
 	cmsUInt32Number rendering_flags;
-
+	gboolean srgb_hint; // Hint that FITS has been stretched, for use with file/open
 };
 
 /* The global data structure of siril core */
@@ -732,6 +732,7 @@ struct cominf {
 	float* kernel;			// float* to hold kernel for new deconvolution process
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
+	struct common_icc icc;		// Holds common ICC color profile data
 #ifdef _WIN32
 	void* childhandle;		// For Windows, handle of a child process
 #else

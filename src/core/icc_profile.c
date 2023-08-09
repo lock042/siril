@@ -292,6 +292,9 @@ void initialize_profiles_and_transforms() {
 	com.icc.context_threaded = cmsCreateContext(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
 #endif
 
+	// Initialize FITS sRGB hint
+	com.icc.srgb_hint = FALSE;
+
 	// Set alarm codes for soft proof out-of-gamut warning
 	cmsUInt16Number alarmcodes[16] = { 65535, 0, 65535, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	cmsSetAlarmCodes(alarmcodes); // Out of gamut colours will be shown in magenta
@@ -498,9 +501,15 @@ cmsBool fit_icc_is_linear(fits *fit) {
  */
 void check_profile_correct(fits* fit) {
 	if (!fit->icc_profile) {
-		if (fit_appears_stretched(fit)) {
-			control_window_switch_to_tab(OUTPUT_LOGS);
-			siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile: if this is wrong you can assign the correct color space using the Color Management dialog.\n"));
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		if (com.icc.srgb_hint) {
+			siril_log_message(_("FITS did not contain an ICC profile but is declared to be stretched. Assigning a sRGB color profile.\n"));
+			// sRGB because this is the implicit assumption made in older versions
+			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+			// Clear the hint
+			com.icc.srgb_hint = FALSE;
+		} else if (fit_appears_stretched(fit)) {
+			siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
 			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 		} else {
@@ -559,7 +568,7 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 		check_profile_correct(fit);
 	} else {
 		// If there is no embedded profile we assume the usual sRGB D65 g22
-		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_out : com.icc.srgb_out);
+		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_profile);
 	}
 }
 

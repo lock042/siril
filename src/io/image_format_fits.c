@@ -2882,7 +2882,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
 	 * If we copy the ICC profile from the source FITS and a transform is done, the program
 	 * will crash. However if we don't copy the ICC profile, we lose track of color management
-	 * of the data.
+	 * of the data. Ideally we would set a Gray profile with the same gamma as the FITS profile.
 	 * In practice, currently I think this function is only used for processing that expects
 	 * to be handling linear data, and won't need to be transformed for display. For now we
 	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
@@ -2961,7 +2961,7 @@ void keep_only_first_channel(fits *fit) {
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
 	 * If we copy the ICC profile from the source FITS and a transform is done, the program
 	 * will crash. However if we don't copy the ICC profile, we lose track of color management
-	 * of the data.
+	 * of the data. Ideally we would set a Gray profile with the same gamma as the FITS profile.
 	 * In practice, currently I think this function is only used for processing that expects
 	 * to be handling linear data, and won't need to be transformed for display. For now we
 	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if

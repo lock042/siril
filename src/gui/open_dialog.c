@@ -218,14 +218,30 @@ static void on_debayer_toggled(GtkToggleButton *togglebutton, gpointer user_data
 	gtk_toggle_button_set_active((GtkToggleButton *)user_data, gtk_toggle_button_get_active(togglebutton));
 }
 
-static void siril_add_debayer_toggle_button(GtkFileChooser *dialog) {
+static void on_toggle_force_srgb_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	com.icc.srgb_hint = gtk_toggle_button_get_active(togglebutton);
+}
+
+static void siril_add_extra_widgets(GtkFileChooser *dialog) {
 	GtkToggleButton *main_debayer_button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
 	GtkWidget *toggle_debayer = gtk_check_button_new_with_label(_("Debayer"));
-
 	gtk_widget_show(toggle_debayer);
-	gtk_file_chooser_set_extra_widget(dialog, toggle_debayer);
+
+	GtkWidget *toggle_force_srgb = gtk_check_button_new_with_label(_("Stretched FITS"));
+	gtk_widget_set_tooltip_text(toggle_force_srgb,	"If loading a FITS file that lacks an ICC profile, load as sRGB. This option is only needed when loading FITS images "
+													"that have been stretched, but do not record the stretch in the HISTORY header field. It must not be set for linear "
+													"(unstretched) FITS files.");
+	gtk_widget_show(toggle_force_srgb);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_force_srgb), FALSE);
+	com.icc.srgb_hint = FALSE;
+
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_end((GtkBox*) box, toggle_force_srgb, FALSE, FALSE, 6);
+	gtk_box_pack_end((GtkBox*) box, toggle_debayer, FALSE, FALSE, 6);
+	gtk_file_chooser_set_extra_widget(dialog, box);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_debayer), gtk_toggle_button_get_active(main_debayer_button));
 	g_signal_connect(GTK_TOGGLE_BUTTON(toggle_debayer), "toggled", G_CALLBACK(on_debayer_toggled), (gpointer) main_debayer_button);
+	g_signal_connect(GTK_TOGGLE_BUTTON(toggle_force_srgb), "toggled", G_CALLBACK(on_toggle_force_srgb_toggled), NULL);
 }
 
 static void opendial(int whichdial) {
@@ -288,7 +304,7 @@ static void opendial(int whichdial) {
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
 		siril_file_chooser_add_preview(dialog, preview);
-		siril_add_debayer_toggle_button(dialog);
+		siril_add_extra_widgets(dialog);
 		break;
 	case OD_CONVERT:
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);

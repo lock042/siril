@@ -140,11 +140,17 @@ char *word[MAX_COMMAND_WORDS];	// NULL terminated
 int process_load(int nb){
 	long maxpath = get_pathmax();
 	char filename[maxpath];
-	size_t len = strlen(word[1]);
-	strncpy(filename, word[1], maxpath - 1);
+	int start = 1;
+	if (g_str_has_prefix(word[1], "-stretch_hint")) {
+		com.icc.srgb_hint = TRUE;
+		start++;
+	}
+	if (!word[start] || word[start][0] == '\0')
+		return CMD_ARG_ERROR;
+	size_t len = strlen(word[start]);
+	strncpy(filename, word[start], maxpath - 1);
 	filename[maxpath - 1] = '\0';
-
-	for (int i = 1; i < nb - 1; ++i) {
+	for (int i = start; i < nb - 1; ++i) {
 		strncat(filename, " ", maxpath - 1 - len);
 		len += 1;
 		strncat(filename, word[i + 1], len);

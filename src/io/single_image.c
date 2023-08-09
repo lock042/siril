@@ -242,6 +242,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 }
 
 static gboolean end_open_single_image(gpointer arg) {
+	com.icc.srgb_hint = FALSE;
 	open_single_image_from_gfit();
 	return FALSE;
 }
