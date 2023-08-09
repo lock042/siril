@@ -8766,36 +8766,18 @@ int process_sso() {
 	return CMD_OK;
 }
 
-static gboolean end_process_catsearch(gpointer p) {
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	refresh_found_objects();
-	if (!gtk_toggle_tool_button_get_active(button)) {
-		gtk_toggle_tool_button_set_active(button, TRUE);
-	} else {
-		redraw(REDRAW_OVERLAY);
-	}
-	return end_generic(NULL);
-}
-
 int process_catsearch(int nb){
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
-	set_cursor_waiting(TRUE);
 	gchar *name = NULL;
 	if (nb > 2) {
 		name = build_string_from_words(word + 1);
 	} else {
 		name = g_strdup(word[1]);
 	}
-
-	gboolean found_it = cached_object_lookup(name, NULL) == 0;
-	if (found_it)
-		siril_add_idle(end_process_catsearch, NULL);
-	else siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
-	g_free(name);
-
+	start_in_new_thread(catsearch_worker, name);
 	return CMD_OK;
 }
 

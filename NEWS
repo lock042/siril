@@ -8,6 +8,7 @@ siril 1.4.0 xx xx, xx
 * Fixed PRISM SITELAT/SITELONG keywords data
 * Improved RGB composition tool to do full homography registration
 * Added new init for PSF fitting of oversampled stars
+* Fixed running command catsearch threaded to avoid GUI freeze (#1167)
 
 siril 1.2.0 xx xx, xx
 
