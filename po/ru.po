@@ -6,16 +6,16 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-08 13:31+0200\n"
-"PO-Revision-Date: 2023-08-08 10:54+0000\n"
+"PO-Revision-Date: 2023-08-09 06:24+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:8865
@@ -2352,9 +2352,8 @@ msgid "Image compositing"
 msgstr "Совмещение изображения"
 
 #: src/gui/siril3.glade:9662
-#, fuzzy
 msgid "Reload all"
-msgstr "Очистить всё"
+msgstr "Перезагрузить все"
 
 #: src/gui/siril3.glade:9666
 msgid ""
@@ -2364,9 +2363,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:9677
-#, fuzzy
 msgid "Save all"
-msgstr "Сохранить график"
+msgstr "Сохранить все"
 
 #: src/gui/siril3.glade:9681
 msgid ""
@@ -2394,9 +2392,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:9846
-#, fuzzy
 msgid "x alignment"
-msgstr "Выравнивание слоёв"
+msgstr "выравнивание по x"
 
 #: src/gui/siril3.glade:9857
 msgid ""
@@ -2405,9 +2402,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:9859
-#, fuzzy
 msgid "y alignment"
-msgstr "Выравнивание слоёв"
+msgstr "выравнивание по y"
 
 #: src/gui/siril3.glade:9870
 msgid ""
@@ -2418,17 +2414,14 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:9873
-#, fuzzy
 msgid "rotation"
-msgstr "Аннотации"
+msgstr "вращение"
 
 #: src/gui/siril3.glade:9886 src/compositing/compositing.c:242
-#, fuzzy
 msgid "Set rotation center for this layer"
-msgstr "Для этого слоя нет данных регистрации"
+msgstr "Установка центра вращения для этого слоя"
 
 #: src/gui/siril3.glade:9932
-#, fuzzy
 msgid "Linear match"
 msgstr "Линейный поиск соответствий"
 
@@ -2454,7 +2447,6 @@ msgstr ""
 "изображения). Цветовые оттенки остаются неизменными."
 
 #: src/gui/siril3.glade:9963
-#, fuzzy
 msgid "Color calibration"
 msgstr "Калибровка цвета"
 
@@ -2491,24 +2483,21 @@ msgid "CIE L*a*b* composition"
 msgstr "Совмещение в CIE L*a*b*"
 
 #: src/gui/siril3.glade:10000
-#, fuzzy
 msgid "photometric"
-msgstr "Фотометрическая калибровка цвета"
+msgstr "фотометрический"
 
 #: src/gui/siril3.glade:10004
-#, fuzzy
 msgid "When checked, photometric color calibration is used."
-msgstr "Диалог фотометрической калибровки цвета"
+msgstr ""
+"Если этот флажок установлен, используется фотометрическая калибровка цвета."
 
 #: src/gui/siril3.glade:10046
-#, fuzzy
 msgid "Use this alignment method:"
-msgstr "и используя способ выравнивания:"
+msgstr "Используя этот способ выравнивания:"
 
 #: src/gui/siril3.glade:10059
-#, fuzzy
 msgid "and this framing method:"
-msgstr "и используя способ выравнивания:"
+msgstr "и этот способ кадрирования:"
 
 #: src/gui/siril3.glade:10087 src/gui/siril3.glade:16009
 #: src/compositing/align_rgb.c:48
@@ -2531,19 +2520,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:10108
-#, fuzzy
 msgid "First channel"
-msgstr "Серый канал"
+msgstr "Первый канал"
 
 #: src/gui/siril3.glade:10109
-#, fuzzy
 msgid "Max"
-msgstr "Блеск"
+msgstr "Макс."
 
 #: src/gui/siril3.glade:10110
-#, fuzzy
 msgid "Min"
-msgstr "мин"
+msgstr "Мин."
 
 #: src/gui/siril3.glade:10111
 msgid "COG"
@@ -3509,13 +3495,13 @@ msgstr ""
 "интернет-соединение для выполнения этой операции."
 
 #: src/gui/siril3.glade:13352
-#, fuzzy
 msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to "
 "not rely on an Internet connection for this operation."
 msgstr ""
-"Каталог NOMAD может быть установлен локально, чтобы не полагаться на "
-"интернет-соединение для выполнения этой операции."
+"Каталоги TYCHO2 и NOMAD, а также каталог ярких звёзд могут быть установлены "
+"локально, чтобы не полагаться на интернет-соединение для выполнения этой "
+"операции."
 
 #: src/gui/siril3.glade:13373
 msgid "Catalogue Parameters"
@@ -8290,9 +8276,8 @@ msgid "Sampling tolerance (%):"
 msgstr "Допуск масштаба (%):"
 
 #: src/gui/siril3.glade:29947
-#, fuzzy
 msgid "Percent below and above the expected sampling to allow."
-msgstr "процент, определяющий допустимые нижнюю и верхнюю границы масштаба"
+msgstr "Процент, определяющий допустимые нижнюю и верхнюю границы масштаба."
 
 #: src/gui/siril3.glade:29974
 msgid "General Platesolving"
@@ -9128,9 +9113,8 @@ msgstr ""
 "системы)."
 
 #: src/gui/siril3.glade:32691
-#, fuzzy
 msgid "Use gnuplot"
-msgstr "Мастер-кадр плоского поля"
+msgstr "Использовать gnuplot"
 
 #: src/gui/siril3.glade:32695
 msgid ""
@@ -9714,9 +9698,8 @@ msgid "Plate solving failed: %s\n"
 msgstr "Астрономическое решение не найдено %s\n"
 
 #: src/algos/astrometry_solver.c:781
-#, fuzzy
 msgid "Could not match stars from the catalogue"
-msgstr "Не удалось загрузить каталог звёзд (%s)."
+msgstr "Не удалось сопоставить звёзды из каталога"
 
 #: src/algos/astrometry_solver.c:792
 msgid "Transformation matrix is invalid, solve failed"
@@ -10883,9 +10866,8 @@ msgstr ""
 #. * should be done in the same way as in registration.c, but it
 #. * woud be easier if the two glades are merged.
 #: src/compositing/compositing.c:441
-#, fuzzy
 msgid "Deep Sky (two-step global star registration)"
-msgstr "Регистрация всего звёздного неба"
+msgstr "Дальний космос (глобальная регистрация в 2 шага)"
 
 #: src/compositing/compositing.c:442
 msgid "Planetary (DFT image pattern alignment)"
@@ -10896,9 +10878,8 @@ msgid "Planetary (KOMBAT image pattern alignment)"
 msgstr ""
 
 #: src/compositing/compositing.c:444
-#, fuzzy
 msgid "Manual alignment"
-msgstr "Выравнивание слоёв"
+msgstr "Выравнивание вручную"
 
 #: src/compositing/compositing.c:550
 msgid "Could not display image, unloading it\n"
@@ -10934,9 +10915,8 @@ msgid "Cannot load the file, See the log for more information."
 msgstr "Не удалось загрузить файл. Больше информации в журнале."
 
 #: src/compositing/compositing.c:655
-#, fuzzy
 msgid "Only single channel images can be loaded"
-msgstr "Только одноканальные изображения могут быть загружены"
+msgstr "Могут быть загружены только одноканальные изображения"
 
 #: src/compositing/compositing.c:674
 msgid "The first loaded image should have the greatest sizes for now\n"
@@ -10986,9 +10966,9 @@ msgid "Warning"
 msgstr "Предупреждение"
 
 #: src/compositing/compositing.c:840
-#, fuzzy, c-format
+#, c-format
 msgid "NOT OK: %ux%u"
-msgstr "НЕ OK %u×%u"
+msgstr "НЕ OK: %u×%u"
 
 #: src/compositing/compositing.c:846
 msgid ""
@@ -11002,9 +10982,8 @@ msgid "Starting registration using method: %s\n"
 msgstr "Начинается регистрация методом: %s\n"
 
 #: src/compositing/compositing.c:911
-#, fuzzy
 msgid "Incomplete alignment"
-msgstr "Выравнивание слоёв"
+msgstr "Неполное выравнивание"
 
 #: src/compositing/compositing.c:912
 msgid ""
@@ -11014,9 +10993,8 @@ msgid ""
 msgstr ""
 
 #: src/compositing/compositing.c:915
-#, fuzzy
 msgid "Proceed"
-msgstr "Обработка"
+msgstr "Продолжить"
 
 #: src/compositing/compositing.c:924
 msgid "Using Luminance channel as reference.\n"
@@ -11045,9 +11023,8 @@ msgid "Readjusting layer %d to %g times bright\n"
 msgstr "Коррекция слоя %d в %g раз ярче\n"
 
 #: src/compositing/compositing.c:1638
-#, fuzzy
 msgid "All images reloaded successfully.\n"
-msgstr "Последовательность успешно уложена.\n"
+msgstr "Все изображения успешно перезагружены.\n"
 
 #. fail
 #: src/compositing/compositing.c:1644 src/compositing/compositing.c:1669
@@ -11076,9 +11053,10 @@ msgid ""
 msgstr ""
 
 #: src/compositing/compositing.c:1669
-#, fuzzy
 msgid "At least 2 images must be loaded to perform linear matching."
-msgstr "Нужно хотя бы два канала для выравнивания"
+msgstr ""
+"Для линейного поиска соответствий необходимо, чтобы были загружены хотя бы 2 "
+"изображения."
 
 #: src/compositing/compositing.c:1690
 #, c-format
@@ -11086,9 +11064,8 @@ msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
 msgstr ""
 
 #: src/compositing/compositing.c:1694
-#, fuzzy
 msgid "Linear match layers"
-msgstr "Линейный поиск соответствий"
+msgstr "Линейное сопоставление слоёв"
 
 #: src/compositing/compositing.c:1696
 msgid "Linear match layers complete"
@@ -13192,33 +13169,28 @@ msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "За -layer= следует неверная опция, прерывание.\n"
 
 #: src/core/command.c:9151
-#, fuzzy
 msgid "Error: Could not parse -from values.\n"
-msgstr "Ошибка: не удалось разобрать %s значений.\n"
+msgstr "Ошибка: Не удалось разобрать значения -from.\n"
 
 #: src/core/command.c:9159
-#, fuzzy
 msgid "Error: Could not parse -to values.\n"
-msgstr "Ошибка: не удалось разобрать %s значений.\n"
+msgstr "Ошибка: Не удалось разобрать значения -to.\n"
 
 #: src/core/command.c:9167
-#, fuzzy
 msgid "Error: Could not parse -wn1at values.\n"
-msgstr "Ошибка: не удалось разобрать %s значений.\n"
+msgstr "Ошибка: Не удалось разобрать значения -wn1at.\n"
 
 #: src/core/command.c:9175
-#, fuzzy
 msgid "Error: Could not parse -wn2at values.\n"
-msgstr "Ошибка: не удалось разобрать %s значений.\n"
+msgstr "Ошибка: Не удалось разобрать %s значений.\n"
 
 #: src/core/command.c:9181
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Ошибка: эта опция не может использоваться для последовательностей.\n"
 
 #: src/core/command.c:9211
-#, fuzzy
 msgid "Error: sequence has variable sized images.\n"
-msgstr "Ошибка: поиск сбоя в файле.\n"
+msgstr "Ошибка: последовательность содержит изображения разного размера.\n"
 
 #: src/core/command.c:9230
 msgid ""
@@ -13227,9 +13199,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:9258
-#, fuzzy
 msgid "Error: GNUplot not available\n"
-msgstr "GNUplot недоступен"
+msgstr "Ошибка: GNUplot недоступен\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -13290,7 +13261,6 @@ msgstr ""
 "названиями"
 
 #: src/core/command_def.h:9
-#, fuzzy
 msgid ""
 "Auto-stretches the currently loaded image, with different parameters for "
 "each channel (unlinked) unless <b>-linked</b> is passed. Arguments are "
@@ -13304,20 +13274,22 @@ msgid ""
 "white balance"
 msgstr ""
 "Автоматически растягивает текущее загруженное изображение с различными "
-"параметрами для каждого канала (если каналы несвязанны), если только не "
-"передан аргумент <b>-linked</b>. Необязательные аргументы: <b>shadowclip</b> "
-"— точка обрезки теней, выраженная в значениях σ от основного пика "
-"гистограммы (по умолчанию -2.8); <b>targetbg</b> — целевое значение фона, в "
-"диапазоне [0, 1] (по умолчанию 0.25), определяющее окончательную яркость "
-"изображения"
+"параметрами для каждого канала (каналы несвязанны), если только не передан "
+"аргумент <b>-linked</b>. Необязательные аргументы: <b>shadowclip</b> - точка "
+"обрезки теней, выраженная в значениях σ от основного пика гистограммы (по "
+"умолчанию -2.8); <b>targetbg</b> - целевое значение фона, в диапазоне [0, 1] "
+"(по умолчанию 0.25), определяющее окончательную яркость изображения. "
+"Значениями по умолчанию являются используемые в графическом интерфейсе при "
+"авторастягивании.\n"
+"\n"
+"Не используйте несвязанную версию после калибровки цвета, поскольку это "
+"изменит баланс белого"
 
 #: src/core/command_def.h:11
-#, fuzzy
 msgid "Returns the background level of the loaded image"
 msgstr "Возвращает значение уровня фона изображения, загруженного в память"
 
 #: src/core/command_def.h:12
-#, fuzzy
 msgid "Returns the background noise level of the loaded image"
 msgstr ""
 "Возвращает значение уровня фонового шума изображения, загруженного в память"
@@ -13351,7 +13323,6 @@ msgstr ""
 "выделенную область. Если аргумент не передан, выводится текущее выделение"
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrates the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -13392,8 +13363,8 @@ msgstr ""
 "считывания, темновые кадры и кадры плоского поля, указанные в аргументе.\n"
 "\n"
 "Вместо изображения, можно указать однородный уровень шума считывания, введя "
-"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или -"
-"bias=\"=64*$OFFSET\".\n"
+"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или "
+"-bias=\"=64*$OFFSET\".\n"
 "\n"
 "Косметическая коррекция по умолчанию отключена. Если вы хотите применить "
 "коррекцию, это необходимо указать с помощью опции <b>-cc=</b>.\n"
@@ -13401,23 +13372,24 @@ msgstr ""
 "темновом мастер-кадре, который должен быть указан с помощью опции <b>-dark=</"
 "b>. Опционально можно указать значения холодных и горячих пикселей с помощью "
 "<b>siglo</b> и <b>sighi</b>, соответственно. Значение 0 отключает коррекцию. "
-"Если значения σ не указаны, то будет применено только определение горячих "
-"пикселей со значением σ 3.\n"
+"Если значения σ не указаны, будут определены только горячие пиксели со "
+"значением σ 3.\n"
 "В качестве альтернативы, для указания пикселей, которые необходимо "
 "скорректировать, можно использовать опцию <b>-cc=bpm</b> за которой следует "
 "путь к вашей карте дефектных пикселей. Пример файла может быть получен с "
 "помощью команды <i>find_hot</i>, применённой к темновому мастер-кадру.\n"
 "\n"
-"Для целей косметической коррекции с помощью опции <b>-cfa</b> можно указать, "
-"являются ли обрабатываемые изображения изображениями CFA. При помощи опции "
-"<b>-debayer</b> можно выполнить дебайеризацию изображений в конце процесса.\n"
+"К цветным изображениям в формате CFA применимы три опции: <b>-cfa</b> для "
+"целей косметической коррекции. При помощи опции <b>-debayer</b> можно "
+"выполнить дебайеризацию изображений перед их сохранением. Опция "
+"<b>-equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-"
+"изображении CFA.\n"
 "Опция <b>-fix_xtrans</b> используется при работе с файлами X-Trans, применяя "
-"коррекцию к темновым кадрам и кадрам шума считывания для удаления уродливого "
-"квадратного рисунка.\n"
-"Опция <b>-equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в "
-"мастер-изображении CFA.\n"
-"Также можно оптимизировать вычитание темнового мастер-кадра с помощью <b>-"
-"opt</b>.\n"
+"коррекцию к темновым кадрам и кадрам шума считывания для удаления "
+"квадратного рисунка в зоне автофокуса.\n"
+"Также можно оптимизировать вычитание темнового мастер-кадра с помощью "
+"<b>-opt</b>, которая требует указания мастер-кадров шума считывания и "
+"темновых мастер-кадров.\n"
 "По умолчанию, кадры, отмеченные как исключённые, не обрабатываются. С "
 "помощью аргумента <b>-all</b> можно принудительно обработать все кадры, даже "
 "отмеченные как исключённые.\n"
@@ -13496,7 +13468,6 @@ msgstr ""
 "если не указан иной с помощью опции <b>-prefix=</b>"
 
 #: src/core/command_def.h:18
-#, fuzzy
 msgid "Lists Siril capabilities, based on compilation options and runtime"
 msgstr ""
 "Отображает список возможностей Siril на основе данных о компиляции и среде, "
@@ -13558,9 +13529,8 @@ msgid "Clears the graphical output logs"
 msgstr "Очищает содержимое журнала"
 
 #: src/core/command_def.h:24
-#, fuzzy
 msgid "Clears all the stars saved in memory and displayed on the screen"
-msgstr "Очистить всё звёзды, сохранённые в памяти и отображённые на экране"
+msgstr "Очищает всё звёзды, сохранённые в памяти и отображённые на экране"
 
 #: src/core/command_def.h:25
 msgid "Properly closes the opened image and the opened sequence, if any"
@@ -13596,7 +13566,6 @@ msgid ""
 msgstr "Поиск последовательностей в текущей рабочей директории…"
 
 #: src/core/command_def.h:28
-#, fuzzy
 msgid ""
 "Applies the local mean to a set of pixels on the loaded image (cosmetic "
 "correction). The coordinates of these pixels are in a text file [.lst file], "
@@ -13606,10 +13575,14 @@ msgid ""
 "Instead of providing the list of bad pixels, it's also possible to detect "
 "them in the current image using the FIND_COSME command"
 msgstr ""
-"Применяет локальное среднее к набору пикселей на изображении, находящемся в "
-"памяти (косметическая коррекция). Координаты этих пикселей находятся в файле "
-"ASCII [файл .lst]. COSME адаптирована для коррекции остаточных горячих и "
-"холодных пикселей, сохранившихся после предварительной обработки"
+"Применяет локальное среднее к набору пикселей на загруженном изображении ("
+"косметическая коррекция). Координаты этих пикселей находятся в файле ASCII ["
+"файл .lst]. Команда FIND_HOT может также создать его для отдельных горячих "
+"пикселей, но требует удаления строк или столбцов вручную. Команда COSME "
+"адаптирована для коррекции остаточных горячих и холодных пикселей после "
+"калибровки.\n"
+"Вместо предоставления списка плохих пикселей, возможно определить их на "
+"текущем изображении с помощью команды FIND_COSME"
 
 #: src/core/command_def.h:29
 msgid "Same function as COSME but applying to RAW CFA images"
