@@ -737,6 +737,21 @@ gpointer search_in_online_conesearch(gpointer p) {
 #endif
 }
 
+gpointer catsearch_worker(gpointer p) {
+	gchar *name = (gchar*)p;
+	if(!name)
+		return GINT_TO_POINTER(1);
+
+	int found_it = cached_object_lookup(name, NULL) == 0;
+	if (found_it)
+		siril_add_idle(end_process_catsearch, NULL);
+	else {
+		siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
+		siril_add_idle(end_generic, NULL);
+	}
+	g_free(name);
+	return GINT_TO_POINTER(!found_it);
+}
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
 #ifndef HAVE_NETWORKING

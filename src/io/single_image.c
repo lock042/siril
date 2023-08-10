@@ -477,7 +477,7 @@ void notify_gfit_modified() {
 }
 
 /* File watcher and callback */
-GSourceFunc timeout_cb(gpointer *user_data) {
+static GSourceFunc timeout_cb(gpointer *user_data) {
 	struct timeval current;
 	gettimeofday(&current, NULL);
 	struct timeval difference;
@@ -501,19 +501,21 @@ GSourceFunc timeout_cb(gpointer *user_data) {
 		filemonitor_reloading = FALSE;
 		g_free(filename);
 		g_free(realname);
-		register_filemonitor();
-		return FALSE;
+//		register_filemonitor();
+		timer_running = FALSE;
+		return G_SOURCE_REMOVE;
 	}
-	return TRUE;
+	return G_SOURCE_CONTINUE;
 }
 
 
 static void on_monitored_file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 									  GFileMonitorEvent evtype, gpointer user_data) {
-	if (evtype == G_FILE_MONITOR_EVENT_CHANGED) {
+	if (evtype == G_FILE_MONITOR_EVENT_CHANGED && !timer_running) {
+		timer_running = TRUE;
 		gettimeofday(&last_update, NULL);
 		gchar *filename = g_file_get_basename(file);
-		g_timeout_add(150, timeout_cb, filename);
+			g_timeout_add(150, G_SOURCE_FUNC(timeout_cb), filename);
 	}
 }
 
