@@ -425,7 +425,6 @@ void refresh_icc_transforms() {
 		if (gui.icc.display_transform != NULL)
 			cmsDeleteTransform(gui.icc.display_transform);
 		gui.icc.display_transform = initialize_display_transform();
-
 		if (gui.icc.proofing_transform != NULL)
 			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
@@ -527,7 +526,8 @@ void check_profile_correct(fits* fit) {
 	}
 	if (!fit->icc_profile)
 		fit->icc_profile =  copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
-	refresh_icc_transforms();
+	if (fit == &gfit)
+		refresh_icc_transforms();
 }
 
 /* This function returns a separate copy of the cmsHPROFILE provided as the
