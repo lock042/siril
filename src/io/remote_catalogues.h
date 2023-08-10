@@ -41,6 +41,7 @@ int read_projected_catalog(GInputStream *stream, psf_star **cstars, online_catal
 
 gpointer search_in_online_conesearch(gpointer p);
 gpointer search_in_online_vizier(gpointer p);
+gpointer catsearch_worker(gpointer p);
 
 // temp
 //struct compstars_arg;

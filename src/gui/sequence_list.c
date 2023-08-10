@@ -101,7 +101,7 @@ static void set_sensitive_layers(GtkCellLayout *cell_layout,
 	if (sequence_is_loaded() && !use_photometry) {
 		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
 		if (!path) return;
-		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
+		const gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (!(com.seq.regparam))
 			return;
 		if (com.seq.regparam[*index] == NULL)
@@ -329,7 +329,7 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 	for (list = references; list; list = list->next) {
 		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
 		if (path) {
-			gint *new_index = gtk_tree_path_get_indices(path);
+			const gint *new_index = gtk_tree_path_get_indices(path);
 			GtkTreeIter iter;
 			gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, path);
 			gint real_index = get_real_index_from_index_in_list(model, &iter);
@@ -340,6 +340,10 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 			toggle_image_selection(new_index[0], real_index, initvalue);
 			gtk_tree_path_free(path);
 		}
+	}
+	if (!com.seq.imgparam[com.seq.reference_image].incl) {
+		com.seq.reference_image = -1; // reinit to -1 in order to find new reference
+		com.seq.reference_image = sequence_find_refimage(&com.seq);
 	}
 	g_list_free(references);
 	update_reg_interface(FALSE);
@@ -990,7 +994,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
 		if (seqname) free(seqname);
 		return -1;
-	} else if (!seqname || (seqname && found)) {
+	} else if (!seqname || found) {
 		fprintf(stdout, "Loaded %d %s\n", number_of_loaded_sequences,
 				ngettext("sequence", "sequences", number_of_loaded_sequences));
 	} else return -1;
