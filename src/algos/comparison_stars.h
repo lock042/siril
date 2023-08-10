@@ -31,6 +31,6 @@ gpointer compstars_worker(gpointer arg);
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
 		gboolean use_comp1, gboolean use_comp2, fits *first);
 
-gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_gnuplot);
+gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot);
 
 #endif

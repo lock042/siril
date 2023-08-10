@@ -38,7 +38,6 @@
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "stacking/stacking.h"
-#include "io/gnuplot_i.h"
 
 #include "preferences.h"
 #include "filters/starnet.h"
@@ -257,15 +256,11 @@ static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
-	GtkFileChooser *gnuplot_bin = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
 
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
 
 	com.pref.starnet_exe = gtk_file_chooser_get_filename(starnet_exe);
 	com.pref.starnet_weights = gtk_file_chooser_get_filename(starnet_weights);
-	com.pref.gnuplot_dir = gtk_file_chooser_get_filename(gnuplot_bin);
-	com.pref.use_gnuplot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("do_use_gnuplot_button")));
-	reset_gnuplot_check();
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
@@ -349,13 +344,6 @@ void initialize_starnet_weights(const gchar *path) {
 	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (starnet_weights, path);
-	}
-}
-
-void initialize_gnuplot_directory(const gchar *path) {
-	GtkFileChooser *gnuplot_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
-	if (path && path[0] != '\0') {
-		gtk_file_chooser_set_filename (gnuplot_dir, path);
 	}
 }
 
@@ -678,14 +666,12 @@ void update_preferences_from_model() {
 	initialize_path_directory(pref->swap_dir);
 	initialize_starnet_executable(pref->starnet_exe);
 	initialize_starnet_weights(pref->starnet_weights);
-	initialize_gnuplot_directory(pref->gnuplot_dir);
 	initialize_asnet_directory(pref->asnet_dir);
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("console_log_combo")), pref->console_log_level);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("gui_log_combo")), pref->gui_log_level);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("do_use_gnuplot_button")), pref->use_gnuplot);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
 #ifdef HAVE_JSON_GLIB
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);

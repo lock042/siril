@@ -512,34 +512,29 @@ end:
 }
 
 /* generates subtitles for the dat file header and the plots based on what's available */
-gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_gnuplot) {
+gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 	if (!metadata)
 		return g_strdup("");
-	GString *str = for_gnuplot ? g_string_new("\\n{/*0.8 ") : g_string_new("");
+	GString *str = g_string_new("");
 	gboolean first = TRUE;
 	if (metadata->nb_comp_stars > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0) {
-		if (for_gnuplot) {
-#ifdef _WIN32
+		if (for_plot)
 			g_string_append_printf(str,
-					"%d stars within delta_{Vmag} = %.2f, delta_{BV} = %.2f",
-					metadata->nb_comp_stars, metadata->delta_Vmag, metadata->delta_BV);
-#else
-			g_string_append_printf(str,
-					"%d stars within {/Symbol d}_{Vmag} = %.2f, {/Symbol d}_{BV} = %.2f",
-					metadata->nb_comp_stars, metadata->delta_Vmag, metadata->delta_BV);
-#endif
-		}
-		else g_string_append_printf(str, "%d stars within delta Vmag = %.2f, delta BV = %.2f",
-					metadata->nb_comp_stars, metadata->delta_Vmag, metadata->delta_BV);
+				"\n<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f</span>",
+				metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
+		else g_string_append_printf(str, "#%d %s delta Vmag = %.2f, delta BV = %.2f",
+					metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
 		first = FALSE;
 	}
 	if (metadata->AAVSO_chartid) {
-		g_string_append_printf(str, "%sAAVSO chart %s", first ? "" : " - ", metadata->AAVSO_chartid);
+		if (for_plot)
+			g_string_append_printf(str, "<span size=\"small\">%sAAVSO chart %s</span>", first ? "\n" : " - ", metadata->AAVSO_chartid);
+		else
+			g_string_append_printf(str, "%sAAVSO chart %s", first ? "#" : " - ", metadata->AAVSO_chartid);
+		first = FALSE;
 	}
-	if (for_gnuplot)
-		g_string_append(str, "}");
-	else g_string_append(str, "\n# "); // in that case it's the first line...
-
+	if (!for_plot && !first)
+		g_string_append(str, "\n");
 	return g_string_free(str, FALSE);
 }
 

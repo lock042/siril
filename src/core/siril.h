@@ -276,7 +276,6 @@ typedef enum {
 	EXT_NONE,
 	EXT_STARNET,
 	EXT_ASNET,
-	EXT_GNUPLOT // not used for now
 } external_program;
 
 typedef enum {
@@ -567,30 +566,6 @@ struct historic_struct {
 	double focal_length;
 };
 
-typedef struct _GNUPLOT_CTRL_ {
-    /** Pipe to gnuplot process */
-    FILE* gnucmd ;
-	FILE* gnumon ;
-
-    /** Number of currently active plots */
-    int nplots ;
-	/** Current plot window **/
-	gboolean replot; // Add additional plots to the current one in the current window
-    /** Current plotting style */
-    char pstyle[32] ;
-
-    /** Pointer to table of names of temporary files */
-    char** tmp_filename_tbl ;
-    /** Number of temporary files */
-    int ntmp ;
-	GThread* thread;
-	guint source; // Reference for the callback
-	int child_fd_stdin;
-	int child_fd_stderr;
-	GPid child_pid;
-	gboolean running;
-} gnuplot_ctrl ;
-
 /* the structure storing information for each layer to be composed
  * (one layer = one source image) and one associated colour */
 typedef struct {
@@ -768,8 +743,6 @@ struct cominf {
 #else
 	pid_t childpid;			// For other OSes, PID of a child process
 #endif
-	gnuplot_ctrl **gnuplot_handles; // list of gnuplot handles
-	int num_gnuplot_handles; // how many gnuplot handles are in the list
 	logpriority log_threshold; // sets the threshold for log messages printed to the pipe
 };
 
