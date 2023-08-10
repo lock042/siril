@@ -477,7 +477,8 @@ void notify_gfit_modified() {
 }
 
 /* File watcher and callback */
-static GSourceFunc timeout_cb(gpointer *user_data) {
+static gboolean timeout_cb(gpointer *user_data) {
+	gboolean retval = G_SOURCE_CONTINUE;
 	struct timeval current;
 	gettimeofday(&current, NULL);
 	struct timeval difference;
@@ -503,9 +504,9 @@ static GSourceFunc timeout_cb(gpointer *user_data) {
 		g_free(realname);
 //		register_filemonitor();
 		timer_running = FALSE;
-		return G_SOURCE_REMOVE;
+		retval = G_SOURCE_REMOVE;
 	}
-	return G_SOURCE_CONTINUE;
+	return retval;
 }
 
 
