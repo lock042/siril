@@ -791,11 +791,11 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		cmsDeleteTransform(transform);
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(profile);
-		if (!com.script && fit == &gfit) {
+/*		if (!com.script && fit == &gfit) {
 			set_source_information();
 			refresh_icc_transforms();
 			notify_gfit_modified();
-		}
+		}*/
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
 	}
@@ -810,6 +810,9 @@ void check_linear_and_convert_with_approval(fits *fit) {
 	if (siril_confirm_dialog(_("Recommend color space conversion"), _("The current image has a linear ICC profile. It looks like you're about to stretch the image: do you want to convert it to your nonlinear working color space now? (Recommended!)"), _("Convert"))) {
 		set_cursor_waiting(TRUE);
 		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		set_source_information();
+		refresh_icc_transforms();
+		notify_gfit_modified();
 		set_cursor_waiting(FALSE);
 	}
 }
