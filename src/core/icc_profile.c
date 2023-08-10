@@ -791,11 +791,6 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		cmsDeleteTransform(transform);
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(profile);
-/*		if (!com.script && fit == &gfit) {
-			set_source_information();
-			refresh_icc_transforms();
-			notify_gfit_modified();
-		}*/
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform"));
 	}
