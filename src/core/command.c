@@ -57,7 +57,6 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
-#include "io/gnuplot_i.h"
 #include "io/single_image.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
@@ -3161,7 +3160,6 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
-	reset_gnuplot_check();
 	return 0;
 }
 
@@ -8835,36 +8833,18 @@ int process_sso() {
 	return CMD_OK;
 }
 
-static gboolean end_process_catsearch(gpointer p) {
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	refresh_found_objects();
-	if (!gtk_toggle_tool_button_get_active(button)) {
-		gtk_toggle_tool_button_set_active(button, TRUE);
-	} else {
-		redraw(REDRAW_OVERLAY);
-	}
-	return end_generic(NULL);
-}
-
 int process_catsearch(int nb){
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
-	set_cursor_waiting(TRUE);
 	gchar *name = NULL;
 	if (nb > 2) {
 		name = build_string_from_words(word + 1);
 	} else {
 		name = g_strdup(word[1]);
 	}
-
-	gboolean found_it = cached_object_lookup(name, NULL) == 0;
-	if (found_it)
-		siril_add_idle(end_process_catsearch, NULL);
-	else siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
-	g_free(name);
-
+	start_in_new_thread(catsearch_worker, name);
 	return CMD_OK;
 }
 
@@ -9201,11 +9181,11 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wavenumber2=")) {
 			arg += 13;
-			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+			cut_args->wavenumber2 = g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-wavelength1=")) {
 			arg += 13;
-			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);
+			cut_args->wavenumber1 = 10000000. / g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-wavelength2=")) {
 			arg += 13;
@@ -9229,7 +9209,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wn1at=")) {
 			gchar *value;
-			value = arg + 6;
+			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
 				siril_log_color_message(_("Error: Could not parse -wn1at values.\n"), "red");
 				break;
@@ -9237,7 +9217,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-wn2at=")) {
 			gchar *value;
-			value = arg + 6;
+			value = arg + 7;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
 				siril_log_color_message(_("Error: Could not parse -wn2at values.\n"), "red");
 				break;
@@ -9293,11 +9273,7 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	if (!gnuplot_is_available()) {
-		siril_log_color_message(_("Warning: GNUplot not available. Data files will be generated for analysis in a third party tool but no GNUplot image can be produced.\n"), "salmon");
-	}
-
-	cut_args->display_graph = FALSE;
+	cut_args->display_graph = (!com.script); // we can display the plot if not in a script
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
@@ -9319,11 +9295,6 @@ int process_seq_profile(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
-	}
-
-	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
-		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
-		return CMD_GENERIC_ERROR;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);

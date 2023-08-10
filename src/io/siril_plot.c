@@ -21,6 +21,9 @@
 #include "siril_plot.h"
 
 #include <cairo.h>
+#ifdef CAIRO_HAS_SVG_SURFACE
+#include <cairo/cairo-svg.h>
+#endif
 #include <pango/pangocairo.h>
 #include <math.h>
 #include "core/proto.h"
@@ -108,6 +111,8 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->ylabel = NULL;
 	spl_data->xfmt = NULL;
 	spl_data->yfmt = NULL;
+	spl_data->savename = NULL;
+	spl_data->forsequence = FALSE;
 	spl_data->plottype = KPLOT_LINES;
 	spl_data->plotstype = KPLOTS_YERRORBAR;
 	spl_data->plotstypes[0] = KPLOT_POINTS;
@@ -116,8 +121,10 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->datamin = (point){ DBL_MAX, DBL_MAX};
 	spl_data->datamax = (point){ -DBL_MAX, -DBL_MAX};
 	spl_data->show_legend = TRUE;
+	spl_data->autotic = TRUE;
 	spl_data->revertX = FALSE;
 	spl_data->revertY = FALSE;
+	spl_data->interactive = FALSE;
 
 	// initializing kplot cfg structs
 	kplotcfg_defaults(&spl_data->cfgplot);
@@ -147,17 +154,22 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 }
 
 void free_siril_plot_data(siril_plot_data *spl_data) {
+	if (!spl_data)
+		return;
 	// freeing gchars
 	g_free(spl_data->title);
 	g_free(spl_data->xlabel);
 	g_free(spl_data->ylabel);
 	g_free(spl_data->xfmt);
 	g_free(spl_data->yfmt);
+	g_free(spl_data->savename);
 	// freeing the xy and xyerr plots
 	g_list_free_full(spl_data->plot, (GDestroyNotify)free_list_plot);
 	g_list_free_full(spl_data->plots, (GDestroyNotify)free_list_plots);
 	//freeing kplot cfg structures
 	free(spl_data->cfgplot.clrs);
+	free(spl_data);
+	spl_data = NULL;
 }
 
 // setters
@@ -191,6 +203,12 @@ void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt) {
 	spl_data->yfmt = g_strdup(yfmt);
 }
 
+void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
+	if (spl_data->savename)
+		g_free(spl_data->savename);
+	spl_data->savename = g_strdup(savename);
+}
+
 // utilities
 static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax, int *sig) {
 	double extent = vmax - vmin;
@@ -217,7 +235,7 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 	tics *= power;
 	*tmin = floor(vmin / tics) * tics;
 	*tmax = ceil(vmax / tics) * tics;
-	*nbtics = (int)((*tmax - *tmin) / tics) + 1;
+	*nbtics = (int)round(((*tmax - *tmin) / tics)) + 1;
 	//computing number of decimals
 	double logtics = log10(tics);
 	*sig = abs((int)floor(min(0., logtics)));
@@ -280,7 +298,7 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t n
 }
 
 // draw the data contained in spl_data to the cairo context cr
-gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height) {
+gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg) {
 	struct kdata *d1 = NULL, *d2[3];
 	double color = 1.0;
 	if (spl_data->xlabel)
@@ -291,10 +309,15 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	spl_data->cfgplot.yaxisrevert = (spl_data->revertY) ? 1 : 0;
 
 	// computing the tics spacing and bounds
+	double x1 = (!spl_data->interactive) ? spl_data->datamin.x : spl_data->pdd.datamin.x;
+	double x2 = (!spl_data->interactive) ? spl_data->datamax.x : spl_data->pdd.datamax.x;
+	double y1 = (!spl_data->interactive) ? spl_data->datamin.y : spl_data->pdd.datamin.y;
+	double y2 = (!spl_data->interactive) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
 	double xmin, xmax, ymin, ymax;
-	int nbticX,nbticY, sigX, sigY;
-	if (siril_plot_autotic(spl_data->datamin.x, spl_data->datamax.x, &nbticX, &xmin, &xmax, &sigX) &&
-		siril_plot_autotic(spl_data->datamin.y, spl_data->datamax.y, &nbticY, &ymin, &ymax, &sigY)) {
+	int nbticX, nbticY, sigX, sigY;
+	if (spl_data->autotic &&
+		siril_plot_autotic(x1, x2, &nbticX, &xmin, &xmax, &sigX) &&
+		siril_plot_autotic(y1, y2, &nbticY, &ymin, &ymax, &sigY)) {
 		spl_data->cfgplot.extrema = 0x0F;
 		spl_data->cfgplot.extrema_xmin = xmin;
 		spl_data->cfgplot.extrema_xmax = xmax;
@@ -302,6 +325,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.extrema_ymax = ymax;
 		spl_data->cfgplot.xtics = nbticX;
 		spl_data->cfgplot.ytics = nbticY;
+		spl_data->pdd.pdatamin = (point){xmin, ymin};
+		spl_data->pdd.pdatamax = (point){xmax, ymax};
 		// if the formats are not forced by caller, they are adjusted
 		if (!spl_data->xfmt) {
 			g_free(spl_data->cfgplot.xticlabelfmtstr);
@@ -311,25 +336,25 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 			g_free(spl_data->cfgplot.yticlabelfmtstr);
 			spl_data->cfgplot.yticlabelfmtstr = g_strdup_printf("%%.%df", sigY);
 		}
-		spl_data->pdd.datamin = (point){xmin, ymin};
-		spl_data->pdd.datamax = (point){xmax, ymax};
 	} else {  // fallback
 		spl_data->cfgplot.extrema = 0x0F;
-		spl_data->cfgplot.extrema_xmin = spl_data->datamin.x;
-		spl_data->cfgplot.extrema_xmax = spl_data->datamax.x;
-		spl_data->cfgplot.extrema_ymin = spl_data->datamin.y;
-		spl_data->cfgplot.extrema_ymax = spl_data->datamax.y;
-		spl_data->cfgplot.xtics = 5;
-		spl_data->cfgplot.ytics = 5;
-		spl_data->pdd.datamin = spl_data->datamin;
-		spl_data->pdd.datamax = spl_data->datamax;
-		if (!spl_data->xfmt) {
-			g_free(spl_data->cfgplot.xticlabelfmtstr);
-			spl_data->cfgplot.xticlabelfmtstr = g_strdup("%g");
-		}
-		if (!spl_data->yfmt) {
-			g_free(spl_data->cfgplot.yticlabelfmtstr);
-			spl_data->cfgplot.xticlabelfmtstr = g_strdup("%g");
+		spl_data->cfgplot.extrema_xmin = x1;
+		spl_data->cfgplot.extrema_xmax = x2;
+		spl_data->cfgplot.extrema_ymin = y1;
+		spl_data->cfgplot.extrema_ymax = y2;
+		spl_data->pdd.pdatamin = (point){x1, y1};
+		spl_data->pdd.pdatamax = (point){x2, y2};
+		if (spl_data->autotic) {
+			spl_data->cfgplot.xtics = 5;
+			spl_data->cfgplot.ytics = 5;
+			if (!spl_data->xfmt) {
+				g_free(spl_data->cfgplot.xticlabelfmtstr);
+				spl_data->cfgplot.xticlabelfmtstr = g_strdup("%g");
+			}
+			if (!spl_data->yfmt) {
+				g_free(spl_data->cfgplot.yticlabelfmtstr);
+				spl_data->cfgplot.yticlabelfmtstr = g_strdup("%g");
+			}
 		}
 	}
 	// if the formats are forced by caller, they are passed
@@ -338,7 +363,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		spl_data->cfgplot.xticlabelfmtstr = g_strdup(spl_data->xfmt);
 	}
 	if (spl_data->yfmt) {
-		g_free(spl_data->cfgplot.xticlabelfmtstr);
+		g_free(spl_data->cfgplot.yticlabelfmtstr);
 		spl_data->cfgplot.yticlabelfmtstr = g_strdup(spl_data->yfmt);
 	}
 
@@ -370,12 +395,12 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	// xy points with y error bars
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
+		const struct kdatacfg *cfgs[3];
 		for (int i = 0; i < 3; i++) {
 			d2[i] = kdata_array_alloc(plots->plots[i]->data, plots->nb);
+			cfgs[i] = &spl_data->cfgdata;
 		}
-		// TODO: the call to datacfg structure is different than in kplot_attach_data... need to sort this out
-		// as we can't pass the cfg for xyerr bars
-		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, NULL, spl_data->plotstype);
+		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, cfgs, spl_data->plotstype);
 		if (spl_data->show_legend) {
 			int index = nb_graphs % spl_data->cfgplot.clrsz;
 			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
@@ -409,7 +434,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		int pw, ph;
 		layout = pango_cairo_create_layout(cr);
 		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
-		pango_layout_set_text(layout, spl_data->title, -1);
+		pango_layout_set_markup(layout, spl_data->title, -1);
 		// set max width to wrap title if required
 		pango_layout_set_width(layout, (width - 2 * SIRIL_PLOT_MARGIN) * PANGO_SCALE);
 		pango_layout_set_wrap(layout,PANGO_WRAP_WORD);
@@ -429,7 +454,15 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	}
 
 	// creating a surface to draw the plot (accounting for title-reserved space if required)
-	cairo_surface_t *draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+	cairo_surface_t *draw_surface = NULL;
+#ifdef CAIRO_HAS_SVG_SURFACE
+	if (!for_svg)
+		draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+	else
+		draw_surface = cairo_svg_surface_create_for_stream(NULL, NULL, drawwidth, drawheight);
+#else
+	draw_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)drawwidth, (int)drawheight);
+#endif
 	struct kplotctx ctx = { 0 };
 	cairo_t *draw_cr = cairo_create(draw_surface);
 	kplot_draw(p, drawwidth, drawheight, draw_cr, &ctx);
@@ -453,7 +486,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		pango_layout_set_font_description(layout, desc);
 		pango_font_description_free(desc);
 
-		pango_layout_set_text(layout, legend_text->str, -1);
+		pango_layout_set_markup(layout, legend_text->str, -1);
 		pango_layout_get_size(layout, &pw, &ph);
 		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
 		double px0 = spl_data->pdd.offset.x - (double)SIRIL_PLOT_MARGIN + spl_data->pdd.range.x - (double)pw / PANGO_SCALE;
@@ -495,36 +528,193 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	return TRUE;
 }
 
+cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height) {
+	cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+	if (cairo_surface_status(surface)) {
+		siril_debug_print("Could not create cairo surface\n");
+		return NULL;
+	}
+	cairo_t *cr = cairo_create(surface);
+	if (cairo_status(cr)) {
+		cairo_surface_destroy(surface);
+		siril_debug_print("Could not create cairo context\n");
+		return NULL;
+	}
+	if (!siril_plot_draw(cr, spl_data, (double)width, (double)height, FALSE)) {
+		siril_debug_print("Could not draw to cairo context\n");
+		cairo_surface_destroy(surface);
+		surface = NULL;
+	}
+	cairo_destroy(cr);
+	return surface;
+}
 // draw the data contained in spl_data and saves as png file
-gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename) {
+gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int width, int height) {
 	gboolean success = TRUE;
-	cairo_t *png_cr = NULL;
+	cairo_surface_t *png_surface = siril_plot_draw_to_image_surface(spl_data, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT);
+	if (!png_surface)
+		return FALSE;
+
+	siril_debug_print("Successfully created png plot\n");
+	if (!cairo_surface_write_to_png(png_surface, pngfilename))
+		siril_log_message(_("%s has been saved.\n"), pngfilename);
+	else
+		success = FALSE;
+	cairo_surface_destroy(png_surface);
+	return success;
+}
+
+#ifdef CAIRO_HAS_SVG_SURFACE
+// draw the data contained in spl_data and saves as svg file
+gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int width, int height) {
+	gboolean success = TRUE;
+	cairo_t *svg_cr = NULL;
 	//create the surface
-	cairo_surface_t *png_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SIRIL_PLOT_PNG_WIDTH, SIRIL_PLOT_PNG_HEIGHT);
-	if (cairo_surface_status(png_surface)) {
-		siril_debug_print("Could not create png surface\n");
+	cairo_surface_t *svg_surface = cairo_svg_surface_create(svgfilename, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT);
+	if (cairo_surface_status(svg_surface)) {
+		siril_debug_print("Could not create svg surface\n");
 		success = FALSE;
 	}
 	//create the context
 	if (success) {
-		png_cr = cairo_create(png_surface);
-		if (cairo_status(png_cr)) {
-			siril_debug_print("Could not create png context\n");
+		cairo_svg_surface_set_document_unit(svg_surface, CAIRO_SVG_UNIT_PX);
+		svg_cr = cairo_create(svg_surface);
+		if (cairo_status(svg_cr)) {
+			siril_debug_print("Could not create svg context\n");
 			success = FALSE;
 		}
 	}
-	// draw the plot and save the surface to png
-	if (success && siril_plot_draw(png_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT)) {
-		siril_debug_print("Successfully created png plot\n");
-		if (!cairo_surface_write_to_png(png_surface, pngfilename))
-			siril_log_message(_("%s has been saved.\n"), pngfilename);
-		else
-			success = FALSE;
+	// draw the plot and save the surface to svg
+	if (success && siril_plot_draw(svg_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT, TRUE))
+		siril_log_message(_("%s has been saved.\n"), svgfilename);
+	else {
+		success = FALSE;
+		siril_debug_print("Could not draw to svg context\n");
 	}
-	if (png_cr)
-		cairo_destroy(png_cr);
-	cairo_surface_destroy(png_surface);
+
+	if (svg_cr)
+		cairo_destroy(svg_cr);
+	cairo_surface_destroy(svg_surface);
 	return success;
+}
+#endif
+
+// save the data to a dat file
+gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename, gboolean add_title) {
+	GString *header = NULL;
+	FILE* fileout = NULL;
+	gboolean retval = TRUE;
+	double *data = NULL;
+
+	// TODO: for the time-being, we will assume that x of the first series
+	// is valid for all other series. May need to complexify this in the future
+	int nbpoints = 0, nbcols = 1, nbgraphs = 0, j = 0;
+	if (add_title && spl_data->title) {
+		// spl_data->title is assumed to have the # signs at each line start as necessary
+		// and to finish by a \n character
+		header = g_string_new(spl_data->title);
+		g_string_append_printf(header, "#x");
+	} else
+		header = g_string_new("#x");
+	// xylines
+	for (GList *list = spl_data->plot; list; list = list->next) {
+		splxydata *plot = (splxydata *)list->data;
+		if (nbpoints == 0)
+			nbpoints = plot->nb;
+		else if (plot->nb != nbpoints) {
+			siril_debug_print("Cannot export to *.dat series of different length, skipping\n");
+			continue;
+		}
+		gchar *label = (plot->label) ? g_strdup(plot->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
+		replace_spaces_from_str(label, '_');
+		g_string_append_printf(header, " %s", label);
+		g_free(label);
+		nbgraphs++;
+		nbcols++;
+	}
+	// xy points with y error bars
+	for (GList *list = spl_data->plots; list; list = list->next) {
+		splxyerrdata *plots = (splxyerrdata *)list->data;
+		if (nbpoints == 0)
+			nbpoints = plots->nb;
+		else if (plots->nb != nbpoints) {
+			siril_debug_print("Cannot export to *.dat series of different length, skipping\n");
+			continue;
+		}
+		gchar *label = (plots->label) ? g_strdup(plots->label) : g_strdup_printf("Series_%02d", nbgraphs + 1);
+		replace_spaces_from_str(label, '_');
+		g_string_append_printf(header, " %s %s_err+ %s_err-", label, label, label);
+		g_free(label);
+		nbgraphs++;
+		nbcols += 3;
+	}
+
+	// gathering all the data
+	data = malloc(nbpoints * nbcols * sizeof(double));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+	for (GList *list = spl_data->plot; list; list = list->next) {
+		splxydata *plot = (splxydata *)list->data;
+		// adding x if none is present
+		if (j == 0) {
+			int index = j;
+			for (int i = 0; i < nbpoints; i++) {
+				data[index] = plot->data[i].x;
+				index += nbcols;
+			}
+			j++;
+		}
+		// adding y
+		int index = j;
+		for (int i = 0; i < nbpoints; i++) {
+			data[index] = plot->data[i].y;
+			index += nbcols;
+		}
+		j++;
+	}
+	for (GList *list = spl_data->plots; list; list = list->next) {
+		splxyerrdata *plots = (splxyerrdata *)list->data;
+		// adding x if none is present
+		if (j == 0) {
+			int index = j;
+			for (int i = 0; i < nbpoints; i++) {
+				data[index] = plots->plots[0]->data[i].x;
+				index += nbcols;
+			}
+			j++;
+		}
+		// adding ys
+		int index = j;
+		for (int i = 0; i < nbpoints; i++) {
+			for (int k = 0; k < 3; k++)
+				data[index + k] = plots->plots[k]->data[i].y;
+			index += nbcols;
+		}
+		j += 3;
+	}
+	fileout = g_fopen(datfilename, "w");
+	if (fileout == NULL) {
+		siril_log_message(_("Could not create %s, aborting\n"));
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+	fprintf(fileout, "%s", header->str);
+	int index = 0;
+	for (int r = 0 ; r < nbpoints ; r++) {
+		fprintf(fileout, "\n%g", data[index++]); // print newline and x
+		for (int c = 1 ; c < nbcols ; c++)
+			fprintf(fileout, " %g", data[index++]);
+	}
+	fclose(fileout);
+	siril_log_message(_("%s has been saved.\n"), datfilename);
+
+clean_and_exit:
+	g_string_free(header, TRUE);
+	free(data);
+	return retval;
 }
 
 

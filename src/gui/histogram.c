@@ -420,6 +420,8 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 #pragma omp for private(i) schedule(static)
 #endif
 			for (i = 0; i < ndata; i++) {
+				if (buf[i] == 0)
+					continue;
 				gsl_histogram_increment(histo_thr, (double) buf[i]);
 			}
 		} else if (fit->type == DATA_FLOAT) {
@@ -428,6 +430,8 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 #pragma omp for private(i) schedule(static)
 #endif
 			for (i = 0; i < ndata; i++) {
+				if (buf[i] == 0.f)
+					continue;
 				gsl_histogram_increment(histo_thr, (double) buf[i]);
 			}
 		}
