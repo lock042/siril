@@ -5,17 +5,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-08 13:32+0200\n"
+"POT-Creation-Date: 2023-08-10 08:23+0200\n"
 "PO-Revision-Date: 2023-08-09 22:12+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
-"siril-application-1-2/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
+"application-1-2/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7996
@@ -2750,8 +2750,8 @@ msgid "Sel"
 msgstr "Выбор"
 
 #: src/gui/siril3.glade:11385 src/gui/siril3.glade:23812
-#: src/gui/siril3.glade:23847 src/gui/plot.c:135 src/gui/plot.c:1541
-#: src/gui/plot.c:1569 src/gui/sequence_list.c:514
+#: src/gui/siril3.glade:23847 src/gui/plot.c:135 src/gui/plot.c:1543
+#: src/gui/plot.c:1571 src/gui/sequence_list.c:514
 msgid "Quality"
 msgstr "Качество"
 
@@ -4029,7 +4029,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "Последовательности"
 
-#: src/gui/siril3.glade:15442 src/gui/histogram.c:1246
+#: src/gui/siril3.glade:15442 src/gui/histogram.c:1250
 msgid "Histogram Transformation"
 msgstr "Преобразование гистограммы"
 
@@ -6783,7 +6783,7 @@ msgstr ""
 "\n"
 "<b>Кол-во изображений</b> на основе времени накопления кадров."
 
-#: src/gui/siril3.glade:24358 src/gui/plot.c:1547 src/gui/plot.c:1575
+#: src/gui/siril3.glade:24358 src/gui/plot.c:1549 src/gui/plot.c:1577
 msgid "Number of stars"
 msgstr "Кол-во звёзд"
 
@@ -9676,7 +9676,7 @@ msgstr ""
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
-#: src/gui/histogram.c:1617 src/gui/remixer.c:1276 src/gui/remixer.c:1324
+#: src/gui/histogram.c:1621 src/gui/remixer.c:1276 src/gui/remixer.c:1324
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "Ошибка: не удалось вычислить статистику.\n"
@@ -12830,8 +12830,8 @@ msgstr ""
 "считывания, темновые кадры и кадры плоского поля, указанные в аргументе.\n"
 "\n"
 "Вместо изображения, можно указать однородный уровень шума считывания, введя "
-"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или "
-"-bias=\"=64*$OFFSET\".\n"
+"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или -"
+"bias=\"=64*$OFFSET\".\n"
 "\n"
 "Косметическая коррекция по умолчанию отключена. Если вы хотите применить "
 "коррекцию, это необходимо указать с помощью опции <b>-cc=</b>.\n"
@@ -12848,15 +12848,15 @@ msgstr ""
 "\n"
 "К цветным изображениям в формате CFA применимы три опции: <b>-cfa</b> для "
 "целей косметической коррекции. При помощи опции <b>-debayer</b> можно "
-"выполнить дебайеризацию изображений перед их сохранением. Опция "
-"<b>-equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-"
+"выполнить дебайеризацию изображений перед их сохранением. Опция <b>-"
+"equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-"
 "изображении CFA.\n"
 "Опция <b>-fix_xtrans</b> используется при работе с файлами X-Trans, применяя "
 "коррекцию к темновым кадрам и кадрам шума считывания для удаления "
 "квадратного рисунка в зоне автофокуса.\n"
-"Также можно оптимизировать вычитание темнового мастер-кадра с помощью "
-"<b>-opt</b>, которая требует указания мастер-кадров шума считывания и "
-"темновых мастер-кадров.\n"
+"Также можно оптимизировать вычитание темнового мастер-кадра с помощью <b>-"
+"opt</b>, которая требует указания мастер-кадров шума считывания и темновых "
+"мастер-кадров.\n"
 "По умолчанию, кадры, отмеченные как исключённые, не обрабатываются. С "
 "помощью аргумента <b>-all</b> можно принудительно обработать все кадры, даже "
 "отмеченные как исключённые.\n"
@@ -12901,8 +12901,8 @@ msgstr ""
 "темновые кадры и кадры плоского поля, указанные в аргументе.\n"
 "\n"
 "Вместо изображения, можно указать однородный уровень шума считывания, введя "
-"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или "
-"-bias=\"=64*$OFFSET\".\n"
+"в кавычках выражение, начинающееся со знака =. Например, -bias=\"=256\" или -"
+"bias=\"=64*$OFFSET\".\n"
 "\n"
 "Косметическая коррекция по умолчанию отключена. Если вы хотите применить "
 "коррекцию, это необходимо указать с помощью опции <b>-cc=</b>.\n"
@@ -12919,16 +12919,15 @@ msgstr ""
 "\n"
 "К цветным изображениям в формате CFA применимы три опции: <b>-cfa</b> для "
 "целей косметической коррекции. При помощи опции <b>-debayer</b> можно "
-"выполнить дебайеризацию изображений перед их сохранением. Опция "
-"<b>-equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-"
-"кадре плоского поля чтобы избежать тонирования откалиброванного изображения."
-"\n"
+"выполнить дебайеризацию изображений перед их сохранением. Опция <b>-"
+"equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-кадре "
+"плоского поля чтобы избежать тонирования откалиброванного изображения.\n"
 "Опция <b>-fix_xtrans</b> используется при работе с файлами X-Trans, применяя "
 "коррекцию к темновым кадрам и кадрам шума считывания для удаления "
 "квадратного рисунка в зоне автофокуса.\n"
-"Также можно оптимизировать вычитание темнового мастер-кадра с помощью "
-"<b>-opt</b>, которая требует указания мастер-кадров шума считывания и "
-"темновых мастер-кадров.\n"
+"Также можно оптимизировать вычитание темнового мастер-кадра с помощью <b>-"
+"opt</b>, которая требует указания мастер-кадров шума считывания и темновых "
+"мастер-кадров.\n"
 "Название итогового файла будет начинаться с префикса \"pp_\", если не указан "
 "иной с помощью опции <b>-prefix=</b>"
 
@@ -13041,9 +13040,9 @@ msgid ""
 "Instead of providing the list of bad pixels, it's also possible to detect "
 "them in the current image using the FIND_COSME command"
 msgstr ""
-"Применяет локальное среднее к набору пикселей на загруженном изображении ("
-"косметическая коррекция). Координаты этих пикселей находятся в файле ASCII ["
-"файл .lst]. Команда FIND_HOT может также создать его для отдельных горячих "
+"Применяет локальное среднее к набору пикселей на загруженном изображении "
+"(косметическая коррекция). Координаты этих пикселей находятся в файле ASCII "
+"[файл .lst]. Команда FIND_HOT может также создать его для отдельных горячих "
 "пикселей, но требует удаления строк или столбцов вручную. Команда COSME "
 "адаптирована для коррекции остаточных горячих и холодных пикселей после "
 "калибровки.\n"
@@ -13086,8 +13085,8 @@ msgid ""
 "32-bit images in which case it will be scaled automatically"
 msgstr ""
 "Выполняет цифровую обработку загруженного изображения (DDP - digital "
-"development processing), как это было описано Кунихико Окано (Kunihiko Okano)"
-". Данная реализация аналогична таковой в IRIS.\n"
+"development processing), как это было описано Кунихико Окано (Kunihiko "
+"Okano). Данная реализация аналогична таковой в IRIS.\n"
 "\n"
 "Она сочетает линейное распределение на низких уровнях (ниже <b>level</b>) и "
 "нелинейное - на высоких.\n"
@@ -13661,7 +13660,7 @@ msgid ""
 "Computes and applies a linear function between a <b>reference</b> image and "
 "the loaded image.\n"
 "\n"
-". The algorithm will ignore all reference pixels whose values are outside of "
+"The algorithm will ignore all reference pixels whose values are outside of "
 "the [<b>low</b>, <b>high</b>] range"
 msgstr ""
 "Вычисляет линейную функцию между опорным изображением <b>reference</b> и "
@@ -13712,20 +13711,19 @@ msgstr ""
 
 #: src/core/command_def.h:80
 msgid ""
-"Loads the image <b>filename</b from the current working directory>, which "
+"Loads the image <b>filename</b> from the current working directory, which "
 "becomes the 'currently loaded image' used in many of the single-image "
 "commands.\n"
 "It first attempts to load <b>filename</b>, then <b>filename</b>.fit, "
 "<b>filename</b>.fits and finally all supported formats.\n"
-"This scheme is applicable to every Siril command that involves reading "
-"files.\n"
+"This scheme is applicable to every Siril command that involves reading files"
 msgstr ""
 
 #: src/core/command_def.h:81
 msgid ""
 "Computes and applies a logarithmic scale to the loaded image, using the "
 "following formula: log(1 - (value - min) / (max - min)), with min and max "
-"being the minimum and maximum pixel value for the channel."
+"being the minimum and maximum pixel value for the channel"
 msgstr ""
 
 #: src/core/command_def.h:82
@@ -15448,7 +15446,7 @@ msgid ""
 "\n"
 "All PSF computations will return the calibrated apparent magnitude "
 "afterwards, instead of an apparent magnitude relative to ADU values. Note "
-"that the provided value must match the magnitude for the oservation filter "
+"that the provided value must match the magnitude for the observation filter "
 "to be meaningful.\n"
 "To reset the magnitude constant see UNSETMAG"
 msgstr ""
@@ -15469,7 +15467,7 @@ msgid ""
 "faster, but setting the ratio of used memory above 1 will require the use of "
 "on-disk memory, which is very slow and unrecommended, even sometimes not "
 "supported, leading to system crash. A fixed amount of memory can also be set "
-"in he generic settings, with SET, instead of a ratio"
+"in the generic settings, with SET, instead of a ratio"
 msgstr ""
 "Устанавливает новое отношение свободной памяти к памяти, использованной для "
 "укладки.\n"
@@ -18471,7 +18469,7 @@ msgstr[1] "Выбраны %d файла"
 msgstr[2] "Выбрано %d файлов"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
-#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
+#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1612
 #: src/gui/photometric_cc.c:201 src/gui/photometric_cc.c:219
 #: src/gui/remixer.c:1264 src/gui/remixer.c:1312
 msgid "There is no selection"
@@ -18529,12 +18527,12 @@ msgstr "Не удалось отобразить ссылку"
 msgid "Please go to <a href=\""
 msgstr "Перейти по <a href=\""
 
-#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
-#: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
+#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1031
+#: src/gui/histogram.c:1037 src/gui/histogram.c:1692 src/gui/histogram.c:1709
 msgid "Channels warning"
 msgstr "Предупреждение каналов"
 
-#: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
+#: src/gui/histogram.c:144 src/gui/histogram.c:1032 src/gui/histogram.c:1710
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
@@ -18543,7 +18541,7 @@ msgstr ""
 "человеческого глаза не может быть использована: устанавливаем "
 "равновзвешенную цветовую модель."
 
-#: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
+#: src/gui/histogram.c:150 src/gui/histogram.c:1038 src/gui/histogram.c:1693
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -18559,105 +18557,105 @@ msgstr "Применить растягивание к монохромному 
 msgid "Red channel"
 msgstr "Красный канал"
 
-#: src/gui/histogram.c:1154
+#: src/gui/histogram.c:1158
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Преобразование гист-мы (сред.=%.3f, низ=%.3f, верх=%.3f)"
 
-#: src/gui/histogram.c:1161
+#: src/gui/histogram.c:1165
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1164
+#: src/gui/histogram.c:1168
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1167
+#: src/gui/histogram.c:1171
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1170
+#: src/gui/histogram.c:1174
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1173
+#: src/gui/histogram.c:1177
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr "Линейное растягивание BP: %.2f"
 
-#: src/gui/histogram.c:1179
+#: src/gui/histogram.c:1183
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS SAT точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1182
+#: src/gui/histogram.c:1186
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 "GHS INV SAT точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1185
+#: src/gui/histogram.c:1189
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH SAT точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1188
+#: src/gui/histogram.c:1192
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV SAT точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1191
+#: src/gui/histogram.c:1195
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr "GHS LINEAR SAT BP: %.2f"
 
-#: src/gui/histogram.c:1240
+#: src/gui/histogram.c:1244
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 "Не удалось вычислить параметры авторастягивания, используются значения по "
 "умолчанию\n"
 
-#: src/gui/histogram.c:1260
+#: src/gui/histogram.c:1264
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Обобщённое гиперболическое преобразование"
 
-#: src/gui/histogram.c:1288 src/gui/histogram.c:1677
+#: src/gui/histogram.c:1292 src/gui/histogram.c:1681
 msgid "Clicking on the histogram sets SP"
 msgstr "Нажатие на гистограмму устанавливает точку симметрии"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1569
+#: src/gui/histogram.c:1573
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 "Точка сохранения теней не может быть выше, чем центральная точка "
 "растягивания\n"
 
-#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1313
+#: src/gui/histogram.c:1613 src/gui/remixer.c:1265 src/gui/remixer.c:1313
 msgid "Make a selection of the point or area to set SP"
 msgstr "Выберите точку или область для установки точки симметрии"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1648
+#: src/gui/histogram.c:1652
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 "Точка сохранения светов не может быть ниже, чем центральная точка "
 "растягивания\n"
 
-#: src/gui/histogram.c:1675
+#: src/gui/histogram.c:1679
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr "Клик на линейной гистограмме устанавливает точку чёрного (BP)"
 
-#: src/gui/histogram.c:1812
+#: src/gui/histogram.c:1816
 msgid "Midtone Transfer Function"
 msgstr "Передаточная функция полутонов"
 
-#: src/gui/histogram.c:1842
+#: src/gui/histogram.c:1846
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Обратная обобщённая гиперболическая функция переноса"
 
@@ -19152,7 +19150,7 @@ msgstr ""
 msgid "Photometric Color Calibration"
 msgstr "Фотометрическая калибровка цвета"
 
-#: src/gui/plot.c:119 src/gui/plot.c:1499 src/gui/sequence_list.c:539
+#: src/gui/plot.c:119 src/gui/plot.c:1501 src/gui/sequence_list.c:539
 msgid "Amplitude"
 msgstr "Амплитуда"
 
@@ -19164,7 +19162,7 @@ msgstr "Блеск"
 msgid "SNR"
 msgstr "Сигнал/шум"
 
-#: src/gui/plot.c:615 src/gui/plot.c:1294 src/gui/plot.c:1578
+#: src/gui/plot.c:615 src/gui/plot.c:1296 src/gui/plot.c:1580
 msgid "Frames"
 msgstr "Кадры"
 
@@ -19188,87 +19186,87 @@ msgstr ""
 "Откалиброваны данные для %d точек кривой блеска, исключено %d из-за "
 "неправильной фотометрии\n"
 
-#: src/gui/plot.c:1200
+#: src/gui/plot.c:1202
 #, c-format
 msgid "Output files (*%s)"
 msgstr "Итоговые файлы (*%s)"
 
-#: src/gui/plot.c:1402
+#: src/gui/plot.c:1404
 #, c-format
 msgid "Saved plot to image %s\n"
 msgstr "График сохранён в изображении %s\n"
 
-#: src/gui/plot.c:1493 src/gui/plot.c:1526 src/gui/plot.c:1554
+#: src/gui/plot.c:1495 src/gui/plot.c:1528 src/gui/plot.c:1556
 msgid "Star roundness (1 is round)"
 msgstr "Округлость звёзд (1 - круглая)"
 
-#: src/gui/plot.c:1496 src/gui/plot.c:1529 src/gui/plot.c:1557
+#: src/gui/plot.c:1498 src/gui/plot.c:1531 src/gui/plot.c:1559
 msgid "FWHM ('')"
 msgstr "FWHM ('')"
 
-#: src/gui/plot.c:1496 src/gui/plot.c:1529 src/gui/plot.c:1557
+#: src/gui/plot.c:1498 src/gui/plot.c:1531 src/gui/plot.c:1559
 msgid "FWHM (px)"
 msgstr "FWHM (пиксели)"
 
-#: src/gui/plot.c:1503
+#: src/gui/plot.c:1505
 msgid "Star magnitude (absolute)"
 msgstr "Звёздная величина (абсолютная)"
 
-#: src/gui/plot.c:1505
+#: src/gui/plot.c:1507
 msgid "Star magnitude (relative, use setmag)"
 msgstr "Звёздная величина (относительная, используйте setmag)"
 
-#: src/gui/plot.c:1508 src/gui/plot.c:1544 src/gui/plot.c:1572
+#: src/gui/plot.c:1510 src/gui/plot.c:1546 src/gui/plot.c:1574
 msgid "Background value"
 msgstr "Значение фона"
 
-#: src/gui/plot.c:1511
+#: src/gui/plot.c:1513
 msgid "Star position on X axis"
 msgstr "Положение звезды по X"
 
-#: src/gui/plot.c:1514
+#: src/gui/plot.c:1516
 msgid "Star position on Y axis"
 msgstr "Положение звезды по Y"
 
-#: src/gui/plot.c:1517
+#: src/gui/plot.c:1519
 msgid "SNR (dB)"
 msgstr "Сигнал/шум (дБ)"
 
-#: src/gui/plot.c:1532 src/gui/plot.c:1560
+#: src/gui/plot.c:1534 src/gui/plot.c:1562
 msgid "wFWHM ('')"
 msgstr "wFWHM ('')"
 
-#: src/gui/plot.c:1532 src/gui/plot.c:1560
+#: src/gui/plot.c:1534 src/gui/plot.c:1562
 msgid "wFWHM (px)"
 msgstr "wFWHM (пиксели)"
 
-#: src/gui/plot.c:1535 src/gui/plot.c:1563
+#: src/gui/plot.c:1537 src/gui/plot.c:1565
 msgid "Shift on X axis"
 msgstr "Сдвиг по X"
 
-#: src/gui/plot.c:1538 src/gui/plot.c:1566
+#: src/gui/plot.c:1540 src/gui/plot.c:1568
 msgid "Shift on Y axis"
 msgstr "Сдвиг по Y"
 
-#: src/gui/plot.c:1887
+#: src/gui/plot.c:1889
 #, c-format
 msgid "Exclude Frame %d"
 msgstr "Исключить кадр %d"
 
-#: src/gui/plot.c:1889
+#: src/gui/plot.c:1891
 #, c-format
 msgid "Show Frame %d"
 msgstr "Показать кадр %d"
 
-#: src/gui/plot.c:1926
+#: src/gui/plot.c:1928
 msgid "Zoom to selection"
 msgstr "Масштаб по выделению"
 
-#: src/gui/plot.c:1927
+#: src/gui/plot.c:1929
 msgid "Only keep points within selection"
 msgstr "Только в выделении"
 
-#: src/gui/plot.c:1932
+#: src/gui/plot.c:1934
 msgid "Exclude selected points"
 msgstr "Исключить выбранные точки"
 

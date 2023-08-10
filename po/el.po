@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-08 13:32+0200\n"
+"POT-Creation-Date: 2023-08-10 08:23+0200\n"
 "PO-Revision-Date: 2023-06-02 12:27+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -2563,8 +2563,8 @@ msgid "Sel"
 msgstr "Eπιλεγμένο"
 
 #: src/gui/siril3.glade:11385 src/gui/siril3.glade:23812
-#: src/gui/siril3.glade:23847 src/gui/plot.c:135 src/gui/plot.c:1541
-#: src/gui/plot.c:1569 src/gui/sequence_list.c:514
+#: src/gui/siril3.glade:23847 src/gui/plot.c:135 src/gui/plot.c:1543
+#: src/gui/plot.c:1571 src/gui/sequence_list.c:514
 msgid "Quality"
 msgstr "Ποιότητα"
 
@@ -3785,7 +3785,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "Ακολουθία"
 
-#: src/gui/siril3.glade:15442 src/gui/histogram.c:1246
+#: src/gui/siril3.glade:15442 src/gui/histogram.c:1250
 msgid "Histogram Transformation"
 msgstr "Μετασχηματισμός Ιστογράμματος"
 
@@ -6455,7 +6455,7 @@ msgid ""
 "time."
 msgstr ""
 
-#: src/gui/siril3.glade:24358 src/gui/plot.c:1547 src/gui/plot.c:1575
+#: src/gui/siril3.glade:24358 src/gui/plot.c:1549 src/gui/plot.c:1577
 #, fuzzy
 msgid "Number of stars"
 msgstr "Κανόνας των τρίτων"
@@ -9310,7 +9310,7 @@ msgstr ""
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
-#: src/gui/histogram.c:1617 src/gui/remixer.c:1276 src/gui/remixer.c:1324
+#: src/gui/histogram.c:1621 src/gui/remixer.c:1276 src/gui/remixer.c:1324
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
@@ -13164,7 +13164,7 @@ msgid ""
 "Computes and applies a linear function between a <b>reference</b> image and "
 "the loaded image.\n"
 "\n"
-". The algorithm will ignore all reference pixels whose values are outside of "
+"The algorithm will ignore all reference pixels whose values are outside of "
 "the [<b>low</b>, <b>high</b>] range"
 msgstr ""
 "Υπολογίζει μια γραμμική συνάρτηση ανάμεσα στην εικόνα <b>αναφοράς<b> και "
@@ -13210,20 +13210,19 @@ msgstr ""
 
 #: src/core/command_def.h:80
 msgid ""
-"Loads the image <b>filename</b from the current working directory>, which "
+"Loads the image <b>filename</b> from the current working directory, which "
 "becomes the 'currently loaded image' used in many of the single-image "
 "commands.\n"
 "It first attempts to load <b>filename</b>, then <b>filename</b>.fit, "
 "<b>filename</b>.fits and finally all supported formats.\n"
-"This scheme is applicable to every Siril command that involves reading "
-"files.\n"
+"This scheme is applicable to every Siril command that involves reading files"
 msgstr ""
 
 #: src/core/command_def.h:81
 msgid ""
 "Computes and applies a logarithmic scale to the loaded image, using the "
 "following formula: log(1 - (value - min) / (max - min)), with min and max "
-"being the minimum and maximum pixel value for the channel."
+"being the minimum and maximum pixel value for the channel"
 msgstr ""
 
 #: src/core/command_def.h:82
@@ -14450,7 +14449,7 @@ msgid ""
 "\n"
 "All PSF computations will return the calibrated apparent magnitude "
 "afterwards, instead of an apparent magnitude relative to ADU values. Note "
-"that the provided value must match the magnitude for the oservation filter "
+"that the provided value must match the magnitude for the observation filter "
 "to be meaningful.\n"
 "To reset the magnitude constant see UNSETMAG"
 msgstr ""
@@ -14471,7 +14470,7 @@ msgid ""
 "faster, but setting the ratio of used memory above 1 will require the use of "
 "on-disk memory, which is very slow and unrecommended, even sometimes not "
 "supported, leading to system crash. A fixed amount of memory can also be set "
-"in he generic settings, with SET, instead of a ratio"
+"in the generic settings, with SET, instead of a ratio"
 msgstr ""
 "Ορίζει ένα νέο λόγο της ελεύθερης μνήμης στη μνήμη που χρησιμοποιείται για "
 "τη σώρευση.\n"
@@ -17452,7 +17451,7 @@ msgstr[0] "%d αρχείο επιλέχθηκε"
 msgstr[1] "%d αρχεία επιλέχθηκαν"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
-#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
+#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1612
 #: src/gui/photometric_cc.c:201 src/gui/photometric_cc.c:219
 #: src/gui/remixer.c:1264 src/gui/remixer.c:1312
 msgid "There is no selection"
@@ -17510,19 +17509,19 @@ msgstr "Δεν ήταν δυνατή η εμφάνιση της σύνδεσης
 msgid "Please go to <a href=\""
 msgstr "Παρακαλώ πηγαίνετε στο <a href=\""
 
-#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
-#: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
+#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1031
+#: src/gui/histogram.c:1037 src/gui/histogram.c:1692 src/gui/histogram.c:1709
 #, fuzzy
 msgid "Channels warning"
 msgstr "Εξαγωγή Καναλιού"
 
-#: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
+#: src/gui/histogram.c:144 src/gui/histogram.c:1032 src/gui/histogram.c:1710
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
 msgstr ""
 
-#: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
+#: src/gui/histogram.c:150 src/gui/histogram.c:1038 src/gui/histogram.c:1693
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -17536,100 +17535,100 @@ msgstr ""
 msgid "Red channel"
 msgstr "Κόκκινο κανάλι"
 
-#: src/gui/histogram.c:1154
+#: src/gui/histogram.c:1158
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Μετασχ. Ιστογράμματος (μέσοι=%.3f, κάτω=%.3f, άνω=%.3f)"
 
-#: src/gui/histogram.c:1161
+#: src/gui/histogram.c:1165
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1164
+#: src/gui/histogram.c:1168
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1167
+#: src/gui/histogram.c:1171
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1170
+#: src/gui/histogram.c:1174
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1173
+#: src/gui/histogram.c:1177
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr ""
 
-#: src/gui/histogram.c:1179
+#: src/gui/histogram.c:1183
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1182
+#: src/gui/histogram.c:1186
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1185
+#: src/gui/histogram.c:1189
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1188
+#: src/gui/histogram.c:1192
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1191
+#: src/gui/histogram.c:1195
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr ""
 
-#: src/gui/histogram.c:1240
+#: src/gui/histogram.c:1244
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 
-#: src/gui/histogram.c:1260
+#: src/gui/histogram.c:1264
 #, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Μετασχηματισμός Ιστογράμματος..."
 
-#: src/gui/histogram.c:1288 src/gui/histogram.c:1677
+#: src/gui/histogram.c:1292 src/gui/histogram.c:1681
 msgid "Clicking on the histogram sets SP"
 msgstr ""
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1569
+#: src/gui/histogram.c:1573
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1313
+#: src/gui/histogram.c:1613 src/gui/remixer.c:1265 src/gui/remixer.c:1313
 #, fuzzy
 msgid "Make a selection of the point or area to set SP"
 msgstr "Κάντε μια επιλογή της περιοχής λευκού υποβάθρου"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1648
+#: src/gui/histogram.c:1652
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1675
+#: src/gui/histogram.c:1679
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr ""
 
-#: src/gui/histogram.c:1812
+#: src/gui/histogram.c:1816
 msgid "Midtone Transfer Function"
 msgstr "Συνάρτηση Μεταφοράς Ενδιάμεσου Τόνου"
 
-#: src/gui/histogram.c:1842
+#: src/gui/histogram.c:1846
 #, fuzzy
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Αρνητικός Μετασχηματισμός"
@@ -18092,7 +18091,7 @@ msgstr "Απέτυχε η δημιουργία του αρχείου εξόδο�
 msgid "Photometric Color Calibration"
 msgstr "Φωτομετρική Βαθμονόμηση Χρώματος"
 
-#: src/gui/plot.c:119 src/gui/plot.c:1499 src/gui/sequence_list.c:539
+#: src/gui/plot.c:119 src/gui/plot.c:1501 src/gui/sequence_list.c:539
 msgid "Amplitude"
 msgstr "Πλάτος"
 
@@ -18104,7 +18103,7 @@ msgstr "Μέγεθος"
 msgid "SNR"
 msgstr "SNR"
 
-#: src/gui/plot.c:615 src/gui/plot.c:1294 src/gui/plot.c:1578
+#: src/gui/plot.c:615 src/gui/plot.c:1296 src/gui/plot.c:1580
 msgid "Frames"
 msgstr "Καρέ"
 
@@ -18123,92 +18122,92 @@ msgid ""
 "invalid calibration\n"
 msgstr ""
 
-#: src/gui/plot.c:1200
+#: src/gui/plot.c:1202
 #, c-format
 msgid "Output files (*%s)"
 msgstr "Αρχεία εξόδου (*%s)"
 
-#: src/gui/plot.c:1402
+#: src/gui/plot.c:1404
 #, fuzzy, c-format
 msgid "Saved plot to image %s\n"
 msgstr "Γίνεται αποθήκευση της εικόνας %s"
 
-#: src/gui/plot.c:1493 src/gui/plot.c:1526 src/gui/plot.c:1554
+#: src/gui/plot.c:1495 src/gui/plot.c:1528 src/gui/plot.c:1556
 msgid "Star roundness (1 is round)"
 msgstr "Στρογγυλότητα αστέρα (1 είναι στρογγυλό)"
 
-#: src/gui/plot.c:1496 src/gui/plot.c:1529 src/gui/plot.c:1557
+#: src/gui/plot.c:1498 src/gui/plot.c:1531 src/gui/plot.c:1559
 msgid "FWHM ('')"
 msgstr "FWHM ('')"
 
-#: src/gui/plot.c:1496 src/gui/plot.c:1529 src/gui/plot.c:1557
+#: src/gui/plot.c:1498 src/gui/plot.c:1531 src/gui/plot.c:1559
 msgid "FWHM (px)"
 msgstr "FWHM (px)"
 
-#: src/gui/plot.c:1503
+#: src/gui/plot.c:1505
 msgid "Star magnitude (absolute)"
 msgstr "Μέγεθος αστέρα (απόλυτο)"
 
-#: src/gui/plot.c:1505
+#: src/gui/plot.c:1507
 msgid "Star magnitude (relative, use setmag)"
 msgstr "Μέγεθος αστέρα (σχετικό, χρησιμοποιώντας setmag)"
 
-#: src/gui/plot.c:1508 src/gui/plot.c:1544 src/gui/plot.c:1572
+#: src/gui/plot.c:1510 src/gui/plot.c:1546 src/gui/plot.c:1574
 msgid "Background value"
 msgstr "Τιμή υποβάθρου"
 
-#: src/gui/plot.c:1511
+#: src/gui/plot.c:1513
 msgid "Star position on X axis"
 msgstr "Θέση αστεριού στον άξονα Χ"
 
-#: src/gui/plot.c:1514
+#: src/gui/plot.c:1516
 msgid "Star position on Y axis"
 msgstr "Θέση αστεριού στον άξονα Υ"
 
-#: src/gui/plot.c:1517
+#: src/gui/plot.c:1519
 msgid "SNR (dB)"
 msgstr "SNR (dB)"
 
-#: src/gui/plot.c:1532 src/gui/plot.c:1560
+#: src/gui/plot.c:1534 src/gui/plot.c:1562
 msgid "wFWHM ('')"
 msgstr "wFWHM ('')"
 
-#: src/gui/plot.c:1532 src/gui/plot.c:1560
+#: src/gui/plot.c:1534 src/gui/plot.c:1562
 msgid "wFWHM (px)"
 msgstr "wFWHM (px)"
 
-#: src/gui/plot.c:1535 src/gui/plot.c:1563
+#: src/gui/plot.c:1537 src/gui/plot.c:1565
 #, fuzzy
 msgid "Shift on X axis"
 msgstr "Θέση αστεριού στον άξονα Χ"
 
-#: src/gui/plot.c:1538 src/gui/plot.c:1566
+#: src/gui/plot.c:1540 src/gui/plot.c:1568
 #, fuzzy
 msgid "Shift on Y axis"
 msgstr "Θέση αστεριού στον άξονα Υ"
 
 # is it singular or plural?
-#: src/gui/plot.c:1887
+#: src/gui/plot.c:1889
 #, c-format
 msgid "Exclude Frame %d"
 msgstr "Εξαίρεση Καρέ %d"
 
-#: src/gui/plot.c:1889
+#: src/gui/plot.c:1891
 #, c-format
 msgid "Show Frame %d"
 msgstr "Προβολή Καρέ %d"
 
-#: src/gui/plot.c:1926
+#: src/gui/plot.c:1928
 #, fuzzy
 msgid "Zoom to selection"
 msgstr "Δεν υπάρχει επιλογή"
 
-#: src/gui/plot.c:1927
+#: src/gui/plot.c:1929
 #, fuzzy
 msgid "Only keep points within selection"
 msgstr "Δεν υπάρχουν οδηγοί στην επιλογή"
 
-#: src/gui/plot.c:1932
+#: src/gui/plot.c:1934
 msgid "Exclude selected points"
 msgstr ""
 
