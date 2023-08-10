@@ -46,6 +46,7 @@
 #include "registration/registration.h"
 #include "algos/noise.h"
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "stacking/sum.h"
 #include "opencv/opencv.h"
 
@@ -231,10 +232,11 @@ static void start_stacking() {
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
-	stackparam.apply_noise_weights = (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
-	stackparam.apply_nbstars_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
-	stackparam.apply_wfwhm_weights = (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
-	stackparam.apply_nbstack_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	gboolean weighing_is_enabled = gtk_widget_get_visible(GTK_WIDGET(weighing_combo));
+	stackparam.apply_noise_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_nbstars_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
+	stackparam.apply_wfwhm_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
+	stackparam.apply_nbstack_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 
@@ -540,6 +542,8 @@ static gboolean end_stacking(gpointer p) {
 		/* copy result to gfit if success */
 		clearfits(&gfit);
 		memcpy(&gfit, &args->result, sizeof(fits));
+		if (has_wcsdata(&gfit))
+			load_WCS_from_memory(&gfit);
 
 		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
