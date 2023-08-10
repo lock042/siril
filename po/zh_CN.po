@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-09 08:25+0200\n"
+"POT-Creation-Date: 2023-08-10 08:22+0200\n"
 "PO-Revision-Date: 2023-07-09 10:07+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
@@ -2871,8 +2871,8 @@ msgid "Sel"
 msgstr "选中"
 
 #: src/gui/siril3.glade:12406 src/gui/siril3.glade:24832
-#: src/gui/siril3.glade:24867 src/gui/plot.c:139 src/gui/plot.c:1569
-#: src/gui/plot.c:1597 src/gui/sequence_list.c:514
+#: src/gui/siril3.glade:24867 src/gui/plot.c:139 src/gui/plot.c:1571
+#: src/gui/plot.c:1599 src/gui/sequence_list.c:514
 msgid "Quality"
 msgstr "品质"
 
@@ -4061,7 +4061,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "序列"
 
-#: src/gui/siril3.glade:16462 src/gui/histogram.c:1246
+#: src/gui/siril3.glade:16462 src/gui/histogram.c:1250
 msgid "Histogram Transformation"
 msgstr "直方图变换"
 
@@ -6597,7 +6597,7 @@ msgstr ""
 "\n"
 "<b>图像数量</b> 根据各帧的积分时间对齐进行加权。"
 
-#: src/gui/siril3.glade:25395 src/gui/plot.c:1575 src/gui/plot.c:1603
+#: src/gui/siril3.glade:25395 src/gui/plot.c:1577 src/gui/plot.c:1605
 msgid "Number of stars"
 msgstr "星点数量"
 
@@ -8825,7 +8825,7 @@ msgid "Cannot project the star catalog."
 msgstr "无法映射星表。"
 
 #: src/algos/astrometry_solver.c:473 src/algos/astrometry_solver.c:476
-#: src/io/remote_catalogues.c:902 src/io/remote_catalogues.c:905
+#: src/io/remote_catalogues.c:917 src/io/remote_catalogues.c:920
 #, c-format
 msgid "Could not load the star catalog (%s)."
 msgstr "无法加载星表（%s）。"
@@ -9113,7 +9113,7 @@ msgstr "Siril无法提取通道，请确保你的图像为RGB模式。\n"
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
-#: src/gui/histogram.c:1617 src/gui/remixer.c:1276 src/gui/remixer.c:1324
+#: src/gui/histogram.c:1621 src/gui/remixer.c:1276 src/gui/remixer.c:1324
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "错误：统计信息计算失败。\n"
@@ -9193,8 +9193,8 @@ msgid "No variable star selected\n"
 msgstr "无变星选择\n"
 
 #: src/algos/comparison_stars.c:359 src/core/command.c:8632
-#: src/core/command.c:8727 src/core/command.c:8782 src/core/command.c:8805
-#: src/core/command.c:8966 src/gui/plot.c:1238
+#: src/core/command.c:8727 src/core/command.c:8771 src/core/command.c:8787
+#: src/core/command.c:8948 src/gui/plot.c:1240
 msgid "This command only works on plate solved images\n"
 msgstr "此命令仅适用于已解析的图像\n"
 
@@ -9852,13 +9852,13 @@ msgstr "发现 %d 太阳系天体，星等为 %0.1lf\n"
 msgid "Object %s was found in the %s catalogue, RA = %f, Dec = %f\n"
 msgstr "天体 %s 在星表 %s 中被找到，RA = %f, Dec = %f\n"
 
-#: src/algos/search_objects.c:380 src/core/command.c:8796
+#: src/algos/search_objects.c:380 src/io/remote_catalogues.c:749
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
 msgstr "找不到天体 %s 或处理它时遇到错误\n"
 
 #: src/algos/search_objects.c:520 src/io/remote_catalogues.c:674
-#: src/io/remote_catalogues.c:743
+#: src/io/remote_catalogues.c:758
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
@@ -10337,7 +10337,7 @@ msgstr "位置参数 %s，异常终止\n"
 #: src/core/command.c:2709 src/core/command.c:2717 src/core/command.c:2725
 #: src/core/command.c:2800 src/core/command.c:3892 src/core/command.c:4619
 #: src/core/command.c:4624 src/core/command.c:7846 src/core/command.c:8432
-#: src/core/command.c:8662 src/core/command.c:8942 src/core/command.c:9017
+#: src/core/command.c:8662 src/core/command.c:8924 src/core/command.c:8999
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "无效参数 %s，异常终止。\n"
@@ -10876,7 +10876,7 @@ msgid ""
 msgstr "对于第一个 HDU，仅单个 FITS 图像支持此命令，而不支持 FITS 矩阵\n"
 
 #: src/core/command.c:2574 src/core/command.c:2588 src/core/command.c:4641
-#: src/core/command.c:8921 src/pixelMath/pixel_math_runner.c:1092
+#: src/core/command.c:8903 src/pixelMath/pixel_math_runner.c:1092
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "无法打开文件: %s\n"
@@ -10899,8 +10899,8 @@ msgstr "无法保存镜像图像： %s\n"
 #: src/core/command.c:5126 src/core/command.c:5564 src/core/command.c:6240
 #: src/core/command.c:6381 src/core/command.c:6964 src/core/command.c:8362
 #: src/core/command.c:8373 src/core/command.c:8385 src/core/command.c:8409
-#: src/core/command.c:8652 src/core/command.c:8747 src/core/command.c:8827
-#: src/core/command.c:8836 src/core/command.c:8845 src/core/command.c:8852
+#: src/core/command.c:8652 src/core/command.c:8747 src/core/command.c:8809
+#: src/core/command.c:8818 src/core/command.c:8827 src/core/command.c:8834
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "%s 的参数无效，异常中止。\n"
@@ -11825,7 +11825,7 @@ msgstr "队列叠加成功。\n"
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "剔除叠加缺少参数。\n"
 
-#: src/core/command.c:7557 src/core/command.c:9075 src/core/preprocess.c:663
+#: src/core/command.c:7557 src/core/command.c:9057 src/core/preprocess.c:663
 #: src/core/preprocess.c:988
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "无法载入队列的参考帧，异常中止。\n"
@@ -12076,8 +12076,8 @@ msgstr "覆写先前的选择\n"
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "图像必须尺寸相同且全为单色\n"
 
-#: src/core/command.c:8333 src/core/command.c:8345 src/core/command.c:8995
-#: src/core/command.c:9007
+#: src/core/command.c:8333 src/core/command.c:8345 src/core/command.c:8977
+#: src/core/command.c:8989
 msgid "Could not parse target coordinates\n"
 msgstr "无法解析目标坐标\n"
 
@@ -12170,65 +12170,65 @@ msgstr ""
 msgid "Could not compute image resolution\n"
 msgstr "无法计算图像分辨率\n"
 
-#: src/core/command.c:8857 src/core/command.c:8899
+#: src/core/command.c:8839 src/core/command.c:8881
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "Unknown option provided: %s\n"
 
-#: src/core/command.c:8910 src/core/command.c:8931
+#: src/core/command.c:8892 src/core/command.c:8913
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 "Live stacking needs to be initialized with the START_LS command first\n"
 
-#: src/core/command.c:8914
+#: src/core/command.c:8896
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr "Live stacking was configured to use file watching, not this command\n"
 
-#: src/core/command.c:8956
+#: src/core/command.c:8938
 #, c-format
 msgid "String in: %s\n"
 msgstr "String in: %s\n"
 
-#: src/core/command.c:8957
+#: src/core/command.c:8939
 #, c-format
 msgid "String out: %s\n"
 msgstr "String out: %s\n"
 
-#: src/core/command.c:9084
+#: src/core/command.c:9066
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr "错误：CFA 模式不能用于彩色图像或没有拜耳模式的单色图像。\n"
 
-#: src/core/command.c:9124
+#: src/core/command.c:9106
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "-layer= 后面的错误选项，异常中止。\n"
 
-#: src/core/command.c:9149
+#: src/core/command.c:9131
 #, fuzzy
 msgid "Error: Could not parse -from values.\n"
 msgstr "错误：无法分析 %s 值。\n"
 
-#: src/core/command.c:9157
+#: src/core/command.c:9139
 #, fuzzy
 msgid "Error: Could not parse -to values.\n"
 msgstr "错误：无法分析 %s 值。\n"
 
-#: src/core/command.c:9165
+#: src/core/command.c:9147
 #, fuzzy
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "错误：无法分析 %s 值。\n"
 
-#: src/core/command.c:9173
+#: src/core/command.c:9155
 #, fuzzy
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "错误：无法分析 %s 值。\n"
 
-#: src/core/command.c:9179
+#: src/core/command.c:9161
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "错误：此选项不能用于队列。\n"
 
-#: src/core/command.c:9209
+#: src/core/command.c:9191
 #, fuzzy
 msgid "Error: sequence has variable sized images.\n"
 msgstr "错误：文件中查找失败。\n"
@@ -13186,7 +13186,7 @@ msgid ""
 "is used, are for the star whose light will be plotted, the others for the "
 "comparison stars.\n"
 "Alternatively, a list of target and reference stars can be passed in the "
-"format of the NINA exolpanet plugin star list, with the <b>-ninastars=</b> "
+"format of the NINA exoplanet plugin star list, with the <b>-ninastars=</b> "
 "option. Siril will verify that all reference stars can be used before "
 "actually using them. A data file is created in the current directory named "
 "light_curve.dat, Siril plots the result to a PNG image if available\n"
@@ -17414,23 +17414,23 @@ msgstr "ecloud"
 msgid "Visit the Siril website"
 msgstr "访问Siril网站"
 
-#: src/gui/astrometry_solver.c:314
+#: src/gui/astrometry_solver.c:325
 msgid "Photometry failed.\n"
 msgstr "测光失败。\n"
 
-#: src/gui/astrometry_solver.c:316
+#: src/gui/astrometry_solver.c:327
 msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
 msgstr "无法执行光度测量。您可以尝试在首选项中调整设置。"
 
-#: src/gui/astrometry_solver.c:320
+#: src/gui/astrometry_solver.c:331
 msgid ""
 "Plate Solving failed. The image could not be aligned with the reference "
 "stars.\n"
 msgstr "解析失败。图像无法与参考坐标相对齐。\n"
 
-#: src/gui/astrometry_solver.c:323
+#: src/gui/astrometry_solver.c:334
 msgid ""
 "This is usually because the initial parameters (pixel size, focal length, "
 "initial coordinates) are too far from the real metadata of the image.\n"
@@ -17448,64 +17448,64 @@ msgstr ""
 "\n"
 "最后，请注意解析算法只能作用于线性图像。"
 
-#: src/gui/astrometry_solver.c:456
+#: src/gui/astrometry_solver.c:467
 msgid "No object found\n"
 msgstr "未找到对象\n"
 
-#: src/gui/astrometry_solver.c:550
+#: src/gui/astrometry_solver.c:561
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr "没有改名称的坐标信息，请换个名称\n"
 
-#: src/gui/astrometry_solver.c:551 src/gui/astrometry_solver.c:645
+#: src/gui/astrometry_solver.c:562 src/gui/astrometry_solver.c:656
 msgid "No coordinates"
 msgstr "无坐标"
 
-#: src/gui/astrometry_solver.c:561
+#: src/gui/astrometry_solver.c:572
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr "在FITS文件头中无法找到关键字。\n"
 
-#: src/gui/astrometry_solver.c:562
+#: src/gui/astrometry_solver.c:573
 msgid "No metadata"
 msgstr "没有元数据"
 
-#: src/gui/astrometry_solver.c:646
+#: src/gui/astrometry_solver.c:657
 msgid "Please enter object coordinates."
 msgstr "请输入目标的坐标。"
 
-#: src/gui/astrometry_solver.c:658
+#: src/gui/astrometry_solver.c:669
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr "所选区域未与 astrometry.net 解析器一起使用\n"
 
-#: src/gui/astrometry_solver.c:707
+#: src/gui/astrometry_solver.c:718
 msgid "No catalog"
 msgstr "无星表"
 
-#: src/gui/astrometry_solver.c:707
+#: src/gui/astrometry_solver.c:718
 msgid "Cannot download the online star catalog."
 msgstr "无法下载在线星表。"
 
-#: src/gui/astrometry_solver.c:719
+#: src/gui/astrometry_solver.c:730
 msgid "Astrometric solution detected"
 msgstr "发现天体测量信息"
 
-#: src/gui/astrometry_solver.c:720
+#: src/gui/astrometry_solver.c:731
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
 msgstr "图像中已包含的天体测量信息会被几何光学计算数据所覆盖，并且无法撤销。"
 
-#: src/gui/astrometry_solver.c:722
+#: src/gui/astrometry_solver.c:733
 msgid "Process"
 msgstr "处理"
 
 #. 2 = GAIA, 3 = PPMXL
 #. 1 = APASS
-#: src/gui/astrometry_solver.c:748 src/gui/photometric_cc.c:248
+#: src/gui/astrometry_solver.c:759 src/gui/photometric_cc.c:248
 msgid "(online catalogue)"
 msgstr "（在线星表）"
 
-#: src/gui/astrometry_solver.c:749 src/gui/photometric_cc.c:249
+#: src/gui/astrometry_solver.c:760 src/gui/photometric_cc.c:249
 msgid "(local catalogue)"
 msgstr "（本地星表）"
 
@@ -18068,7 +18068,7 @@ msgid "Siril cannot set the start coordinate as no selection is made"
 msgstr "Siril 无法设置起始坐标，因为未进行任何选择"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
-#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
+#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1612
 #: src/gui/photometric_cc.c:202 src/gui/photometric_cc.c:220
 #: src/gui/remixer.c:1264 src/gui/remixer.c:1312
 msgid "There is no selection"
@@ -18126,12 +18126,12 @@ msgstr "无法显示链接"
 msgid "Please go to <a href=\""
 msgstr "请访问 <a href=\""
 
-#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
-#: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
+#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1031
+#: src/gui/histogram.c:1037 src/gui/histogram.c:1692 src/gui/histogram.c:1709
 msgid "Channels warning"
 msgstr "通道警告"
 
-#: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
+#: src/gui/histogram.c:144 src/gui/histogram.c:1032 src/gui/histogram.c:1710
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
@@ -18139,7 +18139,7 @@ msgstr ""
 "并非所有彩色通道都被选中。不能使用人眼明度彩色模型：设置为均等加权明度彩色模"
 "型。"
 
-#: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
+#: src/gui/histogram.c:150 src/gui/histogram.c:1038 src/gui/histogram.c:1693
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -18153,98 +18153,98 @@ msgstr "切换拉伸是否应用于单色通道"
 msgid "Red channel"
 msgstr "红色通道"
 
-#: src/gui/histogram.c:1154
+#: src/gui/histogram.c:1158
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "直方图变换 (mid=%.3f, lo=%.3f, hi=%.3f)"
 
-#: src/gui/histogram.c:1161
+#: src/gui/histogram.c:1165
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1164
+#: src/gui/histogram.c:1168
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1167
+#: src/gui/histogram.c:1171
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1170
+#: src/gui/histogram.c:1174
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1173
+#: src/gui/histogram.c:1177
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr "GHS LINEAR BP: %.2f"
 
-#: src/gui/histogram.c:1179
+#: src/gui/histogram.c:1183
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1182
+#: src/gui/histogram.c:1186
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1185
+#: src/gui/histogram.c:1189
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1188
+#: src/gui/histogram.c:1192
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1191
+#: src/gui/histogram.c:1195
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr "GHS LINEAR SAT BP: %.2f"
 
-#: src/gui/histogram.c:1240
+#: src/gui/histogram.c:1244
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr "无法计算自动拉伸参数，使用缺省值\n"
 
-#: src/gui/histogram.c:1260
+#: src/gui/histogram.c:1264
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "广义双曲拉伸变换"
 
-#: src/gui/histogram.c:1288 src/gui/histogram.c:1677
+#: src/gui/histogram.c:1292 src/gui/histogram.c:1681
 msgid "Clicking on the histogram sets SP"
 msgstr "点击直方图以设置 SP"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1569
+#: src/gui/histogram.c:1573
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr "阴影保护点不能设置为高于拉伸焦点\n"
 
-#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1313
+#: src/gui/histogram.c:1613 src/gui/remixer.c:1265 src/gui/remixer.c:1313
 msgid "Make a selection of the point or area to set SP"
 msgstr "选择要设置 SP 的点或区域"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1648
+#: src/gui/histogram.c:1652
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr "高光保持点不能设置为低于拉伸焦点\n"
 
-#: src/gui/histogram.c:1675
+#: src/gui/histogram.c:1679
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr "点击线性拉伸直方图以设置 BP"
 
-#: src/gui/histogram.c:1812
+#: src/gui/histogram.c:1816
 msgid "Midtone Transfer Function"
 msgstr "中间调变换函数"
 
-#: src/gui/histogram.c:1842
+#: src/gui/histogram.c:1846
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "广义双曲拉伸函数"
 
@@ -18681,7 +18681,7 @@ msgstr "使用远程APASS而不是本地NOMAD星表\n"
 msgid "Photometric Color Calibration"
 msgstr "测光法色彩校准"
 
-#: src/gui/plot.c:123 src/gui/plot.c:1527 src/gui/sequence_list.c:539
+#: src/gui/plot.c:123 src/gui/plot.c:1529 src/gui/sequence_list.c:539
 msgid "Amplitude"
 msgstr "振幅"
 
@@ -18693,7 +18693,7 @@ msgstr "星等"
 msgid "SNR"
 msgstr "SNR"
 
-#: src/gui/plot.c:619 src/gui/plot.c:1325 src/gui/plot.c:1606
+#: src/gui/plot.c:619 src/gui/plot.c:1327 src/gui/plot.c:1608
 msgid "Frames"
 msgstr "帧"
 
@@ -18710,87 +18710,87 @@ msgstr "光曲线 %d 点的校准数据，由于校准无效，排除了 %d\n"
 msgid "%s has been saved.\n"
 msgstr "%s 已保存。\n"
 
-#: src/gui/plot.c:1202
+#: src/gui/plot.c:1204
 #, c-format
 msgid "Output files (*%s)"
 msgstr "输出文件 (*%s)"
 
-#: src/gui/plot.c:1438
+#: src/gui/plot.c:1440
 #, c-format
 msgid "Saved plot to image %s\n"
 msgstr "将图表保存为 %s\n"
 
-#: src/gui/plot.c:1521 src/gui/plot.c:1554 src/gui/plot.c:1582
+#: src/gui/plot.c:1523 src/gui/plot.c:1556 src/gui/plot.c:1584
 msgid "Star roundness (1 is round)"
 msgstr "星点圆度（1为正圆）"
 
-#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
+#: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
 msgid "FWHM ('')"
 msgstr "FWHM ('')"
 
-#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
+#: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
 msgid "FWHM (px)"
 msgstr "FWHM (px)"
 
-#: src/gui/plot.c:1531
+#: src/gui/plot.c:1533
 msgid "Star magnitude (absolute)"
 msgstr "星等（绝对）"
 
-#: src/gui/plot.c:1533
+#: src/gui/plot.c:1535
 msgid "Star magnitude (relative, use setmag)"
 msgstr "星等（相对，使用setmag）"
 
-#: src/gui/plot.c:1536 src/gui/plot.c:1572 src/gui/plot.c:1600
+#: src/gui/plot.c:1538 src/gui/plot.c:1574 src/gui/plot.c:1602
 msgid "Background value"
 msgstr "背景值"
 
-#: src/gui/plot.c:1539
+#: src/gui/plot.c:1541
 msgid "Star position on X axis"
 msgstr "星点在X轴的坐标"
 
-#: src/gui/plot.c:1542
+#: src/gui/plot.c:1544
 msgid "Star position on Y axis"
 msgstr "星点在Y轴的坐标"
 
-#: src/gui/plot.c:1545
+#: src/gui/plot.c:1547
 msgid "SNR (dB)"
 msgstr "SNR (dB)"
 
-#: src/gui/plot.c:1560 src/gui/plot.c:1588
+#: src/gui/plot.c:1562 src/gui/plot.c:1590
 msgid "wFWHM ('')"
 msgstr "wFWHM ('')"
 
-#: src/gui/plot.c:1560 src/gui/plot.c:1588
+#: src/gui/plot.c:1562 src/gui/plot.c:1590
 msgid "wFWHM (px)"
 msgstr "wFWHM (px)"
 
-#: src/gui/plot.c:1563 src/gui/plot.c:1591
+#: src/gui/plot.c:1565 src/gui/plot.c:1593
 msgid "Shift on X axis"
 msgstr "在X轴的平移"
 
-#: src/gui/plot.c:1566 src/gui/plot.c:1594
+#: src/gui/plot.c:1568 src/gui/plot.c:1596
 msgid "Shift on Y axis"
 msgstr "在Y轴的平移"
 
-#: src/gui/plot.c:1915
+#: src/gui/plot.c:1917
 #, c-format
 msgid "Exclude Frame %d"
 msgstr "排除帧 %d"
 
-#: src/gui/plot.c:1917
+#: src/gui/plot.c:1919
 #, c-format
 msgid "Show Frame %d"
 msgstr "显示第%d帧"
 
-#: src/gui/plot.c:1954
+#: src/gui/plot.c:1956
 msgid "Zoom to selection"
 msgstr "缩放至所选区"
 
-#: src/gui/plot.c:1955
+#: src/gui/plot.c:1957
 msgid "Only keep points within selection"
 msgstr "仅保留选区内的点"
 
-#: src/gui/plot.c:1960
+#: src/gui/plot.c:1962
 msgid "Exclude selected points"
 msgstr "排除所选的点"
 
@@ -20394,21 +20394,21 @@ msgstr "搜索观测日期%s的太阳系天体\n"
 msgid "URL: %s\n"
 msgstr "网址：%s\n"
 
-#: src/io/remote_catalogues.c:777
+#: src/io/remote_catalogues.c:792
 msgid "Using already downloaded star catalogue\n"
 msgstr "使用已下载的星表\n"
 
-#: src/io/remote_catalogues.c:784 src/io/remote_catalogues.c:813
+#: src/io/remote_catalogues.c:799 src/io/remote_catalogues.c:828
 #, c-format
 msgid "Cannot create catalogue file %s for plate solving (%s)\n"
 msgstr "无法创建星表文件%s以用于解析（%s）\n"
 
-#: src/io/remote_catalogues.c:837
+#: src/io/remote_catalogues.c:852
 #, c-format
 msgid "Can't open catalog file %s for PCC: %s\n"
 msgstr "无法打开星表文件 %s 以用于PCC： %s\n"
 
-#: src/io/remote_catalogues.c:1073
+#: src/io/remote_catalogues.c:1088
 #, c-format
 msgid ""
 "name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"

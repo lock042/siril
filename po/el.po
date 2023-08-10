@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-09 08:25+0200\n"
+"POT-Creation-Date: 2023-08-10 08:22+0200\n"
 "PO-Revision-Date: 2023-05-08 19:41+0000\n"
 "Last-Translator: kostas <kookoo_gr@yahoo.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -2891,8 +2891,8 @@ msgid "Sel"
 msgstr "Eπιλεγμένο"
 
 #: src/gui/siril3.glade:12406 src/gui/siril3.glade:24832
-#: src/gui/siril3.glade:24867 src/gui/plot.c:139 src/gui/plot.c:1569
-#: src/gui/plot.c:1597 src/gui/sequence_list.c:514
+#: src/gui/siril3.glade:24867 src/gui/plot.c:139 src/gui/plot.c:1571
+#: src/gui/plot.c:1599 src/gui/sequence_list.c:514
 msgid "Quality"
 msgstr "Ποιότητα"
 
@@ -4121,7 +4121,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "Ακολουθία"
 
-#: src/gui/siril3.glade:16462 src/gui/histogram.c:1246
+#: src/gui/siril3.glade:16462 src/gui/histogram.c:1250
 msgid "Histogram Transformation"
 msgstr "Μετασχηματισμός Ιστογράμματος"
 
@@ -6797,7 +6797,7 @@ msgid ""
 "time."
 msgstr ""
 
-#: src/gui/siril3.glade:25395 src/gui/plot.c:1575 src/gui/plot.c:1603
+#: src/gui/siril3.glade:25395 src/gui/plot.c:1577 src/gui/plot.c:1605
 #, fuzzy
 msgid "Number of stars"
 msgstr "Κανόνας των τρίτων"
@@ -9173,7 +9173,7 @@ msgid "Cannot project the star catalog."
 msgstr "Δεν είναι δυνατή η προβολή του καταλόγου αστεριών."
 
 #: src/algos/astrometry_solver.c:473 src/algos/astrometry_solver.c:476
-#: src/io/remote_catalogues.c:902 src/io/remote_catalogues.c:905
+#: src/io/remote_catalogues.c:917 src/io/remote_catalogues.c:920
 #, fuzzy, c-format
 msgid "Could not load the star catalog (%s)."
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
@@ -9477,7 +9477,7 @@ msgstr ""
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
-#: src/gui/histogram.c:1617 src/gui/remixer.c:1276 src/gui/remixer.c:1324
+#: src/gui/histogram.c:1621 src/gui/remixer.c:1276 src/gui/remixer.c:1324
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
@@ -9562,8 +9562,8 @@ msgid "No variable star selected\n"
 msgstr "επιλέχθηκαν"
 
 #: src/algos/comparison_stars.c:359 src/core/command.c:8632
-#: src/core/command.c:8727 src/core/command.c:8782 src/core/command.c:8805
-#: src/core/command.c:8966 src/gui/plot.c:1238
+#: src/core/command.c:8727 src/core/command.c:8771 src/core/command.c:8787
+#: src/core/command.c:8948 src/gui/plot.c:1240
 #, fuzzy
 msgid "This command only works on plate solved images\n"
 msgstr "Αυτή η εντολή δεν μπορεί να χρησιμοποιηθεί σε εικόνες rgb.\n"
@@ -10264,13 +10264,13 @@ msgstr ""
 msgid "Object %s was found in the %s catalogue, RA = %f, Dec = %f\n"
 msgstr ""
 
-#: src/algos/search_objects.c:380 src/core/command.c:8796
+#: src/algos/search_objects.c:380 src/io/remote_catalogues.c:749
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
 msgstr ""
 
 #: src/algos/search_objects.c:520 src/io/remote_catalogues.c:674
-#: src/io/remote_catalogues.c:743
+#: src/io/remote_catalogues.c:758
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
@@ -10773,7 +10773,7 @@ msgstr "Άγνωστος τύπος μετασχηματισμού %s, γίνε�
 #: src/core/command.c:2709 src/core/command.c:2717 src/core/command.c:2725
 #: src/core/command.c:2800 src/core/command.c:3892 src/core/command.c:4619
 #: src/core/command.c:4624 src/core/command.c:7846 src/core/command.c:8432
-#: src/core/command.c:8662 src/core/command.c:8942 src/core/command.c:9017
+#: src/core/command.c:8662 src/core/command.c:8924 src/core/command.c:8999
 #, fuzzy, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
@@ -11381,7 +11381,7 @@ msgstr ""
 # Sure, the most important is to keep order if you have
 # %d %s %d in this order then you must keep it.
 #: src/core/command.c:2574 src/core/command.c:2588 src/core/command.c:4641
-#: src/core/command.c:8921 src/pixelMath/pixel_math_runner.c:1092
+#: src/core/command.c:8903 src/pixelMath/pixel_math_runner.c:1092
 #, fuzzy, c-format
 msgid "Could not open file: %s\n"
 msgstr "Το αρχείο TIFF %s δεν μπορούσε να ανοιχτεί\n"
@@ -11407,8 +11407,8 @@ msgstr "Το αρχείο TIFF %s δεν μπορούσε να ανοιχτεί\
 #: src/core/command.c:5126 src/core/command.c:5564 src/core/command.c:6240
 #: src/core/command.c:6381 src/core/command.c:6964 src/core/command.c:8362
 #: src/core/command.c:8373 src/core/command.c:8385 src/core/command.c:8409
-#: src/core/command.c:8652 src/core/command.c:8747 src/core/command.c:8827
-#: src/core/command.c:8836 src/core/command.c:8845 src/core/command.c:8852
+#: src/core/command.c:8652 src/core/command.c:8747 src/core/command.c:8809
+#: src/core/command.c:8818 src/core/command.c:8827 src/core/command.c:8834
 #, fuzzy, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
@@ -12429,7 +12429,7 @@ msgstr "Έγινε σώρευση της ακολουθίας με επιτυχ�
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "Λείπει το όρισμα σε %s, γίνεται ακύρωση.\n"
 
-#: src/core/command.c:7557 src/core/command.c:9075 src/core/preprocess.c:663
+#: src/core/command.c:7557 src/core/command.c:9057 src/core/preprocess.c:663
 #: src/core/preprocess.c:988
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr ""
@@ -12703,8 +12703,8 @@ msgstr "Γίνεται περικοπή με βάση την επιλογή"
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "Οι εικόνες πρέπει να έχουν τις ίδιες διαστάσεις\n"
 
-#: src/core/command.c:8333 src/core/command.c:8345 src/core/command.c:8995
-#: src/core/command.c:9007
+#: src/core/command.c:8333 src/core/command.c:8345 src/core/command.c:8977
+#: src/core/command.c:8989
 #, fuzzy
 msgid "Could not parse target coordinates\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
@@ -12798,65 +12798,65 @@ msgstr ""
 msgid "Could not compute image resolution\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:8857 src/core/command.c:8899
+#: src/core/command.c:8839 src/core/command.c:8881
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr ""
 
-#: src/core/command.c:8910 src/core/command.c:8931
+#: src/core/command.c:8892 src/core/command.c:8913
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 
-#: src/core/command.c:8914
+#: src/core/command.c:8896
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 
-#: src/core/command.c:8956
+#: src/core/command.c:8938
 #, fuzzy, c-format
 msgid "String in: %s\n"
 msgstr "Εκκίνηση δέσμης ενεργειών %s\n"
 
-#: src/core/command.c:8957
+#: src/core/command.c:8939
 #, fuzzy, c-format
 msgid "String out: %s\n"
 msgstr "Εκκίνηση δέσμης ενεργειών %s\n"
 
-#: src/core/command.c:9084
+#: src/core/command.c:9066
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr ""
 
-#: src/core/command.c:9124
+#: src/core/command.c:9106
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr ""
 
-#: src/core/command.c:9149
+#: src/core/command.c:9131
 #, fuzzy
 msgid "Error: Could not parse -from values.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:9157
+#: src/core/command.c:9139
 #, fuzzy
 msgid "Error: Could not parse -to values.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:9165
+#: src/core/command.c:9147
 #, fuzzy
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:9173
+#: src/core/command.c:9155
 #, fuzzy
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "Δεν ήταν δυνατή η αντιγραφή εικόνας, γίνεται ματαίωση\n"
 
-#: src/core/command.c:9179
+#: src/core/command.c:9161
 #, fuzzy
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Δεν είναι δυνατό να ανοιχτεί ακολουθία από εδώ\n"
 
-#: src/core/command.c:9209
+#: src/core/command.c:9191
 #, fuzzy
 msgid "Error: sequence has variable sized images.\n"
 msgstr "Σφάλμα: ο υπολογισμός των στατιστικών απέτυχε.\n"
@@ -13666,7 +13666,7 @@ msgid ""
 "is used, are for the star whose light will be plotted, the others for the "
 "comparison stars.\n"
 "Alternatively, a list of target and reference stars can be passed in the "
-"format of the NINA exolpanet plugin star list, with the <b>-ninastars=</b> "
+"format of the NINA exoplanet plugin star list, with the <b>-ninastars=</b> "
 "option. Siril will verify that all reference stars can be used before "
 "actually using them. A data file is created in the current directory named "
 "light_curve.dat, Siril plots the result to a PNG image if available\n"
@@ -17490,18 +17490,18 @@ msgstr ""
 msgid "Visit the Siril website"
 msgstr "Επισκεφτείτε την ιστοσελίδα του Siril"
 
-#: src/gui/astrometry_solver.c:314
+#: src/gui/astrometry_solver.c:325
 #, fuzzy
 msgid "Photometry failed.\n"
 msgstr "Φωτομετρία"
 
-#: src/gui/astrometry_solver.c:316
+#: src/gui/astrometry_solver.c:327
 msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
 msgstr ""
 
-#: src/gui/astrometry_solver.c:320
+#: src/gui/astrometry_solver.c:331
 msgid ""
 "Plate Solving failed. The image could not be aligned with the reference "
 "stars.\n"
@@ -17509,7 +17509,7 @@ msgstr ""
 "Η επίλυση της εικόνας απέτυχε. Η εικόνα δεν μπορούσε να ευθυγραμμιστεί με τα "
 "αστέρια αναφοράς.\n"
 
-#: src/gui/astrometry_solver.c:323
+#: src/gui/astrometry_solver.c:334
 msgid ""
 "This is usually because the initial parameters (pixel size, focal length, "
 "initial coordinates) are too far from the real metadata of the image.\n"
@@ -17531,51 +17531,51 @@ msgstr ""
 "Τέλος, λάβετε υπόψη ότι ο αλγόριθμος επίλυσης εικόνας πρέπει να εφαρμοστεί "
 "μόνο σε γραμμική εικόνα."
 
-#: src/gui/astrometry_solver.c:456
+#: src/gui/astrometry_solver.c:467
 #, fuzzy
 msgid "No object found\n"
 msgstr "Δεν υπάρχει προβολή"
 
-#: src/gui/astrometry_solver.c:550
+#: src/gui/astrometry_solver.c:561
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr ""
 "Δεν υπάρχουν διαθέσιμες συντεταγμένες με αυτό το όνομα, δοκιμάστε με άλλο "
 "όνομα\n"
 
-#: src/gui/astrometry_solver.c:551 src/gui/astrometry_solver.c:645
+#: src/gui/astrometry_solver.c:562 src/gui/astrometry_solver.c:656
 msgid "No coordinates"
 msgstr "Δεν υπάρχουν συντεταγμένες"
 
-#: src/gui/astrometry_solver.c:561
+#: src/gui/astrometry_solver.c:572
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr "Δεν υπάρχουν λέξεις κλειδιά αποθηκευμένα στην κεφαλίδα FITS.\n"
 
-#: src/gui/astrometry_solver.c:562
+#: src/gui/astrometry_solver.c:573
 msgid "No metadata"
 msgstr "Δεν υπάρχουν μετα-δεδομένα"
 
-#: src/gui/astrometry_solver.c:646
+#: src/gui/astrometry_solver.c:657
 msgid "Please enter object coordinates."
 msgstr "Παρακαλώ εισάγετε τις συντεταγμένες του αντικειμένου."
 
-#: src/gui/astrometry_solver.c:658
+#: src/gui/astrometry_solver.c:669
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr ""
 
-#: src/gui/astrometry_solver.c:707
+#: src/gui/astrometry_solver.c:718
 msgid "No catalog"
 msgstr "Δεν υπάρχει κατάλογος"
 
-#: src/gui/astrometry_solver.c:707
+#: src/gui/astrometry_solver.c:718
 msgid "Cannot download the online star catalog."
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/gui/astrometry_solver.c:719
+#: src/gui/astrometry_solver.c:730
 msgid "Astrometric solution detected"
 msgstr "Εντοπίστηκε αστρομετρική λύση"
 
-#: src/gui/astrometry_solver.c:720
+#: src/gui/astrometry_solver.c:731
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
@@ -17583,18 +17583,18 @@ msgstr ""
 "Η αστρομετρική λύση που υπάρχει στην εικόνα θα διαγραφεί από τον γεωμετρικό "
 "μετασχηματισμό και η αναίρεση δεν θα είναι δυνατή."
 
-#: src/gui/astrometry_solver.c:722
+#: src/gui/astrometry_solver.c:733
 msgid "Process"
 msgstr "Επεξεργασία"
 
 #. 2 = GAIA, 3 = PPMXL
 #. 1 = APASS
-#: src/gui/astrometry_solver.c:748 src/gui/photometric_cc.c:248
+#: src/gui/astrometry_solver.c:759 src/gui/photometric_cc.c:248
 #, fuzzy
 msgid "(online catalogue)"
 msgstr "Online "
 
-#: src/gui/astrometry_solver.c:749 src/gui/photometric_cc.c:249
+#: src/gui/astrometry_solver.c:760 src/gui/photometric_cc.c:249
 #, fuzzy
 msgid "(local catalogue)"
 msgstr "Κατάλογος Αστεριών"
@@ -18216,7 +18216,7 @@ msgid "Siril cannot set the start coordinate as no selection is made"
 msgstr ""
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
-#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
+#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1612
 #: src/gui/photometric_cc.c:202 src/gui/photometric_cc.c:220
 #: src/gui/remixer.c:1264 src/gui/remixer.c:1312
 msgid "There is no selection"
@@ -18274,19 +18274,19 @@ msgstr "Δεν ήταν δυνατή η εμφάνιση της σύνδεσης
 msgid "Please go to <a href=\""
 msgstr "Παρακαλώ πηγαίνετε στο <a href=\""
 
-#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
-#: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
+#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1031
+#: src/gui/histogram.c:1037 src/gui/histogram.c:1692 src/gui/histogram.c:1709
 #, fuzzy
 msgid "Channels warning"
 msgstr "Εξαγωγή Καναλιού"
 
-#: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
+#: src/gui/histogram.c:144 src/gui/histogram.c:1032 src/gui/histogram.c:1710
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
 msgstr ""
 
-#: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
+#: src/gui/histogram.c:150 src/gui/histogram.c:1038 src/gui/histogram.c:1693
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -18300,100 +18300,100 @@ msgstr ""
 msgid "Red channel"
 msgstr "Κόκκινο κανάλι"
 
-#: src/gui/histogram.c:1154
+#: src/gui/histogram.c:1158
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Μετασχ. Ιστογράμματος (μέσοι=%.3f, κάτω=%.3f, άνω=%.3f)"
 
-#: src/gui/histogram.c:1161
+#: src/gui/histogram.c:1165
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1164
+#: src/gui/histogram.c:1168
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1167
+#: src/gui/histogram.c:1171
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1170
+#: src/gui/histogram.c:1174
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1173
+#: src/gui/histogram.c:1177
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr ""
 
-#: src/gui/histogram.c:1179
+#: src/gui/histogram.c:1183
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1182
+#: src/gui/histogram.c:1186
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1185
+#: src/gui/histogram.c:1189
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1188
+#: src/gui/histogram.c:1192
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr ""
 
-#: src/gui/histogram.c:1191
+#: src/gui/histogram.c:1195
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr ""
 
-#: src/gui/histogram.c:1240
+#: src/gui/histogram.c:1244
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 
-#: src/gui/histogram.c:1260
+#: src/gui/histogram.c:1264
 #, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Μετασχηματισμός Ιστογράμματος..."
 
-#: src/gui/histogram.c:1288 src/gui/histogram.c:1677
+#: src/gui/histogram.c:1292 src/gui/histogram.c:1681
 msgid "Clicking on the histogram sets SP"
 msgstr ""
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1569
+#: src/gui/histogram.c:1573
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1313
+#: src/gui/histogram.c:1613 src/gui/remixer.c:1265 src/gui/remixer.c:1313
 #, fuzzy
 msgid "Make a selection of the point or area to set SP"
 msgstr "Κάντε μια επιλογή της περιοχής λευκού υποβάθρου"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1648
+#: src/gui/histogram.c:1652
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1675
+#: src/gui/histogram.c:1679
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr ""
 
-#: src/gui/histogram.c:1812
+#: src/gui/histogram.c:1816
 msgid "Midtone Transfer Function"
 msgstr "Συνάρτηση Μεταφοράς Ενδιάμεσου Τόνου"
 
-#: src/gui/histogram.c:1842
+#: src/gui/histogram.c:1846
 #, fuzzy
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Αρνητικός Μετασχηματισμός"
@@ -18846,7 +18846,7 @@ msgstr "Απέτυχε η δημιουργία του αρχείου εξόδο�
 msgid "Photometric Color Calibration"
 msgstr "Φωτομετρική Βαθμονόμηση Χρώματος"
 
-#: src/gui/plot.c:123 src/gui/plot.c:1527 src/gui/sequence_list.c:539
+#: src/gui/plot.c:123 src/gui/plot.c:1529 src/gui/sequence_list.c:539
 msgid "Amplitude"
 msgstr "Πλάτος"
 
@@ -18858,7 +18858,7 @@ msgstr "Μέγεθος"
 msgid "SNR"
 msgstr "SNR"
 
-#: src/gui/plot.c:619 src/gui/plot.c:1325 src/gui/plot.c:1606
+#: src/gui/plot.c:619 src/gui/plot.c:1327 src/gui/plot.c:1608
 msgid "Frames"
 msgstr "Καρέ"
 
@@ -18875,92 +18875,92 @@ msgstr ""
 msgid "%s has been saved.\n"
 msgstr "Το %s αποθηκεύτηκε.\n"
 
-#: src/gui/plot.c:1202
+#: src/gui/plot.c:1204
 #, c-format
 msgid "Output files (*%s)"
 msgstr "Αρχεία εξόδου (*%s)"
 
-#: src/gui/plot.c:1438
+#: src/gui/plot.c:1440
 #, fuzzy, c-format
 msgid "Saved plot to image %s\n"
 msgstr "Γίνεται αποθήκευση της εικόνας %s"
 
-#: src/gui/plot.c:1521 src/gui/plot.c:1554 src/gui/plot.c:1582
+#: src/gui/plot.c:1523 src/gui/plot.c:1556 src/gui/plot.c:1584
 msgid "Star roundness (1 is round)"
 msgstr "Στρογγυλότητα αστέρα (1 είναι στρογγυλό)"
 
-#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
+#: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
 msgid "FWHM ('')"
 msgstr "FWHM ('')"
 
-#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
+#: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
 msgid "FWHM (px)"
 msgstr "FWHM (px)"
 
-#: src/gui/plot.c:1531
+#: src/gui/plot.c:1533
 msgid "Star magnitude (absolute)"
 msgstr "Μέγεθος αστέρα (απόλυτο)"
 
-#: src/gui/plot.c:1533
+#: src/gui/plot.c:1535
 msgid "Star magnitude (relative, use setmag)"
 msgstr "Μέγεθος αστέρα (σχετικό, χρησιμοποιώντας setmag)"
 
-#: src/gui/plot.c:1536 src/gui/plot.c:1572 src/gui/plot.c:1600
+#: src/gui/plot.c:1538 src/gui/plot.c:1574 src/gui/plot.c:1602
 msgid "Background value"
 msgstr "Τιμή υποβάθρου"
 
-#: src/gui/plot.c:1539
+#: src/gui/plot.c:1541
 msgid "Star position on X axis"
 msgstr "Θέση αστεριού στον άξονα Χ"
 
-#: src/gui/plot.c:1542
+#: src/gui/plot.c:1544
 msgid "Star position on Y axis"
 msgstr "Θέση αστεριού στον άξονα Υ"
 
-#: src/gui/plot.c:1545
+#: src/gui/plot.c:1547
 msgid "SNR (dB)"
 msgstr "SNR (dB)"
 
-#: src/gui/plot.c:1560 src/gui/plot.c:1588
+#: src/gui/plot.c:1562 src/gui/plot.c:1590
 msgid "wFWHM ('')"
 msgstr "wFWHM ('')"
 
-#: src/gui/plot.c:1560 src/gui/plot.c:1588
+#: src/gui/plot.c:1562 src/gui/plot.c:1590
 msgid "wFWHM (px)"
 msgstr "wFWHM (px)"
 
-#: src/gui/plot.c:1563 src/gui/plot.c:1591
+#: src/gui/plot.c:1565 src/gui/plot.c:1593
 #, fuzzy
 msgid "Shift on X axis"
 msgstr "Θέση αστεριού στον άξονα Χ"
 
-#: src/gui/plot.c:1566 src/gui/plot.c:1594
+#: src/gui/plot.c:1568 src/gui/plot.c:1596
 #, fuzzy
 msgid "Shift on Y axis"
 msgstr "Θέση αστεριού στον άξονα Υ"
 
 # is it singular or plural?
-#: src/gui/plot.c:1915
+#: src/gui/plot.c:1917
 #, c-format
 msgid "Exclude Frame %d"
 msgstr "Εξαίρεση Καρέ %d"
 
-#: src/gui/plot.c:1917
+#: src/gui/plot.c:1919
 #, c-format
 msgid "Show Frame %d"
 msgstr "Προβολή Καρέ %d"
 
-#: src/gui/plot.c:1954
+#: src/gui/plot.c:1956
 #, fuzzy
 msgid "Zoom to selection"
 msgstr "Δεν υπάρχει επιλογή"
 
-#: src/gui/plot.c:1955
+#: src/gui/plot.c:1957
 #, fuzzy
 msgid "Only keep points within selection"
 msgstr "Δεν υπάρχουν οδηγοί στην επιλογή"
 
-#: src/gui/plot.c:1960
+#: src/gui/plot.c:1962
 msgid "Exclude selected points"
 msgstr ""
 
@@ -20673,22 +20673,22 @@ msgstr ""
 msgid "URL: %s\n"
 msgstr "Σύνδεσμος: %s\n"
 
-#: src/io/remote_catalogues.c:777
+#: src/io/remote_catalogues.c:792
 #, fuzzy
 msgid "Using already downloaded star catalogue\n"
 msgstr "Δεν είναι δυνατή η λήψη του καταλόγου αστεριών."
 
-#: src/io/remote_catalogues.c:784 src/io/remote_catalogues.c:813
+#: src/io/remote_catalogues.c:799 src/io/remote_catalogues.c:828
 #, fuzzy, c-format
 msgid "Cannot create catalogue file %s for plate solving (%s)\n"
 msgstr "Δεν είναι δυνατή η δημιουργία αρχείου καταγραφής [%s]\n"
 
-#: src/io/remote_catalogues.c:837
+#: src/io/remote_catalogues.c:852
 #, fuzzy, c-format
 msgid "Can't open catalog file %s for PCC: %s\n"
 msgstr "Δεν είναι δυνατή η δημιουργία αρχείου καταγραφής [%s]\n"
 
-#: src/io/remote_catalogues.c:1073
+#: src/io/remote_catalogues.c:1088
 #, c-format
 msgid ""
 "name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
