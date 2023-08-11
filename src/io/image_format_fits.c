@@ -2281,10 +2281,9 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	 * If we copy the ICC profile from the source FITS and a transform is done, the program
 	 * will crash. However if we don't copy the ICC profile, we lose track of color management
 	 * of the data.
-	 * In practice, currently I think this function is only used for processing that expects
-	 * to be handling linear data, and won't need to be transformed for display. For now we
-	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
-	 * needed.
+	 * In practice, this function is only used for processing parts of linear images that
+	 * are recombined into a linear image on completion, so setting the ICC profile to NULL
+	 * is fine.
 	 */
 	fit->icc_profile = NULL;
 
@@ -2450,7 +2449,7 @@ int siril_fits_compress(fits *f) {
 	 * dithered and instead the zero values are exactly preserved in the compressed image
 	 *
 	 * Here we need to use SUBTRACTIVE_DITHER in order to not have border artifacts at the
-	 * end of sracking with compressed images.
+	 * end of stacking with compressed images.
 	 */
 	if (fits_set_quantize_dither(f->fptr, SUBTRACTIVE_DITHER_2, &status)) {
 		report_fits_error(status);
@@ -2882,11 +2881,10 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
 	 * If we copy the ICC profile from the source FITS and a transform is done, the program
 	 * will crash. However if we don't copy the ICC profile, we lose track of color management
-	 * of the data. Ideally we would set a Gray profile with the same gamma as the FITS profile.
-	 * In practice, currently I think this function is only used for processing that expects
-	 * to be handling linear data, and won't need to be transformed for display. For now we
-	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
-	 * needed.
+	 * of the data.
+	 * This function is only used in splitting an image for reassembly in the RGB comp tool,
+	 * or for functions that are inherently using linear data. It is therefore OK to leave the
+	 * profile as NULL.
 	 */
 	to->icc_profile = NULL;
 #ifdef HAVE_WCSLIB
@@ -3050,8 +3048,19 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	// TODO: work out what to do about color management here
-	return savefits(filename, fit);
+	/* Set the appropriate single channel ICC profile, temporarily store the
+	 * one assigned to the FITS */
+	cmsHPROFILE new = siril_construct_split_profile(fit, layer);
+	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(new);
+	int retval = savefits(filename, fit);
+	/* Restore the original FITS ICC profile */
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(temp);
+	cmsCloseProfile(temp);
+	cmsCloseProfile(new);
+	return retval;
 }
 
 int save1fits32(const char *filename, fits *fit, int layer) {
@@ -3061,9 +3070,19 @@ int save1fits32(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	// TODO: work out what to do about color management here
-
-	return savefits(filename, fit);
+	/* Set the appropriate single channel ICC profile, temporarily store the
+	 * one assigned to the FITS */
+	cmsHPROFILE new = siril_construct_split_profile(fit, layer);
+	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(new);
+	int retval = savefits(filename, fit);
+	/* Restore the original FITS ICC profile */
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(temp);
+	cmsCloseProfile(temp);
+	cmsCloseProfile(new);
+	return retval;
 }
 
 /* this method converts 24-bit RGB or BGR data (no padding) to 48-bit FITS data.

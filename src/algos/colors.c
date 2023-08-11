@@ -620,6 +620,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		args->fit->pdata[BLAYER] };
 	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
+	cmsHPROFILE temp_profile = NULL;
 
 	if (args->fit->naxes[2] != 3) {
 		siril_log_message(
@@ -633,7 +634,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 
 	cmsHPROFILE cielab_profile = NULL;
 	cmsColorSpaceSignature sig;
-	cmsUInt32Number trans_type;
+	cmsUInt32Number trans_type, lab_type;
 	gboolean threaded;
 	cmsHTRANSFORM transform = NULL;
 	cmsUInt32Number datasize;
@@ -652,10 +653,15 @@ static gpointer extract_channels_ushort(gpointer p) {
 			double g = (double) buf[GLAYER][i] / USHRT_MAX_DOUBLE;
 			double b = (double) buf[BLAYER][i] / USHRT_MAX_DOUBLE;
 			rgb_to_hsl(r, g, b, &h, &s, &l);
-			buf[RLAYER][i] = round_to_WORD(h * 360.0);	// TODO: what's that?
+			buf[RLAYER][i] = round_to_WORD(h * 360.0);
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(l * USHRT_MAX_DOUBLE);
 		}
+		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
+		 * This is probably the best that can be done for a single channel extracted from a HSL image. */
+		temp_profile = copyICCProfile(args->fit->icc_profile);
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = srgb_linear();
 		break;
 	case EXTRACT_HSV:
 #ifdef _OPENMP
@@ -671,19 +677,30 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(v * USHRT_MAX_DOUBLE);
 		}
+		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
+		 * This is probably the best that can be done for a single channel extracted from a HSV image. */
+		temp_profile = copyICCProfile(args->fit->icc_profile);
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = srgb_linear();
 		break;
 	case EXTRACT_CIELAB:
 		cielab_profile = cmsCreateLab4Profile(NULL);
 		sig = cmsGetColorSpace(args->fit->icc_profile);
 		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
+		lab_type = TYPE_Lab_16_PLANAR;
 		threaded = !get_thread_run();
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, lab_type, INTENT_PERCEPTUAL, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
 		datasize = sizeof(WORD);
 		bytesperline = args->fit->rx * datasize;
 		bytesperplane = args->fit->rx * args->fit->ry * datasize;
 		cmsDoTransformLineStride(transform, args->fit->data, args->fit->data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
+		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
+		 * This is the best that can be done for a single channel extracted from a CIELa*b* image. */
+		temp_profile = copyICCProfile(args->fit->icc_profile);
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = srgb_linear();
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
@@ -692,6 +709,12 @@ static gpointer extract_channels_ushort(gpointer p) {
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
+	}
+	if (args->type != EXTRACT_RGB) {
+		// Restore the original ICC profile
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = copyICCProfile(temp_profile);
+		cmsCloseProfile(temp_profile);
 	}
 	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
@@ -705,6 +728,7 @@ static gpointer extract_channels_float(gpointer p) {
 	float *buf[3] = { args->fit->fpdata[RLAYER], args->fit->fpdata[GLAYER],
 		args->fit->fpdata[BLAYER] };
 	struct timeval t_start, t_end;
+	cmsHPROFILE temp_profile = NULL;
 	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
 
 	if (args->fit->naxes[2] != 3) {
@@ -718,7 +742,7 @@ static gpointer extract_channels_float(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	cmsHPROFILE cielab_profile = NULL;
 	cmsColorSpaceSignature sig;
-	cmsUInt32Number trans_type;
+	cmsUInt32Number trans_type, lab_type;
 	gboolean threaded;
 	cmsHTRANSFORM transform = NULL;
 	cmsUInt32Number datasize;
@@ -742,6 +766,11 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[GLAYER][i] = (float) s;
 			buf[BLAYER][i] = (float) l;
 		}
+		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
+		 * This is probably the best that can be done for a single channel extracted from a HSL image. */
+		temp_profile = copyICCProfile(args->fit->icc_profile);
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = srgb_linear();
 		break;
 	case EXTRACT_HSV:
 #ifdef _OPENMP
@@ -757,19 +786,34 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[GLAYER][i] = (float) s;
 			buf[BLAYER][i] = (float) v;
 		}
+		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
+		 * This is probably the best that can be done for a single channel extracted from a HSV image. */
+		temp_profile = copyICCProfile(args->fit->icc_profile);
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = srgb_linear();
 		break;
 	case EXTRACT_CIELAB:
 		cielab_profile = cmsCreateLab4Profile(NULL);
 		sig = cmsGetColorSpace(args->fit->icc_profile);
 		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
+		lab_type = TYPE_Lab_FLT_PLANAR;
 		threaded = !get_thread_run();
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, trans_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
 		datasize = sizeof(float);
 		bytesperline = args->fit->rx * datasize;
 		bytesperplane = args->fit->rx * args->fit->ry * datasize;
+		/* Note this output is in CIE La*b* ranges (ie L [0..100] etc, not Siril's
+		 * usual [0..1] range.
+		 * TODO: convert to Siril ranges
+		 */
 		cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
+		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
+		 * This is the best that can be done for a single channel extracted from a CIELa*b* image. */
+		temp_profile = copyICCProfile(args->fit->icc_profile);
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = srgb_linear();
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
@@ -778,6 +822,12 @@ static gpointer extract_channels_float(gpointer p) {
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
+	}
+	if (args->type != EXTRACT_RGB) {
+		// Restore the original ICC profile
+		cmsCloseProfile(args->fit->icc_profile);
+		args->fit->icc_profile = copyICCProfile(temp_profile);
+		cmsCloseProfile(temp_profile);
 	}
 	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);

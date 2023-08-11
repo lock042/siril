@@ -45,7 +45,7 @@ static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
 ////// Functions //////
 
-static cmsHPROFILE srgb_linear() {
+cmsHPROFILE srgb_linear() {
 	return cmsOpenProfileFromMem(sRGB_elle_V4_g10_icc, sRGB_elle_V4_g10_icc_len);
 }
 cmsHPROFILE srgb_trc() {
@@ -756,6 +756,116 @@ static void set_target_information() {
 		gtk_label_set_text(copyright_label, buffer);
 		free(buffer);
 	}
+}
+
+cmsHPROFILE siril_construct_split_profile(fits *from, int channel) {
+	cmsHPROFILE retprofile = NULL;
+	cmsHPROFILE temp = NULL;
+	/* If the source FITS is linear or one of the standard internal Siril color
+	 * spaces, we just assign the associated Gray profile and return */
+	if (fit_icc_is_linear(from)) {
+		retprofile = gray_linear();
+	}
+	if(!retprofile) {
+		temp = srgb_trc();
+		if (profiles_identical(from->icc_profile, temp))
+			retprofile = gray_srgbtrc();
+		cmsCloseProfile(temp);
+	}
+	if (!retprofile) {
+		temp = srgb_trcv2();
+		if (profiles_identical(from->icc_profile, temp))
+			retprofile = gray_srgbtrcv2();
+		cmsCloseProfile(temp);
+	}
+	if (!retprofile) {
+		temp = rec2020_trc();
+		if (profiles_identical(from->icc_profile, temp))
+			retprofile = gray_rec709trc();
+		cmsCloseProfile(temp);
+	}
+	if (!retprofile) {
+		temp = rec2020_trcv2();
+		if (profiles_identical(from->icc_profile, temp))
+			retprofile = gray_rec709trcv2();
+		cmsCloseProfile(temp);
+	}
+	if (!retprofile && com.pref.icc.working_gamut == TYPE_CUSTOM) {
+		if (profiles_identical(from->icc_profile, com.icc.working_standard))
+			retprofile = copyICCProfile(com.icc.mono_standard);
+		else if (profiles_identical(from->icc_profile, com.icc.working_out))
+			retprofile = copyICCProfile(com.icc.mono_out);
+	}
+	/* Otherwise we are dealing with some arbitrary RGB color profile. To match this
+	 * we have to generate a tabulated tone curve to match the result of transforming
+	 * pure values of the desired channel to Y using a RGB-to-XYZ transform, create a
+	 * custom profile using this tone curve and assign this to the extracted channel.
+	 */
+	if (!retprofile) {
+		cmsUInt32Number fit_colorspace = cmsGetColorSpace(from->icc_profile);
+		cmsUInt32Number formatrgb = get_planar_formatter_type(fit_colorspace, from->type, FALSE);
+		cmsUInt32Number formatxyz = from->type == DATA_FLOAT ? TYPE_XYZ_FLT_PLANAR : TYPE_XYZ_16_PLANAR;
+		cmsHPROFILE xyz = cmsCreateXYZProfile();
+		cmsHTRANSFORM transform = cmsCreateTransform(from->icc_profile, formatrgb, xyz, formatxyz, INTENT_PERCEPTUAL, 0);
+		int datasize = from->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		void *lut = malloc(256 * datasize);
+		void *in = calloc(3, datasize);
+		void *out = malloc(3 * datasize);
+		if (from->type == DATA_FLOAT) {
+			for (int i = 0 ; i < 256 ; i++) {
+				float *inf = (float*) in;
+				float *outf = (float*) out;
+				float* lutf = (float*) lut;
+				inf[channel] = (float) i / 256.f;
+				cmsDoTransform(transform, in, out, 1);
+				lutf[i] = outf[1]; // Only the Y channel goes into the LUT
+			}
+		} else {
+			for (int i = 0 ; i < 256 ; i++) {
+				WORD *inw = (WORD*) in;
+				WORD *outw = (WORD*) out;
+				WORD* lutw = (WORD*) lut;
+				inw[channel] = i << 8;
+				cmsDoTransform(transform, in, out, 1);
+				lutw[i] = outw[1]; // Only the Y channel goes into the LUT
+			}
+		}
+		cmsToneCurve *curve = NULL;
+		if (from->type == DATA_FLOAT) {
+			curve = cmsBuildTabulatedToneCurveFloat(com.icc.context_threaded, 256, lut);
+		} else {
+			curve = cmsBuildTabulatedToneCurve16(com.icc.context_threaded, 256, lut);
+		}
+		cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
+		cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
+		retprofile = cmsCreateGrayProfile(&d50_illuminant_specs, curve);
+		cmsWriteTag (retprofile, cmsSigMediaWhitePointTag, &d50_illuminant_specs_media_whitepoint);
+		cmsMLU *copyright = cmsMLUalloc(NULL, 1);
+		cmsMLUsetASCII(copyright, "en", "US", "Copyright 2023, Team Free Astro (https://siril.org/), CC-BY-SA 3.0 Unported (https://creativecommons.org/licenses/by-sa/3.0/legalcode).");
+		cmsWriteTag(retprofile, cmsSigCopyrightTag, copyright);
+		int length = cmsGetProfileInfoASCII(from->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+		char *buffer = NULL;
+		if (length) {
+			buffer = (char*) malloc(length * sizeof(char));
+			cmsGetProfileInfoASCII(from->icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+		} else {
+			buffer = strdup("Siril custom split channel profile");
+		}
+		gchar* description_text = g_strdup_printf("%s-ch%d", buffer, channel);
+		cmsMLU *description;
+		description = cmsMLUalloc(NULL, 1);
+		cmsMLUsetASCII(description, "en", "US", description_text);
+		cmsWriteTag(retprofile, cmsSigProfileDescriptionTag, description);
+		cmsMLUfree(copyright);
+		cmsMLUfree(description);
+		g_free(description_text);
+		free(buffer);
+		free(in);
+		free(out);
+		free(lut);
+		cmsFreeToneCurve(curve);
+	}
+	return retprofile;
 }
 
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
