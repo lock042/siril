@@ -64,7 +64,7 @@ build-image:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-latest --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-debian-latest --cache=true --cache-ttl=120h
+    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-latest --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-debian-latest --cache=true --cache-ttl=120h
 
 # Image for GNU/Linux build
 build-image-oldstable:
@@ -76,7 +76,7 @@ build-image-oldstable:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-debian-oldstable --cache=true --cache-ttl=120h
+    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-debian-oldstable --cache=true --cache-ttl=120h
 
 # Image for Windows64 build
 build-image-win64:
@@ -88,7 +88,7 @@ build-image-win64:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-win64-latest --cache=true --cache-ttl=120h
+    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-win64-latest --cache=true --cache-ttl=120h
 
 # Try building/packaging with msys2 in one step
 # (otherwise win VM gets wiped)
@@ -121,7 +121,7 @@ win64-native:
 # Currently Siril does not need dependency compilation, so we can skip that.
 deps-debian:
   stage: dependencies
-  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-debian-latest
+  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-debian-latest
   cache:
     paths:
     - apt-cache
@@ -147,7 +147,7 @@ deps-debian:
 
 .siril-debian/testing-base:
   stage: siril
-  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-debian-latest
+  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-debian-latest
   dependencies:
     - deps-debian
   variables:
@@ -197,7 +197,7 @@ siril-deb-meson:
 
 deps-win64:
   stage: dependencies
-  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-win64-latest
+  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-win64-latest
   variables:
     XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
     XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
@@ -227,7 +227,7 @@ deps-win64:
 
 siril-win64:
   stage: siril
-  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-win64-latest
+  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-win64-latest
   dependencies:
     - deps-win64
   variables:
@@ -306,7 +306,7 @@ macos:
 
 win64:
   stage: packaging
-  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-win64-latest
+  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-win64-latest
   dependencies:
     - siril-win64
   script:
@@ -390,7 +390,7 @@ flatpak:
 
 appimage:
   stage: packaging
-  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG-build-debian-oldstable
+  image: $CI_REGISTRY_IMAGE:$IMAGE_TAG/build-debian-oldstable
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
