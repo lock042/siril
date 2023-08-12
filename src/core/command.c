@@ -141,7 +141,7 @@ char *word[MAX_COMMAND_WORDS];	// NULL terminated
 static gboolean sequence_cfa_warning_check(sequence* seq) {
 	gboolean retval;
 	fits tmpfit = { 0 };
-	seq_read_frame(seq, sequence_find_refimage(seq), &tmpfit, FALSE, -1);
+	seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit);
 	gboolean mono = (tmpfit.naxes[2] == 1);
 	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
@@ -4656,7 +4656,7 @@ int process_seq_findstar(int nb) {
 	}
 
 	fits tmpfit = { 0 };
-	seq_read_frame(seq, sequence_find_refimage(seq), &tmpfit, FALSE, -1);
+	seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit);
 	gboolean mono = (tmpfit.naxes[2] == 1);
 	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
