@@ -312,7 +312,6 @@ void siril_get_on_script_pages() {
 	}
 
 	gchar *url = g_build_path("/", GET_SCRIPTS_URL, lang, "/stable/Scripts.html#getting-more-scripts", NULL);
-	printf("url=[%s]\n", url);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
