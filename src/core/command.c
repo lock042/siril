@@ -138,7 +138,7 @@ char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
 // Returns TRUE if the sequence does not contain CFA images
 // Otherwise, returns FALSE and prints a warning
-gboolean sequence_cfa_warning_check(sequence* seq) {
+static gboolean sequence_cfa_warning_check(sequence* seq) {
 	gboolean retval;
 	fits tmpfit = { 0 };
 	seq_read_frame(seq, sequence_find_refimage(seq), &tmpfit, FALSE, -1);
