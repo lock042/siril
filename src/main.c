@@ -56,6 +56,7 @@
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
+#include "io/gitscripts.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/utils.h"
@@ -275,6 +276,8 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+
+	update_gitscripts();
 
 	if (com.headless) {
 		if (main_option_script) {

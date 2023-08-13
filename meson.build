@@ -268,6 +268,7 @@ cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
 opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
+libgit2_dep = dependency('libgit2', required : true)
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()
@@ -666,6 +667,7 @@ externals_dep = declare_dependency(
     gio_platform_dep,
     gtk_dep,
     libcurl_dep,
+    libgit2_dep,
     gsl_dep,
     opencv4_dep,
     rtprocess_dep,
@@ -759,6 +761,7 @@ summary(
     'PNG'               : libpng_dep.found(),
     'HEIF'              : libheif_dep.found(),
     'FFMS2'             : ffms2_dep.found(),
+    'libgit2'           : libgit2_dep.found(),
     'ffmpeg'            : ffmpeg_found,
     'libcurl'           : libcurl_dep.found(),
     'glib-networking'   : glib_networking_works,
