@@ -3042,46 +3042,58 @@ int copy_fits_from_file(char *source, char *destination) {
 }
 
 int save1fits16(const char *filename, fits *fit, int layer) {
+	gboolean threaded = !get_thread_run();
 	if (layer != RLAYER) {
 		size_t nbdata = fit->naxes[0] * fit->naxes[1];
 		memcpy(fit->data, fit->data + layer * nbdata, nbdata * sizeof(WORD));
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	/* Set the appropriate single channel ICC profile, temporarily store the
-	 * one assigned to the FITS */
-	cmsHPROFILE new = siril_construct_split_profile(fit, layer);
-	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+	/* Construct a profile that defines the TRC that gives the split channel's contribution to Y */
+	cmsHPROFILE channel = siril_construct_split_profile(fit, layer);
+	/* Transform the channel from the split-out channel profile to linear Gray, for consistency.
+	 * All images composed from such split-out channels will start out with a linear {working space} profile
+	 * consistent with the linear channel profiles that define the linearised contribution of the original
+	 * image channel to its Y. The image will thus be consistent regardless of whether the channels were split
+	 * out from images with different color profiles and can then be converted to the user's desired working
+	 * color profile.
+	 */
+	cmsHTRANSFORM to_linear = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), channel, TYPE_GRAY_16, com.icc.mono_linear, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0);
+	cmsDoTransformLineStride(to_linear, fit->data, fit->data, fit->rx, fit->ry, sizeof(WORD) * fit->rx, sizeof(WORD) * fit->rx, sizeof(WORD) * fit->rx * fit->ry, sizeof(WORD) * fit->rx * fit->ry);
 	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(new);
+	/* Assign the Gray linear profile that describes what we have done above */
+	fit->icc_profile = gray_linear();
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(temp);
-	cmsCloseProfile(temp);
-	cmsCloseProfile(new);
+	cmsCloseProfile(channel);
 	return retval;
 }
 
 int save1fits32(const char *filename, fits *fit, int layer) {
+	gboolean threaded = !get_thread_run();
 	if (layer != RLAYER) {
 		size_t nbdata = fit->naxes[0] * fit->naxes[1];
 		memcpy(fit->fdata, fit->fdata + layer * nbdata, nbdata * sizeof(float));
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	/* Set the appropriate single channel ICC profile, temporarily store the
-	 * one assigned to the FITS */
-	cmsHPROFILE new = siril_construct_split_profile(fit, layer);
-	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+	/* Construct a profile that defines the TRC that gives the split channel's contribution to Y */
+	cmsHPROFILE channel = siril_construct_split_profile(fit, layer);
+	/* Transform the channel from the split-out channel profile to linear Gray, for consistency.
+	 * All images composed from such split-out channels will start out with a linear {working space} profile
+	 * consistent with the linear channel profiles that define the linearised contribution of the original
+	 * image channel to its Y. The image will thus be consistent regardless of whether the channels were split
+	 * out from images with different color profiles and can then be converted to the user's desired working
+	 * color profile.
+	 */
+	cmsHTRANSFORM to_linear = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), channel, TYPE_GRAY_FLT, com.icc.mono_linear, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0);
+	cmsDoTransformLineStride(to_linear, fit->fdata, fit->fdata, fit->rx, fit->ry, sizeof(float) * fit->rx, sizeof(float) * fit->rx, sizeof(float) * fit->rx * fit->ry, sizeof(float) * fit->rx * fit->ry);
 	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(new);
+	/* Assign the Gray linear profile that describes what we have done above */
+	fit->icc_profile = gray_linear();
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(temp);
-	cmsCloseProfile(temp);
-	cmsCloseProfile(new);
+	cmsCloseProfile(channel);
 	return retval;
 }
 

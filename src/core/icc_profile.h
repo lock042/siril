@@ -52,6 +52,7 @@ typedef enum {
 cmsHPROFILE srgb_linear();
 cmsHPROFILE gray_srgbtrc();
 cmsHPROFILE srgb_trc();
+cmsHPROFILE gray_linear();
 
 void validate_custom_profiles();
 void initialize_profiles_and_transforms();

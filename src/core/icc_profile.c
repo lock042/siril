@@ -65,7 +65,7 @@ static cmsHPROFILE rec2020_trcv2() {
 	return cmsOpenProfileFromMem(Rec2020_elle_V2_rec709_icc, Rec2020_elle_V2_rec709_icc_len);
 }
 
-static cmsHPROFILE gray_linear() {
+cmsHPROFILE gray_linear() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_g10_icc, Gray_elle_V4_g10_icc_len);
 }
 cmsHPROFILE gray_srgbtrc() {
@@ -808,33 +808,34 @@ cmsHPROFILE siril_construct_split_profile(fits *from, int channel) {
 		cmsHPROFILE xyz = cmsCreateXYZProfile();
 		cmsHTRANSFORM transform = cmsCreateTransform(from->icc_profile, formatrgb, xyz, formatxyz, INTENT_PERCEPTUAL, 0);
 		int datasize = from->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		void *lut = malloc(256 * datasize);
+		/* Marti Maria stated there is no benefit from going beyond a 4096 point LUT, because of interpolation */
+		void *lut = malloc(4096 * datasize);
 		void *in = calloc(3, datasize);
 		void *out = malloc(3 * datasize);
 		if (from->type == DATA_FLOAT) {
-			for (int i = 0 ; i < 256 ; i++) {
+			for (int i = 0 ; i < 4096 ; i++) {
 				float *inf = (float*) in;
 				float *outf = (float*) out;
 				float* lutf = (float*) lut;
-				inf[channel] = (float) i / 256.f;
+				inf[channel] = (float) i / 4096.f;
 				cmsDoTransform(transform, in, out, 1);
 				lutf[i] = outf[1]; // Only the Y channel goes into the LUT
 			}
 		} else {
-			for (int i = 0 ; i < 256 ; i++) {
+			for (int i = 0 ; i < 4096 ; i++) {
 				WORD *inw = (WORD*) in;
 				WORD *outw = (WORD*) out;
 				WORD* lutw = (WORD*) lut;
-				inw[channel] = i << 8;
+				inw[channel] = i << 12;
 				cmsDoTransform(transform, in, out, 1);
 				lutw[i] = outw[1]; // Only the Y channel goes into the LUT
 			}
 		}
 		cmsToneCurve *curve = NULL;
 		if (from->type == DATA_FLOAT) {
-			curve = cmsBuildTabulatedToneCurveFloat(com.icc.context_threaded, 256, lut);
+			curve = cmsBuildTabulatedToneCurveFloat(com.icc.context_threaded, 4096, lut);
 		} else {
-			curve = cmsBuildTabulatedToneCurve16(com.icc.context_threaded, 256, lut);
+			curve = cmsBuildTabulatedToneCurve16(com.icc.context_threaded, 4096, lut);
 		}
 		cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
 		cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
