@@ -42,6 +42,8 @@
  *  ROTATION
  */
 static void rotate_gui(fits *fit) {
+	if (!check_ok_if_cfa())
+		return;
 	if (com.selection.w == 0 || com.selection.h == 0) return;
 	static GtkToggleButton *crop_rotation = NULL;
 	double angle = gtk_spin_button_get_value(
@@ -172,6 +174,8 @@ void mirrory_gui(fits *fit) {
  */
 
 void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	if (confirm_delete_wcs_keywords(&gfit)) {
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -196,6 +200,8 @@ void on_button_binning_close_clicked(GtkButton *button, gpointer user_data) {
  * RESAMPLE
  */
 void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	if (confirm_delete_wcs_keywords(&gfit)) {
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
