@@ -1,5 +1,6 @@
 #include <git2.h>
 #include "core/siril.h"
+#include "core/siril_log.h"
 
 int update_gitscripts(void) {
     // Initialize libgit2
@@ -21,15 +22,15 @@ int update_gitscripts(void) {
 
     if (error != 0) {
         const git_error *e = giterr_last();
-        printf("Error opening repository: %s\nCloning from remote\n", e->message);
+        siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone from remote source...\n"), "salmon", e->message);
 		// Perform the clone operation
 		error = git_clone(&repo, url, local_path, &clone_opts);
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			printf("Error cloning repository: %s\n", e->message);
+			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
 		} else {
-			printf("Repository cloned successfully!\n");
+			siril_log_message(_("Repository cloned successfully!\n"));
 		}
 	}
 	// Further operations can be performed on the 'repo' pointer here
@@ -52,7 +53,7 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			printf("Error looking up remote: %s\n", e->message);
+			siril_log_color_message(_("Error looking up remote: %s\n"), "red", e->message);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
 			return 1;
@@ -63,7 +64,7 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			printf("Error fetching remote: %s\n", e->message);
+			siril_log_color_message(_("Error fetching remote: %s\n"), "red", e->message);
 			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
@@ -76,7 +77,7 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			printf("Error looking up local branch: %s\n", e->message);
+			siril_log_color_message(_("Error looking up local branch: %s\n"), "red", e->message);
 			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
@@ -88,7 +89,7 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			printf("Error getting HEAD reference: %s\n", e->message);
+			siril_log_color_message(_("Error getting HEAD reference: %s\n"), "red", e->message);
 			git_reference_free(branch_ref);
 			git_remote_free(remote);
 			git_repository_free(repo);
@@ -101,7 +102,7 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			printf("Error looking up HEAD commit: %s\n", e->message);
+			siril_log_color_message(_("Error looking up HEAD commit: %s\n"), "red", e->message);
 			git_reference_free(head_ref);
 			git_reference_free(branch_ref);
 			git_remote_free(remote);
@@ -115,7 +116,7 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			printf("Error updating branch reference: %s\n", e->message);
+			siril_log_color_message(_("Error updating branch reference: %s\n"), "red", e->message);
 			git_annotated_commit_free(head_commit);
 			git_reference_free(head_ref);
 			git_reference_free(branch_ref);
@@ -125,7 +126,7 @@ int update_gitscripts(void) {
 			return 1;
 		}
 
-		printf("Changes pulled and merged successfully!\n");
+		siril_log_message(_("Changes pulled and merged successfully!\n"));
 
 	}
 

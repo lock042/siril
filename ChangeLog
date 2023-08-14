@@ -6,6 +6,7 @@ xx/xx/xx
 * Added intensity profiling function
 * Added internal plotting tool (siril_plot) to be used with profiling and light_curves (removed usage of GNUplot)
 * Added functionalities to kplot (hyphen markers, revert axes, removed statics)
+* Added ability to download and synchronise the siril-scripts repo using libgit2
 * Fixed PRISM SITELAT/SITELONG keywords data
 * Improved RGB composition tool to do full homography registration
 * Added new init for PSF fitting of oversampled stars
