@@ -620,7 +620,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 		args->fit->pdata[BLAYER] };
 	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
-	cmsHPROFILE temp_profile = NULL;
 
 	if (args->fit->naxes[2] != 3) {
 		siril_log_message(
@@ -657,10 +656,10 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(l * USHRT_MAX_DOUBLE);
 		}
-		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
-		 * This is probably the best that can be done for a single channel extracted from a HSL image. */
-		temp_profile = copyICCProfile(args->fit->icc_profile);
 		cmsCloseProfile(args->fit->icc_profile);
+		/* It's obviously not sRGB, but this will ensure that later on the
+		 * channels get saved with a linear ICC profile, which seems the
+		 * best thing to do. See also the HSV and CIELAB cases below.*/
 		args->fit->icc_profile = srgb_linear();
 		break;
 	case EXTRACT_HSV:
@@ -677,9 +676,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(v * USHRT_MAX_DOUBLE);
 		}
-		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
-		 * This is probably the best that can be done for a single channel extracted from a HSV image. */
-		temp_profile = copyICCProfile(args->fit->icc_profile);
 		cmsCloseProfile(args->fit->icc_profile);
 		args->fit->icc_profile = srgb_linear();
 		break;
@@ -698,8 +694,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 		cmsDeleteTransform(transform);
 		/* Temporarily set the profile to a linear one, so that the 3 extracted channels also get saved with a linear mono profile.
 		 * This is the best that can be done for a single channel extracted from a CIELa*b* image. */
-		temp_profile = copyICCProfile(args->fit->icc_profile);
-		cmsCloseProfile(args->fit->icc_profile);
 		args->fit->icc_profile = srgb_linear();
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
@@ -709,12 +703,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
-	}
-	if (args->type != EXTRACT_RGB) {
-		// Restore the original ICC profile
-		cmsCloseProfile(args->fit->icc_profile);
-		args->fit->icc_profile = copyICCProfile(temp_profile);
-		cmsCloseProfile(temp_profile);
 	}
 	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);

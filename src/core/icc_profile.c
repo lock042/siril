@@ -856,6 +856,7 @@ cmsHPROFILE siril_construct_split_profile(fits *from, int channel) {
 		cmsMLU *description;
 		description = cmsMLUalloc(NULL, 1);
 		cmsMLUsetASCII(description, "en", "US", description_text);
+		printf("Channel profile: %s\n", description_text);
 		cmsWriteTag(retprofile, cmsSigProfileDescriptionTag, description);
 		cmsMLUfree(copyright);
 		cmsMLUfree(description);

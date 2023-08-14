@@ -3060,11 +3060,15 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 	 */
 	cmsHTRANSFORM to_linear = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), channel, TYPE_GRAY_16, com.icc.mono_linear, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0);
 	cmsDoTransformLineStride(to_linear, fit->data, fit->data, fit->rx, fit->ry, sizeof(WORD) * fit->rx, sizeof(WORD) * fit->rx, sizeof(WORD) * fit->rx * fit->ry, sizeof(WORD) * fit->rx * fit->ry);
+	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
 	cmsCloseProfile(fit->icc_profile);
 	/* Assign the Gray linear profile that describes what we have done above */
 	fit->icc_profile = gray_linear();
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(temp);
+	cmsCloseProfile(temp);
 	cmsCloseProfile(channel);
 	return retval;
 }
@@ -3088,11 +3092,15 @@ int save1fits32(const char *filename, fits *fit, int layer) {
 	 */
 	cmsHTRANSFORM to_linear = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), channel, TYPE_GRAY_FLT, com.icc.mono_linear, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0);
 	cmsDoTransformLineStride(to_linear, fit->fdata, fit->fdata, fit->rx, fit->ry, sizeof(float) * fit->rx, sizeof(float) * fit->rx, sizeof(float) * fit->rx * fit->ry, sizeof(float) * fit->rx * fit->ry);
+	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
 	cmsCloseProfile(fit->icc_profile);
 	/* Assign the Gray linear profile that describes what we have done above */
 	fit->icc_profile = gray_linear();
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(temp);
+	cmsCloseProfile(temp);
 	cmsCloseProfile(channel);
 	return retval;
 }
