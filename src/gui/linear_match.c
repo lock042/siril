@@ -184,7 +184,10 @@ void on_linearmatch_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (!single_image_is_loaded()) return;
+	if (!check_ok_if_cfa())
+		return;
+	if (!single_image_is_loaded())
+		return;
 	gchar *filename = get_reference_filename();
 	if (filename) {
 		gchar *error;
