@@ -10,7 +10,7 @@ int update_gitscripts(void) {
     const char *url = "https://gitlab.com/free-astro/siril-scripts.git";
 
     // Local directory where the repository will be cloned
-    char *local_path = g_build_filename(g_get_user_cache_dir(), "siril-scripts", NULL);
+    char *local_path = g_build_filename(g_get_user_data_dir(), "siril-scripts", NULL);
 
     // Clone options
     git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
