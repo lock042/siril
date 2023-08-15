@@ -165,6 +165,8 @@ static void global_initialization() {
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
+	com.all_scripts = NULL;
+	com.selected_scripts = NULL;
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else

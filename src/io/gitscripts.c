@@ -2,6 +2,8 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 
+static GtkListStore *list_store = NULL;
+
 int update_gitscripts(void) {
     // Initialize libgit2
     git_libgit2_init();
@@ -128,6 +130,26 @@ int update_gitscripts(void) {
 
 		siril_log_message(_("Changes pulled and merged successfully!\n"));
 
+		/*** Populate the list of available repository scripts ***/
+		size_t i;
+		const git_index_entry *entry;
+		git_index *index = NULL;
+		if ((error = git_repository_index(&index, repo)) < 0)
+			return 1;
+
+		/* populate com.all_scripts with all the scripts in the index.
+		 * We ignore anything not ending in .ssf */
+		size_t entry_count = git_index_entrycount(index);
+		g_autoptr(GStrvBuilder) builder = g_strv_builder_new();
+		for (i = 0; i < entry_count; i++) {
+			entry = git_index_get_byindex(index, i);
+			if (g_str_has_suffix(entry->path, ".ssf")) {
+				g_strv_builder_add(builder, entry->path);
+				printf("%s\n", entry->path);
+			}
+		}
+		com.all_scripts = g_strv_builder_end(builder);
+
 	}
 
     // Cleanup
@@ -136,3 +158,6 @@ int update_gitscripts(void) {
 
     return 0;
 }
+
+/************* GUI code for the Preferences->Scripts TreeView ****************/
+

@@ -1280,13 +1280,13 @@ artifacts may appear.</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_wn1">
     <property name="upper">100000</property>
-    <property name="step-increment">0.1</property>
-    <property name="page-increment">100.</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_wn2">
     <property name="upper">100000</property>
-    <property name="step-increment">0.1</property>
-    <property name="page-increment">100.</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_xfinish">
     <property name="lower">-1</property>
@@ -31958,6 +31958,125 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">6</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="pref_use_gitscripts">
+                                    <property name="label" translatable="yes">Fetch and update scripts from siril-scripts repository</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Siril will fetch and update scripts from the official siril-scripts repository. These will be available offline and specific scripts can be selected for adding to the Scripts menu.</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="padding">6</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkTreeView" id="treeview2">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu.</property>
+                                    <property name="hscroll-policy">natural</property>
+                                    <property name="vscroll-policy">natural</property>
+                                    <property name="model">liststore1</property>
+                                    <property name="reorderable">True</property>
+                                    <property name="search-column">1</property>
+                                    <property name="show-expanders">False</property>
+                                    <property name="enable-grid-lines">horizontal</property>
+                                    <property name="activate-on-single-click">True</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection">
+                                        <property name="mode">multiple</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="treeviewcolumn33">
+                                        <property name="resizable">True</property>
+                                        <property name="title" translatable="yes">Category</property>
+                                        <property name="expand">True</property>
+                                        <child>
+                                          <object class="GtkCellRendererText" id="cellrenderertext13"/>
+                                          <attributes>
+                                            <attribute name="background">6</attribute>
+                                            <attribute name="text">0</attribute>
+                                            <attribute name="weight">5</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="treeviewcolumn32">
+                                        <property name="resizable">True</property>
+                                        <property name="title" translatable="yes">Script</property>
+                                        <property name="expand">True</property>
+                                        <child>
+                                          <object class="GtkCellRendererText" id="cellrenderertext12"/>
+                                          <attributes>
+                                            <attribute name="background">6</attribute>
+                                            <attribute name="text">0</attribute>
+                                            <attribute name="weight">5</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="script_repo_treeview_sel">
+                                        <property name="resizable">True</property>
+                                        <property name="title" translatable="yes">Sel</property>
+                                        <child>
+                                          <object class="GtkCellRendererToggle" id="cellrenderertext16"/>
+                                          <attributes>
+                                            <attribute name="cell-background">6</attribute>
+                                            <attribute name="active">3</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Siril Scripts Repository</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>

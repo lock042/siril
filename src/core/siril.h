@@ -688,6 +688,11 @@ struct cominf {
 	int hist_current;		// current index
 	int hist_display;		// displayed index
 
+	/* Lists of scripts from the repository */
+	GStrv all_scripts;
+
+	GStrv selected_scripts;
+
 	/* all fields below are used by some specific features as a temporary storage */
 	GSList *grad_samples;		// list of samples for the background extraction
 
