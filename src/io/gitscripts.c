@@ -148,7 +148,7 @@ int update_gitscripts(void) {
 				printf("%s\n", entry->path);
 			}
 		}
-		com.all_scripts = g_strv_builder_end(builder);
+		gui.repo_scripts = g_strv_builder_end(builder);
 
 	}
 

@@ -610,6 +610,11 @@ struct guiinf {
 
 	void (*draw_extra)(draw_data_t *dd);
 
+	/* Lists of scripts from the repository */
+	GStrv repo_scripts;
+	GStrv selected_scripts;
+
+
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
 	gboolean cut_over;		// display values over hi as negative
@@ -687,11 +692,6 @@ struct cominf {
 	int hist_size;			// allocated size
 	int hist_current;		// current index
 	int hist_display;		// displayed index
-
-	/* Lists of scripts from the repository */
-	GStrv all_scripts;
-
-	GStrv selected_scripts;
 
 	/* all fields below are used by some specific features as a temporary storage */
 	GSList *grad_samples;		// list of samples for the background extraction
