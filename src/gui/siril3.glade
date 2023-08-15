@@ -32018,7 +32018,9 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="enable-grid-lines">horizontal</property>
                                     <property name="activate-on-single-click">True</property>
                                     <child internal-child="selection">
-                                      <object class="GtkTreeSelection"/>
+                                      <object class="GtkTreeSelection">
+                                        <property name="mode">multiple</property>
+                                      </object>
                                     </child>
                                     <child>
                                       <object class="GtkTreeViewColumn" id="treeviewcolumn33">

@@ -201,7 +201,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			// TODO: here we should populate the GtkTreeView from GStrv gui.repo_scripts
 			gchar* category = g_strrstr(gui.repo_scripts[i], "preprocessing") ? "Preprocessing" : "Processing";
 			gchar* scriptpath = g_path_get_basename(gui.repo_scripts[i]);
-			gboolean included = TRUE;
+			gboolean included = FALSE; // Eventually this will check against a ; separated list of scripts in the ini file
 			gtk_list_store_append (list_store, &iter);
 			gtk_list_store_set (list_store, &iter,
 					COLUMN_CATEGORY, category,
@@ -234,10 +234,10 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 	gchar* scriptpath = get_script_filepath_from_path(path);
 	gboolean active = gtk_cell_renderer_toggle_get_active(cell_renderer);
 	gtk_tree_path_free(path);
-	if (active) {
+/*	if (active) {
 		// CHECK SCRIPT PATH IS IN LIST OF SCRIPTS IN SCRIPT MENU, IF NOT ADD IT
 	} else {
 		// CHECK SCRIPT PATH IS NOT IN LIST OF SCRIPTS IN SCRIPT MENU, IF IT IS REMOVE IT
 	}
-	// SAVE LIST OF ACTIVE SCRIPTS IN A FILE SOMEWHERE
+	// SAVE LIST OF ACTIVE SCRIPTS IN A FILE SOMEWHERE */
 }
