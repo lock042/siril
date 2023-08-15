@@ -38,6 +38,7 @@
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "stacking/stacking.h"
+#include "io/gitscripts.h"
 
 #include "preferences.h"
 #include "filters/starnet.h"
@@ -683,6 +684,7 @@ static void dump_ui_to_global_var() {
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
 	update_preferences_from_model();
+	fill_script_repo_list(FALSE);
 }
 
 gboolean check_pref_sanity(gchar **error) {
