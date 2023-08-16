@@ -1,6 +1,7 @@
 #include <git2.h>
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/siril_app_dirs.h"
 #include "gui/utils.h"
 
 static GtkListStore *list_store = NULL;
@@ -13,7 +14,7 @@ int update_gitscripts(void) {
     const char *url = "https://gitlab.com/free-astro/siril-scripts.git";
 
     // Local directory where the repository will be cloned
-    char *local_path = g_build_filename(g_get_user_data_dir(), "siril-scripts", NULL);
+    const gchar *local_path = siril_get_scripts_repo_path();
 
     // Clone options
     git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
