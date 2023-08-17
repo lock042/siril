@@ -292,7 +292,9 @@ struct pref_struct {
 	struct stack_config stack;
 	struct comp_config comp;
 	fftw_params fftw_conf;
+	GSList *selected_scripts;
 };
+
 typedef struct pref_struct preferences;
 /**
  * End of preference structure. Read above if modified.

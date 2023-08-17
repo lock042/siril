@@ -237,7 +237,6 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 void fill_script_repo_list(gboolean as_idle) {
 
 	GtkTreeView* tview = GTK_TREE_VIEW(lookup_widget("treeview2"));
-//	g_signal_handlers_block_by_func(tview, on_treeview2_cursor_changed, NULL);
 	if (as_idle)
 		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
 	else fill_script_repo_list_idle(tview);
@@ -258,11 +257,11 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
    gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
 
 	if (!val) {
-		if (!(g_slist_find(gui.selected_scripts, script_path))) {
+		if (!(g_slist_find(com.pref.selected_scripts, script_path))) {
 			printf("%s\n", script_path);
-			gui.selected_scripts = g_slist_prepend(gui.selected_scripts, script_path);
+			com.pref.selected_scripts = g_slist_prepend(com.pref.selected_scripts, script_path);
 		}
 	} else {
-		gui.selected_scripts = g_slist_remove(gui.selected_scripts, script_path);
+		com.pref.selected_scripts = g_slist_remove(com.pref.selected_scripts, script_path);
 	}
 }

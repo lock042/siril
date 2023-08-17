@@ -174,7 +174,6 @@ static void global_initialization() {
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;
 	gui.repo_scripts = NULL;
-	gui.selected_scripts = NULL;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;

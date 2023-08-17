@@ -610,9 +610,8 @@ struct guiinf {
 
 	void (*draw_extra)(draw_data_t *dd);
 
-	/* Lists of scripts from the repository */
-	GStrv repo_scripts;
-	GSList *selected_scripts;
+	/* List of all scripts from the repository */
+	GStrv repo_scripts; // the list of selected scripts is in com.pref
 
 
 	/*********** Color mapping **********/
