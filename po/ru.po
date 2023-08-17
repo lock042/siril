@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:23+0200\n"
-"PO-Revision-Date: 2023-08-14 21:55+0000\n"
+"PO-Revision-Date: 2023-08-18 03:40+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -9189,9 +9189,9 @@ msgid "unknown"
 msgstr "неизвестный"
 
 #: src/algos/astrometry_solver.c:377
-#, c-format
+#, c-format, fuzzy
 msgid "After %ld tries, Server unreachable or unresponsive. (%s)\n"
-msgstr ""
+msgstr "После %ld попыток сервер недоступен или не отвечает. (%s)\n"
 
 #: src/algos/astrometry_solver.c:388
 #, c-format
@@ -9207,9 +9207,9 @@ msgid "Internet Connection failure.\n"
 msgstr "Нарушение соединения с интернетом.\n"
 
 #: src/algos/astrometry_solver.c:417
-#, c-format
+#, c-format, fuzzy
 msgid "Server unreachable or unresponsive. (%s)\n"
-msgstr ""
+msgstr "Сервер недоступен или не отвечает. (%s)\n"
 
 #: src/algos/astrometry_solver.c:427 src/algos/astrometry_solver.c:494
 #: src/algos/astrometry_solver.c:658
@@ -9370,6 +9370,8 @@ msgid ""
 "No stars have been retrieved from the online catalog. This may mean that the "
 "servers are down. Note that you can install local catalogs."
 msgstr ""
+"Звёзды из удалённого каталога не были получены. Это может значит, что сервер "
+"недоступен. Обратите внимание, что вы можете установить каталоги локально."
 
 #: src/algos/astrometry_solver.c:1389
 #, c-format
@@ -9833,7 +9835,7 @@ msgstr ""
 
 #: src/algos/extraction.c:784 src/algos/extraction.c:1007
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
-msgstr ""
+msgstr "Изображение должно иметь нечётные размеры. Обрезка на 1 пиксель.\n"
 
 #: src/algos/extraction.c:792 src/algos/extraction.c:1015
 msgid "Extract_HaOIII does not work on non-Bayer filter camera images!\n"
@@ -19852,7 +19854,7 @@ msgstr "Желаем получить массу удовольствия с н�
 #: src/gui/split_cfa.c:48
 #, fuzzy
 msgid "Error: sequence is SER or FITSEQ"
-msgstr "Ошибка: последовательность SER"
+msgstr "Ошибка: последовательность SER или FITSEQ"
 
 #: src/gui/split_cfa.c:49
 msgid "Only FITS format is supported for sequence CFA splitting"
@@ -20229,8 +20231,9 @@ msgid "Error while converting to FITS\n"
 msgstr "Ошибка при конвертации в FITS\n"
 
 #: src/io/conversion.c:1300
+#, fuzzy
 msgid "No space left!\n"
-msgstr ""
+msgstr "Не осталось свободного места!\n"
 
 #: src/io/conversion.c:1313
 msgid "Error while converting, unknown output\n"
@@ -20592,8 +20595,7 @@ msgstr "Ошибка FITS: %s\n"
 #, fuzzy
 msgid "Normalizing input data to our float range [0, 1]\n"
 msgstr ""
-"Нормализация входящих данных из [%f, %f] к диапазону плавающих значений [0, "
-"1]\n"
+"Нормализация входящих данных к нашему диапазону плавающих значений [0, 1]\n"
 
 #: src/io/image_format_fits.c:1150
 msgid "Cannot move to first image in FITS file\n"
