@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-08-14 21:55+0000\n"
+"PO-Revision-Date: 2023-08-17 03:22+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -2360,6 +2360,9 @@ msgid ""
 "necessary if you aren't happy with the alignment results and wish to re-do "
 "the alignment, for example with a different framing method."
 msgstr ""
+"Перезагружает все входящие изображения в соответствующие компоновочные слои. "
+"Это необходимо, если вы недовольны результатами выравнивания и хотите "
+"переделать его, с другим способом кадрирования, например."
 
 #: src/gui/siril3.glade:9681
 msgid "Save all"
@@ -2372,6 +2375,10 @@ msgid ""
 "using PixelMath you can still use this tool as a simple means of aligning "
 "them."
 msgstr ""
+"Сохраняет все изображения слоя с префиксом <i>comp_</i>. После выравнивания, "
+"выравненные и кадрированные изображения будут сохранены. Поэтому, если вы "
+"предпочитаете объединять их с помощью математических операций, вы всё равно "
+"можете использовать этот инструмент как простое средство для выравнивания."
 
 #: src/gui/siril3.glade:9736
 msgid "Multi-layer image composition"
@@ -2385,10 +2392,14 @@ msgid "not loaded"
 msgstr "не загружено"
 
 #: src/gui/siril3.glade:9848
+#, fuzzy
 msgid ""
 "In manual alignment mode, sets the x-axis shift.\n"
 "In other alignment modes, shows the x-axis shift applied to the layer."
 msgstr ""
+"Устанавливает смещение по оси X в ручном режиме выравнивания.\n"
+"В других режимах выравнивания показывает смещение по оси X, применённое к "
+"слою."
 
 #: src/gui/siril3.glade:9850
 msgid "x alignment"
@@ -2399,6 +2410,9 @@ msgid ""
 "In manual alignment mode, sets the y-axis shift.\n"
 "In other alignment modes, shows the y-axis shift applied to the layer."
 msgstr ""
+"Устанавливает смещение по оси Y в ручном режиме выравнивания.\n"
+"В других режимах выравнивания показывает смещение по оси Y, применённое к "
+"слою."
 
 #: src/gui/siril3.glade:9863
 msgid "y alignment"
@@ -2411,6 +2425,11 @@ msgid ""
 "origin.\n"
 "Rotation is shown in degrees anticlockwise."
 msgstr ""
+"Устанавливает вращение вокруг центра изображения в ручном режиме "
+"выравнивания.\n"
+"В других режимах выравнивания показывает поворот вокруг начала координат, "
+"применённый к слою.\n"
+"Поворот отображается в градусах против часовой стрелки."
 
 #: src/gui/siril3.glade:9877
 msgid "rotation"
@@ -2430,6 +2449,9 @@ msgid ""
 "This is important if you are not coloring the layers with pure R, pure G and "
 "pure B."
 msgstr ""
+"Линейное сопоставление изображений входного слоя с первым слоем.\n"
+"Это важно если не выполняется окраска слоёв с помощью чистого красного (R), "
+"чистого зелёного (G) и чистого синего (B)."
 
 #: src/gui/siril3.glade:9952
 msgid "Adjust layers brightness"
@@ -2517,6 +2539,13 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
+"Выберите способ кадрирования для выравнивания изображений глубокого космоса:"
+"\n"
+"Первый канал - кадр к первому каналу (в режиме \"Светимость\" это всегда L);"
+"\n"
+"Максимум - кадр к максимальному размеру выравненных изображений;\n"
+"Минимум - кадр к минимальному перекрытию всех выравненных изображений;\n"
+"COG - кадр к центру тяжести пикселей в группе выравненных изображений."
 
 #: src/gui/siril3.glade:10112
 msgid "First channel"
@@ -2532,7 +2561,7 @@ msgstr "Мин."
 
 #: src/gui/siril3.glade:10115
 msgid "COG"
-msgstr ""
+msgstr "Центр тяжести"
 
 #: src/gui/siril3.glade:10125
 msgid "Align"
@@ -9543,6 +9572,8 @@ msgid ""
 "No stars have been retrieved from the online catalog. This may mean that the "
 "servers are down. Note that you can install local catalogs."
 msgstr ""
+"Звёзды из удалённого каталога не были получены. Это может значит, что сервер "
+"недоступен. Обратите внимание, что вы можете установить каталоги локально."
 
 #: src/algos/astrometry_solver.c:506
 #, c-format
@@ -9984,7 +10015,7 @@ msgstr "Фотометрическая информация о целевой з
 
 #: src/algos/comparison_stars.c:524 src/algos/comparison_stars.c:526
 msgid "stars within"
-msgstr ""
+msgstr "звёзды внутри"
 
 #: src/algos/demosaicing.c:949
 msgid ""
@@ -10127,7 +10158,7 @@ msgstr ""
 
 #: src/algos/extraction.c:784 src/algos/extraction.c:1007
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
-msgstr ""
+msgstr "Изображение должно иметь нечётные размеры. Обрезка на 1 пиксель.\n"
 
 #: src/algos/extraction.c:792 src/algos/extraction.c:1015
 msgid "Extract_HaOIII does not work on non-Bayer filter camera images!\n"
@@ -10346,7 +10377,7 @@ msgstr "Световая кривая звезды"
 
 #: src/algos/photometry.c:430
 msgid "V-C"
-msgstr ""
+msgstr "V-C"
 
 #: src/algos/photometry.c:498
 msgid "Failed to analyse the variable star photometry\n"
@@ -10807,6 +10838,9 @@ msgid ""
 "can be composited. RGB composition is not possible without freeing up more "
 "memory.\n"
 msgstr ""
+"Предупреждение: проверка ограничения памяти показала, что можно совместить "
+"менее 3 изображений такого размера. Совмещение в RGB невозможно без "
+"освобождения бо́льшего объёма памяти.\n"
 
 #: src/compositing/compositing.c:169
 msgid ""
@@ -10814,6 +10848,9 @@ msgid ""
 "can be composited. LRGB composition is not possible without freeing up more "
 "memory.\n"
 msgstr ""
+"Предупреждение: проверка ограничения памяти показала, что можно совместить "
+"менее 4 изображений такого размера. Совмещение в LRGB невозможно без "
+"освобождения бо́льшего объёма памяти.\n"
 
 #: src/compositing/compositing.c:171
 #, c-format
@@ -10821,6 +10858,9 @@ msgid ""
 "Based on the available memory and initial image dimensions, up to %d images "
 "may be composited (the maximum can never exceed 8).\n"
 msgstr ""
+"На основе доступного объёма памяти и первоначальных размеров изображений, "
+"может быть совмещено до %d изображения (максимальное число не может "
+"превысить 8).\n"
 
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
@@ -10958,7 +10998,7 @@ msgstr "Продолжить"
 
 #: src/compositing/compositing.c:924
 msgid "Using Luminance channel as reference.\n"
-msgstr ""
+msgstr "Использование канала \"Светимость\" как опорного.\n"
 
 #. DFT shift ad KOMBAT require a selection to be made
 #: src/compositing/compositing.c:1050
@@ -11029,12 +11069,12 @@ msgstr "Линейное сопоставление слоёв"
 
 #: src/compositing/compositing.c:1696
 msgid "Linear match layers complete"
-msgstr ""
+msgstr "Линейное сопоставление слоёв завершено"
 
 #: src/compositing/compositing.c:1698
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
-msgstr ""
+msgstr "Ошибка: не удалось сопоставить %d слоёв с опорным слоем.\n"
 
 #: src/compositing/compositing.c:1750 src/registration/global.c:145
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
@@ -20673,7 +20713,7 @@ msgstr "Файл SVG (*.svg)"
 #: src/gui/split_cfa.c:48
 #, fuzzy
 msgid "Error: sequence is SER or FITSEQ"
-msgstr "Ошибка: последовательность SER"
+msgstr "Ошибка: последовательность SER или FITSEQ"
 
 #: src/gui/split_cfa.c:49
 msgid "Only FITS format is supported for sequence CFA splitting"
@@ -21028,8 +21068,9 @@ msgid "Error while converting to FITS\n"
 msgstr "Ошибка при конвертации в FITS\n"
 
 #: src/io/conversion.c:1317
+#, fuzzy
 msgid "No space left!\n"
-msgstr ""
+msgstr "Не осталось свободного места!\n"
 
 #: src/io/conversion.c:1330
 msgid "Error while converting, unknown output\n"
@@ -21400,8 +21441,7 @@ msgstr "Ошибка FITS: %s\n"
 #, fuzzy
 msgid "Normalizing input data to our float range [0, 1]\n"
 msgstr ""
-"Нормализация входящих данных из [%f, %f] к диапазону плавающих значений [0, "
-"1]\n"
+"Нормализация входящих данных к нашему диапазону плавающих значений [0, 1]\n"
 
 #: src/io/image_format_fits.c:1155
 msgid "Cannot move to first image in FITS file\n"
@@ -21689,9 +21729,9 @@ msgid "Catalog APASS size: %d objects\n"
 msgstr "Размер каталога APASS: %d объектов\n"
 
 #: src/io/remote_catalogues.c:507
-#, c-format
+#, c-format, fuzzy
 msgid "After %ld tries, Server unreachable or unresponsive. (%s)\n"
-msgstr ""
+msgstr "После %ld попыток сервер недоступен или не отвечает. (%s)\n"
 
 #: src/io/remote_catalogues.c:517
 #, c-format
@@ -21707,9 +21747,9 @@ msgid "Internet Connection failure.\n"
 msgstr "Нарушение соединения с интернетом.\n"
 
 #: src/io/remote_catalogues.c:552
-#, c-format
+#, c-format, fuzzy
 msgid "Server unreachable or unresponsive. (%s)\n"
-msgstr ""
+msgstr "Сервер недоступен или не отвечает. (%s)\n"
 
 #: src/io/remote_catalogues.c:710
 #, c-format
