@@ -223,6 +223,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 /* called on preference window loading.
  * It is executed safely in the GTK thread if as_idle is true. */
 void fill_script_repo_list(gboolean as_idle) {
+	
 	GtkTreeView* tview = GTK_TREE_VIEW(lookup_widget("treeview2"));
 	if (as_idle)
 		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
@@ -231,11 +232,15 @@ void fill_script_repo_list(gboolean as_idle) {
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 		gchar *char_path, gpointer user_data) {
-	GtkTreePath *path = gtk_tree_path_new_from_string(char_path);
-	gchar* scriptpath = get_script_filepath_from_path(path);
-	gboolean active = gtk_cell_renderer_toggle_get_active(cell_renderer);
-	gtk_tree_path_free(path);
-/*	if (active) {
+   gboolean val;
+   GtkTreeIter iter;
+   GtkTreeModel *model;
+   model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
+   if (gtk_tree_model_get_iter (model, &iter, path) == false) return;
+   gtk_tree_model_get(model, &iter, 2, &val, -1);
+   gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
+
+/*	if (val) {
 		// CHECK SCRIPT PATH IS IN LIST OF SCRIPTS IN SCRIPT MENU, IF NOT ADD IT
 	} else {
 		// CHECK SCRIPT PATH IS NOT IN LIST OF SCRIPTS IN SCRIPT MENU, IF IT IS REMOVE IT
