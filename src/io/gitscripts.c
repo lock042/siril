@@ -234,7 +234,9 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 		gchar *char_path, gpointer user_data) {
    gboolean val;
    GtkTreeIter iter;
+   GtkTreePath *path;
    GtkTreeModel *model;
+   path = gtk_tree_path_new_from_string(char_path);
    model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
    if (gtk_tree_model_get_iter (model, &iter, path) == FALSE) return;
    gtk_tree_model_get(model, &iter, 2, &val, -1);
