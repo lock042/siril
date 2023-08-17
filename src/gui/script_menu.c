@@ -213,6 +213,24 @@ int initialize_script_menu() {
 			g_slist_free_full(list, g_free);
 		}
 	}
+	if (g_slist_length(com.pref.selected_scripts) > 0 ) {
+		GtkWidget *separator = gtk_separator_menu_item_new();
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
+		gtk_widget_show(separator);
+		for (s = com.pref.selected_scripts ; s ; s = s->next) {
+			nb_item++;
+			/* write an item per script file */
+			GtkWidget *menu_item;
+			gchar* basename = g_path_get_basename(s->data);
+			menu_item = gtk_menu_item_new_with_label(basename);
+			gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+			g_signal_connect(G_OBJECT(menu_item), "activate",
+					G_CALLBACK(on_script_execution), (gchar * ) s->data);
+			siril_log_message(_("Loading script: %s\n"), basename);
+			g_free(basename);
+			gtk_widget_show(menu_item);
+		}
+	}
 
 	if (!nb_item) {
 		gtk_widget_hide(menuscript);
