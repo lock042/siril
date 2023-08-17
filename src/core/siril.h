@@ -612,7 +612,7 @@ struct guiinf {
 
 	/* Lists of scripts from the repository */
 	GStrv repo_scripts;
-	GStrv selected_scripts;
+	GSList *selected_scripts;
 
 
 	/*********** Color mapping **********/

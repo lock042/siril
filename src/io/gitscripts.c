@@ -162,11 +162,14 @@ int update_gitscripts(void) {
 }
 
 /************* GUI code for the Preferences->Scripts TreeView ****************/
+static const char *bg_color[] = { "WhiteSmoke", "#1B1B1B" };
 
 enum {
 	COLUMN_CATEGORY = 0,		// string
-	COLUMN_SCRIPTPATH,		// string
+	COLUMN_SCRIPTNAME,		// string
 	COLUMN_SELECTED,	// gboolean
+	COLUMN_SCRIPTPATH,	// full path to populate into the scripts menu
+	COLUMN_BGCOLOR,		// background color
 	N_COLUMNS
 };
 
@@ -190,32 +193,41 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		return FALSE;
 	if (list_store) gtk_list_store_clear(list_store);
 	get_list_store();
-/*	gint sort_column_id;
+	gint sort_column_id;
 	GtkSortType order;
 	// store sorted state of list_store, disable sorting, disconnect from the view, fill, reconnect and re-apply sort
 	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_ASCENDING);
-	gtk_tree_view_set_model(tview, NULL);*/
+	gtk_tree_view_set_model(tview, NULL);
 	if (gui.repo_scripts) {
 		i = 0;
+		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 		while (gui.repo_scripts[i]) {
 			// TODO: here we should populate the GtkTreeView from GStrv gui.repo_scripts
 			gchar* category = g_strrstr(gui.repo_scripts[i], "preprocessing") ? "Preprocessing" : "Processing";
-			gchar* scriptpath = g_path_get_basename(gui.repo_scripts[i]);
+			gchar* scriptname = g_path_get_basename(gui.repo_scripts[i]);
+#ifdef _WIN32
+			gchar* scriptpath = g_build_path("\\", siril_get_scripts_repo_path(), gui.repo_scripts[i], NULL);
+#else
+			gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), gui.repo_scripts[i], NULL);
+#endif
+			printf("%s\n", scriptpath);
 			gboolean included = FALSE; // Eventually this will check against a ; separated list of scripts in the ini file
 			gtk_list_store_append (list_store, &iter);
 			gtk_list_store_set (list_store, &iter,
 					COLUMN_CATEGORY, category,
-					COLUMN_SCRIPTPATH, scriptpath,
+					COLUMN_SCRIPTNAME, scriptname,
 					COLUMN_SELECTED, included,
+					COLUMN_SCRIPTPATH, scriptpath,
+					COLUMN_BGCOLOR, bg_color[color],
 					-1);
 			/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
 			g_free(scriptpath);
 			i++;
 		}
 	}
-/*	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);*/
+	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
 
 	return FALSE;
 }
@@ -223,8 +235,9 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 /* called on preference window loading.
  * It is executed safely in the GTK thread if as_idle is true. */
 void fill_script_repo_list(gboolean as_idle) {
-	
+
 	GtkTreeView* tview = GTK_TREE_VIEW(lookup_widget("treeview2"));
+//	g_signal_handlers_block_by_func(tview, on_treeview2_cursor_changed, NULL);
 	if (as_idle)
 		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
 	else fill_script_repo_list_idle(tview);
@@ -236,16 +249,20 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
    GtkTreeIter iter;
    GtkTreePath *path;
    GtkTreeModel *model;
+   gchar* script_path = NULL;
    path = gtk_tree_path_new_from_string(char_path);
    model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
    if (gtk_tree_model_get_iter (model, &iter, path) == FALSE) return;
+   gtk_tree_model_get(model, &iter, 3, &script_path, -1);
    gtk_tree_model_get(model, &iter, 2, &val, -1);
    gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
 
-/*	if (val) {
-		// CHECK SCRIPT PATH IS IN LIST OF SCRIPTS IN SCRIPT MENU, IF NOT ADD IT
+	if (!val) {
+		if (!(g_slist_find(gui.selected_scripts, script_path))) {
+			printf("%s\n", script_path);
+			gui.selected_scripts = g_slist_prepend(gui.selected_scripts, script_path);
+		}
 	} else {
-		// CHECK SCRIPT PATH IS NOT IN LIST OF SCRIPTS IN SCRIPT MENU, IF IT IS REMOVE IT
+		gui.selected_scripts = g_slist_remove(gui.selected_scripts, script_path);
 	}
-	// SAVE LIST OF ACTIVE SCRIPTS IN A FILE SOMEWHERE */
 }
