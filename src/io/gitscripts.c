@@ -236,7 +236,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
    GtkTreeIter iter;
    GtkTreeModel *model;
    model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
-   if (gtk_tree_model_get_iter (model, &iter, path) == false) return;
+   if (gtk_tree_model_get_iter (model, &iter, path) == FALSE) return;
    gtk_tree_model_get(model, &iter, 2, &val, -1);
    gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
 
