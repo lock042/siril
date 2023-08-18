@@ -721,6 +721,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		dump_ui_to_global_var();
 		// set_wisdom_file();
 		initialize_FITS_name_entries();	// To update UI with new preferences
+		refresh_script_menu();	// To update the UI with scripts from the repo
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();

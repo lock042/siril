@@ -46,6 +46,9 @@
 #define SCRIPT_EXT ".ssf"
 #define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Running automatic scripts is something that is easy and generally it provides a nice image. However you have to keep in mind that scripts are not magic; automatic choices are made where human decision would probably be better. Also, every commands used in a script are available on the interface with a better parameter control.")
 
+static GtkWidget *menuscript = NULL;
+
+
 static GSList *initialize_script_paths(){
 	GSList *list = NULL;
 #ifdef _WIN32
@@ -174,7 +177,6 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 }
 
 int initialize_script_menu() {
-	static GtkWidget *menuscript = NULL;
 	GSList *list, *script_paths, *s;
 	gint nb_item = 0;
 
@@ -239,6 +241,14 @@ int initialize_script_menu() {
 	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 	if (!gtk_widget_get_visible(menuscript))
 		gtk_widget_show(menuscript);
+	return 0;
+}
+
+int refresh_script_menu() {
+	if (menuscript) {
+		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
+	}
+	initialize_script_menu();
 	return 0;
 }
 

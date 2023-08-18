@@ -203,7 +203,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		i = 0;
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 		while (gui.repo_scripts[i]) {
-			// TODO: here we should populate the GtkTreeView from GStrv gui.repo_scripts
+			// here we populate the GtkTreeView from GStrv gui.repo_scripts
 			gchar* category = g_strrstr(gui.repo_scripts[i], "preprocessing") ? "Preprocessing" : "Processing";
 			gchar* scriptname = g_path_get_basename(gui.repo_scripts[i]);
 #ifdef _WIN32
@@ -212,7 +212,14 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), gui.repo_scripts[i], NULL);
 #endif
 			printf("%s\n", scriptpath);
-			gboolean included = FALSE; // Eventually this will check against a ; separated list of scripts in the ini file
+			// Check whether the script appears in the list
+			GSList* iterator;
+			gboolean included = FALSE;
+			for (iterator = com.pref.selected_scripts ; iterator ; iterator = iterator->next) {
+				if (g_strrstr((gchar*) iterator->data, gui.repo_scripts[i])) {
+					included = TRUE;
+				}
+			}
 			gtk_list_store_append (list_store, &iter);
 			gtk_list_store_set (list_store, &iter,
 					COLUMN_CATEGORY, category,
@@ -262,6 +269,14 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 			com.pref.selected_scripts = g_slist_prepend(com.pref.selected_scripts, script_path);
 		}
 	} else {
-		com.pref.selected_scripts = g_slist_remove(com.pref.selected_scripts, script_path);
+			GSList* iterator = com.pref.selected_scripts;
+			while (iterator) {
+				if (g_strrstr((gchar*) iterator->data, script_path)) {
+					iterator = g_slist_remove_all(iterator, iterator->data);
+					break;
+				}
+				iterator = iterator->next;
+			}
+			com.pref.selected_scripts = iterator;
 	}
 }
