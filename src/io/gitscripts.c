@@ -293,7 +293,9 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 		GtkListStore *liststore = GTK_LIST_STORE(model);
 		gtk_list_store_clear(liststore);
 		liststore = NULL;
-		g_list_free_full(com.pref.selected_scripts, g_free);
+//		g_list_free_full(com.pref.selected_scripts, g_free);
+		g_strfreev(gui.repo_scripts);
+		gui.repo_scripts = NULL;
 		com.pref.selected_scripts = NULL;
 		refresh_script_menu();
 	}
