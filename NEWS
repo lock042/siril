@@ -38,6 +38,7 @@ siril 1.2.0 xx xx, xx
 * Fixed DATE_OBS missing on seqapplyreg if interp was set to NONE (#1156)
 * Fixed photometry issue with 8-bit .ser file (#1160)
 * Fixed removing zero values in histogram calculations (#1164)
+* Fixed pixel sizes after HaOIII extrcation (#1175)
 
 siril 1.2.0-rc1 June 1, 2023
 
