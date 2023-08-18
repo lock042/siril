@@ -292,7 +292,7 @@ struct pref_struct {
 	struct stack_config stack;
 	struct comp_config comp;
 	fftw_params fftw_conf;
-	GSList *selected_scripts;
+	GList *selected_scripts;
 	gboolean use_scripts_repository;
 };
 

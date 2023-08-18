@@ -214,7 +214,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 #endif
 			printf("%s\n", scriptpath);
 			// Check whether the script appears in the list
-			GSList* iterator;
+			GList* iterator;
 			gboolean included = FALSE;
 			for (iterator = com.pref.selected_scripts ; iterator ; iterator = iterator->next) {
 				if (g_strrstr((gchar*) iterator->data, gui.repo_scripts[i])) {
@@ -265,20 +265,20 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
    gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
 
 	if (!val) {
-		if (!(g_slist_find(com.pref.selected_scripts, script_path))) {
+		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
 			printf("%s\n", script_path);
-			com.pref.selected_scripts = g_slist_prepend(com.pref.selected_scripts, script_path);
+			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
 		}
 	} else {
-			GSList* iterator = com.pref.selected_scripts;
+			GList* iterator = com.pref.selected_scripts;
 			while (iterator) {
 				if (g_strrstr((gchar*) iterator->data, script_path)) {
-					iterator = g_slist_remove_all(iterator, iterator->data);
+					iterator = g_list_remove_all(iterator, iterator->data);
 					break;
 				}
 				iterator = iterator->next;
 			}
-			com.pref.selected_scripts = iterator;
+			com.pref.selected_scripts = g_list_first(iterator);
 	}
 }
 
@@ -293,7 +293,7 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 		GtkListStore *liststore = GTK_LIST_STORE(model);
 		gtk_list_store_clear(liststore);
 		liststore = NULL;
-		g_slist_free_full(com.pref.selected_scripts, g_free);
+		g_list_free_full(com.pref.selected_scripts, g_free);
 		com.pref.selected_scripts = NULL;
 		refresh_script_menu();
 	}
