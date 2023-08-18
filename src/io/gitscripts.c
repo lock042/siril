@@ -3,6 +3,7 @@
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "gui/utils.h"
+#include "gui/script_menu.h"
 
 static GtkListStore *list_store = NULL;
 
@@ -278,5 +279,22 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 				iterator = iterator->next;
 			}
 			com.pref.selected_scripts = iterator;
+	}
+}
+
+void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (gtk_toggle_button_get_active(button)) {
+		com.pref.use_scripts_repository = TRUE;
+		update_gitscripts();
+		fill_script_repo_list(FALSE);
+	} else {
+		com.pref.use_scripts_repository = FALSE;
+		GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
+		GtkListStore *liststore = GTK_LIST_STORE(model);
+		gtk_list_store_clear(liststore);
+		liststore = NULL;
+		g_slist_free_full(com.pref.selected_scripts, g_free);
+		com.pref.selected_scripts = NULL;
+		refresh_script_menu();
 	}
 }

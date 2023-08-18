@@ -215,7 +215,7 @@ int initialize_script_menu() {
 			g_slist_free_full(list, g_free);
 		}
 	}
-	if (g_slist_length(com.pref.selected_scripts) > 0 ) {
+	if (com.pref.use_scripts_repository && g_slist_length(com.pref.selected_scripts) > 0 ) {
 		GtkWidget *separator = gtk_separator_menu_item_new();
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
 		gtk_widget_show(separator);

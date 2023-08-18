@@ -293,6 +293,7 @@ struct pref_struct {
 	struct comp_config comp;
 	fftw_params fftw_conf;
 	GSList *selected_scripts;
+	gboolean use_scripts_repository;
 };
 
 typedef struct pref_struct preferences;
