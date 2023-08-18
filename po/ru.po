@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-08-17 03:22+0000\n"
+"PO-Revision-Date: 2023-08-18 22:24+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -2505,7 +2505,7 @@ msgstr "Совмещение в CIE L*a*b*"
 
 #: src/gui/siril3.glade:10004
 msgid "photometric"
-msgstr "фотометрический"
+msgstr "фотометрическая"
 
 #: src/gui/siril3.glade:10008
 msgid "When checked, photometric color calibration is used."
@@ -11007,7 +11007,7 @@ msgstr "Выберите область для выравнивания"
 
 #: src/compositing/compositing.c:1056
 msgid "At least 2 channels must be loaded for align"
-msgstr "Нужно хотя бы два канала для выравнивания"
+msgstr "Для выравнивания необходимо загрузить хотя бы 2 канала"
 
 #: src/compositing/compositing.c:1520
 msgid "No overflow with the current colours, redrawing only\n"
