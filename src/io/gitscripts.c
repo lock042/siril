@@ -2,6 +2,8 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
+#include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/script_menu.h"
 
@@ -248,6 +250,40 @@ void fill_script_repo_list(gboolean as_idle) {
 	if (as_idle)
 		gdk_threads_add_idle(fill_script_repo_list_idle, tview);
 	else fill_script_repo_list_idle(tview);
+}
+
+void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
+                    GtkTreeViewColumn *column, gpointer user_data) {
+	gchar *scriptname = NULL, *scriptpath = NULL;
+	gchar* contents = NULL;
+	gsize length;
+	GError* error = NULL;
+	GtkTreeIter iter;
+	GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW(lookup_widget("treeview2")));
+
+	if (gtk_tree_model_get_iter(model, &iter, path)) {
+		gtk_tree_model_get (model, &iter, 1, &scriptname, 3, &scriptpath, -1);
+		if (g_file_get_contents(scriptpath, &contents, &length, &error) && length > 0) {
+			GtkTextBuffer *script_textbuffer = (GtkTextBuffer*) lookup_widget("script_textbuffer");
+			GtkLabel* script_label = (GtkLabel*) lookup_widget("script_label");
+			gtk_label_set_text(script_label, scriptname);
+			gtk_text_buffer_set_text(script_textbuffer, contents, (gint) length);
+			siril_open_dialog("script_contents_dialog");
+		}
+	}
+}
+
+void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
+	siril_close_dialog("script_contents_dialog");
+}
+
+void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
+	if (!update_gitscripts()) {
+		fill_script_repo_list(FALSE);
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Update complete"), _("Scripts updated successfully."));
+	} else {
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Error"), _("Scripts failed to update."));
+	}
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
