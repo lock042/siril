@@ -140,7 +140,7 @@ int update_gitscripts(gboolean sync) {
 		siril_log_message(_("Changes pulled and merged successfully!\n"));
 	}
 
-FINISH:
+FINISH: ;
 
 	/*** Populate the list of available repository scripts ***/
 	size_t i;
@@ -241,7 +241,11 @@ int preview_update() {
 				if (git_commit_lookup(&commit, repo, &commit_id) == 0) {
 					printf("Commit Message: %s\n", git_commit_summary(commit));
 					gchar *temp = g_strdup_printf("%s\n", git_commit_summary(commit));
-					gchar *temp2 = g_strconcat(git_pending_commit_buffer, temp, NULL);
+					gchar* temp2 = NULL;
+					if (git_pending_commit_buffer)
+						temp2 = g_strdup_printf("%s%s",git_pending_commit_buffer, temp);
+					else
+						temp2 = g_strdup_printf("%s", temp);
 					g_free(temp);
 					g_free(git_pending_commit_buffer);
 					git_pending_commit_buffer = temp2;
