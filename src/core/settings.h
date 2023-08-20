@@ -294,6 +294,7 @@ struct pref_struct {
 	fftw_params fftw_conf;
 	GList *selected_scripts;
 	gboolean use_scripts_repository;
+	gboolean auto_script_update; // automatically update scripts repository at startup
 };
 
 typedef struct pref_struct preferences;

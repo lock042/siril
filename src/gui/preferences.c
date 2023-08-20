@@ -186,6 +186,7 @@ static void update_scripts_preferences() {
 	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
+	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
 }
 
 static void update_user_interface_preferences() {
@@ -618,6 +619,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
 
 	/* tab 8 */
 	siril_language_fill_combo(pref->lang);

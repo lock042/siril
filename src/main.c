@@ -278,7 +278,7 @@ static void siril_app_activate(GApplication *application) {
 
 	init_num_procs();
 
-	if (com.pref.use_scripts_repository)
+	if (com.pref.use_scripts_repository && com.pref.auto_script_update)
 		update_gitscripts();
 	else
 		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
