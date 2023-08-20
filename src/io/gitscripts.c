@@ -10,7 +10,8 @@
 static GtkListStore *list_store = NULL;
 
 int update_gitscripts(void) {
-    // Initialize libgit2
+	int retval = 0;
+	// Initialize libgit2
     git_libgit2_init();
 
     // URL of the remote repository
@@ -40,7 +41,7 @@ int update_gitscripts(void) {
 			siril_log_message(_("Repository cloned successfully!\n"));
 		}
 	}
-	// Further operations can be performed on the 'repo' pointer here
+	// Synchronise the repository
 	if (error == 0) {
 		// Fetch options
 		git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
@@ -60,10 +61,9 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			siril_log_color_message(_("Error looking up remote: %s\n"), "red", e->message);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return 1;
+			siril_log_color_message(_("Cannot look up remote: %s (this is normal if you are offline)"), "salmon", e->message);
+			retval = 1;
+			goto FINISH;
 		}
 
 		// Fetch
@@ -71,11 +71,10 @@ int update_gitscripts(void) {
 
 		if (error != 0) {
 			const git_error *e = giterr_last();
-			siril_log_color_message(_("Error fetching remote: %s\n"), "red", e->message);
+			siril_log_color_message(_("Cannot fetch remote: %s (this is normal if you are offline)\n"), "salmon", e->message);
 			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return 1;
+			retval = 1;
+			goto FINISH;
 		}
 
 		// Merge fetched changes into the local branch
@@ -86,9 +85,8 @@ int update_gitscripts(void) {
 			const git_error *e = giterr_last();
 			siril_log_color_message(_("Error looking up local branch: %s\n"), "red", e->message);
 			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return 1;
+			retval = 1;
+			goto FINISH;
 		}
 
 		git_reference *head_ref = NULL;
@@ -99,9 +97,8 @@ int update_gitscripts(void) {
 			siril_log_color_message(_("Error getting HEAD reference: %s\n"), "red", e->message);
 			git_reference_free(branch_ref);
 			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return 1;
+			retval = 1;
+			goto FINISH;
 		}
 
 		git_annotated_commit *head_commit = NULL;
@@ -113,9 +110,8 @@ int update_gitscripts(void) {
 			git_reference_free(head_ref);
 			git_reference_free(branch_ref);
 			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return 1;
+			retval = 1;
+			goto FINISH;
 		}
 
 		git_reference *update_ref = NULL;
@@ -128,40 +124,41 @@ int update_gitscripts(void) {
 			git_reference_free(head_ref);
 			git_reference_free(branch_ref);
 			git_remote_free(remote);
-			git_repository_free(repo);
-			git_libgit2_shutdown();
-			return 1;
+			retval = 1;
+			goto FINISH;
 		}
 
 		siril_log_message(_("Changes pulled and merged successfully!\n"));
-
-		/*** Populate the list of available repository scripts ***/
-		size_t i;
-		const git_index_entry *entry;
-		git_index *index = NULL;
-		if ((error = git_repository_index(&index, repo)) < 0)
-			return 1;
-
-		/* populate com.all_scripts with all the scripts in the index.
-		 * We ignore anything not ending in .ssf */
-		size_t entry_count = git_index_entrycount(index);
-		g_autoptr(GStrvBuilder) builder = g_strv_builder_new();
-		for (i = 0; i < entry_count; i++) {
-			entry = git_index_get_byindex(index, i);
-			if (g_str_has_suffix(entry->path, ".ssf")) {
-				g_strv_builder_add(builder, entry->path);
-				printf("%s\n", entry->path);
-			}
-		}
-		gui.repo_scripts = g_strv_builder_end(builder);
-
 	}
 
+FINISH:
+
+	/*** Populate the list of available repository scripts ***/
+	size_t i;
+	const git_index_entry *entry;
+	git_index *index = NULL;
+	if ((error = git_repository_index(&index, repo)) < 0)
+		retval = 1;
+
+	/* populate com.all_scripts with all the scripts in the index.
+		* We ignore anything not ending in .ssf */
+	size_t entry_count = git_index_entrycount(index);
+	g_autoptr(GStrvBuilder) builder = g_strv_builder_new();
+	for (i = 0; i < entry_count; i++) {
+		entry = git_index_get_byindex(index, i);
+		if (g_str_has_suffix(entry->path, ".ssf")) {
+			g_strv_builder_add(builder, entry->path);
+			printf("%s\n", entry->path);
+		}
+	}
+	gui.repo_scripts = g_strv_builder_end(builder);
+
     // Cleanup
-    git_repository_free(repo);
+    if (repo)
+		git_repository_free(repo);
     git_libgit2_shutdown();
 
-    return 0;
+    return retval;
 }
 
 /************* GUI code for the Preferences->Scripts TreeView ****************/
@@ -279,11 +276,11 @@ void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
 
 void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
 	if (!update_gitscripts()) {
-		fill_script_repo_list(FALSE);
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Update complete"), _("Scripts updated successfully."));
 	} else {
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Error"), _("Scripts failed to update."));
 	}
+	fill_script_repo_list(FALSE);
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
