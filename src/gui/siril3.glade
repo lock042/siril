@@ -19978,11 +19978,14 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                 <property name="can-focus">True</property>
                 <property name="hscrollbar-policy">never</property>
                 <property name="shadow-type">in</property>
+                <property name="min-content-width">400</property>
                 <property name="min-content-height">600</property>
                 <property name="propagate-natural-width">True</property>
                 <property name="propagate-natural-height">True</property>
                 <child>
                   <object class="GtkTextView" id="script_contents">
+                    <property name="width-request">400</property>
+                    <property name="height-request">600</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="vscroll-policy">natural</property>
@@ -19990,6 +19993,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                     <property name="wrap-mode">word</property>
                     <property name="buffer">script_textbuffer</property>
                     <property name="accepts-tab">False</property>
+                    <property name="monospace">True</property>
                   </object>
                 </child>
               </object>

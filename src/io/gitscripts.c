@@ -9,7 +9,7 @@
 
 static GtkListStore *list_store = NULL;
 
-int update_gitscripts(void) {
+int update_gitscripts(gboolean sync) {
 	int retval = 0;
 	// Initialize libgit2
     git_libgit2_init();
@@ -42,7 +42,7 @@ int update_gitscripts(void) {
 		}
 	}
 	// Synchronise the repository
-	if (error == 0) {
+	if (error == 0 && sync) {
 		// Fetch options
 		git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 
@@ -275,7 +275,7 @@ void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
-	if (!update_gitscripts()) {
+	if (!update_gitscripts(TRUE)) {
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Update complete"), _("Scripts updated successfully."));
 	} else {
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Error"), _("Scripts failed to update."));
@@ -318,7 +318,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(button)) {
 		com.pref.use_scripts_repository = TRUE;
-		update_gitscripts();
+		update_gitscripts(FALSE);
 		fill_script_repo_list(FALSE);
 	} else {
 		com.pref.use_scripts_repository = FALSE;
