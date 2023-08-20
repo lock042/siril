@@ -14,6 +14,7 @@
 //#define DEBUG_SCRIPTS
 
 static GtkListStore *list_store = NULL;
+static gchar *git_pending_commit_buffer = NULL;
 
 int update_gitscripts(gboolean sync) {
 	int retval = 0;
@@ -23,10 +24,10 @@ int update_gitscripts(gboolean sync) {
     // URL of the remote repository
     const char *url = "https://gitlab.com/free-astro/siril-scripts.git";
 
-    // Local directory where the repository will be cloned
-    const gchar *local_path = siril_get_scripts_repo_path();
+	// Local directory where the repository will be cloned
+	const gchar *local_path = siril_get_scripts_repo_path();
 
-    // Clone options
+	// Clone options
     git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
 
     git_repository *repo = NULL;
@@ -171,6 +172,101 @@ FINISH:
     return retval;
 }
 
+int preview_update() {
+	// Initialize libgit2
+	git_libgit2_init();
+
+	// Local directory where the repository will be cloned
+	const gchar *local_path = siril_get_scripts_repo_path();
+
+	git_repository *repo = NULL;
+	int error = git_repository_open(&repo, local_path);
+	if (error < 0) {
+		siril_log_color_message(_("Error opening repository: %s\n"), "red", giterr_last()->message);
+		return 1;
+	}
+	git_remote *remote = NULL;
+	error = git_remote_lookup(&remote, repo, "origin");
+	if (error < 0) {
+		siril_log_color_message(_("Error looking up remote: %s\n"), "red", giterr_last()->message);
+		git_repository_free(repo);
+		return 1;
+	}
+
+	error = git_remote_fetch(remote, NULL, NULL, NULL);
+	if (error < 0) {
+		siril_log_color_message(_("Error fetching remote: %s\n"), "red", giterr_last()->message);
+		git_remote_free(remote);
+		git_repository_free(repo);
+		return 1;
+	}
+	git_reference *remote_head_ref = NULL;
+	error = git_reference_dwim(&remote_head_ref, repo, "origin/HEAD");
+	if (error < 0) {
+		siril_log_color_message(_("Error getting remote HEAD: %s\n"), "red", giterr_last()->message);
+		git_remote_free(remote);
+		git_repository_free(repo);
+		return 1;
+	}
+	git_reference *local_head_ref = NULL;
+	error = git_repository_head(&local_head_ref, repo);
+	if (error < 0) {
+		siril_log_color_message(_("Error getting local HEAD: %s\n"), "red", giterr_last()->message);
+		git_reference_free(remote_head_ref);
+		git_remote_free(remote);
+		git_repository_free(repo);
+		return 1;
+	}
+	git_oid remote_commit_id, local_commit_id;
+	git_commit *remote_commit, *local_commit;
+
+	git_oid_cpy(&remote_commit_id, git_reference_target(remote_head_ref));
+	git_oid_cpy(&local_commit_id, git_reference_target(local_head_ref));
+
+	if (git_pending_commit_buffer) {
+		g_free(git_pending_commit_buffer);
+		git_pending_commit_buffer = NULL;
+	}
+	if (git_commit_lookup(&remote_commit, repo, &remote_commit_id) == 0 &&
+		git_commit_lookup(&local_commit, repo, &local_commit_id) == 0) {
+
+		if (git_commit_time(remote_commit) > git_commit_time(local_commit)) {
+			git_revwalk *walker = NULL;
+			git_revwalk_new(&walker, repo);
+			git_revwalk_push(walker, git_object_id((git_object *)remote_commit));
+
+			git_oid commit_id;
+			while (!git_revwalk_next(&commit_id, walker)) {
+				git_commit *commit = NULL;
+				if (git_commit_lookup(&commit, repo, &commit_id) == 0) {
+					printf("Commit Message: %s\n", git_commit_summary(commit));
+					gchar *temp = g_strdup_printf("%s\n", git_commit_summary(commit));
+					gchar *temp2 = g_strconcat(git_pending_commit_buffer, temp, NULL);
+					g_free(temp);
+					g_free(git_pending_commit_buffer);
+					git_pending_commit_buffer = temp2;
+					git_commit_free(commit);
+				}
+			}
+
+			git_revwalk_free(walker);
+		}
+
+		git_commit_free(remote_commit);
+		git_commit_free(local_commit);
+	}
+
+	siril_log_message(_("Completed checking pending commits to scripts repository...\n"));
+	if (!git_pending_commit_buffer)
+		siril_log_color_message(_("Local repository is up to date.\n"), "green");
+	git_reference_free(local_head_ref);
+	git_reference_free(remote_head_ref);
+	git_remote_free(remote);
+	git_repository_free(repo);
+	git_libgit2_shutdown();
+	return 0;
+}
+
 /************* GUI code for the Preferences->Scripts TreeView ****************/
 static const char *bg_color[] = { "WhiteSmoke", "#1B1B1B" };
 
@@ -282,12 +378,15 @@ void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
-	if (!update_gitscripts(TRUE)) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Update complete"), _("Scripts updated successfully."));
-	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Error"), _("Scripts failed to update."));
+	preview_update();
+	if (git_pending_commit_buffer != NULL && siril_confirm_dialog(_("Read and accept the pending changes to be synced"), git_pending_commit_buffer, _("Confirm"))) {
+		if (!update_gitscripts(TRUE)) {
+			siril_message_dialog(GTK_MESSAGE_INFO, _("Update complete"), _("Scripts updated successfully."));
+		} else {
+			siril_message_dialog(GTK_MESSAGE_INFO, _("Error"), _("Scripts failed to update."));
+		}
+		fill_script_repo_list(FALSE);
 	}
-	fill_script_repo_list(FALSE);
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
