@@ -220,19 +220,38 @@ int initialize_script_menu() {
 		GtkWidget *separator = gtk_separator_menu_item_new();
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
 		gtk_widget_show(separator);
+		GList *new_list = NULL;
 		for (ss = com.pref.selected_scripts ; ss ; ss = ss->next) {
 			nb_item++;
-			/* write an item per script file */
-			GtkWidget *menu_item;
-			gchar* basename = g_path_get_basename(ss->data);
-			menu_item = gtk_menu_item_new_with_label(basename);
-			gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
-			g_signal_connect(G_OBJECT(menu_item), "activate",
-					G_CALLBACK(on_script_execution), (gchar * ) ss->data);
-			siril_log_message(_("Loading script: %s\n"), basename);
-			g_free(basename);
-			gtk_widget_show(menu_item);
+			/* check that the selected script is still in the repository */
+
+			gboolean included = FALSE;
+			int i = 0;
+			while (gui.repo_scripts[i]) {
+				if (g_strrstr((gchar*) ss->data, gui.repo_scripts[i])) {
+					included = TRUE;
+				}
+				i++;
+			}
+			if (included) {
+				/* write an item per script file */
+				GtkWidget *menu_item;
+				gchar* basename = g_path_get_basename(ss->data);
+				menu_item = gtk_menu_item_new_with_label(basename);
+				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+				g_signal_connect(G_OBJECT(menu_item), "activate",
+						G_CALLBACK(on_script_execution), (gchar * ) ss->data);
+				siril_log_message(_("Loading script: %s\n"), basename);
+				g_free(basename);
+				gtk_widget_show(menu_item);
+				new_list = g_list_prepend(new_list, ss->data);
+			} else {
+				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
+			}
 		}
+		GList *tmp = com.pref.selected_scripts;
+		com.pref.selected_scripts = new_list;
+		g_list_free (g_steal_pointer (&tmp));
 	}
 
 	if (!nb_item) {
