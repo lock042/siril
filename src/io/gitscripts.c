@@ -7,6 +7,12 @@
 #include "gui/utils.h"
 #include "gui/script_menu.h"
 
+/* Uncomment the next line for additional debug messages showing scripts and
+ * script paths
+ */
+
+//#define DEBUG_SCRIPTS
+
 static GtkListStore *list_store = NULL;
 
 int update_gitscripts(gboolean sync) {
@@ -40,6 +46,8 @@ int update_gitscripts(gboolean sync) {
 		} else {
 			siril_log_message(_("Repository cloned successfully!\n"));
 		}
+	} else {
+		siril_log_message(_("Local scripts repository opened successfully!\n"));
 	}
 	// Synchronise the repository
 	if (error == 0 && sync) {
@@ -148,7 +156,9 @@ FINISH:
 		entry = git_index_get_byindex(index, i);
 		if (g_str_has_suffix(entry->path, ".ssf")) {
 			g_strv_builder_add(builder, entry->path);
+#ifdef DEBUG_SCRIPTS
 			printf("%s\n", entry->path);
+#endif
 		}
 	}
 	gui.repo_scripts = g_strv_builder_end(builder);
@@ -179,11 +189,6 @@ static void get_list_store() {
 	}
 }
 
-gchar* get_script_filepath_from_path(GtkTreePath *path) {
-	// TODO: Should actually return the script file path from the Path column of the GtkTreeView
-	return NULL;
-}
-
 static gboolean fill_script_repo_list_idle(gpointer p) {
 	int i;
 
@@ -211,7 +216,9 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 #else
 			gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), gui.repo_scripts[i], NULL);
 #endif
+#ifdef DEBUG_SCRIPTS
 			printf("%s\n", scriptpath);
+#endif
 			// Check whether the script appears in the list
 			GList* iterator;
 			gboolean included = FALSE;
@@ -261,7 +268,7 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gtk_tree_model_get (model, &iter, 1, &scriptname, 3, &scriptpath, -1);
 		if (g_file_get_contents(scriptpath, &contents, &length, &error) && length > 0) {
-			GtkTextBuffer *script_textbuffer = (GtkTextBuffer*) lookup_widget("script_textbuffer");
+			GtkTextBuffer *script_textbuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget("script_contents")));;
 			GtkLabel* script_label = (GtkLabel*) lookup_widget("script_label");
 			gtk_label_set_text(script_label, scriptname);
 			gtk_text_buffer_set_text(script_textbuffer, contents, (gint) length);
@@ -299,7 +306,9 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 
 	if (!val) {
 		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
+#ifdef DEBUG_SCRIPTS
 			printf("%s\n", script_path);
+#endif
 			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
 		}
 	} else {

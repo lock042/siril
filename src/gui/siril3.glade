@@ -32174,7 +32174,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="vscroll-policy">natural</property>
                                     <property name="model">liststore_script_repo</property>
                                     <property name="headers-clickable">False</property>
-                                    <property name="enable-search">False</property>
                                     <property name="search-column">1</property>
                                     <property name="show-expanders">False</property>
                                     <property name="enable-grid-lines">horizontal</property>
@@ -32223,7 +32222,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <signal name="toggled" handler="on_script_list_active_toggled" swapped="no"/>
                                           </object>
                                           <attributes>
-                                            <attribute name="cell-background">6</attribute>
+                                            <attribute name="cell-background">4</attribute>
                                             <attribute name="active">2</attribute>
                                           </attributes>
                                         </child>
