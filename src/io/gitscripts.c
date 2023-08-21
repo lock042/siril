@@ -1,9 +1,12 @@
 #include <git2.h>
+#include <assert.h>
+#include <inttypes.h>
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "gui/script_menu.h"
 
@@ -14,7 +17,513 @@
 //#define DEBUG_SCRIPTS
 
 static GtkListStore *list_store = NULL;
-static gchar *git_pending_commit_buffer = NULL;
+static GString *git_pending_commit_buffer = NULL;
+
+static void *xrealloc(void *oldp, size_t newsz)
+{
+	void *p = realloc(oldp, newsz);
+	if (p == NULL) {
+		PRINT_ALLOC_ERR;
+		//exit(1);
+	}
+	return p;
+}
+
+#define MAX_PATHSPEC 8
+
+enum {
+	FORMAT_DEFAULT   = 0,
+	FORMAT_LONG      = 1,
+	FORMAT_SHORT     = 2,
+	FORMAT_PORCELAIN = 3
+};
+
+struct status_opts {
+	git_status_options statusopt;
+	char *repodir;
+	char *pathspec[MAX_PATHSPEC];
+	int npaths;
+	int format;
+	int zterm;
+	int showbranch;
+	int showsubmod;
+	int repeat;
+};
+
+struct merge_options {
+	const char **heads;
+	size_t heads_count;
+
+	git_annotated_commit **annotated;
+	size_t annotated_count;
+
+	int no_commit : 1;
+};
+
+static void merge_options_init(struct merge_options *opts)
+{
+	memset(opts, 0, sizeof(*opts));
+
+	opts->heads = NULL;
+	opts->heads_count = 0;
+	opts->annotated = NULL;
+	opts->annotated_count = 0;
+}
+
+static void opts_add_refish(struct merge_options *opts, const char *refish)
+{
+	size_t sz;
+
+	assert(opts != NULL);
+
+	sz = ++opts->heads_count * sizeof(opts->heads[0]);
+	opts->heads = xrealloc((void *) opts->heads, sz);
+	opts->heads[opts->heads_count - 1] = refish;
+}
+
+void check_lg2(int error, const char *message, const char *extra)
+{
+	const git_error *lg2err;
+	const char *lg2msg = "", *lg2spacer = "";
+
+	if (!error)
+		return;
+
+	if ((lg2err = git_error_last()) != NULL && lg2err->message != NULL) {
+		lg2msg = lg2err->message;
+		lg2spacer = " - ";
+	}
+
+	if (extra) {
+		siril_debug_print("%s '%s' [%d]%s%s\n",
+			message, extra, error, lg2spacer, lg2msg);
+		siril_log_color_message(_("%s [%d]%s%s\n"), "red",
+			message, error, lg2spacer, lg2msg);
+	} else {
+		siril_log_color_message(_("%s [%d]%s%s\n"), "red",
+			message, error, lg2spacer, lg2msg);
+	}
+//	exit(1);
+}
+
+int resolve_refish(git_annotated_commit **commit, git_repository *repo, const char *refish)
+{
+	git_reference *ref;
+	git_object *obj;
+	int err = 0;
+
+	assert(commit != NULL);
+
+	err = git_reference_dwim(&ref, repo, refish);
+	if (err == GIT_OK) {
+		git_annotated_commit_from_ref(commit, repo, ref);
+		git_reference_free(ref);
+		return 0;
+	}
+
+	err = git_revparse_single(&obj, repo, refish);
+	if (err == GIT_OK) {
+		err = git_annotated_commit_lookup(commit, repo, git_object_id(obj));
+		git_object_free(obj);
+	}
+
+	return err;
+}
+
+static int resolve_heads(git_repository *repo, struct merge_options *opts)
+{
+	git_annotated_commit **annotated = calloc(opts->heads_count, sizeof(git_annotated_commit *));
+	size_t annotated_count = 0, i;
+	int err = 0;
+
+	for (i = 0; i < opts->heads_count; i++) {
+		err = resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
+		if (err != 0) {
+			siril_debug_print("libgit2: failed to resolve refish %s: %s\n", opts->heads[i], git_error_last()->message);
+			annotated_count--;
+			continue;
+		}
+	}
+
+	if (annotated_count != opts->heads_count) {
+		siril_log_color_message(_("libgit2: unable to parse some refish\n"), "red");
+		free(annotated);
+		return -1;
+	}
+
+	opts->annotated = annotated;
+	opts->annotated_count = annotated_count;
+	return 0;
+}
+
+static int perform_fastforward(git_repository *repo, const git_oid *target_oid, int is_unborn)
+{
+	git_checkout_options ff_checkout_options = GIT_CHECKOUT_OPTIONS_INIT;
+	git_reference *target_ref;
+	git_reference *new_target_ref;
+	git_object *target = NULL;
+	int err = 0;
+
+	if (is_unborn) {
+		const char *symbolic_ref;
+		git_reference *head_ref;
+
+		/* HEAD reference is unborn, lookup manually so we don't try to resolve it */
+		err = git_reference_lookup(&head_ref, repo, "HEAD");
+		if (err != 0) {
+			siril_log_color_message(_("libgit2: failed to lookup HEAD ref\n"), "red");
+			return -1;
+		}
+
+		/* Grab the reference HEAD should be pointing to */
+		symbolic_ref = git_reference_symbolic_target(head_ref);
+
+		/* Create our master reference on the target OID */
+		err = git_reference_create(&target_ref, repo, symbolic_ref, target_oid, 0, NULL);
+		if (err != 0) {
+			siril_log_color_message(_("libgit2: failed to create master reference\n"), "red");
+			return -1;
+		}
+
+		git_reference_free(head_ref);
+	} else {
+		/* HEAD exists, just lookup and resolve */
+		err = git_repository_head(&target_ref, repo);
+		if (err != 0) {
+			siril_log_color_message(_("libgit2: failed to get HEAD reference\n"), "red");
+			return -1;
+		}
+	}
+
+	/* Lookup the target object */
+	err = git_object_lookup(&target, repo, target_oid, GIT_OBJECT_COMMIT);
+	if (err != 0) {
+		siril_log_color_message(_("libgit2: failed to lookup OID %s\n"), "red", git_oid_tostr_s(target_oid));
+		return -1;
+	}
+
+	/* Checkout the result so the workdir is in the expected state */
+	ff_checkout_options.checkout_strategy = GIT_CHECKOUT_SAFE;
+	err = git_checkout_tree(repo, target, &ff_checkout_options);
+	if (err != 0) {
+		siril_log_color_message(_("libgit2: failed to checkout HEAD reference\n"), "red");
+		return -1;
+	}
+
+	/* Move the target reference to the target OID */
+	err = git_reference_set_target(&new_target_ref, target_ref, target_oid, NULL);
+	if (err != 0) {
+		siril_log_color_message(_("libgit2: failed to move HEAD reference\n"), "red");
+		return -1;
+	}
+
+	git_reference_free(target_ref);
+	git_reference_free(new_target_ref);
+	git_object_free(target);
+
+	return 0;
+}
+
+static void output_conflicts(git_index *index)
+{
+	git_index_conflict_iterator *conflicts;
+	const git_index_entry *ancestor;
+	const git_index_entry *our;
+	const git_index_entry *their;
+	int err = 0;
+
+	check_lg2(git_index_conflict_iterator_new(&conflicts, index), _("libgit2: failed to create conflict iterator"), NULL);
+
+	while ((err = git_index_conflict_next(&ancestor, &our, &their, conflicts)) == 0) {
+		siril_log_color_message(_("libgit2: conflict: a:%s o:%s t:%s\n"), "red",
+		        ancestor ? ancestor->path : "NULL",
+		        our->path ? our->path : "NULL",
+		        their->path ? their->path : "NULL");
+	}
+
+	if (err != GIT_ITEROVER) {
+		siril_log_color_message(_("error iterating conflicts\n"), "red");
+	}
+
+	git_index_conflict_iterator_free(conflicts);
+}
+
+static int create_merge_commit(git_repository *repo, git_index *index, struct merge_options *opts)
+{
+	git_oid tree_oid, commit_oid;
+	git_tree *tree;
+	git_signature *sign;
+	git_reference *merge_ref = NULL;
+	git_annotated_commit *merge_commit;
+	git_reference *head_ref;
+	git_commit **parents = calloc(opts->annotated_count + 1, sizeof(git_commit *));
+	const char *msg_target = NULL;
+	size_t msglen = 0;
+	char *msg;
+	size_t i;
+	int err;
+
+	/* Grab our needed references */
+	check_lg2(git_repository_head(&head_ref, repo), _("libgit2: failed to get repo HEAD"), NULL);
+	if (resolve_refish(&merge_commit, repo, opts->heads[0])) {
+		siril_log_color_message(_("libgit2: failed to resolve refish %s"), "red", opts->heads[0]);
+		free(parents);
+		return -1;
+	}
+
+	/* Maybe that's a ref, so DWIM it */
+	err = git_reference_dwim(&merge_ref, repo, opts->heads[0]);
+	check_lg2(err, _("libgit2: failed to DWIM reference"), git_error_last()->message);
+
+	/* Grab a signature */
+	// TODO: I doubt this works as-is from the example.
+	check_lg2(git_signature_now(&sign, "Me", "me@example.com"), _("libgit2: failed to create signature"), NULL);
+
+#define MERGE_COMMIT_MSG "Merge %s '%s'"
+	/* Prepare a standard merge commit message */
+	if (merge_ref != NULL) {
+		check_lg2(git_branch_name(&msg_target, merge_ref), _("libgit2: failed to get branch name of merged ref"), NULL);
+	} else {
+		msg_target = git_oid_tostr_s(git_annotated_commit_id(merge_commit));
+	}
+
+	msglen = snprintf(NULL, 0, MERGE_COMMIT_MSG, (merge_ref ? "branch" : "commit"), msg_target);
+	if (msglen > 0) msglen++;
+	msg = malloc(msglen);
+	err = snprintf(msg, msglen, MERGE_COMMIT_MSG, (merge_ref ? "branch" : "commit"), msg_target);
+
+	/* This is only to silence the compiler */
+	if (err < 0) goto cleanup;
+
+	/* Setup our parent commits */
+	err = git_reference_peel((git_object **)&parents[0], head_ref, GIT_OBJECT_COMMIT);
+	check_lg2(err, _("failed to peel head reference"), NULL);
+	for (i = 0; i < opts->annotated_count; i++) {
+		git_commit_lookup(&parents[i + 1], repo, git_annotated_commit_id(opts->annotated[i]));
+	}
+
+	/* Prepare our commit tree */
+	check_lg2(git_index_write_tree(&tree_oid, index), _("failed to write merged tree"), NULL);
+	check_lg2(git_tree_lookup(&tree, repo, &tree_oid), _("failed to lookup tree"), NULL);
+
+	/* Commit time ! */
+	err = git_commit_create(&commit_oid,
+	                        repo, git_reference_name(head_ref),
+	                        sign, sign,
+	                        NULL, msg,
+	                        tree,
+	                        opts->annotated_count + 1, (const git_commit **)parents);
+	check_lg2(err, _("failed to create commit"), NULL);
+
+	/* We're done merging, cleanup the repository state */
+	git_repository_state_cleanup(repo);
+
+cleanup:
+	free(parents);
+	return err;
+}
+
+char *get_commit_from_oid(git_repository *repo, git_oid* oid_to_find) {
+	char *retval = NULL;
+	// Convert the OID to a commit
+	git_commit *commit = NULL;
+	if (git_commit_lookup(&commit, repo, oid_to_find) != 0) {
+		siril_log_color_message(_("Failed to find commit with given OID.\n"), "red");
+		return NULL;
+	}
+
+	// Iterate through references to find the ref name
+	git_reference_iterator *ref_iterator = NULL;
+	if (git_reference_iterator_new(&ref_iterator, repo) == 0) {
+		git_reference *ref = NULL;
+		while (git_reference_next(&ref, ref_iterator) == 0) {
+			if (git_reference_type(ref) == GIT_REFERENCE_DIRECT) {
+				const git_oid *target_oid = git_reference_target(ref);
+				if (git_oid_equal(target_oid, git_commit_id(commit))) {
+					retval = strdup(git_reference_name(ref));
+					break;
+				}
+			}
+			git_reference_free(ref);
+		}
+		git_reference_iterator_free(ref_iterator);
+	}
+	return retval;
+}
+
+int fetchhead_cb(const char *ref_name, const char *remote_url, const git_oid *oid, unsigned int is_merge, void *payload)
+{
+    if (is_merge)
+    {
+        siril_debug_print("reference: '%s' is the reference we should merge\n", ref_name);
+        git_oid_cpy((git_oid *)payload, oid);
+    }
+    return 0;
+}
+
+int lg2_merge(git_repository *repo) {
+	struct merge_options opts;
+	git_index *index;
+	git_repository_state_t state;
+	git_merge_analysis_t analysis;
+	git_merge_preference_t preference;
+	git_oid id_to_merge;
+	int err = 0;
+
+	merge_options_init(&opts);
+
+	// Figure out which branch to feed to git_merge()
+	git_repository_fetchhead_foreach(repo, fetchhead_cb, &id_to_merge);
+	char *head_to_merge = get_commit_from_oid(repo, &id_to_merge);
+
+	opts_add_refish(&opts, head_to_merge);
+	state = git_repository_state(repo);
+	if (state != GIT_REPOSITORY_STATE_NONE) {
+		siril_log_color_message(_("libgit2: repository is in unexpected state %d\n"), "red", state);
+		goto cleanup;
+	}
+
+	err = resolve_heads(repo, &opts);
+	if (err != 0)
+		goto cleanup;
+
+	err = git_merge_analysis(&analysis, &preference,
+	                         repo,
+	                         (const git_annotated_commit **)opts.annotated,
+	                         opts.annotated_count);
+	if (err != 0) {
+		check_lg2(err, _("libgit2: merge analysis failed"), NULL);
+		goto cleanup;
+	}
+
+	if (analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE) {
+		siril_log_color_message(_("Already up-to-date\n"), "green");
+		return 0;
+	} else if (analysis & GIT_MERGE_ANALYSIS_UNBORN ||
+	          (analysis & GIT_MERGE_ANALYSIS_FASTFORWARD &&
+	          !(preference & GIT_MERGE_PREFERENCE_NO_FASTFORWARD))) {
+		const git_oid *target_oid;
+		if (analysis & GIT_MERGE_ANALYSIS_UNBORN) {
+			siril_debug_print("Unborn\n");
+		} else {
+			siril_debug_print("Fast-forward\n");
+		}
+
+		/* Since this is a fast-forward, there can be only one merge head */
+		target_oid = git_annotated_commit_id(opts.annotated[0]);
+		assert(opts.annotated_count == 1);
+
+		return perform_fastforward(repo, target_oid, (analysis & GIT_MERGE_ANALYSIS_UNBORN));
+	} else if (analysis & GIT_MERGE_ANALYSIS_NORMAL) {
+		git_merge_options merge_opts = GIT_MERGE_OPTIONS_INIT;
+		git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
+
+		merge_opts.flags = 0;
+		merge_opts.file_flags = GIT_MERGE_FILE_STYLE_DIFF3;
+
+		checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE|GIT_CHECKOUT_ALLOW_CONFLICTS;
+
+		if (preference & GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY) {
+			siril_log_color_message(_("libgit2: fast-forward is preferred, but only a merge is possible\n"), "red");
+			return -1;
+		}
+
+		err = git_merge(repo,
+		                (const git_annotated_commit **)opts.annotated, opts.annotated_count,
+		                &merge_opts, &checkout_opts);
+		check_lg2(err, _("libgit2: merge failed"), NULL);
+	}
+
+	/* If we get here, we actually performed the merge above */
+
+	check_lg2(git_repository_index(&index, repo), _("libgit2: failed to get repository index"), NULL);
+
+	if (git_index_has_conflicts(index)) {
+		/* Handle conflicts */
+		output_conflicts(index);
+	} else if (!opts.no_commit) {
+		create_merge_commit(repo, index, &opts);
+		siril_log_color_message(_("Merge completed\n"), "green");
+	}
+
+cleanup:
+	free((char **)opts.heads);
+	free(opts.annotated);
+
+	return 0;
+}
+
+
+static int transfer_progress_cb(const git_indexer_progress *stats, void *payload)
+{
+	(void)payload;
+
+	if (stats->received_objects == stats->total_objects) {
+		gchar *msg = g_strdup_printf(_("Resolving deltas %u/%u..."),
+		       stats->indexed_deltas, stats->total_deltas);
+		set_progress_bar_data(msg, (double) stats->indexed_deltas / stats->total_deltas);
+		g_free(msg);
+	} else if (stats->total_objects > 0) {
+		gchar *msg = g_strdup_printf(_("Received %u/%u objects \(%u) in %" PRIu64 " bytes..."),
+		       stats->received_objects, stats->total_objects,
+		       stats->indexed_objects, stats->received_bytes);
+		set_progress_bar_data(msg, (double) stats->received_objects / stats->total_objects);
+		g_free(msg);
+	}
+	return 0;
+}
+
+int lg2_fetch(git_repository *repo)
+{
+	git_remote *remote = NULL;
+//	const git_indexer_progress *stats;
+	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
+
+	// Reference to the remote
+	const char *remote_name = "origin";
+
+	/* Figure out whether it's a named remote or a URL */
+	siril_debug_print("Fetching %s for repo %p\n", remote_name, repo);
+
+	if (git_remote_lookup(&remote, repo, remote_name))
+//		if (git_remote_create_anonymous(&remote, repo, remote_name))
+			goto on_error;
+
+	/* Set up the transfer_progress callback) */
+//c	fetch_opts.callbacks.transfer_progress = transfer_progress_cb;
+
+	/**
+	 * Perform the fetch with the configured refspecs from the
+	 * config. Update the reflog for the updated references with
+	 * "fetch".
+	 */
+	if (git_remote_fetch(remote, NULL, &fetch_opts, "fetch") < 0)
+		goto on_error;
+
+	/**
+	 * If there are local objects (we got a thin pack), then tell
+	 * the user how many objects we saved from having to cross the
+	 * network.
+	 * Commented out for now as it is returning zero byte results even
+	 * when the transfer is successful.
+	 */
+//	stats = git_remote_stats(remote);
+/*	if (stats->local_objects > 0) {
+		siril_debug_print("\rReceived %u/%u objects in %" PRIu64 " bytes (used %u local objects)\n",
+				stats->indexed_objects, stats->total_objects, stats->received_bytes, stats->local_objects);
+	} else{
+		siril_debug_print("\rReceived %u/%u objects in %" PRIu64 "bytes\n",
+				stats->indexed_objects, stats->total_objects, stats->received_bytes);
+	}*/
+
+	git_remote_free(remote);
+
+	return 0;
+
+ on_error:
+	git_remote_free(remote);
+	return -1;
+}
 
 int update_gitscripts(gboolean sync) {
 	int retval = 0;
@@ -22,7 +531,8 @@ int update_gitscripts(gboolean sync) {
     git_libgit2_init();
 
     // URL of the remote repository
-    const char *url = "https://gitlab.com/free-astro/siril-scripts.git";
+//    const char *url = "https://gitlab.com/free-astro/siril-scripts.git";
+    const char *url = "https://gitlab.com/aje.baugh/siril-scripts.git";
 
 	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_scripts_repo_path();
@@ -44,6 +554,8 @@ int update_gitscripts(gboolean sync) {
 		if (error != 0) {
 			const git_error *e = giterr_last();
 			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
+			git_libgit2_shutdown();
+			return 1;
 		} else {
 			siril_log_message(_("Repository cloned successfully!\n"));
 		}
@@ -52,95 +564,13 @@ int update_gitscripts(gboolean sync) {
 	}
 	// Synchronise the repository
 	if (error == 0 && sync) {
-		// Fetch options
-		git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
+		// fetch and merge changed from the remote
+		lg2_fetch(repo);
 
-		// Set up credentials for authentication if needed
-		// fetch_opts.callbacks.credentials = your_credentials_callback_function;
+		lg2_merge(repo);
 
-		// Reference to the remote
-		const char *remote_name = "origin";
-
-		// Reference to the branch to pull from
-		const char *branch_name = "main";
-
-		// Remote
-		git_remote *remote = NULL;
-		error = git_remote_lookup(&remote, repo, remote_name);
-
-		if (error != 0) {
-			const git_error *e = giterr_last();
-			siril_log_color_message(_("Cannot look up remote: %s (this is normal if you are offline)"), "salmon", e->message);
-			retval = 1;
-			goto FINISH;
-		}
-
-		// Fetch
-		error = git_remote_fetch(remote, NULL, &fetch_opts, NULL);
-
-		if (error != 0) {
-			const git_error *e = giterr_last();
-			siril_log_color_message(_("Cannot fetch remote: %s (this is normal if you are offline)\n"), "salmon", e->message);
-			git_remote_free(remote);
-			retval = 1;
-			goto FINISH;
-		}
-
-		// Merge fetched changes into the local branch
-		git_reference *branch_ref = NULL;
-		error = git_branch_lookup(&branch_ref, repo, branch_name, GIT_BRANCH_LOCAL);
-
-		if (error != 0) {
-			const git_error *e = giterr_last();
-			siril_log_color_message(_("Error looking up local branch: %s\n"), "red", e->message);
-			git_remote_free(remote);
-			retval = 1;
-			goto FINISH;
-		}
-
-		git_reference *head_ref = NULL;
-		error = git_repository_head(&head_ref, repo);
-
-		if (error != 0) {
-			const git_error *e = giterr_last();
-			siril_log_color_message(_("Error getting HEAD reference: %s\n"), "red", e->message);
-			git_reference_free(branch_ref);
-			git_remote_free(remote);
-			retval = 1;
-			goto FINISH;
-		}
-
-		git_annotated_commit *head_commit = NULL;
-		error = git_annotated_commit_lookup(&head_commit, repo, git_reference_target(head_ref));
-
-		if (error != 0) {
-			const git_error *e = giterr_last();
-			siril_log_color_message(_("Error looking up HEAD commit: %s\n"), "red", e->message);
-			git_reference_free(head_ref);
-			git_reference_free(branch_ref);
-			git_remote_free(remote);
-			retval = 1;
-			goto FINISH;
-		}
-
-		git_reference *update_ref = NULL;
-		error = git_reference_set_target(&update_ref, branch_ref, git_annotated_commit_id(head_commit), NULL);
-
-		if (error != 0) {
-			const git_error *e = giterr_last();
-			siril_log_color_message(_("Error updating branch reference: %s\n"), "red", e->message);
-			git_annotated_commit_free(head_commit);
-			git_reference_free(head_ref);
-			git_reference_free(branch_ref);
-			git_remote_free(remote);
-			retval = 1;
-			goto FINISH;
-		}
-
-		siril_log_message(_("Changes pulled and merged successfully!\n"));
+		siril_log_color_message(_("Changes fetched and merged successfully!\n"), "green");
 	}
-
-FINISH: ;
 
 	/*** Populate the list of available repository scripts ***/
 	size_t i;
@@ -172,6 +602,181 @@ FINISH: ;
     return retval;
 }
 
+static void print_long(git_status_list *status)
+{
+	size_t i, maxi = git_status_list_entrycount(status);
+	const git_status_entry *s;
+	int header = 0, changes_in_index = 0;
+	int changed_in_workdir = 0, rm_in_workdir = 0;
+	const char *old_path, *new_path;
+
+	/** Print index changes. */
+
+	for (i = 0; i < maxi; ++i) {
+		char *istatus = NULL;
+
+		s = git_status_byindex(status, i);
+
+		if (s->status == GIT_STATUS_CURRENT)
+			continue;
+
+		if (s->status & GIT_STATUS_WT_DELETED)
+			rm_in_workdir = 1;
+
+		if (s->status & GIT_STATUS_INDEX_NEW)
+			istatus = "new file: ";
+		if (s->status & GIT_STATUS_INDEX_MODIFIED)
+			istatus = "modified: ";
+		if (s->status & GIT_STATUS_INDEX_DELETED)
+			istatus = "deleted:  ";
+		if (s->status & GIT_STATUS_INDEX_RENAMED)
+			istatus = "renamed:  ";
+		if (s->status & GIT_STATUS_INDEX_TYPECHANGE)
+			istatus = "typechange:";
+
+		if (istatus == NULL)
+			continue;
+
+		if (!header) {
+			g_string_append_printf(git_pending_commit_buffer, "# Changes to be committed:\n");
+			g_string_append_printf(git_pending_commit_buffer, "#   (use \"git reset HEAD <file>...\" to unstage)\n");
+			g_string_append_printf(git_pending_commit_buffer, "#\n");
+			header = 1;
+		}
+
+		old_path = s->head_to_index->old_file.path;
+		new_path = s->head_to_index->new_file.path;
+
+		if (old_path && new_path && strcmp(old_path, new_path))
+			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s -> %s\n", istatus, old_path, new_path);
+		else
+			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s\n", istatus, old_path ? old_path : new_path);
+	}
+
+	if (header) {
+		changes_in_index = 1;
+		g_string_append_printf(git_pending_commit_buffer, "#\n");
+	}
+	header = 0;
+
+	/** Print workdir changes to tracked files. */
+
+	for (i = 0; i < maxi; ++i) {
+		char *wstatus = NULL;
+
+		s = git_status_byindex(status, i);
+
+		/**
+		 * With `GIT_STATUS_OPT_INCLUDE_UNMODIFIED` (not used in this example)
+		 * `index_to_workdir` may not be `NULL` even if there are
+		 * no differences, in which case it will be a `GIT_DELTA_UNMODIFIED`.
+		 */
+		if (s->status == GIT_STATUS_CURRENT || s->index_to_workdir == NULL)
+			continue;
+
+		/** Print out the output since we know the file has some changes */
+		if (s->status & GIT_STATUS_WT_MODIFIED)
+			wstatus = "modified: ";
+		if (s->status & GIT_STATUS_WT_DELETED)
+			wstatus = "deleted:  ";
+		if (s->status & GIT_STATUS_WT_RENAMED)
+			wstatus = "renamed:  ";
+		if (s->status & GIT_STATUS_WT_TYPECHANGE)
+			wstatus = "typechange:";
+
+		if (wstatus == NULL)
+			continue;
+
+		if (!header) {
+			g_string_append_printf(git_pending_commit_buffer, "# Changes not staged for commit:\n");
+			g_string_append_printf(git_pending_commit_buffer, "#   (use \"git add%s <file>...\" to update what will be committed)\n", rm_in_workdir ? "/rm" : "");
+			g_string_append_printf(git_pending_commit_buffer, "#   (use \"git checkout -- <file>...\" to discard changes in working directory)\n");
+			g_string_append_printf(git_pending_commit_buffer, "#\n");
+			header = 1;
+		}
+
+		old_path = s->index_to_workdir->old_file.path;
+		new_path = s->index_to_workdir->new_file.path;
+
+		if (old_path && new_path && strcmp(old_path, new_path))
+			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s -> %s\n", wstatus, old_path, new_path);
+		else
+			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s\n", wstatus, old_path ? old_path : new_path);
+	}
+
+	if (header) {
+		changed_in_workdir = 1;
+		g_string_append_printf(git_pending_commit_buffer, "#\n");
+	}
+
+	/** Print untracked files. */
+
+	header = 0;
+
+	for (i = 0; i < maxi; ++i) {
+		s = git_status_byindex(status, i);
+
+		if (s->status == GIT_STATUS_WT_NEW) {
+
+			if (!header) {
+				g_string_append_printf(git_pending_commit_buffer, "# Untracked files:\n");
+				g_string_append_printf(git_pending_commit_buffer, "#   (use \"git add <file>...\" to include in what will be committed)\n");
+				g_string_append_printf(git_pending_commit_buffer, "#\n");
+				header = 1;
+			}
+
+			printf("#\t%s\n", s->index_to_workdir->old_file.path);
+		}
+	}
+
+	header = 0;
+
+	/** Print ignored files. */
+
+	for (i = 0; i < maxi; ++i) {
+		s = git_status_byindex(status, i);
+
+		if (s->status == GIT_STATUS_IGNORED) {
+
+			if (!header) {
+				g_string_append_printf(git_pending_commit_buffer, "# Ignored files:\n");
+				g_string_append_printf(git_pending_commit_buffer, "#   (use \"git add -f <file>...\" to include in what will be committed)\n");
+				g_string_append_printf(git_pending_commit_buffer, "#\n");
+				header = 1;
+			}
+
+			printf("#\t%s\n", s->index_to_workdir->old_file.path);
+		}
+	}
+
+	if (!changes_in_index && changed_in_workdir)
+		g_string_append_printf(git_pending_commit_buffer, "No changes added to commit.\n");
+}
+
+static void show_branch(git_repository *repo, int format)
+{
+	int error = 0;
+	const char *branch = NULL;
+	git_reference *head = NULL;
+
+	error = git_repository_head(&head, repo);
+
+	if (error == GIT_EUNBORNBRANCH || error == GIT_ENOTFOUND)
+		branch = NULL;
+	else if (!error) {
+		branch = git_reference_shorthand(head);
+	} else
+		check_lg2(error, "failed to get current branch", NULL);
+
+	if (format == FORMAT_LONG)
+		g_string_append_printf(git_pending_commit_buffer, "# On branch %s\n",
+			branch ? branch : "Not currently on any branch.");
+	else
+		g_string_append_printf(git_pending_commit_buffer, "## %s\n", branch ? branch : "HEAD (no branch)");
+
+	git_reference_free(head);
+}
+
 int preview_update() {
 	// Initialize libgit2
 	git_libgit2_init();
@@ -185,87 +790,46 @@ int preview_update() {
 		siril_log_color_message(_("Error opening repository: %s\n"), "red", giterr_last()->message);
 		return 1;
 	}
-	git_remote *remote = NULL;
-	error = git_remote_lookup(&remote, repo, "origin");
-	if (error < 0) {
-		siril_log_color_message(_("Error looking up remote: %s\n"), "red", giterr_last()->message);
+
+	// Fetch changes
+	lg2_fetch(repo);
+
+	git_status_list *status;
+	struct status_opts o = { GIT_STATUS_OPTIONS_INIT, "." };
+	o.statusopt.show  = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
+	o.statusopt.flags = GIT_STATUS_OPT_INCLUDE_UNTRACKED |
+		GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX |
+		GIT_STATUS_OPT_SORT_CASE_SENSITIVELY;
+
+	o.format = FORMAT_LONG;
+
+	if (git_repository_is_bare(repo)) {
+		siril_log_color_message(_("Cannot report status on bare repository"), "red",
+			git_repository_path(repo));
 		git_repository_free(repo);
-		return 1;
+		git_libgit2_shutdown();
 	}
 
-	error = git_remote_fetch(remote, NULL, NULL, NULL);
-	if (error < 0) {
-		siril_log_color_message(_("Error fetching remote: %s\n"), "red", giterr_last()->message);
-		git_remote_free(remote);
-		git_repository_free(repo);
-		return 1;
-	}
-	git_reference *remote_head_ref = NULL;
-	error = git_reference_dwim(&remote_head_ref, repo, "origin/HEAD");
-	if (error < 0) {
-		siril_log_color_message(_("Error getting remote HEAD: %s\n"), "red", giterr_last()->message);
-		git_remote_free(remote);
-		git_repository_free(repo);
-		return 1;
-	}
-	git_reference *local_head_ref = NULL;
-	error = git_repository_head(&local_head_ref, repo);
-	if (error < 0) {
-		siril_log_color_message(_("Error getting local HEAD: %s\n"), "red", giterr_last()->message);
-		git_reference_free(remote_head_ref);
-		git_remote_free(remote);
-		git_repository_free(repo);
-		return 1;
-	}
-	git_oid remote_commit_id, local_commit_id;
-	git_commit *remote_commit, *local_commit;
+	/**
+	 * Run status on the repository
+	 *
+	 * We use `git_status_list_new()` to generate a list of status
+	 * information which lets us iterate over it at our
+	 * convenience and extract the data we want to show out of
+	 * each entry.
+	 */
+	check_lg2(git_status_list_new(&status, repo, &o.statusopt),
+		_("libgit2: could not get status"), NULL);
 
-	git_oid_cpy(&remote_commit_id, git_reference_target(remote_head_ref));
-	git_oid_cpy(&local_commit_id, git_reference_target(local_head_ref));
+	if (o.showbranch)
+		show_branch(repo, o.format);
 
-	if (git_pending_commit_buffer) {
-		g_free(git_pending_commit_buffer);
-		git_pending_commit_buffer = NULL;
-	}
-	if (git_commit_lookup(&remote_commit, repo, &remote_commit_id) == 0 &&
-		git_commit_lookup(&local_commit, repo, &local_commit_id) == 0) {
-
-		if (git_commit_time(remote_commit) > git_commit_time(local_commit)) {
-			git_revwalk *walker = NULL;
-			git_revwalk_new(&walker, repo);
-			git_revwalk_push(walker, git_object_id((git_object *)remote_commit));
-
-			git_oid commit_id;
-			while (!git_revwalk_next(&commit_id, walker)) {
-				git_commit *commit = NULL;
-				if (git_commit_lookup(&commit, repo, &commit_id) == 0) {
-					printf("Commit Message: %s\n", git_commit_summary(commit));
-					gchar *temp = g_strdup_printf("%s\n", git_commit_summary(commit));
-					gchar* temp2 = NULL;
-					if (git_pending_commit_buffer)
-						temp2 = g_strdup_printf("%s%s",git_pending_commit_buffer, temp);
-					else
-						temp2 = g_strdup_printf("%s", temp);
-					g_free(temp);
-					g_free(git_pending_commit_buffer);
-					git_pending_commit_buffer = temp2;
-					git_commit_free(commit);
-				}
-			}
-
-			git_revwalk_free(walker);
-		}
-
-		git_commit_free(remote_commit);
-		git_commit_free(local_commit);
-	}
-
+	print_long(status);
+	git_status_list_free(status);
+	siril_debug_print("%s\n", git_pending_commit_buffer->str);
 	siril_log_message(_("Completed checking pending commits to scripts repository...\n"));
 	if (!git_pending_commit_buffer)
 		siril_log_color_message(_("Local repository is up to date.\n"), "green");
-	git_reference_free(local_head_ref);
-	git_reference_free(remote_head_ref);
-	git_remote_free(remote);
 	git_repository_free(repo);
 	git_libgit2_shutdown();
 	return 0;
@@ -382,8 +946,11 @@ void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
+	if (git_pending_commit_buffer)
+		g_string_free(git_pending_commit_buffer, TRUE);
+	git_pending_commit_buffer = g_string_new("Summary of unmerged changes:\n");
 	preview_update();
-	if (git_pending_commit_buffer != NULL && siril_confirm_dialog(_("Read and accept the pending changes to be synced"), git_pending_commit_buffer, _("Confirm"))) {
+	if (git_pending_commit_buffer != NULL && siril_confirm_dialog(_("Read and accept the pending changes to be synced"), git_pending_commit_buffer->str, _("Confirm"))) {
 		if (!update_gitscripts(TRUE)) {
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Update complete"), _("Scripts updated successfully."));
 		} else {
