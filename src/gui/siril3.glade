@@ -32100,7 +32100,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             <property name="spacing">6</property>
                             <child>
                               <object class="GtkCheckButton" id="pref_use_gitscripts">
-                                <property name="label" translatable="yes">Fetch and update scripts from siril-scripts repository</property>
+                                <property name="label" translatable="yes">Enable use of the siril-scripts online repository</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
