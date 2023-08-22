@@ -844,4 +844,8 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 		com.pref.selected_scripts = NULL;
 		refresh_script_menu();
 	}
+	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
+	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), com.pref.use_scripts_repository);
+	gtk_widget_set_sensitive(lookup_widget("treeview2"), com.pref.use_scripts_repository);
+
 }
