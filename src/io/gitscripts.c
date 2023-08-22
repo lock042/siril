@@ -453,26 +453,6 @@ cleanup:
 	return 0;
 }
 
-
-static int transfer_progress_cb(const git_indexer_progress *stats, void *payload)
-{
-	(void)payload;
-
-	if (stats->received_objects == stats->total_objects) {
-		gchar *msg = g_strdup_printf(_("Resolving deltas %u/%u..."),
-		       stats->indexed_deltas, stats->total_deltas);
-		set_progress_bar_data(msg, (double) stats->indexed_deltas / stats->total_deltas);
-		g_free(msg);
-	} else if (stats->total_objects > 0) {
-		gchar *msg = g_strdup_printf(_("Received %u/%u objects \(%u) in %" PRIu64 " bytes..."),
-		       stats->received_objects, stats->total_objects,
-		       stats->indexed_objects, stats->received_bytes);
-		set_progress_bar_data(msg, (double) stats->received_objects / stats->total_objects);
-		g_free(msg);
-	}
-	return 0;
-}
-
 int lg2_fetch(git_repository *repo)
 {
 	git_remote *remote = NULL;
@@ -489,32 +469,8 @@ int lg2_fetch(git_repository *repo)
 //		if (git_remote_create_anonymous(&remote, repo, remote_name))
 			goto on_error;
 
-	/* Set up the transfer_progress callback) */
-//c	fetch_opts.callbacks.transfer_progress = transfer_progress_cb;
-
-	/**
-	 * Perform the fetch with the configured refspecs from the
-	 * config. Update the reflog for the updated references with
-	 * "fetch".
-	 */
 	if (git_remote_fetch(remote, NULL, &fetch_opts, "fetch") < 0)
 		goto on_error;
-
-	/**
-	 * If there are local objects (we got a thin pack), then tell
-	 * the user how many objects we saved from having to cross the
-	 * network.
-	 * Commented out for now as it is returning zero byte results even
-	 * when the transfer is successful.
-	 */
-//	stats = git_remote_stats(remote);
-/*	if (stats->local_objects > 0) {
-		siril_debug_print("\rReceived %u/%u objects in %" PRIu64 " bytes (used %u local objects)\n",
-				stats->indexed_objects, stats->total_objects, stats->received_bytes, stats->local_objects);
-	} else{
-		siril_debug_print("\rReceived %u/%u objects in %" PRIu64 "bytes\n",
-				stats->indexed_objects, stats->total_objects, stats->received_bytes);
-	}*/
 
 	git_remote_free(remote);
 
@@ -532,7 +488,7 @@ int update_gitscripts(gboolean sync) {
 
     // URL of the remote repository
 //    const char *url = "https://gitlab.com/free-astro/siril-scripts.git";
-    const char *url = "https://gitlab.com/aje.baugh/siril-scripts.git";
+    const char *url = "https://gitlab.com/aje.baugh/siril-scripts.git"; // For testing purposes
 
 	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_scripts_repo_path();
@@ -602,181 +558,6 @@ int update_gitscripts(gboolean sync) {
     return retval;
 }
 
-static void print_long(git_status_list *status)
-{
-	size_t i, maxi = git_status_list_entrycount(status);
-	const git_status_entry *s;
-	int header = 0, changes_in_index = 0;
-	int changed_in_workdir = 0, rm_in_workdir = 0;
-	const char *old_path, *new_path;
-
-	/** Print index changes. */
-
-	for (i = 0; i < maxi; ++i) {
-		char *istatus = NULL;
-
-		s = git_status_byindex(status, i);
-
-		if (s->status == GIT_STATUS_CURRENT)
-			continue;
-
-		if (s->status & GIT_STATUS_WT_DELETED)
-			rm_in_workdir = 1;
-
-		if (s->status & GIT_STATUS_INDEX_NEW)
-			istatus = "new file: ";
-		if (s->status & GIT_STATUS_INDEX_MODIFIED)
-			istatus = "modified: ";
-		if (s->status & GIT_STATUS_INDEX_DELETED)
-			istatus = "deleted:  ";
-		if (s->status & GIT_STATUS_INDEX_RENAMED)
-			istatus = "renamed:  ";
-		if (s->status & GIT_STATUS_INDEX_TYPECHANGE)
-			istatus = "typechange:";
-
-		if (istatus == NULL)
-			continue;
-
-		if (!header) {
-			g_string_append_printf(git_pending_commit_buffer, "# Changes to be committed:\n");
-			g_string_append_printf(git_pending_commit_buffer, "#   (use \"git reset HEAD <file>...\" to unstage)\n");
-			g_string_append_printf(git_pending_commit_buffer, "#\n");
-			header = 1;
-		}
-
-		old_path = s->head_to_index->old_file.path;
-		new_path = s->head_to_index->new_file.path;
-
-		if (old_path && new_path && strcmp(old_path, new_path))
-			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s -> %s\n", istatus, old_path, new_path);
-		else
-			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s\n", istatus, old_path ? old_path : new_path);
-	}
-
-	if (header) {
-		changes_in_index = 1;
-		g_string_append_printf(git_pending_commit_buffer, "#\n");
-	}
-	header = 0;
-
-	/** Print workdir changes to tracked files. */
-
-	for (i = 0; i < maxi; ++i) {
-		char *wstatus = NULL;
-
-		s = git_status_byindex(status, i);
-
-		/**
-		 * With `GIT_STATUS_OPT_INCLUDE_UNMODIFIED` (not used in this example)
-		 * `index_to_workdir` may not be `NULL` even if there are
-		 * no differences, in which case it will be a `GIT_DELTA_UNMODIFIED`.
-		 */
-		if (s->status == GIT_STATUS_CURRENT || s->index_to_workdir == NULL)
-			continue;
-
-		/** Print out the output since we know the file has some changes */
-		if (s->status & GIT_STATUS_WT_MODIFIED)
-			wstatus = "modified: ";
-		if (s->status & GIT_STATUS_WT_DELETED)
-			wstatus = "deleted:  ";
-		if (s->status & GIT_STATUS_WT_RENAMED)
-			wstatus = "renamed:  ";
-		if (s->status & GIT_STATUS_WT_TYPECHANGE)
-			wstatus = "typechange:";
-
-		if (wstatus == NULL)
-			continue;
-
-		if (!header) {
-			g_string_append_printf(git_pending_commit_buffer, "# Changes not staged for commit:\n");
-			g_string_append_printf(git_pending_commit_buffer, "#   (use \"git add%s <file>...\" to update what will be committed)\n", rm_in_workdir ? "/rm" : "");
-			g_string_append_printf(git_pending_commit_buffer, "#   (use \"git checkout -- <file>...\" to discard changes in working directory)\n");
-			g_string_append_printf(git_pending_commit_buffer, "#\n");
-			header = 1;
-		}
-
-		old_path = s->index_to_workdir->old_file.path;
-		new_path = s->index_to_workdir->new_file.path;
-
-		if (old_path && new_path && strcmp(old_path, new_path))
-			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s -> %s\n", wstatus, old_path, new_path);
-		else
-			g_string_append_printf(git_pending_commit_buffer, "#\t%s  %s\n", wstatus, old_path ? old_path : new_path);
-	}
-
-	if (header) {
-		changed_in_workdir = 1;
-		g_string_append_printf(git_pending_commit_buffer, "#\n");
-	}
-
-	/** Print untracked files. */
-
-	header = 0;
-
-	for (i = 0; i < maxi; ++i) {
-		s = git_status_byindex(status, i);
-
-		if (s->status == GIT_STATUS_WT_NEW) {
-
-			if (!header) {
-				g_string_append_printf(git_pending_commit_buffer, "# Untracked files:\n");
-				g_string_append_printf(git_pending_commit_buffer, "#   (use \"git add <file>...\" to include in what will be committed)\n");
-				g_string_append_printf(git_pending_commit_buffer, "#\n");
-				header = 1;
-			}
-
-			printf("#\t%s\n", s->index_to_workdir->old_file.path);
-		}
-	}
-
-	header = 0;
-
-	/** Print ignored files. */
-
-	for (i = 0; i < maxi; ++i) {
-		s = git_status_byindex(status, i);
-
-		if (s->status == GIT_STATUS_IGNORED) {
-
-			if (!header) {
-				g_string_append_printf(git_pending_commit_buffer, "# Ignored files:\n");
-				g_string_append_printf(git_pending_commit_buffer, "#   (use \"git add -f <file>...\" to include in what will be committed)\n");
-				g_string_append_printf(git_pending_commit_buffer, "#\n");
-				header = 1;
-			}
-
-			printf("#\t%s\n", s->index_to_workdir->old_file.path);
-		}
-	}
-
-	if (!changes_in_index && changed_in_workdir)
-		g_string_append_printf(git_pending_commit_buffer, "No changes added to commit.\n");
-}
-
-static void show_branch(git_repository *repo, int format)
-{
-	int error = 0;
-	const char *branch = NULL;
-	git_reference *head = NULL;
-
-	error = git_repository_head(&head, repo);
-
-	if (error == GIT_EUNBORNBRANCH || error == GIT_ENOTFOUND)
-		branch = NULL;
-	else if (!error) {
-		branch = git_reference_shorthand(head);
-	} else
-		check_lg2(error, "failed to get current branch", NULL);
-
-	if (format == FORMAT_LONG)
-		g_string_append_printf(git_pending_commit_buffer, "# On branch %s\n",
-			branch ? branch : "Not currently on any branch.");
-	else
-		g_string_append_printf(git_pending_commit_buffer, "## %s\n", branch ? branch : "HEAD (no branch)");
-
-	git_reference_free(head);
-}
-
 int preview_update() {
 	// Initialize libgit2
 	git_libgit2_init();
@@ -787,47 +568,97 @@ int preview_update() {
 	git_repository *repo = NULL;
 	int error = git_repository_open(&repo, local_path);
 	if (error < 0) {
-		siril_log_color_message(_("Error opening repository: %s\n"), "red", giterr_last()->message);
+		siril_debug_print("Error opening repository: %s\n",giterr_last()->message);
 		return 1;
 	}
 
 	// Fetch changes
 	lg2_fetch(repo);
 
-	git_status_list *status;
-	struct status_opts o = { GIT_STATUS_OPTIONS_INIT, "." };
-	o.statusopt.show  = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
-	o.statusopt.flags = GIT_STATUS_OPT_INCLUDE_UNTRACKED |
-		GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX |
-		GIT_STATUS_OPT_SORT_CASE_SENSITIVELY;
+	//Prepare for looping through unmerged commit messages
 
-	o.format = FORMAT_LONG;
+	const char *remote_name = "origin";
+	git_remote *remote = NULL;
 
-	if (git_repository_is_bare(repo)) {
-		siril_log_color_message(_("Cannot report status on bare repository"), "red",
-			git_repository_path(repo));
+	// Open the remote
+	if (git_remote_lookup(&remote, repo, remote_name) != 0) {
+		siril_debug_print("Error looking up remote\n");
 		git_repository_free(repo);
-		git_libgit2_shutdown();
+		return 1;
 	}
 
-	/**
-	 * Run status on the repository
-	 *
-	 * We use `git_status_list_new()` to generate a list of status
-	 * information which lets us iterate over it at our
-	 * convenience and extract the data we want to show out of
-	 * each entry.
-	 */
-	check_lg2(git_status_list_new(&status, repo, &o.statusopt),
-		_("libgit2: could not get status"), NULL);
+	// Get the HEAD reference
+	git_reference *head_ref = NULL;
+	error = git_repository_head(&head_ref, repo);
+	if (error != 0) {
+		siril_debug_print("Error getting HEAD reference: %s\n", git_error_last()->message);
+		git_repository_free(repo);
+		return 1;
+	}
 
-	if (o.showbranch)
-		show_branch(repo, o.format);
+	// Get the HEAD commit
+	git_commit *head_commit = NULL;
+	error = git_commit_lookup(&head_commit, repo, git_reference_target(head_ref));
+	if (error != 0) {
+		siril_debug_print("Error looking up HEAD commit: %s\n", git_error_last()->message);
+		git_reference_free(head_ref);
+		git_repository_free(repo);
+		return 1;
+	}
 
-	print_long(status);
-	git_status_list_free(status);
-	siril_debug_print("%s\n", git_pending_commit_buffer->str);
-	siril_log_message(_("Completed checking pending commits to scripts repository...\n"));
+	// Get the reference to the FETCH_HEAD
+	git_oid fetch_head_oid;
+	if (git_reference_name_to_id(&fetch_head_oid, repo, "FETCH_HEAD") != 0) {
+		siril_debug_print("Error getting FETCH_HEAD\n");
+		git_remote_free(remote);
+		git_repository_free(repo);
+		return 1;
+	}
+
+	// Iterate through fetched commits and display commit messages
+	git_commit *commit = NULL;
+	git_oid parent_oid;
+	git_commit *parent_commit = NULL;
+	const char *commit_msg = NULL;
+
+	if (git_commit_lookup(&commit, repo, &fetch_head_oid) != 0) {
+		siril_debug_print("Error looking up commit\n");
+		git_remote_free(remote);
+		git_repository_free(repo);
+		git_libgit2_shutdown();
+		return 1;
+	}
+
+	while (1) {
+		// Check if the current commit is the HEAD. If not, we print the commit message.
+		// If so, we break and don't show any further messages.
+		if (git_oid_equal(git_commit_id(head_commit), git_commit_id(commit)))
+			break;
+
+		// We have not yet reached the HEAD so we print the commit message.
+		commit_msg = git_commit_message(commit);
+		if (!git_pending_commit_buffer) {
+			gchar *tmp = g_strdup_printf(_("Commit message: %s\n"), commit_msg);
+			git_pending_commit_buffer = g_string_new(tmp);
+			g_free(tmp);
+		} else {
+			g_string_append_printf(git_pending_commit_buffer, _("Commit message: %s\n"), commit_msg);
+		}
+
+		if (git_commit_parentcount(commit) > 0) {
+			parent_oid = *git_commit_parent_id(commit, 0);
+			if (git_commit_lookup(&parent_commit, repo, &parent_oid) != 0) {
+			break;
+			}
+		} else {
+			break;
+		}
+
+		git_commit_free(commit);
+		commit = parent_commit;
+		parent_commit = NULL;
+	}
+
 	if (!git_pending_commit_buffer)
 		siril_log_color_message(_("Local repository is up to date.\n"), "green");
 	git_repository_free(repo);
@@ -946,10 +777,13 @@ void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
-	if (git_pending_commit_buffer)
+	if (git_pending_commit_buffer) {
 		g_string_free(git_pending_commit_buffer, TRUE);
-	git_pending_commit_buffer = g_string_new("Summary of unmerged changes:\n");
-	preview_update();
+		git_pending_commit_buffer = NULL;
+	}
+	if (preview_update()) {
+		siril_log_color_message(_("Error getting the list of unmerged changes.\n"), "red");
+	}
 	if (git_pending_commit_buffer != NULL && siril_confirm_dialog(_("Read and accept the pending changes to be synced"), git_pending_commit_buffer->str, _("Confirm"))) {
 		if (!update_gitscripts(TRUE)) {
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Update complete"), _("Scripts updated successfully."));
@@ -1005,7 +839,6 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 		GtkListStore *liststore = GTK_LIST_STORE(model);
 		gtk_list_store_clear(liststore);
 		liststore = NULL;
-//		g_list_free_full(com.pref.selected_scripts, g_free);
 		g_strfreev(gui.repo_scripts);
 		gui.repo_scripts = NULL;
 		com.pref.selected_scripts = NULL;
