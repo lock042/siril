@@ -31,6 +31,8 @@ struct {
 
 extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
 
+gboolean image_cfa_warning_check();
+
 int	process_addmax(int nb);
 int	process_autostretch(int nb);
 int	process_autoghs(int nb);

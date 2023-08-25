@@ -123,9 +123,10 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	int nb_of_samples;
 	double tolerance;
-
+	GtkToggleButton* keep_all_button = (GtkToggleButton*) lookup_widget("subsky_keep_samples");
+	gboolean keep_all = gtk_toggle_button_get_active(keep_all_button);
 	nb_of_samples = get_nb_samples_per_line();
-	tolerance = get_tolerance_value();
+	tolerance = keep_all ? -1. : get_tolerance_value();
 
 	if (generate_background_samples(nb_of_samples, tolerance))
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -147,6 +148,11 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	}
 	set_cursor_waiting(TRUE);
 	copy_backup_to_gfit();
+
+	if (!check_ok_if_cfa()) {
+		set_cursor_waiting(FALSE);
+		return;
+	}
 
 	background_correction correction = get_correction_type();
 	poly_order degree = get_poly_order();

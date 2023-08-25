@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-04-26 09:39+0000\n"
-"Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
-"Language-Team: Italian <https://weblate.pixls.us/projects/siril/siril-"
-"application/it/>\n"
+"PO-Revision-Date: 2023-08-11 20:37+0000\n"
+"Last-Translator: Fabio Sirna <fabio@fabiosirna.com>\n"
+"Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
+"siril-application/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -248,17 +248,16 @@ msgid "Profile"
 msgstr "Profilo"
 
 #: src/gui/siril3.glade:1043
-#, fuzzy
 msgid "<b>Type of Profile</b>"
-msgstr "<b>Tipo di estrazione</b>"
+msgstr "<b>Tipo di Profilo</b>"
 
 #: src/gui/siril3.glade:1053
 msgid "Mono"
-msgstr ""
+msgstr "Mono"
 
 #: src/gui/siril3.glade:1057
 msgid "Generates a single luminance profile along the profile line"
-msgstr ""
+msgstr "Genera un singolo profilo di luminanza lungo la linea del profilo"
 
 #: src/gui/siril3.glade:1068
 #, fuzzy
@@ -279,14 +278,15 @@ msgstr "Nessuna coordinata"
 #: src/gui/siril3.glade:1087
 msgid "Enter coordinates for the start and end points of the profile manually"
 msgstr ""
+"Inserisci manualmente le coordinate per i punti di inizio e fine del profilo"
 
 #: src/gui/siril3.glade:1097
 msgid "Spectrometric data"
-msgstr ""
+msgstr "Dati spettrometrici"
 
 #: src/gui/siril3.glade:1101
 msgid "Enter data relating to profiling along a spectrum"
-msgstr ""
+msgstr "Inserisci i dati relativi alla profilazione lungo uno spettro"
 
 #: src/gui/siril3.glade:1111
 msgid "Tri-Profile (mono)"

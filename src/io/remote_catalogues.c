@@ -615,6 +615,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, coordinates);
 		url = g_string_append(url, "&-c.rm=");
 		url = g_string_append(url, fov);
+		url = g_string_append(url, "&Gmag=<");
+		url = g_string_append(url, mag);
 		/*if (com.target_star) {
 			g_string_append_printf(url, "&Gmag=<%2.3f", com.target_star->mag + com.delta_vmag);
 			g_string_append_printf(url, "&Gmag=>%2.3f", com.target_star->mag - com.delta_vmag);

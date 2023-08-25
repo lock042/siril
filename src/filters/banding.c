@@ -375,6 +375,8 @@ void on_button_ok_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	static GtkRange *range_amount = NULL;
 	static GtkRange *range_invsigma = NULL;
 	static GtkToggleButton *toggle_protect_highlights_banding = NULL,
