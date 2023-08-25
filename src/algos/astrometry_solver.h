@@ -97,6 +97,7 @@ const char *catalog_to_str(online_catalog cat);
 /* from the GUI */
 gboolean end_process_sso(gpointer p);
 gboolean end_process_catsearch(gpointer p);
+gboolean end_process_varstars(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);
 
