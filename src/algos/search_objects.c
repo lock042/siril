@@ -359,7 +359,7 @@ int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
 	SirilWorldCS *world_cs = NULL;
 	purge_temp_user_catalogue();
 
-	if (!buffer || nb_lines <= 25) {				// 25 because nearly the end of the INFO lines in the header...
+	if (!buffer || nb_lines <= 25) {				// 25 because nearly the end of the INFO lines in the header...(that's why -out.meta=huD is mandatory)
 		siril_log_color_message(_("Useless file. Check if server available. Aborted.\n"), "red");
 		g_strfreev(token);
 		return 0;
@@ -378,7 +378,7 @@ int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
 // Determines the data mapping of he used catalogue
 	catalog_mapping(buffer, cat);
 
-// Discards heder lines
+// Discards header lines
 	for (int i = 0; i < nb_lines; i++) {		// Loops on the lines
 		gchar *line = token[i];
 		guint line_len = strlen (line);

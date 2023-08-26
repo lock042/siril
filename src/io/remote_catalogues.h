@@ -43,10 +43,6 @@ gpointer search_in_online_conesearch(gpointer p);
 gpointer search_in_online_vizier(gpointer p);
 gpointer catsearch_worker(gpointer p);
 
-// temp
-//struct compstars_arg;
 int load_catalog(GFile *catalog_file, gboolean phot, psf_star **ret_stars, int *ret_nb_stars);
-//int read_photo_catalog_buffer(const char *buffer, struct compstars_arg *args);
-//int read_photo_aavso_buffer(const char *buffer, struct compstars_arg *args);
 
 #endif
