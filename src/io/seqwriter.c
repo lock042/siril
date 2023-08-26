@@ -141,6 +141,7 @@ static void *write_worker(void *a) {
 			if (task->image)
 				clearfits(task->image);
 			notify_data_freed(writer, task->index);
+			free(task);
 			break;
 		}
 		if (!task->image) {
@@ -149,6 +150,7 @@ static void *write_worker(void *a) {
 			notify_data_freed(writer, task->index);
 			current_index++;
 			writer->frame_count--;
+			free(task);
 			continue;
 		}
 

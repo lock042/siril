@@ -8513,6 +8513,16 @@ int process_pcc(int nb) {
 	}
 
 	if (seqps) {
+		gboolean local_asnet = asnet_is_available();
+		if (cat != CAT_ASNET && com.max_thread != 1)
+			siril_log_color_message(_("The sequence plate solving can be parallelized only with the local astrometry.net solver, limiting to one thread\n"), "salmon");
+		if (cat == CAT_ASNET && !local_asnet) {
+			siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
+			if (target_coords)
+				siril_world_cs_unref(target_coords);
+			return CMD_GENERIC_ERROR;
+		}
+
 		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
@@ -8537,6 +8547,7 @@ int process_pcc(int nb) {
 		args->for_sequence = TRUE;
 		args->verbose = FALSE;
 		args->for_photometry_cc = FALSE;
+		args->asnet_checked = TRUE;
 
 		start_sequence_astrometry(seq, args);
 		return CMD_OK;
