@@ -1013,6 +1013,14 @@ static gchar *siril_get_asnet_bash() {
 	g_free(testdir);
 	return NULL;
 }
+
+gboolean asnet_is_available() {
+	gchar *path = siril_get_asnet_bash();
+	gboolean retval = path != NULL;
+	g_free(path);
+	return retval;
+}
+
 #else
 static gboolean solvefield_is_in_path = FALSE;
 static gchar *siril_get_asnet_bin() {
