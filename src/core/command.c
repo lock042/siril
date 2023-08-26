@@ -8420,7 +8420,7 @@ int process_pcc(int nb) {
 	while (nb > next_arg && word[next_arg]) {
 		if (!strcmp(word[next_arg], "-noflip"))
 			noflip = TRUE;
-		else if (!strcmp(word[next_arg], "-platesolve"))
+		else if (!seqps && !strcmp(word[next_arg], "-platesolve"))
 			plate_solve = TRUE;
 		else if (!strcmp(word[next_arg], "-downscale"))
 			downsample = TRUE;
