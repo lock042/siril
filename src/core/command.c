@@ -8389,6 +8389,9 @@ int process_pcc(int nb) {
 	if (seqps) {
 		if (!(seq = load_sequence(word[1], NULL)))
 			return CMD_SEQUENCE_NOT_FOUND;
+		if (seq->type == SEQ_SER) {
+			siril_log_color_message(_("SER cannot contain WCS info, plate solving will export to FITS cube format\n"), "salmon");
+		}
 		next_arg++;
 	}
 
@@ -8513,10 +8516,7 @@ int process_pcc(int nb) {
 	}
 
 	if (seqps) {
-		gboolean local_asnet = asnet_is_available();
-		if (cat != CAT_ASNET && com.max_thread != 1)
-			siril_log_color_message(_("The sequence plate solving can be parallelized only with the local astrometry.net solver, limiting to one thread\n"), "salmon");
-		if (cat == CAT_ASNET && !local_asnet) {
+		if (cat == CAT_ASNET && !asnet_is_available()) {
 			siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
 			if (target_coords)
 				siril_world_cs_unref(target_coords);

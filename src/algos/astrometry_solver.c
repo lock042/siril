@@ -1043,19 +1043,19 @@ gboolean asnet_is_available() {
 #endif
 
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
-	if (!args->asnet_checked) {
 #ifdef _WIN32
-		gchar *asnet_shell = siril_get_asnet_bash();
-		if (!asnet_shell) {
-			return 1;
-		}
+	gchar *asnet_shell = siril_get_asnet_bash();
+	if (!asnet_shell) {
+		return 1;
+	}
 #else
+	if (!args->asnet_checked) {
 		if (!asnet_is_available()) {
 			siril_log_color_message(_("solve-field was not found, set its path in the preferences\n"), "red");
 			return 1;
 		}
-#endif
 	}
+#endif
 
 	gchar *table_filename = replace_ext(args->filename, ".xyls");
 #ifdef _WIN32
@@ -1450,7 +1450,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 #ifdef _WIN32
 	seqargs->parallel = args->onlineCatalog != CAT_ASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
 #else
-	seqargs->parallel = args->onlineCatalog == CAT_ASNET;
+	seqargs->parallel = TRUE;
 #endif
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
@@ -1460,6 +1460,8 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->new_seq_prefix = strdup("ps_");
 	seqargs->load_new_sequence = TRUE;
 	seqargs->description = "plate solving";
+	if (seq->type == SEQ_SER)
+		seqargs->force_fitseq_output = TRUE;
 	seqargs->user = args;
 
 	siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
