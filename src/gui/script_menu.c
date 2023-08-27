@@ -283,12 +283,12 @@ GSList *set_list_to_preferences_dialog(GSList *list) {
 
 /* Get Scripts menu */
 
-#define GET_SCRIPTS_URL "https://free-astro.org/index.php?title=Siril:scripts"
+#define GET_SCRIPTS_URL "https://siril.readthedocs.io"
 
 void siril_get_on_script_pages() {
 	gboolean ret;
 	const char *locale;
-	const char *supported_languages[] = { "fr", NULL }; // en is NULL: default language
+	const char *supported_languages[] = { "de", "fr", "it", "ru", NULL };  // en is NULL: default language
 	gchar *lang = NULL;
 	int i = 0;
 
@@ -307,7 +307,11 @@ void siril_get_on_script_pages() {
 			i++;
 		}
 	}
-	gchar *url = g_build_path("/", GET_SCRIPTS_URL, lang, NULL);
+	if (!lang) {
+		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
+	}
+
+	gchar *url = g_build_path("/", GET_SCRIPTS_URL, lang, "/stable/Scripts.html#getting-more-scripts", NULL);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");

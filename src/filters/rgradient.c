@@ -227,6 +227,8 @@ void on_rgradient_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
+	if(!check_ok_if_cfa())
+		return;
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
