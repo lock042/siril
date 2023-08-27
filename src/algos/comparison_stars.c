@@ -484,7 +484,7 @@ void chk_compstars(struct compstars_arg *args) {
 	} else siril_log_message(_("No csv output file to create\n"));
 }
 
-int sort_blind_compstars(struct compstars_arg *args) {
+int sort_blind_compstars(struct compstars_arg *args) {   // TO BE USED LATER
 
 	int nb_phot_stars = 0;
 	args->comp_stars = malloc((args->nb_cat_stars + 1) * sizeof(psf_star *));
@@ -528,16 +528,13 @@ struct lst_stars {
 typedef struct lst_stars starl;
 
 
-static int lst_parse_files(struct dirent *pDirent, sequence *seq, int used_lst_nbr, int st_lst_nbr) {
+static int lst_parse_files(struct dirent *pDirent, sequence *seq, int used_lst_nbr, int st_lst_nbr) {  //EN CHANTIER, A FAIRE!!!
 	seq = &com.seq;
 	double magg = 10.5;
 	psf_star **psfs = seq->photometry[used_lst_nbr];
 
 	starl *candidates;
 	candidates = malloc(MAX_STARS * sizeof(starl));
-	candidates[used_lst_nbr].mag_est[used_lst_nbr] = {11.0};
-	candidates[used_lst_nbr+1].mag_est = 11.1;
-	candidates[used_lst_nbr+2].mag_est = 11.2;
 
 /*	psf_star *candid;
 	candid = malloc(MAX_SEQPSF * sizeof(psf_star));
@@ -547,11 +544,10 @@ static int lst_parse_files(struct dirent *pDirent, sequence *seq, int used_lst_n
 	struct generic_seq_args *args = create_default_seqargs(seq);
 //	struct psf_star **aargs = (psf_star *) seq->photometry;
 //	com.seq.photometry[used_lst_nbr][used_lst_nbr]->mag = 5.8;
+
 	psf_star *star = new_psf_star();
 //	psf_star *star = com.seq.photometry[used_lst_nbr][used_lst_nbr];
-
 //	psf_star **cstars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
-
 //	psfs[used_lst_nbr] = &candidates[used_lst_nbr];
 
 	siril_log_message(_("Num of images:\n"));
@@ -560,10 +556,6 @@ static int lst_parse_files(struct dirent *pDirent, sequence *seq, int used_lst_n
 	star->mag = magg * used_lst_nbr;
 	args->seq->photometry[used_lst_nbr] = &star;
 
-//	com.seq.photometry[used_lst_nbr + 3][used_lst_nbr + 3] = star;
-//	args->seq->photometry[1][1]->mag = 12.9;
-//	args->seq->photometry[1][2]->mag = 12.91;
-//	args->seq->photometry[2][2]->mag = 12.95;
 
 	siril_log_message(_("seq->reference_image#2: %d \n"), seq->reference_image);
 
