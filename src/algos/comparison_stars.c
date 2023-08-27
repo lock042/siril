@@ -530,52 +530,6 @@ typedef struct lst_stars starl;
 
 static int lst_parse_files(struct dirent *pDirent, sequence *seq, int used_lst_nbr, int st_lst_nbr) {  //EN CHANTIER, A FAIRE!!!
 	seq = &com.seq;
-	double magg = 10.5;
-	psf_star **psfs = seq->photometry[used_lst_nbr];
-
-	starl *candidates;
-	candidates = malloc(MAX_STARS * sizeof(starl));
-
-/*	psf_star *candid;
-	candid = malloc(MAX_SEQPSF * sizeof(psf_star));
-	candid[used_lst_nbr].mag = magg * used_lst_nbr;
-*/
-
-	struct generic_seq_args *args = create_default_seqargs(seq);
-//	struct psf_star **aargs = (psf_star *) seq->photometry;
-//	com.seq.photometry[used_lst_nbr][used_lst_nbr]->mag = 5.8;
-
-	psf_star *star = new_psf_star();
-//	psf_star *star = com.seq.photometry[used_lst_nbr][used_lst_nbr];
-//	psf_star **cstars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
-//	psfs[used_lst_nbr] = &candidates[used_lst_nbr];
-
-	siril_log_message(_("Num of images:\n"));
-	siril_log_message(_("seq->number: %d\n"), args->seq->number);
-	star->mag = 10.0;
-	star->mag = magg * used_lst_nbr;
-	args->seq->photometry[used_lst_nbr] = &star;
-
-
-	siril_log_message(_("seq->reference_image#2: %d \n"), seq->reference_image);
-
-	if (!seq->photometry[0]) {
-		siril_log_color_message(_("No photometry data found, error\n"), "red");
-		//siril_log_color_message(_("MAX_SEQPSF: %d \n"), "red", MAX_SEQPSF);
-		return -1;
-
-	}
-	
-
-
-
-
-///	args->cat_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
-///	args->comp_stars = malloc((min(MAX_STARS, MAX_STARS) + 1) * sizeof(psf_star *));
-
-//struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
-
-//	double ra = 0.0, dec = 0.0, mag = 0.0;
 
 	FILE* fd = fopen(pDirent->d_name, "r");
 	if (!fd) {
@@ -611,6 +565,15 @@ static int lst_parse_files(struct dirent *pDirent, sequence *seq, int used_lst_n
 */
 		nbr_stars++;
 	}
+
+/******************************************************************************
+ * At this step, the followings have been made:
+ * -the .lst files are valid
+ * -they contain valid WCS data for all the detected stars
+ * -we know the max array size to be used (this is the min nbr of stars ever detected in an image)
+ *
+ * NOW, the data for each star of each image can be parsed
+*/
 	
 	//Closing current file
 	fclose(fd);
@@ -653,9 +616,7 @@ static int lst_chk_files(struct dirent *pDirent) {
 	return nbr_stars;
 }
 
-//static int lst_get_files(sequence *seq) {
 static int lst_get_files(gpointer arg) {	
-//	struct sequence *seq = (struct sequence *)arg;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
 	struct dirent *pDirent;
 	DIR *pDir;
@@ -709,7 +670,7 @@ static int lst_get_files(gpointer arg) {
 		if (lst_valid && com.seq.imgparam[lst_nbr - 1].incl) {
 			//lst_parse_files(pDirent, &com.seq, used_lst_nbr, st_lst_nbr);
 			lst_parse_files(pDirent, args->seq, used_lst_nbr, st_lst_nbr);
-			siril_log_color_message(_("2nd turn!!!.\n"), "red");
+//			siril_log_color_message(_("2nd turn!!!.\n"), "red");
 		}
 
 	}
@@ -724,9 +685,11 @@ static int lst_get_files(gpointer arg) {
 		return 1;
 	}
 
-	siril_log_color_message(_("Number of used lst files %d / %d (%d stars min)\n"), "salmon", used_lst_nbr, lst_nbr, st_lst_nbr);
+	siril_log_color_message(_("Number of used lst files %d over %d in the sequence\n"), "salmon", used_lst_nbr, lst_nbr);
+	siril_log_color_message(_("Minimum nbr stars detected in one image: %d (so, max array size)\n"), "salmon", st_lst_nbr);
 	// Close directory and exit.
 	closedir (pDir);
+	siril_log_color_message(_("Provisoire end of the process\n"), "blue");
 	return 0;
 }
 
@@ -735,8 +698,6 @@ static int lst_get_files(gpointer arg) {
 gpointer compstars_worker(gpointer arg) {
 	int retval;
 	struct compstars_arg *args = (struct compstars_arg *) arg;
-//	struct sequence *argss = (struct sequence *) arg;
-//	sequence *seq = NULL;
 
 	if (args->cat == CAT_UNDEF) {		// test for BLIND method
 		siril_log_color_message(_("Trying to use the new BLIND method, not fully implemented!! LOL.\n"), "salmon");
