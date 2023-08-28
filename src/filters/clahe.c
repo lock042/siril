@@ -136,6 +136,8 @@ void on_clahe_undo_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	if (clahe_show_preview == FALSE) {
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = clahe_update_preview;

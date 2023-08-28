@@ -887,6 +887,8 @@ void on_sum_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_add_button_clicked(GtkButton *button, gpointer user_data) {
 	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	if (layer == -1)
+		layer = 1;
 	int index;
 	add_star(&gfit, layer, &index);
 	if (index > -1)

@@ -32,11 +32,11 @@
 
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 
-static void update_sampling_information(fits *fit) {
+static void update_sampling_information(fits *fit, float factor) {
 	clear_Bayer_information(fit);
 
-	fit->pixel_size_x *= 2;
-	fit->pixel_size_y *= 2;
+	fit->pixel_size_x *= factor;
+	fit->pixel_size_y *= factor;
 }
 
 void update_filter_information(fits *fit, char *filter, gboolean append) {
@@ -97,7 +97,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 
 	return 0;
@@ -146,7 +146,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 
 	return 0;
@@ -280,7 +280,7 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
-	update_sampling_information(green);
+	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
 
 	return 0;
@@ -324,7 +324,7 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
-	update_sampling_information(green);
+	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
 
 	return 0;
@@ -969,12 +969,15 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
 	// or do nothing. Hardcoded to upscale for now.
 
+	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
 		case 1: // Upsample Ha to OIII size
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			factorHa = 1.f;
 			break;
 		case 2: // Downsample OIII to Ha size
 			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
+			factorOIII = 2.f;
 			break;
 		default:
 			break;
@@ -982,11 +985,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
 
 	copy_fits_metadata(in, OIII);
-	update_sampling_information(OIII);
+	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
 
 	return 0;
@@ -1191,13 +1194,15 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 		return 1;
 	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
 	// or do nothing. Hardcoded to upscale for now.
-
+	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
 		case SCALING_HA_UP: // Upsample Ha to OIII size
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			factorHa = 1.f;
 			break;
 		case SCALING_OIII_DOWN: // Downsample OIII to Ha size
 			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
+			factorOIII = 2.f;
 			break;
 		default:
 			break;
@@ -1205,11 +1210,11 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
 
 	copy_fits_metadata(in, OIII);
-	update_sampling_information(OIII);
+	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
 
 	return 0;

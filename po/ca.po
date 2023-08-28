@@ -7,10 +7,11 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-06-16 22:46+0000\n"
-"Last-Translator: Rafel Albert <binraff@gmail.com>\n"
-"Language-Team: Catalan <https://weblate.pixls.us/projects/siril/siril-"
-"application/ca/>\n"
+"PO-Revision-Date: 2023-08-25 11:40+0000\n"
+"Last-Translator: Joan Vinyals Ylla Català <joan.vinyals.ylla.catala@gmail."
+"com>\n"
+"Language-Team: Catalan <https://weblate.pixls.us/projects/siril/"
+"siril-application/ca/>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -246,13 +247,12 @@ msgid "Profile"
 msgstr "Perfil"
 
 #: src/gui/siril3.glade:1043
-#, fuzzy
 msgid "<b>Type of Profile</b>"
-msgstr "Capçalera FITS..."
+msgstr "<b>Tipus de Perfil</b>"
 
 #: src/gui/siril3.glade:1053
 msgid "Mono"
-msgstr ""
+msgstr "Mono"
 
 #: src/gui/siril3.glade:1057
 msgid "Generates a single luminance profile along the profile line"
@@ -260,7 +260,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1068
 msgid "Color"
-msgstr ""
+msgstr "Color"
 
 #: src/gui/siril3.glade:1072
 msgid ""
@@ -269,17 +269,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:1083
-#, fuzzy
 msgid "Manual coordinates"
-msgstr "Paràmetres PSF manuals"
+msgstr "Coordinades manuals"
 
 #: src/gui/siril3.glade:1087
 msgid "Enter coordinates for the start and end points of the profile manually"
-msgstr ""
+msgstr "Escriu les coordinades per els punts d'inici i di del perfil"
 
 #: src/gui/siril3.glade:1097
 msgid "Spectrometric data"
-msgstr ""
+msgstr "Dades espectromètriques"
 
 #: src/gui/siril3.glade:1101
 msgid "Enter data relating to profiling along a spectrum"
@@ -3704,11 +3703,15 @@ msgid "Center selected star"
 msgstr "Elimina les imatges seleccionades"
 
 #: src/gui/siril3.glade:14272
+#, fuzzy
 msgid ""
 "If checked, a star selected from the list will be centered in the display. "
 "The current zoom level will not be altered. This does not apply to stars "
 "selected by clicking their PSF in the main display."
 msgstr ""
+"Si es marca, una estrella seleccionada de la llista se centrara a la "
+"pantalla. No es modificara el zoom actual. Això no aplica a estels "
+"seleccionats prement sobre els seu PSF a la pantalla principal."
 
 #: src/gui/siril3.glade:14292 src/gui/siril3.glade:14344
 #: src/gui/siril3.glade:14357 src/gui/siril3.glade:14370
@@ -3772,8 +3775,9 @@ msgstr ""
 "una direcció respecte l'altre."
 
 #: src/gui/siril3.glade:14401
+#, fuzzy
 msgid "Relax PSF checks"
-msgstr ""
+msgstr "Relaxa els controls PSF"
 
 #: src/gui/siril3.glade:14405
 msgid ""
@@ -3783,6 +3787,12 @@ msgid ""
 "guiding, strong coma) but should be used as a last resort, if playing with "
 "all other detection parameters fails."
 msgstr ""
+"Quan es marca, aquest botó desactivarà algunes comprovacions a l'etapa de "
+"detecció d'estels, per descartar candidats inicialment detectats basats en "
+"algunes mètriques de qualitat psf. Pots fer servir aquesta opció per forçar "
+"la detecció d'estels amb formes estranyes (com per exemple a causa d'un mal "
+"guiat). Però s'ha de fer servir sempre com a últim recurs, si no ho "
+"aconsegueixes utilitzant tots els altres paràmetres de detecció."
 
 #: src/gui/siril3.glade:14421
 msgid "Convergence:"
@@ -3797,6 +3807,13 @@ msgid ""
 "This should normally be the case only for stacked images. Increasing this "
 "value may signicantly impact star finding computation time."
 msgstr ""
+"Criteri de convergència per l'ajustament a PSF.\n"
+"El valor per defecte 1 hauria de funcionar en la majoria dels casos. "
+"Nogensmenys, per imatges amb forta coma, pot ser necessari haver "
+"d'incrementar aquest valor per permetre més iteracions.\n"
+"Això només hauria de ser el cas per imatges apilades. Incrementar aquest "
+"valor pot incrementar significativament el temps de còmput per a trobar "
+"estels."
 
 #: src/gui/siril3.glade:14453
 #, fuzzy
@@ -3825,12 +3842,16 @@ msgid ""
 "Maximum star amplitude threshold (stars with larger amplitudes will not be "
 "detected)."
 msgstr ""
+"Llindar màxim d'amplitud dels estels (aquells amb amplituds més grans no "
+"seran detectades)."
 
 #: src/gui/siril3.glade:14550
 msgid ""
 "Mininum star amplitude threshold (stars with smaller amplitudes will not be "
 "detected)."
 msgstr ""
+"Llindar mínim d'amplitud dels estels (aquells amb amplituds més petites no "
+"seran detectades)."
 
 #: src/gui/siril3.glade:14566
 msgid "Amplitude range"
@@ -4234,24 +4255,32 @@ msgid ""
 "Select the image containing the CFA0 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
 msgstr ""
+"Selecciona la imatge que conté el patró CFA0 Bayer. Tindrà el prefix CFA0, "
+"si s'ha generat utilitzant la funcionalitat Split CFA de Siril."
 
 #: src/gui/siril3.glade:16181
 msgid ""
 "Select the image containing the CFA1 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA1 prefix."
 msgstr ""
+"Selecciona la imatge que conté el patró CFA1 Bayer. Tindrà el prefix CFA1, "
+"si s'ha generat utilitzant la funcionalitat Split CFA de Siril."
 
 #: src/gui/siril3.glade:16195
 msgid ""
 "Select the image containing the CFA2 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA2 prefix."
 msgstr ""
+"Selecciona la imatge que conté el patró CFA2 Bayer. Tindrà el prefix CFA2, "
+"si s'ha generat utilitzant la funcionalitat Split CFA de Siril."
 
 #: src/gui/siril3.glade:16209
 msgid ""
 "Select the image containing the CFA3 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA3 prefix."
 msgstr ""
+"Selecciona la imatge que conté el patró CFA3 Bayer. Tindrà el prefix CFA3, "
+"si s'ha generat utilitzant la funcionalitat Split CFA de Siril."
 
 #: src/gui/siril3.glade:16226
 msgid "Input Files"
