@@ -95,6 +95,7 @@ src/gui/sequence_list.c
 src/gui/single_image.c
 src/gui/siril_css.c
 src/gui/siril_intro.c
+src/gui/siril_plot.c
 src/gui/siril_preview.c
 src/gui/split_cfa.c
 src/gui/statistics_list.c
@@ -119,6 +120,7 @@ src/io/sequence_export.c
 src/io/seqwriter.c
 src/io/ser.c
 src/io/single_image.c
+src/io/siril_plot.c
 src/livestacking/gui.c
 src/livestacking/livestacking.c
 src/opencv/opencv.cpp

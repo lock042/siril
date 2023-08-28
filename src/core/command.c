@@ -57,7 +57,6 @@
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
-#include "io/gnuplot_i.h"
 #include "io/single_image.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
@@ -136,6 +135,39 @@
  */
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
+
+// Returns TRUE if the sequence does not contain CFA images
+// Otherwise, returns FALSE and prints a warning
+static gboolean sequence_cfa_warning_check(sequence* seq) {
+	gboolean retval;
+	fits tmpfit = { 0 };
+	seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit);
+	gboolean mono = (tmpfit.naxes[2] == 1);
+	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
+	clearfits(&tmpfit);
+	if (mono && cfa) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Applying a sequence function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
+		retval = FALSE;
+	} else {
+		retval = TRUE;
+	}
+	return retval;
+}
+
+// Returns TRUE if gfit does not contain a CFA image
+// Otherwise, returns FALSE and prints a warning
+gboolean image_cfa_warning_check() {
+	gboolean retval;
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Applying an image function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
+		retval = FALSE;
+	} else {
+		retval = TRUE;
+	}
+	return retval;
+}
 
 int process_load(int nb){
 	long maxpath = get_pathmax();
@@ -296,6 +328,7 @@ int process_savebmp(int nb){
 
 int process_synthstar(int nb) {
 	set_cursor_waiting(TRUE);
+	image_cfa_warning_check();
 	start_in_new_thread(do_synthstar, NULL);
 	set_cursor_waiting(FALSE);
 	return CMD_OK;
@@ -303,6 +336,7 @@ int process_synthstar(int nb) {
 
 int process_unclip(int nb) {
 	set_cursor_waiting(TRUE);
+	image_cfa_warning_check();
 	start_in_new_thread(fix_saturated_stars, NULL);
 	set_cursor_waiting(FALSE);
 	return CMD_OK;
@@ -508,6 +542,7 @@ int process_denoise(int nb){
 			args->sos = 1;
 		}
 	}
+	image_cfa_warning_check();
 	start_in_new_thread(run_nlbayes_on_fit, args);
 
 	return CMD_OK;
@@ -570,6 +605,7 @@ int process_starnet(int nb){
 			return CMD_ARG_ERROR;
 		}
 	}
+	image_cfa_warning_check();
 
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(do_starnet, starnet_args);
@@ -605,7 +641,6 @@ int process_seq_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
-//	starnet_args->starnet_fit = &gfit;
 	gboolean error = FALSE;
 	starnet_args->seq = seq;
 	if (!starnet_args->seq) {
@@ -658,6 +693,7 @@ int process_seq_starnet(int nb){
 			return CMD_ARG_ERROR;
 		}
 	}
+	sequence_cfa_warning_check(starnet_args->seq);
 	set_cursor_waiting(TRUE);
 	apply_starnet_to_sequence(starnet_args);
 
@@ -950,7 +986,7 @@ int process_fmul(int nb){
 int process_entropy(int nb){
 	rectangle area;
 	float e = 0.f;
-
+	image_cfa_warning_check();
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		area = com.selection;
 		for (int c = 0; c < gfit.naxes[2]; c++)
@@ -971,6 +1007,7 @@ int process_gauss(int nb){
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
 		return CMD_ARG_ERROR;
 	}
+	image_cfa_warning_check();
 	unsharp(&gfit, sigma, 0.0, TRUE);
 	//gaussian_blur_RT(&gfit, sigma, com.max_thread);
 
@@ -1131,6 +1168,7 @@ int process_makepsf(int nb) {
 					goto terminate_makepsf;
 				}
 			}
+			image_cfa_warning_check();
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg_1, "stars")) {
@@ -1185,6 +1223,7 @@ int process_makepsf(int nb) {
 			if (!force_ks) {
 				data->recalc_ks = TRUE;
 			}
+			image_cfa_warning_check();
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg_1, "manual")) {
@@ -1468,7 +1507,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 	else data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
-
+	image_cfa_warning_check();
 	start_in_new_thread(deconvolve, data);
 
 	return CMD_OK;
@@ -1595,7 +1634,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	else data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
-
+	sequence_cfa_warning_check(seq);
 	deconvolve_sequence_command(data, seq);
 
 	return CMD_OK;
@@ -1966,7 +2005,7 @@ int process_seq_ghs(int nb, int stretchtype) {
 	}
 	if (!seqdata->seqEntry)
 		seqdata->seqEntry = strdup("stretch_");
-
+	sequence_cfa_warning_check(seq);
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
@@ -2008,7 +2047,7 @@ int process_ghs(int nb, int stretchtype) {
 		free(params);
 		return CMD_ARG_ERROR;
 	}
-
+	image_cfa_warning_check();
 	if (params->payne_colourstretchmodel == COL_SAT)
 		apply_sat_ght_to_fits(&gfit, &gfit, params, TRUE);
 	else
@@ -2085,7 +2124,7 @@ int process_wavelet(int nb) {
 		siril_log_message(_("Wavelet: type must be %d or %d\n"), TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
 		return CMD_ARG_ERROR;
 	}
-
+	image_cfa_warning_check();
 	if (gfit.type == DATA_USHORT) {
 		float *Imag = f_vector_alloc(gfit.rx * gfit.ry);
 		if (!Imag) {
@@ -2141,6 +2180,7 @@ int process_linear_match(int nb) {
 	if (readfits(word[1], &ref, NULL, gfit.type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
 	if (!find_linear_coeff(&gfit, &ref, low, high, a, b, NULL)) {
+		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
 
@@ -2180,6 +2220,7 @@ int process_asinh(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
+	image_cfa_warning_check();
 	asinhlut(&gfit, beta, offset, human_luminance);
 
 	char log[90];
@@ -2211,7 +2252,7 @@ int process_clahe(int nb) {
 	args->fit = &gfit;
 	args->clip = clip_limit;
 	args->tileSize = size;
-
+	image_cfa_warning_check();
 	start_in_new_thread(clahe, args);
 
 	return CMD_OK;
@@ -2662,7 +2703,7 @@ int process_mtf(int nb) {
 			params.do_red = FALSE;
 		}
 	}
-
+	image_cfa_warning_check();
 	if (inverse)
 		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
 	else apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
@@ -2739,6 +2780,7 @@ int process_autoghs(int nb) {
 		}
 		return CMD_GENERIC_ERROR;
 	}
+	image_cfa_warning_check();
 	if (linked) {
 		double median = 0.0, sigma = 0.0;
 		for (int i = 0; i < nb_channels; ++i) {
@@ -2815,6 +2857,7 @@ int process_autostretch(int nb) {
 
 	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
 			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
+	image_cfa_warning_check();
 	if (linked) {
 		struct mtf_params params;
 		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
@@ -2849,7 +2892,7 @@ int process_binxy(int nb) {
 	if (nb > 2 && !g_ascii_strncasecmp(word[2], "-sum", 4)) {
 		mean = FALSE;
 	}
-
+	image_cfa_warning_check();
 	fits_binning(&gfit, factor, mean);
 
 	notify_gfit_modified();
@@ -2935,7 +2978,7 @@ int process_resample(int nb) {
 	siril_log_message(_("Resampling to %d x %d pixels with %s interpolation\n"),
 			toX, toY, interp_to_str(interpolation));
 	int fromX = gfit.rx, fromY = gfit.ry;
-
+	image_cfa_warning_check();
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
@@ -2973,7 +3016,7 @@ int process_rgradient(int nb) {
 		free(args);
 		return CMD_ARG_ERROR;
 	}
-
+	image_cfa_warning_check();
 	start_in_new_thread(rgradient_filter, args);
 	return CMD_OK;
 }
@@ -3047,6 +3090,8 @@ int process_rotate(int nb) {
 		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
 		return CMD_ARG_ERROR;
 	}
+	if (angle != 90.0 && angle != 180.0 && angle != 270.0)
+		image_cfa_warning_check();
 	verbose_rotate_image(&gfit, area, angle, interpolation, crop, clamp);
 
 	// the new selection will match the current image
@@ -3115,7 +3160,6 @@ int process_set(int nb) {
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf) == 0;
 	}
-	reset_gnuplot_check();
 	return 0;
 }
 
@@ -4181,7 +4225,7 @@ int process_seq_crop(int nb) {
 
 int process_bg(int nb) {
 	WORD us_bg;
-
+	image_cfa_warning_check();
 	for (int layer = 0; layer < gfit.naxes[2]; layer++) {
 		double bg = background(&gfit, layer, &com.selection, MULTI_THREADED);
 		if (gfit.type == DATA_USHORT) {
@@ -4196,6 +4240,7 @@ int process_bg(int nb) {
 }
 
 int process_bgnoise(int nb) {
+	image_cfa_warning_check();
 	evaluate_noise_in_image();
 	return CMD_OK;
 }
@@ -4208,6 +4253,7 @@ int process_histo(int nb) {
 
 	if (end == word[1] || nlayer > 3 || nlayer < 0)
 		return CMD_INVALID_IMAGE;
+	image_cfa_warning_check();
 	gsl_histogram *histo = computeHisto(&gfit, nlayer);
 	if (!isrgb(&gfit))
 		clayer = "bw";		//if B&W
@@ -4374,6 +4420,7 @@ int process_ddp(int nb) {
 		siril_log_message(_("Sigma value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
+	image_cfa_warning_check();
 	ddp(&gfit, level, coeff, sigma);
 	notify_gfit_modified();
 	return CMD_OK;
@@ -4553,6 +4600,11 @@ int process_findstar(int nb) {
 		free(args);
 		return argparsing;
 	}
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Star detection may produce results for this image but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
+	}
+
 	start_in_new_thread(findstar_worker, args);
 
 	return CMD_OK;
@@ -4601,6 +4653,16 @@ int process_seq_findstar(int nb) {
 		siril_log_message(_("Option -out= is not available for sequences, ignoring\n"));
 		g_free(args->starfile);
 		args->starfile = NULL;
+	}
+
+	fits tmpfit = { 0 };
+	seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit);
+	gboolean mono = (tmpfit.naxes[2] == 1);
+	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
+	clearfits(&tmpfit);
+	if (mono && cfa) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Star detection may produce results for this sequence but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
 	}
 
 	return apply_findstar_to_sequence(args);
@@ -4786,7 +4848,7 @@ int process_fmedian(int nb){
 		return CMD_ARG_ERROR;
 	}
 	args->fit = &gfit;
-
+	image_cfa_warning_check();
 	start_in_new_thread(median_filter, args);
 
 	return CMD_OK;
@@ -4939,7 +5001,7 @@ int process_fft(int nb){
 	args->modulus = strdup(word[1]);
 	args->phase = strdup(word[2]);
 	args->type_order = 0;
-
+	image_cfa_warning_check();
 	start_in_new_thread(fourier_transform, args);
 
 	return CMD_OK;
@@ -4979,6 +5041,7 @@ int process_fixbanding(int nb) {
 			arg_index++;
 		}
 	}
+	image_cfa_warning_check();
 	start_in_new_thread(BandingEngineThreaded, args);
 	return CMD_OK;
 }
@@ -5046,7 +5109,7 @@ int process_seq_fixbanding(int nb) {
 	}
 	if (!args->seqEntry)
 		args->seqEntry = strdup("unband_");
-
+	sequence_cfa_warning_check(seq);
 	apply_banding_to_sequence(args);
 	return CMD_OK;
 }
@@ -5161,12 +5224,14 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
+		sequence_cfa_warning_check(seq);
 
 		apply_background_extraction_to_sequence(args);
 	} else {
 		args->seq = NULL;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
+		image_cfa_warning_check();
 
 		if (!generate_background_samples(samples, tolerance))
 			start_in_new_thread(remove_gradient_from_image, args);
@@ -5610,7 +5675,7 @@ int process_seq_mtf(int nb) {
 			}
 		}
 	}
-
+	sequence_cfa_warning_check(seq);
 	apply_mtf_to_sequence(args);
 
 	return CMD_OK;
@@ -8768,36 +8833,18 @@ int process_sso() {
 	return CMD_OK;
 }
 
-static gboolean end_process_catsearch(gpointer p) {
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	refresh_found_objects();
-	if (!gtk_toggle_tool_button_get_active(button)) {
-		gtk_toggle_tool_button_set_active(button, TRUE);
-	} else {
-		redraw(REDRAW_OVERLAY);
-	}
-	return end_generic(NULL);
-}
-
 int process_catsearch(int nb){
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
-	set_cursor_waiting(TRUE);
 	gchar *name = NULL;
 	if (nb > 2) {
 		name = build_string_from_words(word + 1);
 	} else {
 		name = g_strdup(word[1]);
 	}
-
-	gboolean found_it = cached_object_lookup(name, NULL) == 0;
-	if (found_it)
-		siril_add_idle(end_process_catsearch, NULL);
-	else siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
-	g_free(name);
-
+	start_in_new_thread(catsearch_worker, name);
 	return CMD_OK;
 }
 
@@ -9226,11 +9273,7 @@ int process_profile(int nb) {
 	if (err)
 		return err;
 
-	if (!gnuplot_is_available()) {
-		siril_log_color_message(_("Warning: GNUplot not available. Data files will be generated for analysis in a third party tool but no GNUplot image can be produced.\n"), "salmon");
-	}
-
-	cut_args->display_graph = FALSE;
+	cut_args->display_graph = (!com.script); // we can display the plot if not in a script
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa)
@@ -9252,11 +9295,6 @@ int process_seq_profile(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
-	}
-
-	if(com.pref.use_gnuplot && !gnuplot_is_available()) {
-		siril_log_color_message(_("Error: GNUplot not available\n"), "red");
-		return CMD_GENERIC_ERROR;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);

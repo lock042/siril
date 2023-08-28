@@ -3,11 +3,12 @@ siril 1.4.0 xx xx, xx
 * Added comparison star list creation from Siril
 * Allowed object search with their common name, from the annotations catalogues
 * Added intensity profiling function
-* Added internal plotting tool (siril_plot) to be used with profiling and light_curves
+* Added internal plotting tool (siril_plot) to be used with profiling and light_curves (removed usage of GNUplot)
 * Added functionalities to kplot (hyphen markers, revert axes, removed statics)
 * Fixed PRISM SITELAT/SITELONG keywords data
 * Improved RGB composition tool to do full homography registration
 * Added new init for PSF fitting of oversampled stars
+* Fixed running command catsearch threaded to avoid GUI freeze (#1167)
 
 siril 1.2.0 xx xx, xx
 
@@ -36,6 +37,10 @@ siril 1.2.0 xx xx, xx
 * Fixed the check for the no space left condition in the conversion (#1108)
 * Fixed DATE_OBS missing on seqapplyreg if interp was set to NONE (#1156)
 * Fixed photometry issue with 8-bit .ser file (#1160)
+* Fixed removing zero values in histogram calculations (#1164)
+* Fixed pixel sizes after HaOIII extrcation (#1175)
+* Fixed crash when passing only constants in pm expression (#1176)
+* Fixed incorrect channel when adding star from selection in RGB vport (#1180)
 
 siril 1.2.0-rc1 June 1, 2023
 

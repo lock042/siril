@@ -37,7 +37,6 @@
 #include "gui/plot.h"
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"
-#include "io/gnuplot_i.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
 #include "opencv/opencv.h"
@@ -296,7 +295,6 @@ void print_psf_error_summary(gint *code_sums) {
  */
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs) {
 	int i, j;
-	gboolean use_gnuplot = com.pref.use_gnuplot && gnuplot_is_available();
 	siril_plot_data *spl_data = NULL;
 
 	if (!seq->photometry[0]) {
@@ -412,67 +410,48 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 
 	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
-	/* Exporting data in a dat file */
-	gchar *subtitle = generate_lc_subtitle(lcargs->metadata, FALSE);
-	gchar *title = g_strdup_printf("%sJD_UT V-C err", subtitle);
-	g_free(subtitle);
-	int ret = gnuplot_write_xyyerr_dat(filename, date, vmag, err, nb_valid_images, title);
-	g_free(title);
-	if (ret) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
+	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
+	gchar *titleimg = g_strdup_printf("%s %s%s",
+			_("Light curve of star"), target_descr, subtitleimg);
+	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
+	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
+	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
+
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_title(spl_data, titledat);
+	siril_plot_set_xlabel(spl_data, xlabel);
+	spl_data->revertY = TRUE;
+	siril_plot_set_savename(spl_data, "light_curve");
+	spl_data->forsequence = TRUE;
+	double *date0 = malloc(nb_valid_images * sizeof(double));
+	for (int i = 0; i < nb_valid_images; i++)
+		date0[i] = date[i] - julian0;
+	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
+	free(date0);
+	// saving dat
+	int ret = 0;
+	if (!siril_plot_save_dat(spl_data, filename, TRUE)) {
+		ret = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL; // just in case we try to use it later on
 	} else {
-		siril_log_message(_("%s has been saved.\n"), filename);
-		gchar *subtitle = generate_lc_subtitle(lcargs->metadata, TRUE);
-		gchar *title = g_strdup_printf("Light curve of star %s%s",
-				target_descr, subtitle);
-		gchar *xlabel = g_strdup_printf("Julian date (+ %d)", julian0);
-		g_free(subtitle);
-		/*  data are computed, now plot the graph. */
-		if (use_gnuplot) {
-			gnuplot_ctrl *gplot = gnuplot_init();
-			if (gplot) {
-				/* Plotting light curve */
-				gnuplot_set_title(gplot, title);
-				gnuplot_set_xlabel(gplot, xlabel);
-				gnuplot_reverse_yaxis(gplot);
-				gnuplot_setstyle(gplot, "errorbars");
-				if (display_graph) {
-					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
-					// Don't close gnuplots with active windows
-					// gnuplot_close(gplot);
-				} else {
-					gchar *image_name = replace_ext(filename, ".png");
-					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
-					siril_log_message(_("%s has been generated.\n"), image_name);
-					g_free(image_name);
-					// It's ok to close a gnuplot that has finished writing to
-					// a png though
-					gnuplot_close(gplot);
-				}
-			}
-		} else { // fallback with siril_plot
-			spl_data = malloc(sizeof(siril_plot_data));
-			init_siril_plot_data(spl_data);
-			siril_plot_set_title(spl_data, title);
-			siril_plot_set_xlabel(spl_data, xlabel);
-			spl_data->revertY = TRUE;
-			double *date0 = malloc(nb_valid_images * sizeof(double));
-			for (int i = 0; i < nb_valid_images; i++)
-				date0[i] = date[i] - julian0;
-			siril_plot_add_xydata(spl_data, "relative magnitude", nb_valid_images, date0, vmag, err, NULL);
-			free(date0);
-			if (!display_graph) { // if not used for display we can free spl_data now
-				gchar *image_name = replace_ext(filename, ".png");
-				siril_plot_save_png(spl_data, image_name);
-				free_siril_plot_data(spl_data);
-				spl_data = NULL; // just in case we try to use it later on
-				g_free(image_name);
-			}
+		// now saving the plot if required
+		siril_plot_set_title(spl_data, titleimg);
+		if (!display_graph) { // if not used for display we can free spl_data now
+			gchar *image_name = replace_ext(filename, ".png");
+			siril_plot_save_png(spl_data, image_name, 0, 0);
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
+			g_free(image_name);
 		}
-		g_free(title);
-		g_free(xlabel);
 	}
+	g_free(xlabel);
+	g_free(subtitleimg);
+	g_free(titleimg);
+	g_free(subtitledat);
+	g_free(titledat);
+
 	if (display_graph && spl_data)
 		lcargs->spl_data = spl_data;
 
