@@ -1800,10 +1800,10 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 				psf_star *psf = seq->photometry[photometry_index][j];
 				if (first) {
 					siril_log_message(_("Photometry for star at %.1f, %.1f in image %d\n"), psf->xpos, psf->ypos, j);
-					siril_log_message("image_index magnitude error fwhm amplitude background\n");
+					siril_debug_print("image_index magnitude error fwhm amplitude background\n");
 					first = FALSE;
 				}
-				siril_log_message("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
+				siril_debug_print("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
 			}
 		}
 
