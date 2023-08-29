@@ -803,8 +803,12 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 	int nb_valid_images = j;
 
-	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, seq->selnum - nb_valid_images);
-
+	siril_log_message(_("Calibrated data for %d points of the light curve (#%d total, %d invalid calibration, %d unselected)\n"),
+			nb_valid_images,
+			seq->number,
+			seq->selnum - nb_valid_images,
+			seq->number - seq->selnum);
+			
 	/*  data are computed, now plot the graph. */
 
 	spl_data = malloc(sizeof(siril_plot_data));
