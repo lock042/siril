@@ -40,6 +40,7 @@ siril 1.2.0 xx xx, xx
 * Fixed removing zero values in histogram calculations (#1164)
 * Fixed pixel sizes after HaOIII extrcation (#1175)
 * Fixed crash when passing only constants in pm expression (#1176)
+* Fixed boundery limit in photometry Light Curve calculation (#1169)
 
 siril 1.2.0-rc1 June 1, 2023
 
