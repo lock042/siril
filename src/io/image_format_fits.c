@@ -1995,8 +1995,12 @@ int read_icc_profile_from_fits(fits *fit) {
 		return 1;
 	}
 	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
-	if (fit->icc_profile)
-		siril_log_message("Embedded ICC profile read from FITS\n");
+	if (fit->icc_profile) {
+		siril_debug_print("Embedded ICC profile read from FITS\n");
+		fit->color_managed = TRUE;
+	} else {
+		fit->color_managed = FALSE;
+	}
 	free(profile);
 	free(header);
 	return 0;
@@ -2131,6 +2135,7 @@ void clearfits_header(fits *fit) {
 		free(fit->stats);
 		fit->stats = NULL;
 	}
+	fit->color_managed = FALSE;
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	free_wcs(fit, FALSE);
@@ -2278,14 +2283,12 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	/* Note: reading one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
-	 * If we copy the ICC profile from the source FITS and a transform is done, the program
-	 * will crash. However if we don't copy the ICC profile, we lose track of color management
-	 * of the data.
-	 * In practice, this function is only used for processing parts of linear images that
-	 * are recombined into a linear image on completion, so setting the ICC profile to NULL
-	 * is fine.
+	 * We set the icc_profile to NULL and fit->color_mananged to FALSE to indicate that this
+	 * is raw data and no longer associated with a color managed image. Care must be taken
+	 * regarding subsequent reintegration of this data into a color managed workflow.
 	 */
 	fit->icc_profile = NULL;
+	fit->color_managed = FALSE;
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
@@ -2330,6 +2333,8 @@ int read_fits_metadata(fits *fit) {
 		return -1;
 	}
 
+	read_icc_profile_from_fits(fit); // read color management data
+
 	read_fits_header(fit);	// stores useful header data in fit
 	fit->header = copy_header(fit);
 
@@ -2347,7 +2352,6 @@ static int read_fits_metadata_from_path_internal(const char *filename, fits *fit
 	}
 
 	read_fits_metadata(fit);
-	read_icc_profile_from_fits(fit);
 	status = 0;
 	fits_close_file(fit->fptr, &status);
 
@@ -2580,7 +2584,10 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	if (com.pref.fits_save_icc) {
+	if (com.pref.fits_save_icc && f->color_managed) {
+		/* Only write the ICC profile for color managed FITS. This avoids writing
+		 * ICC profiles to things like extracted channels where it doesn't really
+		 * make sense. */
 		if (!(f->icc_profile)) {
 			assign_linear_icc_profile(f);
 		}
@@ -2757,6 +2764,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->date = NULL;
 		to->date_obs = NULL;
 		to->icc_profile = NULL;
+		to->color_managed = FALSE;
 #ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
 #endif
@@ -2856,8 +2864,13 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 
 	// Why doesn't this work when the lines later in copy_gfit_to_backup and copy_backup_to_gfit do?
 	if ((oper & CP_ALLOC) || (oper & CP_COPYA)) {
-		// copy the ICC profile
-		to->icc_profile = copyICCProfile(from->icc_profile);
+		// copy color management data
+		to->color_managed = from->color_managed;
+		if (to->color_managed) {
+			to->icc_profile = copyICCProfile(from->icc_profile);
+		} else {
+			to->icc_profile = NULL;
+		}
 	}
 
 	return 0;
@@ -2879,13 +2892,11 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	/* Note: extracting one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
-	 * If we copy the ICC profile from the source FITS and a transform is done, the program
-	 * will crash. However if we don't copy the ICC profile, we lose track of color management
-	 * of the data.
-	 * This function is only used in splitting an image for reassembly in the RGB comp tool,
-	 * or for functions that are inherently using linear data. It is therefore OK to leave the
-	 * profile as NULL.
+	 * We therefore set a NULL icc_profile and color_managed = FALSE to indicate that this
+	 * extracted channel is considered non-color managed raw data. Care must be taken if
+	 * subsequently reintegrating it into a color managed workflow.
 	 */
+	to->color_managed = FALSE;
 	to->icc_profile = NULL;
 #ifdef HAVE_WCSLIB
 	to->wcslib = NULL;
@@ -2957,16 +2968,10 @@ void keep_only_first_channel(fits *fit) {
 	/* Note: keeping one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
-	 * If we copy the ICC profile from the source FITS and a transform is done, the program
-	 * will crash. However if we don't copy the ICC profile, we lose track of color management
-	 * of the data. Ideally we would set a Gray profile with the same gamma as the FITS profile.
-	 * In practice, currently I think this function is only used for processing that expects
-	 * to be handling linear data, and won't need to be transformed for display. For now we
-	 * will set fit->icc_profile to NULL and it can be lazy-populated to a linear profile if
-	 * needed.
+	 * As above, we set icc_profile to NULL and color_managed to FALSE.
 	 */
 	fit->icc_profile = NULL;
-
+	fit->color_managed = FALSE;
 }
 
 /* copy non-mandatory keywords from 'from' to 'to' */
@@ -3041,67 +3046,38 @@ int copy_fits_from_file(char *source, char *destination) {
 	return (status);
 }
 
+
 int save1fits16(const char *filename, fits *fit, int layer) {
-	gboolean threaded = !get_thread_run();
 	if (layer != RLAYER) {
 		size_t nbdata = fit->naxes[0] * fit->naxes[1];
 		memcpy(fit->data, fit->data + layer * nbdata, nbdata * sizeof(WORD));
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	/* Construct a profile that defines the TRC that gives the split channel's contribution to Y */
-	cmsHPROFILE channel = siril_construct_split_profile(fit, layer);
-	/* Transform the channel from the split-out channel profile to linear Gray, for consistency.
-	 * All images composed from such split-out channels will start out with a linear {working space} profile
-	 * consistent with the linear channel profiles that define the linearised contribution of the original
-	 * image channel to its Y. The image will thus be consistent regardless of whether the channels were split
-	 * out from images with different color profiles and can then be converted to the user's desired working
-	 * color profile.
-	 */
-	cmsHTRANSFORM to_linear = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), channel, TYPE_GRAY_16, com.icc.mono_linear, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0);
-	cmsDoTransformLineStride(to_linear, fit->data, fit->data, fit->rx, fit->ry, sizeof(WORD) * fit->rx, sizeof(WORD) * fit->rx, sizeof(WORD) * fit->rx * fit->ry, sizeof(WORD) * fit->rx * fit->ry);
-	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-	cmsCloseProfile(fit->icc_profile);
-	/* Assign the Gray linear profile that describes what we have done above */
-	fit->icc_profile = gray_linear();
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
+	fit->color_managed = FALSE;
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(temp);
-	cmsCloseProfile(temp);
-	cmsCloseProfile(channel);
 	return retval;
 }
 
 int save1fits32(const char *filename, fits *fit, int layer) {
-	gboolean threaded = !get_thread_run();
 	if (layer != RLAYER) {
 		size_t nbdata = fit->naxes[0] * fit->naxes[1];
 		memcpy(fit->fdata, fit->fdata + layer * nbdata, nbdata * sizeof(float));
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	/* Construct a profile that defines the TRC that gives the split channel's contribution to Y */
-	cmsHPROFILE channel = siril_construct_split_profile(fit, layer);
-	/* Transform the channel from the split-out channel profile to linear Gray, for consistency.
-	 * All images composed from such split-out channels will start out with a linear {working space} profile
-	 * consistent with the linear channel profiles that define the linearised contribution of the original
-	 * image channel to its Y. The image will thus be consistent regardless of whether the channels were split
-	 * out from images with different color profiles and can then be converted to the user's desired working
-	 * color profile.
-	 */
-	cmsHTRANSFORM to_linear = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), channel, TYPE_GRAY_FLT, com.icc.mono_linear, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0);
-	cmsDoTransformLineStride(to_linear, fit->fdata, fit->fdata, fit->rx, fit->ry, sizeof(float) * fit->rx, sizeof(float) * fit->rx, sizeof(float) * fit->rx * fit->ry, sizeof(float) * fit->rx * fit->ry);
-	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-	cmsCloseProfile(fit->icc_profile);
-	/* Assign the Gray linear profile that describes what we have done above */
-	fit->icc_profile = gray_linear();
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
+	fit->color_managed = FALSE;
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
-	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(temp);
-	cmsCloseProfile(temp);
-	cmsCloseProfile(channel);
 	return retval;
 }
 
@@ -3256,8 +3232,8 @@ static void extract_region_from_fits_ushort(fits *from, int layer, fits *to,
 	to->pdata[2] = to->data;
 	to->bitpix = from->bitpix;
 	to->type = DATA_USHORT;
-	// TODO: review color management behaviour in this case
 	to->icc_profile = NULL;
+	to->color_managed = FALSE;
 }
 
 static void extract_region_from_fits_float(fits *from, int layer, fits *to,
@@ -3286,14 +3262,8 @@ static void extract_region_from_fits_float(fits *from, int layer, fits *to,
 	to->fpdata[2] = to->fdata;
 	to->bitpix = from->bitpix;
 	to->type = DATA_FLOAT;
-	/* TODO: review color management behaviour in this case
-	 * Note this is used to extract partial frames from films where the
-	 * 3-channel data is sRGB
-	 * Currently, icc_profile is NULL and the caller is responsible
-	 * for setting it
-	 */
 	to->icc_profile = NULL;
-
+	to->color_managed = FALSE;
 }
 
 void extract_region_from_fits(fits *from, int layer, fits *to,
@@ -3376,8 +3346,8 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 			(*fit)->fpdata[BLAYER] = (*fit)->fdata;
 		}
 	}
-	// TODO: consider ICC profile assignment for this function. Currently fit->icc_profile
-	// will be left NULL and lazy-populated to linear if needed, but is this correct in all cases?
+	// Note: FITS created in this way will initially not be color managed. The
+	// user, or the calling function, must assign an ICC profile if required.
 	return 0;
 }
 

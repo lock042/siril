@@ -4,6 +4,8 @@ pixmaps = \
 	b.svg \
 	chain.svg \
 	cm.svg \
+	color_management.svg \
+	color_management_off.svg \
 	curve.svg \
 	cut.svg \
 	cut_dark.svg \

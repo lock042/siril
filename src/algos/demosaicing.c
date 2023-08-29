@@ -1156,10 +1156,19 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
-	/* The image is no longer mono so we assign it the working colorspace linear gamma profile */
-	if (fit->icc_profile)
-		cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(com.icc.working_linear);
+	/* The image is no longer mono, but debayered raw data is almost certainly linear
+	 * so we assign it the working colorspace linear gamma profile
+	 * TODO: are there any possible circumstances where this is wrong?
+	 */
+	if (fit->color_managed) {
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(com.icc.working_linear);
+	} else {
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
 	return 0;
 }
 
@@ -1195,10 +1204,19 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
-	/* The image is no longer mono so we assign it the working colorspace linear gamma profile */
-	if (fit->icc_profile)
-		cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(com.icc.working_linear);
+	/* The image is no longer mono, but debayered raw data is almost certainly linear
+	 * so we assign it the working colorspace linear gamma profile
+	 * TODO: are there any possible circumstances where this is wrong?
+	 */
+	if (fit->color_managed) {
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(com.icc.working_linear);
+	} else {
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
 	return 0;
 }
 

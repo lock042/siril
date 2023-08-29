@@ -54,6 +54,7 @@ cmsHPROFILE gray_srgbtrc();
 cmsHPROFILE srgb_trc();
 cmsHPROFILE gray_linear();
 
+void color_manage(fits *fit, gboolean active);
 void validate_custom_profiles();
 void initialize_profiles_and_transforms();
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);

@@ -1280,13 +1280,13 @@ artifacts may appear.</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_wn1">
     <property name="upper">100000</property>
-    <property name="step-increment">0.1</property>
-    <property name="page-increment">100.</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_wn2">
     <property name="upper">100000</property>
-    <property name="step-increment">0.1</property>
-    <property name="page-increment">100.</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adj_cut_xfinish">
     <property name="lower">-1</property>
@@ -27110,16 +27110,44 @@ WARNING: This option should not be checked for master stacking.</property>
             <property name="can-focus">False</property>
             <property name="spacing">2</property>
             <child>
-              <object class="GtkCheckButton" id="checkcut_max">
-                <property name="label" translatable="yes">cut</property>
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="has-tooltip">True</property>
-                <property name="tooltip-markup" translatable="yes">Instead of keeping pixels with values above the &amp;quot;hi&amp;quot; value white, put them in black to see in which part of the image the threshold is exceeded.</property>
-                <property name="tooltip-text" translatable="yes">Instead of keeping pixels with values above the "hi" value white, put them in black to see in which part of the image the threshold is exceeded.</property>
-                <property name="draw-indicator">True</property>
-                <signal name="toggled" handler="on_checkcut_toggled" swapped="no"/>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="homogeneous">True</property>
+                <child>
+                  <object class="GtkCheckButton" id="checkcut_max">
+                    <property name="label" translatable="yes">cut</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="has-tooltip">True</property>
+                    <property name="tooltip-markup" translatable="yes">Instead of keeping pixels with values above the &amp;quot;hi&amp;quot; value white, put them in black to see in which part of the image the threshold is exceeded.</property>
+                    <property name="tooltip-text" translatable="yes">Instead of keeping pixels with values above the "hi" value white, put them in black to see in which part of the image the threshold is exceeded.</property>
+                    <property name="draw-indicator">True</property>
+                    <signal name="toggled" handler="on_checkcut_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkImage" id="color_managed_icon">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Image is not color managed</property>
+                    <property name="halign">start</property>
+                    <property name="margin-start">3</property>
+                    <property name="pixbuf">pixmaps/color_management_off.svg</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>

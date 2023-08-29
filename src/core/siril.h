@@ -478,6 +478,7 @@ struct ffit {
 	GSList *history;	// Former HISTORY comments of FITS file
 
 	/* ICC Color Management data */
+	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
 

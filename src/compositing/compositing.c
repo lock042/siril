@@ -59,7 +59,9 @@
 
 #undef DEBUG
 
+static gboolean remember_color_management_dialog = FALSE;
 static int compositing_loaded = 0;
+static cmsHPROFILE temp_profile = NULL; // used when reloading to maintain the applied profile
 
 typedef enum {
 	HSL,
@@ -462,12 +464,19 @@ void open_compositing_window() {
 	} else {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
+
 		close_sequence(FALSE);
 		close_single_image();
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
+			if (!reference)
+				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
-		} while (layers[i]) ;
+		} while (layers[i]);
+		if (reference) {
+			gfit.icc_profile = copyICCProfile(reference);
+			color_manage(&gfit, TRUE);
+		}
 		update_result(1);
 		update_MenuItem();
 	}
@@ -543,7 +552,7 @@ static void check_gfit_is_ours() {
 
 	if (!update_needed)
 		return;
-
+	gboolean temp_cm = gfit.color_managed;
 	/* create the new result image if it's the first opened image */
 	close_single_image();
 	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1)) {
@@ -551,7 +560,10 @@ static void check_gfit_is_ours() {
 		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
 		return;
 	}
-
+	color_manage(&gfit, temp_cm);
+	if (temp_cm && reference && !gfit.icc_profile) {
+		gfit.icc_profile = copyICCProfile(reference);
+	}
 	/* open the single image.
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
@@ -669,13 +681,31 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 				if (reference)
 					cmsCloseProfile(reference);
 				reference = copyICCProfile(layers[layer]->the_fit.icc_profile);
+				if (!reference) {
+					if (temp_profile) {
+						reference = copyICCProfile(temp_profile);
+						layers[layer]->the_fit.icc_profile = copyICCProfile(reference);
+						cmsCloseProfile(temp_profile);
+						temp_profile = NULL;
+					} else if (!remember_color_management_dialog) {
+						gboolean confirm = siril_confirm_dialog_and_remember(_("Color Management"), _("No color profile detected. Open the color management dialog to assign a color profile to the composition?"), _("Confirm"), &remember_color_management_dialog);
+						if (confirm) {
+							GtkWidget *win = lookup_widget("icc_dialog");
+							gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
+							/* Here this is wanted that we do not use siril_open_dialog */
+							gtk_widget_show(win);
+						} else {
+							color_manage(&gfit, FALSE);
+						}
+					}
+				}
 			}
 			if (number_of_images_loaded() > 1 && !profiles_identical(reference,
 							layers[layer]->the_fit.icc_profile)) {
 				siril_log_message(_("ICC profile differs to that of the first image loaded."
-									"Converting this image to match.\n"));
+								"Converting this image to match.\n"));
 				convert_fit_colorspace(&layers[layer]->the_fit, layers[layer]->the_fit.icc_profile,
-									   reference);
+									reference);
 			}
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||
@@ -711,6 +741,14 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	}
 	g_free(filename);
 
+	// Check gfit is inheriting the color profile if necessary
+	if (gfit.color_managed && !gfit.icc_profile) {
+		gfit.icc_profile = copyICCProfile(reference);
+	}
+	color_manage(&gfit, TRUE);
+	refresh_icc_transforms();
+	notify_gfit_modified();
+
 	/* special case of luminance selected */
 	if (layer == 0) {
 		GtkToggleButton *lum_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "composition_use_lum"));
@@ -736,7 +774,6 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 		update_display_selection();	// update the dimensions of the selection when switching page
 		update_display_fwhm();
 	}
-
 
 	update_compositing_registration_interface();
 
@@ -1232,6 +1269,7 @@ static void luminance_and_colors_align_and_compose() {
 
 void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
 	gui.comp_layer_centering = NULL;
+	reset_compositing_module();
 	siril_close_dialog("composition_dialog");
 }
 
@@ -1267,6 +1305,9 @@ static void clear_pixel(GdkRGBA *pixel) {
 
 /* recompute the layer composition and optionnally refresh the displayed result image */
 static void update_result(int and_refresh) {
+	if (gfit.icc_profile && !reference)
+		reference = copyICCProfile(gfit.icc_profile);
+
 	check_gfit_is_ours();
 	if (luminance_mode && has_fit(0)) {
 		luminance_and_colors_align_and_compose();
@@ -1493,6 +1534,9 @@ void reset_compositing_module() {
 }
 
 void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
+	if (temp_profile)
+		cmsCloseProfile(temp_profile);
+	temp_profile = NULL;
 	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return;
 	process_close(0);
@@ -1620,7 +1664,13 @@ void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
 void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 	if (number_of_images_loaded() < 1)
 		return;
-
+	if (gfit.color_managed) {
+		if (temp_profile)
+			cmsCloseProfile(temp_profile);
+		temp_profile = NULL;
+		if (gfit.icc_profile)
+			temp_profile = copyICCProfile(gfit.icc_profile); // gets reloaded in the filechooser cb
+	}
 	// Clear the image data and the sequence, if populated
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layers[layer] && layers[layer]->the_fit.rx != 0)
