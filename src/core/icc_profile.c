@@ -85,11 +85,28 @@ void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	if (fit == &gfit) {
 		gchar *name = g_build_filename(siril_get_system_data_dir(), "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
-		const gchar *tooltip = active ? "Image is color managed" : "Image is not color managed";
+		gchar *tooltip = NULL;
+		if (active) {
+			if (gfit.icc_profile) {
+				int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+				char *buffer = NULL;
+				if (length) {
+					buffer = (char*) malloc(length * sizeof(char));
+					cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+					tooltip = g_strdup_printf(_("Image is color managed\n%s"), buffer);
+					free(buffer);
+				}
+			}
+			if (!tooltip)
+				tooltip = g_strdup(_("Image is color managed\n"));
+		} else {
+			tooltip = g_strdup(_("Image is not color managed"));
+		}
 		GtkWidget *widget = lookup_widget("color_managed_icon");
 		gtk_image_set_from_file((GtkImage*)widget, name);
 		gtk_widget_set_tooltip_text(widget, tooltip);
 		g_free(name);
+		g_free(tooltip);
 	}
 }
 
