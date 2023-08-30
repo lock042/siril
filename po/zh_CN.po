@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
 "PO-Revision-Date: 2023-09-01 05:10+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -304,37 +304,32 @@ msgid "Save profile datafile"
 msgstr "保存轮廓数据文件"
 
 #: src/gui/siril3.glade:1146
-#, fuzzy
 msgid ""
 "Saves the data file used to generate the profile in the working directory. "
 "The filename is based on the current image and includes a timestamp."
-msgstr ""
-"将用于生成轮廓的 GNUplot 数据文件保存在工作目录中。文件名基于当前图像，并包含"
-"时间戳。"
+msgstr "将用于生成轮廓的 GNUplot "
+"数据文件保存在工作目录中。文件名基于当前图像，并包含时间戳。"
 
 #: src/gui/siril3.glade:1177
-#, fuzzy
 msgid ""
 "Apply to the current sequence. If this is selected, plots will be generated "
 "in .png format in the working directory: the plot window will not appear. "
 "This mode automatically enables the \"Save plot as .png\" option."
 msgstr ""
-"应用于当前队列。如果选择此选项，将在工作目录中以.png格式生成图表：GNUplot 窗"
-"口将不会出现。此模式自动启用“将图表另存为.png”选项。"
+"应用于当前队列。如果选择此选项，将在工作目录中以.png格式生成图表：GNUplot "
+"窗口将不会出现。此模式自动启用“将图表另存为.png”选项。"
 
 #: src/gui/siril3.glade:1188
 msgid "Save plot as .png"
 msgstr "将图表另存为png"
 
 #: src/gui/siril3.glade:1192
-#, fuzzy
 msgid ""
 "Saves the plot in .png format as well as opening the plot window. Sequence "
 "working relies on this so if this option is deactivated, sequence working "
 "will be deactivated too."
-msgstr ""
-"以.png格式保存图表，并打开 GNUplot 窗口。队列工作依赖于此，因此如果禁用此选"
-"项，队列工作也将停用。"
+msgstr "以.png格式保存图表，并打开 GNUplot "
+"窗口。队列工作依赖于此，因此如果禁用此选项，队列工作也将停用。"
 
 #: src/gui/siril3.glade:1203
 msgid "Measure in pixels"
@@ -2185,21 +2180,20 @@ msgid "Image compositing"
 msgstr "图像合成"
 
 #: src/gui/siril3.glade:9666
-#, fuzzy
 msgid "Reload all"
-msgstr "清除"
+msgstr "全部重载"
 
 #: src/gui/siril3.glade:9670
 msgid ""
 "Reload all input images into their respective compositing layers. This is "
 "necessary if you aren't happy with the alignment results and wish to re-do "
 "the alignment, for example with a different framing method."
-msgstr ""
+msgstr "将所有输入图像重新加载到各自的合成层中。如果您对对齐结果不满意并希望重新进行"
+"对齐，例如使用不同的构图方式，这是必要的。"
 
 #: src/gui/siril3.glade:9681
-#, fuzzy
 msgid "Save all"
-msgstr "保存图表"
+msgstr "全部保存"
 
 #: src/gui/siril3.glade:9685
 msgid ""
@@ -2208,6 +2202,9 @@ msgid ""
 "using PixelMath you can still use this tool as a simple means of aligning "
 "them."
 msgstr ""
+"使用前缀<i>comp_</i>保存所有图层图像。对齐后，对齐和加框的图像将被保存，因此"
+"，如果您希望使用 PixelMath "
+"组合它们，您仍然可以使用此工具作为对齐它们的简单方法。"
 
 #: src/gui/siril3.glade:9736
 msgid "Multi-layer image composition"
@@ -2225,22 +2222,24 @@ msgid ""
 "In manual alignment mode, sets the x-axis shift.\n"
 "In other alignment modes, shows the x-axis shift applied to the layer."
 msgstr ""
+"在手动对齐模式下，设置 x 轴偏移。\n"
+"在其他对齐模式下，显示应用于图层的 x 轴偏移。"
 
 #: src/gui/siril3.glade:9850
-#, fuzzy
 msgid "x alignment"
-msgstr "图层对齐"
+msgstr "x 对齐"
 
 #: src/gui/siril3.glade:9861
 msgid ""
 "In manual alignment mode, sets the y-axis shift.\n"
 "In other alignment modes, shows the y-axis shift applied to the layer."
 msgstr ""
+"在手动对齐模式下，设置 y 轴偏移。\n"
+"在其他对齐模式下，显示应用于图层的 y 轴偏移。"
 
 #: src/gui/siril3.glade:9863
-#, fuzzy
 msgid "y alignment"
-msgstr "图层对齐"
+msgstr "y 对齐"
 
 #: src/gui/siril3.glade:9874
 msgid ""
@@ -2249,19 +2248,19 @@ msgid ""
 "origin.\n"
 "Rotation is shown in degrees anticlockwise."
 msgstr ""
+"在手动对齐模式下，设置围绕图像中心的旋转。 \n"
+"在其他对齐模式下，显示应用于围绕原点的图层的旋转。 \n"
+"旋转以逆时针度数显示。"
 
 #: src/gui/siril3.glade:9877
-#, fuzzy
 msgid "rotation"
-msgstr "标注"
+msgstr "旋转"
 
 #: src/gui/siril3.glade:9890 src/compositing/compositing.c:242
-#, fuzzy
 msgid "Set rotation center for this layer"
-msgstr "该图层中没有对齐数据"
+msgstr "设置此图层的旋转中心"
 
 #: src/gui/siril3.glade:9936
-#, fuzzy
 msgid "Linear match"
 msgstr "线性匹配"
 
@@ -2271,6 +2270,8 @@ msgid ""
 "This is important if you are not coloring the layers with pure R, pure G and "
 "pure B."
 msgstr ""
+"线性匹配输入图层图像与第一图层。 \n"
+"如果您没有用纯 R、纯 G 和纯 B 对图层进行着色，这一点很重要。"
 
 #: src/gui/siril3.glade:9952
 msgid "Adjust layers brightness"
@@ -2286,7 +2287,6 @@ msgstr ""
 "会改变。"
 
 #: src/gui/siril3.glade:9967
-#, fuzzy
 msgid "Color calibration"
 msgstr "色彩校准"
 
@@ -2319,23 +2319,20 @@ msgid "CIE L*a*b* composition"
 msgstr "CIE L*a*b* 合成"
 
 #: src/gui/siril3.glade:10004
-#, fuzzy
 msgid "photometric"
-msgstr "基于解析的色彩校准"
+msgstr "测光法色彩校准"
 
 #: src/gui/siril3.glade:10008
 msgid "When checked, photometric color calibration is used."
-msgstr "如果勾选，将应用测光式色彩校准。"
+msgstr "如果勾选，将应用测光法色彩校准。"
 
 #: src/gui/siril3.glade:10050
-#, fuzzy
 msgid "Use this alignment method:"
 msgstr "使用此对齐方法:"
 
 #: src/gui/siril3.glade:10063
-#, fuzzy
 msgid "and this framing method:"
-msgstr "使用此对齐方法:"
+msgstr "以及此构图方式："
 
 #: src/gui/siril3.glade:10091 src/gui/siril3.glade:16013
 #: src/compositing/align_rgb.c:48
@@ -2356,25 +2353,27 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
+"为深空天体对其选择构图方式：\n"
+"首通道 - 构图到第一个通道（亮度模式下始终为 L）;\n"
+"最大化 - 构图到对齐图像的最大范围；\n"
+"最小化 - 构图到所有对齐图像的最小重叠；\n"
+"重心法 - 构图到对齐图像像素的重心。"
 
 #: src/gui/siril3.glade:10112
-#, fuzzy
 msgid "First channel"
-msgstr "灰度通道"
+msgstr "首通道"
 
 #: src/gui/siril3.glade:10113
-#, fuzzy
 msgid "Max"
-msgstr "星等"
+msgstr "最大化"
 
 #: src/gui/siril3.glade:10114
-#, fuzzy
 msgid "Min"
-msgstr "min"
+msgstr "最小化"
 
 #: src/gui/siril3.glade:10115
 msgid "COG"
-msgstr ""
+msgstr "重心法"
 
 #: src/gui/siril3.glade:10125
 msgid "Align"
@@ -3219,7 +3218,7 @@ msgstr "APASS"
 
 #: src/gui/siril3.glade:13333
 msgid "Photometric Star Catalogue: "
-msgstr "在线星表（解析用）: "
+msgstr "在线星表（测光用）: "
 
 #: src/gui/siril3.glade:13344
 msgid ""
@@ -5704,7 +5703,7 @@ msgstr "对齐区域尺寸(%):"
 
 #: src/gui/siril3.glade:23493
 msgid "Framing method"
-msgstr "取景范围"
+msgstr "构图方式"
 
 #: src/gui/siril3.glade:23506
 msgid ""
@@ -5717,13 +5716,13 @@ msgid ""
 "- \"center of gravity\" determines the best framing position as the center "
 "of gravity (cog) of all the images"
 msgstr ""
-"指定取景范围：\n"
+"指定构图方式：\n"
 "- \"current\" 与当前参考帧相同\n"
 "- \"maximum\""
 "（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁剪图像的任何部分。"
 "\n"
 "- \"minimum\"（交集）将每个图像裁剪到它与序列里所有图像共有的区域。\n"
-"- \"center of gravity\" 测定最佳取景位置作为所有图像的重心（cog）"
+"- \"center of gravity\" 测定最佳构图位置作为所有图像的重心（cog）"
 
 #: src/gui/siril3.glade:23514
 msgid "current"
@@ -6256,16 +6255,13 @@ msgid "Light Curve"
 msgstr "光变曲线"
 
 #: src/gui/siril3.glade:24981
-#, fuzzy
 msgid ""
 "Plot a graph of the variable star. The variable star must be analysed in "
 "first, then other PSF are applied to references. A maximum of 6 references "
 "is allowed. To enable this function, choose 'Magnitude' in the type of "
 "displayed graph."
-msgstr ""
-"绘制变星图表。首先变星必须已被分析，然后其它的PSF被作为参照。最多允许6个参"
-"照。在所显示的图表类型中选择“星等”以开启本功能,。\n"
-"警告: gnuplot必须已安装。"
+msgstr "绘制变星图表。首先变星必须已被分析，然后将其他PSF应用于参照。最多允许6个参照"
+"。在所显示的图表类型中选择“星等”以开启本功能,。"
 
 #: src/gui/siril3.glade:25011
 msgid "Show all relevant graphs using registration and / or photometry data."
@@ -9207,7 +9203,7 @@ msgstr "目标恒星光度信息不可用。\n"
 
 #: src/algos/comparison_stars.c:524 src/algos/comparison_stars.c:526
 msgid "stars within"
-msgstr ""
+msgstr "之内的星点数"
 
 #: src/algos/demosaicing.c:949
 msgid ""
@@ -9539,13 +9535,12 @@ msgid ""
 msgstr "光变曲线 %d 点的校准数据，由于测光无效，%d 被排除在外\n"
 
 #: src/algos/photometry.c:415
-#, fuzzy
 msgid "Light curve of star"
-msgstr "NINA 恒星列表的光度曲线"
+msgstr "恒星的光度曲线"
 
 #: src/algos/photometry.c:430
 msgid "V-C"
-msgstr ""
+msgstr "V-C"
 
 #: src/algos/photometry.c:498
 msgid "Failed to analyse the variable star photometry\n"
@@ -9978,21 +9973,23 @@ msgid ""
 "Warning: memory limit check determines that fewer than 3 images of this size "
 "can be composited. RGB composition is not possible without freeing up more "
 "memory.\n"
-msgstr ""
+msgstr "警告：内存限制检查确定可以合成的此大小的图像少于 3 个。如果不释放更多内存，"
+"就不可能进行 RGB 合成。\n"
 
 #: src/compositing/compositing.c:169
 msgid ""
 "Warning: memory limit check determines that fewer than 4 images of this size "
 "can be composited. LRGB composition is not possible without freeing up more "
 "memory.\n"
-msgstr ""
+msgstr "警告：内存限制检查确定可以合成的此大小的图像少于 4 个。如果不释放更多内存，"
+"就不可能进行 LRGB 组合。\n"
 
 #: src/compositing/compositing.c:171
 #, c-format
 msgid ""
 "Based on the available memory and initial image dimensions, up to %d images "
 "may be composited (the maximum can never exceed 8).\n"
-msgstr ""
+msgstr "根据可用内存和初始图像尺寸，最多可以合成 %d 个图像（最大值不能超过 8）。\n"
 
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
