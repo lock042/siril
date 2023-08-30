@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:23+0200\n"
 "PO-Revision-Date: 2023-09-01 05:10+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -2895,7 +2895,7 @@ msgstr "APASS"
 
 #: src/gui/siril3.glade:12313
 msgid "Photometric Star Catalogue: "
-msgstr "在线星表（解析用）: "
+msgstr "在线星表（测光用）: "
 
 #: src/gui/siril3.glade:12324
 msgid ""
@@ -5368,7 +5368,7 @@ msgstr "对齐区域尺寸(%):"
 
 #: src/gui/siril3.glade:22473
 msgid "Framing method"
-msgstr "取景范围"
+msgstr "构图方式"
 
 #: src/gui/siril3.glade:22486
 msgid ""
@@ -5381,13 +5381,13 @@ msgid ""
 "- \"center of gravity\" determines the best framing position as the center "
 "of gravity (cog) of all the images"
 msgstr ""
-"指定取景范围：\n"
+"指定构图方式：\n"
 "- \"current\" 与当前参考帧相同\n"
 "- \"maximum\""
 "（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁剪图像的任何部分。"
 "\n"
 "- \"minimum\"（交集）将每个图像裁剪到它与序列里所有图像共有的区域。\n"
-"- \"center of gravity\" 测定最佳取景位置作为所有图像的重心（cog）"
+"- \"center of gravity\" 测定最佳构图位置作为所有图像的重心（cog）"
 
 #: src/gui/siril3.glade:22494
 msgid "current"
