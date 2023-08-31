@@ -1958,6 +1958,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	}
 	if (ihdu > nhdus) {
 		/* no matching HDU */
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 		status = BAD_HDU_NUM;
 		return 1;
 	}
@@ -1966,11 +1967,13 @@ int read_icc_profile_from_fits(fits *fit) {
 	char *header = NULL;
 	if (!(header = malloc(strsize))) {
 		PRINT_ALLOC_ERR;
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 		return 1;
 	}
 	status = copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength);
 	if (status) {
 		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 		return 1;
 	}
 	// Get the ICC Profile length
@@ -1979,6 +1982,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	fits_read_key(fit->fptr, TUINT, "BITPIX", &bitpix, comment, &status);
 	if (bitpix != 8 || status != 0) {
 		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 		return 1;
 	}
 	int zero = 0;
@@ -1986,23 +1990,26 @@ int read_icc_profile_from_fits(fits *fit) {
 	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
 		PRINT_ALLOC_ERR;
 		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 		return 1;
 	}
 	fits_read_img(fit->fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
 		free(profile);
 		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 		return 1;
 	}
 	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
 	if (fit->icc_profile) {
 		siril_debug_print("Embedded ICC profile read from FITS\n");
-		fit->color_managed = TRUE;
+		color_manage(fit, TRUE);
 	} else {
-		fit->color_managed = FALSE;
+		color_manage(fit, FALSE);
 	}
 	free(profile);
 	free(header);
+	status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 	return 0;
 }
 
@@ -2081,8 +2088,6 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 				basename, fit->naxes[2], fit->rx, fit->ry, fit->type == DATA_USHORT ? 16 : 32) ;
 		g_free(basename);
 	}
-
-	read_icc_profile_from_fits(fit);
 	check_profile_correct(fit);
 
 close_readfits:
@@ -2135,7 +2140,7 @@ void clearfits_header(fits *fit) {
 		free(fit->stats);
 		fit->stats = NULL;
 	}
-	fit->color_managed = FALSE;
+	color_manage(fit, FALSE);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	free_wcs(fit, FALSE);
@@ -2288,7 +2293,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	 * regarding subsequent reintegration of this data into a color managed workflow.
 	 */
 	fit->icc_profile = NULL;
-	fit->color_managed = FALSE;
+	color_manage(fit, FALSE);
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
@@ -2764,7 +2769,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->date = NULL;
 		to->date_obs = NULL;
 		to->icc_profile = NULL;
-		to->color_managed = FALSE;
+		color_manage(to, FALSE);
 #ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
 #endif
@@ -2865,7 +2870,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	// Why doesn't this work when the lines later in copy_gfit_to_backup and copy_backup_to_gfit do?
 	if ((oper & CP_ALLOC) || (oper & CP_COPYA)) {
 		// copy color management data
-		to->color_managed = from->color_managed;
+		color_manage(to, from->color_managed);
 		if (to->color_managed) {
 			to->icc_profile = copyICCProfile(from->icc_profile);
 		} else {
@@ -2896,7 +2901,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	 * extracted channel is considered non-color managed raw data. Care must be taken if
 	 * subsequently reintegrating it into a color managed workflow.
 	 */
-	to->color_managed = FALSE;
+	color_manage(to, FALSE);
 	to->icc_profile = NULL;
 #ifdef HAVE_WCSLIB
 	to->wcslib = NULL;
@@ -2971,7 +2976,7 @@ void keep_only_first_channel(fits *fit) {
 	 * As above, we set icc_profile to NULL and color_managed to FALSE.
 	 */
 	fit->icc_profile = NULL;
-	fit->color_managed = FALSE;
+	color_manage(fit, FALSE);
 }
 
 /* copy non-mandatory keywords from 'from' to 'to' */
@@ -3058,7 +3063,7 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = NULL;
 	}
-	fit->color_managed = FALSE;
+	color_manage(fit, FALSE);
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
 	return retval;
@@ -3075,7 +3080,7 @@ int save1fits32(const char *filename, fits *fit, int layer) {
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = NULL;
 	}
-	fit->color_managed = FALSE;
+	color_manage(fit, FALSE);
 	int retval = savefits(filename, fit);
 	/* Restore the original FITS ICC profile */
 	return retval;
@@ -3233,7 +3238,7 @@ static void extract_region_from_fits_ushort(fits *from, int layer, fits *to,
 	to->bitpix = from->bitpix;
 	to->type = DATA_USHORT;
 	to->icc_profile = NULL;
-	to->color_managed = FALSE;
+	color_manage(to, FALSE);
 }
 
 static void extract_region_from_fits_float(fits *from, int layer, fits *to,
@@ -3263,7 +3268,7 @@ static void extract_region_from_fits_float(fits *from, int layer, fits *to,
 	to->bitpix = from->bitpix;
 	to->type = DATA_FLOAT;
 	to->icc_profile = NULL;
-	to->color_managed = FALSE;
+	color_manage(to, FALSE);
 }
 
 void extract_region_from_fits(fits *from, int layer, fits *to,
