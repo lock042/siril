@@ -67,6 +67,8 @@ gpointer scnr(gpointer p) {
 
 	int error = 0;
 
+	// If the FITS is not color managed, use sRGB as the source profile
+	cmsHPROFILE profile = args->fit->icc_profile ? copyICCProfile(args->fit->icc_profile) : srgb_trc();
 	cmsHPROFILE cielab_profile = NULL;
 	cmsUInt32Number src_type, dest_type;
 	cmsHTRANSFORM transform = NULL, invtransform = NULL;
@@ -74,8 +76,9 @@ gpointer scnr(gpointer p) {
 	src_type = TYPE_RGB_FLT_PLANAR;
 	dest_type = TYPE_Lab_FLT_PLANAR;
 	// Use the single threaded lcms2 context as the transform will be done a line at a time within the OMP outer loop
-	transform = cmsCreateTransformTHR(com.icc.context_single, args->fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-	invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, args->fit->icc_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	transform = cmsCreateTransformTHR(com.icc.context_single, profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	cmsCloseProfile(profile);
 	cmsCloseProfile(cielab_profile);
 
 	const size_t stride_size = args->fit->rx;

@@ -55,10 +55,10 @@ static cmsHPROFILE srgb_trcv2() {
 	return cmsOpenProfileFromMem(sRGB_elle_V2_srgbtrc_icc, sRGB_elle_V2_srgbtrc_icc_len);
 }
 
-static cmsHPROFILE rec2020_linear() {
+cmsHPROFILE rec2020_linear() {
 	return cmsOpenProfileFromMem(Rec2020_elle_V4_g10_icc, Rec2020_elle_V4_g10_icc_len);
 }
-static cmsHPROFILE rec2020_trc() {
+cmsHPROFILE rec2020_trc() {
 	return cmsOpenProfileFromMem(Rec2020_elle_V4_rec709_icc, Rec2020_elle_V4_rec709_icc_len);
 }
 static cmsHPROFILE rec2020_trcv2() {
@@ -71,7 +71,7 @@ cmsHPROFILE gray_linear() {
 cmsHPROFILE gray_srgbtrc() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_srgbtrc_icc, Gray_elle_V4_srgbtrc_icc_len);
 }
-static cmsHPROFILE gray_rec709trc() {
+cmsHPROFILE gray_rec709trc() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_rec709_icc, Gray_elle_V4_rec709_icc_len);
 }
 static cmsHPROFILE gray_srgbtrcv2() {
@@ -814,7 +814,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 	cmsUInt32Number fit_colorspace_channels;
 	// If fit->color_managed is FALSE, we assign the profile rather than convert to it
-	if (!fit->color_managed) {
+	if (!fit->color_managed || !fit->icc_profile) {
 		fit_colorspace_channels = fit->naxes[2];
 		if (fit_colorspace_channels == target_colorspace_channels) {
 			if (fit->icc_profile)
@@ -846,7 +846,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
 	cmsHTRANSFORM transform = NULL;
 	if (fit_colorspace_channels == target_colorspace_channels) {
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.rendering_intent, com.icc.rendering_flags);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.processing_intent, com.icc.rendering_flags);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Error"), _("Transforms between color spaces with different numbers of channels not supported."));
 		return;

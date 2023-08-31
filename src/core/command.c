@@ -140,17 +140,9 @@ char *word[MAX_COMMAND_WORDS];	// NULL terminated
 int process_load(int nb){
 	long maxpath = get_pathmax();
 	char filename[maxpath];
-	int start = 1;
-	if (g_str_has_prefix(word[1], "-stretch_hint")) {
-		com.icc.srgb_hint = TRUE;
-		start++;
-	}
-	if (!word[start] || word[start][0] == '\0')
-		return CMD_ARG_ERROR;
-	size_t len = strlen(word[start]);
-	strncpy(filename, word[start], maxpath - 1);
+	size_t len = strlen(word[1]);
 	filename[maxpath - 1] = '\0';
-	for (int i = start; i < nb - 1; ++i) {
+	for (int i = 1; i < nb - 1; ++i) {
 		strncat(filename, " ", maxpath - 1 - len);
 		len += 1;
 		strncat(filename, word[i + 1], len);
@@ -2833,9 +2825,6 @@ int process_autostretch(int nb) {
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
 		apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 	}
-	if (gfit.icc_profile)
-		cmsCloseProfile(gfit.icc_profile);
-	gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
 
 	char log[90];
 	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
@@ -9270,3 +9259,94 @@ int process_seq_profile(int nb) {
 	return CMD_OK;
 }
 
+int process_icc_assign(int nb) {
+	char *arg = word[1];
+	cmsHPROFILE profile = NULL;
+	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
+		profile = gfit.naxes[2] == 1 ? gray_linear() : srgb_linear();
+	} else if (!g_ascii_strncasecmp(arg, "srgb", 4)) {
+		profile = gfit.naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+	} else if (!g_ascii_strncasecmp(arg, "rec2020linear", 13)) {
+		profile = gfit.naxes[2] == 1 ? gray_linear() : rec2020_linear();
+	} else if (!g_ascii_strncasecmp(arg, "rec2020", 7)) {
+		profile = gfit.naxes[2] == 1 ? gray_rec709trc() : rec2020_trc();
+	} else if (!g_ascii_strncasecmp(arg, "linear", 6) && gfit.naxes[2] == 1) {
+		profile = gray_linear();
+	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TYPE_REGULAR)) {
+		profile = cmsOpenProfileFromFile(arg, "r");
+	}
+	if (profile) {
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(profile);
+		cmsCloseProfile(profile);
+	}
+	if (gfit.icc_profile) {
+		siril_log_color_message(_("Color profile assignment complete.\n"), "green");
+		color_manage(&gfit, TRUE);
+	} else {
+		siril_log_color_message(_("Error opening ICC profile.\n"), "red");
+		color_manage(&gfit, FALSE);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
+int process_icc_convert_to(int nb) {
+	char *arg = word[1];
+	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
+	if (!gfit.icc_profile) {
+		siril_log_color_message(_("Image has no color profile assigned to convert from. Assign a profile first.\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+	if (word[2]) {
+		if (!g_ascii_strcasecmp(word[2], "perceptual"))
+			com.pref.icc.processing_intent = INTENT_PERCEPTUAL;
+		else if (!g_ascii_strcasecmp(word[2], "relative"))
+			com.pref.icc.processing_intent = INTENT_RELATIVE_COLORIMETRIC;
+		else if (!g_ascii_strcasecmp(word[2], "saturation"))
+			com.pref.icc.processing_intent = INTENT_SATURATION;
+		else if (!g_ascii_strcasecmp(word[2], "absolute"))
+			com.pref.icc.processing_intent = INTENT_ABSOLUTE_COLORIMETRIC;
+		else {
+			siril_log_color_message(_("Specified intent not recognized. Specify one of \"perceptual\", \"relative\", \"saturation\" or \"absolute\"\n"), "red");
+			return CMD_GENERIC_ERROR;
+		}
+	}
+	cmsHPROFILE profile = NULL;
+	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
+		profile = gfit.naxes[2] == 1 ? gray_linear() : srgb_linear();
+	} else if (!g_ascii_strncasecmp(arg, "srgb", 4)) {
+		profile = gfit.naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+	} else if (!g_ascii_strncasecmp(arg, "rec2020linear", 13)) {
+		profile = gfit.naxes[2] == 1 ? gray_linear() : rec2020_linear();
+	} else if (!g_ascii_strncasecmp(arg, "rec2020", 7)) {
+		profile = gfit.naxes[2] == 1 ? gray_rec709trc() : rec2020_trc();
+	} else if (!g_ascii_strncasecmp(arg, "linear", 6) && gfit.naxes[2] == 1) {
+		profile = gray_linear();
+	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TYPE_REGULAR)) {
+		profile = cmsOpenProfileFromFile(arg, "r");
+	}
+	if (profile) {
+		siril_colorspace_transform(&gfit, profile);
+		color_manage(&gfit, TRUE);
+		com.pref.icc.processing_intent = temp_intent;
+		cmsCloseProfile(profile);
+		siril_log_color_message(_("Color space conversion complete.\n"), "green");
+	} else {
+		siril_log_color_message(_("Error opening ICC profile.\n"), "red");
+		return CMD_GENERIC_ERROR;
+		// Don't call color_manage(&gfit, FALSE) here: no change is made to
+		// the pre-existing state of gfit color management
+	}
+	return CMD_OK;
+}
+
+int process_icc_remove(int nb) {
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = NULL;
+	color_manage(&gfit, FALSE);
+	siril_log_color_message(_("Color profile has been removed.\n"), "green");
+	return CMD_OK;
+}

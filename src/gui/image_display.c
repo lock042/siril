@@ -1814,15 +1814,6 @@ void adjust_vport_size_to_image() {
 void redraw(remap_type doremap) {
 	if (com.script) return;
 //	siril_debug_print("redraw %d\n", doremap);
-/*	static GtkApplicationWindow *app_win = NULL;
-	if (app_win == NULL) {
-		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	}	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant* state = g_action_get_state(action_color);
-	color_map color = g_variant_get_boolean(state);
-	g_variant_unref(state);
-*/
-
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;

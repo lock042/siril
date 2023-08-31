@@ -41,8 +41,6 @@
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
-#include "algos/lcms_acceleration/lcms2_fast_float.h"
-#include "algos/lcms_acceleration/lcms2_threaded.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences

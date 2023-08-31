@@ -723,7 +723,6 @@ static gpointer extract_channels_float(gpointer p) {
 	float *buf[3] = { args->fit->fpdata[RLAYER], args->fit->fpdata[GLAYER],
 		args->fit->fpdata[BLAYER] };
 	struct timeval t_start, t_end;
-	cmsHPROFILE temp_profile = NULL;
 	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
 
 	if (args->fit->naxes[2] != 3) {

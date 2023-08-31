@@ -332,9 +332,9 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	gui.rendering_mode = get_display_mode_from_menu();
 	siril_debug_print("Display mode %d\n", gui.rendering_mode);
 	gboolean override_label = FALSE;
-	if (gui.rendering_mode == SOFT_PROOF_DISPLAY && !gui.icc.soft_proof) {
+	if (gui.rendering_mode == SOFT_PROOF_DISPLAY && (!gui.icc.soft_proof || !gfit.color_managed)) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
-		siril_log_color_message(_("Warning: a soft proofing profile has not been set. Reverting to linear rendering mode.\n"), "salmon");
+		siril_log_color_message(_("Warning: soft proofing profile unavailable. Check you have a soft proofing profile set and that the current image is color managed. Reverting to linear rendering mode.\n"), "salmon");
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("linear_item")), TRUE);
 		gui.rendering_mode = LINEAR_DISPLAY;
 		gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(lookup_widget("linear_item"))));

@@ -53,6 +53,9 @@ cmsHPROFILE srgb_linear();
 cmsHPROFILE gray_srgbtrc();
 cmsHPROFILE srgb_trc();
 cmsHPROFILE gray_linear();
+cmsHPROFILE rec2020_trc();
+cmsHPROFILE rec2020_linear();
+cmsHPROFILE gray_rec709trc();
 
 void color_manage(fits *fit, gboolean active);
 void validate_custom_profiles();
@@ -71,8 +74,8 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
 void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to);
 void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference);
+void siril_colorspace_transform(fits *fit, cmsHPROFILE profile);
 void set_icc_description_in_TIFF();
-cmsHPROFILE siril_construct_split_profile(fits *from, int channel);
 void check_linear_and_convert_with_approval(fits *fit);
 const char* default_system_icc_path();
 cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
