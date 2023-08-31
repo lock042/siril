@@ -499,7 +499,6 @@ void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b) {
 	*r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
 	*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
 	*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
-
 }
 
 void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {

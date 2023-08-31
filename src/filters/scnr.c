@@ -88,7 +88,7 @@ gpointer scnr(gpointer p) {
 
 		double x, y, z, L, a, b, m;
 		if (args->preserve) {
-			rgb_to_xyz(red, green, blue, &x, &y, &z);
+			linrgb_to_xyz(red, green, blue, &x, &y, &z);
 			xyz_to_LAB(x, y, z, &L, &a, &b);
 		}
 
