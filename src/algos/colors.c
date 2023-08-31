@@ -434,10 +434,10 @@ void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
 }
 
 void rgb_to_xyz(double r, double g, double b, double *x, double *y, double *z) {
-	r = (r <= 0.04045) ? r / 12.92 : pow(((r + 0.055) / 1.055), 2.4);
+/*	r = (r <= 0.04045) ? r / 12.92 : pow(((r + 0.055) / 1.055), 2.4);
 	g = (g <= 0.04045) ? g / 12.92 : pow(((g + 0.055) / 1.055), 2.4);
 	b = (b <= 0.04045) ? b / 12.92 : pow(((b + 0.055) / 1.055), 2.4);
-
+*/
 	r *= 100;
 	g *= 100;
 	b *= 100;
@@ -459,6 +459,47 @@ void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z) {
 	*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
 	*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
 	*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+}
+
+void linrgb_to_xyz(double r, double g, double b, double *x, double *y, double *z) {
+	r *= 100;
+	g *= 100;
+	b *= 100;
+
+	*x = 0.412453 * r + 0.357580 * g + 0.180423 * b;
+	*y = 0.212671 * r + 0.715160 * g + 0.072169 * b;
+	*z = 0.019334 * r + 0.119193 * g + 0.950227 * b;
+}
+
+void linrgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z) {
+	r *= 100.f;
+	g *= 100.f;
+	b *= 100.f;
+
+	*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
+	*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
+	*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+}
+
+void xyz_to_linrgb(double x, double y, double z, double *r, double *g, double *b) {
+	x /= 100.0;
+	y /= 100.0;
+	z /= 100.0;
+
+	*r =  3.240479 * x - 1.537150 * y - 0.498535 * z;
+	*g = -0.969256 * x + 1.875992 * y + 0.041556 * z;
+	*b =  0.055648 * x - 0.204043 * y + 1.057311 * z;
+}
+
+void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b) {
+	x /= 100.f;
+	y /= 100.f;
+	z /= 100.f;
+
+	*r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
+	*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
+	*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
+
 }
 
 void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {
@@ -535,10 +576,11 @@ void xyz_to_rgb(double x, double y, double z, double *r, double *g, double *b) {
 	*r =  3.240479 * x - 1.537150 * y - 0.498535 * z;
 	*g = -0.969256 * x + 1.875992 * y + 0.041556 * z;
 	*b =  0.055648 * x - 0.204043 * y + 1.057311 * z;
-
+/*
 	*r = (*r > 0.0031308) ? 1.055 * (pow(*r, (1 / 2.4))) - 0.055 : 12.92 * (*r);
 	*g = (*g > 0.0031308) ? 1.055 * (pow(*g, (1 / 2.4))) - 0.055 : 12.92 * (*g);
 	*b = (*b > 0.0031308) ? 1.055 * (pow(*b, (1 / 2.4))) - 0.055 : 12.92 * (*b);
+*/
 }
 
 void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {

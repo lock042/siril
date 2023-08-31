@@ -112,10 +112,10 @@ gpointer scnr(gpointer p) {
 
 		if (args->preserve) {
 			double tmp;
-			rgb_to_xyz(red, green, blue, &x, &y, &z);
+			linrgb_to_xyz(red, green, blue, &x, &y, &z);
 			xyz_to_LAB(x, y, z, &tmp, &a, &b);
 			LAB_to_xyz(L, a, b, &x, &y, &z);
-			xyz_to_rgb(x, y, z, &red, &green, &blue);
+			xyz_to_linrgb(x, y, z, &red, &green, &blue);
 			if (red > 1.000001 || green > 1.000001 || blue > 1.000001)
 				g_atomic_int_inc(&nb_above_1);
 		}
