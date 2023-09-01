@@ -83,6 +83,7 @@ static gboolean remix_log_scale = FALSE;
 
 static cmsHTRANSFORM *to_lab = NULL;
 static cmsHTRANSFORM *from_lab = NULL;
+static cmsHPROFILE *linrgb_profile = NULL;
 static cmsHPROFILE *lab_profile = NULL;
 
 ////////////////////////////////////////////
@@ -542,7 +543,7 @@ int remixer() {
 						inr[1] = fit_right_calc.fpdata[1][i];
 						inr[2] = fit_right_calc.fpdata[2][i];
 					}
-					// TODO: This is very inefficient, it is threaded but fails to make use of SIMD
+					// TODO: This is inefficient, it is threaded but fails to make use of SIMD
 					cmsDoTransform(to_lab, inl, labl, 1);
 					cmsDoTransform(to_lab, inr, labr, 1);
 
@@ -705,7 +706,10 @@ void apply_remix_cancel() {
 void initialize_remixer_transforms(fits* fit) {
 	cmsColorSpaceSignature sig, ref_sig;
 	cmsUInt32Number src_type, dest_type;
-	sig = cmsGetColorSpace(fit->icc_profile);
+	if (!linrgb_profile) {
+		linrgb_profile = fit->naxes[2] == 1 ? gray_linear() : rec2020_linear();
+	}
+	sig = cmsGetColorSpace(linrgb_profile);
 	if(!lab_profile) {
 		lab_profile = cmsCreateLab4Profile(NULL);
 	}
@@ -714,10 +718,10 @@ void initialize_remixer_transforms(fits* fit) {
 	dest_type = get_planar_formatter_type(ref_sig, fit->type, FALSE);
 	if (to_lab)
 		cmsDeleteTransform(to_lab);
-	to_lab = cmsCreateTransformTHR(com.icc.context_single, fit->icc_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	to_lab = cmsCreateTransformTHR(com.icc.context_single, linrgb_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 	if (from_lab)
 		cmsDeleteTransform(from_lab);
-	from_lab = cmsCreateTransformTHR(com.icc.context_single, lab_profile, dest_type, fit->icc_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	from_lab = cmsCreateTransformTHR(com.icc.context_single, lab_profile, dest_type, linrgb_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 }
 
 /*** callbacks **/
@@ -740,11 +744,11 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();
 		if (to_lab) {
-			cmsCloseProfile(to_lab);
+			cmsDeleteTransform(to_lab);
 			to_lab = NULL;
 		}
 		if (from_lab) {
-			cmsCloseProfile(from_lab);
+			cmsDeleteTransform(from_lab);
 			from_lab = NULL;
 		}
 		remixer_close();
@@ -781,6 +785,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
+			initialize_remixer_transforms(&fit_left);
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
 			gfit.stackcnt = fit_left.stackcnt;
@@ -1171,7 +1176,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 	} else {
 		check_profile_correct(&fit_left);
-		initialize_remixer_transforms( &fit_left);
+		initialize_remixer_transforms(&fit_left);
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(&gfit);

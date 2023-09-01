@@ -1199,7 +1199,7 @@ gpointer deconvolve(gpointer p) {
 
 	next_psf_is_previous = (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) ? TRUE : FALSE;
 
-	cmsHPROFILE cielab_profile = NULL;
+	cmsHPROFILE cielab_profile = NULL, profile = NULL;
 	cmsColorSpaceSignature sig;
 	cmsUInt32Number src_type, dest_type;
 	cmsHTRANSFORM transform = NULL, inverse_transform = NULL;
@@ -1209,18 +1209,24 @@ gpointer deconvolve(gpointer p) {
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
 		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
-
+		// Even if an ICC profile is available, for this purpose we assume sRGB linear.
+		// The primaries don't matter as the conversion is round-trip (go back from LAB later), so Rec2020 as opposed
+		// to sRGB is an arbitrary choice.
+		// However it is important to use a linear profile to ensure that no gamma change occurs when
+		// converting to LAB, so that PSFs blind estimated or measured from stars in the image
+		// data remain accurate.
+		profile = rec2020_linear();
 		cielab_profile = cmsCreateLab4Profile(NULL);
-		sig = cmsGetColorSpace(the_fit->icc_profile);
+		sig = cmsGetColorSpace(profile);
 		gboolean threaded = !get_thread_run();
 		src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
 		dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), the_fit->icc_profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-		inverse_transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), cielab_profile, dest_type, the_fit->icc_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+		inverse_transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), cielab_profile, dest_type, profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+		cmsCloseProfile(profile);
 		cmsCloseProfile(cielab_profile);
 		cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
-
 		args.nchans = 1;
 		free(args.fdata);
 		args.fdata = xyzdata; // fdata now points to the L part of xyzdata
