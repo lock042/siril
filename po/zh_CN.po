@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-09-01 09:26+0000\n"
+"PO-Revision-Date: 2023-09-01 22:11+0000\n"
 "Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -148,7 +148,7 @@ msgstr "应用到序列"
 msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
-msgstr "如果载入并激活了一个序列，则对该序列的所有图像执行处理，而不是仅对载入的单张"
+msgstr "如果载入并激活了一个序列，则对该序列的全部图像执行处理，而不是仅对载入的单张"
 "图像执行处理。"
 
 #: src/gui/siril3.glade:443 src/gui/siril3.glade:1949 src/gui/siril3.glade:4537
@@ -227,7 +227,7 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
-"请确保移除所有的黑边\n"
+"请确保裁掉所有的黑边\n"
 "和叠加造成的其他异常边缘\n"
 "否则将会出现伪影。"
 
@@ -686,7 +686,7 @@ msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr "将 StarNet "
-"应用于当前序列中的所有图像。将生成无星图像和星点遮罩（如果选择）序列。"
+"应用于当前序列中的全部图像。将生成无星图像和星点遮罩（如果选择）序列。"
 
 #: src/gui/siril3.glade:2945
 msgid "Wavelets control"
@@ -933,7 +933,7 @@ msgstr ""
 "选择要应用的修正方式：\n"
 "减法：主要用于修正加性污染，例如光害和月光引起的渐变。\n"
 "除法：主要用于修正乘性现象，例如渐晕（暗角）或者不均匀的大气吸收。不过此类操"
-"作理应靠平场来修正。"
+"作理应用主平场帧来修正。"
 
 #: src/gui/siril3.glade:4455
 msgid "Subtraction"
@@ -1299,7 +1299,7 @@ msgstr "PSF 尺寸"
 msgid ""
 "Make sure the size is big enough not to crop off any significant parts of "
 "the PSF."
-msgstr "确保选区尺寸足够大，不会漏掉 PSF 的任何重要部分。"
+msgstr "确保选区尺寸足够大，不会裁掉 PSF 的任何重要部分。"
 
 #: src/gui/siril3.glade:6859
 msgid ""
@@ -1366,7 +1366,7 @@ msgstr "beta (β)"
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
-msgstr "对于Moffat轮廓，这将设置beta值。有关此参数的信息，请参阅天体测量文档。"
+msgstr "对于Moffat轮廓，这将设置beta值。有关此参数的信息，参见astrometry说明文档。"
 
 #: src/gui/siril3.glade:7042
 msgid "Pixel Size / μm"
@@ -1642,9 +1642,8 @@ msgstr "使用提示"
 msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
-msgstr ""
-"在联机 Siril 文档中打开一个页面，其中包含可用于不同类型图像的使用提示和设置示"
-"例。"
+msgstr "在在线 Siril "
+"说明文档中打开一个页面，其中包含可用于不同类型图像的使用提示和设置示例。"
 
 #: src/gui/siril3.glade:8094
 msgid ""
@@ -2870,11 +2869,11 @@ msgstr "选择所显示的通道。"
 
 #: src/gui/siril3.glade:12472
 msgid "Excludes all images of the sequence from the processing schedule"
-msgstr "将序列里所有的图像排除在批量处理之外"
+msgstr "将序列里的图像全部排除在批量处理之外"
 
 #: src/gui/siril3.glade:12493
 msgid "Includes all images of the sequence in the processing schedule"
-msgstr "将序列里所有的图像包含在批量处理之内"
+msgstr "将序列里的图像全部包含在批量处理之内"
 
 #: src/gui/siril3.glade:12514
 msgid ""
@@ -3486,7 +3485,7 @@ msgid ""
 msgstr ""
 "选中后，此按钮会停用在星点侦测阶段完成的某些检查，以剔除原本基于某些 psf 品质"
 "指标侦测到的候选星点。这可以用来强制侦测奇形怪状的星点（不良导星，强烈彗差）"
-"，但应当在使用所有其他侦测参数都失败时才使用此按钮。"
+"，但应当在使用其他侦测参数全部失败时才使用此按钮。"
 
 #: src/gui/siril3.glade:14421
 msgid "Convergence:"
@@ -3643,11 +3642,11 @@ msgstr "叠加"
 
 #: src/gui/siril3.glade:15085
 msgid "Master-dark and cosmetic correction"
-msgstr "主暗场和坏点修正"
+msgstr "主暗场帧和坏点修正"
 
 #: src/gui/siril3.glade:15097
 msgid "Master-flat"
-msgstr "主平场"
+msgstr "主平场帧"
 
 #: src/gui/siril3.glade:15109
 msgid "Stacking with weighted mean"
@@ -3762,7 +3761,7 @@ msgstr "对齐"
 
 #: src/gui/siril3.glade:15640 src/gui/siril3.glade:15772
 msgid "Selection"
-msgstr "选区"
+msgstr "选择"
 
 #: src/gui/siril3.glade:15664
 msgid "Undo"
@@ -3838,7 +3837,7 @@ msgstr "选取整个图像并且重置长宽比"
 
 #: src/gui/siril3.glade:15903
 msgid "Select All"
-msgstr "选取所有"
+msgstr "全选"
 
 #: src/gui/siril3.glade:15918
 msgid "No guides on the selection"
@@ -4291,9 +4290,8 @@ msgstr "重新缩放结果"
 msgid ""
 "Check this option to rescale the pixel values of the resulting image to the "
 "specified output range (see the lower range and upper range parameters below)"
-msgstr ""
-"选中此选项可将生成图像的像素值重新缩放到指定的输出范围（请参阅下面的下限和上"
-"限参数）"
+msgstr "选中此选项可将生成图像的像素值重新缩放到指定的输出范围（参见下面的下限和上限"
+"参数）"
 
 #: src/gui/siril3.glade:18296
 msgid ""
@@ -4838,7 +4836,7 @@ msgstr "移除"
 
 #: src/gui/siril3.glade:21045
 msgid "Remove all files from the list"
-msgstr "移除列表里所有的文件"
+msgstr "移除列表里的所有文件"
 
 #: src/gui/siril3.glade:21100
 msgid ""
@@ -4850,7 +4848,7 @@ msgid ""
 "SER files are directly handled as a sequence, and are not yet available for "
 "conversion."
 msgstr ""
-"支持的文件类型基于所安装的支持库，详见文档。\n"
+"支持的文件类型基于所安装的支持库，参见说明文档。\n"
 "RAW为数码相机特有，例如佳能的CR2和尼康的NEF。\n"
 "视频为任何可以被转化为FITS或者SER的格式。\n"
 "SER为可直接操作的序列文件，并且尚不支持转化。"
@@ -4877,8 +4875,8 @@ msgstr "转化"
 msgid ""
 "Start conversion of all source files into the configured output files, FITS "
 "or SER, with colour processing or not."
-msgstr ""
-"开始转化所有元文件为所设定的目标文件（彩色化开启或关闭），格式为FITS或者SER。"
+msgstr "开始将所有源文件转化为设定的目标文件（启用或禁用彩色处理），格式为FITS或者SER"
+"。"
 
 #: src/gui/siril3.glade:21205
 msgid ""
@@ -5170,7 +5168,7 @@ msgstr "使用平场"
 msgid ""
 "All images in the sequence will be divided by the master flat image (each "
 "pixel value)."
-msgstr "序列中的所有图像将被主平场帧除（每个像素的值）。"
+msgstr "序列中的所有图像将除以主平场帧（每个像素的值）。"
 
 #: src/gui/siril3.glade:21979
 msgid ""
@@ -5179,7 +5177,7 @@ msgid ""
 "pixel value)."
 msgstr ""
 "键入主平场帧的文件名，或者使用浏览按钮。\n"
-"序列中的所有图像将被主平场帧除（每个像素点）。"
+"序列中的所有图像将除以主平场帧（每个像素的值）。"
 
 #. Dark is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/siril3.glade:22014
@@ -5188,7 +5186,7 @@ msgstr "使用暗场"
 
 #: src/gui/siril3.glade:22018 src/gui/siril3.glade:22034
 msgid "The dark master image will be removed from all images in the sequence."
-msgstr "主暗场帧将被从序列中所有图像中扣除（减去）。"
+msgstr "序列中的所有图像中将扣除（减去）主暗场帧。"
 
 #: src/gui/siril3.glade:22055
 msgid ""
@@ -5196,7 +5194,7 @@ msgid ""
 "The dark master image will be removed from all images in the sequence."
 msgstr ""
 "键入主暗场帧的文件名，或者使用浏览按钮。\n"
-"主暗场帧将被从序列中所有图像中扣除（减去）。"
+"序列中的所有图像中将扣除（减去）主暗场帧。"
 
 #. Offset is the kind of the picture used here. In french I've decided to not translate the word.
 #: src/gui/siril3.glade:22068
@@ -5206,7 +5204,7 @@ msgstr "使用偏置"
 #: src/gui/siril3.glade:22072 src/gui/siril3.glade:22104
 msgid ""
 "The bias/offset master image will be removed from all images in the sequence."
-msgstr "主偏置帧将被从序列中所有图像中扣除（减）。"
+msgstr "序列中的所有图像中将扣除（减去）主偏置帧/偏置值。"
 
 #: src/gui/siril3.glade:22087
 msgid ""
@@ -5216,10 +5214,10 @@ msgid ""
 "Instead of an image, you can also specify a uniform level to be subtracted, "
 "starting with an \"=\" sign, such as =256 or =64*$OFFSET"
 msgstr ""
-"键入主偏置帧的文件名，或者使用浏览按钮。\n"
-"主偏置帧将被从序列中所有图像中扣除（减）。\n"
-"除了使用偏置文件以外，您也可以指定一个用于被扣除的统一值。用”=”来设定，比如 "
-"=256 或者 =64*$OFFSET"
+"键入主偏置帧/偏置值的文件名，或者使用浏览按钮。\n"
+"序列中的所有图像中将扣除（减去）主偏置帧/偏置值。\n"
+"如果不使用偏置帧，您也可以指定偏置值，被处理的图像将整体减去这个值。用\"="
+"\"来设定，比如 =256 或者 =64*$OFFSET"
 
 #: src/gui/siril3.glade:22091
 msgid "master-bias.fit"
@@ -5239,10 +5237,10 @@ msgid ""
 "WARNING: Do not apply dark optimization on master-dark if master-bias has "
 "not been subtracted previously."
 msgstr ""
-"可选择对扣暗场操作进行优化，所扣的暗场会应用一个系数，使得最终图片（明场减暗"
-"场）的噪声最小化。这个选项适用于暗场并非在最理想条件下所拍摄的情况。\n"
+"可选择优化减去暗场的操作，所减去的暗场会乘上一个系数，使得最终图片（亮场减暗"
+"场）的噪声最小化。这个选项适用于暗场拍摄条件不理想的情况。\n"
 "\n"
-"警告：如果没有先期通过扣主偏置帧来得到主暗场帧，则不要应用暗场优化。"
+"警告：如果先前制作主暗场帧时没有减去主偏置帧，则不要应用暗场优化。"
 
 #: src/gui/siril3.glade:22141
 msgid "Equalize CFA"
@@ -5271,7 +5269,7 @@ msgstr "选择自定义的归一化参数。"
 
 #: src/gui/siril3.glade:22196
 msgid "Fix X-Trans AF artifact"
-msgstr "修正X-Trans AF伪像"
+msgstr "修正X-Trans AF伪影"
 
 #: src/gui/siril3.glade:22200
 msgid ""
@@ -5321,9 +5319,7 @@ msgid ""
 "Click on this button to evaluate the number of deviant pixels. If values are "
 "higher than 1% of the total of pixels, you will be encouraged to change "
 "sigma values."
-msgstr ""
-"点此按钮将预估异常像素点。如果预估值所占总像素比例超过1%，建议用户更改sigma"
-"值。"
+msgstr "点此按钮评估离群的像素。如果离群的像素占总像素比例超过1%，建议更改sigma值。"
 
 #: src/gui/siril3.glade:22420 src/gui/siril3.glade:22432
 msgid "0 px"
@@ -5331,11 +5327,11 @@ msgstr "0 px"
 
 #: src/gui/siril3.glade:22453
 msgid "Master-dark"
-msgstr "主暗场"
+msgstr "主暗场帧"
 
 #: src/gui/siril3.glade:22462
 msgid "Using Master-Dark"
-msgstr "使用主暗场"
+msgstr "使用主暗场帧"
 
 #: src/gui/siril3.glade:22488
 msgid ""
@@ -5350,11 +5346,11 @@ msgid ""
 "i>.\n"
 "* The line <i>L y 0 type</i> will fix the bad line at coordinates <i>y</i>."
 msgstr ""
-"输入坏像素图文件名，或者点击浏览按钮。该文件是通过在一张暗场或者主暗场上使用"
-"命令<i>find_hot</i> 来得到。文件的结构是这样的：\n"
+"输入坏像素图文件名，或者点击浏览按钮。该文件是通过在一张暗场帧或主暗场帧上使"
+"用命令<i>find_hot</i> 来得到的。文件的结构是这样的：\n"
 "\n"
-"* 行 <i>P x y type</i> 用于修正坐标为（x, y）的像素，type为字符(<i>C</i>或"
-"<i>H</i>)用于表示该像素为冷还是热点。\n"
+"* 行 <i>P x y type</i> 用于修正坐标为（x, "
+"y）的像素，type为字符(<i>C</i>或<i>H</i>)用于表示该像素为冷还是热点。\n"
 "* 行 <i>C x 0 type</i> 用于修正<i>x</i>坐标处的坏列。\n"
 "* 行 <i>L y 0 type</i> 用于修正<i>y</i>坐标处的坏行。"
 
@@ -5719,8 +5715,8 @@ msgstr ""
 "- \"maximum\""
 "（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁切图像的任何部分。"
 "\n"
-"- \"minimum\"（交集）将每个图像裁切到它与序列里所有图像共有的区域。\n"
-"- \"center of gravity\" 测定最佳构图位置作为所有图像的重心（cog）"
+"- \"minimum\"（交集）将每个图像裁切到序列里所有图像共有的区域。\n"
+"- \"center of gravity\" 将全部图像的重心（cog）作为最佳构图位置"
 
 #: src/gui/siril3.glade:23514
 msgid "current"
@@ -5744,7 +5740,7 @@ msgstr "对齐方法:"
 
 #: src/gui/siril3.glade:23636
 msgid "Register all images from sequence"
-msgstr "对齐序列中的所有图像"
+msgstr "对齐序列中的全部图像"
 
 #: src/gui/siril3.glade:23637
 msgid "Register selected images only"
@@ -6004,7 +6000,7 @@ msgid ""
 msgstr ""
 "激活双三次和 Lancsoz4 插值算法的保持机制 \n"
 "\n"
-"Lanczos和双三次插值算法的主要问题是产生强烈的底射伪影（环状伪影）。这些伪像是"
+"Lanczos和双三次插值算法的主要问题是产生强烈的底射伪影（环状伪影）。这些伪影是"
 "由插值函数的负瓣落在高对比度边缘和孤立的明亮像素（如星点）引起的。这通常只发"
 "生在线性数据中。\n"
 "\n"
@@ -6302,10 +6298,10 @@ msgid ""
 "intensity is lower."
 msgstr ""
 "<b>加法</b>：最简单的方式。\n"
-"像素值被以归一化后的32位来累加。\n"
-"所得图像的信噪比(SNR)的增加为图像数量的平方根倍。\n"
+"像素值以归一化的32位数进行累加。\n"
+"所得图像的信噪比(SNR)增加为图像数量的平方根倍。\n"
 "\n"
-"<b>基于像素剔除的平均数叠加</b>：该方式用于迭代式的剔除异常的像素。\n"
+"<b>基于像素剔除的平均数</b>：该方式用于迭代式剔除离群的像素。\n"
 "包含七种已实现的算法：\n"
 "- 百分数裁剪\n"
 "- Sigma裁剪\n"
@@ -6314,17 +6310,17 @@ msgstr ""
 "- Winsorized Sigma裁剪\n"
 "- 线性拟合裁剪\n"
 "- 泛化ESD检验\n"
-"当像素剔除完成之后，叠加的中值才会被计算。\n"
+"完成像素剔除之后才会计算平均数。\n"
 "\n"
-"<b>中位数</b>：该方式传统用于暗/平/偏置场的叠加，不过我们现在建议使用含有像素"
-"剔除的平均数叠加算法。\n"
-"叠加中像素的中值是针对每个像素计算的。\n"
+"<b>中位数</b>：该方式用于传统的暗/平/偏置场的叠加，不过我们现在建议使用含有像"
+"素剔除的平均数叠加。\n"
+"会逐个计算所有图像同一位置像素值的中位数。\n"
 "\n"
-"<b>像素最大值</b>：该方式主要用于构建长曝光的星轨图像。\n"
-"图像中的像素点会被相同坐标中的更亮的点所代替。\n"
+"<b>像素最大值</b>：该方式主要用于制作长曝光的星轨图像。\n"
+"所得图像每个像素的值是所有图像同一位置像素值的最大值。\n"
 "\n"
-"<b>像素最小值</b>：该方式可用于叠加后选择一个区域进行裁切。\n"
-"图像中的像素点会被相同坐标中的更暗的点所代替。"
+"<b>像素最小值</b>：该方式可用于找到叠加后应该裁掉的区域。\n"
+"所得图像每个像素的值是所有图像同一位置像素值的最小值。"
 
 #: src/gui/siril3.glade:25090 src/stacking/sum.c:252
 msgid "Sum stacking"
@@ -6373,12 +6369,12 @@ msgstr ""
 "\n"
 "- 归一化，会匹配所有输入图像的背景平均值，然后归一化会执行累乘或累加。要注意"
 "两种操作一般都会导致相似的结果，但是累乘归一化主要用于将被执行乘/除的图像，例"
-"如平场。\n"
+"如平场帧。\n"
 "\n"
 "- 拉伸，会通过衡量所有输入图像来匹配弥散值。将有可能增加信噪比。因此该项是累"
 "加归一化的缺省配置。\n"
 "\n"
-"<b>偏置和暗场不应使用归一化处理。而平场必须应用累乘归一化处理。</b>"
+"<b>偏置和暗场帧不应使用归一化处理。而平场帧必须应用累乘归一化处理。</b>"
 
 #: src/gui/siril3.glade:25149
 msgid "No normalisation"
@@ -6491,7 +6487,7 @@ msgstr ""
 "<b>中位数Sigma裁剪</b> 是跟上面类似的算法，所应剔除的像素值会被中值替代。\n"
 "\n"
 "<b>Winsorized Sigma裁剪</b> 也是跟上面类似的算法，所应剔除的像素值却被临近值"
-"所替代。该算法基于Hube的工作，详见参考 [1] [2].\n"
+"所替代。该算法基于Hube的工作，参见 [1] [2].\n"
 "\n"
 "<b>线性拟合裁剪</b> 是Juan Conejero为PixInsight所开发的 [2].。"
 "该算法基于一条坐标上的斜线 (y=ax+b) 来计算离群值而用于像素剔除和叠加。该算法"
@@ -6683,7 +6679,7 @@ msgstr "叠加结果"
 msgid ""
 "Stacking of images, either summing, median, mean with rejection or pixel "
 "minimum/maximum."
-msgstr "图像叠加，支持加法，中位数，具有像素剔除或最大/最小值的平均值法。"
+msgstr "图像叠加，支持加法，中位数，基于像素剔除的平均数，或最大/最小值。"
 
 #: src/gui/siril3.glade:26245
 msgid ""
@@ -6799,9 +6795,10 @@ msgid ""
 "to display your data. Stretch your histogram before to work on an external "
 "tool.</b>"
 msgstr ""
-"显示模式：Siril所支持的所有视觉模式列表。\n"
+"显示模式：列出Siril支持的所有显示模式。\n"
 "\n"
-"<b>警告：只有线性模式会显示真实的像素值（当滑块位于最大和最小的位置）。 其他模式只是显示数据的便捷方式。使用外部工具处理之前请先完成直方图拉伸。</b>"
+"<b>警告：只有线性模式会显示真实的像素值（当滑块位于最大和最小的位置）。 "
+"其他模式只是显示数据的便捷方式。使用外部工具处理之前请先完成直方图拉伸。</b>"
 
 #: src/gui/siril3.glade:26880
 msgid "Chain/unchain channels in autostretch viewer mode.\n"
@@ -6971,7 +6968,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:28156
 msgid "Background reference"
-msgstr "背景参考"
+msgstr "参考背景"
 
 #: src/gui/siril3.glade:28188
 msgid "Manual White Balance"
@@ -7032,7 +7029,7 @@ msgstr "上限: "
 
 #: src/gui/siril3.glade:28600
 msgid "White reference"
-msgstr "白点参考"
+msgstr "参考白色"
 
 #: src/gui/siril3.glade:28747
 msgid "FITS/SER debayer"
@@ -7334,12 +7331,11 @@ msgid ""
 "however, it preserves too much of the noise (or even amplifies the noise) in "
 "the pixel values, resulting in poor compression."
 msgstr ""
-"虽然浮点格式的图像可以被无损压缩（使用gzip，因为Rice只压缩整数数组），但是由"
-"于像素值的噪声过高，并且像素值的小数部分的实际有效比特很少并包含着不可压缩的"
-"随机比特模式，因而导致这些图像通常不会被压缩的很好。为了得到更高的压缩率，这"
-"些噪声需要被除去，但不能损失有用的信息。如该值太大，一个像素值欠采样的结果是"
-"图像的信息丢失。如果该值太小，这将会保留相当多的噪声（甚至会放大噪声）值，造"
-"成很低的压缩率。"
+"虽然允许无损压缩浮点格式的图像（使用gzip，因为Rice只压缩整数数组），但是由于"
+"像素值的噪声过高，并且像素值小数部分的实际有效位很少，还包含不可压缩的随机图"
+"案，所以这些图像通常不太压缩得动。为了得到更高的压缩率，需要部分除去这些噪声"
+"，但不能损失有用的信息。如该值太大，像素值会被欠采样，造成信息损失。如果该值"
+"太小，将保留过多的噪声（甚至会放大噪声），造成很低的压缩率。"
 
 #: src/gui/siril3.glade:29298
 msgid ""
@@ -7728,15 +7724,15 @@ msgstr "在“校准”标签中使用选定的主文件作为缺省文件"
 
 #: src/gui/siril3.glade:30305
 msgid "Master-flat:"
-msgstr "主平场："
+msgstr "主平场帧："
 
 #: src/gui/siril3.glade:30317
 msgid "Master-bias:"
-msgstr "主偏置:"
+msgstr "主偏置帧:"
 
 #: src/gui/siril3.glade:30329
 msgid "Master-dark:"
-msgstr "主暗场："
+msgstr "主暗场帧："
 
 #: src/gui/siril3.glade:30340
 msgid ""
@@ -7749,19 +7745,19 @@ msgstr "除了使用偏置帧以外，您也可以指定一个用于被扣除的
 msgid ""
 "Choose a master-bias that can be used as generic master-bias by clicking on "
 "the button \"Use it as default\""
-msgstr "通过单击“用于缺省”按钮，选择一张主偏置用于缺省主偏置"
+msgstr "通过单击“用于缺省”按钮，选择一张主偏置帧作为缺省主偏置帧"
 
 #: src/gui/siril3.glade:30376
 msgid ""
 "Choose a master-dark that can be used as generic master-dark by clicking on "
 "the button \"Use it as default\"."
-msgstr "选择一张主暗场用于缺省主暗场（通过点选“用于缺省”）。"
+msgstr "通过单击“用于缺省”按钮，选择一张主暗场帧作为缺省主暗场帧。"
 
 #: src/gui/siril3.glade:30398
 msgid ""
 "Choose a master-flat that can be used as generic master-flat by clicking on "
 "the button \"Use it as default\"."
-msgstr "选择一张主平场用于缺省主平场（通过点选“用于缺省”）。"
+msgstr "通过单击“用于缺省”按钮，选择一张主平场帧作为缺省主平场帧。"
 
 #: src/gui/siril3.glade:30447
 msgid "Dark/Bias/Flat Libraries"
@@ -8208,8 +8204,8 @@ msgstr ""
 "每个连续级别的规划策略，在第一次遇到未知FFT尺寸时，将做更多的工作来找到最佳计"
 "算策略。第一次计算会逐渐变慢，但wisdom被存储起来，将使后续运行更快。对于大多"
 "数用户来说，缺省的“耐心”策略很好。如果您经常处理许多不同尺寸的图像，“估算”或“"
-"度量”可能会更好；如果您的所有图像尺寸始终完全相同，您可能希望尝试“穷举”。请注"
-"意，如果选择了多线程 FFTW，则生成给定尺寸和计划级别的初始计划需要更长的时间。"
+"度量”可能会更好；如果您的全部图像尺寸完全相同，您可能希望尝试“穷举”。请注意，"
+"如果选择了多线程 FFTW，则生成给定尺寸和计划级别的初始计划需要更长的时间。"
 
 #: src/gui/siril3.glade:32253
 msgid "Measure"
@@ -9078,11 +9074,11 @@ msgstr "错误：统计信息计算失败。\n"
 
 #: src/algos/colors.c:902 src/algos/photometric_cc.c:321
 msgid "Background reference:\n"
-msgstr "背景参考:\n"
+msgstr "参考背景：\n"
 
 #: src/algos/colors.c:915
 msgid "White reference:\n"
-msgstr "白点参考:\n"
+msgstr "参考白色：\n"
 
 #: src/algos/colors.c:930
 msgid "Color calibration factors:\n"
@@ -9913,7 +9909,7 @@ msgstr "找到 %d %s 轮廓星于 %s，通道 #%d（FWHM %f）\n"
 
 #: src/algos/star_finder.c:1307
 msgid "selection"
-msgstr "选区"
+msgstr "选择"
 
 #: src/algos/star_finder.c:1307
 msgid "image"
@@ -11000,7 +10996,7 @@ msgstr "参考帧必须在 1 和 %d 之间\n"
 
 #: src/core/command.c:3358
 msgid "Run a PSF for the sequence first (see seqpsf)\n"
-msgstr "序列首先需运行PSF（请参阅seqpsf）。\n"
+msgstr "序列首先需运行PSF（参见seqpsf）。\n"
 
 #: src/core/command.c:3362
 #, c-format
@@ -11305,7 +11301,7 @@ msgstr "选项 -out= 对序列无效，已忽略\n"
 
 #: src/core/command.c:4609
 msgid "find_hot must be applied on an one-channel master-dark frame"
-msgstr "find_hot必须被应用在一个单通道master-dark上"
+msgstr "find_hot必须被应用在一个单通道的主暗场帧上"
 
 #: src/core/command.c:4629
 #, c-format
@@ -11800,27 +11796,27 @@ msgstr "暗场优化：此过程不适用于8b图像\n"
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
-msgstr "在激活此选项之前，必须使用 -dark= 指定主暗场，异常终止。\n"
+msgstr "在激活此选项之前，必须使用 -dark= 指定主暗场帧，异常终止。\n"
 
 #: src/core/command.c:7735
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
-msgstr "基于主暗场的坏点修正：对冷像素使用 sigma %.2lf\n"
+msgstr "基于主暗场帧的坏点修正：对冷像素使用 sigma %.2lf\n"
 
 #: src/core/command.c:7737
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
-msgstr "基于主暗场的坏点修正：对冷像素停用。\n"
+msgstr "基于主暗场帧的坏点修正：对冷像素停用。\n"
 
 #: src/core/command.c:7739
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
-msgstr "基于主暗场的坏点修正：对热像素使用 sigma %.2lf\n"
+msgstr "基于主暗场帧的坏点修正：对热像素使用 sigma %.2lf\n"
 
 #: src/core/command.c:7741
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
-msgstr "基于主暗场的坏点修正：对热像素停用。\n"
+msgstr "基于主暗场帧的坏点修正：对热像素停用。\n"
 
 #: src/core/command.c:7748
 #, c-format
@@ -12310,27 +12306,27 @@ msgid ""
 "If <b>-fitseq</b> is provided, the output sequence will be a FITS sequence "
 "(single file)"
 msgstr ""
-"使用参数中指定的偏置、暗场和平场来校准序列<b>sequencename</b>。\n"
+"使用参数中指定的偏置、暗场和平场帧来校准序列<b>sequencename</b>。\n"
 "\n"
-"对于偏置，可以通过输入以=号开头的引用表达式，来指定将要整体减去的一个值，而不"
-"使用偏置图像，例如-bias=\"=256\"或-bias=\"=64*$OFFSET\"。\n"
+"可以输入以=号开头的引用表达式，来指定将要整体减去的偏置值，而不使用偏置帧，例"
+"如-bias=\"=256\"或-bias=\"=64*$OFFSET\"。\n"
 "\n"
 "默认情况下，坏点修正不会激活。如果您需要，则使用<b>-cc=</b>选项指定。\n"
-"您可以使用<b>-cc=dark</b>来检测主暗场中的热像素和冷像素（使用<b>-dark=</b>选"
-"项时必须提供主暗场），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和<b>si"
-"ghi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热像素"
-"检测。\n"
+"您可以使用<b>-cc=dark</b>来检测主暗场帧中的热像素和冷像素（使用<b>-dark=</b>"
+"选项时必须提供主暗场帧），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和<"
+"b>sighi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热"
+"像素检测。\n"
 "您也可以使用<b>-cc=bpm</b>，后跟坏像素图的路径，来指定必须修正的像素。在主暗"
-"场上使用<i>find_hot</i>命令可以获得示例文件。\n"
+"场帧上使用<i>find_hot</i>命令可以获得示例文件。\n"
 "\n"
 "有三个选项适用于彩色图像（CFA格式）：<b>-CFA</b>用于坏点修正，<b>-debayer</b>"
-"在保存图像之前进行去马赛克，<b>-equalize_cfa</b>将主平场RGB图层的平均亮度均衡"
-"化，以免校准后偏色。\n"
+"在保存图像之前进行去马赛克，<b>-equalize_cfa</b>将主平场帧RGB图层的平均亮度均"
+"衡化，以免校准后偏色。\n"
 "<b>-fix_xtrans</b>选项专门用于X-"
-"Trans图像，会修正暗场和偏置，以去除自动对焦造成的矩形图案。\n"
-"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场。\n"
-"默认情况下，不会处理标记排除的帧。参数<b>-all</b>可用于强制处理所有帧，即使标"
-"记为已排除。\n"
+"Trans图像，会修正暗场和偏置帧，以去除自动对焦造成的矩形图案。\n"
+"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场帧。\n"
+"默认情况下，不会处理标记已排除的帧。参数<b>-all</b>可用于强制处理所有帧，即使"
+"标记为已排除。\n"
 "输出序列的文件名前缀为“pp_”，除非使用选项<b>-prefix=</b>指定。\n"
 "如果提供<b>-fitseq</b>，输出序列将是FITS序列（单个文件）"
 
@@ -12366,25 +12362,25 @@ msgid ""
 "The output filename starts with the prefix \"pp_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"使用参数中指定的偏置、暗场和平场来校准图像<b>imagename</b>。\n"
+"使用参数中指定的偏置、暗场和平场帧来校准图像<b>imagename</b>。\n"
 "\n"
-"对于偏置，可以通过输入以=号开头的引用表达式，来指定将要整体减去的一个值，而不"
-"使用偏置图像，例如-bias=\"=256\"或-bias=\"=64*$OFFSET\"。\n"
+"可以输入以=号开头的引用表达式，来指定将要整体减去的偏置值，而不使用偏置帧，例"
+"如-bias=\"=256\"或-bias=\"=64*$OFFSET\"。\n"
 "\n"
 "默认情况下，坏点修正不会激活。如果您需要，则使用<b>-cc=</b>选项指定。\n"
-"您可以使用<b>-cc=dark</b>来检测主暗场中的热像素和冷像素（使用<b>-dark=</b>选"
-"项时必须提供主暗场），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和<b>si"
-"ghi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热像素"
-"检测。\n"
+"您可以使用<b>-cc=dark</b>来检测主暗场帧中的热像素和冷像素（使用<b>-dark=</b>"
+"选项时必须提供主暗场帧），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和<"
+"b>sighi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热"
+"像素检测。\n"
 "您也可以使用<b>-cc=bpm</b>，后跟坏像素图的路径，来指定必须修正的像素。在主暗"
-"场上使用<i>find_hot</i>命令可以获得示例文件。\n"
+"场帧上使用<i>find_hot</i>命令可以获得示例文件。\n"
 "\n"
 "有三个选项适用于彩色图像（CFA格式）：<b>-CFA</b>用于坏点修正，<b>-debayer</b>"
-"在保存图像之前进行去马赛克，<b>-equalize_cfa</b>将主平场RGB图层的平均亮度均衡"
-"化，以免校准后偏色。\n"
+"在保存图像之前进行去马赛克，<b>-equalize_cfa</b>将主平场帧RGB图层的平均亮度均"
+"衡化，以免校准后偏色。\n"
 "<b>-fix_xtrans</b>选项专门用于X-"
-"Trans图像，会修正暗场和偏置，以去除自动对焦造成的矩形图案。\n"
-"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场。\n"
+"Trans图像，会修正暗场和偏置帧，以去除自动对焦造成的矩形图案。\n"
+"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场帧。\n"
 "输出文件名的前缀为“pp_”，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:18
@@ -12775,8 +12771,8 @@ msgid ""
 msgstr ""
 "在工作目录中保存一个列表文件<b>filename</b>（文本格式），该文件包含从载入的图"
 "像中提取的，亮度比标准差高<b>hot_sima</b>倍或低<b>cold_sigma</b>倍的像素的坐"
-"标。通常在主暗场上使用此命令。COSME命令可以将此坏点列表应用于载入的图像，参见"
-"SEQCOSME将其应用于序列上"
+"标。通常在主暗场帧上使用此命令。COSME命令可以将此坏点列表应用于载入的图像，参"
+"见SEQCOSME将其应用于序列上"
 
 #: src/core/command_def.h:51
 #, fuzzy
@@ -12976,8 +12972,8 @@ msgid ""
 "Equalizes the mean intensity of RGB layers in the loaded CFA image. This is "
 "the same process used on flats during calibration when the option equalize "
 "CFA is used"
-msgstr "将载入的CFA图像中RGB图层的平均亮度均衡化。这和校准时应用在平场上的equalize "
-"CFA操作相同"
+msgstr "将载入的CFA图像中RGB图层的平均亮度均衡化。这和校准时应用在平场帧上的均衡CFA操"
+"作相同"
 
 #: src/core/command_def.h:64
 msgid "Lists the available commands or help for one command"
@@ -13773,7 +13769,7 @@ msgstr ""
 "lamp</b>参数禁用。\n"
 "\n"
 "如果传递选项<b>-selected</b>，将不会处理序列中已排除的图像，否则，"
-"序列中的所有图像都将被对齐\n"
+"序列中的全部图像都将被对齐\n"
 "\n"
 "输出序列名的前缀为“r_”，除非使用<b>-prefix=</b>选项指定"
 
@@ -13998,7 +13994,7 @@ msgstr ""
 "将当前图像保存为JPG文件：<b>filename</b>.jpg。\n"
 "\n"
 "可选参数<b>质量</b>值可以调整压缩质量，设为100质量最佳，也是默认值，较低的值"
-"可以提高压缩比"
+"可以提高压缩率"
 
 #: src/core/command_def.h:124
 msgid ""
@@ -14088,7 +14084,6 @@ msgstr ""
 "参见UNSELECT"
 
 #: src/core/command_def.h:131
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -14127,45 +14122,36 @@ msgid ""
 "selected or with best FWHM, with some of the <b>-filter-*</b> options.\n"
 "See the command reference for the complete documentation on this command"
 msgstr ""
-"Applies geometric transforms on images of the sequence given in argument so "
-"that they may be superimposed on the reference image, using registration "
-"data previously computed.\n"
+"使用先前计算的对齐数据，对参数中给定序列里的图像应用几何变换，使其和参考图像"
+"重合（参见REGISTER）。\n"
 "\n"
-"The output sequence name starts with the prefix <b>\"r_\"</b> unless "
-"otherwise specified with <b>-prefix=</b> option.\n"
+"输出序列名的前缀为<b>\"r_\"</b>，除非使用<b>-prefix=</b>选项指定。\n"
 "\n"
-"The option <b>-drizzle</b> activates up-scaling by 2 the images created in "
-"the transformed sequence.\n"
+"选项<b>-drizzle</b>对齐生成的图像放大2倍。\n"
 "\n"
-"The pixel interpolation method can be specified with the <b>-interp=</b> "
-"argument followed by one of the methods in the list <b>no</b>[ne], <b>ne</"
-"b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
-"b>[ea]}. If <b>none</b> is passed, the transformation is forced to shift and "
-"a pixel-wise shift is applied to each image without any interpolation.\n"
-"Clamping of the bicubic and lanczos4 interpolation methods is the default, "
-"to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument.\n"
+"像素插值方法可以用<b>interp=</b>参数指定，取值可以是：<b>no</b>[ne]，<b>ne</b"
+">[arest]，<b>cu</b>[bic]，<b>la</b>[nczos4]，<b>li</b>[near]，<b>ar</b>[ea]。"
+"如果传递了<b>none</b>，则强制对齐模式为平移，并在不插值的情况下逐像素平移每个"
+"图像。\n"
+"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-noc"
+"lamp</b>参数禁用。\n"
 "\n"
-"The registration is done on the first layer for which data exists for RGB "
-"images unless specified by <b>-layer=</b> option (0, 1 or 2 for R, G and B "
-"respectively).\n"
+"对于RGB图像，默认使用存在对齐数据的第一层来应用变换，除非用<b>-layer=</b>选项"
+"指定（R、G和B分别为0、1或2）。\n"
 "\n"
-"Automatic framing of the output sequence can be specified using <b>-"
-"framing=</b> keyword followed by one of the methods in the list { current | "
-"min | max | cog } :\n"
-"<b>-framing=max</b> (bounding box) adds a black border around each image as "
-"required so that no part of the image is cropped when registered.\n"
-"<b>-framing=min</b> (common area) crops each image to the area it has in "
-"common with all images of the sequence.\n"
-"<b>-framing=cog</b> determines the best framing position as the center of "
-"gravity (cog) of all the images.\n"
+"输出序列的取景范围可以使用<b>-framing=</b>关键字指定，取值可以是{ current | "
+"min | max | cog }：\n"
+"<b>-framing=max</b>（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁"
+"切图像的任何部分。\n"
+"<b>-framing=min</b>（交集）将每个图像裁切到序列里所有图像共有的区域。\n"
+"<b>-framing=cog</b>将全部图像的重心（cog）作为最佳构图位置。\n"
 "\n"
-"Filtering out images:\n"
-"Images to be registered can be selected based on some filters, like those "
-"selected or with best FWHM, with some of the <b>-filter-*</b> options.\n"
-"See the command reference for the complete documentation on this command"
+"筛选图像：\n"
+"可以使用<b>-filter-*</b>选项，根据一些条件筛选要对齐的图像，比如只对齐已选中"
+"的图像或者只对齐FWHM最佳的图像。\n"
+"有关此命令的完整说明文档，参见command reference"
 
 #: src/core/command_def.h:132
-#, fuzzy
 msgid ""
 "This command clears selection, registration and/or statistics data stored "
 "for the sequence <b>sequencename</b>.\n"
@@ -14174,15 +14160,12 @@ msgid ""
 "<b>-reg</b>, <b>-stat</b> and <b>-sel</b> options respectively. All are "
 "cleared if no option is passed"
 msgstr ""
-"This command clears selection, registration and/or statistics data stored in "
-"<b>sequencename</b>.\n"
+"此命令清除存储在序列<b>sequencename</b>中的选择、对齐和/或统计数据。\n"
 "\n"
-"You can specify to clear only registration, statistics and/or selection with "
-"<b>-reg</b>, <b>-stat</b> and <b>-sel</b> options respectively. All are "
-"cleared if no option is passed"
+"您可以分别使用<b>-reg</b>、<b>-stat</b>、<b>-sel</b>选项来指定仅清除对齐、统"
+"计和/或选择数据。如果未传递任何选项，则全部清除"
 
 #: src/core/command_def.h:133
-#, fuzzy
 msgid ""
 "Same command as COSME but for the the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -14190,13 +14173,11 @@ msgid ""
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Same command as COSME but for the the sequence <b>sequencename</b>.\n"
+"与COSME相同的命令，但用于序列<b>sequencename</b>。仅处理序列中选定的图像。\n"
 "\n"
-"The output sequence name starts with the prefix \"cosme_\" unless otherwise "
-"specified with option <b>-prefix=</b>"
+"输出序列名前缀为\"cosme_\"，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:134
-#, fuzzy
 msgid ""
 "Same command as COSME_CFA but for the the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -14204,13 +14185,12 @@ msgid ""
 "The output sequence name starts with the prefix \"cosme_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Same command as COSME_CFA but for the the sequence <b>sequencename</b>.\n"
+"与COSME_CFA相同的命令，但用于序列<b>sequencename</b>。仅处理序列中选定的图像"
+"。\n"
 "\n"
-"The output sequence name starts with the prefix \"cosme_\" unless otherwise "
-"specified with option <b>-prefix=</b>"
+"输出序列名前缀为\"cosme_\"，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:135
-#, fuzzy
 msgid ""
 "Crops the sequence given in argument <b>sequencename</b>. Only selected "
 "images in the sequence are processed.\n"
@@ -14221,12 +14201,11 @@ msgid ""
 "The output sequence name starts with the prefix \"cropped_\" unless "
 "otherwise specified with <b>-prefix=</b> option"
 msgstr ""
-"Crops the sequence given in argument <b>sequencename</b>.\n"
+"裁切参数中给定的序列<b>sequencename</b>。仅处理序列中选定的图像。\n"
 "\n"
-"The crop selection is specified by the upper left corner position <b>x</b> "
-"and <b>y</b> and the selection <b>width</b> and <b>height</b>.\n"
-"The output sequence name starts with the prefix \"cropped_\" unless "
-"otherwise specified with <b>-prefix=</b> option"
+"裁切区域用左上角位置<b>x</b>和<b>y</b>以及区域宽度<b>width</b>和高度<b>height"
+"</b>来指定，类似于CROP。\n"
+"输出序列名前缀为\"cropped_\"，除非使用<b>-prefix=</b>选项指定"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -14580,7 +14559,7 @@ msgid ""
 msgstr ""
 "与SPLIT_CFA相同的命令，但用于序列<b>sequencename</b>。\n"
 "\n"
-"输出序列名称以前缀“CFA_”和数字开头，除非使用<b>-prefix=</b>选项指定。\n"
+"输出序列名的前缀为“CFA_”和一个数字，除非使用<b>-prefix=</b>选项指定。\n"
 "<i> 缺陷：</i>无论输入序列的类型如何，输出总会是FITS文件序列（多个文件）"
 
 #: src/core/command_def.h:158
@@ -15205,9 +15184,8 @@ msgstr ""
 "(from <b>from</b> to <b>to</b> included). See SELECT"
 
 #: src/core/command_def.h:194
-#, fuzzy
 msgid "Resets the magnitude calibration to 0. See SETMAG"
-msgstr "重置星等校准为0。详见SETMAG"
+msgstr "重置星等校准为0。参见SETMAG"
 
 #: src/core/command_def.h:195
 msgid ""
@@ -15677,7 +15655,7 @@ msgstr[0] "%ld 像素被修正（%ld + %ld）\n"
 #: src/core/preprocess.c:386
 msgid ""
 "Darkmap cosmetic correction is only supported with single channel images\n"
-msgstr "基于暗场的坏点修正只支持单通道图像\n"
+msgstr "基于暗场帧的坏点修正只支持单通道图像\n"
 
 #: src/core/preprocess.c:483
 msgid "Preprocessing"
@@ -15934,7 +15912,7 @@ msgstr ""
 #: src/core/sequence_filtering.c:522
 #, c-format
 msgid "Processing all images in the sequence (%d)\n"
-msgstr "叠加序列中的所有图像（%d帧）\n"
+msgstr "叠加序列中所有的图像（%d帧）\n"
 
 #: src/core/sequence_filtering.c:524
 #, c-format
@@ -16244,7 +16222,7 @@ msgstr "需应用坏点修正的传感器类型"
 
 #: src/core/settings.c:331
 msgid "equalize flat channels"
-msgstr "均衡平坦各通道"
+msgstr "均衡平场帧的各通道"
 
 #: src/core/settings.c:332
 msgid "enable correction for X-Trans sensor"
@@ -16258,27 +16236,27 @@ msgstr "如果未找到 X-Trans 模型，请使用此"
 
 #: src/core/settings.c:341
 msgid "default master bias"
-msgstr "缺省主偏置"
+msgstr "缺省主偏置帧"
 
 #: src/core/settings.c:342
 msgid "use default master bias"
-msgstr "使用缺省主偏置"
+msgstr "使用缺省主偏置帧"
 
 #: src/core/settings.c:343
 msgid "default master dark"
-msgstr "缺省主暗场"
+msgstr "缺省主暗场帧"
 
 #: src/core/settings.c:344
 msgid "use default master dark"
-msgstr "使用缺省主暗场"
+msgstr "使用缺省主暗场帧"
 
 #: src/core/settings.c:345
 msgid "default master flat"
-msgstr "缺省主平场"
+msgstr "缺省主平场帧"
 
 #: src/core/settings.c:346
 msgid "use default master flat"
-msgstr "使用缺省主平场"
+msgstr "使用缺省主平场帧"
 
 #: src/core/settings.c:347
 msgid "default stack name"
@@ -16815,7 +16793,7 @@ msgstr "应用 Anscombe VST\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:175
 msgid "Applying exact unbiased inverse Anscombe VST\n"
-msgstr "应用精确无偏逆 Anscombe VST\n"
+msgstr "应用精确无偏逆的 Anscombe VST\n"
 
 #: src/filters/nlbayes/call_nlbayes.cpp:199
 #, c-format
@@ -17641,7 +17619,7 @@ msgid ""
 msgstr ""
 "文件扩展名'%s'不被支持。\n"
 "请确认输入了正确的扩展名。\n"
-"如果确认无误，那么你需要安装第三方软件来激活这种文件类型，详见README\n"
+"如果确认无误，那么你需要安装第三方软件来激活这种文件类型，参见README\n"
 "如果你所试图载入的文件类型在支持列表内，那么可以向开发团队提交一个缺陷报告。"
 
 #: src/gui/conversion.c:170
@@ -17892,7 +17870,7 @@ msgstr "文件夹"
 #: src/gui/documentation.c:60
 #, c-format
 msgid "Siril documentation URL: %s\n"
-msgstr "Siril 文档网址： %s\n"
+msgstr "Siril 说明文档网址： %s\n"
 
 #: src/gui/documentation.c:71 src/gui/newdeconv.c:281 src/gui/script_menu.c:321
 msgid "Could not show link"
@@ -17911,14 +17889,14 @@ msgstr "通道警告"
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
-msgstr "并非所有彩色通道都被选中。不能使用人眼加权明度彩色模型：设置为均等加权明度彩"
-"色模型。"
+msgstr "没有选中全部颜色通道。不能使用人眼加权明度彩色模型：设置为均等加权明度彩色模"
+"型。"
 
 #: src/gui/histogram.c:150 src/gui/histogram.c:1038 src/gui/histogram.c:1693
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
-msgstr "并非所有彩色通道都被选中。不能使用饱和度拉伸：设置为独立通道彩色模型。"
+msgstr "没有选中全部颜色通道。不能使用饱和度拉伸：设置为独立通道彩色模型。"
 
 #: src/gui/histogram.c:316
 msgid "Toggles whether to apply the stretch to the monochrome channel"
@@ -18948,11 +18926,11 @@ msgstr "无序列载入"
 
 #: src/gui/sequence_list.c:394
 msgid "Selected all images from sequence\n"
-msgstr "已选择序列中所有的图像\n"
+msgstr "已选择序列中的全部图像\n"
 
 #: src/gui/sequence_list.c:398
 msgid "Unselected all images from sequence\n"
-msgstr "已除去序列中所有的图像\n"
+msgstr "已排除序列中的全部图像\n"
 
 #: src/gui/sequence_list.c:520
 msgid "#Stars"
@@ -18974,7 +18952,7 @@ msgstr "包含"
 #: src/gui/sequence_list.c:658
 #, c-format
 msgid "Image %d has been unselected from sequence\n"
-msgstr "图像 %d 已被除去\n"
+msgstr "图像 %d 已被排除\n"
 
 #: src/gui/sequence_list.c:671
 #, c-format
@@ -18983,7 +18961,7 @@ msgstr "图像 %d 已被选择\n"
 
 #: src/gui/sequence_list.c:689
 msgid "Exclude all images?"
-msgstr "全部排除?"
+msgstr "全部排除？"
 
 #: src/gui/sequence_list.c:690 src/gui/sequence_list.c:698
 msgid "This erases previous image selection and there's no possible undo."
@@ -19012,7 +18990,7 @@ msgstr "图像（或序列）已载入"
 
 #: src/gui/single_image.c:75
 msgid "Are you sure you want to close everything and open the new image?"
-msgstr "确定要关闭所有并且打开新图像？"
+msgstr "确定要全部关闭并打开新图像？"
 
 #: src/gui/siril_css.c:48
 #, c-format
@@ -19061,7 +19039,7 @@ msgstr "您可以通过点击菜单中的“获取脚本”选项来获得更多
 #: src/gui/siril_intro.c:40
 msgid ""
 "A brand new documentation set is also available via the menu \"Siril Manual\""
-msgstr "全新的文档集也可通过菜单“Siril 手册”获得"
+msgstr "全新的说明文档集也可通过菜单“Siril 手册”获得"
 
 #: src/gui/siril_intro.c:41
 msgid ""
@@ -20706,7 +20684,7 @@ msgstr "已暂停..."
 #: src/livestacking/gui.c:256
 msgid ""
 "COSMETIC CORRECTION: can only use masterdark in livestacking mode - disabling"
-msgstr "坏点修正：实时叠加模式下仅可使用主暗场 - 关闭"
+msgstr "坏点修正：实时叠加模式下仅可使用主暗场帧 - 已禁用"
 
 #: src/livestacking/gui.c:263
 msgid "COSMETIC CORRECTION: could not read the inputs - disabling"
@@ -20738,7 +20716,7 @@ msgstr "无法监听CWD路径(%s): %s\n"
 #: src/livestacking/livestacking.c:294
 #, c-format
 msgid "NOT USING DARK: cannot open file '%s'\n"
-msgstr "未使用暗场：无法打开文件’%s’\n"
+msgstr "未使用暗场：无法打开文件'%s'\n"
 
 #: src/livestacking/livestacking.c:305 src/livestacking/livestacking.c:332
 msgid "Calibration with color images is not yet supported\n"
@@ -20748,7 +20726,7 @@ msgstr "尚不支持校准彩色图像\n"
 #, c-format
 msgid ""
 "Master dark %d x %d configured for live stacking (%s cosmetic correction)\n"
-msgstr "主暗场 %d x %d 被用于实时叠加（%s坏点修正）\n"
+msgstr "主暗场帧 %d x %d 被用于实时叠加（%s坏点修正）\n"
 
 #: src/livestacking/livestacking.c:317
 msgid "with"
@@ -20766,7 +20744,7 @@ msgstr "未使用平场：无法打开文件 ‘%s’\n"
 #: src/livestacking/livestacking.c:340
 #, c-format
 msgid "Master flat %d x %d configured for live stacking\n"
-msgstr "主平场 %d x %d 被用于实时叠加\n"
+msgstr "主平场帧 %d x %d 被用于实时叠加\n"
 
 #: src/livestacking/livestacking.c:368
 msgid "Preprocessing is ready\n"
@@ -20824,12 +20802,12 @@ msgstr "无法读取序列，异常终止。"
 #: src/livestacking/livestacking.c:670
 #, c-format
 msgid "Dark image is not the same size, not using (%dx%d)\n"
-msgstr "暗场不具有统一尺寸 (%dx%d)\n"
+msgstr "暗场帧尺寸不统一 (%dx%d)\n"
 
 #: src/livestacking/livestacking.c:677
 #, c-format
 msgid "Flat image is not the same size, not using (%dx%d)\n"
-msgstr "平场不具有统一尺寸 (%dx%d)\n"
+msgstr "平场帧尺寸不统一 (%dx%d)\n"
 
 #: src/livestacking/livestacking.c:758
 msgid "Reference image statistics not found\n"
@@ -21377,7 +21355,7 @@ msgstr "某些图像未对齐，排除它们\n"
 #: src/registration/applyreg.c:603
 msgid ""
 "Framing method \"cog\" requires all images to be of same size, aborting\n"
-msgstr "取景范围\"cog\"要求所有图像尺寸相同，异常中止\n"
+msgstr "取景范围\"cog\"要求全部图像尺寸相同，异常中止\n"
 
 #: src/registration/applyreg.c:624
 msgid "Unknown framing method, aborting\n"
