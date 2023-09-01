@@ -546,16 +546,16 @@ int remixer() {
 						ginr = 0.f;
 						binr = 0.f;
 					}
-					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
+					linrgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
 					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
+					linrgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
 					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
 					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
 					float ao = (Ll * Al + Lr * Ar) / divisor;
 					float bo = (Ll * Bl + Lr * Br) / divisor;
 					float Lo = Ll + Lr - Ll * Lr * 0.01f;
 					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
+					xyz_to_linrgbf(xo, yo, zo, &rout, &gout, &bout);
 					gfit.fpdata[0][i] = rout;
 					gfit.fpdata[1][i] = gout;
 					gfit.fpdata[2][i] = bout;
@@ -586,16 +586,16 @@ int remixer() {
 						ginr = 0.f;
 						binr = 0.f;
 					}
-					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
+					linrgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
 					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
+					linrgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
 					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
 					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
 					float ao = (Ll * Al + Lr * Ar) / divisor;
 					float bo = (Ll * Bl + Lr * Br) / divisor;
 					float Lo = Ll + Lr - Ll * Lr * 0.01f;
 					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
+					xyz_to_linrgbf(xo, yo, zo, &rout, &gout, &bout);
 					gfit.pdata[0][i] = roundf_to_WORD(rout * norm);
 					gfit.pdata[1][i] = roundf_to_WORD(gout * norm);
 					gfit.pdata[2][i] = roundf_to_WORD(bout * norm);
