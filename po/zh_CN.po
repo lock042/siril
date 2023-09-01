@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-09-01 05:10+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"PO-Revision-Date: 2023-09-01 09:26+0000\n"
+"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -491,7 +491,7 @@ msgstr "去条纹处理后输出的文件名前缀。"
 
 #: src/gui/siril3.glade:2039
 msgid "Median Filter"
-msgstr "中位数过滤"
+msgstr "中位数滤波"
 
 #: src/gui/siril3.glade:2109
 msgid "Kernel Size:"
@@ -527,9 +527,9 @@ msgid ""
 "When this parameter is equal to 1, no modulation is applied.\n"
 "If the parameters is null, so no filter is apply at all."
 msgstr ""
-"调制参数，[0, 1]区间值。\n"
+"调制参数取值范围为[0, 1]。\n"
 "1为无调制。\n"
-"为空则不会有任何过滤被应用。"
+"为空则不会有任何滤波被应用。"
 
 #: src/gui/siril3.glade:2268 src/gui/siril3.glade:9830
 msgid "Use Luminance"
@@ -823,9 +823,8 @@ msgid ""
 "parameter that is too small may result in overshoots and undershoots between "
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
-msgstr ""
-"调整插值算法的平滑参数。平滑参数过小会导致背景采样的过和欠，而过大则不适用于"
-"较大的梯度背离。"
+msgstr "调整插值算法的平滑参数。平滑参数过小可能导致背景采样的过冲和下冲，过大则可能"
+"无法修正陡峭的背景渐变。"
 
 #: src/gui/siril3.glade:4149
 msgid "page 1"
@@ -843,7 +842,7 @@ msgid ""
 msgstr ""
 "选择拟合中使用的多项式函数的阶数。\n"
 "默认值为4。\n"
-"阶数越高，可以去除的梯度就越复杂。"
+"阶数越高，可以去除的渐变就越复杂。"
 
 #: src/gui/siril3.glade:4229
 msgid "Samples per line"
@@ -855,7 +854,7 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
-"于低动态范围的背景梯度中加入一些随机噪声以避免产生条带\n"
+"于低动态范围的背景渐变中加入一些随机噪声以避免产生条纹\n"
 "应该在未拉伸的图像上使用。"
 
 #: src/gui/siril3.glade:4289
@@ -1159,7 +1158,7 @@ msgstr "中性色调平均化"
 
 #: src/gui/siril3.glade:5981
 msgid "Maximum Neutral"
-msgstr "中性色调最大化"
+msgstr "中性色调最大值"
 
 #: src/gui/siril3.glade:5982
 msgid "Maximum Mask"
@@ -1655,8 +1654,7 @@ msgid ""
 "Wiener filtering for lunar and planetary images."
 msgstr ""
 "一旦估算或提供了PSF，图像最终会使用所选算法进行反卷积。\n"
-"为深空图像选择Richardson-Lucy；为月球和行星图像选择Split Bregman或Wiener "
-"filtering。"
+"为深空图像选择Richardson-Lucy；为月球和行星图像选择Split Bregman或维纳滤波。"
 
 #: src/gui/siril3.glade:8098
 msgid "Split Bregman method with TV regularization"
@@ -4447,11 +4445,11 @@ msgstr "傅立叶变换..."
 
 #: src/gui/siril3.glade:18771
 msgid "Open the median filter dialog"
-msgstr "打开中位数滤镜对话框"
+msgstr "打开中位数滤波对话框"
 
 #: src/gui/siril3.glade:18773
 msgid "Median Filter..."
-msgstr "中位数滤镜..."
+msgstr "中位数滤波..."
 
 #: src/gui/siril3.glade:18786
 msgid "Open the denoise dialog"
@@ -5068,7 +5066,7 @@ msgid ""
 "cropped and selected with the same criteria as the stacking image selection."
 msgstr ""
 "按照所选定的格式导出当前序列。可用于将序列保存为另外的格式，制作动画，或者重"
-"新筛选序列内容。可以裁切和选择导出的选定图像，规则与叠加选定图像相同。"
+"新筛选序列内容。可以裁切和选择导出的选定图像，判据与叠加选定图像时相同。"
 
 #: src/gui/siril3.glade:21647
 msgid "Normalize images"
@@ -5719,9 +5717,9 @@ msgstr ""
 "指定构图方式：\n"
 "- \"current\" 与当前参考帧相同\n"
 "- \"maximum\""
-"（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁剪图像的任何部分。"
+"（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁切图像的任何部分。"
 "\n"
-"- \"minimum\"（交集）将每个图像裁剪到它与序列里所有图像共有的区域。\n"
+"- \"minimum\"（交集）将每个图像裁切到它与序列里所有图像共有的区域。\n"
 "- \"center of gravity\" 测定最佳构图位置作为所有图像的重心（cog）"
 
 #: src/gui/siril3.glade:23514
@@ -5872,7 +5870,7 @@ msgstr ""
 #: src/gui/siril3.glade:23775 src/gui/siril3.glade:23902
 #: src/gui/siril3.glade:25723 src/gui/siril3.glade:25850
 msgid "Add another filter"
-msgstr "添加另外的过滤"
+msgstr "添加另外的筛选条件"
 
 #: src/gui/siril3.glade:23805 src/gui/siril3.glade:23945
 #: src/gui/siril3.glade:25624 src/gui/siril3.glade:25753
@@ -5925,7 +5923,7 @@ msgstr ""
 #: src/gui/siril3.glade:23918 src/gui/siril3.glade:24045
 #: src/gui/siril3.glade:25866 src/gui/siril3.glade:25993
 msgid "Remove this filter"
-msgstr "移除此过滤"
+msgstr "移除此筛选条件"
 
 #: src/gui/siril3.glade:24079
 msgid "Image selection:"
@@ -6322,10 +6320,10 @@ msgstr ""
 "剔除的平均数叠加算法。\n"
 "叠加中像素的中值是针对每个像素计算的。\n"
 "\n"
-"<b>像素最大化</b>：该方式主要用于构建长曝光的星轨图像。\n"
+"<b>像素最大值</b>：该方式主要用于构建长曝光的星轨图像。\n"
 "图像中的像素点会被相同坐标中的更亮的点所代替。\n"
 "\n"
-"<b>像素最小化</b>：该方式可用于叠加后选择一个区域进行裁剪。\n"
+"<b>像素最小值</b>：该方式可用于叠加后选择一个区域进行裁切。\n"
 "图像中的像素点会被相同坐标中的更暗的点所代替。"
 
 #: src/gui/siril3.glade:25090 src/stacking/sum.c:252
@@ -6342,11 +6340,11 @@ msgstr "中位数叠加"
 
 #: src/gui/siril3.glade:25093
 msgid "Pixel maximum stacking"
-msgstr "像素最大化叠加"
+msgstr "像素最大值叠加"
 
 #: src/gui/siril3.glade:25094
 msgid "Pixel minimum stacking"
-msgstr "像素最小化叠加"
+msgstr "像素最小值叠加"
 
 #: src/gui/siril3.glade:25105
 msgid "Method:"
@@ -8237,8 +8235,8 @@ msgid ""
 "minimum planning level of Estimate will always be completed."
 msgstr ""
 "通知 FFTW 最多花费此秒数来规划 FFT。在实践中，如果在FFTW处于不间断操作的过程"
-"中达到时间限制，则可能会略微超过此限制。如果设置为 0，将始终完成“ 估算”的最低"
-"计划级别。"
+"中达到时间限制，则可能会略微超过此限制。如果设置为 "
+"0，将始终完成“估算”的最低计划级别。"
 
 #: src/gui/siril3.glade:32294
 msgid "Minimum PSF size to use FFT convolutions"
@@ -9411,7 +9409,7 @@ msgstr "垂直翻转：处理中...\n"
 
 #: src/algos/geometry.c:687
 msgid "Crop Sequence"
-msgstr "裁剪整个序列"
+msgstr "裁切整个序列"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
@@ -9582,7 +9580,7 @@ msgstr "测光法色彩校准找到了一个可能不完美的解决方案，因
 msgid ""
 "The photometric color calibration seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
-msgstr "测光法色彩校准似乎找到了不精确的解决方案，考虑先修正图像梯度\n"
+msgstr "测光法色彩校准似乎不能精确校准，考虑先修正图像渐变\n"
 
 #: src/algos/photometric_cc.c:317
 msgid "White balance factors:\n"
@@ -9871,7 +9869,7 @@ msgstr "拷贝图像失败\n"
 
 #: src/algos/star_finder.c:210
 msgid "Could not apply Gaussian filter, aborting\n"
-msgstr "无法应用高斯滤镜，异常终止\n"
+msgstr "无法应用高斯滤波，异常终止\n"
 
 #: src/algos/star_finder.c:233
 msgid "Selection is larger than image\n"
@@ -9881,7 +9879,7 @@ msgstr "选区大于图像\n"
 msgid ""
 "More than half of PSF fits have failed - try increasing the convergence "
 "criterion\n"
-msgstr "超过一半的PSF拟合失败 - 尝试增加收敛判据\n"
+msgstr "超过半数的PSF拟合失败 - 尝试提高收敛判据\n"
 
 #: src/algos/star_finder.c:911
 #, c-format
@@ -10609,29 +10607,29 @@ msgstr "步长参数错误：必须介于 0 和 1 之间，异常终止。\n"
 msgid ""
 "It is impossible to crop the image when a filter with preview session is "
 "active. Please consider to close the filter dialog first.\n"
-msgstr "当上一个会话有滤镜已激活时无法裁剪图像。请先关闭滤镜对话框。\n"
+msgstr "当上一个会话有滤镜已激活时无法裁切图像。请先关闭滤镜对话框。\n"
 
 #: src/core/command.c:1673 src/core/command.c:4121
 msgid "Crop: x and y must be positive values.\n"
-msgstr "裁剪：x 和 y 必须为正值。\n"
+msgstr "裁切：x 和 y 必须为正值。\n"
 
 #: src/core/command.c:1679 src/core/command.c:4127
 msgid "Crop: width and height must be greater than 0.\n"
-msgstr "裁剪：宽度和高度必须大于0。\n"
+msgstr "裁切：宽度和高度必须大于0。\n"
 
 #: src/core/command.c:1683 src/core/command.c:4143
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
-msgstr "裁剪：宽度和高度必须分别小于 %d 和 %d。\n"
+msgstr "裁切：宽度和高度必须分别小于 %d 和 %d。\n"
 
 #: src/core/command.c:1688 src/core/command.c:4133
 msgid "Crop: select a region or provide x, y, width, height\n"
-msgstr "裁剪：选择一个区域，或给出x，y，宽度，高度\n"
+msgstr "裁切：选择一个区域，或给出x，y，宽度，高度\n"
 
 #: src/core/command.c:1696 src/gui/menu_gray_geometry.c:266
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
-msgstr "裁剪（x=%d, y=%d, w=%d, h=%d）"
+msgstr "裁切（x=%d, y=%d, w=%d, h=%d）"
 
 #: src/core/command.c:1741 src/core/command.c:4441 src/core/command.c:4454
 #: src/core/command.c:4845 src/core/command.c:4863 src/core/command.c:4875
@@ -10928,7 +10926,7 @@ msgstr "坐标值不可以大于图像的尺寸。请修改后重试。\n"
 msgid ""
 "Rotation will apply only to current selection, the resulting image will be "
 "cropped.\n"
-msgstr "旋转将仅适用于当前选择，生成的图像将被裁剪。\n"
+msgstr "存在选区，旋转生成的图像将被裁切到当前选区。\n"
 
 #: src/core/command.c:2998
 #, c-format
@@ -11597,7 +11595,7 @@ msgstr "插值保持启用\n"
 #: src/core/command.c:6789 src/core/command.c:6808 src/core/command.c:6826
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
-msgstr "无法将参数“%s”解析为筛选器“%s”，异常终止。\n"
+msgstr "无法将参数“%s”解析为滤镜“%s”，异常终止。\n"
 
 #: src/core/command.c:6866
 msgid "No registration data exists for this sequence, aborting\n"
@@ -12527,7 +12525,7 @@ msgid ""
 "size of the selection. Alternatively, the selection can be made using the "
 "BOXSELECT command"
 msgstr ""
-"将载入的图像裁剪至选区尺寸。\n"
+"将载入的图像裁切至选区尺寸。\n"
 "\n"
 "如果有现有的选区，则不需要其他参数。如果没有现有的选区，或是在脚本中使用，则"
 "必须给定参数。其中<b>x</b>和<b>y</b>是左上角的坐标，<b>width</b>与<b>height</"
@@ -12551,8 +12549,8 @@ msgstr ""
 "描述的那个。\n"
 "\n"
 "它结合了低像素值上的线性分布（低于<b>level</b>）和高像素值上的非线性分布。\n"
-"它使用标准差为<b>sigma</b>的高斯滤波器，并将所得图像乘以<b>coef</b>。<b>sigma"
-"</b>的一般在0.7和2之间。对于16位图像，参数level应在[0, "
+"它使用标准差为<b>sigma</b>的高斯滤波，并将所得图像乘以<b>coef</b>。<b>sigma</"
+"b>的一般在0.7和2之间。对于16位图像，参数level应在[0, "
 "65535]的范围内，对于32位图像，可以在[0, 1]或[0, "
 "65535]范围内给定，在这种情况下，它会自动缩放"
 
@@ -12839,8 +12837,8 @@ msgid ""
 "See also CLEARSTAR"
 msgstr ""
 "检测当前载入的图像中，级别大于Siril计算的阈值的星点。\n"
-"随后应用PSF，Siril会剔除侦测到的所有不满足标准的结构，标准可以通过命令SETFIND"
-"STAR进行调整。\n"
+"随后应用PSF，Siril会剔除侦测到的所有不满足标准的结构，剔除判据可用命令SETFIND"
+"STAR调整。\n"
 "最后，在侦测到的恒星周围绘制一个椭圆。\n"
 "\n"
 "可选参数<b>-out=</b>可以将结果保存到给定路径。\n"
@@ -13265,8 +13263,8 @@ msgstr ""
 "）。如果不指定，则将根据打开的文件或序列的名称命名PSF。\n"
 "\n"
 "选择<b>blind</b>时，可以提供以下可选参数：<b>-l0</b>使用l0下降算法，<b>-si</b"
-">采用光谱不规则算法，<b>-multiscale</b>配置l0算法来进行多尺度PSF估计，<b>-lam"
-"bda=</b>提供正则化常数。\n"
+">采用光谱不规则法，<b>-multiscale</b>配置l0算法来进行多尺度PSF估计，<b>-lambd"
+"a=</b>提供正则化常数。\n"
 "\n"
 "对于来自侦测到的<b>stars</b>的PSF，唯一的可选参数是<b>-sym</b>，它将PSF配置为"
 "对称的。\n"
@@ -13883,7 +13881,7 @@ msgstr ""
 "\n"
 "默认使用步长为0.0005的梯度下降法，但可用<b>-mul</b>指定为乘法。\n"
 "\n"
-"可使用<b>-stop=</b>来指定停止准则"
+"可使用<b>-stop=</b>来指定停止判据"
 
 #: src/core/command_def.h:116
 msgid ""
@@ -13908,7 +13906,6 @@ msgstr ""
 "take an <b>amount</b> argument, a value between 0 and 1, defaulting to 1"
 
 #: src/core/command_def.h:117
-#, fuzzy
 msgid ""
 "Rotates the loaded image by an angle of <b>degree</b> value. The option <b>-"
 "nocrop</b> can be added to avoid cropping to the image size (black borders "
@@ -13926,30 +13923,24 @@ msgid ""
 "Clamping of the bicubic and lanczos4 interpolation methods is the default, "
 "to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
-"Rotates the image by an angle of <b>degree</b> value. The option <b>-nocrop</"
-"b> can be added to avoid cropping to the image size (black borders will be "
-"added).\n"
+"将载入的图像旋转<b>degree</b>。可以添加选项<b>-nocrop</b>以避免裁掉像素（将添"
+"加黑边）。\n"
 "\n"
-" Note: if a selection is active, i.e. by using a command `boxselect` before "
-"`rotate`, the resulting image will be a rotated crop. In this particular "
-"case, the option <b>-nocrop</b> will be ignored if passed.\n"
+"注意：如果有选区，在“rotate”前面使用命令“boxselect”，则旋转后的图像将被裁切到"
+"选区大小。这种情况下，<b>-nocrop</b>将被忽略（如果传递有）。\n"
 "\n"
-"The pixel interpolation method can be specified with the <b>-interp=</b> "
-"argument followed by one of the methods in the list <b>no</b>[ne], <b>ne</"
-"b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
-"b>[ea]}. If <b>none</b> is passed, the transformation is forced to shift and "
-"a pixel-wise shift is applied to each image without any interpolation.\n"
-"Clamping of the bicubic and lanczos4 interpolation methods is the default, "
-"to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
+"像素插值方法可以用<b>interp=</b>参数指定，取值可以是：<b>no</b>[ne]，<b>ne</b"
+">[arest]，<b>cu</b>[bic]，<b>la</b>[nczos4]，<b>li</b>[near]，<b>ar</b>[ea]。"
+"如果传递了<b>none</b>，则强制对齐模式为平移，并在不插值的情况下逐像素平移每个"
+"图像。\n"
+"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-noc"
+"lamp</b>参数禁用"
 
 #: src/core/command_def.h:118
-#, fuzzy
 msgid ""
 "Rotates the loaded image of an angle of 180° around its center. This is "
 "equivalent to the command \"ROTATE 180\" or \"ROTATE -180\""
-msgstr ""
-"Rotates the image of an angle of 180° around its center. This is equivalent "
-"to the command \"ROTATE 180\" or \"ROTATE -180\""
+msgstr "将加载的图像绕其中心旋转180°。这与命令\"ROTATE 180\"或\"ROTATE -180\"相同"
 
 #: src/core/command_def.h:120
 msgid ""
@@ -13997,7 +13988,6 @@ msgstr ""
 "<b>filename</b>.bmp (BMP 24-bit)"
 
 #: src/core/command_def.h:123
-#, fuzzy
 msgid ""
 "Saves current image into a JPG file: <b>filename</b>.jpg.\n"
 "\n"
@@ -14005,12 +13995,10 @@ msgid ""
 "value, 100 being the best and default, while a lower value increases the "
 "compression ratio"
 msgstr ""
-"Saves current image into a JPG file: <b>filename</b>.jpg.\n"
+"将当前图像保存为JPG文件：<b>filename</b>.jpg。\n"
 "\n"
-"You have the possibility to adjust the quality of the compression. A value "
-"100 for <b>quality</b> parameter offers best fidelity while a low value "
-"increases the compression ratio. If no value is specified, a default value "
-"of 100 is applied"
+"可选参数<b>质量</b>值可以调整压缩质量，设为100质量最佳，也是默认值，较低的值"
+"可以提高压缩比"
 
 #: src/core/command_def.h:124
 msgid ""
@@ -14023,7 +14011,6 @@ msgstr ""
 "loaded image is 8 bits"
 
 #: src/core/command_def.h:125
-#, fuzzy
 msgid ""
 "Saves current image under the form of a NetPBM file format with 16-bit per "
 "channel.\n"
@@ -14031,11 +14018,10 @@ msgid ""
 "The extension of the output will be <b>filename</b>.ppm for RGB image and "
 "<b>filename</b>.pgm for gray-level image"
 msgstr ""
-"Saves current image under the form of a Netpbm file format with 16-bit per "
-"channel.\n"
+"以NetPBM格式保存当前图像，每通道16位。\n"
 "\n"
-"The extension of the output will be <b>filename</b>.ppm for RGB image and "
-"<b>filename</b>.pgm for gray-level image"
+"输出的扩展名为<b>filename</b>.ppm（RGB图像）或<b>filename</b>."
+"prgm（灰度图像）"
 
 #: src/core/command_def.h:126
 msgid ""
@@ -14051,26 +14037,22 @@ msgstr ""
 "参见SAVETIF32和SAVETIF8"
 
 #: src/core/command_def.h:127
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 32-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-TIFF "
 "format, while <b>-deflate</b> enables compression"
 msgstr ""
-"Same command as SAVETIF but the output file is saved in 32-bit per channel: "
-"<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
-"format, while <b>-deflate</b> enables compression"
+"与SAVETIF命令相同，但以每通道32位的格式保存为文件：<b>filename</b>."
+"tif。选项<b>-astro</b>允许以astro TIFF格式保存，而<b>-deflate</b>启用压缩"
 
 #: src/core/command_def.h:128
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 8-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-TIFF "
 "format, while <b>-deflate</b> enables compression"
 msgstr ""
-"Same command as SAVETIF but the output file is saved in 8-bit per channel: "
-"<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
-"format, while <b>-deflate</b> enables compression"
+"与SAVETIF命令相同，但以每通道8位的格式保存为文件：<b>filename</b>."
+"tif。选项<b>-astro</b>允许以astro TIFF格式保存，而<b>-deflate</b>启用压缩"
 
 #: src/core/command_def.h:129
 msgid ""
@@ -15886,54 +15868,54 @@ msgstr "程序处理被用户中断\n"
 
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
-msgstr "序列过滤器：值必须为文字或百分比\n"
+msgstr "序列筛选器：值必须为文字或百分比\n"
 
 #: src/core/sequence_filtering.c:235
 #, c-format
 msgid "Using selected images filter (%d/%d of the sequence)\n"
-msgstr "使用所选定的过滤器（全序列的%d/%d）\n"
+msgstr "使用被选中的图像（占全序列的%d/%d）\n"
 
 #: src/core/sequence_filtering.c:243
 #, c-format
 msgid "Using star FWHM images filter (below %f)\n"
-msgstr "使用星点FWHM过滤器（低于 %f）\n"
+msgstr "使用星点FWHM筛选星点（低于 %f）\n"
 
 #: src/core/sequence_filtering.c:251
 #, c-format
 msgid "Using star weighted FWHM images filter (below %f)\n"
-msgstr "使用星点加权FWHM过滤器 （低于 %f）\n"
+msgstr "使用加权的星点FWHM筛选星点 （低于 %f）\n"
 
 #: src/core/sequence_filtering.c:259
 #, c-format
 msgid "Using star roundness images filter (above %f)\n"
-msgstr "使用星点圆度过滤器（高于 %f）\n"
+msgstr "使用星点圆度筛选星点（高于 %f）\n"
 
 #: src/core/sequence_filtering.c:267
 #, c-format
 msgid "Using image background filter (below %f)\n"
-msgstr "使用图像背景过滤器（低于 %f）\n"
+msgstr "使用图像背景筛选星点（低于 %f）\n"
 
 #: src/core/sequence_filtering.c:275
 #, c-format
 msgid "Using number of stars filter (above %f)\n"
-msgstr "使用星点数量过滤器（高于 %f）\n"
+msgstr "使用星点数量筛选星点（高于 %f）\n"
 
 #: src/core/sequence_filtering.c:283
 #, c-format
 msgid "Using image quality filter (below %f)\n"
-msgstr "使用图像品质过滤器（低于 %f）\n"
+msgstr "使用图像品质筛选星点（低于 %f）\n"
 
 #: src/core/sequence_filtering.c:310
 msgid ""
 "Provided filtering options do not allow at least two images to be "
 "processed.\n"
-msgstr "所提供的过滤器选项不允许对至少2帧图像进行处理。\n"
+msgstr "少于2张图像满足所提供的筛选条件。\n"
 
 #: src/core/sequence_filtering.c:349
 msgid ""
 "The reference image is not in the selected set of images. To avoid issues, "
 "please change it or change the filtering parameters.\n"
-msgstr "参考帧不在所选定的序列里。请重新选择或者改变过滤参数。\n"
+msgstr "参考帧不在所选定的序列里。请重新选择或者改变筛选参数。\n"
 
 #: src/core/sequence_filtering.c:356
 #, c-format
@@ -16787,15 +16769,15 @@ msgstr "错误：未选择任何通道。什么都不做。\n"
 #: src/filters/median.c:85
 #, c-format
 msgid "Median Filter (filter=%dx%d px)"
-msgstr "中位数滤镜 (filter=%dx%d px)"
+msgstr "中位数滤波 (filter=%dx%d px)"
 
 #: src/filters/median.c:260 src/filters/median.c:484
 msgid "Median Filter: processing...\n"
-msgstr "中位数滤镜：处理中...\n"
+msgstr "中位数滤波：处理中...\n"
 
 #: src/filters/median.c:465 src/filters/median.c:756
 msgid "Median filter applied"
-msgstr "中位数滤镜已应用"
+msgstr "中位数滤波已应用"
 
 #: src/filters/mtf.c:35
 #, c-format
@@ -17321,7 +17303,7 @@ msgid ""
 "degree greater than 1. This is unlikely because such gradients are often "
 "linear and a correction with a polynomial function of degree 1 is probably "
 "enough."
-msgstr "您即将使用阶数高于1的多项式处理预处理过的序列。这是不太可能的，因为此时的梯度"
+msgstr "您即将使用阶数高于1的多项式处理预处理过的序列。这是不太可能的，因为此时的渐变"
 "通常是线性的。将阶数修改为1或许已经足够。"
 
 #: src/gui/background_extraction.c:188 src/gui/background_extraction.c:199
@@ -18074,12 +18056,12 @@ msgstr "无法计算线性系数。"
 
 #: src/gui/menu_gray_geometry.c:59
 msgid "Crop confirmation"
-msgstr "裁剪确认"
+msgstr "裁切确认"
 
 #: src/gui/menu_gray_geometry.c:65
 #, c-format
 msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
-msgstr "旋转（%.1lf度，裁剪=%s，箝位=%s）"
+msgstr "旋转（%.1lf度，裁切=%s，保持=%s）"
 
 #: src/gui/menu_gray_geometry.c:84
 msgid "Rotation (90 deg)"
@@ -18123,12 +18105,12 @@ msgstr "一个活动的预览已激活"
 msgid ""
 "It is impossible to crop the image when a filter with preview session is "
 "active. Please consider to close the filter dialog first."
-msgstr "当上一个会话有滤镜已激活时无法裁剪图像。请先关闭滤镜对话框。"
+msgstr "当上一个会话有滤镜已激活时无法裁切图像。请先关闭滤镜对话框。"
 
 #: src/gui/menu_gray_geometry.c:293
 msgid ""
 "Crop does not work with avi film. Please, convert your file to SER first.\n"
-msgstr "AVI文件不支持裁剪。请先将文件转化为SER格式。\n"
+msgstr "AVI文件不能裁切。请先将文件转化为SER格式。\n"
 
 #: src/gui/menu_gray_geometry.c:299
 msgid "Not a valid sequence for cropping.\n"
@@ -18206,9 +18188,8 @@ msgstr "错误的 PSF 尺寸"
 msgid ""
 "Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by "
 "1 pixel in each direction. This may not produce optimum results.\n"
-msgstr ""
-"警告：PSF 文件为偶数 （%d x %d）。PSF 应该始终是奇数。每个方向裁剪 1 个像素。"
-"这可能不会产生最佳结果。\n"
+msgstr "警告：PSF 文件尺寸为偶数 （%d x %d）。PSF 应该始终是奇数。已裁切横竖各 1 "
+"个像素。这可能产生不好的结果。\n"
 
 #. If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 #: src/gui/newdeconv.c:770
@@ -20525,23 +20506,23 @@ msgstr "宽度和高度不能为空。缩放不成功。\n"
 
 #: src/io/sequence_export.c:660
 msgid "Export cropped sequence?"
-msgstr "导出裁剪部分到序列？"
+msgstr "导出裁切部分到序列？"
 
 #: src/io/sequence_export.c:661
 msgid ""
 "An active selection was detected. The exported sequence will only contain "
 "data within the drawn selection. You can confirm the crop or cancel it. If "
 "you choose to click on cancel, the exported sequence will contain all data."
-msgstr "检测到现有选区。导出的序列将仅包含选区中的数据。您可以确认裁剪或取消裁剪。如"
+msgstr "检测到现有选区。导出的序列将仅包含选区中的数据。您可以确认裁切或取消裁切。如"
 "果取消，导出的序列将包含所有数据。"
 
 #: src/io/sequence_export.c:662
 msgid "Confirm Crop"
-msgstr "确认裁剪"
+msgstr "确认裁切"
 
 #: src/io/sequence_export.c:694
 msgid "Cropping to selection"
-msgstr "裁剪到所选区域"
+msgstr "裁切到所选区域"
 
 #: src/io/seqwriter.c:115
 msgid ""
@@ -21608,7 +21589,7 @@ msgstr "圆度：%*.2f\n"
 
 #: src/registration/global.c:914
 msgid "The number of stars has capped, readapting threshold and filtering\n"
-msgstr "星点数量达到上限，重新调整阈值和过滤\n"
+msgstr "星点数量达到上限，重新调整阈值和筛选条件\n"
 
 #: src/registration/global.c:985
 #, c-format
@@ -22130,11 +22111,11 @@ msgstr "叠加方式 ………… 中位数\n"
 
 #: src/stacking/stacking.c:293
 msgid "Pixel combination ......... minimum\n"
-msgstr "叠加方式 ………… 像素最小化\n"
+msgstr "叠加方式 ………… 像素最小值\n"
 
 #: src/stacking/stacking.c:295
 msgid "Pixel combination ......... maximum\n"
-msgstr "叠加方式 ………… 像素最大化\n"
+msgstr "叠加方式 ………… 像素最大值\n"
 
 #: src/stacking/stacking.c:297
 msgid "Pixel combination ......... none\n"
