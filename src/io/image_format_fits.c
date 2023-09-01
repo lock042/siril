@@ -3022,6 +3022,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
+	// don't copy ICC profile, if that is needed it should be done separately
 #ifdef HAVE_WCSLIB
 	//wcssub()?
 #endif

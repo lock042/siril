@@ -911,10 +911,11 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		fit_replace_buffer(fit, newbuf, DATA_FLOAT);
 	}
 
-	// Initialize the ICC profile. As no profile is passed, a sRGB or Gray g22 profile
-	// will be set.
-	// Note: there is an assumption here that SER will always be in sRGB / Gray-g22
-	fits_initialize_icc(fit, NULL, 0);
+	// ser is not color managed. We set the ICC profile to NULL and color_managed
+	// to FALSE: once the sequence is stacked, color management can be done on the
+	// stack.
+	color_manage(fit, FALSE);
+	fit->icc_profile = NULL;
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
@@ -1144,7 +1145,6 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		siril_log_message(_("This type of Bayer pattern is not handled yet.\n"));
 		return SER_GENERIC_ERROR;
 	}
-	// Note: no color management is applied to the buffer. This is left to the responsibility of the caller.
 	return SER_OK;
 }
 
@@ -1152,9 +1152,8 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area) {
 	if (new_fit_image(&fit, area->w, area->h, 1, DATA_USHORT))
 		return SER_GENERIC_ERROR;
-	// TODO: review color management here. Currently we assign Gray g22 profile in line with ser_read_frame
-	// above
-	fits_initialize_icc(fit, NULL, 0);
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
 
 	fit->top_down = TRUE;
 	if (ser_file->ts) {

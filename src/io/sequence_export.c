@@ -305,8 +305,8 @@ static gpointer export_sequence(gpointer ptr) {
 	size_t nbpix = 0;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
-	gboolean first_profile_read = FALSE;
-	cmsHPROFILE master_profile = NULL;
+//	gboolean first_profile_read = FALSE;
+//	cmsHPROFILE master_profile = NULL;
 
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
@@ -341,7 +341,7 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 
-		if (fit.icc_profile) {
+/*		if (fit.icc_profile) {
 			if (!first_profile_read) {
 				master_profile = copyICCProfile(fit.icc_profile);
 				first_profile_read = TRUE;
@@ -364,6 +364,7 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
+*/
 		/* destfit is allocated to the full size. Data will be copied from fit,
 		 * image buffers are duplicated. It will be cropped after the copy if
 		 * needed */
@@ -425,17 +426,15 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
+
 		if (destfit->icc_profile) {
 			cmsCloseProfile(destfit->icc_profile);
 		}
 		// Copy the ICC profile from fit if available
 		destfit->icc_profile = copyICCProfile(fit.icc_profile);
-		// Last resort, if the user is exporting as an 8 bit movie
-		// and we have no other guesses for color space, assume sRGB
-		if (!destfit->icc_profile) {
-			destfit->icc_profile = copyICCProfile(destfit->naxes[2] == 3 ? com.icc.working_standard : com.icc.mono_standard);
-		}
-		/* we copy the header */
+		color_manage(destfit, fit.color_managed);
+
+		// we copy the header
 		copy_fits_metadata(&fit, destfit);
 
 		int shiftx, shifty;
@@ -500,9 +499,6 @@ static gpointer export_sequence(gpointer ptr) {
 			crop(destfit, &args->crop_area);
 		}
 
-// Apply colorspace conversion to sRGB if required
-		cmsHTRANSFORM *transform = NULL;
-		gboolean threaded;
 		// Fallthrough is intentional
 		switch (args->output) {
 			case EXPORT_AVI:
@@ -511,17 +507,6 @@ static gpointer export_sequence(gpointer ptr) {
 			case EXPORT_MP4_H265:
 			case EXPORT_WEBM_VP9:
 #endif
-				threaded = !get_thread_run();
-				transform = initialize_export8_transform(destfit, threaded);
-				void *data = gfit.type == DATA_FLOAT ? (void*) gfit.fdata : (void*) gfit.data;
-				size_t npixels = destfit->rx * destfit->ry;
-				cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-				cmsUInt32Number bytesperline = gfit.rx * datasize;
-				cmsUInt32Number bytesperplane = npixels * datasize;
-				cmsDoTransformLineStride(transform, data, data, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-				cmsDeleteTransform(transform);
-				transform = NULL;
-				break;
 			default:
 				break;
 		}
@@ -583,20 +568,6 @@ free_and_reset_progress_bar:
 	switch (args->output) {
 		case EXPORT_FITSEQ:
 			if (fitseq_file) {
-				// If there is no ICC profile, assign a linear one
-				if (!fitseq_file->icc_profile) {
-					assign_linear_icc_profile_to_fitseq(fitseq_file);
-				}
-				// Write the ICC profile into the FITSEQ file
-				int status = 0, nhdus = -1;
-				fits_get_num_hdus(fitseq_file->fptr, &nhdus, &status);
-				if (!fits_movabs_hdu(fitseq_file->fptr, nhdus, NULL, &status)) {
-					if (fitseq_file->icc_profile) {
-						write_icc_profile_to_fptr(fitseq_file->fptr, fitseq_file->icc_profile);
-					}
-				} else {
-					report_fits_error(status);
-				}
 				fitseq_close_file(fitseq_file);
 				free(fitseq_file);
 			}

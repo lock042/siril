@@ -36,13 +36,6 @@ static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *im
 static int fitseq_prepare_for_multiple_read(fitseq *fitseq);
 static int fitseq_multiple_close(fitseq *fitseq);
 
-void assign_linear_icc_profile_to_fitseq(fitseq *fitseq) {
-	if (fitseq->icc_profile) {
-		cmsCloseProfile(fitseq->icc_profile);
-	}
-	fitseq->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
-}
-
 static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	int status = 0;
 	int nb_hdu, ref_naxis = -1, ref_bitpix = 0, nb_images = 0;
@@ -167,7 +160,6 @@ void fitseq_init_struct(fitseq *fitseq) {
 	fitseq->thread_fptr = NULL;
 	fitseq->num_threads = 0;
 	fitseq->writer = NULL;
-	fitseq->icc_profile = NULL;
 }
 
 int fitseq_open(const char *filename, fitseq *fitseq) {
@@ -187,12 +179,6 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 	if (_find_hdus(fitseq->fptr, &fitseq->hdu_index, &fitseq->frame_count) || fitseq->frame_count <= 1) {
 		siril_log_color_message(_("Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"), "red", filename);
 		return -1;
-	}
-
-	// Attempt to read an embedded ICC profile, if one is present
-	fitseq->icc_profile = read_icc_profile_from_fptr(fitseq->fptr);
-	if (fitseq->icc_profile) {
-		siril_log_message(_("ICC profile read from FITS cube\n"));
 	}
 
 	if (fits_movabs_hdu(fitseq->fptr, fitseq->hdu_index[0], NULL, &status)) {
@@ -268,15 +254,8 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	if (read_fits_with_convert(dest, fitseq->filename, force_float)) {
 		return -1;
 	}
-	// Attempt to add the FITSEQ ICC profile if one exists, otherwise
-	// assign a linear profile.
-	if (!status) {
-		if (fitseq->icc_profile) {
-			dest->icc_profile = copyICCProfile(fitseq->icc_profile);
-		} else {
-			assign_linear_icc_profile(dest);
-		}
-	}
+	dest->icc_profile = NULL;
+	color_manage(dest, FALSE);
 
 	return 0;
 }
@@ -318,9 +297,8 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
-	// TODO: review how color management is handled here. Currently we leave dest->icc_profile
-	// NULL and it is the responsibility of the caller to set it if required.
 	dest->icc_profile = NULL;
+	color_manage(dest, FALSE);
 	return status;
 }
 
@@ -346,9 +324,6 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 	if (internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix, buffer, layer, area))
 		return 1;
 	flip_buffer(fitseq->bitpix, buffer, area);
-	// No color management is carried out here. It is expected this would normally be used with
-	// linear data in a FITSEQ, however in any case it is the responsibility of the caller to
-	// carry out any color management.
 	return 0;
 }
 
@@ -411,13 +386,6 @@ int fitseq_write_image(fitseq *fitseq, fits *image, int index) {
 	if (!fitseq->fptr) {
 		siril_log_color_message(_("Cannot save image in sequence not opened for writing\n"), "red");
 		return 1;
-	}
-	// Check for any ICC profile mismatch
-	if (fitseq->icc_profile && image->icc_profile) {
-		if (!profiles_identical(fitseq->icc_profile, image->icc_profile)) {
-			siril_log_color_message(_("Error: frame ICC profile is inconsistent with sequence ICC profile. Ensure all frames are allocated the same ICC profile.\n"), "red");
-			return 1;
-		}
 	}
 	siril_debug_print("FITS sequence %s pending image save %d\n", fitseq->filename, index);
 	return seqwriter_append_write(fitseq->writer, image, index);

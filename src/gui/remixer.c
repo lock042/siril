@@ -1147,8 +1147,13 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 			/* We are the second image to be loaded so we convert to the first
 			* image's color profile */
 			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
-				convert_fit_colorspace_to_reference_fit(&fit_left, &fit_right);
-				siril_log_message(_("Color profiles did not match: left-hand image has been converted to right-hand image color profile.\n"));
+				if (fit_right.icc_profile) {
+					convert_fit_colorspace_to_reference_fit(&fit_left, &fit_right);
+					siril_log_message(_("Color profiles did not match: left-hand image has been converted to right-hand image color profile.\n"));
+				} else {
+					fit_right.icc_profile = copyICCProfile(fit_left.icc_profile);
+					siril_log_message(_("Color profiles did not match: right-hand image has been assigned the left-hand image color profile.\n"));
+				}
 			}
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
 			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
@@ -1181,9 +1186,6 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_left, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
-		if (gfit.icc_profile)
-			cmsCloseProfile(gfit.icc_profile);
-		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
 		siril_log_message(_("Setting the output image ICC profile to the working color space.\n"));
 		initialise_image();
 		left_loaded = TRUE;
@@ -1237,6 +1239,15 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 			/* We are the second image to be loaded so we convert to the first
 			* image's color profile */
 			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
+				if (fit_left.icc_profile) {
+					convert_fit_colorspace_to_reference_fit(&fit_right, &fit_left);
+					siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
+				} else {
+					fit_left.icc_profile = copyICCProfile(fit_right.icc_profile);
+					siril_log_message(_("Color profiles did not match: left-hand image has been assigned the right-hand image color profile.\n"));
+				}
+			}
+			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
 				convert_fit_colorspace_to_reference_fit(&fit_right, &fit_left);
 				siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
 			}
@@ -1271,10 +1282,6 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_right, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
-		if (gfit.icc_profile)
-			cmsCloseProfile(gfit.icc_profile);
-		gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
-		siril_log_message(_("Setting the output image ICC profile to the working color space.\n"));
 		initialise_image();
 		right_loaded = TRUE;
 		clearfits(&fit_left_calc);

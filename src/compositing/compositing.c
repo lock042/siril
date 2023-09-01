@@ -680,24 +680,18 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 				compute_compositor_mem_limits(&layers[layer]->the_fit);
 				if (reference)
 					cmsCloseProfile(reference);
-				reference = copyICCProfile(layers[layer]->the_fit.icc_profile);
-				if (!reference) {
-					if (temp_profile) {
-						reference = copyICCProfile(temp_profile);
-						layers[layer]->the_fit.icc_profile = copyICCProfile(reference);
-						cmsCloseProfile(temp_profile);
-						temp_profile = NULL;
-					} else if (!remember_color_management_dialog) {
-						gboolean confirm = siril_confirm_dialog_and_remember(_("Color Management"), _("No color profile detected. Open the color management dialog to assign a color profile to the composition?"), _("Confirm"), &remember_color_management_dialog);
-						if (confirm) {
-							GtkWidget *win = lookup_widget("icc_dialog");
-							gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
-							/* Here this is wanted that we do not use siril_open_dialog */
-							gtk_widget_show(win);
-						} else {
-							color_manage(&gfit, FALSE);
-						}
-					}
+				if (layers[layer]->the_fit.icc_profile)
+					cmsCloseProfile(layers[layer]->the_fit.icc_profile);
+
+				gboolean confirm = siril_confirm_dialog_and_remember(_("Color Management"), _("Assign the working color profile to the output image? If not, no color profile will be assigned but you can add one using the Color Management dialog"), _("Confirm"), &remember_color_management_dialog);
+				if (confirm) {
+					reference = copyICCProfile(com.icc.working_standard);
+					layers[layer]->the_fit.icc_profile = copyICCProfile(reference);
+					color_manage(&gfit, TRUE);
+				} else {
+					reference = NULL;
+					layers[layer]->the_fit.icc_profile = NULL;
+					color_manage(&gfit, FALSE);
 				}
 			}
 			if (number_of_images_loaded() > 1 && !profiles_identical(reference,
