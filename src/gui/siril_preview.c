@@ -68,7 +68,7 @@ static void free_struct(gpointer user_data) {
 
 void copy_gfit_to_backup() {
 	if (copyfits(&gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
 	preview_is_active = TRUE;
@@ -79,7 +79,7 @@ int copy_backup_to_gfit() {
 	if (!gfit.data && !gfit.fdata)
 		retval = 1;
 	else if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in previews\n");
 		retval = 1;
 	}
 	return retval;

@@ -1205,14 +1205,15 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
 	/* The image is no longer mono, but debayered raw data is almost certainly linear
-	 * so we assign it the working colorspace linear gamma profile
-	 * TODO: are there any possible circumstances where this is wrong?
+	 * so if it already had a color profile we assign it the working colorspace
+	 * linear gamma profile. To be honest this is quite unlikely anyway.
 	 */
 	if (fit->color_managed) {
 		if (fit->icc_profile)
 			cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(com.icc.working_linear);
 	} else {
+	// If it didn't previously have a color profile, we don't add one now.
 		if (fit->icc_profile)
 			cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = NULL;

@@ -63,6 +63,7 @@ void initialize_profiles_and_transforms();
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);
 void assign_linear_icc_profile(fits *fit);
 cmsHTRANSFORM initialize_display_transform();
+cmsHTRANSFORM fallback_display_transform();
 cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded);
 cmsHTRANSFORM initialize_proofing_transform();
 void refresh_icc_transforms();

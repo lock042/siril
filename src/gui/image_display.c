@@ -206,27 +206,6 @@ static void remap(int vport) {
 		return;
 	}
 
-	// Only if the gfit is color managed
-	if (gfit.color_managed) {
-		// Set the display transform in case it is missing
-		if (gfit.icc_profile == NULL) {
-			// In all cases where the profile should have come from a loaded file or
-			// been assumed, this will be set. So it is safe to assume we should assign
-			// a linear profile if one is missing.
-			assign_linear_icc_profile(&gfit);
-		}
-		if (!gui.icc.display_transform) {
-			gui.icc.display_transform = initialize_display_transform();
-		}
-
-		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
-			// No need to nullcheck gui.icc.soft_proof because it is done
-			// in the GUI rendering mode setting callback
-			if (!gui.icc.proofing_transform)
-				gui.icc.proofing_transform = initialize_proofing_transform();
-		}
-	}
-
 	struct image_view *view = &gui.view[vport];
 	if (allocate_full_surface(view))
 		return;
@@ -365,17 +344,14 @@ static void remap_all_vports() {
 		return;
 	}
 
-	// If the gfit is color managed...
-	gboolean gfit_icc_is_linear = FALSE;
 	if (gfit.color_managed) {
 		// Set the display transform in case it is missing
-		if (gfit.icc_profile == NULL) {
+		if (!gfit.icc_profile) {
 			// In all cases where the profile should have come from a loaded file or
 			// been assumed, this will be set. So it is safe to assume we should assign
 			// a linear profile if one is missing.
 			assign_linear_icc_profile(&gfit);
 		}
-		gfit_icc_is_linear = fit_icc_is_linear(&gfit);
 
 		if (!gui.icc.display_transform) {
 			gui.icc.display_transform = initialize_display_transform();
@@ -387,6 +363,9 @@ static void remap_all_vports() {
 			if (!gui.icc.proofing_transform)
 				gui.icc.proofing_transform = initialize_proofing_transform();
 		}
+	} else {
+		if (!gui.icc.display_transform)
+			gui.icc.display_transform = fallback_display_transform();
 	}
 
 	if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
@@ -450,10 +429,9 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 			}
-			if (gfit.color_managed) {
-				gboolean linear_and_really_do_it = !(gfit_icc_is_linear && com.pref.icc.no_lin_disp_tx);
-				if (gui.rendering_mode != STF_DISPLAY && linear_and_really_do_it && !identical) {
-					cmsDoTransform(gui.rendering_mode == SOFT_PROOF_DISPLAY ?
+			if (gui.icc.display_transform) {
+				if (gui.rendering_mode != STF_DISPLAY && !identical) {
+					cmsDoTransform((gui.rendering_mode == SOFT_PROOF_DISPLAY && gui.icc.proofing_transform) ?
 									gui.icc.proofing_transform :
 									gui.icc.display_transform,
 									pixelbuf, pixelbuf, gfit.rx);

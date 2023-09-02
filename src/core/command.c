@@ -9289,6 +9289,9 @@ int process_icc_assign(int nb) {
 		color_manage(&gfit, FALSE);
 		return CMD_GENERIC_ERROR;
 	}
+	refresh_icc_transforms();
+	notify_gfit_modified();
+
 	return CMD_OK;
 }
 
@@ -9329,6 +9332,7 @@ int process_icc_convert_to(int nb) {
 	}
 	if (profile) {
 		siril_colorspace_transform(&gfit, profile);
+		gfit.icc_profile = copyICCProfile(profile);
 		color_manage(&gfit, TRUE);
 		com.pref.icc.processing_intent = temp_intent;
 		cmsCloseProfile(profile);
@@ -9339,6 +9343,9 @@ int process_icc_convert_to(int nb) {
 		// Don't call color_manage(&gfit, FALSE) here: no change is made to
 		// the pre-existing state of gfit color management
 	}
+	refresh_icc_transforms();
+	notify_gfit_modified();
+
 	return CMD_OK;
 }
 
@@ -9348,5 +9355,8 @@ int process_icc_remove(int nb) {
 	gfit.icc_profile = NULL;
 	color_manage(&gfit, FALSE);
 	siril_log_color_message(_("Color profile has been removed.\n"), "green");
+	refresh_icc_transforms();
+	notify_gfit_modified();
+
 	return CMD_OK;
 }

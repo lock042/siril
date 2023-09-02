@@ -2143,6 +2143,7 @@ void clearfits_header(fits *fit) {
 	color_manage(fit, FALSE);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
 	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
 }
@@ -2739,8 +2740,6 @@ int save_opened_fits(fits *f) {
 int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	int depth, i;
 	size_t nbdata = from->naxes[0] * from->naxes[1];
-	if (to->icc_profile)
-		cmsCloseProfile(to->icc_profile);
 
 	if ((oper & CP_EXPAND))
 		depth = 3;
@@ -2769,7 +2768,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->date = NULL;
 		to->date_obs = NULL;
 		to->icc_profile = NULL;
-		color_manage(to, FALSE);
+		to->color_managed = FALSE;
 #ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
 #endif
@@ -2870,12 +2869,13 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	// Why doesn't this work when the lines later in copy_gfit_to_backup and copy_backup_to_gfit do?
 	if ((oper & CP_ALLOC) || (oper & CP_COPYA)) {
 		// copy color management data
-		color_manage(to, from->color_managed);
+		to->color_managed = from->color_managed;
 		if (to->color_managed) {
 			to->icc_profile = copyICCProfile(from->icc_profile);
 		} else {
 			to->icc_profile = NULL;
 		}
+		color_manage(to, to->color_managed);
 	}
 
 	return 0;

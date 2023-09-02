@@ -652,6 +652,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 			double r = (double) buf[RLAYER][i] / USHRT_MAX_DOUBLE;
 			double g = (double) buf[GLAYER][i] / USHRT_MAX_DOUBLE;
 			double b = (double) buf[BLAYER][i] / USHRT_MAX_DOUBLE;
+			// RGB to HSL is a coordinate transform and does not require lcms
 			rgb_to_hsl(r, g, b, &h, &s, &l);
 			buf[RLAYER][i] = round_to_WORD(h * 360.0);
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
@@ -659,9 +660,10 @@ static gpointer extract_channels_ushort(gpointer p) {
 		}
 		if(args->fit->icc_profile)
 			cmsCloseProfile(args->fit->icc_profile);
-		/* It's obviously not sRGB, but this will ensure that later on the
-		 * channels get saved with a linear ICC profile, which seems the
-		 * best thing to do. See also the HSV and CIELAB cases below.*/
+		/* The extracted channels are considered raw data, and are not color
+		 * managed. It is up to the user to ensure that future use of them is
+		 * with similar data and an appropriate color profile is assigned.
+		 * See also the HSV and CIELAB cases below.*/
 		args->fit->icc_profile = NULL;
 		color_manage(args->fit, FALSE);
 		break;
@@ -674,6 +676,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 			double r = (double) buf[RLAYER][i] / USHRT_MAX_DOUBLE;
 			double g = (double) buf[GLAYER][i] / USHRT_MAX_DOUBLE;
 			double b = (double) buf[BLAYER][i] / USHRT_MAX_DOUBLE;
+			// RGB to HSV is a coordinate transform and does not require lcms
 			rgb_to_hsv(r, g, b, &h, &s, &v);
 			buf[RLAYER][i] = round_to_WORD(h * 360.0);
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
@@ -797,7 +800,7 @@ static gpointer extract_channels_float(gpointer p) {
 		bytesperplane = args->fit->rx * args->fit->ry * datasize;
 		/* Note this output is in CIE La*b* ranges (ie L [0..100] etc, not Siril's
 		 * usual [0..1] range.
-		 * TODO: convert to Siril ranges
+		 * TODO: convert to Siril ranges?
 		 */
 		cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);

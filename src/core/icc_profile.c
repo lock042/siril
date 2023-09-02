@@ -87,12 +87,12 @@ void color_manage(fits *fit, gboolean active) {
 		gchar *name = g_build_filename(siril_get_system_data_dir(), "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
 		gchar *tooltip = NULL;
 		if (active) {
-			if (gfit.icc_profile) {
-				int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+			if (fit->icc_profile) {
+				int length = cmsGetProfileInfoASCII(fit->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
 				char *buffer = NULL;
 				if (length) {
 					buffer = (char*) malloc(length * sizeof(char));
-					cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+					cmsGetProfileInfoASCII(fit->icc_profile, cmsInfoDescription, "en", "US", buffer, length);
 					tooltip = g_strdup_printf(_("Image is color managed\n%s"), buffer);
 					free(buffer);
 				}
@@ -406,6 +406,27 @@ cmsHTRANSFORM initialize_display_transform() {
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
+	else
+		siril_debug_print("Display transform created (gfit->icc_profile to gui.icc.monitor)\n");
+	return transform;
+}
+
+/* This function creates a fallback display transform for when gfit is not
+ * color managed but the monitor profile is different to sRGB */
+cmsHTRANSFORM fallback_display_transform() {
+	g_assert(gui.icc.monitor);
+	cmsHTRANSFORM transform = NULL;
+	cmsHPROFILE profile = srgb_trc();
+	cmsUInt32Number fit_signature = cmsGetColorSpace(profile);
+	cmsUInt32Number srctype = get_planar_formatter_type(fit_signature, gfit.type, TRUE);
+	g_mutex_lock(&monitor_profile_mutex);
+	// The display transform is always single threaded as OpenMP is used within the remap function
+	transform = cmsCreateTransformTHR(com.icc.context_single, profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
+	g_mutex_unlock(&monitor_profile_mutex);
+	if (transform == NULL)
+		siril_log_message("Error: failed to create display_transform!\n");
+	else
+		siril_debug_print("Fallback display transform created (sRGB to monitor)\n");
 	return transform;
 }
 
@@ -452,10 +473,10 @@ cmsHTRANSFORM initialize_proofing_transform() {
 /* Refreshes the display and proofing transforms after a profile is changed. */
 void refresh_icc_transforms() {
 	if (!com.headless) {
-		if (gui.icc.display_transform != NULL)
+		if (gui.icc.display_transform)
 			cmsDeleteTransform(gui.icc.display_transform);
 		gui.icc.display_transform = initialize_display_transform();
-		if (gui.icc.proofing_transform != NULL)
+		if (gui.icc.proofing_transform)
 			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
 	}
@@ -815,6 +836,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number target_colorspace = cmsGetColorSpace(profile);
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 	cmsUInt32Number fit_colorspace_channels;
+
 	// If fit->color_managed is FALSE, we assign the profile rather than convert to it
 	if (!fit->color_managed || !fit->icc_profile) {
 		fit_colorspace_channels = fit->naxes[2];
@@ -822,8 +844,9 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			if (fit->icc_profile)
 				cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = copyICCProfile(profile);
-			color_manage(fit, TRUE);
+			siril_debug_print("siril_colorspace_transform() assigned a profile\n");
 			refresh_icc_transforms();
+			color_manage(fit, TRUE);
 			return;
 		} else {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
@@ -831,17 +854,18 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		}
 	}
 
+	// fit is color managed, so we really have to do the transform
 	cmsUInt32Number fit_colorspace = cmsGetColorSpace(fit->icc_profile);
 	fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}
 	void *data = NULL;
 	cmsUInt32Number srctype, desttype;
 	size_t npixels = fit->rx * fit->ry;
-	// convert to profile
+	// convert from fit->icc_profile to profile
 	gboolean threaded = !get_thread_run();
 	data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
 	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
@@ -861,8 +885,9 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		cmsDeleteTransform(transform);
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(profile);
-		color_manage(fit, TRUE);
 		refresh_icc_transforms();
+		color_manage(fit, TRUE);
+		siril_debug_print("siril_colorspace_transform() converted a profile\n");
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform."));
 	}

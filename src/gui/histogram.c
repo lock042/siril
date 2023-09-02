@@ -154,7 +154,8 @@ static void histo_startup() {
 			_payne_colourstretchmodel = COL_INDEP;
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
-	}	copy_gfit_to_backup();
+	}
+	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();
 	for (int i = 0; i < gfit.naxes[2]; i++)
@@ -1358,6 +1359,7 @@ void toggle_histogram_window_visibility(int _invocation) {
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("histogram_dialog");
 	} else {
+		copy_gfit_to_backup();
 		//Ensure the colour stretch model is initialised at startup
 		_payne_colourstretchmodel = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")));
 		if (invocation == HISTO_STRETCH) {
