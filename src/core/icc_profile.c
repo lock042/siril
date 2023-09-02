@@ -543,6 +543,7 @@ void check_profile_correct(fits* fit) {
 			siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
 			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+			color_manage(fit, TRUE);
 		} else {
 			siril_debug_print("FITS did not contain an ICC profile and no hints were available in the HISTORY header.\n");
 			fit->icc_profile = NULL;
@@ -860,6 +861,8 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		cmsDeleteTransform(transform);
 		cmsCloseProfile(fit->icc_profile);
 		fit->icc_profile = copyICCProfile(profile);
+		color_manage(fit, TRUE);
+		refresh_icc_transforms();
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform."));
 	}

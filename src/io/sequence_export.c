@@ -499,17 +499,6 @@ static gpointer export_sequence(gpointer ptr) {
 			crop(destfit, &args->crop_area);
 		}
 
-		// Fallthrough is intentional
-		switch (args->output) {
-			case EXPORT_AVI:
-#ifdef HAVE_FFMPEG
-			case EXPORT_MP4:
-			case EXPORT_MP4_H265:
-			case EXPORT_WEBM_VP9:
-#endif
-			default:
-				break;
-		}
 		switch (args->output) {
 			case EXPORT_FITS:
 				snprintf(dest, 255, "%s%05d%s", args->basename, i + 1, com.pref.ext);
