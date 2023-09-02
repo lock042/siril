@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:23+0200\n"
-"PO-Revision-Date: 2023-09-01 22:11+0000\n"
+"PO-Revision-Date: 2023-09-02 06:20+0000\n"
 "Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -12213,7 +12213,7 @@ msgid ""
 "OIII image will have twice the height and width of the Ha image"
 msgstr ""
 "从载入的CFA图像中提取H-Alpha和O-"
-"III信号。从图像头文件或偏好设置中读取拜耳滤镜排列模式，并将H-"
+"III信号。从图像文件头或偏好设置中读取拜耳滤镜排列模式，并将H-"
 "Alpha的红色拜耳滤镜的数据导出为一半大小的新FITS文件（如EXTRACTHA"
 "）；保留其他三个滤镜的数据作为O-"
 "III，并对红色滤镜的像素进行插值替换。输出文件名前缀为“Ha_”和“OIII_”\n"
@@ -13661,34 +13661,28 @@ msgstr ""
 "specified with <b>-prefix=</b> option"
 
 #: src/core/command_def.h:140
-#, fuzzy
 msgid ""
 "Same command as FIXBANDING but for the sequence <b>sequencename</b>.\n"
 "\n"
 "The output sequence name starts with the prefix \"unband_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Same command as FIND_COSME but for the sequence <b>sequencename</b>.\n"
+"与FIXBANDING命令相同，但用于序列<b>sequencename</b>。\n"
 "\n"
-"The output sequence name starts with the prefix \"cc_\" unless otherwise "
-"specified with <b>-prefix=</b> option"
+"输出序列名前缀为\"unband_\"，除非使用<b>-prefix=</b>选项指定"
 
 #: src/core/command_def.h:141
-#, fuzzy
 msgid ""
 "Same command as GHT but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr ""
-"Same command as INVGHT but the sequence must be specified as the first "
-"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
-"set a custom prefix"
+msgstr "与GHT命令相同，但必须用第一个参数指定序列。附加的可选参数<b>-prefix=</b>用于"
+"自定义前缀"
 
 #: src/core/command_def.h:142
 msgid ""
 "Prints the FITS header value for the given key for all images in the sequence"
-msgstr ""
-"Prints the FITS header value for the given key for all images in the sequence"
+msgstr "打印序列中所有图像的FITS文件头中给定关键字的值"
 
 #: src/core/command_def.h:143
 msgid ""
@@ -13763,17 +13757,15 @@ msgstr ""
 "set a custom prefix"
 
 #: src/core/command_def.h:148
-#, fuzzy
 msgid ""
 "Same command as MTF but for the sequence <b>sequencename</b>.\n"
 "\n"
 "The output sequence name starts with the prefix \"mtf_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Same command as FIND_COSME but for the sequence <b>sequencename</b>.\n"
+"与MTF相同的命令，但用于序列<b>sequencename</b>。\n"
 "\n"
-"The output sequence name starts with the prefix \"cc_\" unless otherwise "
-"specified with <b>-prefix=</b> option"
+"输出序列名前缀为\"mtf_\"，除非使用<b>-prefix=</b>选项指定"
 
 #: src/core/command_def.h:149
 msgid ""
@@ -13882,25 +13874,18 @@ msgstr ""
 "制性的，-at=为目标恒星提供像素坐标，-wcs=提供J2000赤道坐标。"
 
 #: src/core/command_def.h:151
-#, fuzzy
 msgid ""
 "The same as the RL command, but applies to a sequence which must be "
 "specified as the first argument"
-msgstr ""
-"The same as the <b>RL</b> command, but applies to a sequence which must be "
-"specified as the first argument"
+msgstr "与RL命令相同，但适用于序列，必须在第一个参数中指定该序列"
 
 #: src/core/command_def.h:152
-#, fuzzy
 msgid ""
 "The same as the SB command, but applies to a sequence which must be "
 "specified as the first argument"
-msgstr ""
-"The same as the <b>SB</b> command, but applies to a sequence which must be "
-"specified as the first argument"
+msgstr "与SB命令相同，但适用于序列，必须在第一个参数中指定该序列"
 
 #: src/core/command_def.h:153
-#, fuzzy
 msgid ""
 "Same as SETMAG command but for the loaded sequence.\n"
 "\n"
@@ -13915,18 +13900,15 @@ msgid ""
 "typing the command makes it easy to understand.\n"
 "To reset the reference star and magnitude offset, see SEQUNSETMAG"
 msgstr ""
-"Same as SETMAG command but for the loaded sequence. \n"
+"与SETMAG命令相同，但适用于载入的序列。\n"
 "\n"
-"This command is only valid after having run SEQPSF or its graphical "
-"counterpart (select the area around a star and launch the PSF analysis for "
-"the sequence, it will appear in the graphs).\n"
-"This command has the same goal as SETMAG but recomputes the reference "
-"magnitude for each image of the sequence where the reference star has been "
-"found.\n"
-"When running the command, the last star that has been analysed will be "
-"considered as the reference star. Displaying the magnitude plot before "
-"typing the command makes it easy to understand.\n"
-"To reset the reference star and magnitude offset, see SEQUNSETMAG"
+"该命令仅在运行SEQPSF命令或其图形化程序后有效（框选一个星点并启动序列的PSF分析"
+"，它将出现在图表中）。\n"
+"该命令的目标与SETMAG相同，但会为序列里找到参考恒星的每个图像重新计算参考星等"
+"。\n"
+"运行命令时，最后一颗被分析的恒星将被视为参考恒星。在键入命令之前显示星等图，"
+"使其易于理解。\n"
+"要重置参考恒星和星等偏移，参见SEUNSETMAG"
 
 #: src/core/command_def.h:154
 msgid ""
@@ -13981,7 +13963,6 @@ msgstr ""
 "计"
 
 #: src/core/command_def.h:157
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -13991,12 +13972,11 @@ msgid ""
 "specified with <b>-prefix=</b> option. Only selected images in the sequence "
 "are processed"
 msgstr ""
-"Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
-"Dithering, required for low dynamic gradients, can be disabled with <b>-"
-"nodither</b>.\n"
+"与SUBSKY相同的命令，但用于序列<b>sequencename</b>。\n"
+"默认开启抖动，这是低动态范围的渐变所需的，可以通过<b>-nodithe</b>禁用。\n"
 "\n"
-"The output sequence name starts with the prefix \"bkg_\" unless otherwise "
-"specified with <b>-prefix=</b> option"
+"输出序列名前缀为\"bkg_\""
+"，除非使用<b>-prefix=</b>选项指定。仅处理序列中选定的图像"
 
 #: src/core/command_def.h:158
 msgid ""
@@ -14031,11 +14011,10 @@ msgstr ""
 "参见GET以获取值或变量列表"
 
 #: src/core/command_def.h:162
-#, fuzzy
 msgid ""
 "Forbids images to be saved with 32 bits per channel on processing, use 16 "
 "bits instead"
-msgstr "在处理时禁用每通道 32 位保存的图像。它使用 16 位代替"
+msgstr "禁止在处理时以每通道32位保存图像，请改用16位"
 
 #: src/core/command_def.h:163
 msgid "Allows images to be saved with 32 bits per channel on processing"
@@ -14064,7 +14043,6 @@ msgstr ""
 "例如，\"setcompress 1 -type=rice 16\"设置量化值为16的rice压缩"
 
 #: src/core/command_def.h:165
-#, fuzzy
 msgid ""
 "Defines the number of processing threads used for calculation.\n"
 "\n"
@@ -14074,11 +14052,11 @@ msgid ""
 "available, so this should mostly be used to limit processing power. This is "
 "reset on every Siril run. See also SETMEM"
 msgstr ""
-"Defines the number of processing threads used for calculation.\n"
+"定义用于计算的处理线程数。\n"
 "\n"
-"Can be as high as the number of virtual threads existing on the system, "
-"which is the number of CPU cores or twice this number if hyperthreading "
-"(Intel HT) is available"
+"最高可以与系统现有的虚拟线程数一样高，即CPU核心数；如果有超线程（Intel HT），"
+"则可以是CPU核心数的两倍。默认值是可用线程的最大数量，因此这主要用于限制处理能"
+"力。每次运行Siril时都会重置此项。参见SETMEM"
 
 #: src/core/command_def.h:166
 msgid ""
@@ -14086,9 +14064,9 @@ msgid ""
 "\n"
 "The argument <b>extension</b> can be \"fit\", \"fts\" or \"fits\""
 msgstr ""
-"Sets the extension used and recognized by sequences.\n"
+"设置序列用于使用和识别的扩展名。\n"
 "\n"
-"The argument <b>extension</b> can be \"fit\", \"fts\" or \"fits\""
+"参数<b>extension</b>可以是\"fit\"、\"fts\"或\"fits\""
 
 #: src/core/command_def.h:167
 #, fuzzy
@@ -18328,9 +18306,8 @@ msgid "Enjoy using the new Siril"
 msgstr "欢迎使用新Siril"
 
 #: src/gui/split_cfa.c:48
-#, fuzzy
 msgid "Error: sequence is SER or FITSEQ"
-msgstr "错误：序列为 SER"
+msgstr "错误：序列为 SER 或 FITSEQ"
 
 #: src/gui/split_cfa.c:49
 msgid "Only FITS format is supported for sequence CFA splitting"
@@ -20284,7 +20261,7 @@ msgstr "二/三个星点区域的PSF"
 msgid ""
 "%s: not enough memory to do this operation (%s required per thread, %s "
 "considered available)\n"
-msgstr "%s: 没有足够的内存来执行操作（每线程需求%s，而仅%s可用)\n"
+msgstr "%s: 没有足够的内存来执行操作（每线程需要%s，而仅%s可用)\n"
 
 #: src/registration/3stars.c:472
 msgid "Creating the aligned image sequence"
