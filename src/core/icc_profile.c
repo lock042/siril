@@ -607,6 +607,7 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 		// If there is no embedded profile we assume the usual sRGB D65 g22
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_profile);
 	}
+	color_manage(fit, TRUE);
 }
 
 /* Compares two profiles. Returns TRUE if the profiles are identical or
@@ -1257,7 +1258,9 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 	}
 FINISH:
 	gfit.icc_profile = copyICCProfile(target);
-	color_manage(&gfit, TRUE);
+	if (gfit.icc_profile)
+		color_manage(&gfit, TRUE);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
 	set_source_information();
 	refresh_icc_transforms();
 	notify_gfit_modified();
@@ -1287,11 +1290,12 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	siril_colorspace_transform(&gfit, target);
 
 	// Assign the new color space to gfit
-	if (gfit.icc_profile) {
+	if (gfit.icc_profile)
 		cmsCloseProfile(gfit.icc_profile);
-		gfit.icc_profile = NULL;
-	}
 	gfit.icc_profile = copyICCProfile(target);
+	if (gfit.icc_profile)
+		color_manage(&gfit, TRUE);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
 	set_source_information();
 	refresh_icc_transforms();
 	notify_gfit_modified();

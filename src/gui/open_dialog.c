@@ -421,13 +421,6 @@ static void opendial(int whichdial) {
 						siril_open_dialog("icc_dialog");
 					}
 				}
-			} else {
-				if (gfit.naxes[2] == 3 && !profiles_identical(gfit.icc_profile, com.icc.working_standard) && !different_icc_dialog_confirmation) {
-					confirm = siril_confirm_dialog_and_remember(_("Color management"), _("This image ICC profile differs from the chosen working color space. Open the color management dialog to convert it?"), _("Confirm"), &different_icc_dialog_confirmation);
-					if (confirm) {
-						siril_open_dialog("icc_dialog");
-					}
-				}
 			}
 			set_cursor_waiting(FALSE);
 			if (retval == OPEN_IMAGE_CANCEL) goto wait;

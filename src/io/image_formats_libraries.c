@@ -1572,6 +1572,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	 */
 	uint32_t profile_len = 0;
 	unsigned char *profile = NULL;
+	cmsHPROFILE img_profile = NULL;
 
 	if (is_colour) {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
@@ -1593,10 +1594,15 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	}
 
 	if (bytes_per_sample == 1) {
-		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? gray_srgbtrc() : com.icc.mono_out), &profile_len);
 	} else {
 		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 	}
+
+	if (profile_len > 0) {
+			png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
+	}
+
 
 	/* Write the file header information.  REQUIRED */
 	png_write_info(png_ptr, info_ptr);
@@ -1611,12 +1617,23 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		png_set_swap(png_ptr);
 		data = convert_data(fit);
 		// Apply ICC transform
-		if (!fit->icc_profile)
-			fit->icc_profile = copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
+		if (!fit->color_managed || !fit->icc_profile) {
+			if (fit->naxes[2] == 3) {
+				if (!com.headless)
+					img_profile = copyICCProfile(gui.icc.monitor);
+				else
+					img_profile = srgb_trc();
+			} else {
+				img_profile = gray_srgbtrc();
+			}
+		} else {
+			img_profile = copyICCProfile(fit->icc_profile);
+		}
 		cmsUInt32Number trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16);
 		cmsHPROFILE output_profile = cmsOpenProfileFromMem(profile, profile_len);
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, output_profile, trans_type, com.pref.icc.export_intent, 0);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), img_profile, trans_type, output_profile, trans_type, com.pref.icc.export_intent, 0);
 		cmsCloseProfile(output_profile);
+		cmsCloseProfile(img_profile);
 		cmsUInt32Number datasize = sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit.rx * datasize * fit->naxes[2];
 		cmsUInt32Number bytesperplane = gfit.rx * gfit.ry * datasize;
