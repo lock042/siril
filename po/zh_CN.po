@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:23+0200\n"
-"PO-Revision-Date: 2023-09-02 06:20+0000\n"
+"PO-Revision-Date: 2023-09-04 09:40+0000\n"
 "Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -753,7 +753,7 @@ msgstr ""
 "选择要应用的修正方式：\n"
 "减法：主要用于修正加性污染，例如光害和月光引起的渐变。\n"
 "除法：主要用于修正乘性现象，例如渐晕（暗角）或者不均匀的大气吸收。不过此类操"
-"作理应用主平场帧来修正。"
+"作理使用主平场帧来修正。"
 
 #: src/gui/siril3.glade:3882
 msgid "Subtraction"
@@ -842,11 +842,11 @@ msgstr "<b>压缩</b>"
 
 #: src/gui/siril3.glade:4499
 msgid "ICC profile"
-msgstr "ICC配置"
+msgstr "ICC色彩配置文件"
 
 #: src/gui/siril3.glade:4503
 msgid "Embed sRGB ICC profile in the image"
-msgstr "图像中嵌入sRGB式ICC配置"
+msgstr "图像中嵌入sRGB式ICC色彩配置文件"
 
 #: src/gui/siril3.glade:4515
 msgid "<b>Embedded Data</b>"
@@ -1123,16 +1123,15 @@ msgstr "确保选区尺寸足够大，不会裁掉 PSF 的任何重要部分。"
 
 #: src/gui/siril3.glade:6269 src/gui/siril3.glade:7237
 msgid "Profile"
-msgstr "轮廓"
+msgstr "形状"
 
 #: src/gui/siril3.glade:6280
 msgid ""
 "Gaussian and Moffat profiles are good models for star shapes. Disc profiles "
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
-msgstr ""
-"高斯和Moffat轮廓是星点形状的良好模型。Disc轮廓可用于改善失焦问题。艾里班模拟"
-"望远镜的固有衍射。"
+msgstr "高斯和Moffat形是星点形状的良好模型。圆盘形可用于改善失焦问题。艾里斑模拟望远"
+"镜的固有衍射。"
 
 #: src/gui/siril3.glade:6283 src/gui/siril3.glade:13446
 #: src/algos/star_finder.c:1306 src/gui/newdeconv.c:542
@@ -1146,11 +1145,11 @@ msgstr "Moffat"
 
 #: src/gui/siril3.glade:6285
 msgid "Disc"
-msgstr "Disc"
+msgstr "圆盘形"
 
 #: src/gui/siril3.glade:6286
 msgid "Airy Disc"
-msgstr "艾里班"
+msgstr "艾里斑"
 
 #: src/gui/siril3.glade:6340 src/gui/siril3.glade:7261
 msgid "Ratio"
@@ -1170,8 +1169,7 @@ msgstr "fwhm / \""
 msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
-msgstr ""
-"半高全宽FWHM。对于Disc轮廓，这只是盘面的直径。对于椭圆形PSF，这是长轴的PSF尺"
+msgstr "半高全宽FWHM。对于圆盘形星点，这是盘面的直径。对于椭圆形PSF，这是长轴的PSF尺"
 "寸。"
 
 #: src/gui/siril3.glade:6394 src/gui/siril3.glade:7273
@@ -1190,7 +1188,7 @@ msgstr "beta (β)"
 msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
-msgstr "对于Moffat轮廓，这将设置beta值。有关此参数的信息，参见astrometry说明文档。"
+msgstr "对于Moffat形，这将设置beta值。有关此参数的信息，参见astrometry说明文档。"
 
 #: src/gui/siril3.glade:6463
 msgid "Pixel Size / μm"
@@ -1241,7 +1239,7 @@ msgid ""
 "This is zero for refractors, typically around 10-20% for fast Newtonians and "
 "may be as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
-"设置中央遮挡面积占总孔径的百分比。对于折射镜，这为零，对于快速牛顿镜，通常在 "
+"设置中央遮挡面积占总口径的百分比。对于折射镜，这为零，对于快速牛顿镜，通常在 "
 "10-20% 左右，对于改正型 Dall-Kirkham，可能高达 40%。"
 
 #: src/gui/siril3.glade:6608
@@ -1563,13 +1561,12 @@ msgid ""
 "step size that can help to avoid ringing artefacts around stars. For "
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
-msgstr ""
-"如有疑问，请使用梯度下降。它更平滑，步长可控，有助于避免星点周围的环状伪影。"
-"对于已拉伸图像，累乘可以产生良好的结果，并且需要较少的迭代。"
+msgstr "如有疑问，请使用梯度下降。它更平滑，步长可控，有助于避免星点周围的环状伪影。"
+"对于已拉伸图像，乘法可以产生良好的结果，并且需要较少的迭代。"
 
 #: src/gui/siril3.glade:7674 src/gui/siril3.glade:24114
 msgid "Multiplicative"
-msgstr "累乘"
+msgstr "乘法"
 
 #: src/gui/siril3.glade:7675
 msgid "Gradient Descent"
@@ -1667,9 +1664,9 @@ msgid ""
 "Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: "
 "https://ieeexplore.ieee.org/document/5278406"
 msgstr ""
-"Anscombe VST在降噪光子限制图像时很有用，其中噪声特性不是高斯的，而是主要是泊"
-"松或泊松-高斯混合的。它不能与DA3D或SOS一起使用。参考： https://ieeexplore."
-"ieee.org/document/527"
+"Anscombe VST对于低光图像降噪很有用，其中噪声特性不是高斯的，而是主要是泊松或"
+"泊松-高斯混合的。它不能与DA3D或SOS一起使用。参考： https://ieeexplore.ieee."
+"org/document/527"
 
 #: src/gui/siril3.glade:8095
 msgid "Data Adaptive Dual Domain Denoising"
@@ -3104,7 +3101,7 @@ msgid ""
 "less dim stars, which should be done only when images have a lot of signal "
 "or low noise (high S/N)."
 msgstr ""
-"星点侦测的噪声阀值。\n"
+"星点侦测的噪声阈值。\n"
 "图像的中位数和标准背离值将被侦测，阀值则为：中位数＋[阀值]*标准背离值\n"
 "缺省值为1.00。增加此值可以侦测到更加昏暗的星点，应仅用于高信噪比的图像。"
 
@@ -3114,11 +3111,11 @@ msgstr "半径: "
 
 #: src/gui/siril3.glade:13339
 msgid "Threshold: "
-msgstr "阀值: "
+msgstr "阈值: "
 
 #: src/gui/siril3.glade:13352
 msgid "Roundness threshold:"
-msgstr "圆度阀值："
+msgstr "圆度阈值："
 
 #: src/gui/siril3.glade:13363
 msgid ""
@@ -3128,7 +3125,7 @@ msgid ""
 "The default value is 0.5, suitable for stars twice as big in one direction "
 "as the other."
 msgstr ""
-"星点的圆度阀值。如果星点拖线则可以减小此值，相反的，当星点很圆时应增加该值以"
+"星点的圆度阈值。如果星点拖线则可以减小此值，相反的，当星点很圆时应增加该值以"
 "消除（像素）伪正值。\n"
 "缺省值为0.5，适用于星点长轴两倍于短轴的情况。"
 
@@ -3168,7 +3165,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:13433
 msgid "Profile type:"
-msgstr "轮廓类型:"
+msgstr "形状类型："
 
 #: src/gui/siril3.glade:13460
 msgid "Minimum beta:"
@@ -4217,8 +4214,8 @@ msgid ""
 "Star synthesis should be applied <i>before</i> <b>stretching</b>.\n"
 "Star selection can be manually fine-tuned using the Dynamic PSF tool."
 msgstr ""
-"使用从原始数据中测量的参数，为Siril的星点侦测器侦测到的每一个星点创建具有完美"
-"纵断面的合成高斯/Moffat星点遮罩。星点遮罩可以与无星图像重新组合以修复像差。\n"
+"使用从原始数据中测量的参数，为Siril侦测到的每个星点创建形状完美的合成高斯/Mof"
+"fat星点遮罩。星点遮罩可以与无星图像重新组合以修复像差。\n"
 "星点合成应该<i>先于</i><b>拉伸</b>应用。\n"
 "可以使用动态 PSF工具手动微调星点选择。"
 
@@ -6024,14 +6021,14 @@ msgid ""
 msgstr ""
 "如果其中的一种被选中，所有图像在被叠加之前会被应用归一化处理。\n"
 "\n"
-"- 归一化，会匹配所有输入图像的背景平均值，然后归一化会执行累乘或累加。要注意"
-"两种操作一般都会导致相似的结果，但是累乘归一化主要用于将被执行乘/除的图像，例"
-"如平场帧。\n"
+"- 归一化，使用乘法或加法使所有输入图像的背景平均值相同。注意，加法和乘法带来"
+"的结果可能看似没有区别，但是乘法归一化主要用于将被执行乘/除的图像，例如平场帧"
+"。\n"
 "\n"
-"- 拉伸，会通过衡量所有输入图像来匹配弥散值。将有可能增加信噪比。因此该项是累"
-"加归一化的缺省配置。\n"
+"- 拉伸，通过加权使所有输入图像的弥散度相同。将有可能增加信噪比。因此该项是加"
+"法归一化的缺省配置。\n"
 "\n"
-"<b>偏置和暗场帧不应使用归一化处理。而平场帧必须应用累乘归一化处理。</b>"
+"<b>偏置和暗场帧不应使用归一化。而平场帧必须使用乘法归一化。</b>"
 
 #: src/gui/siril3.glade:24112
 msgid "No normalisation"
@@ -6039,15 +6036,15 @@ msgstr "无归一化"
 
 #: src/gui/siril3.glade:24113
 msgid "Additive"
-msgstr "累加"
+msgstr "加法"
 
 #: src/gui/siril3.glade:24115
 msgid "Additive with scaling"
-msgstr "累加带拉伸"
+msgstr "加法带拉伸"
 
 #: src/gui/siril3.glade:24116
 msgid "Multiplicative with scaling"
-msgstr "累乘带拉伸"
+msgstr "乘法带拉伸"
 
 #: src/gui/siril3.glade:24128
 msgid "Recompute"
@@ -6076,13 +6073,13 @@ msgid ""
 "normalization at all."
 msgstr ""
 "缺省下，Siril使用IKSS位置估计量和尺度来计算归一化。对于长序列，计算这些估计量"
-"会非常密集。这种情况下，您可以选择快速归一化（基于中位数和中位数绝对背离）。"
-"当每幅图像中的离群阻力较低的时候，仍然会得到令人满意的结果（相比于根本没有归"
-"一化）。"
+"会非常密集。这种情况下，您可以选择快速归一化（基于中位数和绝对中位差）。当每"
+"幅图像中的离群阻力较低的时候，仍然会得到令人满意的结果（相比于根本没有归一化"
+"）。"
 
 #: src/gui/siril3.glade:24168
 msgid "Normalisation:"
-msgstr "归一化:"
+msgstr "归一化："
 
 #: src/gui/siril3.glade:24259 src/stacking/stacking.c:839
 msgid "Sigma low: "
@@ -6614,7 +6611,7 @@ msgid ""
 "will equalize the sky background in a neutral grey.\n"
 "This step should be run before any attempt of color calibration."
 msgstr ""
-"背景平衡会计算每个色彩通道的平均值，并将背景等价为中性灰。\n"
+"背景平衡会计算每个色彩通道的平均值，并使背景平衡为中性灰。\n"
 "本操作应当在色彩校准之前执行。"
 
 #: src/gui/siril3.glade:27105
@@ -7512,11 +7509,11 @@ msgstr "背景环形域"
 
 #: src/gui/siril3.glade:29919
 msgid "Aperture radius:"
-msgstr "光孔半径："
+msgstr "孔径圆形半径："
 
 #: src/gui/siril3.glade:29930
 msgid "Aperture radius where the flux is measured."
-msgstr "测光所用的孔径半径。"
+msgstr "测量光通量用的孔径圆形半径。"
 
 #: src/gui/siril3.glade:29948
 msgid "Automatically Calculated with PSF"
@@ -7526,8 +7523,8 @@ msgstr "基于PSF自动计算"
 msgid ""
 "Check this option to have Siril automatically calculate the aperture radius. "
 "When unchecked, you can set the radius value in the box below."
-msgstr ""
-"点选此项使Siril自动计算测光半径。不点选时，你可以在下面的窗口中输入半径值。"
+msgstr "点选此项使Siril自动计算孔径圆形半径。不点选时，你可以在下面的窗口中输入半径值"
+"。"
 
 #: src/gui/siril3.glade:29971
 msgid "Flux Aperture"
@@ -9622,7 +9619,7 @@ msgstr "无法载入参考帧\n"
 #: src/algos/star_finder.c:1305
 #, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
-msgstr "找到 %d %s 轮廓星于 %s，通道 #%d（FWHM %f）\n"
+msgstr "找到 %d 个 %s 形星于 %s，通道 #%d（FWHM %f）\n"
 
 #: src/algos/star_finder.c:1307
 msgid "selection"
@@ -10112,11 +10109,11 @@ msgstr "Moffat PSF\n"
 
 #: src/core/command.c:1203
 msgid "Disc PSF\n"
-msgstr "Disc PSF\n"
+msgstr "圆盘形PSF\n"
 
 #: src/core/command.c:1207
 msgid "Airy disc PSF\n"
-msgstr "艾里班PSF\n"
+msgstr "艾里斑PSF\n"
 
 #: src/core/command.c:1335
 msgid "Load PSF from file:\n"
@@ -10651,7 +10648,7 @@ msgstr "松弛 = %s\n"
 #: src/core/command.c:3537
 #, c-format
 msgid "profile = %s\n"
-msgstr "轮廓 = %s\n"
+msgstr "形状 = %s\n"
 
 #: src/core/command.c:3540
 #, c-format
@@ -10877,8 +10874,8 @@ msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
 msgstr ""
-"Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
-"mask) or 3 (additive mask)\n"
+"输入值可以为0（average neutral），1（maximum neutral），2（maximum "
+"mask），3（additive mask）\n"
 
 #: src/core/command.c:4910
 msgid "Amount can only be [0, 1]\n"
@@ -11158,7 +11155,7 @@ msgstr "对齐：应用现有数据"
 msgid ""
 "Output normalization is allowed only with median or mean stacking, "
 "ignoring.\n"
-msgstr "输出归一化仅允许使用中位数或平均值叠加，忽略。\n"
+msgstr "输出归一化仅允许使用中位数或平均数叠加，忽略。\n"
 
 #: src/core/command.c:7011 src/core/command.c:7021 src/core/command.c:7029
 #: src/core/command.c:7037
@@ -11655,7 +11652,7 @@ msgstr "实时叠加需要首先使用START_LS命令初始化\n"
 
 #: src/core/command.c:8838
 msgid "Live stacking was configured to use file watching, not this command\n"
-msgstr "Live stacking was configured to use file watching, not this command\n"
+msgstr "实时叠加配置为使用文件监视，而不是此命令\n"
 
 #: src/core/command.c:8880
 #, c-format
@@ -11665,7 +11662,7 @@ msgstr "String in: %s\n"
 #: src/core/command.c:8881
 #, c-format
 msgid "String out: %s\n"
-msgstr "String out: %s\n"
+msgstr "输出字符串：%s\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -11687,15 +11684,10 @@ msgid ""
 "pixel values. This stretch method preserves lightness from the L*a*b* color "
 "space"
 msgstr ""
-"Stretches the image to show faint objects using an hyperbolic arcsin "
-"transformation. The mandatory argument <b>stretch</b>, typically between 1 "
-"and 1000, will give the strength of the stretch. The black point can be "
-"offset by providing an optional <b>offset</b> argument in the normalized "
-"pixel value of [0, 1]. Finally the option <b>-human</b> enables using human "
-"eye luminous efficiency weights to compute the luminance used to compute the "
-"stretch value for each pixel, instead of the simple mean of the channels "
-"pixel values. This stretch method preserves lightness from the L*a*b* color "
-"space"
+"使用双曲正弦变换拉伸图像，以凸显暗淡对象。必需参数<b>stretch</b>（通常在1到10"
+"00之间）将给出拉伸的强度。可以通过提供一个在[0, 1]范围内的<b>offset</b>参数来"
+"偏移黑点。最后，选项<b>-human</b>允许使用人眼的感光效率来加权计算每个像素的的"
+"明度，而不只是各通道像素值的平均值。这种拉伸方法保持了L*a*b*色彩空间的亮度"
 
 #: src/core/command_def.h:8
 msgid ""
@@ -11769,12 +11761,10 @@ msgid ""
 "argument deletes any selection area. If no argument is passed, the current "
 "selection is printed"
 msgstr ""
-"Make a selection area in the currently loaded image with the arguments <b>x</"
-"b>, <b>y</b>, <b>width</b> and <b>height</b>, with <b>x</b> and <b>y</b> "
-"being the coordinates of the top left corner starting at (0, 0), and "
-"<b>width</b> and <b>height</b>, the size of the selection. The <b>-clear</b> "
-"argument deletes any selection area. If no argument is passed, the current "
-"selection is printed"
+"在当前载入的图像中框选一个区域，参数为<b>x</b>、<b>y</b>、<b>width</b>和<b>he"
+"ight</b>。<b>x</b>与<b>y</b>是从(0, 0)开始的左上角坐标，<b>width</b>与<b>heig"
+"ht</b>是选区的大小。<b>-clear</b>参数删除所有选区。如果未传递任何参数，则打印"
+"当前选择"
 
 #: src/core/command_def.h:16
 msgid ""
@@ -12032,7 +12022,7 @@ msgstr ""
 "\n"
 "如果有现有的选区，则不需要其他参数。如果没有现有的选区，或是在脚本中使用，则"
 "必须给定参数。其中<b>x</b>和<b>y</b>是左上角的坐标，<b>width</b>与<b>height</"
-"b>是选框的尺寸。也可以使用BOXSELECT命令来框选"
+"b>是选区的尺寸。也可以使用BOXSELECT命令来框选"
 
 #: src/core/command_def.h:32
 msgid ""
@@ -12734,19 +12724,18 @@ msgstr ""
 "对称的。\n"
 "\n"
 "对于<b>manual</b>PSF，可以提供<b>-gaussian</b>、<b>-moffat</b>、<b>-disc</b>"
-"或<b>-airy</b>中的一个来指定PSF函数，默认情况下为gaussian。"
-"对于gaussian或moffat "
+"或<b>-airy</b>中的一个来指定PSF函数，默认情况下为gaussian。对于高斯或moffat形"
 "PSF，可以提供可选参数<b>-fwhm=</b>、<b>-angle=</b>或<b>-ratio=</b>。"
 "对于Moffat PSF，还可以提供可选参数<b>-beta=</b>。如果忽略这些值，则它们默认为"
-"与反卷积对话框中相同的值。对于disc "
-"PSF，只需要参数<b>-fwhm=</b>，用于设置PSF的<i>diameter</i>。对于Airy PSF，可"
-"以提供以下参数：<b>-dia=</b>（设置望远镜直径）、<b>-fl=</b>（设置望远镜焦距）"
-"、<b>-wl=</b>（设置用于计算Airy衍射图案的波长）、<b>-pixelsize=</b>（设置传感"
-"器像素尺寸）、<b>-obstruct=</b>（设置中央遮挡面积占总孔径的百分比）。如果不提"
-"供这些参数，波长将默认为525nm，中央遮挡面积将默认为0%。Siril将尝试从打开的图"
-"像中读取其他信息，但一些拍摄软件可能并未将这些信息写入图像，在这种情况下，您"
-"会得到糟糕的结果。请注意，SER格式的视频中可能不会含有元数据。总结经验，您将会"
-"知道，对于一套成像装置，哪些参数可以略过。\n"
+"与反卷积对话框中相同的值。对于圆盘形PSF，只需要参数<b>-fwhm=</b>，用于设置PSF"
+"的<i>diameter</i>。对于艾里斑PSF，可以提供以下参数：<b>-dia=</b>（设置望远镜"
+"直径）、<b>-fl=</b>（设置望远镜焦距）、<b>-wl=</b>（设置用于计算Airy衍射图案"
+"的波长）、<b>-pixelsize=</b>（设置传感器像素尺寸）、<b>-obstruct=</b>（设置中"
+"央遮挡面积占总口径的百分比）。如果不提供这些参数，波长将默认为525nm，中央遮挡"
+"面积将默认为0%。Siril将尝试从打开的图像中读取其他信息，但一些拍摄软件可能并未"
+"将这些信息写入图像，在这种情况下，您会得到糟糕的结果。请注意，SER格式的视频中"
+"可能不会含有元数据。总结经验，您将会知道，对于一套成像装置，哪些参数可以略过"
+"。\n"
 "\n"
 "对于上述任何生成PSF的选项，可以提供可选参数<b>-ks=</b>来设置PSF的尺寸，并且可"
 "以使用可选参数<b>-savepsf=<i>filename</i></b>保存生成的PSF：必须提供文件名，"
@@ -14069,7 +14058,6 @@ msgstr ""
 "参数<b>extension</b>可以是\"fit\"、\"fts\"或\"fits\""
 
 #: src/core/command_def.h:167
-#, fuzzy
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -14102,39 +14090,31 @@ msgid ""
 "if they are stars or not, to allow objects not shaped like stars to still be "
 "accepted (off by default)"
 msgstr ""
-"Defines stars detection parameters for FINDSTAR and REGISTER commands. \n"
+"定义FINDSTAR和REGISTER命令的星点检测参数。\n"
 "\n"
-"Passing no parameter lists the current values. \n"
-"Passing <b>reset</b> resets all values to defaults. You can then still pass "
-"values after this keyword. \n"
-" \n"
-"Configurable values: \n"
-" \n"
-"<b>-radius=</b> defines the radius of the initial search box and must be "
-"between 3 and 50. \n"
-"<b>-sigma=</b> defines the threshold above noise and must be greater or "
-"equal to 0.05. \n"
-"<b>-roundness=</b> defines minimum star roundness and must between 0 and "
-"0.95. <b>-maxR</b> allows an upper bound to roundness to be set, to "
-"visualize only the areas where stars are significantly elongated, do not "
-"change for registration. \n"
-"<b>-minA</b> and <b>-maxA</b> define limits for the minimum and maximum "
-"amplitude of stars to keep, normalized between 0 and 1. \n"
-"<b>-focal=</b> defines the focal length of the telescope. \n"
-"<b>-pixelsize=</b> defines the pixel size of the sensor. \n"
-"<b> -gaussian</b> and <b>-moffat</b> configure the solver model to be used "
-"(Gaussian is the default). \n"
-"If Moffat is selected, <b>-minbeta=</b> defines the minimum value of beta "
-"for which candidate stars will be accepted and must be greater or equal to "
-"0.0 and less than 10.0. \n"
-"<b>-convergence=</b> defines the number of iterations performed to fit PSF "
-"and should be set between 1 and 3 (more tolerant). \n"
-"<b>-relax=</b> relaxes the checks that are done on star candidates to assess "
-"if they are stars or not, to allow objects not shaped like stars to still be "
-"accepted (off by default)"
+"不传递任何参数将列出当前的值。\n"
+"通过<b>reset</b>将所有值重置为默认值。您在传递该关键字之后仍然可以传递值。\n"
+"\n"
+"可配置值：\n"
+"\n"
+"<b>-radius=</b>定义初始搜索框的半径，必须介于3和50之间。\n"
+"<b>-sigma=</b>定义高于噪声的阈值，必须大于等于0.05。\n"
+"<b>-roundness=</b>定义最小星点圆度，必须在0和0.95之间。<b>-maxR</b>定义最大星"
+"点圆度，用于凸显不圆的星点；对齐时不要改动此项。\n"
+"<b>-minA</b>和<b>-maxA</b>定义了星点振幅的最小值和最大值，归一化为0和1之间。"
+"\n"
+"<b>-focus=</b>定义望远镜的焦距。\n"
+"<b>-pixelsize=</b>定义传感器的像素尺寸。\n"
+"<b>-gaussian</b>和<b>-moffat</b>配置要使用的理想星点模型（默认值为gaussian）"
+"。\n"
+"如果选择Moffat，用<b>-minbeta=</b>定义候选星点允许的最小β值，必须大于等于0."
+"0且小于10.0。\n"
+"<b>-convergence=</b>定义拟合PSF将执行的迭代次数，应设置在1和3之间（3更宽容）"
+"。\n"
+"<b>-relation=</b>放宽对候选星点进行的检查，从而允许形状不那么像恒星的物体仍然"
+"被接受（默认关闭）"
 
 #: src/core/command_def.h:168
-#, fuzzy
 msgid ""
 "Calibrates the magnitudes by selecting a star and giving the known apparent "
 "magnitude.\n"
@@ -14145,12 +14125,11 @@ msgid ""
 "to be meaningful.\n"
 "To reset the magnitude constant see UNSETMAG"
 msgstr ""
-"Calibrates the magnitude by selecting a star and giving the known apparent "
-"magnitude.\n"
+"选择一颗已知视星等的恒星，并提供其星等，来校准星等。\n"
 "\n"
-"All PSF computations will return the calibrated apparent magnitude "
-"afterwards, instead of an apparent magnitude relative to ADU values.\n"
-"To reset the magnitude constant see UNSETMAG"
+"随后，所有PSF计算都将返回校准过的视星等，而不是基于ADU的视星等。请注意，所提"
+"供的值必须与观测滤镜相匹配才有意义。\n"
+"要重置星等常数，参见UNSETMAG"
 
 #: src/core/command_def.h:169
 msgid ""
@@ -14171,7 +14150,6 @@ msgstr ""
 "以使用SET设置固定量的内存，而不是内存比例"
 
 #: src/core/command_def.h:170
-#, fuzzy
 msgid ""
 "Gets or sets photometry settings, mostly used by SEQPSF. If arguments are "
 "provided, they will update the settings. None are mandatory, any can be "
@@ -14181,12 +14159,10 @@ msgid ""
 "dynamic, FWHM is used instead. Gain is used only if not available from the "
 "FITS header"
 msgstr ""
-"Gets or sets photometry settings, mostly used by SEQPSF. If arguments are "
-"provided, they will update the settings. None are mandatory, any can be "
-"provided, default values are shown in the command's syntax. At the end of "
-"the command, the active configuration will be printed. Aperture is dynamic "
-"unless forced, the <b>aperture</b> value from settings is not used if "
-"dynamic, FWHM is used instead"
+"获取或设置测光设置，主要用在SEQPSF。如果提供了参数，将会用其更新设置。没有一"
+"项是强制性的，任何一项都可以提供，默认值用命令的语法表明。命令结束时，将打印"
+"使用中的配置。除非强制，不然aperture会是动态的，不会使用设置中的<b>aperture</"
+"b>值，而改用FWHM。只有在FITS文件头不可用时才使用gain"
 
 #: src/core/command_def.h:171
 msgid ""
@@ -14211,7 +14187,6 @@ msgstr ""
 "功能只在Siril的GUI中可用"
 
 #: src/core/command_def.h:173
-#, fuzzy
 msgid ""
 "Splits the loaded color image into three distinct files (one for each color) "
 "and saves them in <b>file1</b>.fit, <b>file2</b>.fit and <b>file3</b>.fit "
@@ -14219,11 +14194,10 @@ msgid ""
 "or <b>lab</b> to perform an HSL, HSV or CieLAB extraction. If no option are "
 "provided, the extraction is of RGB type, meaning no conversion is done"
 msgstr ""
-"Splits the color image into three distinct files (one for each color) and "
-"save them in <b>file1</b>.fit, <b>file2</b>.fit and <b>file3</b>.fit files. "
-"A last argument can optionally be supplied, <b>-hsl</b>, <b>-hsv</b> or "
-"<b>lab</b> to perform an HSL, HSV or CieLAB extraction. If no option are "
-"provided, the extraction is of RGB type"
+"将载入的彩色图像拆分为三个文件（每颜色通道一个），分别保存为<b>file1</b>."
+"fit、<b>file2</b>.fit、<b>file3</b>.fit。可以提供一个可选参数，<b>-hsl</b>、<"
+"b>-hsv</b>或<b>-lab</b>，以按HSL、HSV或CieLAB拆分。如果未提供任何选项，将按RG"
+"B拆分，即无需转换"
 
 #: src/core/command_def.h:174
 msgid ""
@@ -14241,7 +14215,6 @@ msgstr ""
 "阳系的对象。用<b>-mag=</b>更改极限星等，默认值为20"
 
 #: src/core/command_def.h:176
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -14294,56 +14267,50 @@ msgid ""
 "selection or best FWHM, with some of the <b>-filter-*</b> options.\n"
 "See the command reference for the complete documentation on this command"
 msgstr ""
-"Stacks the <b>sequencename</b> sequence, using options.\n"
+"使用选项堆叠<b>sequencename</b>序列。\n"
 "\n"
-"Rejection type:\n"
-"The allowed types are: \"sum\", \"max\", \"min\", \"med\" (or \"median\") "
-"and \"rej\" (or \"mean\"). If no argument other than the sequence name is "
-"provided, sum stacking is assumed.\n"
+"叠加类型：\n"
+"允许的类型为：<b>sum</b>、<b>max</b>，<b>min</b>，<b>med</b>（或<b>median</b>"
+"），和<b>rej</b>（或<b>mean</b>）。如果除了序列名之外没有提供任何参数，则默认"
+"为sum。\n"
 "\n"
-"Stacking with rejection:\n"
-"Types rej or mean require the use of additional arguments for rejection type "
-"and values. The rejection type is one of { n[one] | p[ercentile] | s[igma] | "
-"m[edian] | w[insorized] | l[inear] | g[eneralized] | [m]a[d] } for "
-"Percentile, Sigma, Median, Winsorized, Linear-Fit, Generalized Extreme "
-"Studentized Deviate Test or k-MAD clipping. If omitted, the default "
-"(Winsorized) is used.\n"
-"The <b>sigma low</b> and <b>sigma high</b> parameters of rejection are "
-"mandatory unless <b>none</b> is selected.\n"
-"Optionally, rejection maps can be created, showing where pixels were "
-"rejected in one (<b>-rejmap</b>) or two (<b>-rejmaps</b>, for low and high "
-"rejections) newly created images.\n"
+"带剔除的叠加：\n"
+"叠加类型<b>rej</b>或<b>mean</b>需要使用额外的参数来指定剔除类型和参数。剔除类"
+"型有：<b>n[one]、p[ercentile]、s[igma]、m[edian]、w[insorized]、l[inear]、g[e"
+"neralized]、[m]a[d]</b>，分别指不剔除、百分数、Sigma、中位数Sigma、"
+"Winsorized Sigma、线性拟合、泛化ESD检验、绝对中位差裁剪。如果省略，"
+"则使用默认的Winsorized Sigma裁剪。\n"
+"除非选择<b>none</b>，否则必须提供剔除的Sigma下限<b>sigma low</"
+"b>和Sigma上限<b>sigma high</b>。\n"
+"可以选择是否生成剔除图，显示被剔除的像素的位置（<b>-rejmap</b>生成一个总图，<"
+"b>-rejmaps</b>生成一个高切图和一个低切图）。\n"
 "\n"
-"Normalization of input images:\n"
-"For med|median and rej|mean stacking types, different types of normalization "
-"are allowed: <b>-norm=add</b> for additive, <b>-norm=mul</b> for "
-"multiplicative. Options <b>-norm=addscale</b> and <b>-norm=mulscale</b> "
-"apply same normalization but with scale operations. <b>-nonorm</b> is the "
-"option to disable normalization. Otherwise addtive with scale method is "
-"applied by default.\n"
-"<b>-fastnorm</b> option specifies to use faster estimators for location and "
-"scale than the default IKSS.\n"
-"<b>-rgb_equal</b> will use normalization to equalize color image "
-"backgrounds, useful if pcc and unlinked autostretch will not be used.\n"
+"输入图像的归一化：\n"
+"对于叠加类型<b>med</b>（或<b>median</b>）和<b>rej</b>（或<b>mean</b>），允许"
+"不同类型的归一化：<b>-normal=add</b>使用加法归一化，<b>-Norm=mul</b>使用乘法"
+"归一化。选项<b>-norm=addscale</b>和<b>-norm=mulscale</b>使用带拉伸的加法和乘"
+"法归一化。<b> -nonorm</b>禁用归一化。默认使用带拉伸的加法归一化。\n"
+"<b>-fastnorm</b>指定使用快速归一化（使用中位数和绝对中位差，而不是默认的IKSS"
+"算法）。\n"
+"<b>-rgb_equal</b>启用RGB均衡来避免彩色图像背景偏色，如果不使用PCC或未链接的AU"
+"TOSTRETCH，则此功能非常有用。\n"
 "\n"
-"Other options for rejection stacking:\n"
-"<b>-weight_from_noise</b> is an option to add larger weights to frames with "
-"lower background noise.\n"
-"<b>-weight_from_nbstack</b> weights input images based on how many images "
-"were used to create them, useful for live stacking.\n"
-"<b>-weight_from_nbstars</b> or <b>-weight_from_wfwhm</b> weight input images "
-"based on number of stars or wFWHM computed during registration step.\n"
+"带剔除的叠加的其他选项：\n"
+"<b>-weight_from_noise</b>背景噪声越少，输入图像权重越高。\n"
+"<b>-weight_from_nbstack</b>用于生成输入图像的图像数量越多，输入图像权重越高，"
+"这对于实时叠加非常有用。\n"
+"<b>-weight_from_nbstars</b>或<b>-weight_from_wfwhm</b>基于在对齐时计算的星点"
+"数量或wFWHM来加权。\n"
 "\n"
-"Outputs:\n"
-"Result image name can be set with the <b>-out=</b> option. Otherwise, it "
-"will be named as <b>sequencename</b>_stacked.fit.\n"
-"<b>-output_norm</b> applies a normalization to rescale result in the [0, 1] "
-"range (median and mean stacking only).\n"
+"输出：\n"
+"使用<b>-out=</b>选项设置结果图像的名称。否则默认命名为<b>sequencename_stacked"
+".fit</b>。\n"
+"<b>-output_norm</b>将结果归一化至[0,1]范围内（仅限中位数和平均数叠加）。\n"
 "\n"
-"Filtering out images:\n"
-"Images to be stacked can be selected based on some filters, like manual "
-"selection or best FWHM, with some of the <b>-filter-*</b> options.\n"
-"See the command reference for the complete documentation on this command"
+"筛选图像：\n"
+"使用<b>-filter-*</b>，可以根据一些条件来筛选要堆叠的图像，如只叠加已选中的图"
+"像或只叠加FWHM最佳的图像。\n"
+"有关此命令的完整说明文档，参见command reference"
 
 #: src/core/command_def.h:177
 msgid ""
@@ -14432,12 +14399,10 @@ msgstr ""
 "CFA, statistics are made on per-filter extractions"
 
 #: src/core/command_def.h:181
-#, fuzzy
 msgid "Stops the live stacking session. Only possible after START_LS"
-msgstr "Stop the live stacking session. Only possible after START_LS"
+msgstr "停止实时堆叠会话。仅在START_LS之后可用"
 
 #: src/core/command_def.h:182
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -14449,15 +14414,12 @@ msgid ""
 "dither</b>.\n"
 "For RBF, the additional smoothing parameter is also available"
 msgstr ""
-"Computes a synthetic background gradient using either the polynomial "
-"function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
-"provided instead) and subtracts it from the image.\n"
-"The number of samples per horizontal line and the tolerance to exclude "
-"brighter areas can be adjusted with the optional arguments. Tolerance is in "
-"mad units: median + tolerance * mad.\n"
-"Dithering, required for low dynamic gradients, can be enabled with <b>-"
-"dither</b>.\n"
-"For RBF, the additional smoothing parameter is also available"
+"使用阶数为<b>degree</b>的多项式函数模型或RBF模型（如果提供<b>-RBF</b>）计算合"
+"成背景渐变，并将其从图像中减去。\n"
+"每行采样点的数量和采样点的容差可以使用可选参数调整。容差以MAD为单位：median +"
+" tolerance * mad。\n"
+"可以通过<b>-dither</b>启用低动态范围渐变所需的抖动。\n"
+"对于RBF，还可以使用额外的平滑参数"
 
 #: src/core/command_def.h:183
 msgid ""
@@ -14485,53 +14447,44 @@ msgstr ""
 "\n"
 "为了获得最佳效果，星点合成应在拉伸前运行。\n"
 "\n"
-"星点合成的输出是一个完全校正后的合成星点遮罩，包括完美圆形的星点PSF（Moffat型"
-"或高斯型，取决于星点的饱和度），通过计算以匹配输入图像中侦测到的每个星点的亮"
-"度、FWHM、色调和饱和度。之后可以将其与无星图像重新组合，生成具有完美星点的图"
-"像。\n"
+"星点合成的输出是一个完全校正后的合成星点遮罩，包括完美圆形的星点PSF（Moffat或"
+"高斯形，取决于星点的饱和度），通过计算以匹配输入图像中侦测到的每个星点的亮度"
+"、FWHM、色调和饱和度。之后可以将其与无星图像重新组合，生成具有完美星点的图像"
+"。\n"
 "\n"
 "此命令不需要任何参数"
 
 #: src/core/command_def.h:184
-#, fuzzy
 msgid ""
 "Re-profiles clipped stars of the loaded image to desaturate them, scaling "
 "the output so that all pixel values are &lt;= 1.0"
-msgstr ""
-"Re-profiles clipped stars to desaturate them, scaling the output so that all "
-"pixel values are &lt;= 1.0"
+msgstr "修改从载入的图像中裁剪下的星点，使其去饱和，重新缩放输出，以使所有像素值&lt;"
+"= 1.0"
 
 #: src/core/command_def.h:185
-#, fuzzy
 msgid ""
 "Replaces values below <b>level</b> in the loaded image with <b>level</b>"
-msgstr "Replaces values below <b>level</b> with <b>level</b>"
+msgstr "将载入的图像中低于<b>level</b>的值替换为<b>level</b>"
 
 #: src/core/command_def.h:186
-#, fuzzy
 msgid ""
 "Replaces values above <b>level</b> in the loaded image with <b>level</b>"
-msgstr "Replaces values above <b>level</b> with <b>level</b>"
+msgstr "将载入的图像中高于<b>level</b>的值替换为<b>level</b>"
 
 #: src/core/command_def.h:187
-#, fuzzy
 msgid ""
 "Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
 "with <b>hi</b> in the loaded image"
-msgstr ""
-"Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
-"with <b>hi</b>"
+msgstr "将载入的图像中低于<b>lo</b>的值替换为<b>lo</b>，高于<b>hi</b>的值替换为<b>hi<"
+"/b>"
 
 #: src/core/command_def.h:188
-#, fuzzy
 msgid ""
 "Computes the sensor tilt as the FWHM difference between the best and worst "
 "corner truncated mean values. The <b>clear</b> option allows to clear the "
 "drawing"
-msgstr ""
-"Computes the sensor tilt as the fwhm difference between the best and worst "
-"corner truncated mean values. The <b>clear</b> option allows to clear the "
-"drawing"
+msgstr "对图像边缘的星点取排异后的平均值，按照其FWHM的差异，计算传感器的倾斜度。允许"
+"用<b>clear</b>选项清除绘制出的图形"
 
 #: src/core/command_def.h:190
 msgid ""
@@ -14560,13 +14513,10 @@ msgstr ""
 "参见GAUSS，与此相同但没有混合操作"
 
 #: src/core/command_def.h:194
-#, fuzzy
 msgid ""
 "Displays the loaded image with <b>low</b> and <b>high</b> as the low and "
 "high threshold, GUI only"
-msgstr ""
-"Displays an image with <b>low</b> and <b>high</b> as the low and high "
-"threshold"
+msgstr "以<b>low</b>作为低阈值，<b>high</b>作为高阈值显示加载的图像，仅用于GUI"
 
 #: src/core/command_def.h:196
 msgid ""
@@ -14585,7 +14535,6 @@ msgstr ""
 "参见EXTRACT"
 
 #: src/core/command_def.h:197
-#, fuzzy
 msgid ""
 "Restores an image using the Wiener deconvolution method.\n"
 "\n"
@@ -14595,13 +14544,11 @@ msgid ""
 "The parameter <b>-alpha=</b> provides the Gaussian noise modelled "
 "regularization factor"
 msgstr ""
-"Restores an image using the Wiener deconvolution method.\n"
+"使用Wiener反卷积方法复原图像。\n"
 "\n"
-"Optionally, a PSF may be loaded using the argument <b>-loadpsf=<i>filename</"
-"i></b>.\n"
+"可以使用参数<b>-loadpsf=<i>filename</i></b>载入由MAKEPSF创建的PSF图像。\n"
 "\n"
-"The parameter <b>-alpha=</b> provides the Gaussian noise modelled "
-"regularization factor"
+"参数<b>-alpha=</b>提供高斯噪声模型的正则化因子"
 
 #: src/core/command_def.h:198
 msgid ""
@@ -16515,7 +16462,7 @@ msgstr "合成 %d 颗星点...\n"
 
 #: src/filters/synthstar.c:666
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
-msgstr "星点合成（去饱和度裁剪的星点轮廓）：执行中...\n"
+msgstr "星点合成（去饱和度裁剪的星点形状）：执行中...\n"
 
 #: src/filters/synthstar.c:722
 #, c-format
@@ -17310,7 +17257,7 @@ msgstr "错误：星点属性必须全部在同一图层上计算"
 
 #: src/gui/newdeconv.c:515
 msgid "Error: stars must all be modeled with the same profile type"
-msgstr "错误：星点必须全部使用相同的轮廓类型建模"
+msgstr "错误：星点必须全部使用相同的形状类型建模"
 
 #: src/gui/newdeconv.c:557
 msgid "No stars selected"
@@ -17814,7 +17761,7 @@ msgstr "星点属性必须全部在同一图层上计算"
 
 #: src/gui/PSF_list.c:316
 msgid "Stars must all be modeled with the same profile type"
-msgstr "星点必须全部使用相同的轮廓类型建模"
+msgstr "星点必须全部使用相同的形状类型建模"
 
 #: src/gui/PSF_list.c:344
 #, c-format
@@ -17967,11 +17914,10 @@ msgid ""
 msgstr "在尝试使用吸管设置 SP 之前，使用左侧文件选择器载入图像"
 
 #: src/gui/remixer.c:1318
-#, fuzzy
 msgid ""
 "Load an image using the right-hand file chooser before attempting to set SP "
 "using the eyedropper"
-msgstr "使用右手边文件选择器载入图像，然后再尝试使用吸管设置 SP"
+msgstr "在使用滴管设置SP之前，请先使用右侧的文件选择器载入图像"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1364
@@ -19007,9 +18953,8 @@ msgid "FITS error: %s\n"
 msgstr "FITS 错误： %s\n"
 
 #: src/io/image_format_fits.c:1117
-#, fuzzy
 msgid "Normalizing input data to our float range [0, 1]\n"
-msgstr "将输入数据从 [%f， %f] 规一化为浮点范围 [0， 1]\n"
+msgstr "将输入数据归一化为浮点范围[0, 1]\n"
 
 #: src/io/image_format_fits.c:1150
 msgid "Cannot move to first image in FITS file\n"
@@ -19794,7 +19739,7 @@ msgstr "预处理未使用\n"
 
 #: src/livestacking/livestacking.c:381
 msgid "live stacking is already running, stop it first\n"
-msgstr "实时叠加以开启，请先停止\n"
+msgstr "实时叠加已开启，请先停止\n"
 
 #: src/livestacking/livestacking.c:500 src/registration/global.c:609
 msgid "Global star registration"
@@ -21174,19 +21119,19 @@ msgstr "无"
 
 #: src/stacking/stacking.c:312
 msgid "additive"
-msgstr "累加"
+msgstr "加法"
 
 #: src/stacking/stacking.c:315
 msgid "multiplicative"
-msgstr "累乘"
+msgstr "乘法"
 
 #: src/stacking/stacking.c:318
 msgid "additive + scaling"
-msgstr "累加带拉伸"
+msgstr "加法带拉伸"
 
 #: src/stacking/stacking.c:321
 msgid "multiplicative + scaling"
-msgstr "累乘带拉伸"
+msgstr "乘法带拉伸"
 
 #: src/stacking/stacking.c:325
 msgid " (fast)"
