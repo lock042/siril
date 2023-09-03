@@ -26,6 +26,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -91,6 +92,8 @@ static int undo_remove_item(historic *histo, int index) {
 	if (histo[index].filename) {
 		if (g_unlink(histo[index].filename))
 			siril_debug_print("g_unlink() failed\n");
+		if (histo[index].icc_profile)
+			cmsCloseProfile(histo[index].icc_profile);
 		g_free(histo[index].filename);
 		histo[index].filename = NULL;
 		memset(&histo[index].wcsdata, 0, sizeof(wcs_info));
@@ -118,6 +121,7 @@ static void undo_add_item(fits *fit, char *filename, char *histo) {
 	com.history[com.hist_current].type = fit->type;
 	com.history[com.hist_current].wcsdata = fit->wcsdata;
 	com.history[com.hist_current].focal_length = fit->focal_length;
+	com.history[com.hist_current].icc_profile = copyICCProfile(fit->icc_profile);
 	snprintf(com.history[com.hist_current].history, FLEN_VALUE, "%s", histo);
 
 	if (com.hist_current == com.hist_size - 1) {
@@ -183,7 +187,6 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 		load_WCS_from_memory(fit);
 	}
 
-
 	full_stats_invalidation_from_fit(fit);
 	free(buf);
 	g_close(fd, NULL);
@@ -245,6 +248,10 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 }
 
 static int undo_get_data(fits *fit, historic *hist) {
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(hist->icc_profile);
+
 	if (hist->type == DATA_USHORT) {
 		if (gfit.type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
@@ -312,7 +319,6 @@ int undo_display_data(int dir) {
 			}
 			com.hist_display--;
 			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
-/* TODO: consider undo of ICC profile changes, currently these do not undo */
 			undo_get_data(&gfit, &com.history[com.hist_display]);
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);

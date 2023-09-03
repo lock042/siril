@@ -38,6 +38,7 @@
 static guint timer_id;
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;
+static cmsHPROFILE preview_icc_backup = NULL;
 static fits preview_gfit_backup = { 0 };
 
 static gboolean update_preview(gpointer user_data) {
@@ -66,11 +67,26 @@ static void free_struct(gpointer user_data) {
 	free(im);
 }
 
+static void copy_gfit_icc_to_backup() {
+	if (!gfit.icc_profile)
+		return;
+	if (preview_icc_backup)
+		cmsCloseProfile(preview_icc_backup);
+	preview_icc_backup = copyICCProfile(gfit.icc_profile);
+}
+
+static void copy_backup_icc_to_gfit() {
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = copyICCProfile(preview_icc_backup);
+}
+
 void copy_gfit_to_backup() {
 	if (copyfits(&gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
+	copy_gfit_icc_to_backup();
 	preview_is_active = TRUE;
 }
 
@@ -82,6 +98,7 @@ int copy_backup_to_gfit() {
 		siril_debug_print("Image copy error in previews\n");
 		retval = 1;
 	}
+	copy_backup_icc_to_gfit();
 	return retval;
 }
 

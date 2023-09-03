@@ -27174,7 +27174,6 @@ WARNING: This option should not be checked for master stacking.</property>
                       <object class="GtkImage" id="color_managed_icon">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Image is not color managed</property>
                         <property name="halign">center</property>
                         <property name="pixbuf">pixmaps/color_management_off.svg</property>
                       </object>

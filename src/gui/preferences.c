@@ -38,6 +38,7 @@
 #include "gui/PSF_list.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
+#include "io/single_image.h"
 #include "stacking/stacking.h"
 
 #include "preferences.h"
@@ -816,7 +817,9 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			update_profiles_after_gamut_change();
 			update_custom_gamut = FALSE;
 		}
-
+		refresh_icc_transforms();
+		color_manage(&gfit, gfit.color_managed);
+		notify_gfit_modified();
 		siril_close_dialog("settings_window");
 	}
 }

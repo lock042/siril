@@ -25,6 +25,7 @@
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/undo.h"
 #include "icc_profile.h"
 #include "icc_default_profiles.h"
 #include "gui/image_display.h"
@@ -91,12 +92,16 @@ void color_manage(fits *fit, gboolean active) {
 		if (active) {
 			if (fit->icc_profile) {
 				int length = cmsGetProfileInfoASCII(fit->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+				int length2 = cmsGetProfileInfoASCII(gui.icc.monitor, cmsInfoDescription, "en", "US", NULL, 0);
+				char *monitor = malloc(length2 * sizeof(char));
+				cmsGetProfileInfoASCII(gui.icc.monitor, cmsInfoDescription, "en", "US", monitor, length2);
 				char *buffer = NULL;
 				if (length) {
-					buffer = (char*) malloc(length * sizeof(char));
+					buffer = malloc(length * sizeof(char));
 					cmsGetProfileInfoASCII(fit->icc_profile, cmsInfoDescription, "en", "US", buffer, length);
-					tooltip = g_strdup_printf(_("Image is color managed\n%s"), buffer);
+					tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s"), buffer, monitor);
 					free(buffer);
+					free(monitor);
 				}
 			}
 			if (!tooltip)
@@ -104,9 +109,10 @@ void color_manage(fits *fit, gboolean active) {
 		} else {
 			tooltip = g_strdup(_("Image is not color managed"));
 		}
-		GtkWidget *widget = lookup_widget("color_managed_icon");
-		gtk_image_set_from_file((GtkImage*)widget, name);
-		gtk_widget_set_tooltip_text(widget, tooltip);
+		GtkWidget *image = lookup_widget("color_managed_icon");
+		GtkWidget *button = lookup_widget("icc_main_window_button");
+		gtk_image_set_from_file((GtkImage*) image, name);
+		gtk_widget_set_tooltip_text(button, tooltip);
 		g_free(name);
 		g_free(tooltip);
 	}
@@ -1078,7 +1084,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 		cmsCloseProfile(gui.icc.monitor);
 		gui.icc.monitor = srgb_trc();
 		if (gui.icc.monitor) {
-			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
+			siril_log_message(_("Monitor ICC profile set to sRGB\n"));
 		} else {
 			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
 			exit(1);
@@ -1247,6 +1253,8 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
 		return;
 	}
+	// We save the undo state if dealing with gfit
+	undo_save_state(&gfit, _("Color profile assignment"));
 	if (gfit.icc_profile) {
 		cmsCloseProfile(gfit.icc_profile);
 		gfit.icc_profile = NULL;
@@ -1263,6 +1271,8 @@ FINISH:
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
+	// We save the undo state if dealing with gfit
+	undo_save_state(&gfit, _("Color profile removal"));
 	if (gfit.icc_profile)
 		cmsCloseProfile(gfit.icc_profile);
 	color_manage(&gfit, FALSE);
@@ -1288,6 +1298,8 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	}
 
 	// Do the transform
+	// We save the undo state if dealing with gfit
+	undo_save_state(&gfit, _("Color profile conversion"));
 	siril_colorspace_transform(&gfit, target);
 
 	// Assign the new color space to gfit

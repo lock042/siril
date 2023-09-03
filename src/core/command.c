@@ -9329,6 +9329,9 @@ int process_icc_assign(int nb) {
 			cmsCloseProfile(gfit.icc_profile);
 		gfit.icc_profile = copyICCProfile(profile);
 		cmsCloseProfile(profile);
+	} else {
+		siril_log_color_message(_("Error opening target ICC profile.\n"), "red");
+		return CMD_GENERIC_ERROR;
 	}
 	if (gfit.icc_profile) {
 		siril_log_color_message(_("Color profile assignment complete.\n"), "green");

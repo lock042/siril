@@ -531,6 +531,7 @@ struct historic_struct {
 	data_type type;
 	wcs_info wcsdata;
 	double focal_length;
+	cmsHPROFILE icc_profile;
 };
 
 /* the structure storing information for each layer to be composed
