@@ -693,54 +693,6 @@ cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
 	return retval;
 }
 
-/* Converts the color space of a fits from one given profile to another */
-void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to) {
-	// It may happen when compositing that the input images are not color managed.
-	// In this case we silently return
-	if(!from && !to)
-		return;
-
-	if (!to) {
-		siril_log_color_message(_("Warning: reference image has no color profile. Cannot convert input to reference profile.\n"), "salmon");
-		return;
-	}
-	if (!from) {
-		// If there is no existing profile, conversion becomes assignment
-		from = copyICCProfile(to);
-		// If it wasn't before, the FITS becomes color managed
-		color_manage(fit, TRUE);
-		return;
-	}
-	gboolean threaded = !get_thread_run();
-	cmsColorSpaceSignature sig, ref_sig;
-	cmsUInt32Number src_type;
-	cmsUInt32Number datasize, bytesperline, bytesperplane;
-	int npixels = fit->rx * fit->ry;
-	sig = cmsGetColorSpace(from);
-	ref_sig = cmsGetColorSpace(to);
-	if (sig != ref_sig) {
-		siril_log_color_message(_("Warning: color spaces of the images are not the same. Will not convert input to reference profile.\n"), "salmon");
-		return;
-	}
-	void *buffer = fit->type == DATA_FLOAT ? (void*) fit->fdata : (void*) fit->data;
-	src_type = get_planar_formatter_type(sig, fit->type, FALSE);
-	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), from, src_type, to, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-	datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	bytesperline = fit->rx * datasize;
-	bytesperplane = npixels * datasize;
-	cmsDoTransformLineStride(transform, buffer, buffer, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-	cmsDeleteTransform(transform);
-	if (fit == &gfit)
-		check_gfit_profile_identical_to_monitor();
-}
-
-/* Converts the color space of one fits to match a reference fits.
- * Convenience wrapper to convert_fit_colorspace()
- */
-void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference) {
-	convert_fit_colorspace(input, input->icc_profile, reference->icc_profile);
-}
-
 static void set_source_information() {
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
 	if (!gfit.color_managed) {

@@ -1148,7 +1148,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 			* image's color profile */
 			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
 				if (fit_right.icc_profile) {
-					convert_fit_colorspace_to_reference_fit(&fit_left, &fit_right);
+					siril_colorspace_transform(&fit_left, fit_right.icc_profile);
 					siril_log_message(_("Color profiles did not match: left-hand image has been converted to right-hand image color profile.\n"));
 				} else {
 					fit_right.icc_profile = copyICCProfile(fit_left.icc_profile);
@@ -1240,7 +1240,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 			* image's color profile */
 			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
 				if (fit_left.icc_profile) {
-					convert_fit_colorspace_to_reference_fit(&fit_right, &fit_left);
+					siril_colorspace_transform(&fit_right, fit_left.icc_profile);
 					siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
 				} else {
 					fit_left.icc_profile = copyICCProfile(fit_right.icc_profile);
@@ -1248,7 +1248,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 				}
 			}
 			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
-				convert_fit_colorspace_to_reference_fit(&fit_right, &fit_left);
+				siril_colorspace_transform(&fit_right, fit_left.icc_profile);
 				siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
 			}
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);

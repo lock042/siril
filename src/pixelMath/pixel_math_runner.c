@@ -923,7 +923,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 					icc_warning_given = TRUE;
 				}
 				siril_log_color_message(_("ICC profile of image %d does not match the first image. Converting it to match...\n"), "salmon");
-				convert_fit_colorspace_to_reference_fit(&var_fit[nb_rows], &var_fit[0]);
+				siril_colorspace_transform(&var_fit[nb_rows], var_fit[0].icc_profile);
 			}
 		}
 		// Check channels are compatible

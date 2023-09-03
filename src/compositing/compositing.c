@@ -698,8 +698,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 							layers[layer]->the_fit.icc_profile)) {
 				siril_log_message(_("ICC profile differs to that of the first image loaded."
 								"Converting this image to match.\n"));
-				convert_fit_colorspace(&layers[layer]->the_fit, layers[layer]->the_fit.icc_profile,
-									reference);
+				siril_colorspace_transform(&layers[layer]->the_fit, reference);
 			}
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||

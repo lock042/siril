@@ -73,8 +73,6 @@ void check_profile_correct(fits* fit);
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
-void convert_fit_colorspace(fits *fit, cmsHPROFILE *from, cmsHPROFILE *to);
-void convert_fit_colorspace_to_reference_fit(fits* input, fits* reference);
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile);
 void set_icc_description_in_TIFF();
 void check_linear_and_convert_with_approval(fits *fit);
