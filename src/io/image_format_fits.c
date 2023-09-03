@@ -2881,6 +2881,46 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	return 0;
 }
 
+/* Expands a FITS to [layers] channels. Data in the GLAYER and BLAYER
+ * is not zeroed so will initially be filled with junk, it is assumed that the
+ * calling function will subsequently populate the data in these channels.
+ */
+
+int fits_change_depth(fits *fit, int layers) {
+	g_assert (layers == 1 || layers == 3); // Can only change depth to mono or 3-channel
+
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
+	if (fit->naxes[2] == layers)
+		// Nothing to do! Just return.
+		return 0;
+	if (fit->type == DATA_USHORT) {
+		WORD *tmp;
+		if (!(tmp = realloc(fit->data, nbdata * layers * sizeof(WORD)))) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		fit->data = tmp;
+		fit->naxes[2] = layers;
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + nbdata;
+		fit->pdata[BLAYER] = fit->data + 2 * nbdata;
+	}
+	else if (fit->type == DATA_FLOAT) {
+		float *tmp;
+		if (!(tmp = realloc(fit->fdata, nbdata * layers * sizeof(float)))) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		fit->fdata = tmp;
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = layers == 3 ? fit->fdata + nbdata : fit->fdata;
+		fit->fpdata[BLAYER] = layers == 3 ? fit->fdata + 2 * nbdata: fit->fdata;
+	}
+	fit->naxes[2] = layers;
+	fit->naxis = layers == 1 ? 2 : 3;
+	return 0;
+}
+
 int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	size_t nbdata = from->naxes[0] * from->naxes[1];
 	// copying metadata, not data or stats which are kept null

@@ -33,6 +33,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "core/proto.h"
@@ -867,23 +868,21 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	size_t npixels = fit->rx * fit->ry;
 	// convert from fit->icc_profile to profile
 	gboolean threaded = !get_thread_run();
-	data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
 	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
-	cmsHTRANSFORM transform = NULL;
-	if (fit_colorspace_channels == target_colorspace_channels) {
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.processing_intent, com.icc.rendering_flags);
-	} else {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Error"), _("Transforms between color spaces with different numbers of channels not supported."));
-		return;
-	}
+	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.processing_intent, com.icc.rendering_flags);
 	if (transform) {
+		if (fit_colorspace_channels < target_colorspace_channels)
+			fits_change_depth(fit, target_colorspace_channels);
+		data = (fit->type == DATA_FLOAT) ? (void *) fit->fdata : (void *) fit->data;
 		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = fit->rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
 		cmsDoTransformLineStride(transform, data, data, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
 		cmsCloseProfile(fit->icc_profile);
+		if (fit_colorspace_channels > target_colorspace_channels)
+			fits_change_depth(fit, target_colorspace_channels);
 		fit->icc_profile = copyICCProfile(profile);
 		refresh_icc_transforms();
 		color_manage(fit, TRUE);

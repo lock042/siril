@@ -9367,15 +9367,20 @@ int process_icc_convert_to(int nb) {
 	}
 	cmsHPROFILE profile = NULL;
 	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
-		profile = gfit.naxes[2] == 1 ? gray_linear() : srgb_linear();
+		profile = srgb_linear();
 	} else if (!g_ascii_strncasecmp(arg, "srgb", 4)) {
-		profile = gfit.naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+		profile = srgb_trc();
 	} else if (!g_ascii_strncasecmp(arg, "rec2020linear", 13)) {
-		profile = gfit.naxes[2] == 1 ? gray_linear() : rec2020_linear();
+		profile = rec2020_linear();
 	} else if (!g_ascii_strncasecmp(arg, "rec2020", 7)) {
-		profile = gfit.naxes[2] == 1 ? gray_rec709trc() : rec2020_trc();
-	} else if (!g_ascii_strncasecmp(arg, "linear", 6) && gfit.naxes[2] == 1) {
+		profile = rec2020_trc();
+	} else if (!g_ascii_strncasecmp(arg, "graysrgb", 8)) {
+		profile = gray_srgbtrc();
+	} else if (!g_ascii_strncasecmp(arg, "grayrec2020", 11)) {
+		profile = gray_rec709trc();
+	} else if (!g_ascii_strncasecmp(arg, "graylinear", 10)) {
 		profile = gray_linear();
+
 	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TYPE_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
 	}
@@ -9393,8 +9398,11 @@ int process_icc_convert_to(int nb) {
 		// the pre-existing state of gfit color management
 	}
 	refresh_icc_transforms();
+	if (!com.headless) {
+		close_tab();
+		init_right_tab();
+	}
 	notify_gfit_modified();
-
 	return CMD_OK;
 }
 
