@@ -796,6 +796,16 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 	cmsUInt32Number fit_colorspace_channels;
 
+	// If profile is NULL, we remove the profile from fit to match it. This is an unusual
+	// case but the behaviour is consistent.
+	if (!profile) {
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+		color_manage(fit, FALSE);
+		return;
+	}
+
 	// If fit->color_managed is FALSE, we assign the profile rather than convert to it
 	if (!fit->color_managed || !fit->icc_profile) {
 		fit_colorspace_channels = fit->naxes[2];
