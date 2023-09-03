@@ -430,6 +430,8 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 #pragma omp for private(i) schedule(static)
 #endif
 			for (i = 0; i < ndata; i++) {
+				if (buf[i] == 0)
+					continue;
 				gsl_histogram_increment(histo_thr, (double) buf[i]);
 			}
 		} else if (fit->type == DATA_FLOAT) {
@@ -438,6 +440,8 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 #pragma omp for private(i) schedule(static)
 #endif
 			for (i = 0; i < ndata; i++) {
+				if (buf[i] == 0.f)
+					continue;
 				gsl_histogram_increment(histo_thr, (double) buf[i]);
 			}
 		}
@@ -1089,6 +1093,8 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 }
 
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	if (invocation == HISTO_STRETCH) {
 		if ((_midtones == 0.5f) && (_shadows == 0.0f) && (_highlights == 1.0f)) {
 			return;

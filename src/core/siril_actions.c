@@ -329,7 +329,13 @@ void astrometry_activate(GSimpleAction *action, GVariant *parameter,gpointer use
 }
 
 void dyn_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("stars_list_window");
+	int confirm = TRUE;
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
+				_("The star detection functions in the Dynamic PSF dialog may produce results for this CFA image but will not perform optimally and star parameters may be inaccurate. Are you sure you wish to proceed?"), _("Proceed"));
+	}
+	if (confirm)
+		siril_open_dialog("stars_list_window");
 }
 
 void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -337,6 +343,8 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	psf_star *result = NULL;
 	int layer = select_vport(gui.cvport);
 
@@ -360,6 +368,8 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	process_seq_psf(0);
 }
 
@@ -460,6 +470,8 @@ void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	evaluate_noise_in_image();
 }
 
@@ -568,6 +580,8 @@ void mirrory_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 }
 
 void wavelets_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	siril_open_dialog("wavelets_dialog");
 }
 
@@ -634,12 +648,16 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(fix_saturated_stars, NULL);
 }
 
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	undo_save_state(&gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(do_synthstar, NULL);

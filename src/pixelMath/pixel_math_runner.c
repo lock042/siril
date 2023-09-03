@@ -473,7 +473,12 @@ static void update_metadata(fits *fit) {
 			f[j++] = &var_fit[i];
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(fit, f);
+	if (!f[0])
+		// if no fit used (only constants),
+		// we copy the metadata from first image of the list
+		copy_fits_metadata(var_fit, fit);
+	else
+		merge_fits_headers_to_result2(fit, f);
 	load_WCS_from_memory(fit);
 	free(f);
 }

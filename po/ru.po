@@ -5,17 +5,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-09 08:25+0200\n"
-"PO-Revision-Date: 2023-08-09 06:24+0000\n"
+"POT-Creation-Date: 2023-08-10 08:22+0200\n"
+"PO-Revision-Date: 2023-08-18 22:24+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:8869
@@ -311,24 +311,22 @@ msgid "Save profile datafile"
 msgstr "Сохранить файл с данными профиля"
 
 #: src/gui/siril3.glade:1146
-#, fuzzy
 msgid ""
 "Saves the data file used to generate the profile in the working directory. "
 "The filename is based on the current image and includes a timestamp."
 msgstr ""
-"Сохраняет файл с данными GNUplot, использованными для создания профиля, в "
-"рабочей директории. Имя файла основывается на текущем изображении и включает "
-"отметку времени."
+"Сохраняет в рабочей директории файл с данными, использованными для создания "
+"профиля. Имя файла основывается на текущем изображении и включает отметку "
+"времени."
 
 #: src/gui/siril3.glade:1177
-#, fuzzy
 msgid ""
 "Apply to the current sequence. If this is selected, plots will be generated "
 "in .png format in the working directory: the plot window will not appear. "
 "This mode automatically enables the \"Save plot as .png\" option."
 msgstr ""
 "Применить к текущей последовательности. Если этот флажок установлен, в "
-"рабочей директории будут созданы графики в формате .png: окно GNUplot не "
+"рабочей директории будут созданы графики в формате .png: окно с графиком не "
 "будет отображено. Этот режим автоматически включает опцию \"Сохранить график "
 "как .png\"."
 
@@ -337,15 +335,14 @@ msgid "Save plot as .png"
 msgstr "Сохранить график как .png"
 
 #: src/gui/siril3.glade:1192
-#, fuzzy
 msgid ""
 "Saves the plot in .png format as well as opening the plot window. Sequence "
 "working relies on this so if this option is deactivated, sequence working "
 "will be deactivated too."
 msgstr ""
-"Сохраняет график в формате .png вместе с открытием окна GNUplot. Работа с "
-"последовательностями полагается на эту опцию. Таким образом, её выключение "
-"приводит также к выключению работы с последовательностями."
+"Сохраняет график в формате .png вместе с открытием окна с графиком. Работа с "
+"последовательностями полагается на эту опцию. Таким образом, её отключение "
+"приведёт также к отключению работы с последовательностями."
 
 #: src/gui/siril3.glade:1203
 msgid "Measure in pixels"
@@ -2363,6 +2360,9 @@ msgid ""
 "necessary if you aren't happy with the alignment results and wish to re-do "
 "the alignment, for example with a different framing method."
 msgstr ""
+"Перезагружает все входящие изображения в соответствующие компоновочные слои. "
+"Это необходимо, если вы недовольны результатами выравнивания и хотите "
+"переделать его, с другим способом кадрирования, например."
 
 #: src/gui/siril3.glade:9681
 msgid "Save all"
@@ -2375,6 +2375,10 @@ msgid ""
 "using PixelMath you can still use this tool as a simple means of aligning "
 "them."
 msgstr ""
+"Сохраняет все изображения слоя с префиксом <i>comp_</i>. После выравнивания, "
+"выравненные и кадрированные изображения будут сохранены. Поэтому, если вы "
+"предпочитаете объединять их с помощью математических операций, вы всё равно "
+"можете использовать этот инструмент как простое средство для выравнивания."
 
 #: src/gui/siril3.glade:9736
 msgid "Multi-layer image composition"
@@ -2388,10 +2392,14 @@ msgid "not loaded"
 msgstr "не загружено"
 
 #: src/gui/siril3.glade:9848
+#, fuzzy
 msgid ""
 "In manual alignment mode, sets the x-axis shift.\n"
 "In other alignment modes, shows the x-axis shift applied to the layer."
 msgstr ""
+"Устанавливает смещение по оси X в ручном режиме выравнивания.\n"
+"В других режимах выравнивания показывает смещение по оси X, применённое к "
+"слою."
 
 #: src/gui/siril3.glade:9850
 msgid "x alignment"
@@ -2402,6 +2410,9 @@ msgid ""
 "In manual alignment mode, sets the y-axis shift.\n"
 "In other alignment modes, shows the y-axis shift applied to the layer."
 msgstr ""
+"Устанавливает смещение по оси Y в ручном режиме выравнивания.\n"
+"В других режимах выравнивания показывает смещение по оси Y, применённое к "
+"слою."
 
 #: src/gui/siril3.glade:9863
 msgid "y alignment"
@@ -2414,6 +2425,11 @@ msgid ""
 "origin.\n"
 "Rotation is shown in degrees anticlockwise."
 msgstr ""
+"Устанавливает вращение вокруг центра изображения в ручном режиме "
+"выравнивания.\n"
+"В других режимах выравнивания показывает поворот вокруг начала координат, "
+"применённый к слою.\n"
+"Поворот отображается в градусах против часовой стрелки."
 
 #: src/gui/siril3.glade:9877
 msgid "rotation"
@@ -2433,6 +2449,9 @@ msgid ""
 "This is important if you are not coloring the layers with pure R, pure G and "
 "pure B."
 msgstr ""
+"Линейное сопоставление изображений входного слоя с первым слоем.\n"
+"Это важно если не выполняется окраска слоёв с помощью чистого красного (R), "
+"чистого зелёного (G) и чистого синего (B)."
 
 #: src/gui/siril3.glade:9952
 msgid "Adjust layers brightness"
@@ -2486,7 +2505,7 @@ msgstr "Совмещение в CIE L*a*b*"
 
 #: src/gui/siril3.glade:10004
 msgid "photometric"
-msgstr "фотометрический"
+msgstr "фотометрическая"
 
 #: src/gui/siril3.glade:10008
 msgid "When checked, photometric color calibration is used."
@@ -2520,6 +2539,13 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
+"Выберите способ кадрирования для выравнивания изображений глубокого космоса:"
+"\n"
+"Первый канал - кадр к первому каналу (в режиме \"Светимость\" это всегда L);"
+"\n"
+"Максимум - кадр к максимальному размеру выравненных изображений;\n"
+"Минимум - кадр к минимальному перекрытию всех выравненных изображений;\n"
+"COG - кадр к центру тяжести пикселей в группе выравненных изображений."
 
 #: src/gui/siril3.glade:10112
 msgid "First channel"
@@ -2535,7 +2561,7 @@ msgstr "Мин."
 
 #: src/gui/siril3.glade:10115
 msgid "COG"
-msgstr ""
+msgstr "Центр тяжести"
 
 #: src/gui/siril3.glade:10125
 msgid "Align"
@@ -2579,7 +2605,7 @@ msgstr "Прямое преобразование"
 
 #: src/gui/siril3.glade:10346
 msgid "Magnitude of the image: "
-msgstr "Величина изображения: "
+msgstr "Амплитуда изображения: "
 
 #: src/gui/siril3.glade:10358
 msgid "Phase of the image: "
@@ -2587,7 +2613,7 @@ msgstr "Фаза изображения: "
 
 #: src/gui/siril3.glade:10372
 msgid "Select Magnitude"
-msgstr "Выберите величину"
+msgstr "Выберите амплитуду"
 
 #: src/gui/siril3.glade:10386
 msgid "Select Phase"
@@ -3088,8 +3114,8 @@ msgid "Sel"
 msgstr "Выбор"
 
 #: src/gui/siril3.glade:12406 src/gui/siril3.glade:24832
-#: src/gui/siril3.glade:24867 src/gui/plot.c:139 src/gui/plot.c:1569
-#: src/gui/plot.c:1597 src/gui/sequence_list.c:514
+#: src/gui/siril3.glade:24867 src/gui/plot.c:139 src/gui/plot.c:1571
+#: src/gui/plot.c:1599 src/gui/sequence_list.c:514
 msgid "Quality"
 msgstr "Качество"
 
@@ -4375,7 +4401,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "Последовательности"
 
-#: src/gui/siril3.glade:16462 src/gui/histogram.c:1246
+#: src/gui/siril3.glade:16462 src/gui/histogram.c:1250
 msgid "Histogram Transformation"
 msgstr "Преобразование гистограммы"
 
@@ -6790,7 +6816,6 @@ msgid "Light Curve"
 msgstr "Световая кривая"
 
 #: src/gui/siril3.glade:24981
-#, fuzzy
 msgid ""
 "Plot a graph of the variable star. The variable star must be analysed in "
 "first, then other PSF are applied to references. A maximum of 6 references "
@@ -6799,9 +6824,7 @@ msgid ""
 msgstr ""
 "Построить график переменной звезды. Сначала должна быть проанализирована "
 "переменная звезда, после другие PSF применены к образцам. Максимально "
-"допустимо 6 образцов. Для включения функции, выберите тип графика "
-"'Величина'.\n"
-"ВНИМАНИЕ: должен быть установлен gnuplot."
+"допустимо 6 образцов. Для включения функции, выберите тип графика 'Величина'."
 
 #: src/gui/siril3.glade:25011
 msgid "Show all relevant graphs using registration and / or photometry data."
@@ -7136,7 +7159,7 @@ msgstr ""
 "\n"
 "<b>Кол-во изображений</b> на основе времени накопления кадров."
 
-#: src/gui/siril3.glade:25395 src/gui/plot.c:1575 src/gui/plot.c:1603
+#: src/gui/siril3.glade:25395 src/gui/plot.c:1577 src/gui/plot.c:1605
 msgid "Number of stars"
 msgstr "Кол-во звёзд"
 
@@ -9539,7 +9562,7 @@ msgid "Cannot project the star catalog."
 msgstr "Не удалось спроецировать каталог звёзд."
 
 #: src/algos/astrometry_solver.c:473 src/algos/astrometry_solver.c:476
-#: src/io/remote_catalogues.c:902 src/io/remote_catalogues.c:905
+#: src/io/remote_catalogues.c:917 src/io/remote_catalogues.c:920
 #, c-format
 msgid "Could not load the star catalog (%s)."
 msgstr "Не удалось загрузить каталог звёзд (%s)."
@@ -9549,6 +9572,8 @@ msgid ""
 "No stars have been retrieved from the online catalog. This may mean that the "
 "servers are down. Note that you can install local catalogs."
 msgstr ""
+"Звёзды из удалённого каталога не были получены. Это может значит, что сервер "
+"недоступен. Обратите внимание, что вы можете установить каталоги локально."
 
 #: src/algos/astrometry_solver.c:506
 #, c-format
@@ -9854,7 +9879,7 @@ msgstr ""
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
-#: src/gui/histogram.c:1617 src/gui/remixer.c:1276 src/gui/remixer.c:1324
+#: src/gui/histogram.c:1621 src/gui/remixer.c:1276 src/gui/remixer.c:1324
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "Ошибка: не удалось вычислить статистику.\n"
@@ -9940,8 +9965,8 @@ msgid "No variable star selected\n"
 msgstr "Переменная звезда не выбрана\n"
 
 #: src/algos/comparison_stars.c:359 src/core/command.c:8632
-#: src/core/command.c:8727 src/core/command.c:8782 src/core/command.c:8805
-#: src/core/command.c:8966 src/gui/plot.c:1238
+#: src/core/command.c:8727 src/core/command.c:8771 src/core/command.c:8787
+#: src/core/command.c:8948 src/gui/plot.c:1240
 msgid "This command only works on plate solved images\n"
 msgstr "Команда работает только на изображениях с астрономическим решением\n"
 
@@ -9990,7 +10015,7 @@ msgstr "Фотометрическая информация о целевой з
 
 #: src/algos/comparison_stars.c:524 src/algos/comparison_stars.c:526
 msgid "stars within"
-msgstr ""
+msgstr "звёзды внутри"
 
 #: src/algos/demosaicing.c:949
 msgid ""
@@ -10133,7 +10158,7 @@ msgstr ""
 
 #: src/algos/extraction.c:784 src/algos/extraction.c:1007
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
-msgstr ""
+msgstr "Изображение должно иметь нечётные размеры. Обрезка на 1 пиксель.\n"
 
 #: src/algos/extraction.c:792 src/algos/extraction.c:1015
 msgid "Extract_HaOIII does not work on non-Bayer filter camera images!\n"
@@ -10347,13 +10372,12 @@ msgstr ""
 "неправильной фотометрии\n"
 
 #: src/algos/photometry.c:415
-#, fuzzy
 msgid "Light curve of star"
-msgstr "Световая кривая со списком звёзд NINA"
+msgstr "Световая кривая звезды"
 
 #: src/algos/photometry.c:430
 msgid "V-C"
-msgstr ""
+msgstr "V-C"
 
 #: src/algos/photometry.c:498
 msgid "Failed to analyse the variable star photometry\n"
@@ -10642,13 +10666,13 @@ msgstr "Найдено %d объектов Солнечной системы с 
 msgid "Object %s was found in the %s catalogue, RA = %f, Dec = %f\n"
 msgstr "Объект %s найден в каталоге %s, α = %f, δ = %f\n"
 
-#: src/algos/search_objects.c:380 src/core/command.c:8796
+#: src/algos/search_objects.c:380 src/io/remote_catalogues.c:749
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
 msgstr "Объект %s не найден или произошла ошибка его обработки\n"
 
 #: src/algos/search_objects.c:520 src/io/remote_catalogues.c:674
-#: src/io/remote_catalogues.c:743
+#: src/io/remote_catalogues.c:758
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
@@ -10814,6 +10838,9 @@ msgid ""
 "can be composited. RGB composition is not possible without freeing up more "
 "memory.\n"
 msgstr ""
+"Предупреждение: проверка ограничения памяти показала, что можно совместить "
+"менее 3 изображений такого размера. Совмещение в RGB невозможно без "
+"освобождения бо́льшего объёма памяти.\n"
 
 #: src/compositing/compositing.c:169
 msgid ""
@@ -10821,6 +10848,9 @@ msgid ""
 "can be composited. LRGB composition is not possible without freeing up more "
 "memory.\n"
 msgstr ""
+"Предупреждение: проверка ограничения памяти показала, что можно совместить "
+"менее 4 изображений такого размера. Совмещение в LRGB невозможно без "
+"освобождения бо́льшего объёма памяти.\n"
 
 #: src/compositing/compositing.c:171
 #, c-format
@@ -10828,6 +10858,9 @@ msgid ""
 "Based on the available memory and initial image dimensions, up to %d images "
 "may be composited (the maximum can never exceed 8).\n"
 msgstr ""
+"На основе доступного объёма памяти и первоначальных размеров изображений, "
+"может быть совмещено до %d изображения (максимальное число не может "
+"превысить 8).\n"
 
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
@@ -10965,7 +10998,7 @@ msgstr "Продолжить"
 
 #: src/compositing/compositing.c:924
 msgid "Using Luminance channel as reference.\n"
-msgstr ""
+msgstr "Использование канала \"Светимость\" как опорного.\n"
 
 #. DFT shift ad KOMBAT require a selection to be made
 #: src/compositing/compositing.c:1050
@@ -10974,7 +11007,7 @@ msgstr "Выберите область для выравнивания"
 
 #: src/compositing/compositing.c:1056
 msgid "At least 2 channels must be loaded for align"
-msgstr "Нужно хотя бы два канала для выравнивания"
+msgstr "Для выравнивания необходимо загрузить хотя бы 2 канала"
 
 #: src/compositing/compositing.c:1520
 msgid "No overflow with the current colours, redrawing only\n"
@@ -11036,16 +11069,16 @@ msgstr "Линейное сопоставление слоёв"
 
 #: src/compositing/compositing.c:1696
 msgid "Linear match layers complete"
-msgstr ""
+msgstr "Линейное сопоставление слоёв завершено"
 
 #: src/compositing/compositing.c:1698
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
-msgstr ""
+msgstr "Ошибка: не удалось сопоставить %d слоёв с опорным слоем.\n"
 
 #: src/compositing/compositing.c:1750 src/registration/global.c:145
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
-msgstr "Регистрация последовательности, открытой как CFA это плохая идея.\n"
+msgstr "Регистрация последовательности, открытой как CFA, это плохая идея.\n"
 
 #: src/compositing/compositing.c:1752 src/registration/global.c:147
 msgid "Reference Image:\n"
@@ -11070,7 +11103,7 @@ msgstr[2] "Обработано %d изображений.\n"
 #: src/registration/global.c:485 src/registration/global.c:1063
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
-msgstr "Итого: неудачно %d, выровнено %d.\n"
+msgstr "Итого: неудачно %d, зарегистрировано %d.\n"
 
 #: src/compositing/compositing.c:1891 src/registration/global.c:496
 msgid "Registration aborted.\n"
@@ -11132,7 +11165,7 @@ msgstr "Неизвестный параметр %s, прерывание.\n"
 #: src/core/command.c:2709 src/core/command.c:2717 src/core/command.c:2725
 #: src/core/command.c:2800 src/core/command.c:3892 src/core/command.c:4619
 #: src/core/command.c:4624 src/core/command.c:7846 src/core/command.c:8432
-#: src/core/command.c:8662 src/core/command.c:8942 src/core/command.c:9017
+#: src/core/command.c:8662 src/core/command.c:8924 src/core/command.c:8999
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "Неверный аргумент %s, прерывание.\n"
@@ -11707,7 +11740,7 @@ msgstr ""
 "первого HDU, не для куба FITS.\n"
 
 #: src/core/command.c:2574 src/core/command.c:2588 src/core/command.c:4641
-#: src/core/command.c:8921 src/pixelMath/pixel_math_runner.c:1092
+#: src/core/command.c:8903 src/pixelMath/pixel_math_runner.c:1092
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "Не удалось открыть файл: %s\n"
@@ -11731,8 +11764,8 @@ msgstr "Не удалось сохранить отражённое изобра
 #: src/core/command.c:5126 src/core/command.c:5564 src/core/command.c:6240
 #: src/core/command.c:6381 src/core/command.c:6964 src/core/command.c:8362
 #: src/core/command.c:8373 src/core/command.c:8385 src/core/command.c:8409
-#: src/core/command.c:8652 src/core/command.c:8747 src/core/command.c:8827
-#: src/core/command.c:8836 src/core/command.c:8845 src/core/command.c:8852
+#: src/core/command.c:8652 src/core/command.c:8747 src/core/command.c:8809
+#: src/core/command.c:8818 src/core/command.c:8827 src/core/command.c:8834
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Неверный аргумент %s, прерывание.\n"
@@ -12719,7 +12752,7 @@ msgstr "Последовательность успешно уложена.\n"
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "Отсутствующие аргументы для укладки с выбраковкой.\n"
 
-#: src/core/command.c:7557 src/core/command.c:9075 src/core/preprocess.c:663
+#: src/core/command.c:7557 src/core/command.c:9057 src/core/preprocess.c:663
 #: src/core/preprocess.c:988
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr ""
@@ -12991,8 +13024,8 @@ msgstr "Переопределение предыдущего выделения
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "Все изображения должны быть монохромными и одного размера\n"
 
-#: src/core/command.c:8333 src/core/command.c:8345 src/core/command.c:8995
-#: src/core/command.c:9007
+#: src/core/command.c:8333 src/core/command.c:8345 src/core/command.c:8977
+#: src/core/command.c:8989
 msgid "Could not parse target coordinates\n"
 msgstr "Не удалось разобрать координаты цели\n"
 
@@ -13097,33 +13130,33 @@ msgstr ""
 msgid "Could not compute image resolution\n"
 msgstr "Не удалось вычислить разрешение изображения\n"
 
-#: src/core/command.c:8857 src/core/command.c:8899
+#: src/core/command.c:8839 src/core/command.c:8881
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "Указана неизвестная опция: %s\n"
 
-#: src/core/command.c:8910 src/core/command.c:8931
+#: src/core/command.c:8892 src/core/command.c:8913
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 "Сначала необходимо инициализировать укладку на лету командой START_LS\n"
 
-#: src/core/command.c:8914
+#: src/core/command.c:8896
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 "Укладка на лету сконфигурирована для использования слежения за файлами, а не "
 "этой команды\n"
 
-#: src/core/command.c:8956
+#: src/core/command.c:8938
 #, c-format
 msgid "String in: %s\n"
 msgstr "Входящая строка: %s\n"
 
-#: src/core/command.c:8957
+#: src/core/command.c:8939
 #, c-format
 msgid "String out: %s\n"
 msgstr "Исходящая строка: %s\n"
 
-#: src/core/command.c:9084
+#: src/core/command.c:9066
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
@@ -13131,31 +13164,31 @@ msgstr ""
 "Ошибка: режим CFA не может быть использован со цветными изображениями или "
 "монохромными изображениями без шаблона Байера.\n"
 
-#: src/core/command.c:9124
+#: src/core/command.c:9106
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "За -layer= следует неверная опция, прерывание.\n"
 
-#: src/core/command.c:9149
+#: src/core/command.c:9131
 msgid "Error: Could not parse -from values.\n"
 msgstr "Ошибка: Не удалось разобрать значения -from.\n"
 
-#: src/core/command.c:9157
+#: src/core/command.c:9139
 msgid "Error: Could not parse -to values.\n"
 msgstr "Ошибка: Не удалось разобрать значения -to.\n"
 
-#: src/core/command.c:9165
+#: src/core/command.c:9147
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "Ошибка: Не удалось разобрать значения -wn1at.\n"
 
-#: src/core/command.c:9173
+#: src/core/command.c:9155
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "Ошибка: Не удалось разобрать %s значений.\n"
 
-#: src/core/command.c:9179
+#: src/core/command.c:9161
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Ошибка: эта опция не может использоваться для последовательностей.\n"
 
-#: src/core/command.c:9209
+#: src/core/command.c:9191
 msgid "Error: sequence has variable sized images.\n"
 msgstr "Ошибка: последовательность содержит изображения разного размера.\n"
 
@@ -13356,7 +13389,6 @@ msgstr ""
 "последовательностью FITS (одиночный файл)"
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrates the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -13401,28 +13433,26 @@ msgstr ""
 "темновом мастер-кадре, который должен быть указан с помощью опции <b>-dark=</"
 "b>. Опционально можно указать значения холодных и горячих пикселей с помощью "
 "<b>siglo</b> и <b>sighi</b>, соответственно. Значение 0 отключает коррекцию. "
-"Если значения σ не указаны, то будет применено только определение горячих "
-"пикселей со значением σ равным 3.\n"
+"Если значения σ не указаны, будут определены только горячие пиксели со "
+"значением σ 3.\n"
 "В качестве альтернативы, для указания пикселей, которые необходимо "
 "скорректировать, можно использовать опцию <b>-cc=bpm</b> за которой следует "
-"путь к вашей карте дефектных пикселей. Файл с примером может быть получен с "
+"путь к вашей карте дефектных пикселей. Пример файла может быть получен с "
 "помощью команды <i>find_hot</i>, применённой к темновому мастер-кадру.\n"
 "\n"
-"Для целей косметической коррекции с помощью опции <b>-cfa</b> можно указать, "
-"являются ли обрабатываемые изображения изображениями CFA. При помощи опции "
-"<b>-debayer</b> можно выполнить дебайеризацию изображений в конце процесса.\n"
+"К цветным изображениям в формате CFA применимы три опции: <b>-cfa</b> для "
+"целей косметической коррекции. При помощи опции <b>-debayer</b> можно "
+"выполнить дебайеризацию изображений перед их сохранением. Опция <b>-"
+"equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в мастер-кадре "
+"плоского поля чтобы избежать тонирования откалиброванного изображения.\n"
 "Опция <b>-fix_xtrans</b> используется при работе с файлами X-Trans, применяя "
-"коррекцию к темновым кадрам и кадрам шума считывания для удаления уродливого "
-"квадратного рисунка.\n"
-"Опция <b>-equalize_cfa</b> выравнивает среднюю интенсивность слоёв RGB в "
-"мастер-изображении CFA.\n"
+"коррекцию к темновым кадрам и кадрам шума считывания для удаления "
+"квадратного рисунка в зоне автофокуса.\n"
 "Также можно оптимизировать вычитание темнового мастер-кадра с помощью <b>-"
-"opt</b>.\n"
-"Необходимо отметить, что синтаксический анализатор командной строки не будет "
-"отклонять аргумент <b>-pex</b>, который используется в ходе предобработки "
-"последовательностей, но этот аргумент будет проигнорирован.\n"
-"Название итоговой последовательности будет начинаться с префикса \"pp_\", "
-"если не указан иной с помощью опции <b>-prefix=</b>"
+"opt</b>, которая требует указания мастер-кадров шума считывания и темновых "
+"мастер-кадров.\n"
+"Название итогового файла будет начинаться с префикса \"pp_\", если не указан "
+"иной с помощью опции <b>-prefix=</b>"
 
 #: src/core/command_def.h:18
 msgid "Lists Siril capabilities, based on compilation options and runtime"
@@ -13516,11 +13546,12 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:27
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only DSLR RAW files found in the current "
 "working directory"
-msgstr "Поиск последовательностей в текущей рабочей директории…"
+msgstr ""
+"Аналогична команде CONVERT, но конвертирует только RAW-изображения с "
+"цифровых зеркальных камер (DSLR), найденные в текущей рабочей директории"
 
 #: src/core/command_def.h:28
 msgid ""
@@ -13563,7 +13594,6 @@ msgstr ""
 "размер выделения. Выделение может быть сделано с помощью команды BOXSELECT"
 
 #: src/core/command_def.h:32
-#, fuzzy
 msgid ""
 "Performs a DDP (digital development processing) on the loaded image, as "
 "described first by Kunihiko Okano. This implementation is the one described "
@@ -13577,9 +13607,9 @@ msgid ""
 "16-bit images and may be given either in the range [0, 1] or [0, 65535] for "
 "32-bit images in which case it will be scaled automatically"
 msgstr ""
-"Выполняет цифровую обработку (DDP - digital development processing), как это "
-"было описано Кунихико Окано (Kunihiko Okano). Данная реализация аналогична "
-"таковой в IRIS.\n"
+"Выполняет цифровую обработку загруженного изображения (DDP - digital "
+"development processing), как это было описано Кунихико Окано (Kunihiko "
+"Okano). Данная реализация аналогична таковой в IRIS.\n"
 "\n"
 "Она сочетает линейное распределение на низких уровнях (ниже <b>level</b>) и "
 "нелинейное - на высоких.\n"
@@ -13691,23 +13721,19 @@ msgstr ""
 "каждом канале выполняется отдельно. Это медленнее, но удаляет артефакты"
 
 #: src/core/command_def.h:34
-#, fuzzy
 msgid "Dumps the FITS header of the loaded image in the console"
-msgstr ""
-"Выводит значение указанного ключевого слова заголовка FITS для всех "
-"изображений последовательности"
+msgstr "Отображает заголовок FITS загруженного изображения в журнале"
 
 #: src/core/command_def.h:36
-#, fuzzy
 msgid ""
 "Computes the entropy of the loaded image on the displayed layer, only in the "
 "selected area if one has been selected or in the whole image. The entropy is "
 "one way of measuring the noise or the details in an image"
 msgstr ""
-"Вычисляет энтропию открытого изображения на отображаемом слое. При наличии "
-"выделения, энтропия вычисляется для выделенной области или для всего "
-"изображения, если выделение отсутствует. Энтропия это один из способов "
-"измерения шума или деталей на изображении"
+"Вычисляет энтропию загруженного изображения на отображаемом слое. При "
+"наличии выделения, энтропия вычисляется только для выделенной области или же "
+"для всего изображения, если выделение отсутствует. Энтропия это один из "
+"способов измерения шума или деталей на изображении"
 
 #: src/core/command_def.h:37
 msgid "Quits the application"
@@ -13736,7 +13762,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:41
-#, fuzzy
 msgid ""
 "Extracts H-Alpha and O-III signals from the loaded CFA image. It reads the "
 "Bayer matrix information from the image or the preferences and exports only "
@@ -13750,8 +13775,13 @@ msgid ""
 "this argument is not provided, no resampling will be carried out and the "
 "OIII image will have twice the height and width of the Ha image"
 msgstr ""
-"Извлекает сигналы Ha и OIII из изображения CFA. Имена итоговых файлов будут "
-"начинаться с префиксов \"Ha_\" и \"OIII_\", соответственно\n"
+"Извлекает сигналы H-альфа и O-III из загруженного изображения CFA. Команда "
+"читает информацию о шаблоне Байера из изображения или настроек и в качестве "
+"H-альфа экспортирует только данные красного фильтра в виде нового файла "
+"FITS, уменьшенного вдвое (аналогично EXTRACTHA). Оставшиеся три фильтра "
+"сохраняются в качестве O-III, при этом происходит замена красных пикселей с "
+"помощью интерполяции. Имена итоговых файлов будут начинаться с префиксов "
+"\"Ha_\" и \"OIII_\", соответственно\n"
 "\n"
 "Необязательный аргумент <b>-resample={ha|oiii}</b> указывает, следует ли "
 "увеличивать масштаб изображения Ha или уменьшать масштаб изображения OIII. "
@@ -13760,70 +13790,64 @@ msgstr ""
 "изображением Ha"
 
 #: src/core/command_def.h:43
-#, fuzzy
 msgid ""
 "Divides the loaded image by the image given in argument. The resulting image "
 "is multiplied by the value of the <b>scalar</b> argument. See also IDIV"
 msgstr ""
-"Выполняет деление изображения, находящегося в памяти на изображение, "
-"указанно в аргументе. Получившееся изображение умножается на значение "
-"аргумента <b>scalar</b>. См. также IDIV"
+"Выполняет деление загруженного изображения на изображение, указанно в "
+"аргументе. Получившееся изображение умножается на значение аргумента "
+"<b>scalar</b>. См. также IDIV"
 
 #: src/core/command_def.h:44
-#, fuzzy
 msgid ""
 "Same command as FILL but this is a symmetric fill of a region defined by the "
 "mouse or with BOXSELECT. Used to process an image in the Fourier (FFT) domain"
 msgstr ""
 "Аналогична команде FILL, но выполняет симметричную заливку области, "
-"определённой с помощью мыши. Используется для обработки изображения в домене "
-"Фурье (FFT)"
+"определённой с помощью мыши или команды BOXSELECT. Используется для "
+"обработки изображения в домене Фурье (FFT)"
 
 #: src/core/command_def.h:45
-#, fuzzy
 msgid ""
 "Applies a Fast Fourier Transform to the loaded image. <b>modulus</b> and "
 "<b>phase</b> given in argument are the names of the saved in FITS files"
 msgstr ""
 "Применяет быстрое преобразование Фурье к изображению, загруженному в память. "
-"Амплитуда (<b>modulus</b>) и фаза (<b>phase</b>), указываемые в аргументе, "
-"сохраняются в файлах FITS"
+"Амплитуда (<b>modulus</b>) и фаза (<b>phase</b>), указанные в аргументе, "
+"являются именами сохраняемых файлов FITS"
 
 #: src/core/command_def.h:46
-#, fuzzy
 msgid ""
 "Retrieves corrected image applying an inverse transformation. The "
 "<b>modulus</b> and <b>phase</b> arguments are the input file names, the "
 "result will be the new loaded image"
 msgstr ""
 "Извлекает исправленное изображение, применяя обратное преобразование. "
-"Используемые <b>modulus</b> и <b>phase</b> — это файлы, указанные в аргументе"
+"Используемые аргументы <b>modulus</b> и <b>phase</b> - это названия входящих "
+"файлов. Результатом будет новое загруженное изображение"
 
 #: src/core/command_def.h:47
-#, fuzzy
 msgid ""
 "Fills the loaded image entirely or only the selection if there is one with "
 "pixels having the <b>value</b> intensity expressed in ADU"
 msgstr ""
-"Полностью заливает текущее изображение или выделение пикселями со значением "
-"интенсивности <b>value</b>, выраженной в ADU"
+"Полностью заливает текущее изображение или, при наличии, выделение пикселями "
+"со значением интенсивности <b>value</b>, выраженной в ADU"
 
 #: src/core/command_def.h:48
-#, fuzzy
 msgid ""
 "Applies an automatic detection and replacement of cold and hot pixels in the "
 "loaded image, with the thresholds passed in arguments in sigma units"
 msgstr ""
-"Применяет автоматическое определение холодных и горячих пикселей с "
-"использованием порогов, указанных в аргументах"
+"Применяет автоматическое определение и замену холодных и горячих пикселей на "
+"загруженном изображении с использованием порогов (в значениях σ), указанных "
+"в аргументах"
 
 #: src/core/command_def.h:49
-#, fuzzy
 msgid "Same command as FIND_COSME but for CFA images"
-msgstr "Аналогична команде FIND_COSME, но для монохромных изображений CFA"
+msgstr "Аналогична команде FIND_COSME, но для изображений CFA"
 
 #: src/core/command_def.h:50
-#, fuzzy
 msgid ""
 "Saves a list file <b>filename</b> (text format) in the working directory "
 "which contains the coordinates of the pixels which have an intensity "
@@ -13834,11 +13858,13 @@ msgid ""
 msgstr ""
 "Сохраняет в рабочей директории файл <b>filename</b> (текстовый формат), "
 "содержащий координаты пикселей, с интенсивностью в <b>hot_sigma</b> раз выше "
-"и <b>cold_sigma</b> ниже стандартного отклонения. Обычно мы используем эту "
-"команду для темнового мастер-кадра"
+"и <b>cold_sigma</b> ниже стандартного отклонения, извлечённые из "
+"загруженного изображения. Обычно мы используем эту команду для темнового "
+"мастер-кадра. Команда COSME может применить этот список дефектных пикселей к "
+"загруженному изображению. См. также SEQCOSME для применения его к "
+"последовательности"
 
 #: src/core/command_def.h:51
-#, fuzzy
 msgid ""
 "Automatically finds comparison stars in the field of the plate solved loaded "
 "image, for photometric analysis of a star's light curve according to\n"
@@ -13859,14 +13885,15 @@ msgid ""
 "\n"
 "See also LIGHT_CURVE"
 msgstr ""
-"Автоматически находит звёзды сравнения в поле для фотометрического анализа "
-"световой кривой звезды согласно\n"
+"Автоматически находит звёзды сравнения в поле загруженного изображения с "
+"астрономическим решением для фотометрического анализа световой кривой звезды "
+"согласно\n"
 "- указанному названию звезды\n"
 "- поля зрения изображения, уменьшенного до диаметра, равного высоте "
 "изображения, если передана опция <b>-narrow</b>, избегая звёзд в углах\n"
 "- выбранного каталога (по умолчанию - APASS); может быть изменён с помощью "
 "опции <b>-catalog={NOMAD|APASS}</b>\n"
-"- разнице в визуальном блеске от переменной звезды в диапазоне [0, 6]; "
+"- разнице в визуальном блеске с переменной звездой в диапазоне [0, 6]; "
 "значение по умолчанию 3, может быть изменено с помощью опции <b>-dvmag=</b>\n"
 "- разнице в цвете с переменной звездой в диапазоне показателя цвета B-V "
 "[0.0, 0.7]; значение по умолчанию 0.5, может быть изменено с помощью опции "
@@ -13875,10 +13902,11 @@ msgstr ""
 "При передаче необязательного опции <b>-out=</b>, этот список может быть "
 "сохранён как CSV файл, совместимый со списком звёзд сравнения NINA. Если "
 "указанное название является специальным значением <b>auto</b>, оно "
-"генерируется с использованием входящих параметров"
+"генерируется с использованием входящих параметров\n"
+"\n"
+"См. также LIGHT_CURVE"
 
 #: src/core/command_def.h:52
-#, fuzzy
 msgid ""
 "Detects stars in the currently loaded image, having a level greater than a "
 "threshold computed by Siril.\n"
@@ -13900,8 +13928,8 @@ msgstr ""
 "Определяет звёзды на текущем загруженном изображении, чей уровень превышает "
 "пороговое значение, вычисленное Siril.\n"
 "После этого применяется PSF и Siril выбраковывает все определённые "
-"структуры, которые не удовлетворяют набору ранее определённых критериев, "
-"указанных с помощью команды SETFINDSTAR.\n"
+"структуры, не удовлетворяющие набору ранее определённых критериев. Последние "
+"могут уточнены командой SETFINDSTAR.\n"
 "По окончании вокруг обнаруженных звёзд рисуются окружности.\n"
 "\n"
 "Необязательный параметр <b>-out=</b> позволяет сохранить результаты в "
@@ -13912,10 +13940,9 @@ msgstr ""
 "помощью опции <b>-maxstars=</b>.\n"
 "\n"
 "\n"
-"См. также команду CLEARSTAR"
+"См. также CLEARSTAR"
 
 #: src/core/command_def.h:53
-#, fuzzy
 msgid ""
 "Fixes the Fujifilm X-Trans Auto Focus pixels in the loaded image.\n"
 "\n"
@@ -13928,9 +13955,9 @@ msgstr ""
 "\n"
 "Действительно, из-за особенностей фазовой системы автофокуса, области, "
 "используемые для автофокусировки получают немного меньше света, что соседние "
-"участки. Камера компенсирует это и увеличивает значения в этих областях, что "
-"приводит к заметному квадрату в центре темновых кадров и кадров шума "
-"считывания"
+"участки. Камера компенсирует эту разницу и увеличивает значения в этих "
+"областях, что приводит к заметному квадрату в центре темновых кадров и "
+"кадров шума считывания"
 
 #: src/core/command_def.h:54
 #, fuzzy
@@ -13943,15 +13970,16 @@ msgid ""
 "<b>-vertical</b> option enables to perform vertical banding removal, "
 "horizontal is the default"
 msgstr ""
-"Пытается удалить полошение.\n"
-"\n"
-"Аргумент <b>amount</b> указывает силу коррекции.\n"
-"<b>Sigma</b> определяет уровень защиты алгоритма. Бо́льшие значения дают "
-"бо́льшую защиту.\n"
-"Опция <b>-vertical</b> включает удаление вертикального полошения"
+"Пытается удалить горизонтальное или вертикальное полошение на загруженном "
+"изображении.\n"
+"Аргумент <b>amount</b> указывает силу коррекции, в диапазоне 0-4.\n"
+"Аргумент <b>sigma</b> определяет уровень защиты светов алгоритмом. Бо́льшие "
+"значения σ дают бо́льшую защиту, между 0 и 5. Значения 1 и 1 часто "
+"достаточны.\n"
+"Опция <b>-vertical</b> включает удаление вертикального полошения. По "
+"умолчанию предполагается, что полошение горизонтальное"
 
 #: src/core/command_def.h:55
-#, fuzzy
 msgid ""
 "Performs a median filter of size <b>ksize</b> x <b>ksize</b> (<b>ksize</b> "
 "MUST be odd) to the loaded image with a modulation parameter <b>modulation</"
@@ -13962,7 +13990,7 @@ msgid ""
 "modulation"
 msgstr ""
 "Применяет медианный фильтр, размером <b>ksize</b> × <b>ksize</b> (<b>ksize</"
-"b> ДОЛЖЕН быть нечётным), к оригинальному изображению с параметром модуляции "
+"b> ДОЛЖЕН быть нечётным), к загруженному изображению с параметром модуляции "
 "<b>modulation</b>.\n"
 "\n"
 "Значения итоговых пикселей вычисляются как : out=mod × m + (1 − mod) × in, "
@@ -13983,7 +14011,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:59
-#, fuzzy
 msgid ""
 "Gets a value from the settings using its name, or list all with <b>-a</b> "
 "(name and value list) or with <b>-A</b> (detailed list)\n"
@@ -13991,8 +14018,10 @@ msgid ""
 "See also SET to update values"
 msgstr ""
 "Получает значение настройки, используя название переменной, или список всех "
-"настроек с помощью <b>-a</b> (список название-значение) или <b>-A</b> "
-"(подробный список)"
+"настроек с помощью <b>-a</b> (список название-значение) или <b>-A</b> ("
+"подробный список)\n"
+"\n"
+"Для обновления значений см. также SET"
 
 #: src/core/command_def.h:60
 msgid ""
@@ -14068,46 +14097,45 @@ msgid "Lists the available commands or help for one command"
 msgstr "Отображает список доступных команд или помощь для одной команды"
 
 #: src/core/command_def.h:65
-#, fuzzy
 msgid ""
 "Calculates the histogram of the <b>layer</b> of the loaded image and "
 "produces file histo_[channel name].dat in the working directory.\n"
 "layer = 0, 1 or 2 with 0=red, 1=green and 2=blue"
 msgstr ""
-"Вычисляет гистограмму указанного канала изображения, находящегося памяти и "
-"создает файл histo_[channel name].dat в рабочей директории"
+"Вычисляет гистограмму указанного слоя (<b>layer</b>) загруженного "
+"изображения и создает файл histo_[channel name].dat в рабочей директории.\n"
+"layer = 0, 1 или 2 при 0=красный, 1=зелёный and 2=синий"
 
 #: src/core/command_def.h:67
-#, fuzzy
 msgid ""
 "Adds the image <b>filename</b> to the loaded image.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
-"Складывает изображение, находящееся в памяти, с изображением <b>filename</"
-"b>, указанным в аргументе.\n"
+"Выполняет сложение изображения <b>filename</b> с изображением, находящимся в "
+"памяти.\n"
 "Если позволяют настройки, результат будет иметь разрядность 32 бита на канал"
 
 #: src/core/command_def.h:68
-#, fuzzy
 msgid ""
 "Divides the loaded image by the image <b>filename</b>.\n"
 "Result will be in 32 bits per channel if allowed in the preferences.\n"
 "\n"
 "See also FDIV"
 msgstr ""
-"Выполняет деление изображения, находящегося в памяти, на изображение "
-"<b>filename</b>, указанное в аргументе.\n"
+"Выполняет деление загруженного изображения на изображение <b>filename</b>.\n"
 "Результат будет иметь разрядность 32 бита на канал, если разрешено "
-"настройками. См. также FDIV"
+"настройками.\n"
+"\n"
+"См. также FDIV"
 
 #: src/core/command_def.h:69
-#, fuzzy
 msgid ""
 "Splits the loaded image in a nine-panel mosaic showing the image corners and "
 "the center for a closer inspection (GUI only)"
 msgstr ""
 "Создаёт из текущего изображения мозаику из 9 изображений, отображающую углы "
-"и центр изображения для более тщательного изучения"
+"и центр изображения для более тщательного изучения (только графический "
+"интерфейс)"
 
 #: src/core/command_def.h:70
 msgid ""
@@ -14134,32 +14162,27 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:73
-#, fuzzy
 msgid ""
 "Multiplies image <b>filename</b> by the loaded image.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
-"Умножает изображение, находящееся в памяти, на изображение <b>filename</b>, "
-"указанное в аргументе.\n"
+"Выполняет умножение изображения <b>filename</b> на загруженное изображение.\n"
 "Если позволяют настройки, результат будет иметь разрядность 32 бита на канал"
 
 #: src/core/command_def.h:74
-#, fuzzy
 msgid ""
 "Subtracts the loaded image by the image <b>filename</b>.\n"
 "Result will be in 32 bits per channel if allowed in the preferences, so "
 "capable of storing negative values. To clip negative value, use 16 bit mode "
 "or use the THRESHLO command"
 msgstr ""
-"Вычитает из изображения, находящегося в памяти, изображение <b>filename</b>, "
-"указанное в аргументе.\n"
+"Вычитает из загруженного изображения изображение <b>filename</b>.\n"
 "В результате будет получено изображение с 32 битами на канал (если это "
-"позволено настройками), поэтому возможно сохранение отрицательных значений. "
-"Для обрезки отрицательных значений используйте 16 битные входящие "
-"изображения или обрежьте их с помощью команды THRESHOLD"
+"позволено настройками), в котором возможно сохранение отрицательных "
+"значений. Для обрезки отрицательных значений используйте 16 битный режим или "
+"команду THRESHOLD"
 
 #: src/core/command_def.h:76
-#, fuzzy
 msgid ""
 "Analyses several stars with aperture photometry in a sequence of images and "
 "produces a light curve for one, calibrated by the others. The first "
@@ -14167,7 +14190,7 @@ msgid ""
 "is used, are for the star whose light will be plotted, the others for the "
 "comparison stars.\n"
 "Alternatively, a list of target and reference stars can be passed in the "
-"format of the NINA exolpanet plugin star list, with the <b>-ninastars=</b> "
+"format of the NINA exoplanet plugin star list, with the <b>-ninastars=</b> "
 "option. Siril will verify that all reference stars can be used before "
 "actually using them. A data file is created in the current directory named "
 "light_curve.dat, Siril plots the result to a PNG image if available\n"
@@ -14178,21 +14201,24 @@ msgid ""
 "See also SEQPSF for operations on single star"
 msgstr ""
 "Анализирует несколько звёзд в последовательности изображений с помощью "
-"апертурной фотометрии и создаёт световую кривую одной, откалиброванную. "
-"Первые координаты (в градусах) относятся к звезде, свет которой будет "
-"нанесён на график, остальные - к опорным звёздам. В качестве альтернативы, "
-"список целевых и опорных звёзд может быть передан в формате списка звёзд для "
-"плагина экзопланет NINA при помощи опции <b>-ninastars=</b>. Siril проверит, "
-"что все опорные звёзды могут быть использованы, прежде чем приступить к их "
-"фактическому использованию. Файл с данными (light_curve.dat) будет создан в "
-"текущей директории; gnunplot, если он доступен, преобразует результат в "
-"изображение PNG\n"
+"апертурной фотометрии и создаёт световую кривую одной звезды, "
+"откалиброванную по другим. Первые координаты, в пикселях, если использован "
+"<b>-at=</b>, или в градусах, если использован <b>-wcs=</b>, относятся к "
+"звезде, свет которой будет нанесён на график, остальные - к звёздам "
+"сравнения.\n"
+"В качестве альтернативы, список целевых и опорных звёзд может быть передан в "
+"формате списка звёзд для плагина экзопланет NINA при помощи опции "
+"<b>-ninastars=</b>. Siril проверит, что все опорные звёзды могут быть "
+"использованы, прежде чем приступить к их фактическому использованию. Файл с "
+"данными (light_curve.dat) будет создан в текущей директории. Siril "
+"преобразует результат в изображение PNG\n"
 "Радиусы колец для апертурной фотометрии могут быть установлены в настройках, "
 "или указаны как коэффициент от FWHM опорного изображения, если передана "
-"опция <b>-autoring</b>"
+"опция <b>-autoring</b>.\n"
+"\n"
+"Для операций с отдельными звёздами см. также SEQPSF"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Computes and applies a linear function between a <b>reference</b> image and "
 "the loaded image.\n"
@@ -14201,11 +14227,10 @@ msgid ""
 "the [<b>low</b>, <b>high</b>] range"
 msgstr ""
 "Вычисляет линейную функцию между опорным изображением <b>reference</b> и "
-"изображением, находящимся в памяти.\n"
+"загруженным изображением.\n"
 "\n"
-"После этого функция применяется к текущему изображению, чтобы сопоставить "
-"его с опорным. Алгоритм игнорирует все значения опорных пикселей, "
-"находящиеся за приделами диапазона [<b>low</b>, <b>high</b>]"
+"Алгоритм игнорирует все значения опорных пикселей, находящиеся за приделами "
+"диапазона [<b>low</b>, <b>high</b>]"
 
 #: src/core/command_def.h:78
 msgid ""
@@ -14215,7 +14240,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:79
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "The argument <b>[channels]</b> may optionally be used to specify the "
@@ -14226,10 +14250,6 @@ msgid ""
 "are selected"
 msgstr ""
 "Выполняет линейное растягивание изображения к новой точке чёрного BP.\n"
-"\n"
-"Есть один обязательный аргумент:\n"
-"<b>BP</b> указывает новую точку чёрного к которой будет растянуто "
-"изображение.\n"
 "Для указания каналов, к которым применить растягивание, можно использовать "
 "необязательный параметр <b>[channels]</b>, принимающий значения R, G, B, RG, "
 "RB или GB. По умолчанию растягивание применяется ко всем каналам.\n"
@@ -14287,7 +14307,6 @@ msgstr ""
 "out=</b>"
 
 #: src/core/command_def.h:87
-#, fuzzy
 msgid ""
 "Generates a PSF for use with deconvolution, any of the three methods exposed "
 "by RL, SB or WIENER commands. One of the following must be given as the "
@@ -14343,25 +14362,26 @@ msgid ""
 "filename must be provided and the same filename extension requirements apply "
 "as for <b>makepsf save <i>filename</i></b>"
 msgstr ""
-"Создаёт PSF для использования с реконструкцией. В качестве первого аргумента "
+"Создаёт PSF для использования с реконструкцией, любым из трёх методов, "
+"предоставляемых командами RL, SB или WIENER. В качестве первого аргумента "
 "должно быть указано одно из следующих значений: <b>clear</b> (очищает "
-"существующую PSF), <b>load</b> (загружает PSF из файла), <b>save</b> "
-"(сохраняет текущую PSF), <b>blind</b> (оценка PSF вслепую), <b>stars</b> "
-"(создаёт PSF на основе измеренных звёзд на изображении) или <b>manual</b> "
-"(создаёт PSF вручную на основе функции и параметров).\n"
+"существующую PSF), <b>load</b> (загружает PSF из файла), <b>save</b> ("
+"сохраняет текущую PSF), <b>blind</b> (оценка PSF вслепую), <b>stars</b> ("
+"создаёт PSF на основе измеренных звёзд на изображении) или <b>manual</b> ("
+"создаёт PSF вручную на основе функции и параметров).\n"
 "\n"
 "При использовании аргумента <b>clear</b> дополнительные аргументы не "
 "требуются.\n"
 "\n"
 "Для загрузки раннее сохранённой PSF аргументу <b>load</b> требуется второй "
 "аргумент <i>filename</i> с названием файла, содержащим PSF. Это может быть "
-"любой формат, с поддержкой которого был скомпилирован Siril, но файл должен "
+"любой формат, с поддержкой которого был скомпилирован Siril. Файл должен "
 "быть квадратным и, в идеале, иметь нечётный размер.\n"
 "\n"
 "Для сохранения ранее созданной PSF используется аргумент <b>save</b>. По "
-"выбору может быть указано имя файла, которое должно иметь расширение \"."
-"fit\", \".fits\", \".fts\" или \".tif\". Если имя файла не указано, PSF "
-"будет названа на основе имени открытого файла или последовательности.\n"
+"выбору может быть указано имя файла, которое должно иметь расширение \".fit\""
+", \".fits\", \".fts\" или \".tif\". Если имя файла не указано, PSF будет "
+"названа на основе имени открытого файла или последовательности.\n"
 "\n"
 "Вместе с аргументом <b>blind</b>, могут быть указаны следующие "
 "необязательные аргументы: <b>-l0</b> использует метод спуска l0, <b>-si</b> "
@@ -14382,8 +14402,8 @@ msgstr ""
 "умолчанию используются соответствующие значения, указанные в диалоге "
 "реконструкции. PSF по диску требует единственного аргумента <b>-fwhm=</b>, "
 "который в этой функции используется для установки <i>диаметра</i> PSF. Для "
-"PSF по диску Эйри могут быть переданы следующие аргументы: <b>-dia=</b> "
-"(устанавливает диаметр телескопа), <b>-fl=</b> (устанавливает фокусное "
+"PSF по диску Эйри могут быть переданы следующие аргументы: <b>-dia=</b> ("
+"устанавливает диаметр телескопа), <b>-fl=</b> (устанавливает фокусное "
 "расстояние телескопа), <b>-wl=</b> (устанавливает длину волны, для которой "
 "вычисляется дифракционная картина Эйри), <b>-pixelsize=</b> (устанавливает "
 "размер пикселя сенсора), <b>-obstruct=</b> (устанавливает размер "
@@ -14397,10 +14417,10 @@ msgstr ""
 "оборудования вы можете определить опытным путём.\n"
 "\n"
 "Для любого из приведённых выше аргументов, могут быть указаны необязательные "
-"аргументы <b>-ks=</b> для установки размера PSF и <b>-savepsf=<i>filename</"
-"i></b> для сохранения созданной PSF: название файла должно быть указано; "
-"требования к расширению файла такие же, как для <b>makepsf save <i>filename</"
-"i></b>"
+"аргументы <b>-ks=</b> для установки размера PSF и "
+"<b>-savepsf=<i>filename</i></b> для сохранения созданной PSF: название файла "
+"должно быть указано; требования к расширению файла такие же, как для "
+"<b>makepsf save <i>filename</i></b>"
 
 #: src/core/command_def.h:88
 msgid ""
@@ -14413,28 +14433,26 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:89
-#, fuzzy
 msgid ""
 "Flips the loaded image about the horizontal axis. Option <b>-bottomup</b> "
 "will only flip it if it's not already bottom-up"
 msgstr ""
-"Переворачивает изображение по горизонтали. Опция <b>-bottomup</b> "
-"переворачивает изображение только в том случае, если оно ещё не находится в "
-"ориентации снизу вверх"
+"Переворачивает загруженное изображение по горизонтальной оси. Опция "
+"<b>-bottomup</b> переворачивает изображение только в том случае, если оно "
+"ещё не находится в ориентации снизу вверх"
 
 #: src/core/command_def.h:90
-#, fuzzy
 msgid ""
 "Flips the image about the horizontal axis, only if needed (if it's not "
 "already bottom-up). It takes the image file name as argument, allowing it to "
 "avoid reading image data entirely if no flip is required. Image is "
 "overwritten if a flip is made"
 msgstr ""
-"Переворачивает изображение по горизонтали только при необходимости (если "
-"изображение уже не находится в ориентации снизу вверх). Принимает название "
-"файла как аргумент, позволяя не читать полностью данные изображения, если "
-"необходимость переворота отсутствует. После переворота изображение будет "
-"перезаписано"
+"Переворачивает изображение по горизонтальной оси только при необходимости ("
+"если изображение уже не находится в ориентации снизу вверх). Принимает "
+"название файла как аргумент, позволяя не читать полностью данные "
+"изображения, если необходимость переворота отсутствует. После переворота "
+"изображение будет перезаписано"
 
 #: src/core/command_def.h:91
 msgid "Flips the image about the vertical axis"
@@ -14490,7 +14508,6 @@ msgstr ""
 "RB или GB. По умолчанию растягивание применяется ко всем каналам"
 
 #: src/core/command_def.h:93
-#, fuzzy
 msgid ""
 "Applies midtones transfer function to the current loaded image.\n"
 "\n"
@@ -14507,9 +14524,10 @@ msgstr ""
 "\n"
 "Необходимы три параметра: <b>low</b>, <b>midtones</b> и <b>high</b>, где "
 "параметр баланса полутонов определяет нелинейное растягивание гистограммы в "
-"диапазоне [0, 1].\n"
+"диапазоне [0, 1]. Для автоматического определения необходимых параметров, "
+"см. AUTOSTRETCH.\n"
 "Необязательный параметр <b>[channels]</b> можно использовать для указания "
-"каналов, к которым необходимо применить растягивание: это может быть R, G, "
+"каналов, к которым необходимо применить растягивание: это могут быть R, G, "
 "B, RG, RB или GB. По умолчанию применяется ко всем каналам"
 
 #: src/core/command_def.h:95
@@ -14523,7 +14541,6 @@ msgstr ""
 "для 16 бит. Режим просмотра при этом не изменяется"
 
 #: src/core/command_def.h:96
-#, fuzzy
 msgid ""
 "Creates a new image filled with zeros with a size of <b>width</b> x "
 "<b>height</b>.\n"
@@ -14540,7 +14557,6 @@ msgstr ""
 "но отображается и может быть сохранено позже"
 
 #: src/core/command_def.h:97
-#, fuzzy
 msgid ""
 "Displays stars from the local catalog by default, for the loaded plate "
 "solved image, in GUI only, down to the provided <b>limit_magnitude</b> (13 "
@@ -14551,20 +14567,20 @@ msgid ""
 "<b>-photo</b>"
 msgstr ""
 "Отображает звёзды из локального каталога по умолчанию для изображений, "
-"имеющих астрономическое решение, загруженных в графическом интерфейсе. "
+"имеющих астрономическое решение (только в графическом интерфейсе), с "
+"приделом блеска до <b>limit_magnitude</b> (по умолчанию - 13).\n"
 "Альтернативный каталог может быть указан с помощью <b>-catalog=</b>, "
-"принимающего значения tycho2, nomad, gaia, ppmxl, brightstars или apass. По "
-"умолчанию, сохраняются звёзды, не имеющие информации о показателе цвета B-V. "
-"Они могут быть исключены с помощью аргумента <b>-photo</b>"
+"принимающего значения tycho2, nomad, gaia, ppmxl, brightstars или apass.\n"
+"По умолчанию, сохраняются звёзды, не имеющие информации о показателе цвета B-"
+"V. Они могут быть исключены с помощью аргумента <b>-photo</b>"
 
 #: src/core/command_def.h:98
-#, fuzzy
 msgid ""
 "Replaces null values by <b>level</b> values. Useful before an idiv or fdiv "
 "operation, mostly for 16-bit images"
 msgstr ""
 "Заменяет пустые (null) значения значениями <b>level</b>. Полезно перед "
-"операциями idiv или fdiv"
+"операциями idiv или fdiv, главным образом для 16 битных изображений"
 
 #: src/core/command_def.h:100
 msgid ""
@@ -14616,7 +14632,6 @@ msgstr ""
 "<i>$seqname$</i>"
 
 #: src/core/command_def.h:103
-#, fuzzy
 msgid ""
 "Run the Photometric Color Correction on the loaded image.\n"
 "If the image has already been plate solved, the PCC can reuse the "
@@ -14646,15 +14661,15 @@ msgid ""
 msgstr ""
 "Запускает фотометрическую коррекцию цвета загруженного изображения.\n"
 "Если изображение уже имеет астрономическое решение, оно будет использовано "
-"для коррекции цвета. Если же астрономического решения нет, либо если данные "
-"WCS или другие метаданные изображения ошибочны или отсутствуют, необходимо "
-"передать аргументы для астрономического решения:\n"
-"  приблизительные координаты центра изображения могут быть указаны в виде "
-"десятичных градусов или значений градус/час, минута, секунда, разделённые "
-"двоеточием (эпоха J2000). Значения прямого восхождения и склонения должны "
-"быть разделены запятой или пробелом.\n"
-"  фокусное расстояние и размер пикселя могут быть указаны с помощью <b>-"
-"focal=</b> (в миллиметрах) и <b>-pixelsize=</b> (в микрометрах), "
+"для коррекции цвета. В случае если астрономического решения нет, либо если "
+"данные WCS или другие метаданные изображения ошибочны или отсутствуют, "
+"необходимо передать аргументы для астрономического решения:\n"
+"  приблизительные координаты центра изображения, которые могут быть указаны "
+"в виде десятичных градусов или значений градус/час, минута, секунда, "
+"разделённые двоеточием (эпоха J2000). Значения прямого восхождения и "
+"склонения должны быть разделены запятой или пробелом.\n"
+"  фокусное расстояние и размер пикселя, которые могут быть указаны с помощью "
+"<b>-focal=</b> (в миллиметрах) и <b>-pixelsize=</b> (в микрометрах), "
 "переопределяя значения, полученные из изображения и настроек.\n"
 "  вы можете принудительно выполнить повторный поиск астрономического решения "
 "с помощью флага <b>-platesolve</b>.\n"
@@ -14673,11 +14688,10 @@ msgstr ""
 "блеска.\n"
 "По умолчанию используется каталог звёзд NOMAD, но это значение можно "
 "изменить указав <b>-catalog=apass</b>. Если каталог установлен локально, "
-"обращение к удалённому каталогу NOMAD может быть выполнено с помощью <b>-"
-"catalog=nomad</b>"
+"обращение к удалённому каталогу NOMAD может быть выполнено с помощью "
+"<b>-catalog=nomad</b>"
 
 #: src/core/command_def.h:104
-#, fuzzy
 msgid ""
 "Plate solve the loaded image.\n"
 "If the image has already been plate solved nothing will be done, unless the "
@@ -14714,10 +14728,10 @@ msgstr ""
 "передан аргумент <b>-platesolve</b> для повторного поиска решения. Если "
 "данные WCS или другие метаданные изображения ошибочны или отсутствуют, то "
 "должны быть переданы аргументы:\n"
-"   приблизительные координаты центра изображения могут быть представлены в "
-"виде десятичных градусов или градус/час минута секунда (J2000, разделённые "
-"двоеточием) и значениями прямого восхождения и склонения, разделённые "
-"запятой или пробелом (для astrometry.net — необязательно).\n"
+"   приблизительные координаты центра изображения, которые могут быть "
+"представлены в виде десятичных градусов или градус/час минута секунда ("
+"J2000, разделённые двоеточием) и значениями прямого восхождения и склонения, "
+"разделённые запятой или пробелом (для astrometry.net - необязательно).\n"
 "   фокусное расстояние (в мм) и размер пикселя (в мкм) могут переданы через "
 "<b>-focal=</b> и <b>-pixelsize=</b>, соответственно. Эти значения будут "
 "использованы вместо значений, полученных из изображения или настроек.\n"
@@ -14727,24 +14741,24 @@ msgstr ""
 "Для ускорения поиска звёзд на больших изображениях, возможно уменьшить "
 "изображение с помощью <b>-downscale</b>.\n"
 "\n"
-"Астрономические решения изображений могут быть получены с помощью каталога "
-"звёзд и глобального алгоритма регистрации, либо с помощью локальной команды "
-"solve-field (включается с помощью <b>-localasnet</b>).\n"
+"Астрономические решения изображений могут быть получены Siril с помощью "
+"каталога звёзд и глобального алгоритма регистрации, либо с помощью локальной "
+"команды astrometry.net solve-field (включается с помощью <b>-localasnet</b>)."
+"\n"
 "Следующие опции применимы только к решателю Siril.\n"
 "Предел звёздной величины, используемый при поиске решения, автоматически "
 "вычисляется из размера поля зрения, но он может быть указан с помощью "
 "значений положительного или отрицательного смещения ключа <b>-limitmag=</b>, "
 "или просто через абсолютное положительное значение для ограничения звёздной "
 "величины.\n"
-"Звёздный каталог выбирается автоматически, если только не передан ключ  <b>-"
-"catalog=</b>: если установлены локальные каталоги, то используются они. В "
-"противном случае выбор основывается на размере поля зрения и пределе "
+"Каталог звёзд выбирается автоматически, если только не передан ключ "
+"<b>-catalog=</b>: если установлены локальные каталоги, то используются они. "
+"В противном случае выбор основывается на размере поля зрения и пределе "
 "звёздной величины. Если этот аргумент передан, будет принудительно "
-"использован удалённый каталог. Возможные значения аргумента: tycho2, nomad, "
-"gaia, ppmxl, brightstars, apass"
+"использован удалённый каталог, указанный в аргументе. Возможные значения "
+"аргумента: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 
 #: src/core/command_def.h:105
-#, fuzzy
 msgid ""
 "This command evaluates the expression given in argument as in PixelMath "
 "tool. The full expression must be between double quotes and variables (that "
@@ -14760,13 +14774,13 @@ msgstr ""
 "двойные кавычки, а переменные (которые в этом случае являются именами "
 "изображений без расширения, расположенными в рабочей директории) должны быть "
 "окружены символом $, например \"$image1$ * 0.5 + $image2$ * 0.5\". В "
-"выражении может быть использовано максимум 10 изображений. Изображение можно "
-"масштабировать повторно с помощью опции <b>-rescale</b>, за которой следуют "
-"значения <b>low</b> и <b>high</b> в диапазоне [0, 1]. Если эти значения не "
-"указаны, значения по умолчанию они устанавливаются равными 0 и 1"
+"выражении может быть использовано максимум 10 изображений.\n"
+"Изображение можно масштабировать повторно с помощью опции <b>-rescale</b>, "
+"за которой следуют значения <b>low</b> и <b>high</b> в диапазоне [0, 1]. "
+"Если эти значения не указаны, значения по умолчанию они устанавливаются "
+"равными 0 и 1"
 
 #: src/core/command_def.h:106
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in the image, also "
 "known as a <i>cut</i>. The arguments may be provided in any order. The "
@@ -14809,51 +14823,50 @@ msgid ""
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
 "Title\""
 msgstr ""
-"Создаёт профиль интенсивность между двумя точками на каждом изображении в "
-"последовательности. Аргументы могут быть переданы в любом порядке. "
-"Обязательные аргументы - <b>-to=x,y</b> и <b>-from=x,y</b>.\n"
+"Создаёт профиль интенсивность между двумя точками на изображении (разрез - "
+"<i>cut</i>. Аргументы могут быть переданы в любом порядке. Обязательные "
+"аргументы - <b>-to=x,y</b> и <b>-from=x,y</b>.\n"
 "\n"
 "Аргумент <b>-layer=<i>{red | green | blue | lum | col}</i></b> определяет "
-"какой канал, либо светимость или цвет, отобразить если изображение цветное. "
+"какой канал (либо светимость или цвет) отобразить, если изображение цветное. "
 "Это можно использовать в сочетании с опциями спектрометрии. Также это можно "
 "использовать с опцией <b>-tri</b>, которая создаёт 3 параллельных "
 "равноудалённых профиля, разделённых <b>-spacing=</b> пикселей. Следует "
 "отметить, что для трёхпрофильного типа, опция <i><b>col</b></i> "
-"обрабатывается как <i><b>lum</b></i>.\n"
+"обрабатывается так же, как <i><b>lum</b></i>.\n"
 "\n"
 "Опция <b>-cfa</b> включает режим CFA, создающий 4 профиля, по одному для "
-"каждого канала CFA в изображении с шаблоном Байера. Эта опция не может быть "
-"использована со цветными или монохромными изображениями без шаблона Байера "
-"и, в это же время, не может использоваться с опцией <b>-tri</b>.\n"
+"каждого канала CFA для изображения с шаблоном Байера. Эта опция не может "
+"быть использована со цветными или монохромными изображениями без шаблона "
+"Байера и, в это же время, не может использоваться с опцией <b>-tri</b>.\n"
 "\n"
 "Опция <b>-arcsec</b> позволяет отобразить расстояние по оси x в угловых "
 "секундах, если доступны необходимые метаданные. Если переданы опции "
-"спектрометрии, это опция не принимается во внимание. Если не указано, или "
-"отсутствуют необходимые метаданные, расстояние отображается в пикселях.\n"
+"спектрометрии, это опция не принимается во внимание. Если необходимые "
+"метаданные не указаны или отсутствуют, расстояние отображается в пикселях.\n"
 "\n"
 "Аргумент <b>-savedat</b> может быть передан в случае, если необходимо "
-"сохранить файлы данных GNUplot; название файла будет выведено в журнал. В "
-"качестве альтернативы опция <b>-filename=</b> может быть использована для "
-"указания названия файла, куда сохранить данные. (Опция<b>-filename=</b> "
-"подразумевает <b>-savedat</b>.)\n"
+"сохранить файлы данных; название файла будет выведено в журнал. В качестве "
+"альтернативы, для указания названия файла, куда сохранить данные, можно "
+"использовать опцию <b>-filename=</b>. (Опция <b>-filename=</b> подразумевает "
+"<b>-savedat</b>.)\n"
 "\n"
 "<b>Опции спектрометрии</b>\n"
 "\n"
-"Если указываются опции спектрометрии, то должны быть указаны следующие "
-"опции: <b>-wavenumber1=</b> и <b>-wavenumber2=</b> указывают 2 волновых "
+"Если указываются опции спектрометрии, то должны быть переданы следующие "
+"опции: <b>-wavenumber1=</b> и <b>-wavenumber2=</b> указывают 2 волновые "
 "числа в см<sup>-1</sup>, а <b>-wn1=x,y</b> и <b>-wn2=x,y</b> указывают точки "
-"на изображении, соответствующие этим волновым числам. Для удобства, <b>-"
-"wavelength1=</b> и <b>-wavelength2=</b> могут быть указаны в нанометрах. Они "
-"всегда преобразуются, и ось графика всегда показывает волновое число. Может "
-"быть указан необязательный спектрометрический аргумент <b>-width=</b>, "
+"на изображении, соответствующие этим волновым числам. Для удобства, "
+"<b>-wavelength1=</b> и <b>-wavelength2=</b> могут быть указаны в нанометрах. "
+"Они всегда преобразуются, и ось графика всегда показывает волновое число. "
+"Может быть указан необязательный спектрометрический аргумент <b>-width=</b>, "
 "который определяет сколько пикселей должно быть усреднено перпендикулярно "
 "линии профиля.\n"
 "\n"
 "Аргумент <b>\"-title=<i>Мой заголовок\"</i></b> устанавливает "
-"пользовательский заголовок \"Мой заголовок\"."
+"пользовательский заголовок \"Мой заголовок\""
 
 #: src/core/command_def.h:107
-#, fuzzy
 msgid ""
 "Performs a PSF (Point Spread Function) on the selected star and display the "
 "results. For headless operation, the selection can be given in pixels using "
@@ -14862,8 +14875,9 @@ msgid ""
 "images or when run from the GUI with one of the channels active in the view"
 msgstr ""
 "Выполняет PSF (функция рассеяния точки) для выбранной звезды и отображает "
-"результат. Если указан, аргумент <b>channel</b> позволяет выбрать канал, в "
-"котором будет проанализирована звезда. Он может не указываться для "
+"результат. Для автономной работы, выделение (в пикселях) может быть указано "
+"с помощью BOXSELECT. Если передан, аргумент <b>channel</b> позволяет выбрать "
+"канал, в котором будет проанализирована звезда. Он может не указываться для "
 "монохромных изображений или, при запуске из графического интерфейса, с одним "
 "из активных каналов в отображении"
 
@@ -14977,7 +14991,6 @@ msgstr ""
 "префикса \"r_\", если только не указан иной с помощью опции <b>-prefix=</b>"
 
 #: src/core/command_def.h:110
-#, fuzzy
 msgid "Rescans the scripts folders and updates the Scripts menu"
 msgstr "Пересматривает директории со сценариями и обновляет меню сценариев"
 
@@ -14988,7 +15001,6 @@ msgid ""
 msgstr "Возвращает ошибку, если версия Siril старше, чем указанная в аргументе"
 
 #: src/core/command_def.h:112
-#, fuzzy
 msgid ""
 "Resamples the loaded image, either with a factor <b>factor</b> or for the "
 "target width or height provided by either of <b>-width=</b> or <b>-height=</"
@@ -15006,24 +15018,24 @@ msgid ""
 "to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
 "Масштабирует изображение либо на коэффициент <b>factor</b>, либо к целевой "
-"ширине или высоте, указанным с помощью <b>-width=</b> или <b>-height=</b>. "
-"Обычно это используется для изменения размера изображения, коэффициент 0.5 "
-"уменьшает размер вдвое.\n"
+"ширине или высоте, указанной с помощью <b>-width=</b> или <b>-height=</b>, "
+"соответственно. Обычно это используется для изменения размера изображения, "
+"коэффициент 0.5 уменьшает размер вдвое.\n"
 "Можно отметить, что в графическом интерфейсе доступны несколько алгоритмов "
 "интерполяции.\n"
 "\n"
-"Метод интерполяции пикселей может быть указан с помощью аргумента <b>-"
-"interp=</b>, за которым следует один из методов, указанных в списке <b>no</"
-"b>[ne], <b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</"
-"b>[near], <b>ar</b>[ea]. Если передан <b>none</b>, метод трансформации "
-"принудительно устанавливается в сдвиг и выполняется попиксельный сдвиг для "
-"каждого изображения без какой-либо интерполяции.\n"
-"При интерполяции методом Ланцош-4 или бикубической интерполяции используется "
-"фиксация по умолчанию для предотвращения артефактов, но она может быть "
+"Метод интерполяции пикселей может быть указан с помощью аргумента "
+"<b>-interp=</b>, за которым следует один из методов, указанных в списке "
+"<b>no</b>[ne] (нет), <b>ne</b>[arest] (ближайший сосед), <b>cu</b>[bic] "
+"(бикубическая), <b>la</b>[nczos4] (Ланцош-4), <b>li</b>[near] (линейная), "
+"<b>ar</b>[ea] (отношение площади пикселя). Если передан <b>none</b>, метод "
+"трансформации принудительно устанавливается в сдвиг и выполняется "
+"попиксельный сдвиг для каждого изображения без какой-либо интерполяции.\n"
+"При интерполяции методом Ланцош-4 или бикубической интерполяции по умолчанию "
+"используется фиксация для предотвращения артефактов, но она может быть "
 "отключена с помощью аргумента <b>-noclamp</b>"
 
 #: src/core/command_def.h:113
-#, fuzzy
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
@@ -15032,7 +15044,7 @@ msgid ""
 msgstr ""
 "Создаёт композитное RGB изображение, используя три независимых изображения, "
 "или LRGB композитное изображение, используя дополнительное яркостное "
-"изображение и три монохромных изображения или цветное изображение. Итоговое "
+"изображение и три монохромных или одно цветное изображение. Итоговое "
 "изображение будет иметь название composed_rgb.fit или composed_lrgb.fit, "
 "если в необязательном аргументе не указано другое название"
 
@@ -15055,7 +15067,6 @@ msgstr ""
 "изображения. Этот процесс также называет фильтром Ларсона Секанина"
 
 #: src/core/command_def.h:115
-#, fuzzy
 msgid ""
 "Restores an image using the Richardson-Lucy method.\n"
 "\n"
@@ -15078,22 +15089,23 @@ msgid ""
 msgstr ""
 "Восстанавливает изображение с помощью метода Ричардсона-Люси.\n"
 "\n"
-"PSF может быть загружена с помощью необязательного аргумента <b>-"
-"loadpsf=<i>filename</i></b>.\n"
+"PSF может быть загружена с помощью необязательного аргумента "
+"<b>-loadpsf=<i>filename</i></b> (созданного с помощью MAKEPSF).\n"
 "\n"
 "Количество повторов устанавливается с помощью <b>-iters</b> (по умолчанию - "
 "10).\n"
 "\n"
 "Тип регуляризации может быть установлен с помощью <b>-tv</b> (полная "
-"вариации) или <b>-fh</b> (норма Фробнеуса для гессиана) и параметра <b>-"
-"alpha=</b>, устанавливающего силу регуляризации (меньшее значение = бо́льшая "
-"регуляризация, по умолчанию = 3000). По умолчанию регуляризация отключена.\n"
+"вариация) или <b>-fh</b> (норма Фробнеуса для гессиана) и параметра "
+"<b>-alpha=</b>, устанавливающего силу регуляризации (меньшее значение = бо́"
+"льшая регуляризация, по умолчанию = 3000). По умолчанию регуляризация "
+"отключена.\n"
 "\n"
 "По умолчанию используется метод градиентного спуска с шагом 0.0005, однако с "
 "помощью <b>-mul</b> может быть использован мультипликативный метод.\n"
 "\n"
-"Критерий остановки можно включить, указав предел остановки с помощью <b>-"
-"stop=</b>"
+"Можно включить критерий остановки, указав предел остановки с помощью "
+"<b>-stop=</b>"
 
 #: src/core/command_def.h:116
 msgid ""
@@ -15120,7 +15132,6 @@ msgstr ""
 "значением между 0 и 1. Значение по умолчанию — 1"
 
 #: src/core/command_def.h:117
-#, fuzzy
 msgid ""
 "Rotates the loaded image by an angle of <b>degree</b> value. The option <b>-"
 "nocrop</b> can be added to avoid cropping to the image size (black borders "
@@ -15138,34 +15149,33 @@ msgid ""
 "Clamping of the bicubic and lanczos4 interpolation methods is the default, "
 "to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
-"Вращает изображение на угол <b>degree</b>. Чтобы избежать обрезки "
-"изображения, может быть использована опция <b>-nocrop</b>. При этом к "
-"изображению будут добавлены чёрные границы.\n"
+"Вращает загруженное изображение на угол <b>degree</b>. Чтобы избежать "
+"обрезки изображения, может быть использована опция <b>-nocrop</b>. При этом "
+"к изображению будут добавлены чёрные границы.\n"
 "\n"
 "Замечание: если имеется активное выделение, например, перед `rotate` "
 "использовалась команда `boxselect`, итоговое изображение будет кадрировано "
-"перед вращением. В данном случае аргумент <b>-nocrop</b>, если передан, "
+"перед вращением. В данном случае если передан аргумент <b>-nocrop</b>, он "
 "будет проигнорирован.\n"
 "\n"
-"Метод интерполяции пикселей может быть указан с помощью аргумента <b>-"
-"interp=</b>. Доступны следующие методы: <b>no</b>[ne] (нет), <b>ne</"
-"b>[arest] (ближайший сосед), <b>cu</b>[bic] (бикубическая), <b>la</"
-"b>[nczos4] (Ланцош-4), <b>li</b>[near] (линейная), <b>ar</b>[ea] (отношение "
-"площади пикселя). Если передан аргумент <b>none</b>, принудительно "
+"Метод интерполяции пикселей может быть указан с помощью аргумента "
+"<b>-interp=</b>. Доступны следующие методы: <b>no</b>[ne] (нет), "
+"<b>ne</b>[arest] (ближайший сосед), <b>cu</b>[bic] (бикубическая), "
+"<b>la</b>[nczos4] (Ланцош-4), <b>li</b>[near] (линейная), <b>ar</b>[ea] ("
+"отношение площади пикселя). Если передан аргумент <b>none</b>, принудительно "
 "выполняется сдвиг и к каждому изображению применяется попиксельный сдвиг без "
 "интерполяции.\n"
-"При интерполяции методом Ланцош-4 или бикубической интерполяции используется "
-"фиксация по умолчанию для предотвращения артефактов, но она может быть "
-"отключена с помощью аргумента <b>-noclamp</b>"
+"При интерполяции методом Ланцош-4 или бикубической интерполяции для "
+"предотвращения артефактов по умолчанию используется фиксация, но она может "
+"быть отключена с помощью аргумента <b>-noclamp</b>"
 
 #: src/core/command_def.h:118
-#, fuzzy
 msgid ""
 "Rotates the loaded image of an angle of 180° around its center. This is "
 "equivalent to the command \"ROTATE 180\" or \"ROTATE -180\""
 msgstr ""
-"Вращает изображение на 180° вокруг центра. Это эквивалентно команде \"ROTATE "
-"180\" или \"ROTATE -180\""
+"Вращает загруженное изображение на 180° вокруг центра. Это эквивалентно "
+"команде \"ROTATE 180\" или \"ROTATE -180\""
 
 #: src/core/command_def.h:120
 msgid ""
@@ -15196,7 +15206,6 @@ msgstr ""
 "цвета (значение по умолчанию)"
 
 #: src/core/command_def.h:121
-#, fuzzy
 msgid ""
 "Saves current image to <b>filename</b>.fit (or .fits, depending on your "
 "preferences, see SETEXT) in the current working directory. The image remains "
@@ -15204,8 +15213,9 @@ msgid ""
 "exists"
 msgstr ""
 "Сохраняет текущее изображение <b>filename</b>.fit (или .fits, в зависимости "
-"от ваших настроек, см. SETEXT). Добавляются заголовки Fits MIPS-HI и MIPS-LO "
-"со значениями, соответствующими текущим уровням просмотра"
+"от ваших настроек, см. SETEXT) в текущей рабочей директории. Изображение "
+"остаётся загруженным. <b>filename</b> может содержать путь, если каталог уже "
+"существует"
 
 #: src/core/command_def.h:122
 msgid ""
@@ -15216,7 +15226,6 @@ msgstr ""
 "<b>filename</b>.bmp (BMP 24 бита)"
 
 #: src/core/command_def.h:123
-#, fuzzy
 msgid ""
 "Saves current image into a JPG file: <b>filename</b>.jpg.\n"
 "\n"
@@ -15242,7 +15251,6 @@ msgstr ""
 "загружено 8 битное изображение"
 
 #: src/core/command_def.h:125
-#, fuzzy
 msgid ""
 "Saves current image under the form of a NetPBM file format with 16-bit per "
 "channel.\n"
@@ -15256,7 +15264,6 @@ msgstr ""
 "<b>filename</b>.pgm для изображений в градациях серого"
 
 #: src/core/command_def.h:126
-#, fuzzy
 msgid ""
 "Saves current image under the form of a uncompressed TIFF file with 16-bit "
 "per channel: <b>filename</b>.tif. The option <b>-astro</b> allows saving in "
@@ -15266,10 +15273,11 @@ msgid ""
 msgstr ""
 "Сохраняет текущее изображение в виде несжатого файла TIFF с 16 битами на "
 "канал: <b>filename</b>.tif. Аргумент <b>-astro</b> позволяет сохранять в "
-"формате Astro-tiff, а аргумент <b>-deflate</b> включает сжатие"
+"формате Astro-tiff, а аргумент <b>-deflate</b> включает сжатие.\n"
+"\n"
+"См. также SAVETIF32 и SAVETIF8"
 
 #: src/core/command_def.h:127
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 32-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-TIFF "
@@ -15280,7 +15288,6 @@ msgstr ""
 "сохранение в формате Astro-tiff, а аргумент <b>-deflate</b> включает сжатие"
 
 #: src/core/command_def.h:128
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 8-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-TIFF "
@@ -15314,7 +15321,6 @@ msgstr ""
 "(меньшее значение = бо́льшая регуляризация, по умолчанию = 3000)"
 
 #: src/core/command_def.h:130
-#, fuzzy
 msgid ""
 "This command allows easy mass selection of images in the sequence "
 "<b>sequencename</b> (from <b>from</b> to <b>to</b> included). This is a "
@@ -15323,7 +15329,8 @@ msgid ""
 msgstr ""
 "Эта команда позволяет массовый выбор изображений в последовательности "
 "<b>sequencename</b> (начиная с <b>from</b> и заканчивая <b>to</b> "
-"включительно). См. SELECT"
+"включительно). Это выделение для дальнейшей обработки.\n"
+"См. также UNSELECT"
 
 #: src/core/command_def.h:131
 #, fuzzy
@@ -15407,7 +15414,6 @@ msgstr ""
 "Полная документация по этой команде доступна в документации к командам"
 
 #: src/core/command_def.h:132
-#, fuzzy
 msgid ""
 "This command clears selection, registration and/or statistics data stored "
 "for the sequence <b>sequencename</b>.\n"
@@ -18578,11 +18584,11 @@ msgstr "Александр Прокудин <alexandre.prokoudine@gmail.com>"
 msgid "Visit the Siril website"
 msgstr "Перейти на сайт Siril"
 
-#: src/gui/astrometry_solver.c:314
+#: src/gui/astrometry_solver.c:325
 msgid "Photometry failed.\n"
 msgstr "Фотометрия не удалась.\n"
 
-#: src/gui/astrometry_solver.c:316
+#: src/gui/astrometry_solver.c:327
 msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
@@ -18590,7 +18596,7 @@ msgstr ""
 "Фотометрия не может быть выполнена. Вы можете попытаться изменить установки "
 "в настройках Siril."
 
-#: src/gui/astrometry_solver.c:320
+#: src/gui/astrometry_solver.c:331
 msgid ""
 "Plate Solving failed. The image could not be aligned with the reference "
 "stars.\n"
@@ -18598,7 +18604,7 @@ msgstr ""
 "Астрономическое решение не найдено. Изображение не может быть выравнено по "
 "опорным звёздам.\n"
 
-#: src/gui/astrometry_solver.c:323
+#: src/gui/astrometry_solver.c:334
 msgid ""
 "This is usually because the initial parameters (pixel size, focal length, "
 "initial coordinates) are too far from the real metadata of the image.\n"
@@ -18620,50 +18626,50 @@ msgstr ""
 "Наконец, имейте в виду, что алгоритм поиска астрономического решения следует "
 "применять только к линейному изображению."
 
-#: src/gui/astrometry_solver.c:456
+#: src/gui/astrometry_solver.c:467
 msgid "No object found\n"
 msgstr "Объект не найден\n"
 
-#: src/gui/astrometry_solver.c:550
+#: src/gui/astrometry_solver.c:561
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr ""
 "Для указанного названия нет доступных координат, попробуйте использовать "
 "другое название\n"
 
-#: src/gui/astrometry_solver.c:551 src/gui/astrometry_solver.c:645
+#: src/gui/astrometry_solver.c:562 src/gui/astrometry_solver.c:656
 msgid "No coordinates"
 msgstr "Координаты отсутствуют"
 
-#: src/gui/astrometry_solver.c:561
+#: src/gui/astrometry_solver.c:572
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr "В заголовке FITS нет ключевых слов.\n"
 
-#: src/gui/astrometry_solver.c:562
+#: src/gui/astrometry_solver.c:573
 msgid "No metadata"
 msgstr "Метаданные отсутствуют"
 
-#: src/gui/astrometry_solver.c:646
+#: src/gui/astrometry_solver.c:657
 msgid "Please enter object coordinates."
 msgstr "Пожалуйста, введите координаты объекта."
 
-#: src/gui/astrometry_solver.c:658
+#: src/gui/astrometry_solver.c:669
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr "Решатель astrometry.net не используется с выделением\n"
 
-#: src/gui/astrometry_solver.c:707
+#: src/gui/astrometry_solver.c:718
 msgid "No catalog"
 msgstr "Каталог отсутствует"
 
-#: src/gui/astrometry_solver.c:707
+#: src/gui/astrometry_solver.c:718
 msgid "Cannot download the online star catalog."
 msgstr "Не удалось загрузить удалённый каталог звёзд."
 
-#: src/gui/astrometry_solver.c:719
+#: src/gui/astrometry_solver.c:730
 msgid "Astrometric solution detected"
 msgstr "Найдено астрометрическое решение"
 
-#: src/gui/astrometry_solver.c:720
+#: src/gui/astrometry_solver.c:731
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
@@ -18671,17 +18677,17 @@ msgstr ""
 "При геометрическом преобразовании астрометрическое решение, содержащееся в "
 "изображении, будет удалено без возможности отмены."
 
-#: src/gui/astrometry_solver.c:722
+#: src/gui/astrometry_solver.c:733
 msgid "Process"
 msgstr "Обработка"
 
 #. 2 = GAIA, 3 = PPMXL
 #. 1 = APASS
-#: src/gui/astrometry_solver.c:748 src/gui/photometric_cc.c:248
+#: src/gui/astrometry_solver.c:759 src/gui/photometric_cc.c:248
 msgid "(online catalogue)"
 msgstr "(удалённый каталог)"
 
-#: src/gui/astrometry_solver.c:749 src/gui/photometric_cc.c:249
+#: src/gui/astrometry_solver.c:760 src/gui/photometric_cc.c:249
 msgid "(local catalogue)"
 msgstr "(локальный каталог)"
 
@@ -19297,7 +19303,7 @@ msgstr ""
 "отсутствует"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
-#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1608
+#: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1612
 #: src/gui/photometric_cc.c:202 src/gui/photometric_cc.c:220
 #: src/gui/remixer.c:1264 src/gui/remixer.c:1312
 msgid "There is no selection"
@@ -19355,12 +19361,12 @@ msgstr "Не удалось отобразить ссылку"
 msgid "Please go to <a href=\""
 msgstr "Перейти по <a href=\""
 
-#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
-#: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
+#: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1031
+#: src/gui/histogram.c:1037 src/gui/histogram.c:1692 src/gui/histogram.c:1709
 msgid "Channels warning"
 msgstr "Предупреждение каналов"
 
-#: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
+#: src/gui/histogram.c:144 src/gui/histogram.c:1032 src/gui/histogram.c:1710
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
@@ -19369,7 +19375,7 @@ msgstr ""
 "человеческого глаза не может быть использована: устанавливаем "
 "равновзвешенную цветовую модель."
 
-#: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
+#: src/gui/histogram.c:150 src/gui/histogram.c:1038 src/gui/histogram.c:1693
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -19385,105 +19391,105 @@ msgstr "Применить растягивание к монохромному 
 msgid "Red channel"
 msgstr "Красный канал"
 
-#: src/gui/histogram.c:1154
+#: src/gui/histogram.c:1158
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Преобразование гист-мы (сред.=%.3f, низ=%.3f, верх=%.3f)"
 
-#: src/gui/histogram.c:1161
+#: src/gui/histogram.c:1165
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1164
+#: src/gui/histogram.c:1168
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1167
+#: src/gui/histogram.c:1171
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1170
+#: src/gui/histogram.c:1174
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1173
+#: src/gui/histogram.c:1177
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr "Линейное растягивание BP: %.2f"
 
-#: src/gui/histogram.c:1179
+#: src/gui/histogram.c:1183
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS SAT точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1182
+#: src/gui/histogram.c:1186
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 "GHS INV SAT точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1185
+#: src/gui/histogram.c:1189
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH SAT точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1188
+#: src/gui/histogram.c:1192
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV SAT точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1191
+#: src/gui/histogram.c:1195
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr "GHS LINEAR SAT BP: %.2f"
 
-#: src/gui/histogram.c:1240
+#: src/gui/histogram.c:1244
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 "Не удалось вычислить параметры авторастягивания, используются значения по "
 "умолчанию\n"
 
-#: src/gui/histogram.c:1260
+#: src/gui/histogram.c:1264
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Обобщённое гиперболическое преобразование"
 
-#: src/gui/histogram.c:1288 src/gui/histogram.c:1677
+#: src/gui/histogram.c:1292 src/gui/histogram.c:1681
 msgid "Clicking on the histogram sets SP"
 msgstr "Нажатие на гистограмму устанавливает точку симметрии"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1569
+#: src/gui/histogram.c:1573
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 "Точка сохранения теней не может быть выше, чем центральная точка "
 "растягивания\n"
 
-#: src/gui/histogram.c:1609 src/gui/remixer.c:1265 src/gui/remixer.c:1313
+#: src/gui/histogram.c:1613 src/gui/remixer.c:1265 src/gui/remixer.c:1313
 msgid "Make a selection of the point or area to set SP"
 msgstr "Выберите точку или область для установки точки симметрии"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1648
+#: src/gui/histogram.c:1652
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 "Точка сохранения светов не может быть ниже, чем центральная точка "
 "растягивания\n"
 
-#: src/gui/histogram.c:1675
+#: src/gui/histogram.c:1679
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr "Клик на линейной гистограмме устанавливает точку чёрного (BP)"
 
-#: src/gui/histogram.c:1812
+#: src/gui/histogram.c:1816
 msgid "Midtone Transfer Function"
 msgstr "Передаточная функция полутонов"
 
-#: src/gui/histogram.c:1842
+#: src/gui/histogram.c:1846
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Обратная обобщённая гиперболическая функция переноса"
 
@@ -19969,7 +19975,7 @@ msgstr ""
 msgid "Photometric Color Calibration"
 msgstr "Фотометрическая калибровка цвета"
 
-#: src/gui/plot.c:123 src/gui/plot.c:1527 src/gui/sequence_list.c:539
+#: src/gui/plot.c:123 src/gui/plot.c:1529 src/gui/sequence_list.c:539
 msgid "Amplitude"
 msgstr "Амплитуда"
 
@@ -19981,7 +19987,7 @@ msgstr "Блеск"
 msgid "SNR"
 msgstr "Сигнал/шум"
 
-#: src/gui/plot.c:619 src/gui/plot.c:1325 src/gui/plot.c:1606
+#: src/gui/plot.c:619 src/gui/plot.c:1327 src/gui/plot.c:1608
 msgid "Frames"
 msgstr "Кадры"
 
@@ -20000,87 +20006,87 @@ msgstr ""
 msgid "%s has been saved.\n"
 msgstr "%s сохранен.\n"
 
-#: src/gui/plot.c:1202
+#: src/gui/plot.c:1204
 #, c-format
 msgid "Output files (*%s)"
 msgstr "Итоговые файлы (*%s)"
 
-#: src/gui/plot.c:1438
+#: src/gui/plot.c:1440
 #, c-format
 msgid "Saved plot to image %s\n"
 msgstr "График сохранён в изображении %s\n"
 
-#: src/gui/plot.c:1521 src/gui/plot.c:1554 src/gui/plot.c:1582
+#: src/gui/plot.c:1523 src/gui/plot.c:1556 src/gui/plot.c:1584
 msgid "Star roundness (1 is round)"
 msgstr "Округлость звёзд (1 - круглая)"
 
-#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
+#: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
 msgid "FWHM ('')"
 msgstr "FWHM ('')"
 
-#: src/gui/plot.c:1524 src/gui/plot.c:1557 src/gui/plot.c:1585
+#: src/gui/plot.c:1526 src/gui/plot.c:1559 src/gui/plot.c:1587
 msgid "FWHM (px)"
 msgstr "FWHM (пиксели)"
 
-#: src/gui/plot.c:1531
+#: src/gui/plot.c:1533
 msgid "Star magnitude (absolute)"
 msgstr "Звёздная величина (абсолютная)"
 
-#: src/gui/plot.c:1533
+#: src/gui/plot.c:1535
 msgid "Star magnitude (relative, use setmag)"
 msgstr "Звёздная величина (относительная, используйте setmag)"
 
-#: src/gui/plot.c:1536 src/gui/plot.c:1572 src/gui/plot.c:1600
+#: src/gui/plot.c:1538 src/gui/plot.c:1574 src/gui/plot.c:1602
 msgid "Background value"
 msgstr "Значение фона"
 
-#: src/gui/plot.c:1539
+#: src/gui/plot.c:1541
 msgid "Star position on X axis"
 msgstr "Положение звезды по X"
 
-#: src/gui/plot.c:1542
+#: src/gui/plot.c:1544
 msgid "Star position on Y axis"
 msgstr "Положение звезды по Y"
 
-#: src/gui/plot.c:1545
+#: src/gui/plot.c:1547
 msgid "SNR (dB)"
 msgstr "Сигнал/шум (дБ)"
 
-#: src/gui/plot.c:1560 src/gui/plot.c:1588
+#: src/gui/plot.c:1562 src/gui/plot.c:1590
 msgid "wFWHM ('')"
 msgstr "wFWHM ('')"
 
-#: src/gui/plot.c:1560 src/gui/plot.c:1588
+#: src/gui/plot.c:1562 src/gui/plot.c:1590
 msgid "wFWHM (px)"
 msgstr "wFWHM (пиксели)"
 
-#: src/gui/plot.c:1563 src/gui/plot.c:1591
+#: src/gui/plot.c:1565 src/gui/plot.c:1593
 msgid "Shift on X axis"
 msgstr "Сдвиг по X"
 
-#: src/gui/plot.c:1566 src/gui/plot.c:1594
+#: src/gui/plot.c:1568 src/gui/plot.c:1596
 msgid "Shift on Y axis"
 msgstr "Сдвиг по Y"
 
-#: src/gui/plot.c:1915
+#: src/gui/plot.c:1917
 #, c-format
 msgid "Exclude Frame %d"
 msgstr "Исключить кадр %d"
 
-#: src/gui/plot.c:1917
+#: src/gui/plot.c:1919
 #, c-format
 msgid "Show Frame %d"
 msgstr "Показать кадр %d"
 
-#: src/gui/plot.c:1954
+#: src/gui/plot.c:1956
 msgid "Zoom to selection"
 msgstr "Масштаб по выделению"
 
-#: src/gui/plot.c:1955
+#: src/gui/plot.c:1957
 msgid "Only keep points within selection"
 msgstr "Только в выделении"
 
-#: src/gui/plot.c:1960
+#: src/gui/plot.c:1962
 msgid "Exclude selected points"
 msgstr "Исключить выбранные точки"
 
@@ -20685,34 +20691,29 @@ msgid "Enjoy using the new Siril"
 msgstr "Желаем получить массу удовольствия с новой версией Siril!"
 
 #: src/gui/siril_plot.c:169
-#, fuzzy
 msgid "Snapshot was saved into the clipboard.\n"
-msgstr "Снимок сохранён в буфере обмена."
+msgstr "Снимок сохранён в буфере обмена.\n"
 
 #: src/gui/siril_plot.c:172
-#, fuzzy
 msgid "Could not copy the snapshot into the clipboard.\n"
-msgstr "Копировать снимок в буфер обмена"
+msgstr "Не удалось скопировать снимок в буфер обмена.\n"
 
 #: src/gui/siril_plot.c:441
-#, fuzzy
 msgid "PNG files (*.png)"
 msgstr "Файлы PNG (*.png)"
 
 #: src/gui/siril_plot.c:445
-#, fuzzy
 msgid "DAT files (*.dat)"
-msgstr "Файлы SER (*.ser)"
+msgstr "Файлы DAT (*.dat)"
 
 #: src/gui/siril_plot.c:453
-#, fuzzy
 msgid "SVG files (*.svg)"
-msgstr "Файл CSV (*.csv)"
+msgstr "Файл SVG (*.svg)"
 
 #: src/gui/split_cfa.c:48
 #, fuzzy
 msgid "Error: sequence is SER or FITSEQ"
-msgstr "Ошибка: последовательность SER"
+msgstr "Ошибка: последовательность SER или FITSEQ"
 
 #: src/gui/split_cfa.c:49
 msgid "Only FITS format is supported for sequence CFA splitting"
@@ -21063,13 +21064,13 @@ msgid "Error while converting to FITSEQ (no space left?)\n"
 msgstr "Ошибка при конвертации в FITSQ (закончилось место?)\n"
 
 #: src/io/conversion.c:1314
-#, fuzzy
 msgid "Error while converting to FITS\n"
-msgstr "Ошибка при конвертации в FITS (закончилось место?)\n"
+msgstr "Ошибка при конвертации в FITS\n"
 
 #: src/io/conversion.c:1317
+#, fuzzy
 msgid "No space left!\n"
-msgstr ""
+msgstr "Не осталось свободного места!\n"
 
 #: src/io/conversion.c:1330
 msgid "Error while converting, unknown output\n"
@@ -21440,8 +21441,7 @@ msgstr "Ошибка FITS: %s\n"
 #, fuzzy
 msgid "Normalizing input data to our float range [0, 1]\n"
 msgstr ""
-"Нормализация входящих данных из [%f, %f] к диапазону плавающих значений [0, "
-"1]\n"
+"Нормализация входящих данных к нашему диапазону плавающих значений [0, 1]\n"
 
 #: src/io/image_format_fits.c:1155
 msgid "Cannot move to first image in FITS file\n"
@@ -21729,9 +21729,9 @@ msgid "Catalog APASS size: %d objects\n"
 msgstr "Размер каталога APASS: %d объектов\n"
 
 #: src/io/remote_catalogues.c:507
-#, c-format
+#, c-format, fuzzy
 msgid "After %ld tries, Server unreachable or unresponsive. (%s)\n"
-msgstr ""
+msgstr "После %ld попыток сервер недоступен или не отвечает. (%s)\n"
 
 #: src/io/remote_catalogues.c:517
 #, c-format
@@ -21743,14 +21743,13 @@ msgstr ""
 "%s\n"
 
 #: src/io/remote_catalogues.c:525
-#, fuzzy
 msgid "Internet Connection failure.\n"
-msgstr "Не удалось выполнить сценарий.\n"
+msgstr "Нарушение соединения с интернетом.\n"
 
 #: src/io/remote_catalogues.c:552
-#, c-format
+#, c-format, fuzzy
 msgid "Server unreachable or unresponsive. (%s)\n"
-msgstr ""
+msgstr "Сервер недоступен или не отвечает. (%s)\n"
 
 #: src/io/remote_catalogues.c:710
 #, c-format
@@ -21762,24 +21761,24 @@ msgstr "Поиск объектов Солнечной системы на да�
 msgid "URL: %s\n"
 msgstr "URL: %s\n"
 
-#: src/io/remote_catalogues.c:777
+#: src/io/remote_catalogues.c:792
 msgid "Using already downloaded star catalogue\n"
 msgstr "Использование уже скачанного каталога звёзд\n"
 
-#: src/io/remote_catalogues.c:784 src/io/remote_catalogues.c:813
+#: src/io/remote_catalogues.c:799 src/io/remote_catalogues.c:828
 #, c-format
 msgid "Cannot create catalogue file %s for plate solving (%s)\n"
 msgstr ""
 "Невозможно создать файл каталога %s для астрономического решения (%s)\n"
 
-#: src/io/remote_catalogues.c:837
+#: src/io/remote_catalogues.c:852
 #, c-format
 msgid "Can't open catalog file %s for PCC: %s\n"
 msgstr ""
 "Не удалось открыть файл каталога %s для фотометрической калибровки цвета: "
 "%s\n"
 
-#: src/io/remote_catalogues.c:1073
+#: src/io/remote_catalogues.c:1088
 #, c-format
 msgid ""
 "name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"
@@ -22318,9 +22317,9 @@ msgstr ""
 "При открытии изображения произошла ошибка. Больше информации в журнале."
 
 #: src/io/siril_plot.c:700
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create %s, aborting\n"
-msgstr "Не удалось открыть файл %s, прерывание.\n"
+msgstr "Не удалось создать %s, прерывание.\n"
 
 #: src/livestacking/gui.c:88
 #, c-format

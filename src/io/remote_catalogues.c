@@ -602,6 +602,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, coordinates);
 		url = g_string_append(url, "&-c.rm=");
 		url = g_string_append(url, fov);
+		url = g_string_append(url, "&Gmag=<");
+		url = g_string_append(url, mag);
 		/*if (com.target_star) {
 			g_string_append_printf(url, "&Gmag=<%2.3f", com.target_star->mag + com.delta_vmag);
 			g_string_append_printf(url, "&Gmag=>%2.3f", com.target_star->mag - com.delta_vmag);
@@ -737,6 +739,21 @@ gpointer search_in_online_conesearch(gpointer p) {
 #endif
 }
 
+gpointer catsearch_worker(gpointer p) {
+	gchar *name = (gchar*)p;
+	if(!name)
+		return GINT_TO_POINTER(1);
+
+	int found_it = cached_object_lookup(name, NULL) == 0;
+	if (found_it)
+		siril_add_idle(end_process_catsearch, NULL);
+	else {
+		siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
+		siril_add_idle(end_generic, NULL);
+	}
+	g_free(name);
+	return GINT_TO_POINTER(!found_it);
+}
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
 #ifndef HAVE_NETWORKING
