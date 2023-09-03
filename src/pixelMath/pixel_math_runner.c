@@ -919,10 +919,18 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		if (nb_rows > 0) {
 			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
 				if (!icc_warning_given) {
-					siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), _("ICC profiles do not match. The mismatched images will be converted to the same color profile as the first image. If this is not what you want, correct the color profiles of the input images and reload them into PixelMath."));
+					siril_log_color_message(_("Warning: ICC profiles do not match. The output color profile will be based on the first image to be loaded. If this is not what you want, correct the color profiles of the input images and reload them into PixelMath."), "salmon");
 					icc_warning_given = TRUE;
 				}
-				siril_log_color_message(_("ICC profile of image %d does not match the first image. Converting it to match...\n"), "salmon");
+				if (var_fit[0].icc_profile)
+					siril_log_color_message(_("ICC profile of image %d does not match the first image. Converting it to match.\n"), "salmon");
+				else
+					siril_log_color_message(_("The first image loaded had no color profile. This image does, but it will be ignored.\n"), "salmon");
+				// This also takes care of the stuation where a file doesn't have an
+				// ICC profile - in that case it is assigned a profile to match.
+				// Ultimately it is much better to use images that all have the same
+				// color profile - when they don't we're reduced to guesswork about the
+				// user's intention.
 				siril_colorspace_transform(&var_fit[nb_rows], var_fit[0].icc_profile);
 			}
 		}
