@@ -112,7 +112,7 @@ static int allocate_full_surface(struct image_view *view) {
 }
 
 void check_gfit_profile_identical_to_monitor() {
-	if (!com.headless)
+	if (!com.headless && gfit.icc_profile && gfit.color_managed)
 		identical = profiles_identical(gfit.icc_profile, gui.icc.monitor);
 	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
 }

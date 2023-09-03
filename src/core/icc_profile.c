@@ -85,7 +85,7 @@ static cmsHPROFILE gray_rec709trcv2() {
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
-	if (fit == &gfit) {
+	if (fit == &gfit && !com.headless) {
 		gchar *name = g_build_filename(siril_get_system_data_dir(), "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
 		gchar *tooltip = NULL;
 		if (active) {
@@ -696,18 +696,23 @@ cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
 
 static void set_source_information() {
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
+	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
+	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
 	if (!gfit.color_managed) {
 		siril_debug_print("Target image is not color managed\n");
 		gtk_label_set_text(label, _("No ICC profile"));
+		gtk_label_set_text(mfr_label, "");
+		gtk_label_set_text(copyright_label, "");
 		return;
 	}
 	if (!gfit.icc_profile) {
 		siril_debug_print("Target profile is NULL\n");
+		gtk_label_set_text(label, _("No ICC profile"));
+		gtk_label_set_text(mfr_label, "");
+		gtk_label_set_text(copyright_label, "");
 		return;
 	}
 	// Set description
-	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
-	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
 	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
 	char *buffer = NULL;
 	if (length) {
@@ -1241,9 +1246,22 @@ FINISH:
 	if (gfit.icc_profile)
 		color_manage(&gfit, TRUE);
 	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit.color_managed);
 	set_source_information();
 	refresh_icc_transforms();
 	notify_gfit_modified();
+}
+
+void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	color_manage(&gfit, FALSE);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit.color_managed);
+	set_source_information();
+	refresh_icc_transforms();
+	notify_gfit_modified();
+
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
@@ -1252,10 +1270,7 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 
-	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit.icc_profile);
-	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
 	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
-	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
@@ -1371,12 +1386,17 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 	g_free(filename);
 }
 
+void on_icc_main_window_button_clicked(GtkButton *button, gpointer user_data) {
+	siril_open_dialog("icc_dialog");
+}
+
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_source_information();
 	set_target_information();
 	GtkFileChooser* fc = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
 	gtk_file_chooser_set_current_folder(fc, default_system_icc_path());
 	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit.color_managed);
 }
 
 void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
