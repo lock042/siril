@@ -28,6 +28,7 @@
 #include "icc_profile.h"
 #include "icc_default_profiles.h"
 #include "gui/image_display.h"
+#include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -1260,10 +1261,6 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}
-	if (gfit_colorspace_channels != target_colorspace_channels) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
-		return;
-	}
 
 	// Do the transform
 	siril_colorspace_transform(&gfit, target);
@@ -1277,11 +1274,9 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
 	set_source_information();
 	refresh_icc_transforms();
+	close_tab();
+	init_right_tab();
 	notify_gfit_modified();
-}
-
-static void icc_channels_mismatch() {
-	siril_message_dialog(GTK_MESSAGE_ERROR, _("ICC Profile Mismatch"), _("The number of channels in the image and in the profile do not match."));
 }
 
 void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
@@ -1302,70 +1297,42 @@ void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
 			}
 			return;
 		case SRGB_LINEAR:
-			if (gfit.naxes[2] != 3) {
-				icc_channels_mismatch();
-				break;
-			}
 			if (target) {
 				cmsCloseProfile(target);
 			}
 			target = srgb_linear();
 			break;
 		case SRGB_TRC:
-			if (gfit.naxes[2] != 3) {
-				icc_channels_mismatch();
-				break;
-			}
 			if (target) {
 				cmsCloseProfile(target);
 			}
 			target = srgb_trc();
 			break;
 		case REC2020_LINEAR:
-			if (gfit.naxes[2] != 3) {
-				icc_channels_mismatch();
-				break;
-			}
 			if (target) {
 				cmsCloseProfile(target);
 			}
 			target = rec2020_linear();
 			break;
 		case REC2020_TRC:
-			if (gfit.naxes[2] != 3) {
-				icc_channels_mismatch();
-				break;
-			}
 			if (target) {
 				cmsCloseProfile(target);
 			}
 			target = rec2020_trc();
 			break;
 		case GRAY_LINEAR:
-			if (gfit.naxes[2] != 1) {
-				icc_channels_mismatch();
-				break;
-			}
 			if (target) {
 				cmsCloseProfile(target);
 			}
 			target = gray_linear();
 			break;
 		case GRAY_SRGBTRC:
-			if (gfit.naxes[2] != 1) {
-				icc_channels_mismatch();
-				break;
-			}
 			if (target) {
 				cmsCloseProfile(target);
 			}
 			target = gray_srgbtrc();
 			break;
 		case GRAY_REC709TRC:
-			if (gfit.naxes[2] != 1) {
-				icc_channels_mismatch();
-				break;
-			}
 			if (target) {
 				cmsCloseProfile(target);
 			}
@@ -1404,18 +1371,6 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 	g_free(filename);
 }
 
-void on_icc_gamut_visualisation_clicked() {
-	GtkWidget *win = lookup_widget("icc_gamut_dialog");
-	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
-	/* Here this is wanted that we do not use siril_open_dialog */
-	gtk_widget_show(win);
-}
-
-void on_icc_gamut_close_clicked(GtkButton *button, gpointer user_data) {
-	GtkWidget *win = lookup_widget("icc_gamut_dialog");
-	gtk_widget_hide(win);
-}
-
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_source_information();
 	set_target_information();
@@ -1448,4 +1403,16 @@ void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 
 void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {
 	export_elle_stone_profiles();
+}
+
+void on_icc_gamut_visualisation_clicked() {
+	GtkWidget *win = lookup_widget("icc_gamut_dialog");
+	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
+	/* Here this is wanted that we do not use siril_open_dialog */
+	gtk_widget_show(win);
+}
+
+void on_icc_gamut_close_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *win = lookup_widget("icc_gamut_dialog");
+	gtk_widget_hide(win);
 }
