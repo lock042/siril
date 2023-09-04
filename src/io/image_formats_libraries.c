@@ -750,7 +750,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	void *dest = NULL;
 	cmsHTRANSFORM save_transform = NULL;
 	gboolean threaded = !get_thread_run();
-	// Check the fit has a profile. If not, assign a linear one
 	if (fit->color_managed) {
 		// Transform the data
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
@@ -794,20 +793,37 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = width * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
-		if (!com.headless && fit->naxes[2] == 3) {
-			// Transform from monitor profile to sRGB and save as sRGB
+		if (!com.headless) {
+			// Transform from monitor profile to (sRGB or Gray) and save with the appropriate profile
+			cmsUInt32Number image_type;
+			int depth = fit->naxes[2];
+			image_type = fit->type == DATA_FLOAT ? TYPE_RGB_FLT_PLANAR : TYPE_RGB_16_PLANAR;
+			if (fit->naxes[2] == 1) {
+				fits_change_depth(fit, 3);
+				size_t nbdatasize = fit->rx * fit->ry * fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+				memcpy(fit->fpdata[1], fit->fdata, nbdatasize);
+				memcpy(fit->fpdata[2], fit->fdata, nbdatasize);
+				image_type = fit->type == DATA_FLOAT ? TYPE_GRAY_FLT : TYPE_GRAY_16;
+			}
 			buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-			cmsColorSpaceSignature sig = cmsGetColorSpace(gui.icc.monitor);
-			cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 			if (src_is_float) {
 				dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 			} else {
 				dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 			}
-			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), gui.icc.monitor, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+			cmsUInt32Number monitor_type = fit->type == DATA_FLOAT ? TYPE_RGB_FLT_PLANAR : TYPE_RGB_16_PLANAR;
+			save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), gui.icc.monitor, monitor_type, depth == 3 ? com.icc.srgb_out : com.icc.mono_out, image_type, com.pref.icc.export_intent, 0);
 			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
+			if (depth == 1)
+				fits_change_depth(fit, 1);
 		} else {
+			buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+			if (src_is_float) {
+				dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			} else {
+				dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			}
 			memcpy(dest, buf, bytesperplane * nsamples);
 		}
 	}

@@ -750,14 +750,21 @@ static void set_source_information() {
 void set_icc_description_in_TIFF() {
 	// Set description
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_save_label");
-	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
-	char *buffer = NULL;
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
-		gtk_label_set_text(label, buffer);
-		free(buffer);
+	gchar *buffer = NULL;
+	if (gfit.icc_profile) {
+		int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
+		if (length) {
+			buffer = (char*) g_malloc(length * sizeof(char));
+			cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+		}
+	} else {
+		if (gfit.naxes[2] == 1)
+			buffer = g_strdup(_("No ICC profile. Will save with a Gray profile."));
+		else
+			buffer = g_strdup(_("No ICC profile. Will save with a sRGB profile."));
 	}
+	gtk_label_set_text(label, buffer);
+	g_free(buffer);
 }
 
 static void set_target_information() {
@@ -1272,7 +1279,8 @@ FINISH:
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	// We save the undo state if dealing with gfit
-	undo_save_state(&gfit, _("Color profile removal"));
+
+undo_save_state(&gfit, _("Color profile removal"));
 	if (gfit.icc_profile)
 		cmsCloseProfile(gfit.icc_profile);
 	color_manage(&gfit, FALSE);
