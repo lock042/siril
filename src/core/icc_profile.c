@@ -95,6 +95,9 @@ void color_manage(fits *fit, gboolean active) {
 				int length2 = cmsGetProfileInfoASCII(gui.icc.monitor, cmsInfoDescription, "en", "US", NULL, 0);
 				char *monitor = malloc(length2 * sizeof(char));
 				cmsGetProfileInfoASCII(gui.icc.monitor, cmsInfoDescription, "en", "US", monitor, length2);
+				// TODO: update the tooltip to show the proofing profile if in soft proof mode
+				if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
+				}
 				char *buffer = NULL;
 				if (length) {
 					buffer = malloc(length * sizeof(char));
@@ -634,7 +637,7 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 		fit->icc_profile = cmsOpenProfileFromMem(EmbedBuffer, EmbedLen);
 		check_profile_correct(fit);
 	} else {
-		// If there is no embedded profile we assume the usual sRGB D65 g22
+		// If there is no embedded profile we assume the usual sRGB TRC
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1) ? com.icc.mono_standard : com.icc.srgb_profile);
 	}
 	color_manage(fit, TRUE);

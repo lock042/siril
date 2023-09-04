@@ -241,12 +241,7 @@ static void histo_recompute() {
 	if (invocation == HISTO_STRETCH) {
 		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
-/*		if (autostretch_notify) {
-			if (gfit.icc_profile)
-				cmsCloseProfile(gfit.icc_profile);
-			gfit.icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
-		}
-*/
+
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };

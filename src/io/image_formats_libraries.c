@@ -788,8 +788,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		} else {
 			memcpy(dest, buf, bytesperplane * nsamples);
 		}
-		// 32 bit files are always saved in the working color space with the ICC profile
-		// embedded. If you want 32-bit sRGB output you need to convert the color space yourself.
+		// 32 bit files are always saved in the color space of their current profile.
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
 		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
@@ -805,12 +804,12 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		else {
 			if (fit->icc_profile) {
 				profile = get_icc_profile_data(fit->icc_profile, &profile_len);
-			} else {
-				// 32-bit non-color managed file.
-				profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear, &profile_len);
 			}
 		}
-		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
+		// If they have no profile assigned they are saved with no profile.
+		if (profile) {
+			TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
+		}
 	}
 
 	switch (bitspersample) {
@@ -1019,6 +1018,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	/* Assign the ICC profile, if there is one */
 	if (xdata->icc_buffer && xdata->icc_length > 0) {
 		fit->icc_profile = cmsOpenProfileFromMem(xdata->icc_buffer, xdata->icc_length);
+		color_manage(fit, TRUE);
+	} else {
+		color_manage(fit, FALSE);
 	}
 	free(xdata->icc_buffer);
 
@@ -1896,9 +1898,11 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	fit->pdata[GLAYER] = fit->data;
 	fit->pdata[BLAYER] = fit->data;
 	fit->binning_x = fit->binning_y = 1;
-	// TODO: maybe just leave them not color managed initially?
-	// RAW files are always mono, and always linear: they should have the mono_linear ICC profile
-	fit->icc_profile = copyICCProfile(com.icc.mono_linear);
+	// RAW files are always mono, and pretty certainly always linear: they
+	// should have the mono_linear ICC profile. However for consistency with
+	// other straight-from-the-camera formats we do not set a profile: the user
+	// may assign one if they wish.
+	color_manage(fit, FALSE);
 	if (pitch > 0.f)
 		fit->pixel_size_x = fit->pixel_size_y = pitch;
 	if (raw->other.focal_len > 0.f)

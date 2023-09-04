@@ -363,9 +363,8 @@ static void remap_all_vports() {
 			if (!gui.icc.proofing_transform)
 				gui.icc.proofing_transform = initialize_proofing_transform();
 		}
-	} else {
-		if (!gui.icc.display_transform)
-			gui.icc.display_transform = fallback_display_transform();
+		// Calling color_manage() like this updates the color management button tooltip
+		color_manage(&gfit, gfit.color_managed);
 	}
 
 	if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
