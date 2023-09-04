@@ -752,16 +752,15 @@ void set_icc_description_in_TIFF() {
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_save_label");
 	gchar *buffer = NULL;
 	if (gfit.icc_profile) {
+		gtk_widget_set_tooltip_text((GtkWidget*) label, "");
 		int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
 		if (length) {
 			buffer = (char*) g_malloc(length * sizeof(char));
 			cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
 		}
 	} else {
-		if (gfit.naxes[2] == 1)
-			buffer = g_strdup(_("No ICC profile. Will save with a Gray profile."));
-		else
-			buffer = g_strdup(_("No ICC profile. Will save with a sRGB profile."));
+			gtk_widget_set_tooltip_text((GtkWidget*) label, _("To write an ICC profile, assign a profile to the image using the Color Management dialog."));
+			buffer = g_strdup(_("Image is not color managed. Will not write an ICC profile."));
 	}
 	gtk_label_set_text(label, buffer);
 	g_free(buffer);

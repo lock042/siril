@@ -321,34 +321,36 @@ int savebmp(const char *name, fits *fit) {
 		assign_linear_icc_profile(fit);
 	}
 	// Transform the data
-	buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-	size_t npixels = fit->rx * fit->ry;
-	size_t nchans = fit->naxes[2];
-	cmsUInt32Number trans_type;
-	if (src_is_float) {
-		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-		trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
-	} else {
-		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-		trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+	if (fit->icc_profile && fit->color_managed) {
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		size_t npixels = fit->rx * fit->ry;
+		size_t nchans = fit->naxes[2];
+		cmsUInt32Number trans_type;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+		}
+		gboolean threaded = !get_thread_run();
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
+		cmsUInt32Number data_format_size = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * data_format_size;
+		cmsUInt32Number bytesperplane = npixels * data_format_size;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+		gbuf[0] = (WORD *) dest;
+		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+		gbuff[0] = (float *) dest;
+		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
+		// No profile will be embedded as the version of BITMAPINFOHEADER
+		// we use does not support them: the assumption is that the data is
+		// sRGB (or possibly "Windows color space" which seems to be more or
+		// less the same thing).
 	}
-	gboolean threaded = !get_thread_run();
-	cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
-	cmsUInt32Number data_format_size = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	cmsUInt32Number bytesperline = gfit.rx * data_format_size;
-	cmsUInt32Number bytesperplane = npixels * data_format_size;
-	cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-	cmsDeleteTransform(save_transform);
-	gbuf[0] = (WORD *) dest;
-	gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
-	gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
-	gbuff[0] = (float *) dest;
-	gbuff[1] = (float *) dest + (fit->rx * fit->ry);
-	gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
-	// No profile will be embedded as the version of BITMAPINFOHEADER
-	// we use does not support them: the assumption is that the data is
-	// sRGB (or possibly "Windows color space" which seems to be more or
-	// less the same thing).
 
 	unsigned int padsize = (4 - (width * 3) % 4) % 4;
 	size_t datasize = width * height * 3 + padsize * height;
@@ -678,29 +680,31 @@ static int saveppm(const char *name, fits *fit) {
 	if (fit->icc_profile == NULL) {
 		assign_linear_icc_profile(fit);
 	}
-	// Transform the data
-	buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-	const size_t npixels = fit->rx * fit->ry;
-	if (src_is_float) {
-		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-	} else {
-		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+	// Colorspace transform the data
+	if (fit->color_space && fit->icc_profile) {
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		const size_t npixels = fit->rx * fit->ry;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+		}
+		gboolean threaded = !get_thread_run();
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+		gbuf[0] = (WORD *) dest;
+		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+		gbuff[0] = (float *) dest;
+		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
 	}
-	gboolean threaded = !get_thread_run();
-	cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
-	cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-	cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
-	cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	cmsUInt32Number bytesperline = gfit.rx * datasize;
-	cmsUInt32Number bytesperplane = npixels * datasize;
-	cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-	cmsDeleteTransform(save_transform);
-	gbuf[0] = (WORD *) dest;
-	gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
-	gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
-	gbuff[0] = (float *) dest;
-	gbuff[1] = (float *) dest + (fit->rx * fit->ry);
-	gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
 
 	fits_flip_top_to_bottom(fit);
 	norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
@@ -753,25 +757,27 @@ static int savepgm(const char *name, fits *fit) {
 	if (fit->icc_profile == NULL) {
 		assign_linear_icc_profile(fit);
 	}
-	// Transform the data
-	buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-	const size_t npixels = fit->rx * fit->ry;
-	if (src_is_float) {
-		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-	} else {
-		dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+	// Colorspace transform the data
+	if (fit->color_managed && fit->icc_profile) {
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		const size_t npixels = fit->rx * fit->ry;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+		}
+		gboolean threaded = get_thread_run();
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+		gbuf = (WORD *) dest;
+		gbuff = (float *) dest;
 	}
-	gboolean threaded = get_thread_run();
-	cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
-	cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-	cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
-	cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	cmsUInt32Number bytesperline = gfit.rx * datasize;
-	cmsUInt32Number bytesperplane = npixels * datasize;
-	cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-	cmsDeleteTransform(save_transform);
-	gbuf = (WORD *) dest;
-	gbuff = (float *) dest;
 
 	const char *comment = "# CREATOR : SIRIL";
 
