@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-09-04 09:40+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2023-09-05 16:40+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -287,8 +287,7 @@ msgid ""
 "Generates 3 parallel intensity profiles separated by a given number of "
 "pixels. Tri-profiles always plot luminance along each profile and do not use "
 "spectrometric data."
-msgstr ""
-"生成 3 个由给定像素数分隔的平行强度轮廓。三轮廓始终沿每个轮廓绘制亮度，不使用"
+msgstr "生成 3 个由给定像素数分隔的平行强度轮廓。三轮廓始终沿每个轮廓绘制明度，不使用"
 "光谱数据。"
 
 #: src/gui/siril3.glade:1129
@@ -2347,7 +2346,7 @@ msgid ""
 "images."
 msgstr ""
 "为深空天体对其选择构图方式：\n"
-"首通道 - 构图到第一个通道（亮度模式下始终为 L）;\n"
+"首通道 - 构图到第一个通道（明度模式下始终为 L）;\n"
 "最大化 - 构图到对齐图像的最大范围；\n"
 "最小化 - 构图到所有对齐图像的最小重叠；\n"
 "重心法 - 构图到对齐图像像素的重心。"
@@ -9985,22 +9984,20 @@ msgstr "根据可用内存和初始图像尺寸，最多可以合成 %d 个图�
 #. * should be done in the same way as in registration.c, but it
 #. * woud be easier if the two glades are merged.
 #: src/compositing/compositing.c:441
-#, fuzzy
 msgid "Deep Sky (two-step global star registration)"
-msgstr "全局星点对齐"
+msgstr "深空（两步全局星点对齐）"
 
 #: src/compositing/compositing.c:442
 msgid "Planetary (DFT image pattern alignment)"
-msgstr ""
+msgstr "行星（DFT图像模式对齐）"
 
 #: src/compositing/compositing.c:443
 msgid "Planetary (KOMBAT image pattern alignment)"
-msgstr ""
+msgstr "行星（KOMBAT图像模式对齐）"
 
 #: src/compositing/compositing.c:444
-#, fuzzy
 msgid "Manual alignment"
-msgstr "图层对齐"
+msgstr "手动对齐"
 
 #: src/compositing/compositing.c:550
 msgid "Could not display image, unloading it\n"
@@ -10023,7 +10020,7 @@ msgstr "错误：无法载入图像"
 msgid ""
 "The meximum number of images of this size has been reached based on "
 "available memory limits."
-msgstr ""
+msgstr "根据可用内存限制，已达到此尺寸图像的最大数量。"
 
 #: src/compositing/compositing.c:649 src/compositing/compositing.c:654
 #: src/core/preprocess.c:1007 src/core/preprocess.c:1008
@@ -10036,7 +10033,6 @@ msgid "Cannot load the file, See the log for more information."
 msgstr "文件无法载入，请查询日志以获取更多信息。"
 
 #: src/compositing/compositing.c:655
-#, fuzzy
 msgid "Only single channel images can be loaded"
 msgstr "只有单通道图像可被载入"
 
@@ -10088,15 +10084,15 @@ msgid "Warning"
 msgstr "警告"
 
 #: src/compositing/compositing.c:840
-#, fuzzy, c-format
+#, c-format
 msgid "NOT OK: %ux%u"
-msgstr "NOT OK %ux%u"
+msgstr "NOT OK: %ux%u"
 
 #: src/compositing/compositing.c:846
 msgid ""
 "The image sizes are not consistent. This may happen as the result of "
 "previous alignment operations. Please reload the input images.\n"
-msgstr ""
+msgstr "图像尺寸不一致。这可能是先前对齐操作的结果。请重新加载输入图像。\n"
 
 #: src/compositing/compositing.c:885
 #, c-format
@@ -10104,25 +10100,24 @@ msgid "Starting registration using method: %s\n"
 msgstr "开始对齐，使用方法：%s\n"
 
 #: src/compositing/compositing.c:911
-#, fuzzy
 msgid "Incomplete alignment"
-msgstr "图层对齐"
+msgstr "不完全对齐"
 
 #: src/compositing/compositing.c:912
 msgid ""
 "Some images did not align correctly. Proceed to see the partially aligned "
 "result? (This may alter image dimensions in which case the images must be re-"
 "loaded to retry alignment.)"
-msgstr ""
+msgstr "某些图像未正确对齐。继续查看部分对齐的结果？（这可能会改变图像尺寸，在这种情"
+"况下，必须重新加载图像才能重试对齐。）"
 
 #: src/compositing/compositing.c:915
-#, fuzzy
 msgid "Proceed"
-msgstr "处理"
+msgstr "继续"
 
 #: src/compositing/compositing.c:924
 msgid "Using Luminance channel as reference.\n"
-msgstr ""
+msgstr "使用明度通道作为参考。\n"
 
 #. DFT shift ad KOMBAT require a selection to be made
 #: src/compositing/compositing.c:1050
@@ -12762,7 +12757,6 @@ msgstr ""
 "见SEQCOSME将其应用于序列上"
 
 #: src/core/command_def.h:51
-#, fuzzy
 msgid ""
 "Automatically finds comparison stars in the field of the plate solved loaded "
 "image, for photometric analysis of a star's light curve according to\n"
@@ -12783,22 +12777,24 @@ msgid ""
 "\n"
 "See also LIGHT_CURVE"
 msgstr ""
-"Automatically finds comparison stars in the field for photometric analysis "
-"of a star's light curve according to\n"
+"Automatically finds comparison stars in the field of the plate solved loaded "
+"image, for photometric analysis of a star's light curve according to\n"
 "- the provided name of the star\n"
-"- the field of view of the image, reduced to a diameter of its height if <b>-"
-"narrow</b> is passed, avoiding stars in the corners\n"
-"- the chosen catalog (APASS by default), can be changed with <b>-"
-"catalog={NOMAD|APASS}</b>\n"
-"- the difference in visual magnitude from the variable star, in the range "
-"[0, 6] with a default of 3, change with <b>-dvmag=</b>\n"
-"- the difference in color with from the variable star, in the range [0.0, "
-"0.7] of their B-V indices with a default of 0.5, change with <b>-dbv=</b>.\n"
+"- the field of view of the image, reduced to a diameter of its height if "
+"<b>-narrow</b> is passed, avoiding stars in the corners\n"
+"- the chosen catalog (APASS by default), can be changed with "
+"<b>-catalog={NOMAD|APASS}</b>\n"
+"- the difference in visual magnitude from the variable star, in the range ["
+"0, 6] with a default of 3, change with <b>-dvmag=</b>\n"
+"- the difference in color with from the variable star, in the range [0.0, 0."
+"7] of their B-V indices with a default of 0.5, change with <b>-dbv=</b>.\n"
 "\n"
 "The list can optionally be saved as a CSV file compatible with the NINA "
 "comparison stars list, specifying the file name with <b>-out=</b>. If the "
 "provided name is the special value <b>auto</b>, it is generated using the "
-"input parameters"
+"input parameters\n"
+"\n"
+"See also LIGHT_CURVE"
 
 #: src/core/command_def.h:52
 msgid ""
@@ -13571,7 +13567,6 @@ msgstr ""
 "b>和最高值<b>high</b>。如果没有提供最低值和最高值，则默认为0和1"
 
 #: src/core/command_def.h:106
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in the image, also "
 "known as a <i>cut</i>. The arguments may be provided in any order. The "
@@ -13614,9 +13609,9 @@ msgid ""
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
 "Title\""
 msgstr ""
-"Generates an intensity profile plot between 2 points in the image. The "
-"arguments may be provided in any order. The arguments <b>-to=x,y</b> and <b>-"
-"from=x,y</b> are mandatory.\n"
+"Generates an intensity profile plot between 2 points in the image, also "
+"known as a <i>cut</i>. The arguments may be provided in any order. The "
+"arguments <b>-to=x,y</b> and <b>-from=x,y</b> are mandatory.\n"
 "\n"
 "The argument <b>-layer=<i>{red | green | blue | lum | col}</i></b> specifies "
 "which channel (or luminance or colour) to plot if the image is color. This "
@@ -13635,25 +13630,25 @@ msgstr ""
 "spectrometric options are provided. If not provided or if metadata is not "
 "available, distance will be shown in pixel units.\n"
 "\n"
-"The argument <b>-savedat</b> will cause the GNUplot data files to be saved: "
-"the filename will be written to the log. Alternatively the argument <b>-"
-"filename=</b> can be used to specify a filename to write the data file to. "
-"(The <b>-filename=</b> option implies <b>-savedat</b>.)\n"
+"The argument <b>-savedat</b> will cause the data files to be saved: the "
+"filename will be written to the log. Alternatively the argument "
+"<b>-filename=</b> can be used to specify a filename to write the data file "
+"to. (The <b>-filename=</b> option implies <b>-savedat</b>.)\n"
 "\n"
 "<b>Spectrometric Options</b>\n"
 "\n"
-"If spectrometric options are provided, all of the following must be "
-"provided: <b>-wavenumber1=</b> and <b>-wavenumber2=</b> specify 2 "
-"wavenumbers in cm<sup>-1</sup>, and <b>-wn1=x,y</b> and <b>-wn2=x,y</b> "
-"specify points in the image corresponding to those wavenumbers. As a "
-"convenience, <b>-wavelength1=</b> and <b>-wavelength2=</b> may be used "
-"instead to provide wavelengths in nm. These are always converted and the "
-"plot axis always shows wavenumber. The optional spectrometric argument <b>-"
-"width=</b> may be provided, which specifies how many pixels should be "
-"averaged perpendicular to the profile line.\n"
+"If spectrometric options are provided, all of the following must be provided:"
+" <b>-wavenumber1=</b> and <b>-wavenumber2=</b> specify 2 wavenumbers in "
+"cm<sup>-1</sup>, and <b>-wn1=x,y</b> and <b>-wn2=x,y</b> specify points in "
+"the image corresponding to those wavenumbers. As a convenience, "
+"<b>-wavelength1=</b> and <b>-wavelength2=</b> may be used instead to provide "
+"wavelengths in nm. These are always converted and the plot axis always shows "
+"wavenumber. The optional spectrometric argument <b>-width=</b> may be "
+"provided, which specifies how many pixels should be averaged perpendicular "
+"to the profile line.\n"
 "\n"
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
-"Title\"."
+"Title\""
 
 #: src/core/command_def.h:107
 msgid ""
