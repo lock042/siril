@@ -681,7 +681,7 @@ static int saveppm(const char *name, fits *fit) {
 		assign_linear_icc_profile(fit);
 	}
 	// Colorspace transform the data
-	if (fit->color_space && fit->icc_profile) {
+	if (fit->color_managed && fit->icc_profile) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		const size_t npixels = fit->rx * fit->ry;
 		if (src_is_float) {
