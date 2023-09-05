@@ -241,7 +241,6 @@ static void histo_recompute() {
 	if (invocation == HISTO_STRETCH) {
 		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
-
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
@@ -806,7 +805,6 @@ static void reset_cursors_and_values() {
 	_initialize_clip_text();
 	_update_entry_text();
 	update_gfit_histogram_if_needed();
-//	autostretch_notify = FALSE;
 }
 
 static void queue_window_redraw() {
@@ -1247,7 +1245,6 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		_highlights = 1.0f;
 		_update_entry_text();
 		update_histo_mtf();
-//		autostretch_notify = TRUE;
 		histo_update_preview();
 	} else {
 		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
