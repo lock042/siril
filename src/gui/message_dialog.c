@@ -208,9 +208,9 @@ static gboolean siril_confirm_dialog_internal(gchar *title, gchar *msg, gchar *b
 	res = gtk_dialog_run(GTK_DIALOG(dialog));
 	if (res == GTK_RESPONSE_ACCEPT) {
 		ok = TRUE;
-	}
-	if (check) {
-		var_to_return = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check));
+		if (check) {
+			var_to_return = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check));
+		}
 	}
 	if (user_data) {
 		*user_data = var_to_return;
