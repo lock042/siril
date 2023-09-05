@@ -41,6 +41,7 @@ siril 1.2.0 xx xx, xx
 * Fixed pixel sizes after HaOIII extrcation (#1175)
 * Fixed crash when passing only constants in pm expression (#1176)
 * Fixed incorrect channel when adding star from selection in RGB vport (#1180)
+* Allow to access to non-local disk (#1182)
 
 siril 1.2.0-rc1 June 1, 2023
 

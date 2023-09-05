@@ -238,6 +238,7 @@ static void opendial(int whichdial) {
 	if (!com.wd)
 		return;
 
+	gtk_file_chooser_set_local_only(dialog, FALSE);
 	switch (whichdial) {
 	case OD_NULL:
 		fprintf(stderr, "whichdial undefined, should not happen\n");
@@ -320,7 +321,7 @@ static void opendial(int whichdial) {
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
-		filename = gtk_file_chooser_get_filename(chooser);
+		filename = siril_file_chooser_get_filename(chooser);
 		if (!filename)
 			goto wait;
 
@@ -397,7 +398,7 @@ static void opendial(int whichdial) {
 			break;
 
 		case OD_CONVERT:
-			list = gtk_file_chooser_get_filenames(chooser);
+			list = siril_file_chooser_get_filenames(chooser);
 			list = g_slist_sort(list, (GCompareFunc) strcompare);
 			fill_convert_list(list);
 			g_slist_free(list);
