@@ -32446,59 +32446,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="can-focus">False</property>
                                     <property name="left-padding">12</property>
                                     <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="orientation">vertical</property>
-                                        <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkCheckButton" id="icc_no_lin_disp_tx">
-                                            <property name="label" translatable="yes">Disable display transform for images with linear ICC profiles</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">False</property>
-                                            <property name="tooltip-markup" translatable="yes">When active, the display color space transform will not be done for images with a linear color profile. This avoids transformations where the optimisation plugins don't apply, which makes display updates a lot faster. This is usually fine to activate but if you do, you should ensure you convert to a nonlinear working profile &lt;b&gt;before&lt;/b&gt; stretching your image so that the display looks correct during stretching.</property>
-                                            <property name="halign">start</property>
-                                            <property name="active">True</property>
-                                            <property name="draw-indicator">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                    </child>
-                                  </object>
-                                </child>
-                                <child type="label">
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;General Settings&lt;/b&gt;</property>
-                                    <property name="use-markup">True</property>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFrame">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="label-xalign">0</property>
-                                <property name="shadow-type">none</property>
-                                <child>
-                                  <object class="GtkAlignment">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="left-padding">12</property>
-                                    <child>
                                       <!-- n-columns=3 n-rows=5 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
@@ -32678,7 +32625,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">3</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
@@ -32923,7 +32870,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">4</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -32938,7 +32885,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="can-focus">False</property>
                                     <property name="left-padding">12</property>
                                     <child>
-                                      <!-- n-columns=2 n-rows=4 -->
+                                      <!-- n-columns=3 n-rows=4 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -33004,12 +32951,13 @@ Note: if the format does not support ICC profile embedding, images will always b
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkCheckButton">
-                                            <property name="label" translatable="yes">Embed ICC profiles in FITS images and FITSEQ sequences</property>
+                                          <object class="GtkCheckButton" id="default_to_srgb">
+                                            <property name="label" translatable="yes">Treat non color-managed files as sRGB for export to supported formats</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">False</property>
-                                            <property name="tooltip-text" translatable="yes">When this option is checked, the working color space ICC profile will be embedded in saved FITS files using the same method as other major astrophotography processing softwares.</property>
+                                            <property name="tooltip-text" translatable="yes">For files with no assigned color profile, when exporting to TIFF / PNG / JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a true color managed workflow and is not guaranteed to give consistent color reproduction when opening the exported files in other applications.
+(File format support depends on the image libraries Siril has been built against.)</property>
                                             <property name="halign">start</property>
                                             <property name="active">True</property>
                                             <property name="draw-indicator">True</property>
@@ -33017,7 +32965,7 @@ Note: if the format does not support ICC profile embedding, images will always b
                                           <packing>
                                             <property name="left-attach">0</property>
                                             <property name="top-attach">0</property>
-                                            <property name="width">2</property>
+                                            <property name="width">3</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -33049,6 +32997,15 @@ Note: if the format does not support ICC profile embedding, images will always b
                                             <property name="top-attach">1</property>
                                           </packing>
                                         </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
                                       </object>
                                     </child>
                                   </object>
@@ -33066,7 +33023,7 @@ Note: if the format does not support ICC profile embedding, images will always b
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">5</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                             <child>
@@ -33119,7 +33076,7 @@ Note: if the format does not support ICC profile embedding, images will always b
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">6</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                           </object>

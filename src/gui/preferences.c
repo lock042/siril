@@ -234,7 +234,7 @@ static void update_user_interface_preferences() {
 	com.pref.icc.rendering_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")));
 	com.pref.icc.proofing_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_proofing_intent")));
 	com.pref.icc.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
-	com.pref.icc.no_lin_disp_tx = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("icc_no_lin_disp_tx")));
+	com.pref.icc.default_to_srgb = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")));
 	com.pref.icc.working_gamut = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("working_gamut")));
 	com.pref.icc.export_8bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
 	com.pref.icc.export_16bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
@@ -696,7 +696,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")), pref->icc.export_intent);
 	initialize_icc_preferences_widgets();
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("icc_no_lin_disp_tx")), pref->icc.no_lin_disp_tx);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")), pref->icc.default_to_srgb);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")), pref->icc.rendering_bpc);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_proofing_bpc")), pref->icc.proofing_bpc);
 	/* tab 9 */

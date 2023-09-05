@@ -806,10 +806,12 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 				profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 			}
 		}
-		// If they have no profile assigned they are saved with no profile.
-		if (profile) {
-			TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
-		}
+	} else if (com.pref.icc.default_to_srgb) {
+		profile = get_icc_profile_data(fit->naxes[2] == 1 ? com.icc.mono_out : com.icc.srgb_out, &profile_len);
+	}
+	// If there is an ICC profile, embed it in the file.
+	if (profile) {
+		TIFFSetField(tif, TIFFTAG_ICCPROFILE, profile_len, profile);
 	}
 
 	switch (bitspersample) {
@@ -1242,16 +1244,18 @@ int savejpg(const char *name, fits *fit, int quality){
 
 	// Write the ICC profile, if the image is color managed
 	JOCTET *EmbedBuffer = NULL;
-	if (fit->color_managed && fit->icc_profile) {
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
-		unsigned int EmbedLen = 0;
+	unsigned int EmbedLen = 0;
+	if (fit->color_managed && fit->icc_profile) {
 		EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &EmbedLen);
-		if (EmbedBuffer)
-			jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
-		else
-			siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
-#endif
+	} else if (com.pref.icc.default_to_srgb) {
+		EmbedBuffer = get_icc_profile_data((cinfo.input_components == 1 ? com.icc.mono_out : com.icc.srgb_out), &EmbedLen);
 	}
+	if (EmbedBuffer)
+		jpeg_write_icc_profile(&cinfo, (const JOCTET*) EmbedBuffer, EmbedLen);
+	else
+		siril_log_color_message(_("Error: failed to write ICC profile to JPG\n"), "red");
+#endif
 
 	int row_stride = cinfo.image_width * cinfo.input_components;        // JSAMPLEs per row in image_buffer
 
@@ -1600,16 +1604,16 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	if (fit->color_managed && fit->icc_profile) {
 		if (bytes_per_sample == 1) {
-			profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? gray_srgbtrc() : com.icc.mono_out), &profile_len);
+			profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_8bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 		} else {
 			profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.pref.icc.export_16bit_method == 0 ? com.icc.srgb_out : com.icc.working_out), &profile_len);
 		}
-
-		if (profile_len > 0) {
-				png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
-		}
+	} else if(com.pref.icc.default_to_srgb) {
+		profile = get_icc_profile_data((samples_per_pixel == 1 ? com.icc.mono_out : com.icc.srgb_out), &profile_len);
 	}
-
+	if (profile_len > 0) {
+			png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
+	}
 
 	/* Write the file header information.  REQUIRED */
 	png_write_info(png_ptr, info_ptr);

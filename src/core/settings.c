@@ -217,7 +217,7 @@ preferences pref_init = {
 		.custom_icc_gray = NULL,
 		.export_8bit_method = EXPORT_SRGB,
 		.export_16bit_method = EXPORT_WORKING,
-		.no_lin_disp_tx = TRUE,
+		.default_to_srgb = TRUE,
 		.rendering_bpc = TRUE,
 		.proofing_bpc = TRUE
 	}
@@ -411,7 +411,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.icc.rendering_intent },
 	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
 	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },
-	{ "gui", "icc_no_lin_disp_tx", STYPE_BOOL, N_("avoid expensive display transforms from linear ICC profiles"), &com.pref.icc.no_lin_disp_tx },
+	{ "gui", "default_to_srgb", STYPE_BOOL, N_("default to sRGB when exporting non color managed images"), &com.pref.icc.default_to_srgb },
 	{ "gui", "working_gamut", STYPE_INT, N_("color mangement working gamut"), &com.pref.icc.working_gamut },
 	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
 	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },
