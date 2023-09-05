@@ -23,7 +23,6 @@
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
-#include "core/icc_profile.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_date.h"
 #include "core/command.h"
@@ -1199,37 +1198,22 @@ gpointer deconvolve(gpointer p) {
 
 	next_psf_is_previous = (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) ? TRUE : FALSE;
 
-	cmsHPROFILE cielab_profile = NULL, profile = NULL;
-	cmsColorSpaceSignature sig;
-	cmsUInt32Number src_type, dest_type;
-	cmsHTRANSFORM transform = NULL, inverse_transform = NULL;
 	float *xyzdata = NULL;
-	int npixels = the_fit->rx * the_fit->ry;
-	cmsUInt32Number datasize = sizeof(float), bytesperline = the_fit->rx * datasize, bytesperplane = npixels * datasize;
+	int threads;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
+		int npixels = the_fit->rx * the_fit->ry;
 		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
-		// Even if an ICC profile is available, for this purpose we assume sRGB linear.
-		// The primaries don't matter as the conversion is round-trip (go back from LAB later), so Rec2020 as opposed
-		// to sRGB is an arbitrary choice.
-		// However it is important to use a linear profile to ensure that no gamma change occurs when
-		// converting to LAB, so that PSFs blind estimated or measured from stars in the image
-		// data remain accurate.
-		profile = rec2020_linear();
-		cielab_profile = cmsCreateLab4Profile(NULL);
-		sig = cmsGetColorSpace(profile);
-		gboolean threaded = !get_thread_run();
-		src_type = get_planar_formatter_type(sig, the_fit->type, FALSE);
-		dest_type =get_planar_formatter_type(cmsSigLabData, the_fit->type, FALSE);
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-		inverse_transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), cielab_profile, dest_type, profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-		cmsCloseProfile(profile);
-		cmsCloseProfile(cielab_profile);
-		cmsDoTransformLineStride(transform, (void*) args.fdata, (void*) xyzdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(transform);
+#ifdef _OPENMP
+		threads = sequence_is_running ? 1 : com.max_thread;
+#pragma omp parallel for simd num_threads(threads) schedule(static)
+#endif
+		for (int i = 0 ; i < npixels ; i++) {
+			linrgb_to_xyzf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels], FALSE);
+		}
 		args.nchans = 1;
 		free(args.fdata);
-		args.fdata = xyzdata; // fdata now points to the L part of xyzdata
+		args.fdata = xyzdata + npixels; // fdata now points to the L part of xyzdata
 	}
 
 	if (get_thread_run() || sequence_is_running == 1) {
@@ -1273,13 +1257,17 @@ gpointer deconvolve(gpointer p) {
 			show_time(t_start, t_end);
 		}
 	}
-
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Put things back as they were
+		int npixels = the_fit->rx * the_fit->ry;
 		args.nchans = 3;
 		args.fdata = malloc(npixels * args.nchans * sizeof(float));
-		cmsDoTransformLineStride(inverse_transform, (void*) xyzdata, (void*) args.fdata, the_fit->rx, the_fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(inverse_transform);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(threads) schedule(static)
+#endif
+		for (int i = 0 ; i < npixels ; i++) {
+			xyz_to_linrgbf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels], FALSE);
+		}
 		free(xyzdata);
 	}
 
@@ -1463,7 +1451,7 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gb
 		int float_multiplier = (is_float) ? 1 : 2;
 		int MB_per_float_image = MB_per_image * float_multiplier;
 		int required = MB_per_float_image * 2;
-		int MB_per_float_chan = float_multiplier * ceil((float) MB_per_image / seqargs->seq->nb_layers);
+		int MB_per_float_chan = float_multiplier * ceil(MB_per_image / seqargs->seq->nb_layers);
 		if (args.nonblindtype == DECONV_SB) {
 			required += MB_per_float_chan * 16;
 		} else if (args.nonblindtype == DECONV_RL) {
