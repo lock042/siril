@@ -1156,6 +1156,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
+
 	/* The data is no longer mono. It's almost certainly linear, but we will
 	 * not assign a color profile to it at this stage, it is likely one of
 	 * many subs to be sequence processed along with others and it is more
@@ -1201,20 +1202,18 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
-	/* The image is no longer mono, but debayered raw data is almost certainly linear
-	 * so if it already had a color profile we assign it the working colorspace
-	 * linear gamma profile. To be honest this is quite unlikely anyway.
+
+	/* The data is no longer mono. It's almost certainly linear, but we will
+	 * not assign a color profile to it at this stage, it is likely one of
+	 * many subs to be sequence processed along with others and it is more
+	 * efficient to ignore color managemet until the final stacked image is
+	 * available, and the user can then assign a profile as they choose.
 	 */
-	if (fit->color_managed) {
-		if (fit->icc_profile)
-			cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(com.icc.working_linear);
-	} else {
-	// If it didn't previously have a color profile, we don't add one now.
-		if (fit->icc_profile)
-			cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = NULL;
-	}
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
+
 	return 0;
 }
 

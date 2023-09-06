@@ -2594,10 +2594,11 @@ int savefits(const char *name, fits *f) {
 		/* Only write the ICC profile for color managed FITS. This avoids writing
 		 * ICC profiles to things like extracted channels where it doesn't really
 		 * make sense. */
-		if (!(f->icc_profile)) {
-			assign_linear_icc_profile(f);
+		if (f->icc_profile) {
+			write_icc_profile_to_fits(f);
+		} else {
+			siril_debug_print("Info: FITS has no assigned ICC profile, saving without one.\n");
 		}
-		write_icc_profile_to_fits(f);
 	}
 
 	status = 0;

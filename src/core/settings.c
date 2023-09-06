@@ -212,14 +212,15 @@ preferences pref_init = {
 		.working_gamut = TYPE_SRGB,
 		.icc_path_monitor = NULL,
 		.icc_path_soft_proof = NULL,
-		.custom_icc_linear = NULL,
 		.custom_icc_trc = NULL,
 		.custom_icc_gray = NULL,
 		.export_8bit_method = EXPORT_SRGB,
 		.export_16bit_method = EXPORT_WORKING,
 		.default_to_srgb = TRUE,
 		.rendering_bpc = TRUE,
-		.proofing_bpc = TRUE
+		.proofing_bpc = TRUE,
+		.autoconversion = ICC_ASK_TO_CONVERT,
+		.autoassignment = ICC_ASSIGN_ON_STRETCH
 	}
 };
 
@@ -405,9 +406,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc.icc_path_monitor },
 	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc.icc_path_soft_proof },
-	{ "gui", "custom linear ICC profile", STYPE_STR, N_("path to custom linear ICC profile"), &com.pref.icc.custom_icc_linear },
-	{ "gui", "custom nonlinear ICC profile", STYPE_STR, N_("path to custom nonlinear ICC profile"), &com.pref.icc.custom_icc_trc },
-	{ "gui", "custom gray ICC profile", STYPE_STR, N_("path to custom grayscale ICC profile"), &com.pref.icc.custom_icc_gray },
+	{ "gui", "custom RGB ICC profile", STYPE_STR, N_("path to custom RGB ICC profile"), &com.pref.icc.custom_icc_trc },
+	{ "gui", "custom gray ICC profile", STYPE_STR, N_("path to custom gray ICC profile"), &com.pref.icc.custom_icc_gray },
 	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.icc.rendering_intent },
 	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
 	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },
@@ -415,6 +415,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "working_gamut", STYPE_INT, N_("color mangement working gamut"), &com.pref.icc.working_gamut },
 	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
 	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },
+	{ "gui", "icc_autoconversion", STYPE_INT, N_("autoconvert images with an ICC profile to the working color space"), &com.pref.icc.autoconversion },
+	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoconversion },
 	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },
 	{ "gui", "icc_proofing_bpc", STYPE_BOOL, N_("enable proofing BPC"), &com.pref.icc.proofing_bpc },
 

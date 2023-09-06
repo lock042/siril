@@ -665,7 +665,6 @@ struct guiinf {
 };
 
 struct common_icc {
-	cmsHPROFILE working_linear;
 	cmsHPROFILE mono_linear;
 	cmsHPROFILE working_standard;
 	cmsHPROFILE mono_standard;

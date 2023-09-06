@@ -252,6 +252,20 @@ typedef enum {
 	EXPORT_WORKING
 } export_icc_type;
 
+typedef enum {
+	ICC_ASSIGN_NEVER = 0,
+	ICC_ASSIGN_ON_LOAD = 1,
+	ICC_ASSIGN_ON_STACK = 2,
+	ICC_ASSIGN_ON_STRETCH = 4,
+	ICC_ASSIGN_ON_COMPOSITION = 8
+} icc_assign_type;
+
+typedef enum {
+	ICC_ALWAYS_AUTOCONVERT,
+	ICC_ASK_TO_CONVERT,
+	ICC_NEVER_AUTOCONVERT
+} icc_autoconvert_type;
+
 typedef struct icc_params {
 	cmsUInt32Number rendering_intent;
 	cmsUInt32Number proofing_intent;
@@ -260,7 +274,6 @@ typedef struct icc_params {
 	working_gamut_type working_gamut;
 	gchar *icc_path_monitor;
 	gchar *icc_path_soft_proof;
-	gchar* custom_icc_linear;
 	gchar* custom_icc_trc;
 	gchar* custom_icc_gray;
 	export_icc_type export_8bit_method;
@@ -268,6 +281,8 @@ typedef struct icc_params {
 	gboolean default_to_srgb;
 	gboolean rendering_bpc;
 	gboolean proofing_bpc;
+	icc_autoconvert_type autoconversion;
+	icc_assign_type autoassignment;
 } icc_params;
 
 /**

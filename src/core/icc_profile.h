@@ -61,7 +61,6 @@ void color_manage(fits *fit, gboolean active);
 void validate_custom_profiles();
 void initialize_profiles_and_transforms();
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);
-void assign_linear_icc_profile(fits *fit);
 cmsHTRANSFORM initialize_display_transform();
 cmsHTRANSFORM fallback_display_transform();
 cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded);
@@ -75,7 +74,7 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile);
 void set_icc_description_in_TIFF();
-void check_linear_and_convert_with_approval(fits *fit);
+void convert_with_approval(fits *fit);
 const char* default_system_icc_path();
 cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
 void update_profiles_after_gamut_change();

@@ -247,9 +247,6 @@ void validate_custom_profiles() {
 
 	g_mutex_lock(&default_profiles_mutex);
 	if (com.pref.icc.working_gamut == TYPE_SRGB) {
-		if (com.icc.working_linear)
-			cmsCloseProfile(com.icc.working_linear);
-		com.icc.working_linear = srgb_linear();
 		if (com.icc.working_standard)
 			cmsCloseProfile(com.icc.working_standard);
 		com.icc.working_standard = srgb_trc();
@@ -263,9 +260,6 @@ void validate_custom_profiles() {
 			cmsCloseProfile(com.icc.mono_out);
 		com.icc.mono_out = gray_srgbtrcv2();
 	} else if (com.pref.icc.working_gamut == TYPE_REC2020) {
-		if (com.icc.working_linear)
-			cmsCloseProfile(com.icc.working_linear);
-		com.icc.working_linear = rec2020_linear();
 		if (com.icc.working_standard)
 			cmsCloseProfile(com.icc.working_standard);
 		com.icc.working_standard = rec2020_trc();
@@ -279,17 +273,6 @@ void validate_custom_profiles() {
 			cmsCloseProfile(com.icc.mono_out);
 		com.icc.mono_out = gray_rec709trcv2();
 	} else {
-		if (validate_profile(com.pref.icc.custom_icc_linear)) {
-			if (com.icc.working_linear)
-				cmsCloseProfile(com.icc.working_linear);
-			com.icc.working_linear = cmsOpenProfileFromFile(com.pref.icc.custom_icc_linear, "r");
-			if (!com.icc.working_linear) {
-				com.icc.working_linear = srgb_linear();
-				siril_log_color_message(_("Error opening linear working profile. Profile set to linear sRGB.\n"), "red");
-			}
-		} else {
-			com.icc.working_linear = srgb_linear();
-		}
 		if (validate_profile(com.pref.icc.custom_icc_trc)) {
 			if (com.icc.working_standard)
 				cmsCloseProfile(com.icc.working_standard);
@@ -352,7 +335,7 @@ void initialize_profiles_and_transforms() {
 	com.icc.mono_out = gray_srgbtrcv2();
 
 	// ICC availability
-	gboolean available = (com.icc.working_linear && com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
+	gboolean available = (com.icc.mono_linear && com.icc.working_standard && com.icc.mono_standard && com.icc.working_out && com.icc.mono_out);
 	gboolean gui_available = available && gui.icc.monitor;
 	if ((com.headless && !available) || (!com.headless && !gui_available)) {
 		siril_log_message(_("Error: standard color management profiles "
@@ -391,14 +374,6 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
 		default:
 			return 0;
 	}
-}
-
-void assign_linear_icc_profile(fits *fit) {
-	if (fit->icc_profile) {
-		cmsCloseProfile(fit->icc_profile);
-	}
-	fit->icc_profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
-	color_manage(fit, TRUE);
 }
 
 /* Even for mono images with a Gray profile, the display datatype is always RGB;
@@ -592,11 +567,9 @@ void check_profile_correct(fits* fit) {
 			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"), "salmon");
 		}
 	}
-	if (fit->color_managed) {
-		if (!fit->icc_profile)
-			fit->icc_profile =  copyICCProfile(fit->naxes[2] == 1 ? com.icc.mono_linear : com.icc.working_linear);
-		if (fit == &gfit)
-			refresh_icc_transforms();
+	if (fit->color_managed && !fit->icc_profile) {
+		color_manage(fit, FALSE);
+		siril_debug_print("fit->color_managed inconsistent with missing profile");
 	}
 }
 
@@ -875,16 +848,42 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	}
 }
 
-// To be used by stretching functions to recommend converting to the nonlinear working profile
-void check_linear_and_convert_with_approval(fits *fit) {
-	if (fit->color_managed && !fit_icc_is_linear(fit))
+/* This function converts the current image to the working color space. The user
+ * has the option to set a preference as to the behaviour to be adopted:
+ * 0. Automatically convert the image to the working color space (if it isn't already);
+ * 1. Always ask whether to convert to the working color space;
+ * 2. Do nothing.
+ * The function is intended to be triggered at the start of any GUI stretch function.
+ * Scripts are responsible for specifying any color space assignment using icc_assign.
+ */
+void convert_with_approval(fits *fit) {
+	// Scripts are responsible fo managing this themselves
+	if (com.script)
 		return;
+
+	// If the preference is never to autoconvert, we have nothing to do
+	if (com.pref.icc.autoconversion == ICC_NEVER_AUTOCONVERT)
+		return;
+
+	// If the image is already in the working color space, we have nothing to do
+	if (fit->color_managed && profiles_identical(fit->icc_profile, fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard))
+		return;
+
 	gboolean proceed = FALSE;
-	if (!fit->color_managed) {
-		proceed = siril_confirm_dialog(_("Recommend color space assignment"), _("The current image is not color managed. It looks like you're about to stretch the image: do you want to assign your nonlinear working color space now? (Recommended!)"), _("Assign"));
-	} else {
-		proceed = siril_confirm_dialog(_("Recommend color space conversion"), _("The current image has a linear ICC profile. It looks like you're about to stretch the image: do you want to convert it to your nonlinear working color space now? (Recommended!)"), _("Convert"));
+
+	// If the preference is that we always convert, trigger the conversion
+	if (com.pref.icc.autoconversion == ICC_ALWAYS_AUTOCONVERT)
+		proceed = TRUE;
+
+	else if (com.pref.icc.autoconversion == ICC_ASK_TO_CONVERT) {
+		if (!fit->color_managed) {
+			proceed = siril_confirm_dialog(_("Recommend color space assignment"), _("The current image is not color managed. It looks like you're about to stretch the image: do you want to assign your nonlinear working color space now? (Recommended!)"), _("Assign"));
+		} else {
+			proceed = siril_confirm_dialog(_("Recommend color space conversion"), _("The current image has a linear ICC profile. It looks like you're about to stretch the image: do you want to convert it to your nonlinear working color space now? (Recommended!)"), _("Convert"));
+		}
 	}
+
+	// If the conversion has been triggered automatically or via the dialog, do it.
 	if (proceed) {
 		set_cursor_waiting(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
@@ -927,9 +926,6 @@ cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cms
 }
 
 static void reset_working_profile_to_srgb() {
-	if (com.icc.working_linear)
-		cmsCloseProfile(com.icc.working_linear);
-	com.icc.working_linear = srgb_linear();
 	if (com.icc.working_standard)
 		cmsCloseProfile(com.icc.working_standard);
 	com.icc.working_standard = srgb_trc();
@@ -969,9 +965,6 @@ void update_profiles_after_gamut_change() {
 	g_mutex_lock(&default_profiles_mutex);
 	switch (working_gamut) {
 		case TYPE_SRGB:
-			if (com.icc.working_linear)
-				cmsCloseProfile(com.icc.working_linear);
-			com.icc.working_linear = srgb_linear();
 			if (com.icc.working_standard)
 				cmsCloseProfile(com.icc.working_standard);
 			com.icc.working_standard = srgb_trc();
@@ -986,9 +979,6 @@ void update_profiles_after_gamut_change() {
 			com.icc.mono_out = gray_srgbtrcv2();
 			break;
 		case TYPE_REC2020:
-			if (com.icc.working_linear)
-				cmsCloseProfile(com.icc.working_linear);
-			com.icc.working_linear = rec2020_linear();
 			if (com.icc.working_standard)
 				cmsCloseProfile(com.icc.working_standard);
 			com.icc.working_standard = rec2020_trc();
@@ -1003,14 +993,8 @@ void update_profiles_after_gamut_change() {
 			com.icc.mono_out = gray_rec709trcv2();
 			break;
 		case TYPE_CUSTOM:
-			if (!(com.pref.icc.custom_icc_linear && com.pref.icc.custom_icc_trc && com.pref.icc.custom_icc_gray)) {
+			if (!(com.pref.icc.custom_icc_trc && com.pref.icc.custom_icc_gray)) {
 				reset_custom_to_srgb();
-				break;
-			}
-			if (com.icc.working_linear)
-				cmsCloseProfile(com.icc.working_linear);
-			if (!(com.pref.icc.custom_icc_linear && (com.icc.working_linear = cmsOpenProfileFromFile(com.pref.icc.custom_icc_linear, "r")))) {
-				error_loading_profile();
 				break;
 			}
 			// Custom profiles will also be used for the output profile
@@ -1213,6 +1197,37 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	refresh_icc_transforms();
 }
 
+void on_pref_icc_assign_never_toggled(GtkToggleButton *button, gpointer user_data);
+
+void on_pref_icc_assign_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton *never = (GtkToggleButton*) lookup_widget("pref_icc_assign_never");
+	if (gtk_toggle_button_get_active(button)) {
+		g_signal_handlers_block_by_func(never, on_pref_icc_assign_never_toggled, NULL);
+		gtk_toggle_button_set_active(never, FALSE);
+		g_signal_handlers_unblock_by_func(never, on_pref_icc_assign_never_toggled, NULL);
+	}
+}
+
+void on_pref_icc_assign_never_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton *load = (GtkToggleButton*) lookup_widget("pref_icc_assign_on_load");
+	GtkToggleButton *stack = (GtkToggleButton*) lookup_widget("pref_icc_assign_on_stack");
+	GtkToggleButton *stretch = (GtkToggleButton*) lookup_widget("pref_icc_assign_on_stretch");
+	GtkToggleButton *composition = (GtkToggleButton*) lookup_widget("pref_icc_assign_on_composition");
+	if (gtk_toggle_button_get_active(button)) {
+		g_signal_handlers_block_by_func(load, on_pref_icc_assign_toggled, NULL);
+		g_signal_handlers_block_by_func(stack, on_pref_icc_assign_toggled, NULL);
+		g_signal_handlers_block_by_func(stretch, on_pref_icc_assign_toggled, NULL);
+		g_signal_handlers_block_by_func(composition, on_pref_icc_assign_toggled, NULL);
+		gtk_toggle_button_set_active(load, FALSE);
+		gtk_toggle_button_set_active(stack, FALSE);
+		gtk_toggle_button_set_active(stretch, FALSE);
+		gtk_toggle_button_set_active(composition, FALSE);
+		g_signal_handlers_unblock_by_func(load, on_pref_icc_assign_toggled, NULL);
+		g_signal_handlers_unblock_by_func(stack, on_pref_icc_assign_toggled, NULL);
+		g_signal_handlers_unblock_by_func(stretch, on_pref_icc_assign_toggled, NULL);
+		g_signal_handlers_unblock_by_func(composition, on_pref_icc_assign_toggled, NULL);
+	}
+}
 //////// GUI callbacks for the color management dialog
 
 void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {

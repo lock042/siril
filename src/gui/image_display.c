@@ -346,23 +346,12 @@ static void remap_all_vports() {
 
 	if (gfit.color_managed) {
 		// Set the display transform in case it is missing
-		if (!gfit.icc_profile) {
-			// In all cases where the profile should have come from a loaded file or
-			// been assumed, this will be set. So it is safe to assume we should assign
-			// a linear profile if one is missing.
-			assign_linear_icc_profile(&gfit);
-		}
-
 		if (!gui.icc.display_transform) {
 			gui.icc.display_transform = initialize_display_transform();
 		}
 
-		if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
-			// No need to nullcheck gui.icc.soft_proof because it is done
-			// in the GUI rendering mode setting callback
-			if (!gui.icc.proofing_transform)
-				gui.icc.proofing_transform = initialize_proofing_transform();
-		}
+		if (gui.rendering_mode == SOFT_PROOF_DISPLAY && !gui.icc.proofing_transform)
+			gui.icc.proofing_transform = initialize_proofing_transform();
 		// Calling color_manage() like this updates the color management button tooltip
 		color_manage(&gfit, gfit.color_managed);
 	}

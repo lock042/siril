@@ -32502,7 +32502,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="can-focus">False</property>
                                     <property name="left-padding">12</property>
                                     <child>
-                                      <!-- n-columns=3 n-rows=5 -->
+                                      <!-- n-columns=3 n-rows=4 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -32564,6 +32564,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           <packing>
                                             <property name="left-attach">0</property>
                                             <property name="top-attach">2</property>
+                                            <property name="height">2</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -32581,26 +32582,13 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           <object class="GtkLabel">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
+                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">ICC profile with linear TRC</property>
+                                            <property name="label" translatable="yes">RGB ICC profile</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
                                             <property name="top-attach">2</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
-                                            <property name="halign">start</property>
-                                            <property name="label" translatable="yes">ICC profile with nonlinear TRC</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">1</property>
-                                            <property name="top-attach">3</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -32613,15 +32601,15 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
-                                            <property name="top-attach">4</property>
+                                            <property name="top-attach">3</property>
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkFileChooserButton" id="custom_icc_linear_trc">
-                                            <property name="name">custom_gamut_linear</property>
+                                          <object class="GtkFileChooserButton" id="custom_icc_standard_trc">
+                                            <property name="name">custom_gamut_trc</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred color space with a linear tone response curve.</property>
+                                            <property name="tooltip-text" translatable="yes">This should be a RGB ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg etc.)</property>
                                             <property name="filter">icc_filter</property>
                                             <property name="title" translatable="yes"/>
                                           </object>
@@ -32631,11 +32619,11 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkFileChooserButton" id="custom_icc_standard_trc">
-                                            <property name="name">custom_gamut_trc</property>
+                                          <object class="GtkFileChooserButton" id="custom_gray_icc_matching_trc">
+                                            <property name="name">custom_gamut_gray_trc</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">This should be an ICC profile in your preferred gamut with the color space's native nonlinear tone response curve.</property>
+                                            <property name="tooltip-text" translatable="yes">This should be a Gray (mono) ICC profile. It is a good idea to choose one with a tone response curve that matches that of the RGB profile you set above.</property>
                                             <property name="filter">icc_filter</property>
                                             <property name="title" translatable="yes"/>
                                           </object>
@@ -32643,26 +32631,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="left-attach">2</property>
                                             <property name="top-attach">3</property>
                                           </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkFileChooserButton" id="custom_gray_icc_matching_trc">
-                                            <property name="name">custom_gamut_gray_trc</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">This should be a Gray ICC profile with a tone response curve that matches that of the nonlinear TRC profile you set above.</property>
-                                            <property name="filter">icc_filter</property>
-                                            <property name="title" translatable="yes"/>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">2</property>
-                                            <property name="top-attach">4</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
                                         </child>
                                       </object>
                                     </child>
@@ -33092,6 +33060,153 @@ Note: if the format does not support ICC profile embedding, images will always b
                                   <object class="GtkAlignment">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="left-padding">12</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=6 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Auto assign working color space</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                            <property name="height">5</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Convert other color profiles to the working profile?</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">5</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="pref_icc_autoconversion">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">This option sets the behaviour if an image is loaded and it already contains an ICC profile.</property>
+                                            <property name="active">1</property>
+                                            <items>
+                                              <item translatable="yes">Never</item>
+                                              <item translatable="yes">Ask every time</item>
+                                              <item translatable="yes">Always</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">5</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_icc_assign_on_load">
+                                            <property name="label" translatable="yes">On load</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_pref_icc_assign_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_icc_assign_on_stack">
+                                            <property name="label" translatable="yes">On stacking</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_pref_icc_assign_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_icc_assign_on_stretch">
+                                            <property name="label" translatable="yes">On stretching</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_pref_icc_assign_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_icc_assign_never">
+                                            <property name="label" translatable="yes">Never</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="active">True</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_pref_icc_assign_never_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_icc_assign_on_composition">
+                                            <property name="label" translatable="yes">Output of RGB composition / PixelMath</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_pref_icc_assign_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Auto Conversion / Assignment Options</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">4</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkAlignment">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
                                     <property name="top-padding">6</property>
                                     <property name="left-padding">12</property>
                                     <child>
@@ -33132,7 +33247,7 @@ Note: if the format does not support ICC profile embedding, images will always b
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">4</property>
+                                <property name="position">5</property>
                               </packing>
                             </child>
                           </object>

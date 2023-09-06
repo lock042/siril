@@ -315,11 +315,7 @@ int savebmp(const char *name, fits *fit) {
 	void *buf = NULL;
 	void *dest = NULL;
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
-	// Check the fit has a profile. If not, assign a linear one
-	// This should never happen but it is better than a crash
-	if (fit->icc_profile == NULL) {
-		assign_linear_icc_profile(fit);
-	}
+
 	// Transform the data
 	if (fit->icc_profile && fit->color_managed) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
@@ -675,11 +671,7 @@ static int saveppm(const char *name, fits *fit) {
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
 	void *buf = NULL;
 	void *dest = NULL;
-	// Check the fit has a profile. If not, assign a linear one
-	// This should never happen but it is better than a crash
-	if (fit->icc_profile == NULL) {
-		assign_linear_icc_profile(fit);
-	}
+
 	// Colorspace transform the data
 	if (fit->color_managed && fit->icc_profile) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
@@ -752,11 +744,7 @@ static int savepgm(const char *name, fits *fit) {
 	void *buf = NULL;
 	void *dest = NULL;
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
-	// Check the fit has a profile. If not, assign a linear one
-	// This should never happen but it is better than a crash
-	if (fit->icc_profile == NULL) {
-		assign_linear_icc_profile(fit);
-	}
+
 	// Colorspace transform the data
 	if (fit->color_managed && fit->icc_profile) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
