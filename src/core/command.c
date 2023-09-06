@@ -3669,8 +3669,9 @@ int process_pm(int nb) {
 			*end = 0;
 			gboolean found = FALSE;
 			for (int j = 0; j < i; j++) {
-				gchar *test = g_strrstr(args->varname[j], start + 1);
-				if (test)
+/*				gchar *test = g_strrstr(args->varname[j], start + 1);
+				if (test)*/
+				if (!g_strcmp0(args->varname[j], start + 1))
 					found = TRUE;
 			}
 			if (!found)
