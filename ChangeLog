@@ -42,6 +42,8 @@ xx/xx/xx
 * Fixed removing zero values in histogram calculations (#1164)
 * Fixed pixel sizes after HaOIII extrcation (#1175)
 * Fixed crash when passing only constants in pm expression (#1176)
+* Fixed incorrect channel when adding star from selection in RGB vport (#1180)
+* Allow the Star Recomposition UI to scroll when larger than the dialog
 
 siril 1.2.0-rc1
 06/01/23

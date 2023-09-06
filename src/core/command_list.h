@@ -10,7 +10,7 @@
 #define CMD_CAT(CMD) N_("\n\n<i>- Information from command "#CMD" follows -</i>\n")
 
 static command commands[] = {
-	/* name, nbarg, usage, function pointer, description, scriptable */
+	/* name, nbarg, usage, function pointer, description, scriptable, requirements */
 	{"addmax", 1, "addmax filename", process_addmax, STR_ADDMAX, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"asinh", 1, "asinh [-human] stretch [offset]", process_asinh, STR_ASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"autoghs", 1, "autoghs [-linked] shadowsclip stretchamount [-b=] [-hp=] [-lp=]", process_autoghs, STR_AUTOGHS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
