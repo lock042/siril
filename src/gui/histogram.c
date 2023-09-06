@@ -1348,7 +1348,7 @@ void toggle_histogram_window_visibility(int _invocation) {
 	for (int i=0;i<3;i++) {
 		do_channel[i] = TRUE;
 	}
-	convert_with_approval(&gfit);
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);

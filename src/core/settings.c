@@ -416,7 +416,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
 	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },
 	{ "gui", "icc_autoconversion", STYPE_INT, N_("autoconvert images with an ICC profile to the working color space"), &com.pref.icc.autoconversion },
-	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoconversion },
+	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoassignment },
 	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },
 	{ "gui", "icc_proofing_bpc", STYPE_BOOL, N_("enable proofing BPC"), &com.pref.icc.proofing_bpc },
 

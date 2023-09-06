@@ -382,8 +382,10 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
 cmsHTRANSFORM initialize_display_transform() {
 	g_assert(gui.icc.monitor);
 	cmsHTRANSFORM transform = NULL;
-	if (gfit.icc_profile == NULL || !gfit.color_managed)
+	if (gfit.icc_profile == NULL || !gfit.color_managed) {
+		siril_debug_print("NULL display transform\n");
 		return NULL;
+	}
 	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit.icc_profile);
 	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
 	g_mutex_lock(&monitor_profile_mutex);
@@ -848,38 +850,43 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	}
 }
 
-/* This function converts the current image to the working color space. The user
- * has the option to set a preference as to the behaviour to be adopted:
- * 0. Automatically convert the image to the working color space (if it isn't already);
- * 1. Always ask whether to convert to the working color space;
- * 2. Do nothing.
- * The function is intended to be triggered at the start of any GUI stretch function.
- * Scripts are responsible for specifying any color space assignment using icc_assign.
+/* This function converts the current image to the working color space.
+ * It honours the preferences com.pref.icc.autoassignment and
+ * com.pref.icc.autoconversion.
+ * It is used on loading a file and before stretching a file.
  */
-void convert_with_approval(fits *fit) {
+void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	// Scripts are responsible fo managing this themselves
 	if (com.script)
 		return;
 
-	// If the preference is never to autoconvert, we have nothing to do
-	if (com.pref.icc.autoconversion == ICC_NEVER_AUTOCONVERT)
-		return;
-
-	// If the image is already in the working color space, we have nothing to do
-	if (fit->color_managed && profiles_identical(fit->icc_profile, fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard))
-		return;
-
 	gboolean proceed = FALSE;
 
-	// If the preference is that we always convert, trigger the conversion
-	if (com.pref.icc.autoconversion == ICC_ALWAYS_AUTOCONVERT)
-		proceed = TRUE;
+	// If there is no existing profile and the appropriate preference is set,
+	// assign the working color profile
+	if (!fit->color_managed || !fit->icc_profile) {
+		if (com.pref.icc.autoassignment & occasion)
+			proceed = TRUE;
+	} else {
 
-	else if (com.pref.icc.autoconversion == ICC_ASK_TO_CONVERT) {
-		if (!fit->color_managed) {
-			proceed = siril_confirm_dialog(_("Recommend color space assignment"), _("The current image is not color managed. It looks like you're about to stretch the image: do you want to assign your nonlinear working color space now? (Recommended!)"), _("Assign"));
-		} else {
-			proceed = siril_confirm_dialog(_("Recommend color space conversion"), _("The current image has a linear ICC profile. It looks like you're about to stretch the image: do you want to convert it to your nonlinear working color space now? (Recommended!)"), _("Convert"));
+		// If the preference is never to autoconvert, we have nothing to do
+		if (com.pref.icc.autoconversion == ICC_NEVER_AUTOCONVERT)
+			return;
+
+		// If the image is already in the working color space, we have nothing to do
+		if (fit->color_managed && profiles_identical(fit->icc_profile, fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard))
+			return;
+
+		// If the preference is that we always convert, trigger the conversion
+		if (com.pref.icc.autoconversion == ICC_ALWAYS_AUTOCONVERT)
+			proceed = TRUE;
+
+		else if (com.pref.icc.autoconversion == ICC_ASK_TO_CONVERT) {
+			if (!fit->color_managed) {
+				proceed = siril_confirm_dialog(_("Color Management"), _("The current image is not color managed. Do you want to assign the working color space?"), _("Assign"));
+			} else {
+				proceed = siril_confirm_dialog(_("Color Management"), _("Do you want to convert this image to the working color space?"), _("Convert"));
+			}
 		}
 	}
 
@@ -888,11 +895,43 @@ void convert_with_approval(fits *fit) {
 		set_cursor_waiting(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		if (fit == &gfit) {set_source_information();
+			refresh_icc_transforms();
+			notify_gfit_modified();
+		}
+		set_cursor_waiting(FALSE);
+	}
+}
+
+/* This function automatically assigns the working color space or switches off
+ * color management of the image, depending on the user preference. The
+ * icc_assign_type parameter defines the occasion for which the function is
+ * being called, it is checked against the preference com.pref.icc.autoassignment.
+ * It is used when auto-assigning a profile to a new image created by stacking or
+ * RGB composition or pixelmath composition. It takes no action if called from
+ * a script (the icc_assign command must be used).
+ */
+
+void icc_auto_assign(fits *fit, icc_assign_type occasion) {
+	// Check if the occasion matches the preference
+	if (com.pref.icc.autoassignment & occasion) {
+		siril_debug_print("Auto assigning working profile\n");
+		set_cursor_waiting(TRUE);
+		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
+		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		color_manage(fit, TRUE);
+	} else {
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+		color_manage(fit, FALSE);
+	}
+	if (fit == &gfit) {
 		set_source_information();
 		refresh_icc_transforms();
 		notify_gfit_modified();
-		set_cursor_waiting(FALSE);
 	}
+	set_cursor_waiting(FALSE);
 }
 
 const char* default_system_icc_path() {

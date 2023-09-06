@@ -74,7 +74,8 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile);
 void set_icc_description_in_TIFF();
-void convert_with_approval(fits *fit);
+void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion);
+void icc_auto_assign(fits *fit, icc_assign_type occasion);
 const char* default_system_icc_path();
 cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
 void update_profiles_after_gamut_change();

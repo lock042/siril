@@ -59,9 +59,7 @@
 
 #undef DEBUG
 
-static gboolean remember_color_management_dialog = FALSE;
 static int compositing_loaded = 0;
-static cmsHPROFILE temp_profile = NULL; // used when reloading to maintain the applied profile
 
 typedef enum {
 	HSL,
@@ -473,10 +471,6 @@ void open_compositing_window() {
 				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
 		} while (layers[i]);
-		if (reference) {
-			gfit.icc_profile = copyICCProfile(reference);
-			color_manage(&gfit, TRUE);
-		}
 		update_result(1);
 		update_MenuItem();
 	}
@@ -552,7 +546,6 @@ static void check_gfit_is_ours() {
 
 	if (!update_needed)
 		return;
-	gboolean temp_cm = gfit.color_managed;
 	/* create the new result image if it's the first opened image */
 	close_single_image();
 	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1)) {
@@ -560,10 +553,7 @@ static void check_gfit_is_ours() {
 		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
 		return;
 	}
-	color_manage(&gfit, temp_cm);
-	if (temp_cm && reference && !gfit.icc_profile) {
-		gfit.icc_profile = copyICCProfile(reference);
-	}
+	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 	/* open the single image.
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
@@ -648,7 +638,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	// layers, it has to allow for either luminance or non-
 	// luminance compositions
 	if (layers[layer]->the_fit.rx == 0 && number_of_images_loaded() == maximum_layers) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"), _("The meximum number of images of this size has been reached based on available memory limits."));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"), _("The maximum number of images of this size has been reached based on available memory limits."));
 		return;
 	}
 
@@ -678,27 +668,26 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 				orig_rx[layer] = layers[layer]->the_fit.rx;
 				orig_ry[layer] = layers[layer]->the_fit.ry;
 				compute_compositor_mem_limits(&layers[layer]->the_fit);
-				if (reference)
+				if (reference) {
 					cmsCloseProfile(reference);
-				if (layers[layer]->the_fit.icc_profile)
-					cmsCloseProfile(layers[layer]->the_fit.icc_profile);
-
-				gboolean confirm = siril_confirm_dialog_and_remember(_("Color Management"), _("Assign the working color profile to the output image? If not, no color profile will be assigned but you can add one using the Color Management dialog"), _("Confirm"), &remember_color_management_dialog);
-				if (confirm) {
-					reference = copyICCProfile(com.icc.working_standard);
-					layers[layer]->the_fit.icc_profile = copyICCProfile(reference);
-					color_manage(&gfit, TRUE);
-				} else {
 					reference = NULL;
-					layers[layer]->the_fit.icc_profile = NULL;
-					color_manage(&gfit, FALSE);
 				}
+				if (layers[layer]->the_fit.icc_profile)
+					reference = copyICCProfile(layers[layer]->the_fit.icc_profile);
 			}
 			if (number_of_images_loaded() > 1 && !profiles_identical(reference,
 							layers[layer]->the_fit.icc_profile)) {
-				siril_log_message(_("ICC profile differs to that of the first image loaded."
-								"Converting this image to match.\n"));
-				siril_colorspace_transform(&layers[layer]->the_fit, reference);
+				if (reference) {
+					siril_log_color_message(_("ICC profile differs to that of the first image loaded. "
+								"Converting this image to match the first one loaded.\n"), "salmon");
+					siril_colorspace_transform(&layers[layer]->the_fit, reference);
+				} else {
+					siril_log_color_message(_("Input images have inconsistent ICC profiles. First image "
+								"had no ICC profile. All input layers will be treated as raw data.\n"), "salmon");
+					cmsCloseProfile(layers[layer]->the_fit.icc_profile);
+					layers[layer]->the_fit.icc_profile = NULL;
+					color_manage(&layers[layer]->the_fit, FALSE);
+				}
 			}
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||
@@ -733,14 +722,6 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 		}
 	}
 	g_free(filename);
-
-	// Check gfit is inheriting the color profile if necessary
-	if (gfit.color_managed && !gfit.icc_profile) {
-		gfit.icc_profile = copyICCProfile(reference);
-	}
-	color_manage(&gfit, TRUE);
-	refresh_icc_transforms();
-	notify_gfit_modified();
 
 	/* special case of luminance selected */
 	if (layer == 0) {
@@ -1298,8 +1279,7 @@ static void clear_pixel(GdkRGBA *pixel) {
 
 /* recompute the layer composition and optionnally refresh the displayed result image */
 static void update_result(int and_refresh) {
-	if (gfit.icc_profile && !reference)
-		reference = copyICCProfile(gfit.icc_profile);
+	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 
 	check_gfit_is_ours();
 	if (luminance_mode && has_fit(0)) {
@@ -1490,10 +1470,9 @@ void reset_compositing_module() {
 		layers_count--;
 	}
 
-	if (reference) {
+	if (reference)
 		cmsCloseProfile(reference);
-		reference = NULL;
-	}
+	reference = NULL;
 
 	/* Reset GtkFileChooserButton Luminance */
 	GtkFileChooserButton *lum = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));
@@ -1527,9 +1506,6 @@ void reset_compositing_module() {
 }
 
 void on_compositing_reset_clicked(GtkButton *button, gpointer user_data){
-	if (temp_profile)
-		cmsCloseProfile(temp_profile);
-	temp_profile = NULL;
 	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return;
 	process_close(0);
@@ -1657,13 +1633,7 @@ void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
 void on_compositing_reload_all_clicked(GtkButton *button, gpointer user_data) {
 	if (number_of_images_loaded() < 1)
 		return;
-	if (gfit.color_managed) {
-		if (temp_profile)
-			cmsCloseProfile(temp_profile);
-		temp_profile = NULL;
-		if (gfit.icc_profile)
-			temp_profile = copyICCProfile(gfit.icc_profile); // gets reloaded in the filechooser cb
-	}
+
 	// Clear the image data and the sequence, if populated
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layers[layer] && layers[layer]->the_fit.rx != 0)

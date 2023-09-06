@@ -205,7 +205,7 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 
-	convert_with_approval(&gfit);
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 
 	asinh_startup();
 	asinh_stretch_value = 0.0f;

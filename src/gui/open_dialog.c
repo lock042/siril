@@ -46,9 +46,6 @@
 
 #include "open_dialog.h"
 
-static gboolean null_icc_dialog_confirmation = FALSE;
-static gboolean different_icc_dialog_confirmation = FALSE;
-
 static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 		const gchar *pattern, gboolean set_default) {
 	gchar **patterns;
@@ -413,22 +410,7 @@ static void opendial(int whichdial) {
 		case OD_OPEN:
 			set_cursor_waiting(TRUE);
 			retval = open_single_image(filename);
-			gboolean confirm = FALSE;
-			if (!gfit.color_managed) {
-				if (!null_icc_dialog_confirmation) {
-					confirm = siril_confirm_dialog_and_remember(_("Color management"), _("This image has no embedded ICC profile. Open the color management dialog to assign one?"), _("Confirm"), &null_icc_dialog_confirmation);
-					if (confirm) {
-						siril_open_dialog("icc_dialog");
-					}
-				}
-			} else {
-				if (gfit.naxes[2] == 3 && !profiles_identical(gfit.icc_profile, com.icc.working_standard) && !different_icc_dialog_confirmation) {
-					confirm = siril_confirm_dialog_and_remember(_("Color management"), _("This image ICC profile differs from the chosen working color space. Convert it to the working color space?"), _("Confirm"), &different_icc_dialog_confirmation);
-					if (confirm) {
-						siril_colorspace_transform(&gfit, gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
-					}
-				}
-			}
+			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
 			set_cursor_waiting(FALSE);
 			if (retval == OPEN_IMAGE_CANCEL) goto wait;
 			break;
@@ -512,22 +494,7 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 	}
 
 	open_single_image(path);
-	gboolean confirm = FALSE;
-	if (!gfit.color_managed) {
-		if (!null_icc_dialog_confirmation) {
-			confirm = siril_confirm_dialog_and_remember(_("Color management"), _("This image has no embedded ICC profile. Open the color management dialog to assign one?"), _("Confirm"), &null_icc_dialog_confirmation);
-			if (confirm) {
-				siril_open_dialog("icc_dialog");
-			}
-		}
-	} else {
-		if (gfit.naxes[2] == 3 && !profiles_identical(gfit.icc_profile, com.icc.working_standard) && !different_icc_dialog_confirmation) {
-			confirm = siril_confirm_dialog_and_remember(_("Color management"), _("This image ICC profile differs from the chosen working color space. Convert it to the working color space?"), _("Confirm"), &different_icc_dialog_confirmation);
-			if (confirm) {
-				siril_colorspace_transform(&gfit, gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
-			}
-		}
-	}
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
 
 	g_free(uri);
 	g_free(path);

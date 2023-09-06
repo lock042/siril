@@ -329,7 +329,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		invalidate_gfit_histogram();
 
 		memcpy(&gfit, args->fit, sizeof(fits));
-
+		icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		open_single_image_from_gfit();
@@ -755,7 +755,6 @@ failure: // failure before the eval loop
 		if (!failed) {
 			clearfits(&gfit);
 			memcpy(&gfit, args->fit, sizeof(fits));
-
 			com.seq.current = UNRELATED_IMAGE;
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
@@ -919,13 +918,13 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		if (nb_rows > 0) {
 			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
 				if (!icc_warning_given) {
-					siril_log_color_message(_("Warning: ICC profiles do not match. The output color profile will be based on the first image to be loaded. If this is not what you want, correct the color profiles of the input images and reload them into PixelMath."), "salmon");
+					siril_log_color_message(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"), "salmon");
 					icc_warning_given = TRUE;
 				}
 				if (var_fit[0].icc_profile)
-					siril_log_color_message(_("ICC profile of image %d does not match the first image. Converting it to match.\n"), "salmon");
+					siril_log_color_message(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), "salmon", nb_rows + 1);
 				else
-					siril_log_color_message(_("The first image loaded had no color profile. This image does, but it will be ignored.\n"), "salmon");
+					siril_log_color_message(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"), "salmon");
 				// This also takes care of the stuation where a file doesn't have an
 				// ICC profile - in that case it is assigned a profile to match.
 				// Ultimately it is much better to use images that all have the same
