@@ -453,7 +453,6 @@ void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
-//	refresh_icc_transforms();
 
 	siril_add_idle(end_gfit_operation, NULL);
 }
