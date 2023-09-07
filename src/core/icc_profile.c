@@ -865,8 +865,13 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	// If there is no existing profile and the appropriate preference is set,
 	// assign the working color profile
 	if (!fit->color_managed || !fit->icc_profile) {
-		if (com.pref.icc.autoassignment & occasion)
+		if (com.pref.icc.autoassignment & occasion) {
+			if (fit_appears_stretched) {
+				fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+				// color_manage() is called later from siril_colorspace_transform()
+			}
 			proceed = TRUE;
+		}
 	} else {
 
 		// If the preference is never to autoconvert, we have nothing to do
@@ -895,7 +900,8 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 		set_cursor_waiting(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
-		if (fit == &gfit) {set_source_information();
+		if (fit == &gfit) {
+			set_source_information();
 			refresh_icc_transforms();
 			notify_gfit_modified();
 		}
