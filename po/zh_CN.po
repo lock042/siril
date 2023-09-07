@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
 "PO-Revision-Date: 2023-09-08 22:25+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -10158,17 +10158,17 @@ msgstr "错误"
 
 #: src/compositing/compositing.c:1644
 msgid "No layers loaded: no files to save"
-msgstr ""
+msgstr "未加载图层：无保存文件"
 
 #: src/compositing/compositing.c:1660
 msgid "All layer images saved correctly.\n"
-msgstr ""
+msgstr "所有图层图像均已正确保存。\n"
 
 #: src/compositing/compositing.c:1662
 msgid ""
 "Error encountered in saving one or more files. Check previous log messages "
 "for details.\n"
-msgstr ""
+msgstr "保存一个或多个文件时遇到错误。有关详细信息，请查看以前的日志消息。\n"
 
 #: src/compositing/compositing.c:1669
 msgid "At least 2 images must be loaded to perform linear matching."
@@ -10177,21 +10177,20 @@ msgstr "必须加载至少2个图像才能执行线性匹配。"
 #: src/compositing/compositing.c:1690
 #, c-format
 msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
-msgstr ""
+msgstr "找不到图层 %d 的线性匹配系数。正在跳过...\n"
 
 #: src/compositing/compositing.c:1694
-#, fuzzy
 msgid "Linear match layers"
-msgstr "线性匹配"
+msgstr "线性匹配图层"
 
 #: src/compositing/compositing.c:1696
 msgid "Linear match layers complete"
-msgstr ""
+msgstr "线性匹配图层完成"
 
 #: src/compositing/compositing.c:1698
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
-msgstr ""
+msgstr "错误：无法将 %d 个图层与参考图层匹配。\n"
 
 #: src/compositing/compositing.c:1750 src/registration/global.c:145
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
@@ -12121,24 +12120,20 @@ msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "-layer= 后面的错误选项，异常中止。\n"
 
 #: src/core/command.c:9131
-#, fuzzy
 msgid "Error: Could not parse -from values.\n"
-msgstr "错误：无法分析 %s 值。\n"
+msgstr "错误：无法解析 -from 值。\n"
 
 #: src/core/command.c:9139
-#, fuzzy
 msgid "Error: Could not parse -to values.\n"
-msgstr "错误：无法分析 %s 值。\n"
+msgstr "错误：无法解析 -to 值。\n"
 
 #: src/core/command.c:9147
-#, fuzzy
 msgid "Error: Could not parse -wn1at values.\n"
-msgstr "错误：无法分析 %s 值。\n"
+msgstr "错误：无法解析 -wn1at 值。\n"
 
 #: src/core/command.c:9155
-#, fuzzy
 msgid "Error: Could not parse -wn2at values.\n"
-msgstr "错误：无法分析 %s 值。\n"
+msgstr "错误：无法解析 -wn2at 值。\n"
 
 #: src/core/command.c:9161
 msgid "Error: this option cannot be used for sequences.\n"
@@ -14336,7 +14331,6 @@ msgstr ""
 "输出序列名前缀为\"mtf_\"，除非使用<b>-prefix=</b>选项指定"
 
 #: src/core/command_def.h:151
-#, fuzzy
 msgid ""
 "Plate solve a sequence. A new sequence will be created with the prefix "
 "\"ps_\".\n"
@@ -14372,18 +14366,20 @@ msgid ""
 "is passed, it forces the use of the remote catalog given in argument, with "
 "possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 msgstr ""
-"Plate solve a sequence. A new sequence will be created with the prefix "
-"\"ps_\".\n"
+"Plate solve a sequence. A new sequence will be created with the prefix \"ps_"
+"\".\n"
 "If images have already been plate solved, they will just be copied, unless "
 "the <b>-platesolve</b> argument is passed to force a new solve. If WCS or "
 "other image metadata are erroneous or missing, arguments must be passed:\n"
 "  the approximate image center coordinates can be provided in decimal "
 "degrees or degree/hour minute second values (J2000 with colon separators), "
-"with right ascension and declination values separated by a comma or a space "
-"(not mandatory for astrometry.net).\n"
+"with right ascension and declination values separated by a comma or a space ("
+"not mandatory for astrometry.net). A single catalogue extract will be done "
+"for the entire sequence, if there is a lot of drift that may not succeed for "
+"all images.\n"
 "  focal length and pixel size can be passed with <b>-focal=</b> (in mm) and "
-"<b>-pixelsize=</b> (in microns), overriding values from images and "
-"settings.\n"
+"<b>-pixelsize=</b> (in microns), overriding values from images and settings."
+"\n"
 "\n"
 "Unless <b>-noflip</b> is specified, if images are detected as being upside-"
 "down, they will be flipped.\n"
@@ -14412,6 +14408,11 @@ msgid ""
 "Sequence (1 / 5)\", the given title should end with () (e.g. \"My Sequence "
 "()\" and the numbers will be populated automatically)"
 msgstr ""
+"Generates an intensity profile plot between 2 points in each image in the "
+"sequence. If processing a sequence and it is desired to have the current "
+"image number and total number of images displayed in the format \"My "
+"Sequence (1 / 5)\", the given title should end with () (e.g. \"My Sequence ()"
+"\" and the numbers will be populated automatically)"
 
 #: src/core/command_def.h:153
 msgid ""
@@ -14443,6 +14444,33 @@ msgid ""
 "at= allowing coordinates in pixels to be provided for the target star and -"
 "wcs= allowing J2000 equatorial coordinates to be provided"
 msgstr ""
+"Same command as PSF but runs on sequences. This is similar to the one-star "
+"registration, except results can be used for photometry analysis rather than "
+"aligning images and the coordinates of the star can be provided by options.\n"
+"This command is what is called internally by the menu that appears on right "
+"click in the image, with the PSF for the sequence entry. By default, it will "
+"run with parallelisation activated; if registration data already exists for "
+"the sequence, they will be used to shift the search window in each image. If "
+"there is no registration data and if there is significant shift between "
+"images in the sequence, the default settings will fail to find stars in the "
+"initial position of the search area.\n"
+"The follow star option can then be activated by going in the registration "
+"tab, selecting the one-star registration and checking the follow star "
+"movement box (default in headless if no registration data is available).\n"
+"\n"
+"Results will be displayed in the Plot tab, from which they can also be "
+"exported to a comma-separated values (CSV) file for external analysis.\n"
+"\n"
+"When creating a light curve, the first star for which seqpsf has been run, "
+"marked 'V' in the display, will be considered as the variable star. All "
+"others are averaged to create a reference light curve subtracted to the "
+"light curve of the variable star.\n"
+"\n"
+"Currently, in headless operation, the command prints some analysed data in "
+"the console, another command allows several stars to be analysed and plotted "
+"as a light curve: LIGHT_CURVE. Arguments are mandatory in headless, with -"
+"at= allowing coordinates in pixels to be provided for the target star and -"
+"wcs= allowing J2000 equatorial coordinates to be provided"
 
 #: src/core/command_def.h:154
 msgid ""
@@ -14755,7 +14783,6 @@ msgstr "为第一个参数中指定的序列设置参考帧。<b>image_number</b
 "，从1开始，而不是文件名中的编号"
 
 #: src/core/command_def.h:175
-#, fuzzy
 msgid ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
@@ -14764,9 +14791,12 @@ msgid ""
 "name (cannot start with a digit), RA and Dec. This is only available from "
 "the GUI of Siril"
 msgstr ""
-"根据其赤道坐标，在加载的平板解算图像上使用临时用户注释目录显示一个点。选项"
-"<b>-clear</b>会首先清除该目录(可单独使用)。可以使用选项<b>-file=</b>利用CSV文"
-"件传递多个点，其中包含名称、赤经和赤纬。这仅在Siril的图形用户界面中可"
+"Shows a point on the loaded plate solved image using the temporary user "
+"annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
+"b> option clears this catalogue first and can be used alone. Several points "
+"can be passed using a CSV file with the option <b>-file=</b> containing a "
+"name (cannot start with a digit), RA and Dec. This is only available from "
+"the GUI of Siril"
 
 #: src/core/command_def.h:176
 msgid ""
@@ -18239,9 +18269,8 @@ msgid "The AAVSO gives stars that are know to not be variable"
 msgstr "AAVSO给出了已知不是变星的恒星"
 
 #: src/gui/nina_light_curve.c:72
-#, fuzzy
 msgid "if not checked, a PNG image of the graph will be generated instead"
-msgstr "如果未选中，将生成图表的 PNG 图像（如果 gnuplot 可用，对于两种情况）"
+msgstr "如果未选中，将生成图表的 PNG 图像"
 
 #: src/gui/nina_light_curve.c:127
 msgid ""
@@ -19004,19 +19033,16 @@ msgid "Could not copy the snapshot into the clipboard.\n"
 msgstr "无法复制快照到剪贴板。\n"
 
 #: src/gui/siril_plot.c:441
-#, fuzzy
 msgid "PNG files (*.png)"
 msgstr "PNG文件 (*.png)"
 
 #: src/gui/siril_plot.c:445
-#, fuzzy
 msgid "DAT files (*.dat)"
-msgstr "SER文件 (*.ser)"
+msgstr "DAT文件 (*.dat)"
 
 #: src/gui/siril_plot.c:453
-#, fuzzy
 msgid "SVG files (*.svg)"
-msgstr "CSV文件 (*.csv)"
+msgstr "SVG文件 (*.svg)"
 
 #: src/gui/split_cfa.c:48
 msgid "Error: sequence is SER or FITSEQ"
@@ -20513,9 +20539,9 @@ msgid ""
 msgstr "打开图像发生错误。请查询日志以获取更多信息。"
 
 #: src/io/siril_plot.c:700
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create %s, aborting\n"
-msgstr "无法打开文件 %s，异常终止。\n"
+msgstr "无法创建 %s，异常终止。\n"
 
 #: src/livestacking/gui.c:88
 #, c-format
