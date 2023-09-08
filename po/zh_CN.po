@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:22+0200\n"
-"PO-Revision-Date: 2023-09-05 16:40+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"PO-Revision-Date: 2023-09-08 22:25+0000\n"
+"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -1138,7 +1138,7 @@ msgstr "用于计算背景的乘法因子。该值越小饱和效应越高，越
 
 #: src/gui/siril3.glade:5898
 msgid "Subtractive Chromatic Green Noise Reduction"
-msgstr "削减绿色噪声（SCNR）"
+msgstr "除去绿色噪声（SCNR）"
 
 #: src/gui/siril3.glade:5963
 msgid "Protection method: "
@@ -1677,9 +1677,8 @@ msgid ""
 "Sets an early stop criterion for the Richardson-Lucy algorithm to prevent "
 "noise amplification. Deconvolution will stop early if the average pixel "
 "difference ratio between subsequent iterations is less than this value."
-msgstr ""
-"为 Richardson-Lucy 算法设置早期停止判据，以防止噪声放大。如果后续迭代之间的平"
-"均像素差异比小于此值，则反卷积将提前停止。"
+msgstr "为 Richardson-Lucy 算法设置提前停止判据，以防噪声放大。如果后续迭代之间的平均"
+"像素差异比小于此值，则反卷积将提前停止。"
 
 #: src/gui/siril3.glade:8170
 msgid ""
@@ -2479,19 +2478,19 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
-"选择拉伸类型。泛化双曲拉伸使用拉伸强度、局部强度、拐点以及阴影和高光保留区域"
+"选择拉伸类型。广义双曲拉伸使用拉伸强度、局部强度、拐点以及阴影和高光保留区域"
 "等参数执行双曲线拉伸。改良反双曲正弦拉伸使用拐点、低光和高光保留等附加参数执"
 "行反双曲正弦拉伸。这两个拉伸的逆变换也可使用。"
 
 #: src/gui/siril3.glade:10604 src/gui/siril3.glade:11213
 #: src/gui/siril3.glade:17114
 msgid "Generalised hyperbolic transform"
-msgstr "泛化双曲变换"
+msgstr "广义双曲变换"
 
 #: src/gui/siril3.glade:10605 src/gui/siril3.glade:11214
 #: src/gui/siril3.glade:17115
 msgid "Inverse generalised hyperbolic transform"
-msgstr "逆泛化双曲变换"
+msgstr "逆广义双曲变换"
 
 #: src/gui/siril3.glade:10606 src/gui/siril3.glade:11215
 #: src/gui/siril3.glade:17116
@@ -2918,7 +2917,7 @@ msgstr "开始图像解析。"
 
 #: src/gui/siril3.glade:12659
 msgid "Start the photometric color calibration algorithm."
-msgstr "开始测光法色彩校准算法。"
+msgstr "开始测光法色彩校准。"
 
 #: src/gui/siril3.glade:12701 src/gui/siril3.glade:12721
 #: src/gui/siril3.glade:12741 src/gui/siril3.glade:12761
@@ -4136,7 +4135,7 @@ msgid ""
 "and highlight preservation. The inverse hyperbolic and arcsinh stretches are "
 "also available, useful for working in negative space."
 msgstr ""
-"选择拉伸类型。线性执行简单的线性拉伸到新的黑点。泛化双曲拉伸使用拉伸强度、局"
+"选择拉伸类型。线性执行简单的线性拉伸到新的黑点。广义双曲拉伸使用拉伸强度、局"
 "部强度、拐点以及阴影和高光保留区域等参数执行双曲线拉伸。改良反双曲正弦拉伸使"
 "用拐点、低光和高光保留等附加参数执行反双曲正弦拉伸。这两个拉伸的逆变换可用于"
 "负片图像。"
@@ -4349,11 +4348,11 @@ msgstr "反双曲正弦变换…"
 
 #: src/gui/siril3.glade:18570
 msgid "Open the generalized hyperbolic transform dialog"
-msgstr "打开泛化双曲变换对话框"
+msgstr "打开广义双曲变换对话框"
 
 #: src/gui/siril3.glade:18572
 msgid "Generalised Hyperbolic Stretch Transformations..."
-msgstr "泛化双曲拉伸变换..."
+msgstr "广义双曲拉伸变换..."
 
 #: src/gui/siril3.glade:18585
 msgid "Open the hystogram transform dialog"
@@ -4378,7 +4377,7 @@ msgstr "色彩饱和度..."
 
 #: src/gui/siril3.glade:18640
 msgid "Open the subtractive chromatic noise reduction dialog"
-msgstr "打开削减绿色噪声（SCNR）对话框"
+msgstr "打开除去绿色噪声（SCNR）对话框"
 
 #: src/gui/siril3.glade:18642
 msgid "Remove Green Noise..."
@@ -5112,7 +5111,7 @@ msgstr "若要改变输出序列的图像尺寸，点选此处。注意这将影
 
 #: src/gui/siril3.glade:21788
 msgid "Full HD"
-msgstr "Full HD"
+msgstr "全高清"
 
 #: src/gui/siril3.glade:21789
 msgid "4K"
@@ -6304,7 +6303,7 @@ msgstr ""
 "- 中位数Sigma裁剪\n"
 "- Winsorized Sigma裁剪\n"
 "- 线性拟合裁剪\n"
-"- 泛化ESD检验\n"
+"- 广义ESD检验\n"
 "完成像素剔除之后才会计算平均数。\n"
 "\n"
 "<b>中位数</b>：该方式用于传统的暗/平/偏置场的叠加，不过我们现在建议使用含有像"
@@ -6488,7 +6487,7 @@ msgstr ""
 "该算法基于一条坐标上的斜线 (y=ax+b) 来计算离群值而用于像素剔除和叠加。该算法"
 "非常适用于巨大数据量的叠加并且图像包含有不同方向和空间分布形式的天光。\n"
 "\n"
-"<b>泛化ESD检验</b>算法是泛化的Grubbs Test算法[3]，用于检测近似正态分布的单变"
+"<b>广义ESD检验</b>算法是广义的Grubbs Test算法[3]，用于检测近似正态分布的单变"
 "量数据集中的若干离群值。该算法在超过50张图像的庞大集合中可体现出优秀的性能。"
 "\n"
 "\n"
@@ -6528,7 +6527,7 @@ msgstr "线性拟合裁剪"
 
 #: src/gui/siril3.glade:25369
 msgid "Generalized Extreme Studentized Deviate Test"
-msgstr "泛化ESD检验（Generalized Extreme Studentized Deviate Test）"
+msgstr "广义ESD检验"
 
 #: src/gui/siril3.glade:25382
 msgid ""
@@ -8137,7 +8136,7 @@ msgstr "<b>内存管理</b>"
 
 #: src/gui/siril3.glade:32129
 msgid "Default bit depth for HD AutoStretch"
-msgstr "HD自动拉伸的缺省位深"
+msgstr "高分辨率自动拉伸的缺省位深"
 
 #: src/gui/siril3.glade:32145
 msgid ""
@@ -8148,10 +8147,10 @@ msgid ""
 "will apply from the next viewer mode change, and can be applied now using "
 "the button to the right."
 msgstr ""
-"设置HD自动拉伸显示模式的缺省位深。更高的位深需要成倍增加的LUT内存，并且需要更"
-"长的时间来重新计算它，但在显示具有非常窄直方图峰值的图像时，可以更好地平滑量"
-"化伪影。默认位深将从下一次查看器模式更改开始应用，现在可以使用右侧的按钮应用"
-"。"
+"设置高分辨率自动拉伸显示模式的缺省位深。更高的位深需要成倍增加的LUT内存，并且"
+"需要更长的时间来重新计算它，但在显示具有非常窄直方图峰值的图像时，可以更好地"
+"平滑量化伪影。默认位深将从下一次查看器模式更改开始应用，现在可以使用右侧的按"
+"钮应用。"
 
 #: src/gui/siril3.glade:32162
 msgid "Apply bit depth"
@@ -8159,11 +8158,11 @@ msgstr "应用位深"
 
 #: src/gui/siril3.glade:32166
 msgid "Set the selected HD AutoStretch bit depth now"
-msgstr "立即设置选定的HD自动拉伸位深"
+msgstr "立即设置选定的高分辨率自动拉伸位深"
 
 #: src/gui/siril3.glade:32189
 msgid "HD AutoStretch"
-msgstr "HD自动拉伸"
+msgstr "高分辨率自动拉伸"
 
 #: src/gui/siril3.glade:32219
 msgid "Multithreaded FFTW"
@@ -10372,7 +10371,7 @@ msgstr ""
 
 #: src/core/command.c:502
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
-msgstr "将应用泛化Anscombe方差稳定变换。\n"
+msgstr "将应用广义Anscombe方差稳定变换。\n"
 
 #: src/core/command.c:504
 msgid "Will carry out final stage DA3D denoising.\n"
@@ -11724,7 +11723,7 @@ msgstr "带有像素剔除的平均数叠加需要两个附加参数：sigma下�
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
-msgstr "泛化ESD检验剔除算法的附加参数必须介于0和1之间，默认值为0.3和0.05。\n"
+msgstr "广义ESD检验剔除算法的附加参数必须介于0和1之间，默认值为0.3和0.05。\n"
 
 #: src/core/command.c:7379 src/core/command.c:7508
 msgid ""
@@ -12186,15 +12185,12 @@ msgid ""
 "brightness range, 0.7 for <b>HP</b>, 0 for <b>LP</b> are used but can be "
 "changed with the options of the same names"
 msgstr ""
-"Application of the generalized hyperbolic stretch with a symmetry point SP "
-"defined as k.sigma from the median of each channel (the provided "
-"<b>shadowsclip</b> value is the k here and can be negative). By default, SP "
-"and the stretch are computed per channel; SP can be computed as a mean of "
-"image channels by passing <b>-linked</b>. The stretch amount <b>D</b> is "
-"provided in the second mandatory argument.\n"
-"Implicit values of 13 for <b>B</b>, making it very focused on the SP "
-"brightness range, 0.7 for <b>HP</b>, 0 for <b>LP</b> are used but can be "
-"changed with the options of the same names"
+"应用广义双曲拉伸。其中拐点SP指的是每个通道中值的k.sigma（提供的<b>shadowsclip"
+"</b>值即为这里的k，可以是负数）。默认情况下，SP和拉伸是分通道计算的；SP可以通"
+"过<b>-linked</b>设置为图像各通道的平均值。拉伸量<b>D</b>在第二个必需参数中提"
+"供。\n"
+"不可更改的参数<b>B</b>为13，使拉伸集中于SP亮度范围，<b>HP</b>为0."
+"7，<b>LP</b>使用0，但可以使用同名选项进行更改"
 
 #: src/core/command_def.h:9
 msgid ""
@@ -12232,10 +12228,9 @@ msgid ""
 "argument <b>-sum</b> is passed, then the sum of pixels is computed, while it "
 "is the average when no optional argument is provided"
 msgstr ""
-"Computes the numerical binning of the in-memory image (sum of the pixels "
-"2x2, 3x3..., like the analogic binning of CCD camera). If the optional "
-"argument <b>-sum</b> is passed, then the sum of pixels is computed, while it "
-"is the average when no optional argument is provided"
+"计算内存中图像的数字像素合并（将2x2、3x3…的像素合并为一个新像素，类似于CCD相"
+"机的模拟像素合并）。如果传递了可选参数<b>-sum</b>，则计算像素的总和，而未提供"
+"时则计算平均值"
 
 #: src/core/command_def.h:14
 msgid ""
@@ -12418,12 +12413,10 @@ msgid ""
 "<b>tilesize</b> sets the size of grid for histogram equalization. Input "
 "image will be divided into equally sized rectangular tiles"
 msgstr ""
-"Equalizes the histogram of an image using Contrast Limited Adaptive "
-"Histogram Equalization.\n"
+"使用有限对比度自适应均衡拉伸来均衡图像的直方图。\n"
 "\n"
-"<b>cliplimit</b> sets the threshold for contrast limiting.\n"
-"<b>tilesize</b> sets the size of grid for histogram equalization. Input "
-"image will be divided into equally sized rectangular tiles"
+"<b>cliplimit</b>设置对比度限制的阈值。\n"
+"<b>tilesize</b>设置执行此操作的块的大小。输入图像将被切分为等大的矩形块"
 
 #: src/core/command_def.h:23
 msgid "Clears the graphical output logs"
@@ -12581,52 +12574,37 @@ msgid ""
 "used to prevent this by denoising each channel separately. This is slower "
 "but will eliminate artefacts"
 msgstr ""
-"Denoises the image using the non-local Bayesian algorithm described by <a "
-"href=\"https://www.ipol.im/pub/art/2013/16\">Lebrun, Buades and Morel</a>.\n"
+"使用<a href=\"https://www.ipol.im/pub/art/2013/16\">Lebrun, Buades and "
+"Morel</a>中描述的non-local Bayesian算法对图像降噪。\n"
 "\n"
-"It is strongly recommended to apply cosmetic correction to remove salt and "
-"pepper noise before running denoise, and by default this command will apply "
-"cosmetic correction automatically. However, if this has already been carried "
-"out earlier in the workflow it may be disabled here using the optional "
-"command <b>-nocosmetic</b>.\n"
+"强烈建议在降噪之前应用坏点修正以去除椒盐噪声。默认情况下，此命令将自动应用坏"
+"点修正。但如果已执行过坏点修正，则可以在此处使用<b>-nocosmetic</b>禁用它。\n"
 "\n"
-"An optional argument <b>-mod=m</b> may be given, where 0 &lt;= m &lt;= 1. "
-"The output pixel is computed as : <i>out=m x d + (1 − m) x in</i>, where "
-"<i>d</i> is the denoised pixel value. A modulation value of 1 will apply no "
-"modulation. If the parameter is omitted, it defaults to 1.\n"
+"可以给出可选参数<b>-mod=m</b>，其中0 &lt;= m &lt;= "
+"1。输出像素将由以下计算得出：<i>out=m x d + (1 − m) x in</i>，其中<i>d</i>是"
+"降噪后的像素值。调制值mod为1将不应用调制。如果省略该参数，则默认为1。\n"
 "\n"
-"The optional argument <b>-vst</b> can be used to apply the generalised "
-"Anscombe variance stabilising transform prior to NL-Bayes. This is useful "
-"with photon-starved images such as single subs, where the noise follows a "
-"Poisson or Poisson-Gaussian distribution rather than being primarily "
-"Gaussian. It cannot be used in conjunction with DA3D or SOS, and for "
-"denoising stacked images it is usually not beneficial.\n"
+"可选参数<b>-vst</b>用于在执行non-local Bayesian之前执行广义Anscombe方差稳定变"
+"换。这对于低光图像（如单帧）很有用，其中噪声特性不是高斯的，而是主要是泊松或"
+"泊松-高斯混合的。它不能与DA3D或SOS结合使用，并且对于降噪叠加好的图像来说，它"
+"通常是无益的。\n"
 "\n"
-"The optional argument <b>-da3d</b> can be used to enable Data-Adaptive Dual "
-"Domain Denoising (DA3D) as a final stage denoising algorithm. This uses the "
-"output of BM3D as a guide image to refine the denoising. It improves detail "
-"and reduces staircasing artefacts.\n"
+"可选参数<b>-da3d</b>用于启用数据自适应双域降噪（DA3D）作为最后阶段的降噪算法"
+"。将用BM3D生成一个引导图像来细化降噪。这能改善细节，减少楼梯样伪影。\n"
 "\n"
-"The optional argument <b>-sos=<i>n</i></b> can be used to enable Strengthen-"
-"Operate-Subtract (SOS) iterative denoise boosting, with the number of "
-"iterations specified by n. In particular, this booster may produce better "
-"results if the un-boosted NL-Bayes algorithm produces artefacts in "
-"background areas. If both -da3d and -sos=n are specified, the last to be "
-"specified will apply.\n"
+"可选参数<b>-sos=<i>n</i></b>用于启用迭代次数为n的增强运算-减法（SOS）增强降噪"
+"。如果未增强的non-local Bayesian算法会在背景区域中产生伪影，则该选项可能会产"
+"生更好的结果。如果同时指定了-da3d和-sos=n，则只执行最后指定的那个。\n"
 "\n"
-"The optional argument <b>-rho=r</b> may be specified, where 0 &lt; r &lt; 1. "
-"This is used by the SOS booster to determine the amount of noisy image added "
-"in to the intermediate result between each iteration. If -sos=n is not "
-"specified then the parameter is ignored.\n"
+"可以指定可选参数<b>-rho=r</b>，其中0 &lt; r &lt; 1。这用来指定在SOS增强算法中"
+"，每次迭代的中间结果要混入多少原始噪声图像。如果未指定-sos=n，则忽略该参数。"
 "\n"
-"The default is not to apply DA3D or SOS, as the improvement in denoising is "
-"usually relatively small and these techniques requires additional processing "
-"time.\n"
 "\n"
-"In very rare cases, blocky coloured artefacts may be found in the output "
-"when denoising colour images. The optional argument <b>-indep</b> can be "
-"used to prevent this by denoising each channel separately. This is slower "
-"but will eliminate artefacts"
+"默认不应用DA3D或SOS，因为对降噪的改进通常不明显，并且需要额外的处理时间。\n"
+"\n"
+"在极少数情况下，对彩色图像进行降噪时，可能会在输出中发现块状彩色伪影。可选参"
+"数<b>-indep</b>可以通过分别对每个通道进行降噪来防止这种情况。速度较慢，但会消"
+"除伪影"
 
 #: src/core/command_def.h:34
 msgid "Dumps the FITS header of the loaded image in the console"
@@ -12932,7 +12910,7 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
-"基于ghsastro.co.uk团队工作成果的泛化双曲拉伸。\n"
+"基于ghsastro.co.uk团队工作成果的广义双曲拉伸。\n"
 "\n"
 "参数<b>-D=</b>定义拉伸强度，介于0和10之间。这是唯一的必需参数。以下可选参数用"
 "于进一步调整拉伸：\n"
@@ -12960,7 +12938,7 @@ msgstr "将载入的CFA图像中RGB图层的平均亮度均衡化。这和校准
 
 #: src/core/command_def.h:64
 msgid "Lists the available commands or help for one command"
-msgstr "Lists the available commands or help for one command"
+msgstr "列出所有可用的命令，或显示一个命令的帮助"
 
 #: src/core/command_def.h:65
 msgid ""
@@ -13006,7 +12984,7 @@ msgid ""
 "command, possibly returning to a linear image. It can also work the same way "
 "as GHT but for images in negative"
 msgstr ""
-"逆泛化双曲拉伸。进行GHT（泛化双曲变换）的逆变换；如果提供相同的参数，则会撤销"
+"逆广义双曲拉伸。进行GHT（广义双曲变换）的逆变换；如果提供相同的参数，则会撤销"
 "GHT命令，可能会返回线性图像。它也可以像GHT一样使用，但适用于负片图像"
 
 #: src/core/command_def.h:71
@@ -13150,7 +13128,7 @@ msgstr ""
 
 #: src/core/command_def.h:83
 msgid "Lists files and directories in the working directory"
-msgstr "Lists files and directories in the working directory"
+msgstr "列出工作目录中的所有文件和目录"
 
 #: src/core/command_def.h:85
 msgid ""
@@ -13162,13 +13140,11 @@ msgid ""
 "created with default file name '$(FITS_file_without_ext).json' and can be "
 "changed with the <b>-out=</b> option"
 msgstr ""
-"Dumps metadata and statistics of the currently loaded image in JSON form. "
-"The file name is required, even if the image is already loaded. Image data "
-"may not be read from the file if it is the current loaded image and if the "
-"<b>-stats_from_loaded</b> option is passed. Statistics can be disabled by "
-"providing the <b>-nostats</b> option. A file containing the JSON data is "
-"created with default file name '$(FITS_file_without_ext).json' and can be "
-"changed with the <b>-out=</b> option"
+"以JSON形式转储当前载入图像的元数据和统计信息。即使图像已经加载，也需要提供文"
+"件名。如果图像数据是当前载入的图像，并且传递了<b>-stats_from_loaded</b>选项，"
+"则不会从外部文件中读取图像数据。可以通过提供<b>-nostats</b>选项禁用统计信息。"
+"包含JSON数据的文件将写入默认文件名为'$(FITS_file_without_ext)."
+"json'的文件，可以使用<b>-out=</b>指定文件名"
 
 #: src/core/command_def.h:87
 msgid ""
@@ -13762,9 +13738,7 @@ msgstr "重新扫描脚本文件夹并更新“脚本”菜单"
 msgid ""
 "Returns an error if the version of Siril is older than the one passed in "
 "argument"
-msgstr ""
-"Returns an error if the version of Siril is older than the one passed in "
-"argument"
+msgstr "如果Siril的版本比传入参数要求的版本旧，则报错"
 
 #: src/core/command_def.h:112
 msgid ""
@@ -13816,13 +13790,11 @@ msgid ""
 "opposite sign. The two images are then added to create the final image. This "
 "process is also called Larson Sekanina filter"
 msgstr ""
-"Creates two images, with a radial shift (<b>dR</b> in pixels) and a "
-"rotational shift (<b>dalpha</b> in degrees) with respect to the point "
-"(<b>xc</b>, <b>yc</b>).\n"
+"创建两个图像，具有相对于点（<b>xc</b>，<b>yc</b>）的径向偏移（<b>dR</b>，以像"
+"素为单位）和旋转偏移（<b>dalpha</b>，以度为单位）。\n"
 "\n"
-"Between these two images, the shifts have the same amplitude, but an "
-"opposite sign. The two images are then added to create the final image. This "
-"process is also called Larson Sekanina filter"
+"在这两幅图像之间，偏移具有相同的大小，但符号相反。然后将这两张图像相加，以创"
+"建最终图像。这个过程也称为Larson-Sekanina滤波"
 
 #: src/core/command_def.h:115
 msgid ""
@@ -13960,9 +13932,7 @@ msgstr ""
 msgid ""
 "Saves current image under the form of a bitmap file with 8-bit per channel: "
 "<b>filename</b>.bmp (BMP 24-bit)"
-msgstr ""
-"Saves current image under the form of a bitmap file with 8-bit per channel: "
-"<b>filename</b>.bmp (BMP 24-bit)"
+msgstr "将当前图像保存为位图文件，每通道8位：<b>filename</b>.bmp (BMP 24-bit)"
 
 #: src/core/command_def.h:123
 msgid ""
@@ -14890,7 +14860,7 @@ msgstr ""
 "叠加类型<b>rej</b>或<b>mean</b>需要使用额外的参数来指定剔除类型和参数。剔除类"
 "型有：<b>n[one]、p[ercentile]、s[igma]、m[edian]、w[insorized]、l[inear]、g[e"
 "neralized]、[m]a[d]</b>，分别指不剔除、百分数、Sigma、中位数Sigma、"
-"Winsorized Sigma、线性拟合、泛化ESD检验、绝对中位差裁剪。如果省略，"
+"Winsorized Sigma、线性拟合、广义ESD检验、绝对中位差裁剪。如果省略，"
 "则使用默认的Winsorized Sigma裁剪。\n"
 "除非选择<b>none</b>，否则必须提供剔除的Sigma下限<b>sigma low</"
 "b>和Sigma上限<b>sigma high</b>。\n"
@@ -15917,7 +15887,7 @@ msgstr "内存量（以 GB 为单位）"
 
 #: src/core/settings.c:262
 msgid "HD AutoStretch bit depth"
-msgstr "HD自动拉伸位深"
+msgstr "高分辨率自动拉伸位深"
 
 #: src/core/settings.c:263
 msgid "need requires cmd in script"
@@ -17258,7 +17228,7 @@ msgstr "自动拉伸显示模式将使用16位 LUT\n"
 #: src/gui/callbacks.c:373
 #, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
-msgstr "将HD自动拉伸显示模式位深设置为 %d...\n"
+msgstr "将高分辨率自动拉伸显示模式位深设置为 %d...\n"
 
 #: src/gui/callbacks.c:452
 #, c-format
@@ -17884,7 +17854,7 @@ msgstr "无法计算自动拉伸参数，使用缺省值\n"
 
 #: src/gui/histogram.c:1264
 msgid "Generalised Hyperbolic Stretch Transformations"
-msgstr "泛化双曲拉伸变换"
+msgstr "广义双曲拉伸变换"
 
 #: src/gui/histogram.c:1292 src/gui/histogram.c:1681
 msgid "Clicking on the histogram sets SP"
@@ -17916,13 +17886,13 @@ msgstr "中间调变换函数"
 
 #: src/gui/histogram.c:1846
 msgid "Generalised Hyperbolic Transfer Function"
-msgstr "泛化双曲拉伸函数"
+msgstr "广义双曲拉伸函数"
 
 #: src/gui/image_display.c:156
 msgid ""
 "Error: memory allocaton failure when instantiating HD LUTs. Reverting to "
 "standard 16 bit LUTs.\n"
-msgstr "错误：实例化 HD LUT 时内存分配失败。恢复为标准 16 位 LUT。\n"
+msgstr "错误：实例化高分辨率 LUT 时内存分配失败。恢复为标准 16 位 LUT。\n"
 
 #: src/gui/image_display.c:537
 #, c-format
@@ -21810,7 +21780,7 @@ msgstr "至少选择两幅图像用于叠加，异常中止。\n"
 msgid ""
 "The Generalized Extreme Studentized Deviate Test needs at least three frames "
 "for stacking. Aborting.\n"
-msgstr "泛化ESD检验算法至少需要三幅图像用于叠加，异常中止。\n"
+msgstr "广义ESD检验算法至少需要三幅图像用于叠加，异常中止。\n"
 
 #: src/stacking/median_and_mean.c:1011
 msgid "No registration layer passed, ignoring registration data!\n"
@@ -22077,7 +22047,7 @@ msgstr "线性拟合裁剪"
 
 #: src/stacking/stacking.c:362
 msgid "GESDT clipping"
-msgstr "泛化ESD检验裁剪"
+msgstr "广义ESD检验裁剪"
 
 #: src/stacking/stacking.c:365
 #, c-format
@@ -22190,14 +22160,14 @@ msgstr "Sigma裁剪剔除算法的裁剪系数上限。"
 msgid ""
 "Expected fraction of maximum outliers for the Generalized Extreme "
 "Studentized Deviate Test algorithm."
-msgstr "泛化ESD检验算法的最大预期离群值。"
+msgstr "广义ESD检验算法的最大预期离群值。"
 
 #: src/stacking/stacking.c:850
 msgid ""
 "Probability of making a false positive for the Generalized Extreme "
 "Studentized Deviate Test algorithm. Increasing this value will reject more "
 "pixels."
-msgstr "泛化ESD检验算法的误检概率。提升该值会导致更多的像素剔除。"
+msgstr "广义ESD检验算法的误检概率。提升该值会导致更多的像素剔除。"
 
 #: src/stacking/stacking.c:856
 msgid "ESD Outliers: "
