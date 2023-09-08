@@ -10,7 +10,6 @@ xx/xx/xx
 * Improved RGB composition tool to do full homography registration
 * Added new init for PSF fitting of oversampled stars
 * Fixed running command catsearch threaded to avoid GUI freeze (#1167)
-* Allow the Star Recomposition UI to scroll when larger than the dialog
 
 siril 1.2.0
 xx/xx/xx
@@ -44,6 +43,7 @@ xx/xx/xx
 * Fixed crash when passing only constants in pm expression (#1176)
 * Fixed incorrect channel when adding star from selection in RGB vport (#1180)
 * Allow to access to non-local disk (#1182)
+* Allow the Star Recomposition UI to scroll when larger than the dialog
 
 siril 1.2.0-rc1
 06/01/23
