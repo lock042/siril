@@ -84,6 +84,10 @@ static cmsHPROFILE gray_rec709trcv2() {
 	return cmsOpenProfileFromMem(Gray_elle_V2_rec709_icc, Gray_elle_V2_rec709_icc_len);
 }
 
+static cmsHPROFILE srgb_monitor_perceptual() {
+	return cmsOpenProfileFromMem(sRGB_v4_ICC_preference_icc, sRGB_v4_ICC_preference_icc_len);
+}
+
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	if (fit == &gfit && !com.headless) {
@@ -121,25 +125,32 @@ void color_manage(fits *fit, gboolean active) {
 	}
 }
 
-static void export_profile(cmsHPROFILE profile) {
-	char *filename = NULL;
+static void export_profile(cmsHPROFILE profile, const char *provided_filename) {
+	char *filename = NULL, *path = NULL;
 	int length;
-	length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
-	if (length) {
-		filename = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", filename, length);
+	if (provided_filename != NULL && provided_filename[0] != '\0') {
+		filename = strdup(provided_filename);
+	} else {
+		length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
+		if (length) {
+			filename = (char*) malloc(length * sizeof(char));
+			cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", filename, length);
+		}
+		if (!g_str_has_suffix(filename, ".icc")) {
+			gchar* temp = g_strdup_printf("%s.icc", filename);
+			free(filename);
+			filename = strdup(temp);
+			g_free(temp);
+		}
 	}
-	if (!g_str_has_suffix(filename, ".icc")) {
-		gchar* temp = g_strdup_printf("%s.icc", filename);
-		free(filename);
-		filename = strdup(temp);
-		g_free(temp);
-	}
-	if (cmsSaveProfileToFile(profile, filename))
-		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", filename);
-	else
-		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", filename);
+	path = g_build_filename(com.wd, filename, NULL);
 	free(filename);
+	if (cmsSaveProfileToFile(profile, path)) {
+		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", path);
+	} else {
+		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", path);
+	}
+	free(path);
 }
 
 static void export_elle_stone_profiles() {
@@ -147,48 +158,65 @@ static void export_elle_stone_profiles() {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	profile = srgb_linear();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = srgb_trc();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = srgb_trcv2();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = rec2020_linear();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = rec2020_trc();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = rec2020_trcv2();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = gray_linear();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = gray_srgbtrc();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = gray_srgbtrcv2();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = gray_rec709trc();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
 
 	profile = gray_rec709trcv2();
-	export_profile(profile);
+	export_profile(profile, NULL);
 	cmsCloseProfile(profile);
+
+	// Also we use this function to export the ICC sRGB perceptual display profile,
+	// but use a confirmation dialog to confirm the ICC's terms of use.
+	if (siril_confirm_dialog(_("Terms of Use"), _("To export a copy of the sRGB "
+			"monitor profile with perceptual intent tables, please accept the ICC's terms "
+			"of use:\n\nTo anyone who acknowledges that the file \"sRGB_v4_ICC_preference.icc\" "
+			"is provided \"AS IS\" WITH NO EXPRESS OR IMPLIED WARRANTY, permission to use, "
+			"copy and distribute this file for any purpose is hereby granted without fee, "
+			"provided that the file is not changed including the ICC copyright notice tag, "
+			"and that the name of ICC shall not be used in advertising or publicity "
+			"pertaining to distribution of the software without specific, written prior "
+			"permission. ICC makes no representations about the suitability of this software "
+			"for any purpose."), _("Accept"))) {
+		profile = srgb_monitor_perceptual();
+		export_profile(profile, "sRGB_v4_ICC_preference.icc");
+		cmsCloseProfile(profile);
+	}
 }
 
 /* Check if a provided filename is non-null and points to a file that exists */
@@ -210,7 +238,7 @@ void validate_custom_profiles() {
 				cmsCloseProfile(gui.icc.monitor);
 			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
 			if (!gui.icc.monitor) {
-				gui.icc.monitor = srgb_trc();
+				gui.icc.monitor = srgb_monitor_perceptual();
 				siril_log_color_message(_("Error opening custom monitor profile. "
 								"Monitor profile set to sRGB.\n"), "red");
 			}
@@ -226,7 +254,7 @@ void validate_custom_profiles() {
 	} else {
 		if (gui.icc.monitor)
 			cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = srgb_trc();
+		gui.icc.monitor = srgb_monitor_perceptual();
 	}
 
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
@@ -866,7 +894,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	// assign the working color profile
 	if (!fit->color_managed || !fit->icc_profile) {
 		if (com.pref.icc.autoassignment & occasion) {
-			if (fit_appears_stretched) {
+			if (fit_appears_stretched(fit)) {
 				fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 				// color_manage() is called later from siril_colorspace_transform()
 			}
@@ -1120,7 +1148,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 		g_free(com.pref.icc.icc_path_monitor);
 		com.pref.icc.icc_path_monitor = NULL;
 		cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = srgb_trc();
+		gui.icc.monitor = srgb_monitor_perceptual();
 		if (gui.icc.monitor) {
 			siril_log_message(_("Monitor ICC profile set to sRGB\n"));
 		} else {
@@ -1181,7 +1209,7 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 			if (!no_file) {
 				siril_log_color_message(_("Monitor profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_monitor);
 			}
-			gui.icc.monitor = srgb_trc();
+			gui.icc.monitor = srgb_monitor_perceptual();
 			if (gui.icc.monitor) {
 				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 			} else {
@@ -1190,7 +1218,7 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 			}
 		}
 	} else {
-		gui.icc.monitor = srgb_trc();
+		gui.icc.monitor = srgb_monitor_perceptual();
 		if (gui.icc.monitor) {
 			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
 		} else {

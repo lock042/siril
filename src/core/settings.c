@@ -205,9 +205,9 @@ preferences pref_init = {
 	},
 	.fits_save_icc = TRUE,
 	.icc = {
-		.rendering_intent = INTENT_PERCEPTUAL,
+		.rendering_intent = INTENT_RELATIVE_COLORIMETRIC,
 		.proofing_intent = INTENT_RELATIVE_COLORIMETRIC,
-		.export_intent = INTENT_PERCEPTUAL,
+		.export_intent = INTENT_RELATIVE_COLORIMETRIC,
 		.processing_intent = INTENT_PERCEPTUAL,
 		.working_gamut = TYPE_SRGB,
 		.icc_path_monitor = NULL,
@@ -219,7 +219,7 @@ preferences pref_init = {
 		.default_to_srgb = TRUE,
 		.rendering_bpc = TRUE,
 		.proofing_bpc = TRUE,
-		.autoconversion = ICC_ASK_TO_CONVERT,
+		.autoconversion = ICC_NEVER_CONVERT,
 		.autoassignment = ICC_ASSIGN_ON_STRETCH
 	}
 };
