@@ -33188,6 +33188,9 @@ Note: if the format does not support ICC profile embedding, images will always b
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="label" translatable="yes">Auto Conversion / Assignment Options</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
                                   </object>
                                 </child>
                               </object>

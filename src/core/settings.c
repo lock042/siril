@@ -219,7 +219,7 @@ preferences pref_init = {
 		.default_to_srgb = TRUE,
 		.rendering_bpc = TRUE,
 		.proofing_bpc = TRUE,
-		.autoconversion = ICC_NEVER_CONVERT,
+		.autoconversion = ICC_NEVER_AUTOCONVERT,
 		.autoassignment = ICC_ASSIGN_ON_STRETCH
 	}
 };
