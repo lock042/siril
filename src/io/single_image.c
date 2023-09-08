@@ -278,7 +278,7 @@ int open_single_image(const char* filename) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
-		g_free(realname);
+		free(realname);
 		return 1;
 	}
 
@@ -299,6 +299,8 @@ int open_single_image(const char* filename) {
 				execute_idle_and_wait_for_it(end_open_single_image, NULL);
 			else end_open_single_image(NULL);
 		}
+	} else {
+		free(realname);
 	}
 	return retval;
 }

@@ -1897,6 +1897,14 @@ static gchar *siril_get_asnet_bash() {
 	g_free(testdir);
 	return NULL;
 }
+
+gboolean asnet_is_available() {
+	gchar *path = siril_get_asnet_bash();
+	gboolean retval = path != NULL;
+	g_free(path);
+	return retval;
+}
+
 #else
 static gboolean solvefield_is_in_path = FALSE;
 static gchar *siril_get_asnet_bin() {
@@ -1933,9 +1941,11 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		return 1;
 	}
 #else
-	if (!asnet_is_available()) {
-		siril_log_color_message(_("solve-field was not found, set its path in the preferences\n"), "red");
-		return 1;
+	if (!args->asnet_checked) {
+		if (!asnet_is_available()) {
+			siril_log_color_message(_("solve-field was not found, set its path in the preferences\n"), "red");
+			return 1;
+		}
 	}
 #endif
 
@@ -2250,6 +2260,10 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	if (!args->cat_center)
 		args->cat_center = get_eqs_from_header(&fit);
+	if (args->onlineCatalog != CAT_ASNET && !args->cat_center) {
+		siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
+		return 1;
+	}
 	if (args->pixel_size <= 0.0) {
 		args->pixel_size = max(fit.pixel_size_x, fit.pixel_size_y);
 		if (args->pixel_size <= 0.0) {
@@ -2271,9 +2285,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		}
 	}
 
+	seq_prepare_hook(arg);
 	args->fit = &fit;
-	remove_prefixed_sequence_files(arg->seq, arg->new_seq_prefix);
-	remove_prefixed_star_files(arg->seq, arg->new_seq_prefix);
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
 	if (args->onlineCatalog == CAT_ASNET) {
@@ -2295,8 +2308,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		free(aargs);
 		return 1;
 	}
-	aargs->filename = g_strdup(root);
-	process_plate_solver_input(aargs); // depends on args->fit
+	aargs->filename = g_strdup(root);	// for localasnet
+	process_plate_solver_input(aargs);	// depends on aargs->fit
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
 	if (retval)
@@ -2306,6 +2319,9 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
+	seq_finalize_hook(arg);
+	if (aargs->cat_center)
+		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->cstars)
 		free_fitted_stars(aargs->cstars);
 	if (aargs->catalog_file)
@@ -2336,8 +2352,12 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;
 	seqargs->has_output = TRUE;
+	seqargs->output_type = get_data_type(seq->bitpix);
 	seqargs->new_seq_prefix = strdup("ps_");
+	seqargs->load_new_sequence = TRUE;
 	seqargs->description = "plate solving";
+	if (seq->type == SEQ_SER)
+		seqargs->force_fitseq_output = TRUE;
 	seqargs->user = args;
 
 	siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
