@@ -283,6 +283,7 @@ typedef struct icc_params {
 	gboolean proofing_bpc;
 	icc_autoconvert_type autoconversion;
 	icc_assign_type autoassignment;
+	gboolean pedantic_linear;
 } icc_params;
 
 /**

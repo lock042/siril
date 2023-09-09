@@ -49,6 +49,10 @@ typedef enum {
 	GRAY_REC709TRC
 } internal_icc;
 
+typedef struct SirilMatrix3_d {
+	gdouble coeff[3][3];
+} SirilMatrix3_d;
+
 cmsHPROFILE srgb_linear();
 cmsHPROFILE gray_srgbtrc();
 cmsHPROFILE srgb_trc();

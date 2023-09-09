@@ -220,7 +220,8 @@ preferences pref_init = {
 		.rendering_bpc = TRUE,
 		.proofing_bpc = TRUE,
 		.autoconversion = ICC_NEVER_AUTOCONVERT,
-		.autoassignment = ICC_ASSIGN_ON_STRETCH
+		.autoassignment = ICC_ASSIGN_ON_STRETCH,
+		.pedantic_linear = FALSE
 	}
 };
 
@@ -419,6 +420,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoassignment },
 	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },
 	{ "gui", "icc_proofing_bpc", STYPE_BOOL, N_("enable proofing BPC"), &com.pref.icc.proofing_bpc },
+	{ "gui", "icc_pedantic_linear", STYPE_BOOL, N_("pedantically assign linear ICC profiles"), &com.pref.icc.pedantic_linear },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },

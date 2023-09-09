@@ -48,6 +48,104 @@ static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
 ////// Functions //////
 
+
+gchar *
+	siril_any_to_utf8 (const gchar  *str,
+						gssize        len,
+						const gchar  *warning_format,
+						...) {
+  const gchar *start_invalid;
+  gchar *utf8;
+
+
+  if (g_utf8_validate (str, len, &start_invalid))
+    {
+      if (len < 0)
+        utf8 = g_strdup (str);
+      else
+        utf8 = g_strndup (str, len);
+    }
+  else
+    {
+      utf8 = g_locale_to_utf8 (str, len, NULL, NULL, NULL);
+    }
+
+  if (! utf8)
+    {
+      if (warning_format)
+        {
+          va_list warning_args;
+
+          va_start (warning_args, warning_format);
+
+          g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+                  warning_format, warning_args);
+
+          va_end (warning_args);
+        }
+
+      if (start_invalid > str)
+        {
+          gchar *tmp;
+
+          tmp = g_strndup (str, start_invalid - str);
+          utf8 = g_strconcat (tmp, " ", _("(invalid UTF-8 string)"), NULL);
+          g_free (tmp);
+        }
+      else
+        {
+          utf8 = g_strdup (_("(invalid UTF-8 string)"));
+        }
+    }
+
+  return utf8;
+}
+
+static gchar *
+	siril_color_profile_get_info (cmsHPROFILE profile,
+								cmsInfoType info) {
+	cmsUInt32Number  size;
+	gchar           *text = NULL;
+
+	size = cmsGetProfileInfoASCII (profile, info,
+									"en", "US", NULL, 0);
+	if (size > 0) {
+		gchar *data = g_new (gchar, size + 1);
+
+		size = cmsGetProfileInfoASCII (profile, info,
+										"en", "US", data, size);
+		if (size > 0)
+			text = siril_any_to_utf8 (data, -1, NULL);
+
+		g_free (data);
+	}
+  return text;
+}
+
+static gchar *
+	siril_color_profile_get_copyright (cmsHPROFILE profile) {
+	gchar *string = siril_color_profile_get_info (profile, cmsInfoCopyright);
+	return string;
+}
+
+static gchar *
+	siril_color_profile_get_description (cmsHPROFILE profile) {
+	gchar *string = siril_color_profile_get_info (profile, cmsInfoDescription);
+	return string;
+}
+
+static gchar *
+	siril_color_profile_get_manufacturer (cmsHPROFILE profile) {
+	gchar *string = siril_color_profile_get_info (profile, cmsInfoManufacturer);
+	return string;
+}
+
+static gchar *
+	siril_color_profile_get_model (cmsHPROFILE profile) {
+	gchar *string = siril_color_profile_get_info (profile, cmsInfoModel);
+	return string;
+}
+
 cmsHPROFILE srgb_linear() {
 	return cmsOpenProfileFromMem(sRGB_elle_V4_g10_icc, sRGB_elle_V4_g10_icc_len);
 }
@@ -91,25 +189,19 @@ static cmsHPROFILE srgb_monitor_perceptual() {
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	if (fit == &gfit && !com.headless) {
+		gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
 		gchar *name = g_build_filename(siril_get_system_data_dir(), "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
 		gchar *tooltip = NULL;
 		if (active) {
 			if (fit->icc_profile) {
-				int length = cmsGetProfileInfoASCII(fit->icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
-				int length2 = cmsGetProfileInfoASCII(gui.icc.monitor, cmsInfoDescription, "en", "US", NULL, 0);
-				char *monitor = malloc(length2 * sizeof(char));
-				cmsGetProfileInfoASCII(gui.icc.monitor, cmsInfoDescription, "en", "US", monitor, length2);
-				// TODO: update the tooltip to show the proofing profile if in soft proof mode
-				if (gui.rendering_mode == SOFT_PROOF_DISPLAY) {
-				}
-				char *buffer = NULL;
-				if (length) {
-					buffer = malloc(length * sizeof(char));
-					cmsGetProfileInfoASCII(fit->icc_profile, cmsInfoDescription, "en", "US", buffer, length);
-					tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s"), buffer, monitor);
-					free(buffer);
-					free(monitor);
-				}
+				buffer = siril_color_profile_get_description(fit->icc_profile);
+				monitor = siril_color_profile_get_description(gui.icc.monitor);
+			}
+			if (gui.rendering_mode == SOFT_PROOF_DISPLAY && gui.icc.soft_proof) {
+				proof = siril_color_profile_get_description(gui.icc.soft_proof);
+				tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
+			} else {
+				tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s"), buffer, monitor);
 			}
 			if (!tooltip)
 				tooltip = g_strdup(_("Image is color managed\n"));
@@ -121,24 +213,22 @@ void color_manage(fits *fit, gboolean active) {
 		gtk_image_set_from_file((GtkImage*) image, name);
 		gtk_widget_set_tooltip_text(button, tooltip);
 		g_free(name);
+		g_free(buffer);
+		g_free(monitor);
+		g_free(proof);
 		g_free(tooltip);
 	}
 }
 
 static void export_profile(cmsHPROFILE profile, const char *provided_filename) {
 	char *filename = NULL, *path = NULL;
-	int length;
 	if (provided_filename != NULL && provided_filename[0] != '\0') {
 		filename = strdup(provided_filename);
 	} else {
-		length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
-		if (length) {
-			filename = (char*) malloc(length * sizeof(char));
-			cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", filename, length);
-		}
+		filename = siril_color_profile_get_description(profile);
 		if (!g_str_has_suffix(filename, ".icc")) {
 			gchar* temp = g_strdup_printf("%s.icc", filename);
-			free(filename);
+			g_free(filename);
 			filename = strdup(temp);
 			g_free(temp);
 		}
@@ -217,6 +307,15 @@ static void export_elle_stone_profiles() {
 		export_profile(profile, "sRGB_v4_ICC_preference.icc");
 		cmsCloseProfile(profile);
 	}
+}
+
+//Two functions to check if profiles are RGB or Gray
+static gboolean siril_color_profile_is_rgb(cmsHPROFILE profile) {
+	return (cmsGetColorSpace (profile) == cmsSigRgbData);
+}
+
+static gboolean siril_color_profile_is_gray(cmsHPROFILE profile) {
+	return (cmsGetColorSpace (profile) == cmsSigGrayData);
 }
 
 /* Check if a provided filename is non-null and points to a file that exists */
@@ -499,6 +598,7 @@ void refresh_icc_transforms() {
 	check_gfit_profile_identical_to_monitor();
 }
 
+// Returns the full ICC profile data
 unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
 	unsigned char* block = NULL;
 	cmsUInt32Number length;
@@ -541,23 +641,217 @@ static gboolean fit_appears_stretched(fits* fit) {
 	return FALSE;
 }
 
-/* Wrapper for cmsIsToneCurveLinear() that reads the relevant tone curve from
- * fit->icc_profile and checks to see if it is linear
- */
+/* Adapted from GIMP code */
 cmsBool fit_icc_is_linear(fits *fit) {
 	if (!(fit->color_managed) || fit->icc_profile == NULL)
 		return FALSE;
-	cmsToneCurve *tonecurve;
-	if (fit->naxes[2] == 1) {
-		tonecurve = cmsReadTag(fit->icc_profile, cmsSigGrayTRCTag);
-	} else {
-		tonecurve = cmsReadTag(fit->icc_profile, cmsSigRedTRCTag);
-	}
-	// If we fail to read a tonecurve then cmsIsToneCurveLinear will crash
-	// Return FALSE as a conservative result - remapping will be done
-	if (!tonecurve)
+	cmsToneCurve *curve;
+	if (! cmsIsMatrixShaper (fit->icc_profile))
 		return FALSE;
-	return cmsIsToneCurveLinear(tonecurve);
+
+	if (cmsIsCLUT (fit->icc_profile, INTENT_PERCEPTUAL, LCMS_USED_AS_INPUT))
+		return FALSE;
+
+	if (cmsIsCLUT (fit->icc_profile, INTENT_PERCEPTUAL, LCMS_USED_AS_OUTPUT))
+		return FALSE;
+
+	if (siril_color_profile_is_rgb (fit->icc_profile))
+		{
+		curve = cmsReadTag(fit->icc_profile, cmsSigRedTRCTag);
+		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
+			return FALSE;
+
+		curve = cmsReadTag (fit->icc_profile, cmsSigGreenTRCTag);
+		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
+			return FALSE;
+
+		curve = cmsReadTag (fit->icc_profile, cmsSigBlueTRCTag);
+		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
+			return FALSE;
+		}
+	else if (siril_color_profile_is_gray (fit->icc_profile))
+		{
+		curve = cmsReadTag(fit->icc_profile, cmsSigGrayTRCTag);
+		if (curve == NULL || ! cmsIsToneCurveLinear (curve))
+			return FALSE;
+		}
+	else
+		{
+		return FALSE;
+		}
+
+	return TRUE;
+}
+
+	/* Adapted from GIMP code */
+static gboolean
+	siril_color_profile_get_rgb_matrix_colorants (cmsHPROFILE *profile,
+												SirilMatrix3_d *matrix)
+	{
+	cmsCIEXYZ   *red;
+	cmsCIEXYZ   *green;
+	cmsCIEXYZ   *blue;
+
+	red   = cmsReadTag (profile, cmsSigRedColorantTag);
+	green = cmsReadTag (profile, cmsSigGreenColorantTag);
+	blue  = cmsReadTag (profile, cmsSigBlueColorantTag);
+
+	if (red && green && blue)
+		{
+		if (matrix) {
+			matrix->coeff[0][0] = red->X;
+			matrix->coeff[0][1] = red->Y;
+			matrix->coeff[0][2] = red->Z;
+
+			matrix->coeff[1][0] = green->X;
+			matrix->coeff[1][1] = green->Y;
+			matrix->coeff[1][2] = green->Z;
+
+			matrix->coeff[2][0] = blue->X;
+			matrix->coeff[2][1] = blue->Y;
+			matrix->coeff[2][2] = blue->Z;
+		}
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+static void
+	siril_color_profile_set_tag (cmsHPROFILE profile,
+								cmsTagSignature sig,
+								const gchar *tag) {
+	cmsMLU *mlu;
+
+	mlu = cmsMLUalloc (NULL, 1);
+	cmsMLUsetASCII (mlu, "en", "US", tag);
+	cmsWriteTag (profile, sig, mlu);
+	cmsMLUfree (mlu);
+}
+
+static void
+	siril_color_profile_make_tag (cmsHPROFILE profile,
+								cmsTagSignature sig,
+								const gchar *siril_tag,
+								const gchar *siril_prefix,
+								const gchar *siril_prefix_alt,
+								const gchar *original_tag) {
+	if (! original_tag || ! strlen (original_tag) ||
+		! strcmp (original_tag, siril_tag)) {
+		/* if there is no original tag (or it is the same as the new
+		* tag), just use the new tag
+		*/
+
+		siril_color_profile_set_tag (profile, sig, siril_tag);
+	} else {
+		/* otherwise prefix the existing tag with a gimp prefix
+		* indicating that the profile has been generated
+		*/
+
+		if (g_str_has_prefix (original_tag, siril_prefix)) {
+			/* don't add multiple GIMP prefixes */
+			siril_color_profile_set_tag (profile, sig, original_tag);
+		}else if (siril_prefix_alt &&
+				g_str_has_prefix (original_tag, siril_prefix_alt)) {
+			/* replace GIMP prefix_alt by prefix */
+			gchar *new_tag = g_strconcat (siril_prefix,
+											original_tag + strlen (siril_prefix_alt),
+											NULL);
+
+			siril_color_profile_set_tag (profile, sig, new_tag);
+			g_free (new_tag);
+		} else {
+			gchar *new_tag = g_strconcat (siril_prefix,
+											original_tag,
+											NULL);
+
+			siril_color_profile_set_tag (profile, sig, new_tag);
+			g_free (new_tag);
+		}
+	}
+}
+
+static cmsHPROFILE
+	siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) {
+	cmsHPROFILE       target_profile;
+	SirilMatrix3_d       matrix = { { { 0, } } };
+	cmsCIEXYZ        *whitepoint;
+	cmsToneCurve     *curve;
+
+	if (siril_color_profile_is_rgb (profile)) {
+		if (! siril_color_profile_get_rgb_matrix_colorants (profile, &matrix))
+			return NULL;
+	} else if (! siril_color_profile_is_gray (profile)) {
+		return NULL;
+	}
+
+	whitepoint = cmsReadTag (profile, cmsSigMediaWhitePointTag);
+
+	target_profile = cmsCreateProfilePlaceholder (0);
+
+	cmsSetProfileVersion (target_profile, 4.3);
+	cmsSetDeviceClass (target_profile, cmsSigDisplayClass);
+	cmsSetPCS (target_profile, cmsSigXYZData);
+
+	cmsWriteTag (target_profile, cmsSigMediaWhitePointTag, whitepoint);
+
+	curve = cmsBuildGamma (NULL, 1.00);
+
+	siril_color_profile_make_tag (target_profile, cmsSigProfileDescriptionTag,
+									"linear TRC from unnamed profile",
+									"linear TRC from ",
+									"sRGB TRC from ",
+									siril_color_profile_get_description (profile));
+
+	if (siril_color_profile_is_rgb (profile)) {
+		cmsCIEXYZ red;
+		cmsCIEXYZ green;
+		cmsCIEXYZ blue;
+
+		cmsSetColorSpace (target_profile, cmsSigRgbData);
+
+		red.X = matrix.coeff[0][0];
+		red.Y = matrix.coeff[0][1];
+		red.Z = matrix.coeff[0][2];
+
+		green.X = matrix.coeff[1][0];
+		green.Y = matrix.coeff[1][1];
+		green.Z = matrix.coeff[1][2];
+
+		blue.X = matrix.coeff[2][0];
+		blue.Y = matrix.coeff[2][1];
+		blue.Z = matrix.coeff[2][2];
+
+		cmsWriteTag (target_profile, cmsSigRedColorantTag,   &red);
+		cmsWriteTag (target_profile, cmsSigGreenColorantTag, &green);
+		cmsWriteTag (target_profile, cmsSigBlueColorantTag,  &blue);
+
+		cmsWriteTag (target_profile, cmsSigRedTRCTag,   curve);
+		cmsWriteTag (target_profile, cmsSigGreenTRCTag, curve);
+		cmsWriteTag (target_profile, cmsSigBlueTRCTag,  curve);
+	} else {
+		cmsSetColorSpace (target_profile, cmsSigGrayData);
+
+		cmsWriteTag (target_profile, cmsSigGrayTRCTag, curve);
+	}
+
+	cmsFreeToneCurve (curve);
+
+	siril_color_profile_make_tag (target_profile, cmsSigDeviceMfgDescTag,
+								"Siril",
+								"Siril from ", NULL,
+								siril_color_profile_get_manufacturer (profile));
+	siril_color_profile_make_tag (target_profile, cmsSigDeviceModelDescTag,
+								"Generated by GIMP",
+								"Siril from ", NULL,
+								siril_color_profile_get_model (profile));
+	siril_color_profile_make_tag (target_profile, cmsSigCopyrightTag,
+								"Public Domain",
+								"Siril from ", NULL,
+								siril_color_profile_get_copyright (profile));
+
+	return target_profile;
 }
 
 /* Provides a sanity check of the ICC profile attached to a fits. This is used
@@ -646,6 +940,26 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
 	color_manage(fit, TRUE);
 }
 
+cmsUInt8Number *siril_icc_profile_to_buffer(cmsHPROFILE profile, cmsUInt32Number *length) {
+	if (!profile) {
+		length = 0;
+		return NULL;
+	}
+	cmsBool ret = cmsSaveProfileToMem(profile, NULL, length);
+	if (!ret || length == 0)
+		return NULL;
+	void *buffer = malloc (*length * sizeof(cmsUInt8Number));
+	if (!buffer) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		ret = cmsSaveProfileToMem(profile, buffer, length);
+		if (!ret || !buffer)
+			return NULL;
+	}
+	return buffer;
+}
+
 /* Compares two profiles. Returns TRUE if the profiles are identical or
  * FALSE if they are not. Note, this is a conservative check and requires
  * the profiles to be exactly identical in all respects. Even something
@@ -656,51 +970,29 @@ void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number
  * are guaranteed to be the same.
  */
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
-	if (!a && !b)
-		return TRUE;
-	if (!a || !b)
-		return FALSE;
 	cmsUInt8Number *block_a = NULL, *block_b = NULL;
-	cmsUInt32Number length_a, length_b;
-	cmsBool ret_a, ret_b, retval;
+	cmsUInt32Number length_a = 0, length_b = 0;
+	cmsBool retval = FALSE;
+	const gsize header_len = sizeof (cmsICCHeader);
+
+	if ((!a && !b) || (!a || !b))
+		goto ERROR_OR_FINISH;
+
 	if (a) {
-		ret_a = cmsSaveProfileToMem(a, NULL, &length_a);
+		block_a = siril_icc_profile_to_buffer(a, &length_a);
 	}
 	if (b) {
-		ret_b = cmsSaveProfileToMem(b, NULL, &length_b);
+		block_b = siril_icc_profile_to_buffer(b, &length_b);
 	}
 	// If a profile can't be saved to a buffer or the lengths don't match
 	// we can already return FALSE
-	if (!ret_a || !ret_b || length_a != length_b)
-		return FALSE;
-	if (length_a > 0) {
-		block_a = malloc(length_a * sizeof(BYTE));
-		if (!block_a) {
-			PRINT_ALLOC_ERR;
-			return FALSE;
-		}
-		ret_a = cmsSaveProfileToMem(a, (void*) block_a, &length_a);
-	}
-	if (ret_a) {
-		if (length_b > 0) {
-			block_b = malloc(length_a * sizeof(BYTE));
-			if (!block_b) {
-				PRINT_ALLOC_ERR;
-				free(block_a);
-				return FALSE;
-			}
-			ret_b = cmsSaveProfileToMem(b, (void*) block_b, &length_b);
-		}
-		if (!ret_b) {
-			free(block_a);
-			free(block_b);
-			return FALSE;
-		}
-	} else {
-		free(block_a);
-		return FALSE;
-	}
-	retval = (memcmp(block_a, block_b, length_a) == 0) ? TRUE : FALSE;
+	if (length_a != length_b)
+		goto ERROR_OR_FINISH;
+
+	retval = (memcmp(block_a + header_len, block_b + header_len, length_a - header_len) == 0) ? TRUE : FALSE;
+
+ERROR_OR_FINISH:
+
 	free(block_a);
 	free(block_b);
 	return retval;
@@ -725,32 +1017,22 @@ static void set_source_information() {
 		return;
 	}
 	// Set description
-	int length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", NULL, 0);
-	char *buffer = NULL;
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoDescription, "en", "US", buffer, length);
+	gchar *buffer = siril_color_profile_get_description(gfit.icc_profile);
+	if (buffer)
 		gtk_label_set_text(label, buffer);
-		free(buffer);
-	}
+	free(buffer);
 
 	// Set manufacturer
-	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoManufacturer, "en", "US", buffer, length);
+	buffer = siril_color_profile_get_manufacturer(gfit.icc_profile);
+	if (buffer)
 		gtk_label_set_text(mfr_label, buffer);
-		free(buffer);
-	}
+	free(buffer);
 
 	// Set copyright
-	length = cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", NULL, 0);
-	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
-		cmsGetProfileInfoASCII(gfit.icc_profile, cmsInfoCopyright, "en", "US", buffer, length);
+	buffer = siril_color_profile_get_copyright(gfit.icc_profile);
+	if (buffer)
 		gtk_label_set_text(copyright_label, buffer);
-		free(buffer);
-	}
+	free(buffer);
 }
 
 void set_icc_description_in_TIFF() {
@@ -895,8 +1177,18 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	if (!fit->color_managed || !fit->icc_profile) {
 		if (com.pref.icc.autoassignment & occasion) {
 			if (fit_appears_stretched(fit)) {
+				// if the fit has previously been stretched, we assign the sRGB TRC:
+				// this will then be converted to the working color space rather than
+				// just assigned which would cause a color shift
 				fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 				// color_manage() is called later from siril_colorspace_transform()
+			} else if (com.pref.icc.pedantic_linear) {
+				fit->icc_profile = siril_color_profile_linear_from_color_profile (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+				// Unless we're about to stack, leave the image with a linear profile and return
+				if (!(occasion & ICC_ASSIGN_ON_STACK)) {
+					color_manage(fit, TRUE);
+					return;
+				}
 			}
 			proceed = TRUE;
 		}
@@ -1350,7 +1642,7 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
 		return;
 	}
-	// We save the undo state if dealing with gfit
+	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile assignment"));
 	if (gfit.icc_profile) {
 		cmsCloseProfile(gfit.icc_profile);
@@ -1368,9 +1660,8 @@ FINISH:
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
-	// We save the undo state if dealing with gfit
-
-undo_save_state(&gfit, _("Color profile removal"));
+	// We save the undo state as dealing with gfit
+	undo_save_state(&gfit, _("Color profile removal"));
 	if (gfit.icc_profile)
 		cmsCloseProfile(gfit.icc_profile);
 	color_manage(&gfit, FALSE);
