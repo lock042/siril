@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:23+0200\n"
-"PO-Revision-Date: 2023-09-08 22:25+0000\n"
+"PO-Revision-Date: 2023-09-09 17:57+0000\n"
 "Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -211,7 +211,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:864
 msgid "Clip Limit"
-msgstr "裁剪上限"
+msgstr "修剪上限"
 
 #: src/gui/siril3.glade:899
 msgid "Sets threshold for contrast limiting."
@@ -2313,9 +2313,8 @@ msgid ""
 "Black point adjustment. This is a constant value that is subtracted from the "
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
-msgstr ""
-"黑点调节。这是一个常量值，在初始双曲拉伸后从图像中减去。BP调节可能会导致阴影"
-"裁剪。"
+msgstr "黑点调节。这是一个常量值，在初始双曲拉伸后从图像中减去。BP调节可能会导致阴影"
+"修剪。"
 
 #: src/gui/siril3.glade:10154
 msgid ""
@@ -3766,23 +3765,23 @@ msgstr "中间调平衡"
 
 #: src/gui/siril3.glade:15875
 msgid "Shadows clipping"
-msgstr "阴影裁剪"
+msgstr "阴影修剪"
 
 #: src/gui/siril3.glade:15893
 msgid "Highlights clipping"
-msgstr "高光裁剪"
+msgstr "高光修剪"
 
 #: src/gui/siril3.glade:15924
 msgid "Clip (%)"
-msgstr "裁剪 (%)"
+msgstr "修剪 (%)"
 
 #: src/gui/siril3.glade:15937
 msgid "Clipped pixels count (shadows)"
-msgstr "裁剪像素统计（阴影）"
+msgstr "修剪像素统计（阴影）"
 
 #: src/gui/siril3.glade:15955
 msgid "Clipped pixels count (highlights)"
-msgstr "裁剪像素统计（高光）"
+msgstr "修剪像素统计（高光）"
 
 #: src/gui/siril3.glade:16021
 msgid "Prefix of the image names resulting from the mtf process."
@@ -3855,9 +3854,8 @@ msgid ""
 "Black point adjustment. This is a constant value that is subtracted from the "
 "image. NOTE: altering BP can clip pixels in which case this transformation "
 "is non-reversible."
-msgstr ""
-"黑点调节。这是从图像中减去的常量值。注意：更改 BP 可能会裁剪像素，在这种情况"
-"下，此变换是不可逆的。"
+msgstr "黑点调节。这是从图像中减去的常量值。注意：更改 BP "
+"可能会修剪像素，在这种情况下，此变换是不可逆的。"
 
 #: src/gui/siril3.glade:16731 src/gui/siril3.glade:16798
 #: src/gui/siril3.glade:16865
@@ -5521,8 +5519,7 @@ msgstr "序列里图像数量的百分比。"
 msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
-msgstr ""
-"在 % 和 k-σ 之间进行选择以保留给定百分比的图像或使用 k-σ 裁剪计算允许的阈值。"
+msgstr "在 % 和 k-σ 之间进行选择以保留给定百分比的图像或使用 k-σ 修剪计算允许的阈值。"
 
 #: src/gui/siril3.glade:22755 src/gui/siril3.glade:22882
 #: src/gui/siril3.glade:24686 src/gui/siril3.glade:24813
@@ -5956,12 +5953,12 @@ msgstr ""
 "\n"
 "<b>基于像素剔除的平均数</b>：该方式用于迭代式剔除离群的像素。\n"
 "包含七种已实现的算法：\n"
-"- 百分数裁剪\n"
-"- Sigma裁剪\n"
-"- 绝对中位差裁剪\n"
-"- 中位数Sigma裁剪\n"
-"- Winsorized Sigma裁剪\n"
-"- 线性拟合裁剪\n"
+"- 百分数修剪\n"
+"- Sigma修剪\n"
+"- 绝对中位差修剪\n"
+"- 中位数Sigma修剪\n"
+"- Winsorized Sigma修剪\n"
+"- 线性拟合修剪\n"
 "- 广义ESD检验\n"
 "完成像素剔除之后才会计算平均数。\n"
 "\n"
@@ -6129,20 +6126,20 @@ msgid ""
 msgstr ""
 "七种可用的剔除算法。\n"
 "\n"
-"<b>百分数裁剪</b> 是一种单步操作的剔除算法，适用于小数量的数据（最多6张）。\n"
+"<b>百分数修剪</b> 是一种单步操作的剔除算法，适用于小数量的数据（最多6张）。\n"
 "\n"
-"<b>Sigma裁剪</b> "
+"<b>Sigma修剪</b> "
 "是一种迭代式算法，会剔除那些距离中值大于给定的两个sigma值的像素点。\n"
 "\n"
-"<b>绝对中位差裁剪</b> 是一种类似于Sigma Clipping的迭代算法，其评估方式基于绝"
+"<b>绝对中位差修剪</b> 是一种类似于Sigma Clipping的迭代算法，其评估方式基于绝"
 "对中位差（MAD）。通常用于含有红外噪声的图像处理。\n"
 "\n"
-"<b>中位数Sigma裁剪</b> 是跟上面类似的算法，所应剔除的像素值会被中值替代。\n"
+"<b>中位数Sigma修剪</b> 是跟上面类似的算法，所应剔除的像素值会被中值替代。\n"
 "\n"
-"<b>Winsorized Sigma裁剪</b> 也是跟上面类似的算法，所应剔除的像素值却被临近值"
+"<b>Winsorized Sigma修剪</b> 也是跟上面类似的算法，所应剔除的像素值却被临近值"
 "所替代。该算法基于Hube的工作，参见 [1] [2].\n"
 "\n"
-"<b>线性拟合裁剪</b> 是Juan Conejero为PixInsight所开发的 [2].。"
+"<b>线性拟合修剪</b> 是Juan Conejero为PixInsight所开发的 [2].。"
 "该算法基于一条坐标上的斜线 (y=ax+b) 来计算离群值而用于像素剔除和叠加。该算法"
 "非常适用于巨大数据量的叠加并且图像包含有不同方向和空间分布形式的天光。\n"
 "\n"
@@ -6162,27 +6159,27 @@ msgstr "无像素剔除"
 
 #: src/gui/siril3.glade:24326
 msgid "Percentile Clipping"
-msgstr "百分数裁剪"
+msgstr "百分数修剪"
 
 #: src/gui/siril3.glade:24327
 msgid "Sigma Clipping"
-msgstr "Sigma裁剪"
+msgstr "Sigma修剪"
 
 #: src/gui/siril3.glade:24328 src/stacking/stacking.c:350
 msgid "MAD clipping"
-msgstr "绝对中位差裁剪"
+msgstr "绝对中位差修剪"
 
 #: src/gui/siril3.glade:24329
 msgid "Median Sigma Clipping"
-msgstr "中位数Sigma裁剪"
+msgstr "中位数Sigma修剪"
 
 #: src/gui/siril3.glade:24330
 msgid "Winsorized Sigma Clipping"
-msgstr "Winsorized Sigma裁剪"
+msgstr "Winsorized Sigma修剪"
 
 #: src/gui/siril3.glade:24331
 msgid "Linear Fit Clipping"
-msgstr "线性拟合裁剪"
+msgstr "线性拟合修剪"
 
 #: src/gui/siril3.glade:24332
 msgid "Generalized Extreme Studentized Deviate Test"
@@ -10260,7 +10257,7 @@ msgstr "拉伸必须大于等于1\n"
 
 #: src/core/command.c:2195
 msgid "Clip limit must be > 0.\n"
-msgstr "裁剪上限必须大于0\n"
+msgstr "修剪上限必须大于0\n"
 
 #: src/core/command.c:2202
 msgid "Tile size must be > 0.\n"
@@ -11721,7 +11718,7 @@ msgid ""
 "white balance"
 msgstr ""
 "自动拉伸当前载入的图像，每个通道的参数不同（未链接），除非传递<b>-linked</b>"
-"。参数是可选的，<b>shadowclip</b>是阴影裁剪点，用主直方图峰值来测量，单位为si"
+"。参数是可选的，<b>shadowclip</b>是阴影修剪点，用主直方图峰值来测量，单位为si"
 "gma（默认值为-2."
 "8），<b>targetbg</b>为目标背景值，为图像提供最终亮度，范围为[0，1]，默认值为0"
 ".25。默认值即为GUI的自动拉伸使用的值。\n"
@@ -12497,7 +12494,7 @@ msgid ""
 "or use the THRESHLO command"
 msgstr ""
 "将载入的图像减去图像<b>filename</b>。\n"
-"如果偏好设置中允许，结果将为每通道32位，因此能够存储负值。要裁剪负值，请使用1"
+"如果偏好设置中允许，结果将为每通道32位，因此能够存储负值。要修剪负值，请使用1"
 "6位模式或使用THRESHLO命令"
 
 #: src/core/command_def.h:75
@@ -12867,7 +12864,7 @@ msgid ""
 msgstr ""
 "将当前图像加上常量<b>value</b>（以ADU为单位）。这个常数可以取负值。\n"
 "\n"
-"在16位模式中，位于[0, 65535]之外的像素值被裁剪。在32位模式下，不会裁剪"
+"在16位模式中，位于[0, 65535]之外的像素值被修剪。在32位模式下，不会修剪"
 
 #: src/core/command_def.h:101
 msgid ""
@@ -14248,8 +14245,8 @@ msgstr ""
 "叠加类型<b>rej</b>或<b>mean</b>需要使用额外的参数来指定剔除类型和参数。剔除类"
 "型有：<b>n[one]、p[ercentile]、s[igma]、m[edian]、w[insorized]、l[inear]、g[e"
 "neralized]、[m]a[d]</b>，分别指不剔除、百分数、Sigma、中位数Sigma、"
-"Winsorized Sigma、线性拟合、广义ESD检验、绝对中位差裁剪。如果省略，"
-"则使用默认的Winsorized Sigma裁剪。\n"
+"Winsorized Sigma、线性拟合、广义ESD检验、绝对中位差修剪。如果省略，"
+"则使用默认的Winsorized Sigma修剪。\n"
 "除非选择<b>none</b>，否则必须提供剔除的Sigma下限<b>sigma low</"
 "b>和Sigma上限<b>sigma high</b>。\n"
 "可以选择是否生成剔除图，显示被剔除的像素的位置（<b>-rejmap</b>生成一个总图，<"
@@ -16316,7 +16313,7 @@ msgstr "错误：图像复制失败...\n"
 
 #: src/filters/starnet.c:531
 msgid "StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"
-msgstr "StatNet：像素值超过 1.0。重新缩放以避免裁剪峰值。\n"
+msgstr "StatNet：像素值超过 1.0。重新缩放以避免修剪峰值。\n"
 
 #: src/filters/starnet.c:561
 msgid "Error: unable to find the MTF stretch factors...\n"
@@ -21126,27 +21123,27 @@ msgstr "像素剔除 ………… 无\n"
 
 #: src/stacking/stacking.c:344
 msgid "percentile clipping"
-msgstr "百分数裁剪"
+msgstr "百分数修剪"
 
 #: src/stacking/stacking.c:347
 msgid "sigma clipping"
-msgstr "sigma裁剪"
+msgstr "sigma修剪"
 
 #: src/stacking/stacking.c:353
 msgid "median sigma clipping"
-msgstr "中位数sigma裁剪"
+msgstr "中位数sigma修剪"
 
 #: src/stacking/stacking.c:356
 msgid "winsorized sigma clipping"
-msgstr "winsorized sigma裁剪"
+msgstr "winsorized sigma修剪"
 
 #: src/stacking/stacking.c:359
 msgid "linear fit clipping"
-msgstr "线性拟合裁剪"
+msgstr "线性拟合修剪"
 
 #: src/stacking/stacking.c:362
 msgid "GESDT clipping"
-msgstr "广义ESD检验裁剪"
+msgstr "广义ESD检验修剪"
 
 #: src/stacking/stacking.c:365
 #, c-format
@@ -21213,11 +21210,11 @@ msgstr "未保存的叠加结果"
 
 #: src/stacking/stacking.c:797
 msgid "Low clipping factor for the percentile clipping rejection algorithm."
-msgstr "百分数裁剪剔除算法的下限裁剪因子。"
+msgstr "百分数修剪剔除算法的下限修剪因子。"
 
 #: src/stacking/stacking.c:798
 msgid "High clipping factor for the percentile clipping rejection algorithm."
-msgstr "百分数裁剪剔除算法的上限裁剪因子。"
+msgstr "百分数修剪剔除算法的上限修剪因子。"
 
 #: src/stacking/stacking.c:803
 msgid "Percentile low: "
@@ -21231,13 +21228,13 @@ msgstr "Percentile上限: "
 msgid ""
 "Tolerance for low pixel values of the linear fit clipping algorithm, in "
 "sigma units."
-msgstr "线性拟合裁剪算法的像素值容差下限（sigma）。"
+msgstr "线性拟合修剪算法的像素值容差下限（sigma）。"
 
 #: src/stacking/stacking.c:814
 msgid ""
 "Tolerance for high pixel values of the linear fit clipping algorithm, in "
 "sigma units."
-msgstr "线性拟合裁剪算法的像素值容差上限（sigma）。"
+msgstr "线性拟合修剪算法的像素值容差上限（sigma）。"
 
 #: src/stacking/stacking.c:819
 msgid "Linear low: "
@@ -21249,11 +21246,11 @@ msgstr "Linear上限: "
 
 #: src/stacking/stacking.c:833
 msgid "Low clipping factor for the sigma clipping rejection algorithm."
-msgstr "Sigma裁剪剔除算法的裁剪系数下限。"
+msgstr "Sigma修剪剔除算法的修剪系数下限。"
 
 #: src/stacking/stacking.c:834
 msgid "High clipping factor for the sigma clipping rejection algorithm."
-msgstr "Sigma裁剪剔除算法的裁剪系数上限。"
+msgstr "Sigma修剪剔除算法的修剪系数上限。"
 
 #: src/stacking/stacking.c:849
 msgid ""
