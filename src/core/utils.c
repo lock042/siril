@@ -1500,6 +1500,31 @@ void append_elements_to_array(char **array, char **elements) {
 	array[i] = NULL;
 }
 
+/**
+ * siril_any_to_utf8()
+ * @str: (array length=len): The string to be converted to UTF-8.
+ * @len:            The length of the string, or -1 if the string
+ *                  is nul-terminated.
+ * @warning_format: The message format for the warning message if conversion
+ *                  to UTF-8 fails. See the <function>printf()</function>
+ *                  documentation.
+ * @...:            The parameters to insert into the format string.
+ *
+ * This function takes any string (UTF-8 or not) and always returns a valid
+ * UTF-8 string.
+ *
+ * If @str is valid UTF-8, a copy of the string is returned.
+ *
+ * If UTF-8 validation fails, g_locale_to_utf8() is tried and if it
+ * succeeds the resulting string is returned.
+ *
+ * Otherwise, the portion of @str that is UTF-8, concatenated
+ * with "(invalid UTF-8 string)" is returned. If not even the start
+ * of @str is valid UTF-8, only "(invalid UTF-8 string)" is returned.
+ *
+ * Returns: The UTF-8 string as described above.
+ **/
+
 gchar *
 	siril_any_to_utf8 (const gchar  *str,
 						gssize        len,
