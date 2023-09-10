@@ -1500,6 +1500,48 @@ void append_elements_to_array(char **array, char **elements) {
 	array[i] = NULL;
 }
 
+gchar *
+	siril_any_to_utf8 (const gchar  *str,
+						gssize        len,
+						const gchar  *warning_format,
+						...) {
+	const gchar *start_invalid;
+	gchar *utf8;
+
+	if (g_utf8_validate (str, len, &start_invalid)) {
+		if (len < 0)
+			utf8 = g_strdup (str);
+		else
+			utf8 = g_strndup (str, len);
+	} else {
+		utf8 = g_locale_to_utf8 (str, len, NULL, NULL, NULL);
+	}
+
+	if (! utf8) {
+		if (warning_format) {
+			va_list warning_args;
+
+			va_start (warning_args, warning_format);
+
+			g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+					warning_format, warning_args);
+
+			va_end (warning_args);
+		}
+
+		if (start_invalid > str) {
+			gchar *tmp;
+
+			tmp = g_strndup (str, start_invalid - str);
+			utf8 = g_strconcat (tmp, " ", _("(invalid UTF-8 string)"), NULL);
+			g_free (tmp);
+		} else {
+			utf8 = g_strdup (_("(invalid UTF-8 string)"));
+		}
+	}
+	return utf8;
+}
+
 /**
  * Get the file extension following the fz flag. If the file is
  * compressed, fz is appended to the file extension.

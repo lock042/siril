@@ -22,6 +22,7 @@
 #include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include "algos/lcms_acceleration/lcms2_threaded.h"
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
@@ -47,59 +48,6 @@ static GMutex default_profiles_mutex;
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
 ////// Functions //////
-
-
-gchar *
-	siril_any_to_utf8 (const gchar  *str,
-						gssize        len,
-						const gchar  *warning_format,
-						...) {
-  const gchar *start_invalid;
-  gchar *utf8;
-
-
-  if (g_utf8_validate (str, len, &start_invalid))
-    {
-      if (len < 0)
-        utf8 = g_strdup (str);
-      else
-        utf8 = g_strndup (str, len);
-    }
-  else
-    {
-      utf8 = g_locale_to_utf8 (str, len, NULL, NULL, NULL);
-    }
-
-  if (! utf8)
-    {
-      if (warning_format)
-        {
-          va_list warning_args;
-
-          va_start (warning_args, warning_format);
-
-          g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
-                  warning_format, warning_args);
-
-          va_end (warning_args);
-        }
-
-      if (start_invalid > str)
-        {
-          gchar *tmp;
-
-          tmp = g_strndup (str, start_invalid - str);
-          utf8 = g_strconcat (tmp, " ", _("(invalid UTF-8 string)"), NULL);
-          g_free (tmp);
-        }
-      else
-        {
-          utf8 = g_strdup (_("(invalid UTF-8 string)"));
-        }
-    }
-
-  return utf8;
-}
 
 static gchar *
 	siril_color_profile_get_info (cmsHPROFILE profile,
@@ -337,7 +285,7 @@ void validate_custom_profiles() {
 				cmsCloseProfile(gui.icc.monitor);
 			gui.icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
 			if (!gui.icc.monitor) {
-				gui.icc.monitor = srgb_monitor_perceptual();
+				gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
 				siril_log_color_message(_("Error opening custom monitor profile. "
 								"Monitor profile set to sRGB.\n"), "red");
 			}
@@ -353,7 +301,7 @@ void validate_custom_profiles() {
 	} else {
 		if (gui.icc.monitor)
 			cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = srgb_monitor_perceptual();
+		gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
 	}
 
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
@@ -1440,7 +1388,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 		g_free(com.pref.icc.icc_path_monitor);
 		com.pref.icc.icc_path_monitor = NULL;
 		cmsCloseProfile(gui.icc.monitor);
-		gui.icc.monitor = srgb_monitor_perceptual();
+		gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
 		if (gui.icc.monitor) {
 			siril_log_message(_("Monitor ICC profile set to sRGB\n"));
 		} else {
