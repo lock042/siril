@@ -40,6 +40,13 @@
 #include "algos/statistics.h"
 #include "algos/extraction.h"
 
+/******************************************************************************
+ * Note for maintainers: do not use the translation macro on the following    *
+ * string. Color management relies on being able to detect "Extraction"       *
+ * in FITS HISTORY header.                                                    *
+ ******************************************************************************/
+const gchar *extractionstring = "Extraction";
+
 static gchar *add_filter_str[] = { "R", "G", "B"};
 /*
  * A Fast HSL-to-RGB Transform
@@ -683,8 +690,8 @@ static gpointer extract_channels_ushort(gpointer p) {
 	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
 			args->str_type);
 	gettimeofday(&t_start, NULL);
-
-	cmsHPROFILE cielab_profile = NULL;
+	gchar *histstring = NULL;
+	cmsHPROFILE cielab_profile = NULL, image_profile = NULL;
 	cmsColorSpaceSignature sig;
 	cmsUInt32Number trans_type, lab_type;
 	gboolean threaded;
@@ -692,10 +699,22 @@ static gpointer extract_channels_ushort(gpointer p) {
 	cmsUInt32Number datasize;
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
+	gchar *desc = siril_color_profile_get_description(args->fit->icc_profile);
+	if(args->fit->icc_profile)
+		cmsCloseProfile(args->fit->icc_profile);
+	/* The extracted channels are considered raw data, and are not color
+		* managed. It is up to the user to ensure that future use of them is
+		* with similar data and an appropriate color profile is assigned.
+		* See also the HSV and CIELAB cases below.*/
+	args->fit->icc_profile = NULL;
+	color_manage(args->fit, FALSE);
+
 	switch (args->type) {
 	case EXTRACT_RGB:
+		histstring = g_strdup_printf(_("%s: extract RGB channel"), extractionstring);
 		break;
 	case EXTRACT_HSL:
+		histstring = g_strdup_printf(_("%s: extract HSL channel"), extractionstring);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -710,16 +729,9 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(l * USHRT_MAX_DOUBLE);
 		}
-		if(args->fit->icc_profile)
-			cmsCloseProfile(args->fit->icc_profile);
-		/* The extracted channels are considered raw data, and are not color
-		 * managed. It is up to the user to ensure that future use of them is
-		 * with similar data and an appropriate color profile is assigned.
-		 * See also the HSV and CIELAB cases below.*/
-		args->fit->icc_profile = NULL;
-		color_manage(args->fit, FALSE);
 		break;
 	case EXTRACT_HSV:
+		histstring = g_strdup_printf(_("%s: extract HSV channel"), extractionstring);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -734,39 +746,63 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(v * USHRT_MAX_DOUBLE);
 		}
-		if(args->fit->icc_profile)
-			cmsCloseProfile(args->fit->icc_profile);
-		args->fit->icc_profile = NULL;
-		color_manage(args->fit, FALSE);
 		break;
 	case EXTRACT_CIELAB:
+		histstring = g_strdup_printf(_("%s: extract LAB channel"), extractionstring);
 		cielab_profile = cmsCreateLab4Profile(NULL);
-		sig = cmsGetColorSpace(args->fit->icc_profile);
+		if (args->fit->icc_profile) {
+			image_profile = copyICCProfile(args->fit->icc_profile);
+		} else {
+			siril_log_message(_("Image is not color managed. Assuming sRGB.\n"));
+			image_profile = srgb_trc();
+		}
+		sig = cmsGetColorSpace(image_profile);
 		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 		lab_type = TYPE_Lab_16_PLANAR;
 		threaded = !get_thread_run();
 		// We use sRGB as the fallback for non-color managed images
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->color_managed ? args->fit->icc_profile : com.icc.srgb_profile, trans_type, cielab_profile, lab_type, INTENT_PERCEPTUAL, com.icc.rendering_flags);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, INTENT_PERCEPTUAL, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
+		cmsCloseProfile(image_profile);
 		datasize = sizeof(WORD);
 		bytesperline = args->fit->rx * datasize;
 		bytesperplane = args->fit->rx * args->fit->ry * datasize;
 		cmsDoTransformLineStride(transform, args->fit->data, args->fit->data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
-		if(args->fit->icc_profile)
-			cmsCloseProfile(args->fit->icc_profile);
-		args->fit->icc_profile = NULL;
-		color_manage(args->fit, FALSE);
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
+	if (desc) {
+		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
+		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
+	}
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			if (i > 0) {
+				GSList *current = args->fit->history;
+				while (current->next != NULL && current->next->next != NULL) {
+					current = current->next;
+				}
+				// Check if there is only one element in the list.
+				if (current->next == NULL) {
+					g_slist_free_full(args->fit->history, g_free);
+					args->fit->history = NULL;
+				} else {
+					// Remove the last element.
+					GSList *last = current->next;
+					current->next = NULL;
+					g_free(last->data);
+					g_slist_free_1(last);
+				}
+			}
+			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
 	}
 	g_free(fitfilter);
+	g_free(histstring);
+	g_free(desc);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
@@ -789,7 +825,8 @@ static gpointer extract_channels_float(gpointer p) {
 	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
 			args->str_type);
 	gettimeofday(&t_start, NULL);
-	cmsHPROFILE cielab_profile = NULL;
+	gchar *histstring = NULL;
+	cmsHPROFILE cielab_profile = NULL, image_profile = NULL;
 	cmsColorSpaceSignature sig;
 	cmsUInt32Number trans_type, lab_type;
 	gboolean threaded;
@@ -797,11 +834,22 @@ static gpointer extract_channels_float(gpointer p) {
 	cmsUInt32Number datasize;
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
+	gchar *desc = siril_color_profile_get_description(args->fit->icc_profile);
+	if(args->fit->icc_profile)
+		cmsCloseProfile(args->fit->icc_profile);
+	/* The extracted channels are considered raw data, and are not color
+		* managed. It is up to the user to ensure that future use of them is
+		* with similar data and an appropriate color profile is assigned.
+		* See also the HSV and CIELAB cases below.*/
+	args->fit->icc_profile = NULL;
+	color_manage(args->fit, FALSE);
 
 	switch (args->type) {
 	case EXTRACT_RGB:
+		histstring = g_strdup_printf(_("%s: extract RGB channel"), extractionstring);
 		break;
 	case EXTRACT_HSL:
+		histstring = g_strdup_printf(_("%s: extract HSL channel"), extractionstring);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -815,12 +863,9 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[GLAYER][i] = (float) s;
 			buf[BLAYER][i] = (float) l;
 		}
-		if(args->fit->icc_profile)
-			cmsCloseProfile(args->fit->icc_profile);
-		args->fit->icc_profile = NULL;
-		color_manage(args->fit, FALSE);
 		break;
 	case EXTRACT_HSV:
+		histstring = g_strdup_printf(_("%s: extract HSV channel"), extractionstring);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -834,19 +879,23 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[GLAYER][i] = (float) s;
 			buf[BLAYER][i] = (float) v;
 		}
-		if(args->fit->icc_profile)
-			cmsCloseProfile(args->fit->icc_profile);
-		args->fit->icc_profile = NULL;
-		color_manage(args->fit, FALSE);
 		break;
 	case EXTRACT_CIELAB:
+		histstring = g_strdup_printf(_("%s: extract LAB channel"), extractionstring);
 		cielab_profile = cmsCreateLab4Profile(NULL);
-		sig = cmsGetColorSpace(args->fit->icc_profile);
+		if (args->fit->icc_profile) {
+			image_profile = copyICCProfile(args->fit->icc_profile);
+		} else {
+			siril_log_message(_("Image is not color managed. Assuming sRGB.\n"));
+			image_profile = srgb_trc();
+		}
+		sig = cmsGetColorSpace(image_profile);
 		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 		lab_type = TYPE_Lab_FLT_PLANAR;
 		threaded = !get_thread_run();
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), args->fit->icc_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
+		cmsCloseProfile(image_profile);
 		datasize = sizeof(float);
 		bytesperline = args->fit->rx * datasize;
 		bytesperplane = args->fit->rx * args->fit->ry * datasize;
@@ -856,15 +905,33 @@ static gpointer extract_channels_float(gpointer p) {
 		 */
 		cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
-		if(args->fit->icc_profile)
-			cmsCloseProfile(args->fit->icc_profile);
-		args->fit->icc_profile = NULL;
-		color_manage(args->fit, FALSE);
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
+	if (desc) {
+		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
+		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
+	}
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
 			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			if (i > 0) {
+				GSList *current = args->fit->history;
+				while (current->next != NULL && current->next->next != NULL) {
+					current = current->next;
+				}
+				// Check if there is only one element in the list.
+				if (current->next == NULL) {
+					g_slist_free_full(args->fit->history, g_free);
+					args->fit->history = NULL;
+				} else {
+					// Remove the last element.
+					GSList *last = current->next;
+					current->next = NULL;
+					g_free(last->data);
+					g_slist_free_1(last);
+				}
+			}
+			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}

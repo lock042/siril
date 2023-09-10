@@ -9328,7 +9328,8 @@ int process_icc_assign(int nb) {
 	if (profile) {
 		if (gfit.icc_profile)
 			cmsCloseProfile(gfit.icc_profile);
-		gfit.icc_profile = copyICCProfile(profile);
+		gfit.icc_profile = NULL;
+		siril_colorspace_transform(&gfit, profile);
 		cmsCloseProfile(profile);
 	} else {
 		siril_log_color_message(_("Error opening target ICC profile.\n"), "red");
@@ -9411,11 +9412,7 @@ int process_icc_convert_to(int nb) {
 }
 
 int process_icc_remove(int nb) {
-	if (gfit.icc_profile)
-		cmsCloseProfile(gfit.icc_profile);
-	gfit.icc_profile = NULL;
-	color_manage(&gfit, FALSE);
-	siril_log_color_message(_("Color profile has been removed.\n"), "green");
+	siril_colorspace_transform(&gfit, NULL);
 	refresh_icc_transforms();
 	notify_gfit_modified();
 

@@ -76,7 +76,8 @@ static gchar *
 	return string;
 }
 
-static gchar *
+// This function is required outside this file
+gchar *
 	siril_color_profile_get_description (cmsHPROFILE profile) {
 	gchar *string = siril_color_profile_get_info (profile, cmsInfoDescription);
 	return string;
@@ -1040,19 +1041,21 @@ static void set_target_information() {
 
 void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 
-	cmsUInt32Number target_colorspace = cmsGetColorSpace(profile);
-	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
-	cmsUInt32Number fit_colorspace_channels;
-
 	// If profile is NULL, we remove the profile from fit to match it. This is an unusual
 	// case but the behaviour is consistent.
 	if (!profile) {
-		if (fit->icc_profile)
+		if (fit->icc_profile) {
 			cmsCloseProfile(fit->icc_profile);
+			fit->history = g_slist_append(fit->history, g_strdup(_("ICC profile removed")));
+		}
 		fit->icc_profile = NULL;
 		color_manage(fit, FALSE);
 		return;
 	}
+
+	cmsUInt32Number target_colorspace = cmsGetColorSpace(profile);
+	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
+	cmsUInt32Number fit_colorspace_channels;
 
 	// If fit->color_managed is FALSE, we assign the profile rather than convert to it
 	if (!fit->color_managed || !fit->icc_profile) {
@@ -1062,6 +1065,9 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 				cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = copyICCProfile(profile);
 			siril_debug_print("siril_colorspace_transform() assigned a profile\n");
+			gchar *desc = siril_color_profile_get_description(profile);
+			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
+			g_free(desc);
 			refresh_icc_transforms();
 			color_manage(fit, TRUE);
 			return;
@@ -1101,6 +1107,9 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			fits_change_depth(fit, target_colorspace_channels);
 		fit->icc_profile = copyICCProfile(profile);
 		refresh_icc_transforms();
+			gchar *desc = siril_color_profile_get_description(profile);
+			fit->history = g_slist_append(fit->history, g_strdup_printf(_("Converted to ICC profile: %s"), desc));
+			g_free(desc);
 		color_manage(fit, TRUE);
 		siril_debug_print("siril_colorspace_transform() converted a profile\n");
 	} else {
@@ -1114,11 +1123,25 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
  * It is used on loading a file and before stretching a file.
  */
 void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
-	// Scripts are responsible fo managing this themselves
+	// Scripts are responsible for managing this themselves
 	if (com.script)
 		return;
 
 	gboolean proceed = FALSE;
+
+	// Handle images that have been extracted as channels from a 3-color image
+	// It doesn't make sense to assign a color profile to these, they should
+	// be treated as raw data until the user decides how to handle them.
+	if (fit->naxes[2] == 1 && fit->history) {
+		GSList *last_history = g_slist_last(fit->history);
+
+		if (g_strrstr(last_history->data, "Extraction")) {
+			siril_log_message(_("This image is a channel extracted from a 3-channel "
+								"image. Cannot sensibly auto-assign an ICC profile. "
+								"You must manually assign one at an appropriate time.\n"));
+			return;
+		}
+	}
 
 	// If there is no existing profile and the appropriate preference is set,
 	// assign the working color profile
@@ -1133,6 +1156,9 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 			} else if (com.pref.icc.pedantic_linear) {
 				fit->icc_profile = siril_color_profile_linear_from_color_profile (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
 				// Unless we're about to stack, leave the image with a linear profile and return
+				gchar *desc = siril_color_profile_get_description(fit->icc_profile);
+				fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
+				g_free(desc);
 				if (!(occasion & ICC_ASSIGN_ON_STACK)) {
 					color_manage(fit, TRUE);
 					return;

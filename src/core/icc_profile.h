@@ -70,6 +70,7 @@ cmsHTRANSFORM fallback_display_transform();
 cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded);
 cmsHTRANSFORM initialize_proofing_transform();
 void refresh_icc_transforms();
+char* siril_color_profile_get_description (cmsHPROFILE profile);
 unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len);
 cmsBool fit_icc_is_linear(fits *fit);
 void check_profile_correct(fits* fit);

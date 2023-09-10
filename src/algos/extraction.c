@@ -30,6 +30,13 @@
 #include "io/sequence.h"
 #include "extraction.h"
 
+/******************************************************************************
+ * Note for maintainers: do not use the translation macro on the following    *
+ * string. Color management relies on being able to detect "Extraction"       *
+ * in FITS HISTORY header.                                                    *
+ ******************************************************************************/
+const gchar *extract_string = "Extraction";
+
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 
 static void update_sampling_information(fits *fit, float factor) {
@@ -99,6 +106,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha, 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup_printf(_("%s: extract Ha channel\n"), extract_string));
 
 	return 0;
 }
@@ -148,6 +156,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha, 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup_printf(_("%s: extract Ha channel\n"), extract_string));
 
 	return 0;
 }
@@ -282,6 +291,7 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 	copy_fits_metadata(in, green);
 	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
+	green->history = g_slist_append(green->history, g_strdup_printf(_("%s: extract Green channel\n"), extract_string));
 
 	return 0;
 }
@@ -326,6 +336,7 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 	copy_fits_metadata(in, green);
 	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
+	green->history = g_slist_append(green->history, g_strdup_printf(_("%s: extract Green channel\n"), extract_string));
 
 	return 0;
 }
@@ -596,6 +607,12 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	clear_Bayer_information(cfa2);
 	clear_Bayer_information(cfa3);
 
+	/* Update history */
+	cfa0->history = g_slist_append(cfa0->history, g_strdup_printf(_("%s: extract CFA0 Bayer channel\n"), extract_string));
+	cfa1->history = g_slist_append(cfa1->history, g_strdup_printf(_("%s: extract CFA1 Bayer channel\n"), extract_string));
+	cfa2->history = g_slist_append(cfa2->history, g_strdup_printf(_("%s: extract CFA2 Bayer channel\n"), extract_string));
+	cfa3->history = g_slist_append(cfa3->history, g_strdup_printf(_("%s: extract CFA3 Bayer channel\n"), extract_string));
+
 	return 0;
 }
 
@@ -641,6 +658,12 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	clear_Bayer_information(cfa1);
 	clear_Bayer_information(cfa2);
 	clear_Bayer_information(cfa3);
+
+	/* Update history */
+	cfa0->history = g_slist_append(cfa0->history, g_strdup_printf(_("%s: extract CFA0 Bayer channel\n"), extract_string));
+	cfa1->history = g_slist_append(cfa1->history, g_strdup_printf(_("%s: extract CFA1 Bayer channel\n"), extract_string));
+	cfa2->history = g_slist_append(cfa2->history, g_strdup_printf(_("%s: extract CFA2 Bayer channel\n"), extract_string));
+	cfa3->history = g_slist_append(cfa3->history, g_strdup_printf(_("%s: extract CFA3 Bayer channel\n"), extract_string));
 
 	return 0;
 }
@@ -987,10 +1010,12 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup_printf(_("%s: extract Ha channel\n"), extract_string));
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
+	OIII->history = g_slist_append(OIII->history, g_strdup_printf(_("%s: extract OIII channel\n"), extract_string));
 
 	return 0;
 }
@@ -1212,10 +1237,12 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup_printf(_("%s: extract Ha channel\n"), extract_string));
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
+	OIII->history = g_slist_append(OIII->history, g_strdup_printf(_("%s: extract OIII channel\n"), extract_string));
 
 	return 0;
 }

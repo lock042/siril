@@ -3107,7 +3107,6 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 	}
 	color_manage(fit, FALSE);
 	int retval = savefits(filename, fit);
-	/* Restore the original FITS ICC profile */
 	return retval;
 }
 
@@ -3124,7 +3123,6 @@ int save1fits32(const char *filename, fits *fit, int layer) {
 	}
 	color_manage(fit, FALSE);
 	int retval = savefits(filename, fit);
-	/* Restore the original FITS ICC profile */
 	return retval;
 }
 
