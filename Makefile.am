@@ -23,7 +23,7 @@ doc_DATA = AUTHORS \
 	LICENSE.md \
 	3rdparty_licenses/LICENSE_sleef.txt \
 	3rdparty_licenses/LICENSE_zlib.txt \
-	3rdparty_licenses/GPL-2.0-or-later
+	3rdparty_licenses/GPL-2.0-or-later.txt
 
 man_MANS = siril.1
 
