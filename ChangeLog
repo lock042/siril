@@ -27,6 +27,8 @@ xx/xx/xx
 * Fixed removing zero values in histogram calculations (#1164)
 * Fixed pixel sizes after HaOIII extrcation (#1175)
 * Fixed crash when passing only constants in pm expression (#1176)
+* Fixed incorrect channel when adding star from selection in RGB vport (#1180)
+
 
 siril 1.2.0-rc1
 06/01/23
@@ -71,6 +73,9 @@ siril 1.2.0-rc1
 * Fixed networking detection at build-time and made it and exiv2 optional
 * Fixed bug in NetPBM file import
 * Fixed pause button in livestacking
+* Allow the Star Recomposition UI to scroll when larger than the dialog
+* Fixed pixelmath argument parsing error (#1189)
+
 
 siril 1.2.0-beta2
 03/12/23

@@ -319,7 +319,6 @@ gpointer do_starnet(gpointer p) {
 	gchar *starnetcommand = NULL;
 	gchar *temptif = NULL;
 	gchar *starlesstif = NULL;
-	gchar *starmasktif = NULL;
 	gchar *starlessfit = NULL;
 	gchar *starmaskfit = NULL;
 	gchar *imagenoext = NULL;
@@ -426,16 +425,6 @@ gpointer do_starnet(gpointer p) {
 	temp = g_strdup_printf("%s.tif", starlesstif);
 	g_free(starlesstif);
 	starlesstif = g_strdup(temp);
-	g_free(temp);
-
-	starmasktif = g_build_filename(com.wd, starmasknoext, NULL);
-	temp = remove_ext_from_filename(starmasktif);
-	g_free(starmasktif);
-	starmasktif = g_strdup(temp);
-	g_free(temp);
-	temp = g_strdup_printf("%s.tif", starmasktif);
-	g_free(starmasktif);
-	starmasktif = g_strdup(temp);
 	g_free(temp);
 
 	if (strlen(starlesstif) > pathmax) {
@@ -619,8 +608,6 @@ gpointer do_starnet(gpointer p) {
 			torcharg_weights = g_strdup_printf("-w %s", com.pref.starnet_weights);
 			my_argv[nb++] = torcharg_weights;
 		}
-		torcharg_mask = g_strdup_printf("-m %s", starmasktif);
-		my_argv[nb++] = torcharg_mask;
 	}
 
 	// *** Call starnet++ *** //
@@ -642,7 +629,6 @@ gpointer do_starnet(gpointer p) {
 
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
-	retval |= (g_remove(starmasktif) && (version & TORCH));
 	retval |= g_remove(temptif);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
