@@ -393,17 +393,23 @@ int fitseq_write_image(fitseq *fitseq, fits *image, int index) {
 
 static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 	int retval = 0;
+	int frame_count = -1;
 	if (fitseq->writer) {
 		retval = stop_writer(fitseq->writer, abort);
+		frame_count = fitseq->writer->frame_count;
 		free(fitseq->writer);
 		fitseq->writer = NULL;
 	}
+	if (frame_count == -1)
+		frame_count = fitseq->frame_count;
 	retval |= fitseq_multiple_close(fitseq);
 	int status = 0;
 	fits_close_file(fitseq->fptr, &status);
-	if (retval && fitseq->filename)
+	if ((retval || !frame_count) && fitseq->filename) {
+		siril_log_message(_("Removing failed FITS sequence file: %s\n"), fitseq->filename);
 		if (g_unlink(fitseq->filename))
 			siril_debug_print("g_unlink() failed\n");
+	}
 	if (fitseq->filename)
 		free(fitseq->filename);
 	if (fitseq->hdu_index)
@@ -412,12 +418,7 @@ static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 }
 
 void fitseq_close_and_delete_file(fitseq *fitseq) {
-	char *filename = fitseq->filename;
-	fitseq->filename = NULL;
 	fitseq_destroy(fitseq, TRUE);
-	siril_log_message(_("Removing failed FITS sequence file: %s\n"), filename);
-	if (g_unlink(filename))
-		siril_debug_print("g_unlink() failed\n");
 }
 
 int fitseq_close_file(fitseq *fitseq) {
