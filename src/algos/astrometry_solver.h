@@ -94,6 +94,7 @@ struct astrometry_data {
 	//gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
+	gboolean asnet_checked;	// local asnet availability already checked
 
 	/* runtime data */
 	psf_star **cstars;	// catalogue stars
