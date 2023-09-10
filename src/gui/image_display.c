@@ -186,8 +186,8 @@ static int make_hd_index_for_current_display(int vport);
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
-// remapping one vport at a time is now only required for DISPLAY_HISTEQ
-// It should be possible to get rid of this altogether and always use remap_all_vports()
+// remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
+
 static void remap(int vport) {
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
@@ -196,7 +196,7 @@ static void remap(int vport) {
 	WORD *src;
 	float *fsrc;
 	gboolean inverted;
-	siril_debug_print("HISTEQ remap %d\n", vport);
+	siril_debug_print("HISTEQ / STF remap %d\n", vport);
 	if (vport == RGB_VPORT) {
 		remaprgb();
 		return;
@@ -220,25 +220,41 @@ static void remap(int vport) {
 	g_variant_unref(neg_state);
 	neg_state = NULL;
 
-	double hist_sum, nb_pixels;
-	size_t i, hist_nb_bins;
-	gsl_histogram *histo;
-	compute_histo_for_gfit();
-	histo = com.layers_hist[vport];
-	hist_nb_bins = gsl_histogram_bins(histo);
-	nb_pixels = (double)(gfit.rx * gfit.ry);
-	// build the remap_index
-	index = gui.remap_index[0];
-	index[0] = 0;
-	hist_sum = gsl_histogram_get(histo, 0);
-	for (i = 1; i < hist_nb_bins; i++) {
-		hist_sum += gsl_histogram_get(histo, i);
-		index[i] = round_to_BYTE((hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
+	if (gui.rendering_mode == HISTEQ_DISPLAY) {
+		double hist_sum, nb_pixels;
+		size_t i, hist_nb_bins;
+		gsl_histogram *histo;
+		compute_histo_for_gfit();
+		histo = com.layers_hist[vport];
+		hist_nb_bins = gsl_histogram_bins(histo);
+		nb_pixels = (double)(gfit.rx * gfit.ry);
+		// build the remap_index
+		index = gui.remap_index[0];
+		index[0] = 0;
+		hist_sum = gsl_histogram_get(histo, 0);
+		for (i = 1; i < hist_nb_bins; i++) {
+			hist_sum += gsl_histogram_get(histo, i);
+			index[i] = round_to_BYTE((hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
+		}
+
+		last_mode = gui.rendering_mode;
+		histo = com.layers_hist[vport];
+		set_viewer_mode_widgets_sensitive(FALSE);
+	} else {
+		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
+			if (gui.unlink_channels)
+				find_unlinked_midtones_balance_default(&gfit, stf);
+			else find_linked_midtones_balance_default(&gfit, stf);
+			stf_computed = TRUE;
+		}
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
+			make_hd_index_for_current_display(vport);
+		}
+		else
+			make_index_for_current_display(vport);
+		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 	}
 
-	last_mode = gui.rendering_mode;
-	histo = com.layers_hist[vport];
-	set_viewer_mode_widgets_sensitive(FALSE);
 	src = gfit.pdata[vport];
 	fsrc = gfit.fpdata[vport];
 	dst = view->buf;
@@ -251,42 +267,39 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 
-	index = gui.remap_index[0];
-
-	int norm = (int) get_normalized_value(&gfit);
+	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
+	if (hd_mode) {
+		index = gui.hd_remap_index[target_index];
+	}
+	else
+		index = gui.remap_index[target_index];
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
+#pragma omp parallel for simd num_threads(com.max_thread) private(y) schedule(static)
 #endif
 	for (y = 0; y < gfit.ry; y++) {
 		guint x;
 		guint src_i = y * gfit.rx;
 		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
-		WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
-		WORD *linebuf = pixelbuf + vport * gfit.rx;
-		if (gfit.type == DATA_FLOAT) {
-#pragma omp simd
-			for (x = 0 ; x < gfit.rx ; x++) {
-				linebuf[x] = roundf_to_WORD(fsrc[src_i + x] * USHRT_MAX_SINGLE);
-			}
-		} else if (norm == UCHAR_MAX) {
-#pragma omp simd
-			for (x = 0 ; x < gfit.rx ; x++) {
-				linebuf[x] = src[src_i + x] << 8;
-			}
-		} else {
-			memcpy(linebuf, src + src_i, gfit.rx * sizeof(WORD));
-		}
-		if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
-#pragma omp simd
-			for (x = 0 ; x < gfit.rx ; x++) {
-				linebuf[x] = linebuf[x] >> 8;
-			}
-		}
 		for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
-			BYTE dst_pixel_value = index[linebuf[x]];
+			guint src_index = y * gfit.rx + x;
+			BYTE dst_pixel_value = 0;
+			if (gfit.type == DATA_USHORT) {
+				if (hd_mode) {
+					dst_pixel_value = index[src[src_index] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
+				} else {
+					dst_pixel_value = index[src[src_index]];
+				}
+			} else if (gfit.type == DATA_FLOAT) {
+				if (hd_mode)
+					dst_pixel_value = index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)];
+				else
+					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
+			}
 			dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
+
 			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
 			guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
 			switch (color) {
@@ -298,7 +311,6 @@ static void remap(int vport) {
 					*(guint32*)(dst + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
 			}
 		}
-		free(pixelbuf);
 	}
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
@@ -356,22 +368,11 @@ static void remap_all_vports() {
 		color_manage(&gfit, gfit.color_managed);
 	}
 
-	if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
-		if (gui.unlink_channels)
-			find_unlinked_midtones_balance_default(&gfit, stf);
-		else find_linked_midtones_balance_default(&gfit, stf);
-		stf_computed = TRUE;
-	}
-	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
-		make_hd_index_for_current_display(vport);
-	}
-	else
-		make_index_for_current_display(vport);
+	make_index_for_current_display(vport);
+	index = gui.remap_index[vport];
 	set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 
 	last_mode = gui.rendering_mode;
-
-	index = gui.remap_index[0];
 
 	for (int i = 0 ; i < 3 ; i++) {
 		src[i] = gfit.pdata[i];
@@ -417,13 +418,11 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 			}
-			if (gui.icc.display_transform) {
-				if (gui.rendering_mode != STF_DISPLAY && !identical) {
-					cmsDoTransform((gui.rendering_mode == SOFT_PROOF_DISPLAY && gui.icc.proofing_transform) ?
-									gui.icc.proofing_transform :
-									gui.icc.display_transform,
-									pixelbuf, pixelbuf, gfit.rx);
-				}
+			if (gui.icc.display_transform && !identical) {
+				cmsDoTransform((gui.rendering_mode == SOFT_PROOF_DISPLAY && gui.icc.proofing_transform) ?
+								gui.icc.proofing_transform :
+								gui.icc.display_transform,
+								pixelbuf, pixelbuf, gfit.rx);
 			}
 			if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
@@ -438,10 +437,7 @@ static void remap_all_vports() {
 				for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 					BYTE dst_pixel_value = 0;
 						WORD val = linebuf[c][x];
-						// STF mode does not use the sliders
-						if (gui.rendering_mode == STF_DISPLAY)
-							dst_pixel_value = index[val];
-						else if (gui.cut_over && val > gui.hi)	// cut
+						if (gui.cut_over && val > gui.hi)	// cut
 							dst_pixel_value = 0;
 						else {
 							dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
@@ -1788,7 +1784,7 @@ void redraw(remap_type doremap) {
 			break;
 		case REMAP_ALL:
 			stf_computed = FALSE;
-			if (gui.rendering_mode == HISTEQ_DISPLAY) {
+			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
 				for (int i = 0; i < gfit.naxes[2]; i++) {
 					remap(i);
 				}
