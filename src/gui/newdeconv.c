@@ -792,7 +792,7 @@ int load_kernel(gchar* filename) {
 }
 
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	gchar* filename = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	gchar* filename = siril_file_chooser_get_filename(filechooser);
 	if (filename == NULL) {
 		siril_log_color_message(_("No PSF file selected.\n"), "red");
 		gtk_file_chooser_unselect_all(filechooser);
