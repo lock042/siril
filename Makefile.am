@@ -20,7 +20,10 @@ scripts_DATA = scripts/OSC_Preprocessing.ssf \
 	3rdparty/scripts/en/OSC_Preprocessing_WithDrizzle.ssf
 
 doc_DATA = AUTHORS \
-	LICENSE.md
+	LICENSE.md \
+	3rdparty_licenses/LICENSE_sleef.txt \
+	3rdparty_licenses/LICENSE_zlib.txt \
+	3rdparty_licenses/GPL-2.0-or-later
 
 man_MANS = siril.1
 
