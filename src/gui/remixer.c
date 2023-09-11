@@ -1121,7 +1121,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		clearfits(&fit_left_calc);
 		left_loaded = FALSE;
 	}
-	filename_left = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	filename_left = g_strdup(siril_file_chooser_get_filename(filechooser));
 	if (readfits(filename_left, &fit_left, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 			_("Image loading failed"));
@@ -1213,7 +1213,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		clearfits(&fit_right_calc);
 		right_loaded = FALSE;
 	}
-	filename_right = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	filename_right = g_strdup(siril_file_chooser_get_filename(filechooser));
 	if (readfits(filename_right, &fit_right, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));

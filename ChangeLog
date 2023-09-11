@@ -42,7 +42,9 @@ xx/xx/xx
 * Fixed pixel sizes after HaOIII extrcation (#1175)
 * Fixed crash when passing only constants in pm expression (#1176)
 * Fixed incorrect channel when adding star from selection in RGB vport (#1180)
+* Allow to access to non-local disk (#1182)
 * Allow the Star Recomposition UI to scroll when larger than the dialog
+* Fixed wrong Bayer interpretation after FITS-SER conversion (#1193)
 
 siril 1.2.0-rc1
 06/01/23

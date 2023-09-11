@@ -216,6 +216,7 @@ layer *create_layer(int index) {
 	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser),
 			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
 			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
+	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
 	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
 
 	ret->label = GTK_LABEL(gtk_label_new(_("not loaded")));
@@ -642,7 +643,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 		return;
 	}
 
-	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
+	filename = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
 	if (!filename) return;
 	if (layers[layer]->the_fit.rx != 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
@@ -1674,7 +1675,7 @@ void on_compositing_save_all_clicked(GtkButton *button, gpointer user_data) {
 	int retval = 0;
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layers[layer] && layers[layer]->the_fit.rx != 0) {
-			gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(layers[layer]->chooser));
+			gchar *filename = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(layers[layer]->chooser));
 			gchar *basename = g_path_get_basename(filename);
 			gchar *prepended_filename = g_strdup_printf("comp_%s", basename);
 			retval += savefits(prepended_filename, &layers[layer]->the_fit);

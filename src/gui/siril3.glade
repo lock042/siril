@@ -6678,6 +6678,7 @@ enter a visible wavelength in nm</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Select a PSF to load from file. The PSF must be square and should ideally have odd length / width.</property>
+                                        <property name="local-only">False</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_bdeconv_filechooser_file_set" swapped="no"/>
                                       </object>
@@ -10406,6 +10407,7 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
                     <property name="valign">center</property>
                     <property name="hexpand">True</property>
                     <property name="filter">filefilter_fits</property>
+                    <property name="local-only">False</property>
                     <property name="title" translatable="yes">Select Magnitude</property>
                   </object>
                   <packing>
@@ -10420,6 +10422,7 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
                     <property name="valign">center</property>
                     <property name="hexpand">True</property>
                     <property name="filter">filefilter_fits</property>
+                    <property name="local-only">False</property>
                     <property name="title" translatable="yes">Select Phase</property>
                   </object>
                   <packing>
@@ -10568,6 +10571,7 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
 While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
                         <property name="create-folders">False</property>
                         <property name="filter">filefilter_fits</property>
+                        <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_remix_filechooser_right_file_set" swapped="no"/>
                       </object>
@@ -11203,6 +11207,7 @@ Note that luminance based models are not generally invertible.</property>
 While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
                         <property name="create-folders">False</property>
                         <property name="filter">filefilter_fits</property>
+                        <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_remix_filechooser_left_file_set" swapped="no"/>
                       </object>
@@ -12073,6 +12078,7 @@ Note that luminance based models are not generally invertible.</property>
                     <property name="can-focus">False</property>
                     <property name="tooltip-text" translatable="yes">Choose the reference image. This image must have same dimensions.</property>
                     <property name="filter">filefilter_fits</property>
+                    <property name="local-only">False</property>
                     <property name="title" translatable="yes">Choose Reference Image</property>
                   </object>
                   <packing>
@@ -16769,6 +16775,7 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA0 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA0 prefix.</property>
+                        <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_merge_cfa_filechooser_CFA0_file_set" swapped="no"/>
                       </object>
@@ -16783,6 +16790,7 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA1 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA1 prefix.</property>
+                        <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_merge_cfa_filechooser_CFA1_file_set" swapped="no"/>
                       </object>
@@ -16797,6 +16805,7 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA2 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA2 prefix.</property>
+                        <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_merge_cfa_filechooser_CFA2_file_set" swapped="no"/>
                       </object>
@@ -16811,6 +16820,7 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA3 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA3 prefix.</property>
+                        <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_merge_cfa_filechooser_CFA3_file_set" swapped="no"/>
                       </object>

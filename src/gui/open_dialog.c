@@ -255,6 +255,7 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		if (whichdial == OD_FLATLIB) {
 			if (com.pref.prepro.flat_lib != NULL) {
 				gchar *path = g_path_get_dirname(com.pref.prepro.flat_lib);
@@ -324,7 +325,7 @@ static void opendial(int whichdial) {
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
-		filename = gtk_file_chooser_get_filename(chooser);
+		filename = siril_file_chooser_get_filename(chooser);
 		if (!filename)
 			goto wait;
 
@@ -402,7 +403,7 @@ static void opendial(int whichdial) {
 			break;
 
 		case OD_CONVERT:
-			list = gtk_file_chooser_get_filenames(chooser);
+			list = siril_file_chooser_get_filenames(chooser);
 			list = g_slist_sort(list, (GCompareFunc) strcompare);
 			fill_convert_list(list);
 			g_slist_free(list);

@@ -81,7 +81,7 @@ void on_merge_cfa_seqapply_toggled(GtkToggleButton *button, gpointer user_data) 
 
 void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa0);
-	f_cfa0 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa0 = g_strdup(siril_file_chooser_get_filename(filechooser));
 	if (readfits(f_cfa0, &cfa0, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -95,7 +95,7 @@ void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointe
 
 void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa1);
-	f_cfa1 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa1 = g_strdup(siril_file_chooser_get_filename(filechooser));
 	if (readfits(f_cfa1, &cfa1, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -108,7 +108,7 @@ void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointe
 }
 void on_merge_cfa_filechooser_CFA2_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa2);
-	f_cfa2 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa2 = g_strdup(siril_file_chooser_get_filename(filechooser));
 	if (readfits(f_cfa2, &cfa2, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -121,7 +121,7 @@ void on_merge_cfa_filechooser_CFA2_file_set(GtkFileChooser *filechooser, gpointe
 }
 void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa3);
-	f_cfa3 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa3 = g_strdup(siril_file_chooser_get_filename(filechooser));
 	if (readfits(f_cfa3, &cfa3, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
