@@ -59,6 +59,7 @@ enable_ffms2     = get_option('ffms2')
 enable_ffmpeg    = get_option('ffmpeg')
 enable_criterion = get_option('criterion')
 enable_wcslib    = get_option('wcslib')
+enable_libjxl    = get_option('libjxl')
 
 # General version
 siril_version = meson.project_version()
@@ -374,6 +375,16 @@ if enable_libjpeg
   libjpeg_dep = dependency('libjpeg', required : true)
 endif
 
+libjxl_dep = no_dep
+if enable_libjxl
+  libjxl_dep = dependency('libjxl', required : true)
+endif
+
+libjxl_threads_dep = no_dep
+if enable_libjxl
+  libjxl_dep = dependency('libjxl_threads', required : false)
+endif
+
 libpng_dep = no_dep
 if enable_libpng
   libpng_dep = dependency('libpng', required : true, version: '>= 1.6.0')
@@ -538,6 +549,18 @@ else
   conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
 endif
 
+if libjxl_dep.found()
+  conf_data.set('HAVE_LIBJXL', true, description : 'Using JPEG XL images.')
+else
+  conf_data.set('HAVE_LIBJXL', false, description : 'Using JPEG XL images.')
+endif
+
+if libjxl_threads_dep.found()
+  conf_data.set('HAVE_LIBJXL_THREADS', true, description : 'Using JPEG XL threading.')
+else
+  conf_data.set('HAVE_LIBJXL_THREADS', false, description : 'Using JPEG XL threading.')
+endif
+
 if libpng_dep.found()
   conf_data.set('HAVE_LIBPNG', true, description : 'Using PNG images.')
 else
@@ -681,6 +704,8 @@ externals_dep = declare_dependency(
     libpng_dep,
     libheif_dep,
     libXISF_dep,
+    libjxl_dep,
+    libjxl_threads_dep,
     ffms2_dep,
     openmp_dep,
     kplot_dep,
@@ -756,6 +781,7 @@ summary(
     'TIFF'              : libtiff_dep.found(),
     'XISF'              : libXISF_dep.found(),
     'JPEG'              : libjpeg_dep.found(),
+    'JPEG XL'           : libjxl_dep.found(),
     'PNG'               : libpng_dep.found(),
     'HEIF'              : libheif_dep.found(),
     'FFMS2'             : ffms2_dep.found(),

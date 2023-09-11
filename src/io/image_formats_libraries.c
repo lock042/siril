@@ -2090,3 +2090,97 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	return OPEN_IMAGE_OK;
 }
 #endif
+
+//#ifdef HAVE_LIBJXL
+
+#include "SirilJpegXLWrapper.h"
+
+int readjxl(const char* name, fits *fit) {
+
+	FILE *f = g_fopen(name, "rb");
+	if (f == NULL) {
+		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		return OPEN_IMAGE_ERROR;
+	}
+	GError* error = NULL;
+	gsize jxl_size;
+	uint8_t* jxl_data = NULL;
+	gboolean success = g_file_get_contents(name, (gchar**) &jxl_data, &jxl_size, &error);
+
+	uint8_t* icc_profile = NULL;
+	size_t icc_profile_length = 0;
+	size_t xsize = 0, ysize = 0, zsize = 0;
+	uint8_t bitdepth = 0;
+	float* pixels = NULL;
+	if (!DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, pixels, &xsize, &ysize, &zsize,
+									&bitdepth, icc_profile, &icc_profile_length)) {
+		siril_debug_print("Error while decoding the jxl file\n");
+		return 1;
+	}
+
+	fclose(f);
+	clearfits(fit);
+	fit->bitpix = fit->orig_bitpix = bitdepth == 8 ? BYTE_IMG : bitdepth == 16 ? USHORT_IMG : FLOAT_IMG;
+	if (zsize == 1)
+		fit->naxis = 2;
+	else
+		fit->naxis = 3;
+	fit->rx = xsize;
+	fit->ry = ysize;
+	fit->naxes[0] = xsize;
+	fit->naxes[1] = ysize;
+	fit->naxes[2] = zsize;
+	size_t npixels = xsize * ysize;
+	if (fit->bitpix == FLOAT_IMG) {
+		fit->fdata = malloc(xsize * ysize * zsize * sizeof(float));
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = zsize == 3 ? fit->fdata + npixels : fit->fdata;
+		fit->fpdata[BLAYER] = zsize == 3 ? fit->fdata + npixels * 2 : fit->fdata;
+	} else {
+		fit->data = malloc(xsize * ysize * zsize * sizeof(WORD));
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = zsize == 3 ? fit->data + npixels : fit->data;
+		fit->pdata[BLAYER] = zsize == 3 ? fit->data + npixels * 2 : fit->data;
+	}
+	fit->binning_x = fit->binning_y = 1;
+	fit->type = fit->bitpix == FLOAT_IMG ? DATA_FLOAT : DATA_USHORT;
+
+	if (fit->naxes[2] == 1) {
+		if (fit->type == DATA_FLOAT) {
+			fit->fdata = pixels;
+		} else {
+			for (int i = 0 ; i < xsize * ysize ; i++) {
+				fit->data[i] = roundf_to_WORD(pixels[i] * USHRT_MAX);
+			}
+		}
+	} else {
+		if (fit->type == DATA_FLOAT) {
+			for (size_t i = 0 ; i < xsize * ysize ; i++) {
+				size_t pixel = i * 3;
+				for (int j = 0 ; j < 3 ; j++) {
+					fit->fpdata[j][i] = pixels[pixel + j];
+				}
+			}
+		} else {
+			for (size_t i = 0 ; i < xsize * ysize ; i++) {
+				size_t pixel = i * 3;
+				for (int j = 0 ; j < 3 ; j++) {
+					fit->pdata[j][i] = roundf_to_WORD(pixels[pixel + j] * USHRT_MAX);
+				}
+			}
+		}
+	}
+
+	mirrorx(fit, FALSE);
+	fill_date_obs_if_any(fit, name);
+	gchar *basename = g_path_get_basename(name);
+	siril_log_message(_("Reading JPG XL: file %s, %ld layer(s), %ux%u pixels\n"),
+						basename, fit->naxes[2], fit->rx, fit->ry);
+	g_free(basename);
+
+	return zsize;
+}
+
+
+
+//#endif

@@ -152,6 +152,7 @@ src_files = [
   'io/single_image.c',
   'io/siril_plot.c',
   'io/SirilXISFReader.cpp',
+  'io/SirilJpegXLWrapper.cpp',
 
   'livestacking/gui.c',
   'livestacking/livestacking.c',
