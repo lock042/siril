@@ -50,6 +50,9 @@
 #ifdef HAVE_LIBXISF
 #include "io/SirilXISFWraper.h"
 #endif
+#ifdef HAVE_LIBJXL
+#include "io/SirilJpegXLWrapper.h"
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -2091,9 +2094,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 }
 #endif
 
-//#ifdef HAVE_LIBJXL
-
-#include "SirilJpegXLWrapper.h"
+#ifdef HAVE_LIBJXL
 
 int readjxl(const char* name, fits *fit) {
 
@@ -2112,8 +2113,7 @@ int readjxl(const char* name, fits *fit) {
 	size_t xsize = 0, ysize = 0, zsize = 0;
 	uint8_t bitdepth = 0;
 	float* pixels = NULL;
-	if (!DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, pixels, &xsize, &ysize, &zsize,
-									&bitdepth, icc_profile, &icc_profile_length)) {
+	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &bitdepth, icc_profile, &icc_profile_length)) {
 		siril_debug_print("Error while decoding the jxl file\n");
 		return 1;
 	}
@@ -2183,4 +2183,4 @@ int readjxl(const char* name, fits *fit) {
 
 
 
-//#endif
+#endif

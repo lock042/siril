@@ -74,6 +74,9 @@ int open_raw_files(const char*, fits*, gboolean);
 int readheif(const char* name, fits *fit, gboolean interactive);
 #endif
 
+#ifdef HAVE_LIBJXL
+int readjxl(const char* name, fits *fit);
+#endif
 /****************** utils.h ******************/
 int round_to_int(double x);
 int roundf_to_int(float x);

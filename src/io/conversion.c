@@ -127,6 +127,9 @@ void list_format_available() {
 #ifdef HAVE_LIBJPEG
 	puts("JPEG\t(*.jpg, *.jpeg)");
 #endif
+#ifdef HAVE_LIBJXL
+	puts("JPEG XL\t(*.jxl)");
+#endif
 #ifdef HAVE_LIBPNG
 	puts("PNG\t(*.png)");
 #endif
@@ -230,6 +233,13 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".jpeg";
 #endif
 
+#ifdef HAVE_LIBJXL
+	supported_filetypes |= TYPEJXL;
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("JPEG XL images"));
+	supported_extensions[count_ext++] = ".jxl";
+#endif
+
 #ifdef HAVE_LIBPNG
 	supported_filetypes |= TYPEPNG;
 	string = g_string_append(string, ", ");
@@ -283,6 +293,9 @@ image_type get_type_for_extension(const char *extension) {
 	} else if ((supported_filetypes & TYPEJPG) &&
 			(!g_ascii_strcasecmp(extension, "jpg") || !g_ascii_strcasecmp(extension, "jpeg"))) {
 		return TYPEJPG;
+	} else if ((supported_filetypes & TYPEJXL) &&
+			(!g_ascii_strcasecmp(extension, "jxl"))) {
+		return TYPEJXL;
 	} else if ((supported_filetypes & TYPEHEIF) &&
 			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif"))) {
 		return TYPEHEIF;
@@ -348,6 +361,11 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 #ifdef HAVE_LIBJPEG
 		case TYPEJPG:
 			retval = (readjpg(source, dest) < 0);
+			break;
+#endif
+#ifdef HAVE_LIBJXL
+		case TYPEJXL:
+			retval = (readjxl(source, dest) < 0);
 			break;
 #endif
 #ifdef HAVE_LIBHEIF

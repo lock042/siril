@@ -376,13 +376,10 @@ if enable_libjpeg
 endif
 
 libjxl_dep = no_dep
-if enable_libjxl
-  libjxl_dep = dependency('libjxl', required : true)
-endif
-
 libjxl_threads_dep = no_dep
 if enable_libjxl
-  libjxl_dep = dependency('libjxl_threads', required : false)
+  libjxl_dep = dependency('libjxl', required : true)
+  libjxl_threads_dep = dependency('libjxl_threads', required : false)
 endif
 
 libpng_dep = no_dep
