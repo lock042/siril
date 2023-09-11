@@ -2113,7 +2113,7 @@ int readjxl(const char* name, fits *fit) {
 	size_t xsize = 0, ysize = 0, zsize = 0;
 	uint8_t bitdepth = 0;
 	float* pixels = NULL;
-	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &bitdepth, icc_profile, &icc_profile_length)) {
+	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &bitdepth, &icc_profile, &icc_profile_length)) {
 		siril_debug_print("Error while decoding the jxl file\n");
 		return 1;
 	}
@@ -2170,6 +2170,11 @@ int readjxl(const char* name, fits *fit) {
 			}
 		}
 	}
+
+	// For now, we just free the ICC profile data and ignore it.
+	// Once the color management MR merges, support for color managed
+	// JPEG XLs can be added trivially.
+	free(icc_profile);
 
 	mirrorx(fit, FALSE);
 	fill_date_obs_if_any(fit, name);
