@@ -2107,7 +2107,10 @@ int readjxl(const char* name, fits *fit) {
 	gsize jxl_size;
 	uint8_t* jxl_data = NULL;
 	gboolean success = g_file_get_contents(name, (gchar**) &jxl_data, &jxl_size, &error);
-
+	if (!success) {
+		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		return OPEN_IMAGE_ERROR;
+	}
 	uint8_t* icc_profile = NULL;
 	size_t icc_profile_length = 0;
 	size_t xsize = 0, ysize = 0, zsize = 0;
