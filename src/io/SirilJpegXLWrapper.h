@@ -1,0 +1,46 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef SRC_IO_SIRILJXLREADER_H_
+#define SRC_IO_SIRILJXLREADER_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#ifdef HAVE_LIBJXL
+
+int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
+                         float** pixels, size_t* xsize,
+                         size_t* ysize, size_t* zsize, uint8_t* bitdepth,
+                         uint8_t** icc_profile, size_t *icc_profile_length);
+
+int EncodeJpegXlOneshotWrapper(const void* pixels, const uint32_t xsize,
+                      const uint32_t ysize, const uint32_t zsize, const uint8_t bitdepth,
+                      uint8_t** compressed, size_t* compressed_length, uint32_t effort, const double distance);
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* HAVE_LIBJXL */
+
+#endif /* SRC_IO_SIRILJXLREADER_H_ */
