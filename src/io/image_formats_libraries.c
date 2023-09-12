@@ -2189,7 +2189,7 @@ int readjxl(const char* name, fits *fit) {
 	return zsize;
 }
 
-int savejxl(const char *name, fits *fit, int effort){
+int savejxl(const char *name, fits *fit, int effort, gboolean lossless){
 
 	char *filename = strdup(name);
 	if (!g_str_has_suffix(filename, ".jxl")) {
@@ -2281,7 +2281,7 @@ int savejxl(const char *name, fits *fit, int effort){
 
 	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
                       fit->ry, fit->naxes[2], bitdepth,
-                      &compressed, &compressed_length, effort);
+                      &compressed, &compressed_length, effort, lossless);
 
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
@@ -2289,7 +2289,11 @@ int savejxl(const char *name, fits *fit, int effort){
 	free(image_bufferW);
 	free(image_bufferf);
 	free(compressed);
-	siril_log_message(_("Saving JPG XL: file %s, quality=%d, %ld layer(s), %ux%u pixels\n"),
+	if (lossless)
+		siril_log_message(_("Saving JPG XL: file %s, quality=lossless, %ld layer(s), %ux%u pixels\n"),
+						filename, fit->naxes[2], fit->rx, fit->ry);
+	else
+		siril_log_message(_("Saving JPG XL: file %s, quality=%d, %ld layer(s), %ux%u pixels\n"),
 						filename, effort, fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
 	return OPEN_IMAGE_OK;
