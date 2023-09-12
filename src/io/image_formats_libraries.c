@@ -2196,15 +2196,7 @@ int savejxl(const char *name, fits *fit, int effort){
 		filename = str_append(&filename, ".jxl");
 	}
 
-	//## OPEN FILE FOR DATA DESTINATION:
-	FILE *f = g_fopen(filename, "wb");
-	if (f == NULL) {
-		siril_log_color_message(_("Siril cannot create JXL file.\n"), "red");
-		free(filename);
-		return 1;
-	}
-
-	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
+	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
 	//## CREATE IMAGE BUFFER TO WRITE FROM AND MODIFY THE IMAGE TO LOOK LIKE CHECKERBOARD:
@@ -2220,13 +2212,11 @@ int savejxl(const char *name, fits *fit, int effort){
 			image_buffer = malloc(datalength);
 			if (!image_buffer) {
 				PRINT_ALLOC_ERR;
-				free(filename);
-				fclose(f);
 				return 1;
 			}
 			for (int i = (fit->ry - 1); i >= 0; i--) {
 				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->ry) + j) * fit->naxes[2];
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
 					WORD red = *gbuf[RLAYER]++;
 					image_buffer[pixelIdx + 0] = round_to_BYTE(red); // r |-- Set r,g,b components to
 					if (fit->naxes[2] == 3) {
@@ -2244,13 +2234,11 @@ int savejxl(const char *name, fits *fit, int effort){
 			image_bufferW = malloc(datalength);
 			if (!image_bufferW) {
 				PRINT_ALLOC_ERR;
-				free(filename);
-				fclose(f);
 				return 1;
 			}
 			for (int i = (fit->ry - 1); i >= 0; i--) {
 				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->ry) + j) * fit->naxes[2];
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
 					WORD red = *gbuf[RLAYER]++;
 					image_bufferW[pixelIdx + 0] = red; // r |-- Set r,g,b components to
 					if (fit->naxes[2] == 3) {
@@ -2269,13 +2257,11 @@ int savejxl(const char *name, fits *fit, int effort){
 		image_bufferf = malloc(datalength);
 		if (!image_bufferf) {
 			PRINT_ALLOC_ERR;
-			free(filename);
-			fclose(f);
 			return 1;
 		}
 		for (int i = (fit->ry - 1); i >= 0; i--) {
 			for (int j = 0; j < fit->rx; j++) {
-				int pixelIdx = ((i * fit->ry) + j) * fit->naxes[2];
+				int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
 				float red = *gbuff[RLAYER]++;
 				image_bufferf[pixelIdx + 0] = red; // r |-- Set r,g,b components to
 				if (fit->naxes[2] == 3) {
@@ -2303,7 +2289,7 @@ int savejxl(const char *name, fits *fit, int effort){
 	free(image_bufferW);
 	free(image_bufferf);
 	free(compressed);
-	siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
+	siril_log_message(_("Saving JPG XL: file %s, quality=%d, %ld layer(s), %ux%u pixels\n"),
 						filename, effort, fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
 	return OPEN_IMAGE_OK;

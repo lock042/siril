@@ -149,6 +149,9 @@ int	process_savebmp(int nb);
 #ifdef HAVE_LIBJPEG
 int	process_savejpg(int nb);
 #endif
+#ifdef HAVE_LIBJXL
+int	process_savejxl(int nb);
+#endif
 #ifdef HAVE_LIBPNG
 int	process_savepng(int nb);
 #endif

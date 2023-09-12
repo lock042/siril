@@ -732,6 +732,35 @@ int process_savejpg(int nb){
 }
 #endif
 
+#ifdef HAVE_LIBJXL
+int process_savejxl(int nb){
+	int effort = 9;
+
+	if (nb == 3) {
+		gchar *end;
+		effort = g_ascii_strtoull(word[2], &end, 10);
+		if (end == word[2] || effort < 1 || effort > 9) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	gchar *filename = g_strdup_printf("%s.jxl", word[1]);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savejxl(savename, &gfit, effort);
+		set_cursor_waiting(FALSE);
+	}
+	g_free(filename);
+	g_free(savename);
+	return retval;
+}
+#endif
+
 #ifdef HAVE_LIBPNG
 int process_savepng(int nb){
 	gchar *filename = g_strdup_printf("%s.png", word[1]);
