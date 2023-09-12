@@ -2189,6 +2189,124 @@ int readjxl(const char* name, fits *fit) {
 	return zsize;
 }
 
+int savejxl(const char *name, fits *fit, int effort){
 
+	char *filename = strdup(name);
+	if (!g_str_has_suffix(filename, ".jxl")) {
+		filename = str_append(&filename, ".jxl");
+	}
+
+	//## OPEN FILE FOR DATA DESTINATION:
+	FILE *f = g_fopen(filename, "wb");
+	if (f == NULL) {
+		siril_log_color_message(_("Siril cannot create JXL file.\n"), "red");
+		free(filename);
+		return 1;
+	}
+
+	WORD *gbuf[3] =	{ fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
+	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+
+	//## CREATE IMAGE BUFFER TO WRITE FROM AND MODIFY THE IMAGE TO LOOK LIKE CHECKERBOARD:
+	uint8_t *image_buffer = NULL;
+	WORD *image_bufferW = NULL;
+	float *image_bufferf = NULL;
+	void *buffer = NULL;
+	size_t datalength;
+	int bitdepth;
+	if (fit->type == DATA_USHORT) {
+		if (fit->orig_bitpix == BYTE_IMG) {
+			datalength = fit->rx * fit->ry * fit->naxes[2];
+			image_buffer = malloc(datalength);
+			if (!image_buffer) {
+				PRINT_ALLOC_ERR;
+				free(filename);
+				fclose(f);
+				return 1;
+			}
+			for (int i = (fit->ry - 1); i >= 0; i--) {
+				for (int j = 0; j < fit->rx; j++) {
+					int pixelIdx = ((i * fit->ry) + j) * fit->naxes[2];
+					WORD red = *gbuf[RLAYER]++;
+					image_buffer[pixelIdx + 0] = round_to_BYTE(red); // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						WORD green = *gbuf[GLAYER]++;
+						WORD blue = *gbuf[BLAYER]++;
+						image_buffer[pixelIdx + 1] = round_to_BYTE(green); // g |   make this pixel
+						image_buffer[pixelIdx + 2] = round_to_BYTE(blue); // b |
+					}
+				}
+			}
+			buffer = (void*) image_buffer;
+			bitdepth = 8;
+		} else {
+			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD);
+			image_bufferW = malloc(datalength);
+			if (!image_bufferW) {
+				PRINT_ALLOC_ERR;
+				free(filename);
+				fclose(f);
+				return 1;
+			}
+			for (int i = (fit->ry - 1); i >= 0; i--) {
+				for (int j = 0; j < fit->rx; j++) {
+					int pixelIdx = ((i * fit->ry) + j) * fit->naxes[2];
+					WORD red = *gbuf[RLAYER]++;
+					image_bufferW[pixelIdx + 0] = red; // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						WORD green = *gbuf[GLAYER]++;
+						WORD blue = *gbuf[BLAYER]++;
+						image_bufferW[pixelIdx + 1] = green; // g |   make this pixel
+						image_bufferW[pixelIdx + 2] = blue; // b |
+					}
+				}
+			}
+			buffer = (void*) image_bufferW;
+			bitdepth = 16;
+		}
+	} else {
+		datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(float);
+		image_bufferf = malloc(datalength);
+		if (!image_bufferf) {
+			PRINT_ALLOC_ERR;
+			free(filename);
+			fclose(f);
+			return 1;
+		}
+		for (int i = (fit->ry - 1); i >= 0; i--) {
+			for (int j = 0; j < fit->rx; j++) {
+				int pixelIdx = ((i * fit->ry) + j) * fit->naxes[2];
+				float red = *gbuff[RLAYER]++;
+				image_bufferf[pixelIdx + 0] = red; // r |-- Set r,g,b components to
+				if (fit->naxes[2] == 3) {
+					float green = *gbuff[GLAYER]++;
+					float blue = *gbuff[BLAYER]++;
+					image_bufferf[pixelIdx + 1] = green; // g |   make this pixel
+					image_bufferf[pixelIdx + 2] = blue; // b |
+				}
+			}
+		}
+		buffer = (void*) image_bufferf;
+		bitdepth = 32;
+	}
+
+	uint8_t *compressed = NULL;
+	size_t compressed_length;
+
+	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
+                      fit->ry, fit->naxes[2], bitdepth,
+                      &compressed, &compressed_length, effort);
+
+	GError *error = NULL;
+	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
+	free(image_buffer);
+	free(image_bufferW);
+	free(image_bufferf);
+	free(compressed);
+	siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
+						filename, effort, fit->naxes[2], fit->rx, fit->ry);
+	free(filename);
+	return OPEN_IMAGE_OK;
+}
 
 #endif
