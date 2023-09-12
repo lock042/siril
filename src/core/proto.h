@@ -76,7 +76,7 @@ int readheif(const char* name, fits *fit, gboolean interactive);
 
 #ifdef HAVE_LIBJXL
 int readjxl(const char* name, fits *fit);
-int savejxl(const char* name, fits* fit, int effort, gboolean lossless);
+int savejxl(const char* name, fits* fit, int effort, double distance);
 #endif
 /****************** utils.h ******************/
 int round_to_int(double x);

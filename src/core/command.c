@@ -735,17 +735,25 @@ int process_savejpg(int nb){
 #ifdef HAVE_LIBJXL
 int process_savejxl(int nb){
 	int effort = 7;
-	gboolean lossless = FALSE;
+	double distance = 1.0;
 
-	if (nb == 3) {
+	{
 		gchar *end;
-		effort = g_ascii_strtoull(word[2], &end, 10);
-		if (end == word[2] || effort < 1 || effort > 10) {
+		distance = g_ascii_strtod(word[2], &end);
+		printf("%f\n", distance);
+		if (end == word[2] || distance < 0. || distance > 10.) {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
 			return CMD_ARG_ERROR;
 		}
-		if (effort == 10)
-			lossless = TRUE;
+	}
+
+	if (nb == 4) {
+		gchar *end;
+		effort = g_ascii_strtoull(word[3], &end, 10);
+		if (end == word[3] || effort < 1 || effort > 10) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	gchar *filename = g_strdup_printf("%s.jxl", word[1]);
@@ -755,7 +763,7 @@ int process_savejxl(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savejxl(savename, &gfit, effort, lossless);
+		retval = savejxl(savename, &gfit, effort, distance);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);

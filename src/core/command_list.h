@@ -147,7 +147,7 @@ static command commands[] = {
 	{"savejpg", 1, "savejpg filename [quality]", process_savejpg, STR_SAVEJPG, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 #ifdef HAVE_LIBJXL
-	{"savejxl", 1, "savejxl filename [effort]", process_savejxl, STR_SAVEJXL, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"savejxl", 2, "savejxl filename distance [effort]", process_savejxl, STR_SAVEJXL, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 #ifdef HAVE_LIBPNG
 	{"savepng", 1, "savepng filename", process_savepng, STR_SAVEPNG, TRUE, REQ_CMD_SINGLE_IMAGE},
