@@ -23,6 +23,7 @@ struct compstars_arg {
 	gchar *AAVSO_chartid;
 	gchar *AAVSO_uri;
 	gboolean has_GUI;
+	gboolean is_checkstar;
 	int retval;
 };
 

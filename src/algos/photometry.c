@@ -411,8 +411,9 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
+	const char *title = lcargs->metadata->is_checkstar ? "Light curve of check star for" : "Light curve of star";
 	gchar *titleimg = g_strdup_printf("%s %s%s",
-			_("Light curve of star"), target_descr, subtitleimg);
+			title, target_descr, subtitleimg);
 	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
