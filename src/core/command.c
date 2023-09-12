@@ -2697,6 +2697,7 @@ int process_autoghs(int nb) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
 		return CMD_ARG_ERROR;
 	}
+	amount = expm1(amount);
 	argidx++;
 
 	while (argidx < nb) {
@@ -2754,9 +2755,9 @@ int process_autoghs(int nb) {
 			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE };
 		apply_linked_ght_to_fits(&gfit, &gfit, &params, TRUE);
 	} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
+//#endif
 		for (int i = 0; i < nb_channels; ++i) {
 			gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
 			if (stats[i]) {

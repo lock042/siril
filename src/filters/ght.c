@@ -450,9 +450,8 @@ void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, siz
 		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
 		return;
 	}
-	struct ght_compute_params compute_params;
 
-	// Do calcs that can be done prior to the loop
+	struct ght_compute_params compute_params = { 0 };
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 
 	// Independent stretching of mono or RGB channels
