@@ -45,7 +45,7 @@ RUN git clone https://github.com/LibRaw/LibRaw.git \
     && make install \
     && cd .. \
     && rm -rf LibRaw \
-    && git clone --branch x0.7.x --single-branch https://github.com/libjxl/libjxl \
+    && git clone --branch 0.7.x --single-branch https://github.com/libjxl/libjxl \
     && cd libjxl \
     && ./deps.sh \
     && mkdir -p build && cd build \
