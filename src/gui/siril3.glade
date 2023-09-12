@@ -2158,7 +2158,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, an optimised Midtone Transfer Function (MTF) stretch is applied to the image before running StarNet, and the inverse stretch is applied on completion. This is necessary for using StarNet at the linear stage of processing.</property>
+                <property name="tooltip-text" translatable="yes">If selected, an optimised Midtone Transfer Function (MTF) stretch is applied to the image before running StarNet, and the inverse stretch is applied on completion. This is necessary for using StarNet at the linear stage of processing, but is generally fine to use with stretched images too.</property>
                 <property name="halign">start</property>
                 <property name="hexpand">True</property>
                 <property name="active">True</property>
