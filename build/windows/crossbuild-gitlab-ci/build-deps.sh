@@ -5,6 +5,7 @@ mkdir _deps && cd _deps
 crossroad install lcms2 \
                   gtk3 \
                   fftw \
+                  libjxl \
                   exiv2 \
                   gsl \
                   opencv\
@@ -13,7 +14,7 @@ crossroad install lcms2 \
                   cfitsio \
 # need to uninstall crt-git
 # probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
-# otherwise, it's messing up all the subsequent builds 
+# otherwise, it's messing up all the subsequent builds
 crossroad uninstall crt-git
 
 # Build LibRaw from github
