@@ -10,6 +10,8 @@ struct savedial_data {
 	char *copyright;
 	gboolean embeded_icc;
 	gint quality;
+	gint jxl_effort;
+	gdouble jxl_distance;
 	const gchar *filename;
 	int bitpix;
 	gboolean update_hilo;
@@ -17,7 +19,7 @@ struct savedial_data {
 };
 
 enum {
-	PAGE_TIFF, PAGE_JPG, PAGE_FITS, PAGE_MISC
+	PAGE_TIFF, PAGE_JPG, PAGE_FITS, PAGE_JXL, PAGE_MISC
 };
 
 void on_header_save_as_button_clicked();
