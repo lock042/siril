@@ -100,15 +100,23 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	areas[0].x = 0; areas[0].y = 0;
 	int ra_index = -1, dec_index = -1, name_index = 2;
 	int stars_count = 0;
+	gchar *cat_name = NULL;
 	gboolean ready_to_parse = FALSE, target_acquired = FALSE;
 	while (fgets(buf, 512, fd)) {
 		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
 			continue;
 		remove_trailing_eol(buf);
 		if (buf[0] == '#') {
-			if (g_str_has_prefix(buf, "# Siril: ")) {
+		/* parse the siril header */
+			if (g_str_has_prefix(buf, "# Sorted")) {		// First, retrieve the Vstar name and the used catalog name...
 				args->metadata = calloc(1, sizeof(struct compstars_arg));
-				/* parse the siril header */
+				gchar **tokens = g_strsplit(buf, "::", -1);	// ... using the "::" pattern 
+				args->metadata->target_name = g_strdup(tokens[1]);
+				cat_name = g_strdup(tokens[3]);
+				g_strfreev(tokens);	
+			}
+
+			if (g_str_has_prefix(buf, "# Siril: ")) {		// Then retrieve other usefull data
 				int nb = sscanf(buf, "# Siril: %d stars, dVmag %lf, dBV %lf",
 						&args->metadata->nb_comp_stars,
 						&args->metadata->delta_Vmag,
@@ -120,6 +128,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 			}
 			continue;
 		}
+
 		gchar **tokens = g_strsplit(buf, ",", -1);
 		int length = g_strv_length(tokens);
 		if (!tokens[0] || length <= ra_index || length <= dec_index) {
@@ -185,6 +194,9 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 			// we don't use them for this, but we could add them in the
 			// user catalogue for annotations, or a local database
 		}
+		else if (!strcasecmp(type, "check")) {
+			args->metadata->is_checkstar = TRUE;
+		}
 		else if (!strcasecmp(type, "comp1")) {
 			if (!use_comp1) {
 				siril_debug_print("ignoring comp1 star\n");
@@ -240,6 +252,13 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		else {
 			siril_debug_print("malformed line: %s\n", buf);
 		}
+
+		// All the necessary data have been gathered to rebuild the wanted file names (matches the names format in write_nina_file)
+		args->metadata->nina_file = args->metadata->is_checkstar
+				? g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s_check.csv", args->metadata->target_name, args->metadata->delta_Vmag, args->metadata->delta_BV, cat_name)
+				: g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s.csv", args->metadata->target_name, args->metadata->delta_Vmag, args->metadata->delta_BV, cat_name);
+		siril_log_message(_(" csv  file %s\n"), args->metadata->nina_file);
+		
 		g_strfreev(tokens);
 		if (stars_count >= MAX_REF_STARS)
 			break;
@@ -413,10 +432,10 @@ static void write_nina_file(struct compstars_arg *args) {
 	siril_log_message(_("Creating csv output file %s\n"), args->nina_file);
 
 	if (!args->is_checkstar)
-		fprintf(fd, "# Sorted comparison stars for %s from %s according to the following criteria\n",
+		fprintf(fd, "# Sorted comparison stars of ::%s:: from ::%s:: according to the following criteria\n",
 				args->target_star->star_name, catalog_to_str(args->cat));
 	else 
-		fprintf(fd, "# Sorted comparison stars for checkstar of %s from %s according to the following criteria\n",
+		fprintf(fd, "# Sorted comparison stars of checkstar for ::%s:: from ::%s:: according to the following criteria\n",
 			args->target_star->star_name, catalog_to_str(args->cat));
 
 	if (args->cat == CAT_AAVSO && args->AAVSO_chartid && args->AAVSO_uri) {

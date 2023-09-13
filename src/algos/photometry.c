@@ -413,7 +413,8 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
 	const char *title = lcargs->metadata->is_checkstar ? "Light curve of check star for" : "Light curve of star";
 	gchar *titleimg = g_strdup_printf("%s %s%s",
-			title, target_descr, subtitleimg);
+			title, lcargs->metadata->target_name, subtitleimg);
+			//title, target_descr, subtitleimg);
 	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
@@ -510,8 +511,9 @@ gpointer light_curve_worker(gpointer arg) {
 	memset(&com.selection, 0, sizeof(rectangle));
 
 	/* analyse data and create the light curve */
+	gchar *outfile_name = replace_ext(args->metadata->nina_file, "_LC.dat");
 	if (!retval)
-		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, args->display_graph, args);
+		retval = new_light_curve(args->seq, outfile_name, args->target_descr, args->display_graph, args);
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}
