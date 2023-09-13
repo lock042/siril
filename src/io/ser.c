@@ -1186,9 +1186,6 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		return SER_GENERIC_ERROR;
 	}
 
-	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
-		fits_flip_top_to_bottom(fit);
-	}
 	frame_size = (gint64) ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes;
 

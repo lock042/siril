@@ -141,11 +141,12 @@ static gchar* save_siril_plot_dialog(GtkWindow *parent, gchar *defaultfilename, 
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
 	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
 	gtk_file_chooser_set_current_name(dialog, defaultfilename);
+	gtk_file_chooser_set_local_only(dialog, FALSE);
 	set_filter(dialog, filter_name, filter_pattern);
 
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
-		savefilename = gtk_file_chooser_get_filename(dialog);
+		savefilename = siril_file_chooser_get_filename(dialog);
 	}
 	siril_widget_destroy(widgetdialog);
 	return savefilename;
