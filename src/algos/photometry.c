@@ -411,11 +411,21 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
-	const char *title = lcargs->metadata->is_checkstar ? "Light curve of check star for" : "Light curve of star";
-	gchar *titleimg = g_strdup_printf("%s %s%s",
-			title, lcargs->metadata->target_name, subtitleimg);
-			//title, target_descr, subtitleimg);
-	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
+
+	const char *title = NULL;
+	gchar *titleimg = NULL;
+	gchar *subtitledat = NULL;
+	if (!lcargs->metadata) {		// Case of headless use
+		title = g_strdup(_("Light curve of star"));
+		titleimg = g_strdup(_(" "));
+		subtitledat = g_strdup(_(" "));
+	}
+	else {
+		title = lcargs->metadata->is_checkstar ? "Light curve of check star for" : "Light curve of star";
+		titleimg = g_strdup_printf("%s %s%s", title, lcargs->metadata->target_name, subtitleimg);
+		subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
+	}
+
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
 
@@ -511,7 +521,9 @@ gpointer light_curve_worker(gpointer arg) {
 	memset(&com.selection, 0, sizeof(rectangle));
 
 	/* analyse data and create the light curve */
-	gchar *outfile_name = replace_ext(args->metadata->nina_file, "_LC.dat");
+	gchar *outfile_name = NULL;
+	if (!args->metadata) outfile_name = g_strdup(_("light_curve.dat"));
+	else outfile_name = replace_ext(args->metadata->nina_file, "_LC.dat");
 	if (!retval)
 		retval = new_light_curve(args->seq, outfile_name, args->target_descr, args->display_graph, args);
 	if (!retval && args->display_graph && args->spl_data) {
