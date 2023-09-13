@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:23+0200\n"
-"PO-Revision-Date: 2023-09-09 17:57+0000\n"
+"PO-Revision-Date: 2023-09-15 22:47+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -15230,7 +15230,6 @@ msgstr ""
 "статистика выводится для каждого фильтра"
 
 #: src/core/command_def.h:157
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -15241,22 +15240,20 @@ msgid ""
 "are processed"
 msgstr ""
 "Аналогична команде SUBSKY, но для последовательности <b>sequencename</b>.\n"
-"\n"
 "Подмешивание шума (dithering), необходимое для изображений с низкими "
 "динамическими градиентами может быть отключена с помощью <b>-nodither</b>.\n"
+"\n"
 "Название итоговой последовательности будет начинаться с префикса \"bkg_\", "
-"если не указан другой с помощью опции <b>-prefix=</b>"
+"если не указан другой с помощью опции <b>-prefix=</b>. Будут обработаны "
+"только выбранные изображения из последовательности"
 
 #: src/core/command_def.h:158
-#, fuzzy
 msgid ""
 "Same command as TILT but for the sequence <b>sequencename</b>. It generally "
 "gives better results"
 msgstr ""
-"Аналогична команде TILT, но для загруженной последовательности или "
-"последовательности <b>sequencename</b>.\n"
-"\n"
-"Как правило, эта команда даёт лучший результат"
+"Аналогична команде TILT, но для последовательности <b>sequencename</b>. Как "
+"правило, эта команда даёт лучший результат"
 
 #: src/core/command_def.h:159
 msgid ""
@@ -15275,24 +15272,22 @@ msgstr ""
 "которая должна быть указана в первом аргументе"
 
 #: src/core/command_def.h:161
-#, fuzzy
 msgid ""
 "Updates a setting value, using its variable name, with the given value, or a "
 "set of values using an existing ini file with <b>-import=</b> option.\n"
 "See GET to get values or the list of variables"
 msgstr ""
 "Обновляет значение параметра, используя имя его переменной с заданным "
-"значением или установить значение, использую существующий ini-файл с опцией "
+"значением или группу значений, используя существующий ini-файл с опцией "
 "<b>-import=</b>.\n"
-"См. <b>get</b> для получения значений или списка переменных"
+"См. GET для получения значений или списка переменных"
 
 #: src/core/command_def.h:162
-#, fuzzy
 msgid ""
 "Forbids images to be saved with 32 bits per channel on processing, use 16 "
 "bits instead"
 msgstr ""
-"Отключает сохранение изображений с разрядность 32 бита на канал при "
+"Запрещает сохранение изображений с разрядность 32 бита на канал при "
 "обработке. Вместо этого используются 16 бит"
 
 #: src/core/command_def.h:163
@@ -15300,7 +15295,6 @@ msgid "Allows images to be saved with 32 bits per channel on processing"
 msgstr "Позволяет сохранение изображений с 32 битами на канал при обработке"
 
 #: src/core/command_def.h:164
-#, fuzzy
 msgid ""
 "Defines if images are compressed or not.\n"
 "\n"
@@ -15316,14 +15310,15 @@ msgstr ""
 "Определяет, сжаты изображения или нет.\n"
 "\n"
 "<b>0</b> - сжатие отключено, <b>1</b> - сжатие включено.\n"
-"Если сжатие включено, тип сжатия должен бытья явно указан с помощью опции "
+"Если сжатие включено, тип сжатия должен быть явно указан с помощью опции "
 "<b>-type=</b> (\"rice\", \"gzip1\", \"gzip2\").\n"
-"Значение квантования, связанное со сжатием, должно быть в диапазоне [0, "
-"256]. Например, \"setcompress 1 -type=rice 16\" устанавливает тип сжатия "
-"rice с уровнем квантования 16"
+"Значение квантования, связанное со сжатием, должно быть в диапазоне [0, 256]."
+"\n"
+"\n"
+"Например, \"setcompress 1 -type=rice 16\" устанавливает тип сжатия rice с "
+"уровнем квантования 16"
 
 #: src/core/command_def.h:165
-#, fuzzy
 msgid ""
 "Defines the number of processing threads used for calculation.\n"
 "\n"
@@ -15333,11 +15328,14 @@ msgid ""
 "available, so this should mostly be used to limit processing power. This is "
 "reset on every Siril run. See also SETMEM"
 msgstr ""
-"Определяет количество потоков обработки, используемых для вычисления.\n"
+"Определяет количество потоков, используемых для вычисления.\n"
 "\n"
 "Может быть равно числу виртуальных потоков, присутствующих в системе, т.е. "
 "числу ядер процессора или вдвое превышать это значение, если доступна "
-"технология гиперточности (Intel hyperthreading)"
+"технология гиперточности (Intel hyperthreading). Значение по умолчанию - "
+"максимально доступное число потоков, поэтому в основном это следует "
+"использовать для ограничения вычислительной мощности. Значение сбрасывается "
+"при каждом запуске Siril. См. также SETMEM"
 
 #: src/core/command_def.h:166
 msgid ""
@@ -19852,7 +19850,6 @@ msgid "Enjoy using the new Siril"
 msgstr "Желаем получить массу удовольствия с новой версией Siril!"
 
 #: src/gui/split_cfa.c:48
-#, fuzzy
 msgid "Error: sequence is SER or FITSEQ"
 msgstr "Ошибка: последовательность SER или FITSEQ"
 
@@ -20231,7 +20228,6 @@ msgid "Error while converting to FITS\n"
 msgstr "Ошибка при конвертации в FITS\n"
 
 #: src/io/conversion.c:1300
-#, fuzzy
 msgid "No space left!\n"
 msgstr "Не осталось свободного места!\n"
 
