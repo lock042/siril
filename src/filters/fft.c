@@ -611,10 +611,8 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 		phase = gtk_entry_get_text(entry_phase);
 	} else {
 		type = strdup("ffti");
-		mag = gtk_file_chooser_get_filename(
-				GTK_FILE_CHOOSER(lookup_widget("filechooser_mag")));
-		phase = gtk_file_chooser_get_filename(
-				GTK_FILE_CHOOSER(lookup_widget("filechooser_phase")));
+		mag = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_mag")));
+		phase = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_phase")));
 
 		if (mag == NULL || phase == NULL) {
 			char *msg = siril_log_message(_("Select magnitude and phase before !\n"));

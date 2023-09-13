@@ -1072,6 +1072,7 @@ static void select_image(int nb) {
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,	NULL);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
+	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dialog), FALSE);
 	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS);
 	siril_file_chooser_add_preview(GTK_FILE_CHOOSER(dialog), preview);
 
@@ -1084,7 +1085,7 @@ static void select_image(int nb) {
 		guint channel = 0;
 
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		GSList *filenames = gtk_file_chooser_get_filenames(chooser);
+		GSList *filenames = siril_file_chooser_get_filenames(chooser);
 
 		for (l = filenames; l; l = l->next) {
 			char *filename;
