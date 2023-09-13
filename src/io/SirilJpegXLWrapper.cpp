@@ -228,7 +228,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
   basic_info.xsize = xsize;
   basic_info.ysize = ysize;
   basic_info.bits_per_sample = bitdepth;
-  basic_info.exponent_bits_per_sample = 8;
+  if (bitdepth == 32)
+    basic_info.exponent_bits_per_sample = 8;
   basic_info.uses_original_profile = distance == 0.0 ? JXL_TRUE : JXL_FALSE;
   if (JXL_ENC_SUCCESS != JxlEncoderSetBasicInfo(enc.get(), &basic_info)) {
     fprintf(stderr, "JxlEncoderSetBasicInfo failed\n");

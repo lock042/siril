@@ -12,6 +12,7 @@ struct savedial_data {
 	gint quality;
 	gint jxl_effort;
 	gdouble jxl_distance;
+	gboolean jxl_force_8bit;
 	const gchar *filename;
 	int bitpix;
 	gboolean update_hilo;

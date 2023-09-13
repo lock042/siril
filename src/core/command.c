@@ -736,6 +736,7 @@ int process_savejpg(int nb){
 int process_savejxl(int nb){
 	int effort = 7;
 	double distance = 1.0;
+	gboolean force_8bit = FALSE;
 
 	{
 		gchar *end;
@@ -763,7 +764,7 @@ int process_savejxl(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savejxl(savename, &gfit, effort, distance);
+		retval = savejxl(savename, &gfit, effort, distance, force_8bit);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);

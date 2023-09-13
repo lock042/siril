@@ -455,6 +455,8 @@ static gboolean initialize_data(gpointer p) {
 	args->jxl_distance = gtk_spin_button_get_value_as_int(distance_spin_button);
 	GtkSpinButton *effort_spin_button = GTK_SPIN_BUTTON(lookup_widget("jxl_effort_spinbutton"));
 	args->jxl_effort = gtk_spin_button_get_value_as_int(effort_spin_button);
+	GtkToggleButton *toggle_button_8bit = GTK_TOGGLE_BUTTON(lookup_widget("jxl_force_8bit"));
+	args->jxl_force_8bit = gtk_toggle_button_get_active(toggle_button_8bit);
 #endif
 #ifdef HAVE_LIBTIFF
 	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
@@ -499,7 +501,7 @@ static gpointer mini_save_dialog(gpointer p) {
 #endif
 #ifdef HAVE_LIBJPEG
 		case TYPEJXL:
-			args->retval = savejxl(args->filename, &gfit, args->jxl_effort, args->jxl_distance);
+			args->retval = savejxl(args->filename, &gfit, args->jxl_effort, args->jxl_distance, args->jxl_force_8bit);
 			break;
 #endif
 #ifdef HAVE_LIBTIFF

@@ -4920,6 +4920,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               <object class="GtkNotebook" id="notebookFormat">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="show-tabs">False</property>
                 <property name="show-border">False</property>
                 <child>
                   <!-- n-columns=2 n-rows=2 -->
@@ -5666,13 +5667,19 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                   </packing>
                                 </child>
                                 <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
+                                  <object class="GtkCheckButton" id="jxl_force_8bit">
+                                    <property name="label" translatable="yes">8 bit output</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">If checked, output will be 8 bit. If unchecked, the image will be saved in its native bit depth (32 bit images will be stored as 32 bit; 16 bit images will be stored as 16 bit unless they originated as 8 bit images)</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                    <property name="width">3</property>
+                                  </packing>
                                 </child>
                               </object>
                             </child>
@@ -5711,9 +5718,6 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
-                </child>
-                <child type="tab">
                   <placeholder/>
                 </child>
               </object>

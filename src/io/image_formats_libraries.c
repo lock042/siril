@@ -2120,7 +2120,7 @@ int readjxl(const char* name, fits *fit) {
 		siril_debug_print("Error while decoding the jxl file\n");
 		return 1;
 	}
-
+	siril_debug_print("Image decoded as %d bits per pixel\n", bitdepth);
 	fclose(f);
 	clearfits(fit);
 	fit->bitpix = fit->orig_bitpix = bitdepth == 8 ? BYTE_IMG : bitdepth == 16 ? USHORT_IMG : FLOAT_IMG;
@@ -2189,7 +2189,7 @@ int readjxl(const char* name, fits *fit) {
 	return zsize;
 }
 
-int savejxl(const char *name, fits *fit, int effort, double distance){
+int savejxl(const char *name, fits *fit, int effort, double distance, gboolean force_8bit) {
 
 	char *filename = strdup(name);
 	if (!g_str_has_suffix(filename, ".jxl")) {
@@ -2207,23 +2207,24 @@ int savejxl(const char *name, fits *fit, int effort, double distance){
 	size_t datalength;
 	int bitdepth;
 	if (fit->type == DATA_USHORT) {
-		if (fit->orig_bitpix == BYTE_IMG) {
-			datalength = fit->rx * fit->ry * fit->naxes[2];
+		if (fit->orig_bitpix == BYTE_IMG || force_8bit) {
+			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(BYTE);
 			image_buffer = malloc(datalength);
 			if (!image_buffer) {
 				PRINT_ALLOC_ERR;
 				return 1;
 			}
+			int rshift = fit->orig_bitpix == BYTE_IMG ? 0 : 8;
 			for (int i = (fit->ry - 1); i >= 0; i--) {
 				for (int j = 0; j < fit->rx; j++) {
 					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
 					WORD red = *gbuf[RLAYER]++;
-					image_buffer[pixelIdx + 0] = round_to_BYTE(red); // r |-- Set r,g,b components to
+					image_buffer[pixelIdx + 0] = truncate_to_BYTE(red >> rshift); // r |-- Set r,g,b components to
 					if (fit->naxes[2] == 3) {
 						WORD green = *gbuf[GLAYER]++;
 						WORD blue = *gbuf[BLAYER]++;
-						image_buffer[pixelIdx + 1] = round_to_BYTE(green); // g |   make this pixel
-						image_buffer[pixelIdx + 2] = round_to_BYTE(blue); // b |
+						image_buffer[pixelIdx + 1] = truncate_to_BYTE(green >> rshift); // g |   make this pixel
+						image_buffer[pixelIdx + 2] = truncate_to_BYTE(blue >> rshift); // b |
 					}
 				}
 			}
@@ -2253,27 +2254,51 @@ int savejxl(const char *name, fits *fit, int effort, double distance){
 			bitdepth = 16;
 		}
 	} else {
-		datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(float);
-		image_bufferf = malloc(datalength);
-		if (!image_bufferf) {
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-		for (int i = (fit->ry - 1); i >= 0; i--) {
-			for (int j = 0; j < fit->rx; j++) {
-				int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-				float red = *gbuff[RLAYER]++;
-				image_bufferf[pixelIdx + 0] = red; // r |-- Set r,g,b components to
-				if (fit->naxes[2] == 3) {
-					float green = *gbuff[GLAYER]++;
-					float blue = *gbuff[BLAYER]++;
-					image_bufferf[pixelIdx + 1] = green; // g |   make this pixel
-					image_bufferf[pixelIdx + 2] = blue; // b |
+		if (force_8bit) {
+			datalength = fit->rx * fit->ry * fit->naxes[2];
+			image_buffer = malloc(datalength);
+			if (!image_buffer) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			for (int i = (fit->ry - 1); i >= 0; i--) {
+				for (int j = 0; j < fit->rx; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
+					float red = *gbuff[RLAYER]++;
+					image_buffer[pixelIdx + 0] = roundf_to_BYTE(red * UCHAR_MAX_SINGLE); // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						float green = *gbuff[GLAYER]++;
+						float blue = *gbuff[BLAYER]++;
+						image_buffer[pixelIdx + 1] = roundf_to_BYTE(green * UCHAR_MAX_SINGLE); // g |   make this pixel
+						image_buffer[pixelIdx + 2] = roundf_to_BYTE(blue * UCHAR_MAX_SINGLE); // b |
+					}
 				}
 			}
+			buffer = (void*) image_buffer;
+			bitdepth = 8;
+		} else {
+			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(float);
+			image_bufferf = malloc(datalength);
+			if (!image_bufferf) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			for (int i = (fit->ry - 1); i >= 0; i--) {
+				for (int j = 0; j < fit->rx; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
+					float red = *gbuff[RLAYER]++;
+					image_bufferf[pixelIdx + 0] = red; // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						float green = *gbuff[GLAYER]++;
+						float blue = *gbuff[BLAYER]++;
+						image_bufferf[pixelIdx + 1] = green; // g |   make this pixel
+						image_bufferf[pixelIdx + 2] = blue; // b |
+					}
+				}
+			}
+			buffer = (void*) image_bufferf;
+			bitdepth = 32;
 		}
-		buffer = (void*) image_bufferf;
-		bitdepth = 32;
 	}
 
 	uint8_t *compressed = NULL;
@@ -2290,11 +2315,11 @@ int savejxl(const char *name, fits *fit, int effort, double distance){
 	free(image_bufferf);
 	free(compressed);
 	if (distance == 0.0)
-		siril_log_message(_("Saving JPG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels\n"),
-						filename, effort, fit->naxes[2], fit->rx, fit->ry);
+		siril_log_message(_("Saving JPG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, force_8bit: %d\n"),
+						filename, effort, fit->naxes[2], fit->rx, fit->ry, force_8bit);
 	else
-		siril_log_message(_("Saving JPG XL: file %s, distance=%.3f, effort=%d %ld layer(s), %ux%u pixels\n"),
-						filename, distance, effort, fit->naxes[2], fit->rx, fit->ry);
+		siril_log_message(_("Saving JPG XL: file %s, distance=%.3f, effort=%d %ld layer(s), %ux%u pixels, force_8bit: %d\n"),
+						filename, distance, effort, fit->naxes[2], fit->rx, fit->ry, force_8bit);
 	free(filename);
 	return OPEN_IMAGE_OK;
 }
