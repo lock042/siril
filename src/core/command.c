@@ -737,31 +737,36 @@ int process_savejxl(int nb){
 	int effort = 7;
 	double distance = 1.0;
 	gboolean force_8bit = FALSE;
-
-	{
-		gchar *end;
-		distance = g_ascii_strtod(word[2], &end);
-		printf("%f\n", distance);
-		if (end == word[2] || distance < 0. || distance > 10.) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
-			return CMD_ARG_ERROR;
+	for (int i = 2; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-8bit")) {
+			force_8bit = TRUE;
 		}
-	}
-
-	if (nb == 4) {
-		gchar *end;
-		effort = g_ascii_strtoull(word[3], &end, 10);
-		if (end == word[3] || effort < 1 || effort > 10) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
-			return CMD_ARG_ERROR;
+		else if (g_str_has_prefix(arg, "-dist=")) {
+			arg += 6;
+			distance = g_ascii_strtod(arg, &end);
+			if (distance <= 0.f || distance > 10.f) {
+				siril_log_message(_("Error: distance must be >= 0.0 and <= 10.0.\n"));
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-effort=")) {
+			arg += 8;
+			effort = (int) g_ascii_strtod(arg, &end);
+			if (distance < 1 || distance > 9) {
+				siril_log_message(_("Error: effort must be an integer between 1 and 9.\n"));
+				return CMD_ARG_ERROR;
+			}
 		}
 	}
 
 	gchar *filename = g_strdup_printf("%s.jxl", word[1]);
-	int status, retval;
+	int status, retval = CMD_OK;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
-		retval = 1;
+		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
 		retval = savejxl(savename, &gfit, effort, distance, force_8bit);
