@@ -1,5 +1,6 @@
 siril 1.4.0 xx xx, xx
 
+* Added support for JPEG XL image format
 * Added comparison star list creation from Siril
 * Allowed object search with their common name, from the annotations catalogues
 * Added intensity profiling function
@@ -44,6 +45,7 @@ siril 1.2.0 xx xx, xx
 * Allow to access to non-local disk (#1182)
 * Allow the Star Recomposition UI to scroll when larger than the dialog
 * Fixed pixelmath argument parsing error (#1189)
+* Fixed wrong Bayer interpretation after FITS-SER conversion (#1193)
 
 siril 1.2.0-rc1 June 1, 2023
 
