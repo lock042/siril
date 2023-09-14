@@ -90,6 +90,30 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.2.0" date="2023-09-15">
+      <url type="details">https://siril.org/download/1.2.0</url>
+      <description>
+        <p>
+          First stable release of the 1.2.0 series. Many bug fixes
+          have been implemented in this version.
+          The most outstanding fixes are:
+        </p>
+        <ul>
+          <li>
+          Fixed crash in background extraction samples removing
+          </li>
+          <li>
+          Fixed crash in findstar when a large saturated patch was close to border
+          </li>
+          <li>
+          Fixed memory leaks in deconvolution code
+          </li>
+          <li>
+          Fixed HaOiii script failure if input image has odd dimensions
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.0~rc1" date="2023-06-01">
       <url type="details">https://siril.org/download/1.2.0-rc1</url>
       <description>
