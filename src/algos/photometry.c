@@ -524,6 +524,10 @@ gpointer light_curve_worker(gpointer arg) {
 	gchar *outfile_name = NULL;
 	if (!args->metadata) outfile_name = g_strdup(_("light_curve.dat"));
 	else outfile_name = replace_ext(args->metadata->nina_file, "_LC.dat");
+
+	// Changes the name to include the right photometry output folder
+	outfile_name = !check_subfolder(PHOTO_FOLDER) ? g_build_filename(PHOTO_FOLDER, outfile_name, NULL) : outfile_name;
+
 	if (!retval)
 		retval = new_light_curve(args->seq, outfile_name, args->target_descr, args->display_graph, args);
 	if (!retval && args->display_graph && args->spl_data) {

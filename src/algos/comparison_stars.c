@@ -426,6 +426,9 @@ static void write_nina_file(struct compstars_arg *args) {
 			: g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s.csv", args->target_star->star_name, args->delta_Vmag, args->delta_BV, catalog_to_str(args->cat));
 	}
 
+	// Changes the name to include the right photometry output folder
+	args->nina_file = !check_subfolder(PHOTO_FOLDER) ? g_build_filename(PHOTO_FOLDER, args->nina_file, NULL) : args->nina_file;
+
 	FILE *fd = g_fopen(args->nina_file, "w+");
 	if (!fd)
 		return;

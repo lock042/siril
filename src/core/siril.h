@@ -177,6 +177,8 @@ typedef enum {
 
 #define INDEX_MAX 65535		// maximum index for images
 
+#define PHOTO_FOLDER "photometry"	// default subfolder name (relative to CWD) for photometry output files
+
 typedef struct sequ sequence;
 typedef struct ffit fits;
 typedef struct guiinf guiinfo;
