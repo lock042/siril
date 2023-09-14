@@ -429,6 +429,7 @@ static void write_nina_file(struct compstars_arg *args) {
 	// Changes the name to include the right photometry output folder
 	args->nina_file = !check_subfolder(PHOTO_FOLDER) ? g_build_filename(PHOTO_FOLDER, args->nina_file, NULL) : args->nina_file;
 
+
 	FILE *fd = g_fopen(args->nina_file, "w+");
 	if (!fd)
 		return;
