@@ -43,6 +43,7 @@ siril 1.2.0 xx xx, xx
 * Allow to access to non-local disk (#1182)
 * Allow the Star Recomposition UI to scroll when larger than the dialog (#1172)
 * Fixed wrong Bayer interpretation after FITS-SER conversion (#1193)
+* Fixed pixelmath argument parsing error (#1189)
 
 siril 1.2.0-rc1 June 1, 2023
 
