@@ -1,22 +1,22 @@
 siril 1.2.0
 xx/xx/xx
-* Fixed crash in background extraction samples removing
-* Fixed crash in binning with ushort images
+* Fixed crash in background extraction samples removing (#1123)
+* Fixed crash in binning with ushort images (4d4d4878)
 * Fixed crash in findstar when a large saturated patch was close to border
-* Fixed memory leaks in deconvolution code
-* Fixed sorting in the rightmost columns in Dynamic PSF window
-* Added logging typed command in stdout
-* Improved path-checking and messages for astrometry.net local solver (Windows)
-* Prevent crash using recomposition tool eyedroppers without images loaded
-* Fix HaOiii script failure if input image has odd dimensions
-* Fixed crash with seqextract_HaOIII command
-* Fix errors in GNUplot process handling
-* Fixed crash when trying to export csv from empty plot
-* Fixed deleting RA/Dec info when undoing an astrometry solve
-* Improved error detection and messages for astrometry
-* Fixed sampling range specification for siril internal solver
-* Fixed all command descriptions
-* Fixed SER orientation after AVI conversion
+* Fixed memory leaks in deconvolution code (3e122ad7)
+* Fixed sorting in the rightmost columns in Dynamic PSF window (75586c04)
+* Added logging typed command in stdout (06f67292)
+* Improved path-checking and messages for astrometry.net local solver (Windows) (!524)
+* Prevent crash using recomposition tool eyedroppers without images loaded (!526)
+* Fix HaOiii script failure if input image has odd dimensions (!533)
+* Fix errors in GNUplot process handling (!538)
+* Fixed crash with seqextract_HaOIII command (!535)
+* Fixed crash when trying to export csv from empty plot (#1150)
+* Fixed deleting RA/Dec info when undoing an astrometry solve (#1119)
+* Improved error detection and messages for astrometry (!516)
+* Fixed sampling range specification for siril internal solver (!549)
+* Fixed all command descriptions (!546)
+* Fixed SER orientation after AVI conversion (#1120)
 * Fixed rescaling float images upon loading when not in [0,1] range (#1155)
 * Fixed initialization of guide image for clamping (#1114)
 * Fixed disabling weighting in the GUI when widget is not visible (#1158)
@@ -28,7 +28,9 @@ xx/xx/xx
 * Fixed pixel sizes after HaOIII extrcation (#1175)
 * Fixed crash when passing only constants in pm expression (#1176)
 * Fixed incorrect channel when adding star from selection in RGB vport (#1180)
-
+* Allow to access to non-local disk (#1182)
+* Allow the Star Recomposition UI to scroll when larger than the dialog (#1172)
+* Fixed wrong Bayer interpretation after FITS-SER conversion (#1193)
 
 siril 1.2.0-rc1
 06/01/23
@@ -39,7 +41,7 @@ siril 1.2.0-rc1
 * Added read of datetime in jpeg and png file with exiv2
 * Added Danish language
 * Changed Windows to build in console mode even for stable releases
-* Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak)
+* Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak) (!538)
 * Changed image opening for all images not from Siril (ensures DATAMAX is correct)
 * Improved parsing of localization data for wider imaging software compatibility
 * Improved DATE-OBS control and log for solar system features
