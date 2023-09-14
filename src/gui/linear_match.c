@@ -162,7 +162,7 @@ void apply_linear_to_fits(fits *fit, double *a, double *b) {
 
 static gchar *get_reference_filename() {
 	GtkFileChooser *linearmatch_ref = GTK_FILE_CHOOSER(lookup_widget("reference_filechooser_linearmatch"));
-	return gtk_file_chooser_get_filename(linearmatch_ref);
+	return siril_file_chooser_get_filename(linearmatch_ref);
 }
 
 static gdouble get_high_rejection() {

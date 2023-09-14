@@ -307,7 +307,7 @@ static image_type get_image_type_from_filter(GtkFileFilter *filter) {
 static void filter_changed(gpointer user_data) {
 	GtkFileChooser *chooser = GTK_FILE_CHOOSER(user_data);
 	GtkFileFilter *filter = gtk_file_chooser_get_filter(chooser);
-	gchar *filename = gtk_file_chooser_get_filename(chooser);
+	gchar *filename = siril_file_chooser_get_filename(chooser);
 	char *file_no_ext = remove_ext_from_filename(filename);
 	image_type format = get_image_type_from_filter(filter);
 	gchar *new_filename = NULL;
@@ -364,6 +364,7 @@ static int save_dialog() {
 
 	gtk_file_chooser_set_current_name(chooser, fname);
 	gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
+	gtk_file_chooser_set_local_only(chooser, FALSE);
 	set_filters_save_dialog(chooser);
 	siril_file_chooser_add_preview(chooser, preview);
 	gtk_file_chooser_unselect_all(chooser);
@@ -372,7 +373,7 @@ static int save_dialog() {
 
 	gint res = siril_dialog_run(saveDialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *filename = gtk_file_chooser_get_filename(chooser);
+		gchar *filename = siril_file_chooser_get_filename(chooser);
 		type_of_image = get_type_from_filename(filename);
 
 		GtkEntry *savetext = GTK_ENTRY(lookup_widget("savetxt"));

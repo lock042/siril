@@ -801,7 +801,7 @@ void display_filename() {
 	gchar *	base_name = g_path_get_basename(filename);
 	gchar *orig_base_name = NULL;
 	GString *concat_base_name = NULL;
-	if (orig_filename) {
+	if (orig_filename && orig_filename[0] != '\0') {
 		orig_base_name = g_path_get_basename(orig_filename);
 		concat_base_name = g_string_new(orig_base_name);
 		concat_base_name = g_string_append(concat_base_name, " <==> ");

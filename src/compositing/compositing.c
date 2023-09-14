@@ -181,6 +181,7 @@ layer *create_layer(int index) {
 	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser),
 			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
 			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
+	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
 	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
 	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
 
@@ -517,7 +518,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	if (!layers[layer]) return;	// not found
 	/* layer is the number of the opened layer */
 
-	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
+	filename = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
 	if (!filename) return;
 	if (layers[layer]->the_fit.rx == 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
@@ -1252,5 +1253,4 @@ void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
 	/* Here this is wanted that we do not use siril_open_dialog */
 	gtk_widget_show(win);
 }
-
 

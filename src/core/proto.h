@@ -158,6 +158,8 @@ const gchar *get_com_ext(gboolean fz);
 
 int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
 int display_to_fits(double dx, double dy, double *fx, double *fy, int ry);
+gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
+GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
