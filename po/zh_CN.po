@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-08-10 08:23+0200\n"
-"PO-Revision-Date: 2023-09-09 17:57+0000\n"
+"PO-Revision-Date: 2023-09-15 22:47+0000\n"
 "Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
@@ -482,9 +482,9 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
-"如果选中，在完成StarNet过程后，星点重绘工具将打开，如果需要减少星点而不是完全"
-"移除，则提供一个用于独立拉伸和混合背景于星点的界面。\n"
-"如果处理序列，该选项不起作用。"
+"如果选中，在完成StarNet处理后，星点重绘工具将打开，用于分别拉伸背景和星点，并"
+"调配其比例，以减少星点，而不是完全移除星点。\n"
+"如果处理序列，则该选项不起作用。"
 
 #: src/gui/siril3.glade:2274
 msgid "Upsample x2"
@@ -1065,11 +1065,11 @@ msgstr "ℓ0 下降"
 
 #: src/gui/siril3.glade:6045
 msgid "Previous PSF"
-msgstr "之前的 PSF"
+msgstr "先前生成的 PSF"
 
 #: src/gui/siril3.glade:6049
 msgid "Reuse the previously calculated PSF."
-msgstr "复用之前计算出的PSF。"
+msgstr "复用先前生成的PSF。"
 
 #: src/gui/siril3.glade:6064
 msgid ""
@@ -12682,7 +12682,7 @@ msgstr ""
 "\n"
 "使用<b>clear</b>参数时不需要其他参数。\n"
 "\n"
-"要载入以前保存的PSF，参数<b>load</b>需要PSF的<i>filename</i>作为第二个参数。P"
+"要载入先前保存的PSF，参数<b>load</b>需要PSF的<i>filename</i>作为第二个参数。P"
 "SF可以是Siril支持的任何格式，但必须是方形的，理想情况下尺寸应该是奇数。\n"
 "\n"
 "使用参数<b>save</b>以保存当前生成的PSF。可以指定文件名（扩展名必须为\".fit\""
@@ -12813,10 +12813,8 @@ msgid ""
 "Changes pixel values of the currently loaded image to a negative view, like "
 "1-value for 32 bits, 65535-value for 16 bits. This does not change the "
 "display mode"
-msgstr ""
-"Changes pixel values of the currently loaded image to a negative view, like "
-"1-value for 32 bits, 65535-value for 16 bits. This does not change the "
-"display mode"
+msgstr "反转当前载入的图像，例如将32位图像的像素值变为1-原值，16位变为65535-原值。这"
+"改变的不是预览模式，而是图像本身"
 
 #: src/core/command_def.h:95
 msgid ""
@@ -12883,20 +12881,17 @@ msgid ""
 "<i>$defstack</i> respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
-"Parses the string <b>str</b> using the information contained in the header "
-"of the image currently loaded. Main purpose of this command is to debug path "
-"parsing of header keys which can be used in other commands.\n"
-"Option <b>-r</b> specifies the string is to be interpreted in read mode. In "
-"read mode, all wilcards defined in string <b>str</b> are used to find a file "
-"name matching the pattern. Otherwise, default mode is write mode and "
-"wildcards, if any, are removed from the string to be parsed.\n"
+"使用当前载入图像的文件头中包含的信息来分析字符串<b>str</b>。此命令主要用于调"
+"试文件头关键字中的分析path，以便在其他命令中使用。\n"
+"选项<b>-r</b>指定要在读取模式下解释的字符串。在读取模式下，字符串<b>str</b>中"
+"定义的所有wilcard都用于查找匹配的文件名。若不使用该选项，则默认为写入模式，通"
+"配符（如果有的话）将从要分析的字符串中删除。\n"
 "\n"
-"If <b>str</b> starts with <i>$def</i> prefix, it will be recognized as a "
-"reserved keyword and looked for in the strings stored in gui_prepro."
-"dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib or gui_prepro."
-"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or "
-"<i>$defstack</i> respectively.\n"
-"The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
+"如果<b>str</b>以<i>$def</i>开头，则它将被识别为已存储的关键字。<i>$defdark</i"
+">，<i>$defflat</i>，<i>$defbias</i>，<i>$defstack</i>将分别指定从gui_prepro."
+"dark_lib，gui_prepro.flat_lib，gui_prepro.bias_lib，gui_prepro."
+"stack_default中寻找。\n"
+"载入一个序列时可以使用关键字<i>$seqname$</i>"
 
 #: src/core/command_def.h:102
 msgid ""
@@ -13036,13 +13031,11 @@ msgid ""
 "<b><i>bayerpattern</i></b> specifies the Bayer matrix pattern to recreate: "
 "<i>bayerpattern</i> should be one of 'RGGB', 'BGGR', 'GRBG' or 'GBRG'"
 msgstr ""
-"Builds a Bayer masked colour image from 4 separate images containing the "
-"data from Bayer subchannels CFA0, CFA1, CFA2 and CFA3. (The corresponding "
-"command to split the CFA pattern into subchannels is <b>split_cfa</b>.) This "
-"function can be used as part of a workflow applying some processing to the "
-"individual Bayer subchannels prior to demosaicing. The fifth parameter "
-"<b><i>bayerpattern</i></b> specifies the Bayer matrix pattern to recreate: "
-"<i>bayerpattern</i> should be one of 'RGGB', 'BGGR', 'GRBG' or 'GBRG'"
+"用从拜耳图像中拆分出的CFA0、CFA1、CFA2和CFA3这四个子图像合成一个拜耳彩色图像"
+"。（将CFA图像拆分为四个子图像的相应命令是<b>split_CFA</b>。）此功能可作为工作"
+"流的一部分，在去马赛克之前分别对拜耳子图像做一些处理。第五个参数<b><i>bayerpa"
+"ttern</i></b>指定要重建的拜耳阵列模式：<i>bayerpattern</i>应为“RGGB”、“BGGR”"
+"、“GRBG”或“GBRG”"
 
 #: src/core/command_def.h:107
 msgid ""
@@ -13232,15 +13225,13 @@ msgid ""
 "for maximum mask, 3 for additive mask, defaulting to 0. The last two can "
 "take an <b>amount</b> argument, a value between 0 and 1, defaulting to 1"
 msgstr ""
-"Applies a chromatic noise reduction filter. It removes green tint in the "
-"current image. This filter is based on PixInsight's SCNR and it is also the "
-"same filter used by HLVG plugin in Photoshop.\n"
-"Lightness is preserved by default but this can be disabled with the <b>-"
-"nopreserve</b> switch.\n"
+"应用色度降噪滤镜。这可以除去当前图像中的绿色噪声。该滤镜基于PixInsight的SCNR"
+"，也即为Photoshop中HLVG插件中使用的滤镜。\n"
+"默认情况下会保护亮度，也可以使用<b>-nopreserve</b>开关禁用。\n"
 "\n"
-"<b>Type</b> can take values 0 for average neutral, 1 for maximum neutral, 2 "
-"for maximum mask, 3 for additive mask, defaulting to 0. The last two can "
-"take an <b>amount</b> argument, a value between 0 and 1, defaulting to 1"
+"<b>Type</b>可以取0（average neutral），1（maximum neutral），2（maximum "
+"mask），3（additive "
+"mask），默认值为0。后两个可以采用<b>amount</b>参数，该值介于0和1之间，默认为1"
 
 #: src/core/command_def.h:115
 msgid ""
@@ -13341,9 +13332,8 @@ msgid ""
 "channel if the loaded image is 16 or 32 bits, and 8 bits per channel if the "
 "loaded image is 8 bits"
 msgstr ""
-"Saves current image into a PNG file: <b>filename</b>.png, with 16 bits per "
-"channel if the loaded image is 16 or 32 bits, and 8 bits per channel if the "
-"loaded image is 8 bits"
+"将当前图像保存为PNG文件：<b>filename</b>."
+"png，如果载入的图像为16或32位，则每通道16位，如果载入的图像为8位，则每通道8位"
 
 #: src/core/command_def.h:123
 msgid ""
@@ -13553,10 +13543,9 @@ msgid ""
 "The output sequence name starts with the prefix \"Ha_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Same command as EXTRACT_HA but for the sequence <b>sequencename</b>.\n"
+"与EXTRACT_HA命令相同，但用于序列<b>sequencename</b>。\n"
 "\n"
-"The output sequence name starts with the prefix \"Ha_\" unless otherwise "
-"specified with option <b>-prefix=</b>"
+"输出序列名前缀为“Ha_”，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:135
 msgid ""
@@ -13565,10 +13554,9 @@ msgid ""
 "The output sequence name starts with the prefix \"Green_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Same command as EXTRACT_GREEN but for the sequence <b>sequencename</b>.\n"
+"与EXTRACT_GREEN命令相同，但用于序列<b>sequencename</b>。\n"
 "\n"
-"The output sequence name starts with the prefix \"Green_\" unless otherwise "
-"specified with option <b>-prefix=</b>"
+"输出序列名前缀为“Green_”，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -13599,10 +13587,9 @@ msgid ""
 "The output sequence name starts with the prefix \"cc_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Same command as FIND_COSME but for the sequence <b>sequencename</b>.\n"
+"与FIND_COSME命令相同，但用于序列<b>sequencename</b>。\n"
 "\n"
-"The output sequence name starts with the prefix \"cc_\" unless otherwise "
-"specified with <b>-prefix=</b> option"
+"输出序列名前缀为“cc_”，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:139
 msgid ""
@@ -13611,10 +13598,9 @@ msgid ""
 "The output sequence name starts with the prefix \"cc_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Same command as FIND_COSME_CFA but for the sequence <b>sequencename</b>.\n"
+"与FIND_COSME_CFA命令相同，但用于序列<b>sequencename</b>。\n"
 "\n"
-"The output sequence name starts with the prefix \"cc_\" unless otherwise "
-"specified with <b>-prefix=</b> option"
+"输出序列名前缀为“cc_”，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:140
 msgid ""
@@ -13645,30 +13631,24 @@ msgid ""
 "Same command as INVGHT but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr ""
-"Same command as INVGHT but the sequence must be specified as the first "
-"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
-"set a custom prefix"
+msgstr "与INVGHT命令相同，但必须在第一个参数中指定序列。可选附加参数<b>-prefix=</b>用"
+"于自定义前缀"
 
 #: src/core/command_def.h:144
 msgid ""
 "Same command as INVMODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr ""
-"Same command as INVMODASINH but the sequence must be specified as the first "
-"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
-"set a custom prefix"
+msgstr "与INVMODASINH命令相同，但必须在第一个参数中指定序列。可选附加参数<b>-prefix=<"
+"/b>用于自定义前缀"
 
 #: src/core/command_def.h:145
 msgid ""
 "Same command as LINSTRETCH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr ""
-"Same command as LINSTRETCH but the sequence must be specified as the first "
-"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
-"set a custom prefix"
+msgstr "与LINSTRETCH命令相同，但必须在第一个参数中指定序列。可选附加参数<b>-prefix=</"
+"b>用于自定义前缀"
 
 #: src/core/command_def.h:146
 msgid ""
@@ -13707,10 +13687,8 @@ msgid ""
 "Same command as MODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr ""
-"Same command as MODASINH but the sequence must be specified as the first "
-"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
-"set a custom prefix"
+msgstr "与MODASINH命令相同，但必须在第一个参数中指定序列。可选附加参数<b>-prefix=</b>"
+"用于自定义前缀"
 
 #: src/core/command_def.h:148
 msgid ""
@@ -13952,9 +13930,7 @@ msgstr ""
 msgid ""
 "The same as the <b>WIENER</b> command, but applies to a sequence which must "
 "be specified as the first argument"
-msgstr ""
-"The same as the <b>WIENER</b> command, but applies to a sequence which must "
-"be specified as the first argument"
+msgstr "与<b>WIENER</b> 命令相同，但必须在第一个参数中指定序列"
 
 #: src/core/command_def.h:161
 msgid ""
@@ -13974,7 +13950,7 @@ msgstr "禁止在处理时以每通道32位保存图像，请改用16位"
 
 #: src/core/command_def.h:163
 msgid "Allows images to be saved with 32 bits per channel on processing"
-msgstr "Allows images to be saved with 32 bits per channel on processing"
+msgstr "允许在处理时以每通道32位的方式保存图像"
 
 #: src/core/command_def.h:164
 msgid ""
@@ -14284,10 +14260,8 @@ msgid ""
 "Opens all sequences in the current directory and stacks them with the "
 "optionally specified stacking type and filtering or with sum stacking. See "
 "STACK command for options description"
-msgstr ""
-"Opens all sequences in the current directory and stacks them with the "
-"optionally specified stacking type and filtering or with sum stacking. See "
-"STACK command for options description"
+msgstr "打开当前目录中的所有序列，并根据可选的堆叠类型和筛选条件来叠加，或进行总和叠"
+"加。有关选项说明，参见STACK命令"
 
 #: src/core/command_def.h:178
 msgid ""
@@ -14545,7 +14519,7 @@ msgstr "命令不能在脚本中使用"
 
 #: src/core/command_line_processor.c:58
 msgid "invalid number of arguments"
-msgstr "invalid number of arguments"
+msgstr "参数数量无效"
 
 #: src/core/command_line_processor.c:60
 msgid "invalid arguments"
@@ -14597,7 +14571,7 @@ msgstr "命令不适用于彩色图像"
 
 #: src/core/command_line_processor.c:85
 msgid "command is only for OSC CFA images"
-msgstr "command is only for OSC CFA images"
+msgstr "命令仅适用于OSC CFA图像"
 
 #: src/core/command_line_processor.c:87
 msgid "file not found"
@@ -14622,12 +14596,12 @@ msgstr "一个处理已在运行"
 #: src/core/command_line_processor.c:142
 #, c-format
 msgid "Unknown command: '%s' or not implemented yet\n"
-msgstr "Unknown command: '%s' or not implemented yet\n"
+msgstr "未知或尚未实现的命令：“%s”\n"
 
 #: src/core/command_line_processor.c:149
 #, c-format
 msgid "Usage: %s\n"
-msgstr "Usage: %s\n"
+msgstr "用法：%s\n"
 
 #: src/core/command_line_processor.c:156
 #, c-format
@@ -14638,7 +14612,7 @@ msgstr "不能在脚本中使用此命令： %s\n"
 #: src/core/command_line_processor.c:198
 #, c-format
 msgid "Running command: %s\n"
-msgstr "Running command: %s\n"
+msgstr "正在运行命令：%s\n"
 
 #: src/core/command_line_processor.c:226
 #, c-format
@@ -14655,7 +14629,7 @@ msgstr ""
 
 #: src/core/command_line_processor.c:293
 msgid "This command cannot be run while live stacking is active, ignoring.\n"
-msgstr "This command cannot be run while live stacking is active, ignoring.\n"
+msgstr "当激活实时叠加时，无法运行此命令，已忽略。\n"
 
 #: src/core/command_line_processor.c:359
 #, c-format
@@ -14684,11 +14658,11 @@ msgstr "请在按下此按钮前键入一个可用的命令"
 
 #: src/core/command_line_processor.c:438
 msgid "Can be used in a script: "
-msgstr "Can be used in a script: "
+msgstr "可以在脚本中使用： "
 
 #: src/core/command_line_processor.c:457
 msgid "No help for this command"
-msgstr "No help for this command"
+msgstr "此命令没有帮助"
 
 #. Run the script
 #: src/core/command_line_processor.c:577 src/gui/script_menu.c:168
@@ -14724,12 +14698,12 @@ msgstr "配置文件错误 %s.%s: %s（值：%s）\n"
 #: src/core/initfile.c:334
 #, c-format
 msgid "value %d is out of range [%d, %d] for %s.%s\n"
-msgstr "value %d is out of range [%d, %d] for %s.%s\n"
+msgstr "值%d超过了范围[%d, %d]，溢出了%s.%s\n"
 
 #: src/core/initfile.c:354
 #, c-format
 msgid "value %f is out of range [%f, %f] for %s.%s\n"
-msgstr "value %f is out of range [%f, %f] for %s.%s\n"
+msgstr "值%f超过了范围[%f, %f]，溢出了%s.%s\n"
 
 #: src/core/initfile.c:367
 #, c-format
@@ -15310,7 +15284,7 @@ msgstr "需要脚本中的requires命令"
 
 #: src/core/settings.c:263
 msgid "need requires cmd in pipe"
-msgstr "need requires cmd in pipe"
+msgstr "需要管道中的 cmd"
 
 #: src/core/settings.c:264
 msgid "check update at start-up"
@@ -15747,7 +15721,7 @@ msgstr "模糊化：处理中...\n"
 
 #: src/core/siril.c:282
 msgid "ddp level argument must be [0, 65535]\n"
-msgstr "ddp level argument must be [0, 65535]\n"
+msgstr "DDP级别参数要在[0, 65535]的范围内\n"
 
 #: src/core/siril.c:338
 #, c-format
@@ -16198,7 +16172,7 @@ msgstr "，保持亮度"
 #: src/filters/scnr.c:177
 #, c-format
 msgid "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
-msgstr "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
+msgstr "除去绿色噪声SCNR（type=%s, amount=%0.2lf, preserve=%s）"
 
 #: src/filters/starnet.c:94
 #, c-format
@@ -16683,12 +16657,12 @@ msgstr "宽: %dpx 高: %dpx 缩放: %.4f"
 #: src/gui/callbacks.c:766
 #, c-format
 msgid "fwhm: %.2f px, r: %.2f"
-msgstr "fwhm: %.2f px, r: %.2f"
+msgstr "半高宽：%.2f px，半径：%.2f"
 
 #: src/gui/callbacks.c:768 src/gui/callbacks.c:770
 #, c-format
 msgid "fwhm: N/A"
-msgstr "fwhm: N/A"
+msgstr "半高宽：N/A"
 
 #: src/gui/callbacks.c:834
 msgid "Cannot convert a sequence file"
@@ -17120,7 +17094,7 @@ msgstr ""
 
 #: src/gui/linear_match.c:56 src/gui/linear_match.c:96
 msgid "Linear fit functions:\n"
-msgstr "Linear fit functions:\n"
+msgstr "线性拟合函数：\n"
 
 #: src/gui/linear_match.c:209
 msgid "Cannot compute linear coefficients."
@@ -17305,10 +17279,8 @@ msgid ""
 "Error: no previous PSF found. A blind PSF estimator or calculation of PSF "
 "from stars or manual parameters must already have been done to use the "
 "Previous PSF option.\n"
-msgstr ""
-"Error: no previous PSF found. A blind PSF estimator or calculation of PSF "
-"from stars or manual parameters must already have been done to use the "
-"Previous PSF option.\n"
+msgstr "错误：未找到先前生成的PSF。必须提前完成盲PSF估计，或根据星点计算PSF，或手动指"
+"定参数，才能使用“先前生成的 PSF”选项。\n"
 
 #: src/gui/newdeconv.c:898
 msgid ""
@@ -17372,7 +17344,7 @@ msgstr "反卷积PSF生成。\n"
 msgid ""
 "Error: trying to use previous PSF but no PSF has been generated. "
 "Aborting...\n"
-msgstr "错误：尝试使用以前的 PSF，但尚未生成 PSF。异常中止...\n"
+msgstr "错误：尝试使用先前生成的 PSF，但尚未生成过PSF。异常中止...\n"
 
 #: src/gui/newdeconv.c:1190
 msgid "Starting PSF estimation..."
@@ -19219,7 +19191,7 @@ msgstr "无法载入第%d帧，于AVI序列%s\n"
 #: src/io/sequence.c:865 src/io/sequence.c:881
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
-msgstr "Could not load partial image %d from sequence %s\n"
+msgstr "无法载入部分图像%d，从序列%s中\n"
 
 #: src/io/sequence.c:1017
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
@@ -20425,7 +20397,7 @@ msgstr "FWHMx：%*.2f %s\n"
 #: src/registration/global.c:215
 #, c-format
 msgid "FWHMy:%*.2f %s\n"
-msgstr "FWHMy:%*.2f %s\n"
+msgstr "y方向的半高宽：%*.2f %s\n"
 
 #: src/registration/global.c:245
 #, c-format
