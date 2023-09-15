@@ -2093,20 +2093,25 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	return OPEN_IMAGE_OK;
 }
 
-typedef union {
-    uint32_t i;
-    uint8_t c[4];
-} EndiannessTestUnion;
-
-int is_little_endian() {
-    EndiannessTestUnion test;
-    test.i = 0x01020304;
-    // If the least significant byte is stored at the lowest memory address, it's little-endian
-    return (test.c[0] == 0x04);
+static void show_list_of_encoders(const struct heif_encoder_descriptor*const* encoder_descriptors, int count) {
+  siril_debug_print("Encoders (first is default):\n");
+  for (int i = 0; i < count; i++) {
+    siril_debug_print("- %s = %s\n", heif_encoder_descriptor_get_id_name(encoder_descriptors[i]), heif_encoder_descriptor_get_name(encoder_descriptors[i]));
+  }
 }
 
-int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, gboolean force_8bit) {
+int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, int max_bitdepth) {
 	int retval = 0;
+
+	int width = fit->rx;
+	int height = fit->ry;
+	int nchans = fit->naxes[2];
+	if (nchans == 1 && max_bitdepth > 8) {
+		max_bitdepth = 8;
+		siril_log_message(_("Cannot export monochrome HEIF / AVIF with > 8bpp. Proceeding at 8bpp.\n"));
+	}
+	void *buffer = NULL;
+	int bitdepth, stride;
 
 	char *filename = strdup(name);
 	if (is_av1f) {
@@ -2119,145 +2124,159 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		}
 	}
 
-	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
-
-	//## CREATE IMAGE BUFFER TO WRITE FROM AND MODIFY THE IMAGE TO LOOK LIKE CHECKERBOARD:
-	uint8_t *image_buffer = NULL;
-	uint8_t *image_bufferW = NULL;
-	void *buffer = NULL;
-	size_t datalength;
-	int bitdepth;
-
-	// Images are saved either as 8 bit images (if natively 8 bit or if 8-bit is selected)
-	// or as 16 bit images (16-bit or float)
-	if (fit->type == DATA_USHORT) {
-		if (fit->orig_bitpix == BYTE_IMG || force_8bit) {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(BYTE);
-			image_buffer = malloc(datalength);
-			if (!image_buffer) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			int rshift = fit->orig_bitpix == BYTE_IMG ? 0 : 8;
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					WORD red = *gbuf[RLAYER]++;
-					image_buffer[pixelIdx + 0] = truncate_to_BYTE(red >> rshift); // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						WORD green = *gbuf[GLAYER]++;
-						WORD blue = *gbuf[BLAYER]++;
-						image_buffer[pixelIdx + 1] = truncate_to_BYTE(green >> rshift); // g |   make this pixel
-						image_buffer[pixelIdx + 2] = truncate_to_BYTE(blue >> rshift); // b |
-					}
-				}
-			}
-			buffer = (void*) image_buffer;
-			bitdepth = 8;
-		} else {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD);
-			image_bufferW = malloc(datalength);
-			if (!image_bufferW) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					WORD red = *gbuf[RLAYER]++;
-					image_bufferW[pixelIdx + 0] = red; // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						WORD green = *gbuf[GLAYER]++;
-						WORD blue = *gbuf[BLAYER]++;
-						image_bufferW[pixelIdx + 1] = green; // g |   make this pixel
-						image_bufferW[pixelIdx + 2] = blue; // b |
-					}
-				}
-			}
-			buffer = (void*) image_bufferW;
-			bitdepth = 16;
-		}
-	} else { // DATA_FLOAT
-		if (force_8bit) {
-			datalength = fit->rx * fit->ry * fit->naxes[2];
-			image_buffer = malloc(datalength);
-			if (!image_buffer) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					float red = *gbuff[RLAYER]++;
-					image_buffer[pixelIdx + 0] = roundf_to_BYTE(red * UCHAR_MAX_SINGLE); // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						float green = *gbuff[GLAYER]++;
-						float blue = *gbuff[BLAYER]++;
-						image_buffer[pixelIdx + 1] = roundf_to_BYTE(green * UCHAR_MAX_SINGLE); // g |   make this pixel
-						image_buffer[pixelIdx + 2] = roundf_to_BYTE(blue * UCHAR_MAX_SINGLE); // b |
-					}
-				}
-			}
-			buffer = (void*) image_buffer;
-			bitdepth = 8;
-		} else {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(float);
-			image_bufferW = malloc(datalength * sizeof(WORD));
-			if (!image_bufferW) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					float red = *gbuff[RLAYER]++;
-					image_bufferW[pixelIdx + 0] = roundf_to_WORD(red * USHRT_MAX_SINGLE); // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						float green = *gbuff[GLAYER]++;
-						float blue = *gbuff[BLAYER]++;
-						image_bufferW[pixelIdx + 1] = roundf_to_WORD(green * USHRT_MAX_SINGLE); // g |   make this pixel
-						image_bufferW[pixelIdx + 2] = roundf_to_WORD(blue * USHRT_MAX_SINGLE); // b |
-					}
-				}
-			}
-			buffer = (void*) image_bufferW;
-			bitdepth = 16;
-		}
+	if (interleave(fit, max_bitdepth, &buffer, &bitdepth)) {
+		siril_log_color_message(_("Error interleaving image\n"), "red");
 	}
 
 	// Initialize and configure a heif context
 	struct heif_context *ctx = heif_context_alloc();
-	heif_context_read_from_memory(ctx, NULL, 0, NULL);
-	struct heif_error error = {0};
+	struct heif_error error = { 0 };
 
 	struct heif_image *image = NULL;
-	heif_image_create(fit->rx, fit->ry, heif_colorspace_RGB, is_little_endian() ? heif_chroma_interleaved_RRGGBB_LE : heif_chroma_interleaved_RRGGBB_BE, &image);
-	heif_image_add_plane(image, heif_channel_interleaved, fit->rx, fit->ry, bitdepth);
-	int stride;
-	uint8_t* plane_data_interleaved = heif_image_get_plane(image, heif_channel_interleaved, &stride);
-	printf("stride: %d\n", stride);
-	memcpy(plane_data_interleaved, buffer, fit->rx * fit->ry * (bitdepth / 8));
 
-	// Initialize and configure the encoder
-	enum heif_compression_format compressionFormat;
-	if (is_av1f) {
-		compressionFormat = heif_compression_AV1;
+	if (nchans == 1) {
+		error = heif_image_create (width, height,
+									heif_colorspace_monochrome,
+									heif_chroma_monochrome,
+									&image);
 	} else {
-		compressionFormat = heif_compression_undefined;
+		switch (bitdepth) {
+			case 8:
+				error = heif_image_create (width, height,
+										heif_colorspace_RGB,
+										heif_chroma_interleaved_RGB,
+										&image);
+			break;
+#if LIBHEIF_HAVE_VERSION(1,8,0)
+			case 10:
+			case 12:
+#if ( G_BYTE_ORDER == G_LITTLE_ENDIAN )
+				error = heif_image_create (width, height,
+										heif_colorspace_RGB,
+										heif_chroma_interleaved_RRGGBB_LE,
+										&image);
+#else
+				error = heif_image_create (width, height,
+										heif_colorspace_RGB,
+										heif_chroma_interleaved_RRGGBB_BE,
+										&image);
+#endif
+			break;
+#endif
+			default:
+				siril_log_color_message(_("Unsupported bit depth: %d"), "red",
+										bitdepth);
+				heif_context_free (ctx);
+				return 1;
+			break;
+		}
 	}
 
-	int count = heif_context_get_encoder_descriptors(ctx->get(), compressionFormat, NULL, NULL, 1);
-	if (count == 0) {
-		siril_log_color_message(_("Error: no libheif encoders available for %s.\n"), "red", compressionFormat == heif_compression_AV1 ? "AV1" : compressionFormat == heif_compression_HEVC ? "HEVC" : "x265");
+	if (error.code != heif_error_Ok) {
+		fprintf(stderr, "Error initializing heif_image.\n");
+		heif_context_free (ctx);
 		return 1;
+	}
+
+	if (bitdepth > 8) {
+		uint16_t		*data16;
+		const uint16_t	*src16;
+		uint16_t		*dest16;
+		gint			x, y, rowentries;
+		int				tmp_pixelval;
+		rowentries = width * nchans;
+
+		data16 = (uint16_t*) buffer;
+		src16 = data16;
+
+		heif_image_add_plane (image, nchans == 1 ? heif_channel_Y : heif_channel_interleaved,
+								width, height, bitdepth);
+
+		uint8_t* data = heif_image_get_plane (image, nchans == 1 ? heif_channel_Y : heif_channel_interleaved, &stride);
+		switch (bitdepth) {
+			case 10:
+				for (y = 0; y < height; y++) {
+					dest16 = (uint16_t *) (y * stride + data);
+					for (x = 0; x < rowentries; x++) {
+						tmp_pixelval = (int) ( ( (float) (*src16) / 65535.0f) * 1023.0f + 0.5f);
+						*dest16 = CLAMP (tmp_pixelval, 0, 1023);
+						dest16++;
+						src16++;
+					}
+				}
+				break;
+			case 12:
+				for (y = 0; y < height; y++) {
+					dest16 = (uint16_t *) (y * stride + data);
+					for (x = 0; x < rowentries; x++) {
+						tmp_pixelval = (int) ( ( (float) (*src16) / 65535.0f) * 4095.0f + 0.5f);
+						*dest16 = CLAMP (tmp_pixelval, 0, 4095);
+						dest16++;
+						src16++;
+					}
+				}
+				break;
+			default:
+				for (y = 0; y < height; y++) {
+					dest16 = (uint16_t *) (y * stride + data);
+					for (x = 0; x < rowentries; x++) {
+						*dest16 = *src16;
+						dest16++;
+						src16++;
+					}
+				}
+				break;
+		}
+	} else {
+		heif_image_add_plane (image, nchans == 1 ? heif_channel_Y : heif_channel_interleaved,
+						width, height, 8);
+		uint8_t* data = heif_image_get_plane (image, nchans == 1 ? heif_channel_Y : heif_channel_interleaved, &stride);
+		memcpy(data, buffer, width * height * nchans);
 	}
 
 	struct heif_encoder* encoder = NULL;
-	error = heif_context_get_encoder_for_format(ctx, compressionFormat, &encoder);
-	if (error.code != heif_error_Ok) {
-		fprintf(stderr, "Error getting heif encoder.\n");
-		return 1;
+
+#define MAX_ENCODERS 5
+	gboolean list_encoders = TRUE;
+	const struct heif_encoder_descriptor* encoder_descriptors[MAX_ENCODERS];
+	int count = heif_context_get_encoder_descriptors(ctx,
+													is_av1f ? heif_compression_AV1 : heif_compression_HEVC,
+													NULL,
+													encoder_descriptors, MAX_ENCODERS);
+
+	printf("Count: %d\n", count);
+	if (list_encoders) {
+		show_list_of_encoders(encoder_descriptors, count);
+	}
+
+	const char* encoderId = NULL;
+	if (count > 0) {
+		int idx = 0;
+		if (encoderId != NULL) {
+			for (int i = 0; i <= count; i++) {
+				if (i==count) {
+					siril_debug_print("Unknown encoder ID. A list of supported encoders is shown below.\n");
+					show_list_of_encoders(encoder_descriptors, count);
+					heif_context_free (ctx);
+					heif_image_release(image);
+					return 5;
+				}
+
+				if (strcmp(encoderId, heif_encoder_descriptor_get_id_name(encoder_descriptors[i])) == 0) {
+					idx = i;
+					break;
+				}
+			}
+		}
+
+		error = heif_context_get_encoder(ctx, encoder_descriptors[idx], &encoder);
+
+		if (error.code != heif_error_Ok) {
+			fprintf(stderr, "Error getting heif encoder.\n");
+			heif_context_free (ctx);
+			heif_image_release(image);
+			return 1;
+		}
 	}
 
 	error = heif_encoder_set_lossless(encoder, lossless);
@@ -2277,7 +2296,10 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 
     error = heif_context_encode_image(ctx, image, encoder, options, &handle);
 	if (error.code != heif_error_Ok) {
-		fprintf(stderr, "Error encoding image.\n");
+		fprintf(stderr, "Error encoding image: %s.\n", error.message);
+		heif_context_free (ctx);
+		heif_encoding_options_free(options);
+		heif_image_release(image);
 		return 1;
 	}
 
@@ -2285,8 +2307,14 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	error = heif_context_write_to_file(ctx, filename);
 	if (error.code != heif_error_Ok) {
 		fprintf(stderr, "Error writing to file.\n");
+		heif_encoding_options_free(options);
+		heif_image_release(image);
+		heif_context_free (ctx);
 		return 1;
 	}
+	siril_log_message(_("Saved %s file %s, quality=%d, %ld layer(s), %ux%u pixels, bit depth: %d\n"),
+						is_av1f ? "AVIF" : "HEIF",
+						filename, quality, nchans, width, height, bitdepth);
 
 	// Clean up resources
 	heif_encoding_options_free(options);
@@ -2399,109 +2427,12 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 		filename = str_append(&filename, ".jxl");
 	}
 
-	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+	int max_bitdepth = force_8bit ? 8 : fit->type == DATA_USHORT ? 16 : 32;
 
-	//## CREATE IMAGE BUFFER TO WRITE FROM AND MODIFY THE IMAGE TO LOOK LIKE CHECKERBOARD:
-	uint8_t *image_buffer = NULL;
-	WORD *image_bufferW = NULL;
-	float *image_bufferf = NULL;
 	void *buffer = NULL;
-	size_t datalength;
 	int bitdepth;
-	if (fit->type == DATA_USHORT) {
-		if (fit->orig_bitpix == BYTE_IMG || force_8bit) {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(BYTE);
-			image_buffer = malloc(datalength);
-			if (!image_buffer) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			int rshift = fit->orig_bitpix == BYTE_IMG ? 0 : 8;
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					WORD red = *gbuf[RLAYER]++;
-					image_buffer[pixelIdx + 0] = truncate_to_BYTE(red >> rshift); // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						WORD green = *gbuf[GLAYER]++;
-						WORD blue = *gbuf[BLAYER]++;
-						image_buffer[pixelIdx + 1] = truncate_to_BYTE(green >> rshift); // g |   make this pixel
-						image_buffer[pixelIdx + 2] = truncate_to_BYTE(blue >> rshift); // b |
-					}
-				}
-			}
-			buffer = (void*) image_buffer;
-			bitdepth = 8;
-		} else {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD);
-			image_bufferW = malloc(datalength);
-			if (!image_bufferW) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					WORD red = *gbuf[RLAYER]++;
-					image_bufferW[pixelIdx + 0] = red; // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						WORD green = *gbuf[GLAYER]++;
-						WORD blue = *gbuf[BLAYER]++;
-						image_bufferW[pixelIdx + 1] = green; // g |   make this pixel
-						image_bufferW[pixelIdx + 2] = blue; // b |
-					}
-				}
-			}
-			buffer = (void*) image_bufferW;
-			bitdepth = 16;
-		}
-	} else {
-		if (force_8bit) {
-			datalength = fit->rx * fit->ry * fit->naxes[2];
-			image_buffer = malloc(datalength);
-			if (!image_buffer) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					float red = *gbuff[RLAYER]++;
-					image_buffer[pixelIdx + 0] = roundf_to_BYTE(red * UCHAR_MAX_SINGLE); // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						float green = *gbuff[GLAYER]++;
-						float blue = *gbuff[BLAYER]++;
-						image_buffer[pixelIdx + 1] = roundf_to_BYTE(green * UCHAR_MAX_SINGLE); // g |   make this pixel
-						image_buffer[pixelIdx + 2] = roundf_to_BYTE(blue * UCHAR_MAX_SINGLE); // b |
-					}
-				}
-			}
-			buffer = (void*) image_buffer;
-			bitdepth = 8;
-		} else {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(float);
-			image_bufferf = malloc(datalength);
-			if (!image_bufferf) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
-					float red = *gbuff[RLAYER]++;
-					image_bufferf[pixelIdx + 0] = red; // r |-- Set r,g,b components to
-					if (fit->naxes[2] == 3) {
-						float green = *gbuff[GLAYER]++;
-						float blue = *gbuff[BLAYER]++;
-						image_bufferf[pixelIdx + 1] = green; // g |   make this pixel
-						image_bufferf[pixelIdx + 2] = blue; // b |
-					}
-				}
-			}
-			buffer = (void*) image_bufferf;
-			bitdepth = 32;
-		}
+	if (interleave(fit, max_bitdepth, &buffer, &bitdepth)) {
+		siril_log_color_message(_("Error interleaving image\n"), "red");
 	}
 
 	uint8_t *compressed = NULL;
@@ -2513,9 +2444,7 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
-	free(image_buffer);
-	free(image_bufferW);
-	free(image_bufferf);
+	free(buffer);
 	free(compressed);
 	if (distance == 0.0)
 		siril_log_message(_("Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),

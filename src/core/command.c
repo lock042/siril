@@ -781,15 +781,18 @@ int process_savejxl(int nb){
 
 #ifdef HAVE_LIBHEIF
 int process_saveheifavif(int nb, gboolean is_avif){
-	int quality = 100;
+	int quality = 80;
 	gboolean lossless = FALSE;
-	gboolean force_8bit = FALSE;
+	int max_bitdepth = 8;
 	for (int i = 2; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(arg, "-8bit")) {
-			force_8bit = TRUE;
+		else if (g_str_has_prefix(arg, "-hdr10")) {
+			max_bitdepth = 10;
+		}
+		else if (g_str_has_prefix(arg, "-hdr12")) {
+			max_bitdepth = 12;
 		}
 		else if (g_str_has_prefix(arg, "-lossless")) {
 			lossless = TRUE;
@@ -815,7 +818,7 @@ int process_saveheifavif(int nb, gboolean is_avif){
 		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = saveheifavif(savename, &gfit, quality, lossless, is_avif, force_8bit);
+		retval = saveheifavif(savename, &gfit, quality, lossless, is_avif, max_bitdepth);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);

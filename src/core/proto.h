@@ -72,7 +72,7 @@ int open_raw_files(const char*, fits*, gboolean);
 
 #ifdef HAVE_LIBHEIF
 int readheif(const char* name, fits *fit, gboolean interactive);
-int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, gboolean force_8bit);
+int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, int max_bitdepth);
 #endif
 
 #ifdef HAVE_LIBJXL
@@ -170,6 +170,7 @@ int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
 int display_to_fits(double dx, double dy, double *fx, double *fy, int ry);
 gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
 GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
+int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
