@@ -744,9 +744,10 @@ int process_savejxl(int nb){
 		if (g_str_has_prefix(arg, "-8bit")) {
 			force_8bit = TRUE;
 		}
-		else if (g_str_has_prefix(arg, "-dist=")) {
-			arg += 6;
-			distance = g_ascii_strtod(arg, &end);
+		else if (g_str_has_prefix(arg, "-quality=")) {
+			arg += 9;
+			double quality = g_ascii_strtod(arg, &end);
+			distance = 10.0 - quality;
 			if (distance <= 0.f || distance > 10.f) {
 				siril_log_message(_("Error: distance must be >= 0.0 and <= 10.0.\n"));
 				return CMD_ARG_ERROR;
@@ -776,6 +777,62 @@ int process_savejxl(int nb){
 	g_free(savename);
 	return retval;
 }
+#endif
+
+#ifdef HAVE_LIBHEIF
+int process_saveheifavif(int nb, gboolean is_avif){
+	int quality = 100;
+	gboolean lossless = FALSE;
+	gboolean force_8bit = FALSE;
+	for (int i = 2; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-8bit")) {
+			force_8bit = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-lossless")) {
+			lossless = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-quality=")) {
+			arg += 9;
+			quality = (int) g_ascii_strtod(arg, &end);
+			if (quality <= 1 || quality > 100) {
+				siril_log_message(_("Error: quality must be > 0 and <= 100.\n"));
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+	gchar *filename = NULL;
+	if (is_avif) {
+		filename = g_strdup_printf("%s.avif", word[1]);
+	} else {
+		filename = g_strdup_printf("%s.heif", word[1]);
+	}
+	int status, retval = CMD_OK;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
+	if (status > 0) {
+		retval = CMD_GENERIC_ERROR;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = saveheifavif(savename, &gfit, quality, lossless, is_avif, force_8bit);
+		set_cursor_waiting(FALSE);
+	}
+	g_free(filename);
+	g_free(savename);
+	return retval;
+}
+
+int process_saveavif(int nb) {
+	int retval = process_saveheifavif(nb, TRUE);
+	return retval;
+}
+
+int process_saveheif(int nb) {
+	int retval = process_saveheifavif(nb, FALSE);
+	return retval;
+}
+
 #endif
 
 #ifdef HAVE_LIBPNG
@@ -8139,6 +8196,9 @@ int process_capabilities(int nb) {
 #ifdef HAVE_LIBJPEG
 	siril_log_message("Can read and write JPEG files\n");
 #endif
+#ifdef HAVE_LIBJXL
+	siril_log_message("Can read and write JPEG XL files\n");
+#endif
 #ifdef HAVE_LIBPNG
 	siril_log_message("Can read and write PNG files\n");
 #endif
@@ -8149,7 +8209,7 @@ int process_capabilities(int nb) {
 	siril_log_message("Can read XISF files\n");
 #endif
 #ifdef HAVE_LIBHEIF
-	siril_log_message("Can read HEIF files\n");
+	siril_log_message("Can read and write HEIF and AVIF files\n");
 #endif
 	siril_log_message("Can read IRIS PIC files\n");
 #ifdef HAVE_FFMS2

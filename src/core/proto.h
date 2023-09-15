@@ -72,6 +72,7 @@ int open_raw_files(const char*, fits*, gboolean);
 
 #ifdef HAVE_LIBHEIF
 int readheif(const char* name, fits *fit, gboolean interactive);
+int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, gboolean force_8bit);
 #endif
 
 #ifdef HAVE_LIBJXL
