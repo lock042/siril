@@ -5607,7 +5607,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkSpinButton" id="jxl_distance_spinbutton">
+                                  <object class="GtkSpinButton" id="jxl_quality_spinbutton">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="tooltip-text" translatable="yes">Distance is a measure of quality, the lower the better quality but the larger the file size. It represents a measure of the maximum permissible distance between the original and compressed data. 0.0 is mathematically lossless; 1.0 is visually lossless.</property>
