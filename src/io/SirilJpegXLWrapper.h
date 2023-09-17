@@ -31,7 +31,7 @@ extern "C" {
 
 int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
                          float** pixels, size_t* xsize,
-                         size_t* ysize, size_t* zsize, uint8_t* bitdepth,
+                         size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth,
                          uint8_t** icc_profile, size_t *icc_profile_length);
 
 int EncodeJpegXlOneshotWrapper(const void* pixels, const uint32_t xsize,

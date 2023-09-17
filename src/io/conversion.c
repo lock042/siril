@@ -135,6 +135,7 @@ void list_format_available() {
 #endif
 #ifdef HAVE_LIBHEIF
 	puts("HEIF\t(*.heic, *.heif)");
+	puts("AVIF\t(*.avif)");
 #endif
 }
 
@@ -250,9 +251,10 @@ gchar *initialize_converters() {
 #ifdef HAVE_LIBHEIF
 	supported_filetypes |= TYPEHEIF;
 	string = g_string_append(string, ", ");
-	string = g_string_append(string, _("HEIF images"));
+	string = g_string_append(string, _("HEIF images, AVIF images"));
 	supported_extensions[count_ext++] = ".heic";
 	supported_extensions[count_ext++] = ".heif";
+	supported_extensions[count_ext++] = ".avif";
 #endif
 	supported_extensions[count_ext++] = NULL;		// NULL-terminated array
 
@@ -297,7 +299,8 @@ image_type get_type_for_extension(const char *extension) {
 			(!g_ascii_strcasecmp(extension, "jxl"))) {
 		return TYPEJXL;
 	} else if ((supported_filetypes & TYPEHEIF) &&
-			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif"))) {
+			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif")
+				|| !g_ascii_strcasecmp(extension, "avif"))) {
 		return TYPEHEIF;
 	} else if ((supported_filetypes & TYPETIFF) &&
 			(!g_ascii_strcasecmp(extension, "tif") || !g_ascii_strcasecmp(extension, "tiff"))) {

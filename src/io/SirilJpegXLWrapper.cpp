@@ -66,7 +66,7 @@
  */
 bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
                          std::vector<float>* pixels, size_t* xsize,
-                         size_t* ysize, size_t* zsize, uint8_t* bitdepth, std::vector<uint8_t>* icc_profile) {
+                         size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth, std::vector<uint8_t>* icc_profile) {
   // Multi-threaded parallel runner.
   auto runner = JxlResizableParallelRunnerMake(nullptr);
 
@@ -110,6 +110,7 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
       *xsize = info.xsize;
       *ysize = info.ysize;
       *zsize = info.num_color_channels;
+      *extra_channels = info.num_extra_channels;
       *bitdepth = info.bits_per_sample;
       JxlResizableParallelRunnerSetThreads(
           runner.get(),
@@ -169,13 +170,13 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
 
 extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
                          float** pixels, size_t* xsize,
-                         size_t* ysize, size_t* zsize, uint8_t* bitdepth,
+                         size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth,
                          uint8_t** icc_profile, size_t *icc_profile_length) {
     std::vector<float> vec_pixels;
     std::vector<uint8_t> vec_icc_profile;
     if (!DecodeJpegXlOneShot(jxl, size,
                          &vec_pixels, xsize,
-                         ysize, zsize, bitdepth,
+                         ysize, zsize, extra_channels, bitdepth,
                          &vec_icc_profile))
         return -1;
     float *array = (float*) malloc(vec_pixels.size() * sizeof(float));

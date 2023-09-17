@@ -1575,6 +1575,8 @@ GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
     return filenames;
 }
 
+// This function turns planar data into interleaved RGB or RRGGBB depending on the max_bitdepth passed.
+// It returns 0 on success and a non-zero value on failure.
 int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth) {
 	if (max_bitdepth < 8 || (fit->type == DATA_USHORT && max_bitdepth > 16) || (fit->type == DATA_USHORT && (!(max_bitdepth == 32 || max_bitdepth < 17)))) {
 		siril_debug_print("Error: inappropriate max_bitdepth. Setting max_bitdepth to 8 for safety. Report this as a bug.\n");

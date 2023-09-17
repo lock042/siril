@@ -2028,11 +2028,48 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	}
 
 	int has_alpha = heif_image_handle_has_alpha_channel(handle);
+	int bit_depth;
+
+	enum heif_chroma chroma = heif_chroma_interleaved_RGB;
+
+#if LIBHEIF_HAVE_VERSION(1,8,0)
+	bit_depth = heif_image_handle_get_luma_bits_per_pixel (handle);
+	if (bit_depth < 0) {
+		siril_log_color_message(_("Input image has undefined bit-depth"), "red");
+		heif_image_handle_release (handle);
+		heif_context_free (ctx);
+
+		return OPEN_IMAGE_ERROR;
+	}
+#endif
+
+	if (bit_depth == 8) {
+		if (has_alpha) {
+			chroma = heif_chroma_interleaved_RGBA;
+		} else {
+			chroma = heif_chroma_interleaved_RGB;
+		}
+	} else { /* high bit depth */
+#if LIBHEIF_HAVE_VERSION(1,8,0)
+#if ( G_BYTE_ORDER == G_LITTLE_ENDIAN )
+		if (has_alpha) {
+			chroma = heif_chroma_interleaved_RRGGBBAA_LE;
+		} else {
+			chroma = heif_chroma_interleaved_RRGGBB_LE;
+		}
+#else
+		if (has_alpha) {
+			chroma = heif_chroma_interleaved_RRGGBBAA_BE;
+		} else {
+			chroma = heif_chroma_interleaved_RRGGBB_BE;
+		}
+#endif
+#endif
+	}
 
 	struct heif_image *img = 0;
 	err = heif_decode_image(handle, &img, heif_colorspace_RGB,
-			has_alpha ? heif_chroma_interleaved_32bit :
-			heif_chroma_interleaved_24bit, NULL);
+			chroma, NULL);
 	if (err.code) {
 		g_printf("%s\n", err.message);
 		heif_image_handle_release(handle);
@@ -2046,39 +2083,130 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	const int height = heif_image_get_height(img, heif_channel_interleaved);
 
 	size_t npixels = width * height;
-
-	WORD *data = malloc(npixels * sizeof(WORD) * 3);
-	if (!data) {
-		PRINT_ALLOC_ERR;
-		heif_image_handle_release(handle);
-		heif_context_free(ctx);
-		return OPEN_IMAGE_ERROR;
-	}
-	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
-
+	gint rowentries;
+	gboolean mono = TRUE;
+	WORD *data = NULL, *planardata = NULL;
 	unsigned int nchannels = has_alpha ? 4 : 3;
-	for (int row = 0; row < height; row += stride) {
-		int nrow = (row + stride > height ? height - row : stride);
-		for (int i = 0; i < width * nrow; i++) {
-			*buf[RLAYER]++ = udata[i * nchannels + RLAYER];
-			*buf[GLAYER]++ = udata[i * nchannels + GLAYER];
-			*buf[BLAYER]++ = udata[i * nchannels + BLAYER];
+	if (has_alpha) {
+		rowentries = width * 4;
+	}
+	else { /* no alpha */
+		rowentries = width * 3;
+	}
+	data = malloc(height * rowentries * 2 * sizeof(WORD));
+
+	if (bit_depth > 8) { /* high bit depth */
+		uint16_t       *data16;
+		const uint16_t *src16;
+		uint16_t       *dest16;
+		gint            x, y;
+		int             tmp_pixelval;
+
+		data16 = data;
+		if (!data) {
+			PRINT_ALLOC_ERR;
+			heif_image_handle_release(handle);
+			heif_context_free(ctx);
+			return OPEN_IMAGE_ERROR;
+		}
+		dest16 = data16;
+
+		switch (bit_depth) {
+			case 10:
+				for (y = 0; y < height; y++) {
+					src16 = (const uint16_t *) (y * stride + udata);
+					for (x = 0; x < rowentries; x++) {
+						tmp_pixelval = (int) ( ( (float) (0x03ff & (*src16)) / 1023.0f) * 65535.0f + 0.5f);
+						*dest16 = CLAMP (tmp_pixelval, 0, 65535);
+						dest16++;
+						src16++;
+					}
+				}
+				break;
+			case 12:
+				for (y = 0; y < height; y++) {
+					src16 = (const uint16_t *) (y * stride + udata);
+					for (x = 0; x < rowentries; x++) {
+						tmp_pixelval = (int) ( ( (float) (0x0fff & (*src16))  / 4095.0f) * 65535.0f + 0.5f);
+						*dest16 = CLAMP (tmp_pixelval, 0, 65535);
+						dest16++;
+						src16++;
+					}
+				}
+				break;
+			default:
+				for (y = 0; y < height; y++) {
+					src16 = (const uint16_t *) (y * stride + udata);
+					for (x = 0; x < rowentries; x++) {
+						*dest16 = *src16;
+						dest16++;
+						src16++;
+					}
+				}
+				break;
+		}
+		planardata = malloc(height * rowentries * 2 * sizeof(WORD));
+		WORD *buf[3] = { planardata, planardata + npixels, planardata + npixels * 2 };
+		for (int row = 0; row < height; row += stride) {
+			int nrow = (row + stride > height ? height - row : stride);
+			WORD r, g, b;
+			for (int i = 0; i < width * nrow; i++) {
+				r = data[i * nchannels + RLAYER];
+				g = data[i * nchannels + GLAYER];
+				b = data[i * nchannels + BLAYER];
+				*buf[RLAYER]++ = r;
+				*buf[GLAYER]++ = g;
+				*buf[BLAYER]++ = b;
+				if (mono && !(r == g && r == b && r == b))
+					mono = FALSE;
+			}
+		}
+		free(data);
+	} else {
+		WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
+		unsigned int nchannels = has_alpha ? 4 : 3;
+		for (int row = 0; row < height; row += stride) {
+			int nrow = (row + stride > height ? height - row : stride);
+			WORD r, g, b;
+			for (int i = 0; i < width * nrow; i++) {
+				r = udata[i * nchannels + RLAYER];
+				g = udata[i * nchannels + GLAYER];
+				b = udata[i * nchannels + BLAYER];
+				*buf[RLAYER]++ = r;
+				*buf[GLAYER]++ = g;
+				*buf[BLAYER]++ = b;
+				if (mono && !(r == g && r == b && r == b))
+					mono = FALSE;
+			}
 		}
 	}
 
+	if (mono) {
+		WORD *tmp = realloc(data, npixels* sizeof(WORD));
+		if (tmp) {
+			data = tmp;
+		} else {
+			PRINT_ALLOC_ERR;
+			return OPEN_IMAGE_ERROR;
+		}
+		nchannels = 1;
+	} else {
+		nchannels = 3;
+	}
+
 	clearfits(fit);
-	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	fit->bitpix = fit->orig_bitpix = bit_depth == 8 ? BYTE_IMG : USHORT_IMG;
 	fit->type = DATA_USHORT;
-	fit->naxis = 3;
+	fit->naxis = nchannels == 1 ? 2 : 3;
 	fit->rx = width;
 	fit->ry = height;
 	fit->naxes[0] = fit->rx;
 	fit->naxes[1] = fit->ry;
-	fit->naxes[2] = 3;
-	fit->data = data;
+	fit->naxes[2] = nchannels;
+	fit->data = bit_depth > 8 ? planardata : data;
 	fit->pdata[RLAYER] = fit->data;
-	fit->pdata[GLAYER] = fit->data + npixels;
-	fit->pdata[BLAYER] = fit->data + npixels * 2;
+	fit->pdata[GLAYER] = fit->data + npixels * (nchannels == 3);
+	fit->pdata[BLAYER] = fit->data + npixels * 2 * (nchannels == 3);
 	fit->binning_x = fit->binning_y = 1;
 	mirrorx(fit, FALSE);
 
@@ -2086,8 +2214,8 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	heif_context_free(ctx);
 	heif_image_release(img);
 	gchar *basename = g_path_get_basename(name);
-	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels\n"),
-			basename, fit->naxes[2], fit->rx, fit->ry);
+	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"),
+			basename, fit->naxes[2], fit->rx, fit->ry, bit_depth);
 	g_free(basename);
 
 	return OPEN_IMAGE_OK;
@@ -2344,10 +2472,10 @@ int readjxl(const char* name, fits *fit) {
 	}
 	uint8_t* icc_profile = NULL;
 	size_t icc_profile_length = 0;
-	size_t xsize = 0, ysize = 0, zsize = 0;
+	size_t xsize = 0, ysize = 0, zsize = 0, extra_channels = 0;
 	uint8_t bitdepth = 0;
 	float* pixels = NULL;
-	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &bitdepth, &icc_profile, &icc_profile_length)) {
+	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &extra_channels, &bitdepth, &icc_profile, &icc_profile_length)) {
 		siril_debug_print("Error while decoding the jxl file\n");
 		return 1;
 	}
@@ -2388,16 +2516,18 @@ int readjxl(const char* name, fits *fit) {
 			}
 		}
 	} else {
+		const uint32_t totchans = zsize + extra_channels;
+		siril_debug_print("Channels: total %u, extra %u\n", totchans, extra_channels);
 		if (fit->type == DATA_FLOAT) {
 			for (size_t i = 0 ; i < xsize * ysize ; i++) {
-				size_t pixel = i * 3;
+				size_t pixel = i * totchans;
 				for (int j = 0 ; j < 3 ; j++) {
 					fit->fpdata[j][i] = pixels[pixel + j];
 				}
 			}
 		} else {
 			for (size_t i = 0 ; i < xsize * ysize ; i++) {
-				size_t pixel = i * 3;
+				size_t pixel = i * totchans;
 				for (int j = 0 ; j < 3 ; j++) {
 					fit->pdata[j][i] = roundf_to_WORD(pixels[pixel + j] * USHRT_MAX);
 				}
@@ -2413,7 +2543,7 @@ int readjxl(const char* name, fits *fit) {
 	mirrorx(fit, FALSE);
 	fill_date_obs_if_any(fit, name);
 	gchar *basename = g_path_get_basename(name);
-	siril_log_message(_("Reading JPG XL: file %s, %ld layer(s), %ux%u pixels\n"),
+	siril_log_message(_("Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"),
 						basename, fit->naxes[2], fit->rx, fit->ry);
 	g_free(basename);
 
