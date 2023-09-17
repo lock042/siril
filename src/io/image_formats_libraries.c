@@ -56,6 +56,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -2083,77 +2084,31 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	const int height = heif_image_get_height(img, heif_channel_interleaved);
 
 	size_t npixels = width * height;
-	gint rowentries;
 	gboolean mono = TRUE;
-	WORD *data = NULL, *planardata = NULL;
+	WORD *data = NULL;
 	unsigned int nchannels = has_alpha ? 4 : 3;
-	if (has_alpha) {
-		rowentries = width * 4;
-	}
-	else { /* no alpha */
-		rowentries = width * 3;
-	}
-	data = malloc(height * rowentries * 2 * sizeof(WORD));
+
+	data = malloc(height * width * 3 * sizeof(WORD));
+
+	gboolean threaded = !get_thread_run();
 
 	if (bit_depth > 8) { /* high bit depth */
-		uint16_t       *data16;
-		const uint16_t *src16;
-		uint16_t       *dest16;
-		gint            x, y;
-		int             tmp_pixelval;
-
-		data16 = data;
-		if (!data) {
-			PRINT_ALLOC_ERR;
-			heif_image_handle_release(handle);
-			heif_context_free(ctx);
-			return OPEN_IMAGE_ERROR;
-		}
-		dest16 = data16;
-
-		switch (bit_depth) {
-			case 10:
-				for (y = 0; y < height; y++) {
-					src16 = (const uint16_t *) (y * stride + udata);
-					for (x = 0; x < rowentries; x++) {
-						tmp_pixelval = (int) ( ( (float) (0x03ff & (*src16)) / 1023.0f) * 65535.0f + 0.5f);
-						*dest16 = CLAMP (tmp_pixelval, 0, 65535);
-						dest16++;
-						src16++;
-					}
-				}
-				break;
-			case 12:
-				for (y = 0; y < height; y++) {
-					src16 = (const uint16_t *) (y * stride + udata);
-					for (x = 0; x < rowentries; x++) {
-						tmp_pixelval = (int) ( ( (float) (0x0fff & (*src16))  / 4095.0f) * 65535.0f + 0.5f);
-						*dest16 = CLAMP (tmp_pixelval, 0, 65535);
-						dest16++;
-						src16++;
-					}
-				}
-				break;
-			default:
-				for (y = 0; y < height; y++) {
-					src16 = (const uint16_t *) (y * stride + udata);
-					for (x = 0; x < rowentries; x++) {
-						*dest16 = *src16;
-						dest16++;
-						src16++;
-					}
-				}
-				break;
-		}
-		planardata = malloc(height * rowentries * 2 * sizeof(WORD));
-		WORD *buf[3] = { planardata, planardata + npixels, planardata + npixels * 2 };
+		const float scale = bit_depth == 10 ? 1023.f : bit_depth == 12 ? 4095.f : 65535.f;
+		WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
+		const uint16_t *src = (const uint16_t*) udata;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threaded)
+#endif
 		for (int row = 0; row < height; row += stride) {
 			int nrow = (row + stride > height ? height - row : stride);
 			WORD r, g, b;
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 			for (int i = 0; i < width * nrow; i++) {
-				r = data[i * nchannels + RLAYER];
-				g = data[i * nchannels + GLAYER];
-				b = data[i * nchannels + BLAYER];
+				r = (int) ( ( (float) (0x0fff & (src[i * nchannels + RLAYER]))  / scale) * 65535.0f + 0.5f);
+				g = (int) ( ( (float) (0x0fff & (src[i * nchannels + GLAYER]))  / scale) * 65535.0f + 0.5f);
+				b = (int) ( ( (float) (0x0fff & (src[i * nchannels + BLAYER]))  / scale) * 65535.0f + 0.5f);
 				*buf[RLAYER]++ = r;
 				*buf[GLAYER]++ = g;
 				*buf[BLAYER]++ = b;
@@ -2161,13 +2116,18 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 					mono = FALSE;
 			}
 		}
-		free(data);
 	} else {
 		WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
 		unsigned int nchannels = has_alpha ? 4 : 3;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threaded)
+#endif
 		for (int row = 0; row < height; row += stride) {
 			int nrow = (row + stride > height ? height - row : stride);
 			WORD r, g, b;
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 			for (int i = 0; i < width * nrow; i++) {
 				r = udata[i * nchannels + RLAYER];
 				g = udata[i * nchannels + GLAYER];
@@ -2203,7 +2163,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	fit->naxes[0] = fit->rx;
 	fit->naxes[1] = fit->ry;
 	fit->naxes[2] = nchannels;
-	fit->data = bit_depth > 8 ? planardata : data;
+	fit->data = data;
 	fit->pdata[RLAYER] = fit->data;
 	fit->pdata[GLAYER] = fit->data + npixels * (nchannels == 3);
 	fit->pdata[BLAYER] = fit->data + npixels * 2 * (nchannels == 3);
@@ -2230,7 +2190,7 @@ static void show_list_of_encoders(const struct heif_encoder_descriptor*const* en
 
 int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, int max_bitdepth) {
 	int retval = 0;
-
+	gboolean threaded = !get_thread_run();
 	int width = fit->rx;
 	int height = fit->ry;
 	int nchans = fit->naxes[2];
@@ -2323,8 +2283,14 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		uint8_t* data = heif_image_get_plane (image, nchans == 1 ? heif_channel_Y : heif_channel_interleaved, &stride);
 		switch (bitdepth) {
 			case 10:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threaded)
+#endif
 				for (y = 0; y < height; y++) {
 					dest16 = (uint16_t *) (y * stride + data);
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 					for (x = 0; x < rowentries; x++) {
 						tmp_pixelval = (int) ( ( (float) (*src16) / 65535.0f) * 1023.0f + 0.5f);
 						*dest16 = CLAMP (tmp_pixelval, 0, 1023);
@@ -2334,8 +2300,14 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 				}
 				break;
 			case 12:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threaded)
+#endif
 				for (y = 0; y < height; y++) {
 					dest16 = (uint16_t *) (y * stride + data);
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 					for (x = 0; x < rowentries; x++) {
 						tmp_pixelval = (int) ( ( (float) (*src16) / 65535.0f) * 4095.0f + 0.5f);
 						*dest16 = CLAMP (tmp_pixelval, 0, 4095);
@@ -2345,8 +2317,14 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 				}
 				break;
 			default:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threaded)
+#endif
 				for (y = 0; y < height; y++) {
 					dest16 = (uint16_t *) (y * stride + data);
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 					for (x = 0; x < rowentries; x++) {
 						*dest16 = *src16;
 						dest16++;

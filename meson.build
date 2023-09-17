@@ -389,7 +389,7 @@ endif
 
 libheif_dep = no_dep
 if enable_libheif
-  libheif_dep = dependency('libheif', required : true)
+  libheif_dep = dependency('libheif', required : true, version: '>= 1.8.0')
 endif
 
 libXISF_dep = no_dep
