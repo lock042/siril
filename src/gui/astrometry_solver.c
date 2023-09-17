@@ -124,13 +124,13 @@ static int get_server_from_combobox() {
 	return gtk_combo_box_get_active(GTK_COMBO_BOX(box));
 }
 
-static online_catalog get_astrometry_catalog(double fov, double mag, gboolean auto_cat) {
+static object_catalog get_astrometry_catalog(double fov, double mag, gboolean auto_cat) {
 	int ret;
 
 	if (auto_cat) {
 		if (mag <= 6.5) {
-			ret = CAT_BRIGHT_STARS;
-		} else if (fov > 180.0) {
+			ret = CAT_BSC;
+		} else if (fov > 180.0) { // we should probably limit the use of GAIA to smaller fov, <60 as it is very long to query
 			ret = CAT_NOMAD;
 		} else {
 			ret = CAT_GAIADR3;
@@ -700,7 +700,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			use_local = TRUE;
 		}
 	} else {
-		if (has_local_cat && (args->onlineCatalog == CAT_NOMAD || args->onlineCatalog == CAT_BRIGHT_STARS || args->onlineCatalog == CAT_TYCHO2)) {
+		if (has_local_cat && (args->onlineCatalog == CAT_NOMAD || args->onlineCatalog == CAT_BSC || args->onlineCatalog == CAT_TYCHO2)) {
 			siril_debug_print("using local star catalogues\n");
 			args->use_local_cat = TRUE;
 			args->catalog_file = NULL;
@@ -712,7 +712,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		/* currently the GUI version downloads the catalog here, because
 		 * siril_message_dialog() doesn't use idle function, we could change that */
 		GFile *catalog_file = download_catalog(args->onlineCatalog,
-				catalog_center, args->used_fov * 0.5, args->limit_mag);
+				catalog_center, args->used_fov * 0.5, args->limit_mag, NULL, NULL);
 		if (!catalog_file) {
 			siril_world_cs_unref(catalog_center);
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));

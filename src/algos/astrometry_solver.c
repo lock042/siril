@@ -438,7 +438,7 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	/* obtaining a star catalogue */
 	if (!args->catalog_file && !args->use_local_cat) {
 		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
-				args->used_fov * 0.5, args->limit_mag);
+				args->used_fov * 0.5, args->limit_mag, NULL, NULL);
 		if (!args->catalog_file) {
 			args->message = g_strdup(_("Could not download the online star catalogue."));
 			return 1;

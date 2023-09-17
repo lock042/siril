@@ -379,7 +379,7 @@ static int get_catstars(struct compstars_arg *args) {
 	}
 
 	double limit_mag = max(args->target_star->mag + 6.0, 17.0);
-	GFile *catalog_file = download_catalog(args->cat, center, radius * 60.0, limit_mag);
+	GFile *catalog_file = download_catalog(args->cat, center, radius * 60.0, limit_mag, NULL, NULL);
 	siril_world_cs_unref(center);
 	if (!catalog_file) {
 		siril_log_message(_("Could not download the online star catalog.\n"));
@@ -411,10 +411,10 @@ static void write_nina_file(struct compstars_arg *args) {
 	fprintf(fd, "# Sorted comparison stars for %s from %s according to the following criteria\n",
 			args->target_star->star_name, catalog_to_str(args->cat));
 
-	if (args->cat == CAT_AAVSO && args->AAVSO_chartid && args->AAVSO_uri) {
-		fprintf(fd, "# AAVSO chartid: %s, image_uri: %s\n",
-				args->AAVSO_chartid, args->AAVSO_uri);
-	}
+	// if (args->cat == CAT_AAVSO && args->AAVSO_chartid && args->AAVSO_uri) {
+	// 	fprintf(fd, "# AAVSO chartid: %s, image_uri: %s\n",
+	// 			args->AAVSO_chartid, args->AAVSO_uri);
+	// }
 
 	if (args->delta_Vmag <= 0.0 && args->delta_BV <= 0.0)
 		fprintf(fd, "# No criteria applied\n");

@@ -29,7 +29,7 @@ struct astrometry_data {
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
 	gboolean use_local_cat;	// use local catalogues if installed
-	online_catalog onlineCatalog;	// choice of catalog for the plate solve
+	object_catalog onlineCatalog;	// choice of catalog for the plate solve
 	SirilWorldCS *cat_center;	// starting point for the search
 	gboolean downsample;	// downsample image before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
@@ -93,7 +93,7 @@ gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
 double get_fov_arcmin(double resolution, int rx, int ry);
 
-const char *catalog_to_str(online_catalog cat);
+const char *catalog_to_str(object_catalog cat);
 
 /* from the GUI */
 gboolean end_process_sso(gpointer p);

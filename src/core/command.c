@@ -8380,7 +8380,7 @@ int process_pcc(int nb) {
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
-	online_catalog cat = CAT_AUTO;
+	object_catalog cat = CAT_AUTO;
 	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve' or 'seqplatesolve'
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
@@ -8473,7 +8473,7 @@ int process_pcc(int nb) {
 			else if (!g_strcmp0(arg, "ppmxl"))
 				cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "brightstars"))
-				cat = CAT_BRIGHT_STARS;
+				cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
 			else {
@@ -8706,7 +8706,9 @@ int process_pcc(int nb) {
 int process_nomad(int nb) {
 	float limit_mag = 13.0f;
 	gboolean photometric = FALSE;
-	online_catalog cat = CAT_AUTO;
+	object_catalog cat = CAT_AUTO;
+	GDateTime *dateobs = NULL;
+	gchar *obscode = NULL;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
@@ -8724,15 +8726,32 @@ int process_nomad(int nb) {
 			else if (!g_strcmp0(arg, "ppmxl"))
 				cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "brightstars"))
-				cat = CAT_BRIGHT_STARS;
+				cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
-			else {
+			else if (!g_strcmp0(arg, "exo"))
+				cat = CAT_EXOPLANETARCHIVE;
+			else if (!g_strcmp0(arg, "pgc"))
+				cat = CAT_PGC;
+			else if (!g_strcmp0(arg, "solsys")) {
+				cat = CAT_IMCCE;
+				if (!gfit.date_obs) {
+					siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
+					return CMD_INVALID_IMAGE;
+				}
+				dateobs = gfit.date_obs;
+			} else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
 				return CMD_ARG_ERROR;
 			}
-		}
-		else if (g_str_has_prefix(word[arg_idx], "-phot")) {
+		} else if (g_str_has_prefix(word[arg_idx], "-obscode=")) {
+			char *arg = word[arg_idx] + 9;
+			if (strlen(arg) != 3) {
+				siril_log_color_message(_("The observatory should be coded as a 3-letter word\n"), "red");
+				return CMD_ARG_ERROR;
+			}
+			obscode = g_strdup(arg);
+		}else if (g_str_has_prefix(word[arg_idx], "-phot")) {
 			photometric = TRUE;
 		} else {
 			gchar *end;
@@ -8745,8 +8764,9 @@ int process_nomad(int nb) {
 		arg_idx++;
 	}
 
-	pcc_star *stars;
-	int nb_stars;
+	pcc_star *stars = NULL;
+	siril_catalog *siril_cat = NULL;
+	int nb_stars = 0;
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(&gfit);
@@ -8763,29 +8783,43 @@ int process_nomad(int nb) {
 		siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
 	} else {
 		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-		GFile *catalog_file = download_catalog(cat, center, radius * 60.0, limit_mag);
+		if (cat == CAT_IMCCE && !obscode) {
+			obscode  = g_strdup("500");
+			siril_log_color_message(_("Did not specify an observatory code, using 500 by default\n"), "salmon");
+		}
+		GFile *catalog_file = download_catalog(cat, center, radius * 60.0, limit_mag, obscode, dateobs);
+		g_free(obscode);
 		siril_world_cs_unref(center);
 		if (!catalog_file) {
 			siril_log_message(_("Could not download the online star catalog.\n"));
 			return CMD_GENERIC_ERROR;
 		}
 		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(cat));
-
-		/* project using WCS */
-		if (project_catalog_with_WCS(catalog_file, &gfit, photometric, &stars, &nb_stars))
+		siril_cat = siril_catalog_load_from_file(g_file_peek_path(catalog_file), photometric);
+		if (!siril_cat)
 			return CMD_GENERIC_ERROR;
+		/* project using WCS */
+		gboolean use_proper_motion = (gfit.date_obs != NULL) && (siril_catalog_colums(cat) & (1 << CAT_FIELD_PMRA)) != 0;
+		if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion))
+			return CMD_GENERIC_ERROR;
+		nb_stars = siril_cat->nbitems;
 	}
 
 	clear_stars_list(FALSE);
 	int j = 0;
 	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
-		if (stars[i].x < 0.0 || stars[i].x >= gfit.rx ||
-				stars[i].y < 0.0 || stars[i].y >= gfit.ry)
+		if (stars && (stars[i].x < 0.0 || stars[i].x >= gfit.rx ||
+				stars[i].y < 0.0 || stars[i].y >= gfit.ry))
+			continue;
+		if (siril_cat && (!siril_cat->cat_items[i].included || siril_cat->cat_items[i].mag > limit_mag))
 			continue;
 		if (!com.stars)
 			com.stars = new_fitted_stars(MAX_STARS);
 		com.stars[j] = new_psf_star();
-		fits_to_display(stars[i].x, stars[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
+		if (siril_cat)
+			fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
+		else
+			fits_to_display(stars[i].x, stars[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
 		com.stars[j]->fwhmx = 5.0f;
 		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;
@@ -8868,7 +8902,7 @@ int process_findcompstars(int nb) {
 	}
 	const char *target = word[1];
 	gboolean narrow = FALSE;
-	online_catalog used_cat = CAT_APASS;
+	object_catalog used_cat = CAT_APASS;
 	double delta_Vmag = 3.0, delta_BV = 0.5;
 	const char *nina_file = NULL;
 

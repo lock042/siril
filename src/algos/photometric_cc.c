@@ -458,7 +458,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), radius * 2.0, mag);
 
 		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-		GFile *catalog_file = download_catalog(args->catalog, center, radius * 60.0, mag);
+		GFile *catalog_file = download_catalog(args->catalog, center, radius * 60.0, mag, NULL, NULL);
 		siril_world_cs_unref(center);
 		if (!catalog_file) {
 			siril_log_message(_("Could not download the online star catalog.\n"));

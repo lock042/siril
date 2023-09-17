@@ -10,7 +10,7 @@ struct compstars_arg {
 	// feature input
 	gchar *target_name;	// star name to be looked-up on online sources
 	gboolean narrow_fov;	// limit to image height as diameter
-	online_catalog cat;	// the catalogue where comparison stars will be queried
+	object_catalog cat;	// the catalogue where comparison stars will be queried
 	double delta_Vmag, delta_BV;	// comparison stars filtering criteria
 	gchar *nina_file;	// optional output NINA-type file name
 
