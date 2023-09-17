@@ -250,6 +250,7 @@ gchar *initialize_converters() {
 
 #ifdef HAVE_LIBHEIF
 	supported_filetypes |= TYPEHEIF;
+	supported_filetypes |= TYPEAVIF;
 	string = g_string_append(string, ", ");
 	string = g_string_append(string, _("HEIF images, AVIF images"));
 	supported_extensions[count_ext++] = ".heic";
@@ -299,9 +300,11 @@ image_type get_type_for_extension(const char *extension) {
 			(!g_ascii_strcasecmp(extension, "jxl"))) {
 		return TYPEJXL;
 	} else if ((supported_filetypes & TYPEHEIF) &&
-			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif")
-				|| !g_ascii_strcasecmp(extension, "avif"))) {
+			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif"))) {
 		return TYPEHEIF;
+	} else if ((supported_filetypes & TYPEAVIF) &&
+			(!g_ascii_strcasecmp(extension, "avif"))) {
+		return TYPEAVIF;
 	} else if ((supported_filetypes & TYPETIFF) &&
 			(!g_ascii_strcasecmp(extension, "tif") || !g_ascii_strcasecmp(extension, "tiff"))) {
 		return TYPETIFF;
@@ -373,6 +376,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 #endif
 #ifdef HAVE_LIBHEIF
 		case TYPEHEIF:
+		case TYPEAVIF:
 			/* need to retrieve all return values */
 			retval = readheif(source, dest, interactive);
 			break;

@@ -11,8 +11,10 @@ struct savedial_data {
 	gboolean embeded_icc;
 	gint quality;
 	gint jxl_effort;
-	gdouble jxl_distance;
+	gdouble jxl_quality;
 	gboolean jxl_force_8bit;
+	gboolean lossless;
+	int avif_bitdepth;
 	const gchar *filename;
 	int bitpix;
 	gboolean update_hilo;
@@ -20,7 +22,7 @@ struct savedial_data {
 };
 
 enum {
-	PAGE_TIFF, PAGE_JPG, PAGE_FITS, PAGE_JXL, PAGE_MISC
+	PAGE_TIFF, PAGE_JPG, PAGE_FITS, PAGE_JXL, PAGE_AVIF, PAGE_MISC
 };
 
 void on_header_save_as_button_clicked();

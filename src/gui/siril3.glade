@@ -533,6 +533,13 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_avif_quality">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">80</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_background_smoothing">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -2000,17 +2007,18 @@ artifacts may appear.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_jxl_distance">
-    <property name="upper">10</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.10</property>
-  </object>
   <object class="GtkAdjustment" id="adj_jxl_effort">
     <property name="lower">1</property>
     <property name="upper">9</property>
     <property name="value">7</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_jxl_quality">
+    <property name="upper">10</property>
+    <property name="value">8</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adj_kombat_percent">
     <property name="lower">5</property>
@@ -5590,7 +5598,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hexpand">True</property>
-                                    <property name="adjustment">adj_jxl_distance</property>
+                                    <property name="adjustment">adj_jxl_quality</property>
                                     <property name="draw-value">False</property>
                                   </object>
                                   <packing>
@@ -5605,10 +5613,10 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                     <property name="tooltip-text" translatable="yes">Distance is a measure of quality, the lower the better quality but the larger the file size. It represents a measure of the maximum permissible distance between the original and compressed data. 0.0 is mathematically lossless; 1.0 is visually lossless.</property>
                                     <property name="invisible-char">•</property>
                                     <property name="text" translatable="yes">100</property>
-                                    <property name="adjustment">adj_jxl_distance</property>
+                                    <property name="adjustment">adj_jxl_quality</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
-                                    <property name="value">1</property>
+                                    <property name="value">8</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">2</property>
@@ -5619,7 +5627,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                   <object class="GtkLabel" id="label27">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="label" translatable="yes">Distance: </property>
+                                    <property name="label" translatable="yes">Quality: </property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
@@ -5714,6 +5722,134 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                   </object>
                   <packing>
                     <property name="position">3</property>
+                    <property name="tab-fill">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkFrame" id="frame19">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label-xalign">0</property>
+                    <property name="shadow-type">none</property>
+                    <child>
+                      <object class="GtkAlignment" id="alignment2">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="left-padding">12</property>
+                        <child>
+                          <!-- n-columns=3 n-rows=3 -->
+                          <object class="GtkGrid" id="grid9">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="column-spacing">5</property>
+                            <child>
+                              <object class="GtkScale" id="distance_scale1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="adjustment">adj_avif_quality</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="avif_quality_spinbutton">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Distance is a measure of quality, the lower the better quality but the larger the file size. It represents a measure of the maximum permissible distance between the original and compressed data. 0.0 is mathematically lossless; 1.0 is visually lossless.</property>
+                                <property name="invisible-char">•</property>
+                                <property name="text" translatable="yes">1.00</property>
+                                <property name="adjustment">adj_avif_quality</property>
+                                <property name="numeric">True</property>
+                                <property name="value">80</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label40">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Quality:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="avif_lossless">
+                                <property name="label" translatable="yes">Lossless</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">If checked, output will be lossless if the encoder supports it. Availability depends on your libheif version and which codecs are compiled in / available as modules. If lossless encoding is not available the process will fall back to the highest quality lossy encoding and a message will be printed in the log.</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                                <property name="width">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="avif_bitdepth">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="active">0</property>
+                                <items>
+                                  <item translatable="yes">8 bit</item>
+                                  <item translatable="yes">10 bit (HDR10)</item>
+                                  <item translatable="yes">12 bit (HDR12)</item>
+                                </items>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">2</property>
+                                <property name="width">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Bit depth</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel" id="label43">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Compression&lt;/b&gt;</property>
+                        <property name="use-markup">True</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="position">4</property>
+                  </packing>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">AVIF / HEIF</property>
+                  </object>
+                  <packing>
+                    <property name="position">4</property>
                     <property name="tab-fill">False</property>
                   </packing>
                 </child>

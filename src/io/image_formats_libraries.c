@@ -2517,7 +2517,7 @@ int readjxl(const char* name, fits *fit) {
 		}
 	} else {
 		const uint32_t totchans = zsize + extra_channels;
-		siril_debug_print("Channels: total %u, extra %u\n", totchans, extra_channels);
+		siril_debug_print("Channels: total %u, extra %lu\n", totchans, extra_channels);
 		if (fit->type == DATA_FLOAT) {
 			for (size_t i = 0 ; i < xsize * ysize ; i++) {
 				size_t pixel = i * totchans;
