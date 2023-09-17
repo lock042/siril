@@ -13,7 +13,8 @@ xx/xx/xx
 * Fixed running command catsearch threaded to avoid GUI freeze (#1167)
 
 siril 1.2.0
-xx/xx/xx
+09/15/23
+
 * Fixed crash in background extraction samples removing (#1123)
 * Fixed crash in binning with ushort images (4d4d4878)
 * Fixed crash in findstar when a large saturated patch was close to border
