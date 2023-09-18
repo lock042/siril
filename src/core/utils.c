@@ -740,16 +740,19 @@ gchar *replace_ext(const char *path, const char *new_ext) {
 gboolean check_subfolder(const char *sub_folder) {
 	/* First we test if root directory already exists */
 	gchar *root = g_build_filename(com.pref.wd, sub_folder, NULL);
-	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
+	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {	/* if not, it's created */
 		if (g_mkdir_with_parents(root, 0755) < 0) {
 			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
 			g_free(root);
 			return TRUE;
 		}
-	return FALSE;
-	siril_log_color_message(_("Output folder created: %s\n"), "red", root);
+		siril_log_color_message(_("Output folder for photometry created: %s\n"), "salmon", root);
+		g_free(root);
+		return FALSE;
 	}
-	return FALSE;	// Should not happen
+	siril_log_color_message(_("Output folder for photometry already exists.\n"), "salmon");
+	g_free(root);
+	return FALSE;
 }
 
 
