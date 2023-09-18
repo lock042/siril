@@ -1794,7 +1794,7 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 
 		struct heif_image *thumbnail_img;
 		err = heif_decode_image(thumbnail_handle, &thumbnail_img,
-				heif_colorspace_RGB, heif_chroma_interleaved_24bit,
+				heif_colorspace_RGB, heif_chroma_interleaved_RGB,
 				NULL);
 		if (err.code) {
 			g_printf("%s\n", err.message);
@@ -1970,6 +1970,8 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 
 int readheif(const char* name, fits *fit, gboolean interactive){
 	struct heif_error err;
+
+	heif_init(NULL);
 
 	struct heif_context *ctx = heif_context_alloc();
 	err = heif_context_read_from_file(ctx, name, NULL);
@@ -2173,6 +2175,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	heif_image_handle_release(handle);
 	heif_context_free(ctx);
 	heif_image_release(img);
+	heif_deinit();
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry, bit_depth);
@@ -2217,6 +2220,7 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	}
 
 	// Initialize and configure a heif context
+	heif_init(NULL);
 	struct heif_context *ctx = heif_context_alloc();
 	struct heif_error error = { 0 };
 
@@ -2426,7 +2430,7 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	heif_encoding_options_free(options);
 	heif_image_release(image);
 	heif_context_free(ctx);
-
+	heif_deinit();
 	return retval;
 }
 #endif
