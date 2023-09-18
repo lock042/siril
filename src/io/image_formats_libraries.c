@@ -1971,8 +1971,9 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 int readheif(const char* name, fits *fit, gboolean interactive){
 	struct heif_error err;
 
+#if LIBHEIF_HAVE_VERSION(1,13,0)
 	heif_init(NULL);
-
+#endif
 	struct heif_context *ctx = heif_context_alloc();
 	err = heif_context_read_from_file(ctx, name, NULL);
 	if (err.code) {
@@ -2175,7 +2176,9 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	heif_image_handle_release(handle);
 	heif_context_free(ctx);
 	heif_image_release(img);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
 	heif_deinit();
+#endif
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry, bit_depth);
@@ -2220,7 +2223,9 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	}
 
 	// Initialize and configure a heif context
+#if LIBHEIF_HAVE_VERSION(1,13,0)
 	heif_init(NULL);
+#endif
 	struct heif_context *ctx = heif_context_alloc();
 	struct heif_error error = { 0 };
 
@@ -2430,7 +2435,9 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	heif_encoding_options_free(options);
 	heif_image_release(image);
 	heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
 	heif_deinit();
+#endif
 	return retval;
 }
 #endif
