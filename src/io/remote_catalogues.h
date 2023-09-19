@@ -19,7 +19,7 @@
 // only the first 9 columns are valid TAP queries
 // fields after this are used in other catalogues
 #define MAX_TAP_QUERY_COLUMNS 9
-#define MAX_CAT_COLUMNS 17
+#define MAX_CAT_COLUMNS 18
 #define MAX_CATCODE_LEN 30
 
 
@@ -51,18 +51,18 @@ typedef enum {
 	CAT_AAVSO_CHART = 40,
 // Non TAP Queries (others)
 	CAT_IMCCE = 50,
-// Local annotations
+// Local annotations - same as annotations_cat + 60
 	CAT_AN_MESSIER = 60,
 	CAT_AN_NGC = 61,
 	CAT_AN_IC = 62,
 	CAT_AN_LDN = 63,
 	CAT_AN_SH2 = 64,
 	CAT_AN_STARS = 65,
-// Local annotations user-defined
-	CAT_AN_USER_DSO = 70,
-	CAT_AN_USER_SSO = 71,
-	CAT_AN_USER_TEMP = 72,
+	CAT_AN_USER_DSO = 66,
+	CAT_AN_USER_SSO = 67,
+	CAT_AN_USER_TEMP = 68,
 // Special
+	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_ASNET = 100,	// solve-field local (astrometry.net)
@@ -93,7 +93,8 @@ typedef enum {
 	CAT_FIELD_SITELON,
 	CAT_FIELD_SITEELEV,
 	CAT_FIELD_VRA,
-	CAT_FIELD_VDEC
+	CAT_FIELD_VDEC,
+	CAT_FIELD_TYPE
 } cat_fields;
 
 typedef struct {
@@ -109,6 +110,7 @@ typedef struct {
 	double vra, vdec; // speed vector in ra/dec for solar system
 	gchar *name;  // name of the object
 	gchar *alias; // aliases given in annotation catalogues, tab-separated
+	gchar *type; // type of the object, for solsys and compstars
 
 	// computed
 	float x, y;	// image coordinates
@@ -149,6 +151,7 @@ int load_catalog(GFile *catalog_file, gboolean phot, psf_star **ret_stars, int *
 siril_catalog *siril_catalog_load_from_file(const gchar *filename, gboolean phot);
 int siril_catalog_project_with_WCS(siril_catalog *siril_cat, fits *fit, gboolean use_proper_motion);
 uint32_t siril_catalog_colums(object_catalog cat);
+void sort_cat_items_by_mag(siril_catalog *siril_cat);
 
 
 #endif

@@ -8803,6 +8803,7 @@ int process_nomad(int nb) {
 		if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion))
 			return CMD_GENERIC_ERROR;
 		nb_stars = siril_cat->nbitems;
+		sort_cat_items_by_mag(siril_cat);
 	}
 
 	clear_stars_list(FALSE);
@@ -8824,6 +8825,8 @@ int process_nomad(int nb) {
 		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;
 		com.stars[j]->angle = 0.0f;
+		if (cat == CAT_IMCCE) // classes are deined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
+			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
 		j++;
 	}
 	if (j > 0)

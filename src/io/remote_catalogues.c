@@ -69,12 +69,13 @@ static gchar *cat_columns[] = {
 	[CAT_FIELD_SITELON] = "sitelon",
 	[CAT_FIELD_SITEELEV] = "siteelev",
 	[CAT_FIELD_VRA] = "vra",
-	[CAT_FIELD_VDEC] = "vdec"
+	[CAT_FIELD_VDEC] = "vdec",
+	[CAT_FIELD_TYPE] = "type"
 };
 
 static int get_column_index(gchar *field) {
 	for (int i = 0; i < MAX_CAT_COLUMNS; i++) {
-		if (!g_strcmp0(field, cat_columns[i]))
+		if (!strcasecmp(field, cat_columns[i])) // case insensitive version
 			return i;
 	}
 	return -1;
@@ -206,7 +207,7 @@ uint32_t siril_catalog_colums(object_catalog cat) {
 		case CAT_AAVSO_CHART:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_E_MAG) | (1 << CAT_FIELD_E_BMAG) | (1 << CAT_FIELD_NAME);
 		case CAT_IMCCE:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME)| (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME)| (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_AN_MESSIER:
 		case CAT_AN_NGC:
 		case CAT_AN_IC:
@@ -218,13 +219,29 @@ uint32_t siril_catalog_colums(object_catalog cat) {
 		case CAT_AN_USER_DSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_AN_USER_SSO:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV);	
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV);
+		case CAT_COMPSTARS:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
 		case CAT_AN_USER_TEMP:
 		default:
 			return 0;
 	}
 }
 
+static int compare_items_by_mag(const void* item1, const void* item2) {
+	cat_item *i1 = (cat_item*) item1;
+	cat_item *i2 = (cat_item*) item2;
+	if (i1->mag < i2->mag)
+		return -1;
+	if (i1->mag > i2->mag)
+		return 1;
+	return 0;
+}
+
+void sort_cat_items_by_mag(siril_catalog *siril_cat) {
+	if (siril_cat && siril_cat->nbitems > 0 && (siril_cat->columns&(1 << CAT_FIELD_MAG)))
+		qsort(siril_cat->cat_items, siril_cat->nbitems, sizeof(cat_item), compare_items_by_mag);
+}
 //TODO: to be rewritten
 /* There are several ways of obtaining star catalogue data in Siril.
  * The raw catalogue contain in general star name, RA and dec coords, V and B
@@ -1014,7 +1031,7 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	int nb_lines = g_strv_length(token);
 	// writing the csv header
 	gsize n;
-	g_output_stream_printf(output_stream, &n, NULL, NULL, "ra,dec,mag,name,vra,vdec\n");
+	g_output_stream_printf(output_stream, &n, NULL, NULL, "ra,dec,mag,name,vra,vdec,type\n");
 	for (int i = 3; i < nb_lines; i++) {
 		// format is '# Num | Name | RA(h) | DE(deg) | Class | Mv | Err(arcsec) | d(arcsec) | dRA(arcsec/h) | dDEC(arcsec/h) | Dg(ua) | Dh(ua)'
 		gchar **vals = g_strsplit(token[i], " | ", -1);
@@ -1025,42 +1042,42 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 		double ra = parse_hms(vals[2]);	// in hours
 		double dec = parse_dms(vals[3]);
 		if (!isnan(ra) && !isnan(dec))
-			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9]);
+			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9], vals[4]);
 		g_strfreev(vals);
 	}
 	g_strfreev(token);
 	return TRUE;
 }
 // AAVSO chart
-static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
-	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
-		return FALSE;
-	if (!g_str_has_prefix(buffer, "# Flag: 1")) {
-		siril_log_color_message("IMCCE server returned: \n%s\n", "red", buffer);
-		return FALSE;
-	}
+// static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
+// 	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
+// 		return FALSE;
+// 	if (!g_str_has_prefix(buffer, "# Flag: 1")) {
+// 		siril_log_color_message("IMCCE server returned: \n%s\n", "red", buffer);
+// 		return FALSE;
+// 	}
 
-	gchar **token = g_strsplit(buffer, "\n", -1);
-	int nb_lines = g_strv_length(token);
-	// writing the csv header
-	gsize n;
-	g_output_stream_printf(output_stream, &n, NULL, NULL, "ra,dec,mag,name,vra,vdec\n");
-	for (int i = 3; i < nb_lines; i++) {
-		// format is '# Num | Name | RA(h) | DE(deg) | Class | Mv | Err(arcsec) | d(arcsec) | dRA(arcsec/h) | dDEC(arcsec/h) | Dg(ua) | Dh(ua)'
-		gchar **vals = g_strsplit(token[i], " | ", -1);
-		if (g_strv_length(vals) < 12) {
-			g_strfreev(vals);
-			continue;
-		}
-		double ra = parse_hms(vals[2]);	// in hours
-		double dec = parse_dms(vals[3]);
-		if (!isnan(ra) && !isnan(dec))
-			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9]);
-		g_strfreev(vals);
-	}
-	g_strfreev(token);
-	return TRUE;
-}
+// 	gchar **token = g_strsplit(buffer, "\n", -1);
+// 	int nb_lines = g_strv_length(token);
+// 	// writing the csv header
+// 	gsize n;
+// 	g_output_stream_printf(output_stream, &n, NULL, NULL, "ra,dec,mag,name,vra,vdec\n");
+// 	for (int i = 3; i < nb_lines; i++) {
+// 		// format is '# Num | Name | RA(h) | DE(deg) | Class | Mv | Err(arcsec) | d(arcsec) | dRA(arcsec/h) | dDEC(arcsec/h) | Dg(ua) | Dh(ua)'
+// 		gchar **vals = g_strsplit(token[i], " | ", -1);
+// 		if (g_strv_length(vals) < 12) {
+// 			g_strfreev(vals);
+// 			continue;
+// 		}
+// 		double ra = parse_hms(vals[2]);	// in hours
+// 		double dec = parse_dms(vals[3]);
+// 		if (!isnan(ra) && !isnan(dec))
+// 			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9]);
+// 		g_strfreev(vals);
+// 	}
+// 	g_strfreev(token);
+// 	return TRUE;
+// }
 
 GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag, gchar *obscode, GDateTime *date_obs) {
 #ifndef HAVE_NETWORKING
@@ -1363,7 +1380,7 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_ca
 	for (int i = 0; i < nbcols; i++) {
 		int val = get_column_index(fields[i]);
 		if (val < 0) {
-			siril_log_color_message(_("Unknown column %s found in the catalog, ignoring\n"), "red", fields[i]);
+			siril_debug_print("Unknown column %s found in the catalog, ignoring\n", fields[i]);
 			continue;
 		} 
 		indexes[i] = val;
@@ -1443,16 +1460,16 @@ static void siril_cat_free(siril_catalog *siril_cat) {
 static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) {
 	switch (index) {
 		case CAT_FIELD_RA:
-			item->ra = (float)g_ascii_strtod(input, NULL);
+			item->ra = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_DEC:
-			item->dec = (float)g_ascii_strtod(input, NULL);
+			item->dec = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_PMRA:
-			item->pmra = (float)g_ascii_strtod(input, NULL);
+			item->pmra = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_PMDEC:
-			item->pmdec = (float)g_ascii_strtod(input, NULL);
+			item->pmdec = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_MAG:
 			item->mag = (float)g_ascii_strtod(input, NULL);
@@ -1476,16 +1493,25 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 			item->alias = g_strdup(input);
 			break;
 		case CAT_FIELD_DATEOBS:
-			item->dateobs = (float)g_ascii_strtod(input, NULL);
+			item->dateobs = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_SITELAT:
-			item->sitelat = (float)g_ascii_strtod(input, NULL);
+			item->sitelat = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_SITELON:
-			item->sitelon = (float)g_ascii_strtod(input, NULL);
+			item->sitelon = g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_SITEELEV:
-			item->siteelev = (float)g_ascii_strtod(input, NULL);
+			item->siteelev = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_VRA:
+			item->vra = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_VDEC:
+			item->vdec = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_TYPE:
+			item->type = g_strdup(input);
 			break;
 		case CAT_FIELD_UNDEF: // columns with unknown headers
 		default:
@@ -1648,7 +1674,9 @@ int siril_catalog_project_with_WCS(siril_catalog *siril_cat, fits *fit, gboolean
 	return 0;
 } 
 
-// // TODO to be reviewed
+
+
+// // TODO to be reviewed => should use  json-glib instead
 // // uses gfit for an is_inside() check
 // int read_photo_aavso_buffer(const char *buffer, struct compstars_arg *args) {
 // 	gchar **token = g_strsplit(buffer, "auid", -1);
