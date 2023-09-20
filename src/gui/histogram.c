@@ -53,6 +53,8 @@
  * separately. That is useful for display purposes, but not currently used.
  */
 
+gboolean histo_show_preview = TRUE;
+
 // Type of invocation - HISTO_STRETCH or GHT_STRETCH (maybe others in future?)
 static int invocation = NO_STRETCH_SET_YET;
 
@@ -1554,7 +1556,7 @@ void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = histo_show_preview;
 	notify_update((gpointer) param);
 }
 
@@ -1563,7 +1565,7 @@ void on_spin_ghtB_value_changed(GtkSpinButton *button, gpointer user_data) {
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = histo_show_preview;
 	notify_update((gpointer) param);
 }
 
@@ -1579,7 +1581,7 @@ void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = histo_show_preview;
 	notify_update((gpointer) param);
 }
 
@@ -1596,7 +1598,7 @@ void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = histo_show_preview;
 	notify_update((gpointer) param);
 }
 
@@ -1642,7 +1644,7 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = histo_show_preview;
 	notify_update((gpointer) param);
 }
 
@@ -1659,7 +1661,7 @@ void on_spin_ghtHP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	queue_window_redraw();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = histo_show_preview;
 	notify_update((gpointer) param);
 }
 
@@ -1670,7 +1672,7 @@ void on_spin_ghtBP_value_changed(GtkSpinButton *button, gpointer user_data) {
 		queue_window_redraw();
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = histo_update_preview;
-		param->show_preview = TRUE; // no need of preview button. This is always in preview
+		param->show_preview = histo_show_preview;
 		notify_update((gpointer) param);
 	}
 }
@@ -1729,7 +1731,7 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			queue_window_redraw();
 			update_image *param = malloc(sizeof(update_image));
 			param->update_preview_fn = histo_update_preview;
-			param->show_preview = TRUE; // no need of preview button. This is always in preview
+			param->show_preview = histo_show_preview;
 			notify_update((gpointer) param);
 			return;
 		}
@@ -1854,4 +1856,18 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 	ght_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);
+}
+
+void on_histo_preview_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (histo_show_preview == TRUE) {
+		siril_preview_hide();
+	} else {
+		copy_gfit_to_backup();
+
+		update_image *param = malloc(sizeof(update_image));
+		param->update_preview_fn = histo_update_preview;
+		param->show_preview = TRUE;
+		notify_update((gpointer) param);
+	}
+	histo_show_preview = !histo_show_preview;
 }

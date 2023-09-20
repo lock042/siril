@@ -16703,7 +16703,7 @@ Each image in the sequence will only be processed if the corresponding images fo
                         <property name="halign">end</property>
                         <child>
                           <object class="GtkCheckButton" id="HistoCheckLogButton">
-                            <property name="label" translatable="yes">Logarithmic scale</property>
+                            <property name="label" translatable="yes">Log scale</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
@@ -16712,6 +16712,30 @@ Each image in the sequence will only be processed if the corresponding images fo
                             <property name="halign">end</property>
                             <property name="draw-indicator">True</property>
                             <signal name="toggled" handler="on_histo_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="homogeneous">True</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToolItem" id="histoToolLog1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">end</property>
+                        <child>
+                          <object class="GtkCheckButton" id="HistoCheckPreview">
+                            <property name="label" translatable="yes">Preview</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">Show preview. Disabling this checkbox will show the original image for comparison purposes.</property>
+                            <property name="halign">end</property>
+                            <property name="active">True</property>
+                            <property name="draw-indicator">True</property>
+                            <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
                           </object>
                         </child>
                       </object>
