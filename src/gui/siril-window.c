@@ -210,6 +210,7 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"starnet-processing",
 		"cosmetic-processing",
 		"background-extr-processing",
+		"clear_roi",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_processing_actions, enable);
@@ -218,7 +219,6 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *any_mono_processing_actions[] = {
 		"split-cfa-processing",
-		"clear_roi",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_mono_processing_actions, enable);
