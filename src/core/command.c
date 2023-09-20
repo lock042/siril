@@ -475,7 +475,7 @@ int process_denoise(int nb){
 	args->do_anscombe = FALSE;
 	args->do_cosme = TRUE;
 	args->suppress_artefacts = FALSE;
-	args->fit = &gfit;
+	args->fit = !com.headless && gui.roi.active ? &gui.roi.fit : &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
