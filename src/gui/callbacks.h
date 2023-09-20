@@ -9,6 +9,9 @@ void on_press_seq_field();
 void launch_clipboard_survey();
 
 int populate_roi();
+gpointer on_set_roi();
+gpointer on_clear_roi();
+
 void roi_supported(gboolean state);
 void initialize_all_GUI(gchar *files);
 void siril_set_theme(int active);

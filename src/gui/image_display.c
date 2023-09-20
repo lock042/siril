@@ -1654,7 +1654,7 @@ void adjust_vport_size_to_image() {
 	}
 }
 
-static void copy_roi_into_gfit() {
+void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	size_t npixels_gfit = gfit.rx * gfit.ry;
 	if (gui.roi.fit.type == DATA_FLOAT) {

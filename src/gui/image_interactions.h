@@ -11,9 +11,6 @@ void update_zoom_fit_button();
 void register_selection_update_callback(selection_update_callback f);
 void unregister_selection_update_callback(const selection_update_callback f);
 
-gpointer on_set_roi();
-gpointer on_clear_roi();
-
 void new_selection_zone();
 void delete_selected_area();
 void reset_display_offset();

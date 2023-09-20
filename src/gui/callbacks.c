@@ -285,6 +285,20 @@ void roi_supported(gboolean state) {
 	redraw(REDRAW_OVERLAY);
 }
 
+gpointer on_set_roi() {
+	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	gui.roi.active = TRUE;
+	populate_roi();
+	return GINT_TO_POINTER(0);
+}
+
+gpointer on_clear_roi() {
+	clearfits(&gui.roi.fit);
+	memset(&gui.roi, 0, sizeof(roi_t));
+	redraw(REDRAW_OVERLAY);
+	return GINT_TO_POINTER(0);
+}
+
 static void initialize_theme_GUI() {
 	GtkComboBox *box;
 
