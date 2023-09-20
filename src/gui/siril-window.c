@@ -77,7 +77,9 @@ static GActionEntry image_entries[] = {
 static GActionEntry selection_entries[] = {
 	{ "pickstar", pick_star_activate },
 	{ "psf", psf_activate },
-	{ "crop", crop_activate }
+	{ "crop", crop_activate },
+	{ "clear_roi", clear_roi },
+	{ "set_roi", set_roi }
 };
 
 static GActionEntry selection_sequence_entries[] = {
@@ -262,6 +264,9 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 		"pickstar",
 		"psf",
 		"crop",
+		"clear_roi",
+		"set_roi",
+
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_actions, enable);

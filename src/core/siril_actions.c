@@ -690,3 +690,11 @@ void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	}
 }
 
+void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_clear_roi();
+}
+
+void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_set_roi();
+}
+

@@ -233,6 +233,53 @@ void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
 	siril_set_theme(active);
 }
 
+int populate_roi() {
+	int retval = 0;
+	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
+	size_t npixels_gfit = gfit.rx * gfit.ry;
+	size_t nchans = gfit.naxes[2];
+	g_assert(nchans ==1 || nchans == 3);
+	gboolean rgb = (nchans == 3);
+	clearfits(&gui.roi.fit);
+	copyfits(&gfit, &gui.roi.fit, CP_FORMAT, -1);
+	gui.roi.fit.rx = gui.roi.fit.naxes[0] = gui.roi.selection.w;
+	gui.roi.fit.ry = gui.roi.fit.naxes[1] = gui.roi.selection.h;
+	gui.roi.fit.naxes[2] = nchans;
+	gui.roi.fit.naxis = nchans == 1 ? 2 : 3;
+	if (gui.roi.fit.type == DATA_FLOAT) {
+		gui.roi.fit.fdata = malloc(npixels_roi * nchans * sizeof(float));
+		if (!gui.roi.fit.fdata)
+			retval = 1;
+		gui.roi.fit.fpdata[0] = gui.roi.fit.fdata;
+		gui.roi.fit.fpdata[1] = rgb? gui.roi.fit.fdata + npixels_roi : gui.roi.fit.fdata;
+		gui.roi.fit.fpdata[2] = rgb? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
+		for (uint32_t c = 0 ; c < nchans ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				float *srcindex = gfit.fdata + (npixels_gfit * c) + ((gfit.ry - y - gui.roi.selection.y) * gfit.rx) + gui.roi.selection.x;
+				float *destindex = gui.roi.fit.fdata + (npixels_roi * c) + (gui.roi.fit.rx * y);
+				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(float));
+			}
+		}
+	} else {
+		gui.roi.fit.data = malloc(npixels_roi * nchans * sizeof(WORD));
+		if (!gui.roi.fit.data)
+			retval = 1;
+		gui.roi.fit.pdata[0] = gui.roi.fit.data;
+		gui.roi.fit.pdata[1] = rgb? gui.roi.fit.data + npixels_roi : gui.roi.fit.data;
+		gui.roi.fit.pdata[2] = rgb? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
+		for (uint32_t c = 0 ; c < nchans ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				WORD *srcindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - y - gui.roi.selection.y) * gfit.rx) + gui.roi.selection.x;
+				WORD *destindex = gui.roi.fit.data + (npixels_roi * c) + y * gui.roi.fit.rx;
+				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(WORD));
+			}
+		}
+	}
+	backup_roi();
+	gui.roi.active = TRUE;
+	return retval;
+}
+
 static void initialize_theme_GUI() {
 	GtkComboBox *box;
 
@@ -1319,6 +1366,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
 	gui.preview_area[0] = lookup_widget("drawingarea_preview1");
 	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
+	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
 	initialize_image_display();
 	init_mouse();
 	/* populate language combo */

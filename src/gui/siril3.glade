@@ -16105,6 +16105,22 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
         </child>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_gray_set_selection_to_roi">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.set_roi</property>
+        <property name="label" translatable="yes">Set ROI to selection</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_gray_clear_roi">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.clear_roi</property>
+        <property name="label" translatable="yes">Clear ROI</property>
+      </object>
+    </child>
   </object>
   <object class="GtkDialog" id="merge_cfa_dialog">
     <property name="width-request">500</property>

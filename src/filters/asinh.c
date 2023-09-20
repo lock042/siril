@@ -53,6 +53,7 @@ static void asinh_close(gboolean revert) {
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				asinh_stretch_value, asinh_black_value);
 	}
+	backup_roi();
 	clear_backup();
 	set_cursor_waiting(FALSE);
 }
@@ -60,7 +61,9 @@ static void asinh_close(gboolean revert) {
 static int asinh_update_preview() {
 	if (asinh_show_preview)
 		copy_backup_to_gfit();
-	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
+	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	asinhlut(fit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
+	notify_gfit_modified();
 	return 0;
 }
 

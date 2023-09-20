@@ -1633,9 +1633,39 @@ void adjust_vport_size_to_image() {
 	}
 }
 
+static void copy_roi_into_gfit() {
+	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
+	size_t npixels_gfit = gfit.rx * gfit.ry;
+	if (gui.roi.fit.type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) collapse(2)
+#endif
+		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				float *destindex = gfit.fdata + (c * npixels_gfit) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
+				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
+			}
+		}
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) collapse(2)
+#endif
+		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				WORD *destindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
+				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
+			}
+		}
+	}
+}
+
 void redraw(remap_type doremap) {
 	if (com.script) return;
 //	siril_debug_print("redraw %d\n", doremap);
+	if (gui.roi.active && (gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data))
+		copy_roi_into_gfit();
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;

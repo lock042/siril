@@ -542,6 +542,19 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	return FALSE;
 }
 
+gpointer on_set_roi() {
+	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	gui.roi.active = TRUE;
+	populate_roi();
+	return GINT_TO_POINTER(0);
+}
+
+gpointer on_clear_roi() {
+	clearfits(&gui.roi.fit);
+	memset(&gui.roi, 0, sizeof(roi_t));
+	return GINT_TO_POINTER(0);
+}
+
 gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 

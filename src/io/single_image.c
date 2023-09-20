@@ -66,6 +66,7 @@ void close_single_image() {
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
 	 */
+	on_clear_roi();
 	free_image_data();
 }
 
