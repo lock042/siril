@@ -78,7 +78,6 @@ static GActionEntry selection_entries[] = {
 	{ "pickstar", pick_star_activate },
 	{ "psf", psf_activate },
 	{ "crop", crop_activate },
-	{ "clear_roi", clear_roi },
 	{ "set_roi", set_roi }
 };
 
@@ -105,7 +104,8 @@ static GActionEntry any_processing_entries[] = {
 	{ "starnet-processing", starnet_activate },
 	{ "fix-banding-processing", fix_banding_activate },
 	{ "cosmetic-processing", cosmetic_activate },
-	{ "background-extr-processing", background_extr_activate }
+	{ "background-extr-processing", background_extr_activate },
+	{ "clear_roi", clear_roi }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
@@ -218,6 +218,7 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *any_mono_processing_actions[] = {
 		"split-cfa-processing",
+		"clear_roi",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_mono_processing_actions, enable);
@@ -264,7 +265,6 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 		"pickstar",
 		"psf",
 		"crop",
-		"clear_roi",
 		"set_roi",
 
 		NULL,

@@ -74,7 +74,7 @@ int backup_roi() {
 	return retval;
 }
 
-static int restore_roi() {
+int restore_roi() {
 	int retval;
 	if ((retval = copyfits(&preview_roi_backup, &gui.roi.fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)))
 		siril_log_message(_("Image copy error in previews\n"));

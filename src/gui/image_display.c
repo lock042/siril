@@ -649,6 +649,21 @@ static void rotate_context(cairo_t *cr, double rotation) {
 	cairo_transform(cr, &transform);
 }
 
+static void draw_roi(const draw_data_t *dd) {
+	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && gui.roi.active) {
+		cairo_t *cr = dd->cr;
+		static double dash_format[] = { 4.0, 2.0 };
+		cairo_set_line_width(cr, 1.5 / dd->zoom);
+		cairo_set_dash(cr, dash_format, 2, 0);
+		cairo_set_source_rgb(cr, 1.0, 0.8, 0.8);
+		cairo_save(cr); // save the original transform
+		cairo_rectangle(cr, (double) gui.roi.selection.x, (double) gui.roi.selection.y,
+						(double) gui.roi.selection.w, (double) gui.roi.selection.h);
+		cairo_stroke(cr);
+		cairo_restore(cr);
+	}
+}
+
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		if ((com.selection.x + com.selection.w > gfit.rx) ||
@@ -1664,7 +1679,7 @@ static void copy_roi_into_gfit() {
 void redraw(remap_type doremap) {
 	if (com.script) return;
 //	siril_debug_print("redraw %d\n", doremap);
-	if (gui.roi.active && (gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data))
+	if (gui.roi.active && ((gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
 	switch (doremap) {
 		case REDRAW_OVERLAY:
@@ -1761,6 +1776,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* selection rectangle */
 	draw_selection(&dd);
+
+	/* ROI */
+	draw_roi(&dd);
 
 	/* cut line */
 	draw_cut_line(&dd);

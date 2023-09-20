@@ -317,7 +317,10 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
+			gboolean tmp_roi_active = gui.roi.active;
+			gui.roi.active = FALSE;
 			redraw(REMAP_ALL);
+			gui.roi.active = tmp_roi_active;
 		}
 		break;
 	case REDO:
@@ -331,7 +334,10 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
+			gboolean tmp_roi_active = gui.roi.active;
+			gui.roi.active = FALSE;
 			redraw(REMAP_ALL);
+			gui.roi.active = tmp_roi_active;
 		}
 		break;
 	default:

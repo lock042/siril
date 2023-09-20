@@ -55,6 +55,7 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
+	backup_roi();
 	siril_close_dialog("denoise_dialog");
 }
 
@@ -140,7 +141,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	//	copy_gfit_to_backup();
 	gboolean suppress_artefacts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_denoise_suppress_artefacts")));
 	denoise_args *args = calloc(1, sizeof(denoise_args));
-	args->fit = &gfit;
+	args->fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	args->da3d = da3d;
 	args->sos = 1;
 	args->rho = sos_rho;
@@ -199,7 +200,8 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (msg3) free(msg3);
 	undo_save_state(&gfit, "%s", log_msg);
 	free(log_msg);
-
+	if (gui.roi.active)
+		restore_roi();
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(run_nlbayes_on_fit, args);
 }

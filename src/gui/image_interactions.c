@@ -32,6 +32,7 @@
 #include "algos/photometry.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/image_format_fits.h"
 #include "gui/open_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
@@ -552,6 +553,7 @@ gpointer on_set_roi() {
 gpointer on_clear_roi() {
 	clearfits(&gui.roi.fit);
 	memset(&gui.roi, 0, sizeof(roi_t));
+	redraw(REDRAW_OVERLAY);
 	return GINT_TO_POINTER(0);
 }
 
