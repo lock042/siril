@@ -2218,15 +2218,17 @@ int process_asinh(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-
+	fits *fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
 	set_cursor_waiting(TRUE);
 	image_cfa_warning_check();
-	asinhlut(&gfit, beta, offset, human_luminance);
+	asinhlut(fit, beta, offset, human_luminance);
 
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
+	if (!com.headless && gui.roi.active)
+		backup_roi();
 	notify_gfit_modified();
 	return CMD_OK;
 }
