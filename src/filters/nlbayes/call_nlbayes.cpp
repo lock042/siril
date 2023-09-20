@@ -146,26 +146,14 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 
       if (do_anscombe && iter == 0) {
         siril_log_message(_("Applying Anscombe VST\n"));
-        if (nchans == 1) {
-          // Mono images
-          transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
-               bind(multiplies<float>(), std::placeholders::_1, 65536.f));
-          sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
-          fSigma = (float) intermediate_bgnoise;
-          generalized_anscombe_array(bgr_v.data(), 0.f, fSigma, 1.f, imSize.whc);
-          sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
-          fSigma = (float) intermediate_bgnoise;
-        } else {
-          // RGB images
-          transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
-               bind(multiplies<float>(), std::placeholders::_1, 65536.f));
-          generalized_anscombe_array(bgr_v.data(), 0.f, 0.f, 1.f, imSize.whc);
-          float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
-          transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
-               bind(divides<float>(), std::placeholders::_1, norm));
-          sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
-          fSigma = (float) intermediate_bgnoise;
-        }
+        transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
+              bind(multiplies<float>(), std::placeholders::_1, 65536.f));
+        generalized_anscombe_array(bgr_v.data(), 0.f, 0.f, 1.f, imSize.whc);
+        float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
+        transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
+              bind(divides<float>(), std::placeholders::_1, norm));
+        sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
+        fSigma = (float) intermediate_bgnoise;
       }
       // Operate the NL-Bayes algorithm
       if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS)
@@ -173,20 +161,12 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 
       if (do_anscombe && iter == 0) {
         siril_log_message(_("Applying exact unbiased inverse Anscombe VST\n"));
-        if (nchans == 1) {
-          // Inverse transform for mono images
-          inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, fSigma, 1.f, imSize.whc);
-          transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
-               bind(divides<float>(), std::placeholders::_1, 65536.f));
-
-        } else {
-          float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
-          transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
-               bind(multiplies<float>(), std::placeholders::_1, norm));
-          inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, 0.f, 1.f, imSize.whc);
-          transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
-               bind(divides<float>(), std::placeholders::_1, 65536.f));
-        }
+        float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
+        transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
+              bind(multiplies<float>(), std::placeholders::_1, norm));
+        inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, 0.f, 1.f, imSize.whc);
+        transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
+              bind(divides<float>(), std::placeholders::_1, 65536.f));
       }
 
       // Subtraction step to produce input for next iteration. Not performed on the final iteration.
