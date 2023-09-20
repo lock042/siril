@@ -28,6 +28,8 @@
 #include "gui/utils.h"
 #include "gui/siril_preview.h"
 #include "gui/dialogs.h"
+#include "gui/callbacks.h"
+#include "gui/image_display.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/command.h"
@@ -44,18 +46,17 @@ gboolean do_cosme = TRUE;
 gboolean suppress_artefacts = FALSE;
 
 void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
+	roi_supported(TRUE);
 	da3d = 0;
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
 	denoise_modulation = 1.f;
 	gtk_spin_button_set_value(spin_denoise_modulation, denoise_modulation);
-	if (gfit.naxes[2] == 3)
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("denoise_artefact_control")), TRUE);
-	else
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("denoise_artefact_control")), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("denoise_artefact_control")), (gfit.naxes[2] == 3));
 }
 
 void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
 	backup_roi();
+	roi_supported(FALSE);
 	siril_close_dialog("denoise_dialog");
 }
 

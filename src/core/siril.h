@@ -576,6 +576,7 @@ typedef struct roi_t {
 	fits fit;
 	rectangle selection;
 	gboolean active;
+	gboolean operation_supports_roi;
 } roi_t;
 
 typedef struct draw_data {

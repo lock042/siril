@@ -40,6 +40,7 @@ static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
 static gboolean asinh_show_preview;
 
 static void asinh_startup() {
+	roi_supported(TRUE);
 	copy_gfit_to_backup();
 }
 
@@ -54,6 +55,7 @@ static void asinh_close(gboolean revert) {
 				asinh_stretch_value, asinh_black_value);
 	}
 	backup_roi();
+	roi_supported(FALSE);
 	clear_backup();
 	set_cursor_waiting(FALSE);
 }

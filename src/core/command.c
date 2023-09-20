@@ -1490,6 +1490,8 @@ int process_deconvolve(int nb, nonblind_t type) {
 		free(data);
 		return CMD_ARG_ERROR;
 	}
+
+	data->command_pass_obey_roi = (!com.headless && gui.roi.active);
 	// Guess the user's intentions for a kernel:
 	// Order of preference is: if a PSF has specifically been loaded, use that, else
 	// if com.stars is populated, assume the user wants to make a PSF from stars and

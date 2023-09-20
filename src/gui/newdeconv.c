@@ -42,6 +42,7 @@
 #include "core/undo.h"
 #include "core/OS_utils.h"
 #include "gui/utils.h"
+#include "gui/siril_preview.h"
 #include "gui/progress_and_log.h"
 #include "gui/newdeconv.h"
 #include "gui/newdeconv_fit.h"
@@ -158,6 +159,7 @@ void reset_conv_args(estk_data* args) {
 	args->rl_method = RL_GD;
 	args->stepsize = 0.0003f;
 	args->regtype = REG_TV_GRAD;
+	args->command_pass_obey_roi = FALSE;
 }
 
 void reset_conv_kernel() {
@@ -480,6 +482,7 @@ void on_bdeconv_psfprevious_toggled(GtkToggleButton *button, gpointer user_data)
 void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 	if (sequence_is_running == 0)
 		reset_conv_controls_and_args();
+	roi_supported(FALSE);
 	siril_close_dialog("bdeconv_dialog");
 }
 
@@ -570,6 +573,7 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
+	roi_supported(TRUE);
 	reset_conv_controls_and_args();
 	if (com.kernel && com.kernelsize > 0) {
 		args.psftype = PSF_PREVIOUS;
@@ -1093,6 +1097,8 @@ void set_deconvolve_params() {
 
 gboolean deconvolve_idle(gpointer arg) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	if (gui.roi.active)
+		backup_roi();
 	free(args.fdata);
 	args.fdata = NULL;
 	update_zoom_label();
@@ -1115,6 +1121,8 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
+	if (args.command_pass_obey_roi)
+		the_fit = &gui.roi.fit;
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
 	if (sequence_is_running == 0)

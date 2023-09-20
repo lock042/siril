@@ -280,6 +280,11 @@ int populate_roi() {
 	return retval;
 }
 
+void roi_supported(gboolean state) {
+	gui.roi.operation_supports_roi = state;
+	redraw(REDRAW_OVERLAY);
+}
+
 static void initialize_theme_GUI() {
 	GtkComboBox *box;
 

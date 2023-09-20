@@ -650,12 +650,18 @@ static void rotate_context(cairo_t *cr, double rotation) {
 }
 
 static void draw_roi(const draw_data_t *dd) {
+	double r, g, b;
+	if (gui.roi.operation_supports_roi) {
+		r = 0.6; g = 0.6; b = 1.0;
+	} else {
+		r = 1.0; g = 0.8; b = 0.8;
+	}
 	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && gui.roi.active) {
 		cairo_t *cr = dd->cr;
 		static double dash_format[] = { 4.0, 2.0 };
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 		cairo_set_dash(cr, dash_format, 2, 0);
-		cairo_set_source_rgb(cr, 1.0, 0.8, 0.8);
+		cairo_set_source_rgb(cr, r, g, b);
 		cairo_save(cr); // save the original transform
 		cairo_rectangle(cr, (double) gui.roi.selection.x, (double) gui.roi.selection.y,
 						(double) gui.roi.selection.w, (double) gui.roi.selection.h);
