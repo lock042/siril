@@ -102,7 +102,7 @@ void reset_conv_args(estk_data* args) {
 	args->stars_need_clearing = FALSE;
 	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
-	the_fit = &gfit;
+	the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
 	imageorientation = get_imageorientation();
 	args->fdata = NULL;
 	args->rx = 0;
@@ -1171,7 +1171,7 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	if (the_fit == &gfit)
+	if (the_fit == &gfit || the_fit == &gui.roi.fit)
 		if (!com.script && !com.headless)
 			undo_save_state(&gfit, _("Deconvolution"));
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
@@ -1330,7 +1330,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
-		the_fit = &gfit;
+		the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
 		start_in_new_thread(deconvolve, NULL);
 	}
 }
@@ -1341,7 +1341,8 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	if(!sequence_is_loaded())
-		the_fit = &gfit;
+		the_fit = &gfit; // The blind estimate is still always done on the whole image.
+		// TODO: consider if this should be done on the ROI if active...
 	if(!com.headless)
 		set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	if (args.psftype == PSF_STARS || args.psftype == PSF_BLIND)
