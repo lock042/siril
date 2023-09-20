@@ -60,6 +60,15 @@ static void asinh_close(gboolean revert) {
 	set_cursor_waiting(FALSE);
 }
 
+static int asinh_process_all() {
+	if (asinh_show_preview)
+		copy_backup_to_gfit();
+	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
+	populate_roi();
+	notify_gfit_modified();
+	return 0;
+}
+
 static int asinh_update_preview() {
 	if (asinh_show_preview)
 		copy_backup_to_gfit();
@@ -237,11 +246,8 @@ void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (asinh_show_preview == FALSE) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = asinh_update_preview;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
+	if (asinh_show_preview == FALSE || gui.roi.active) {
+		asinh_process_all();
 	}
 
 	apply_asinh_changes();
