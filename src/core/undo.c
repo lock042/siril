@@ -313,6 +313,7 @@ int undo_display_data(int dir) {
 			com.hist_display--;
 			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
 			undo_get_data(&gfit, &com.history[com.hist_display]);
+			populate_roi();
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
@@ -330,6 +331,7 @@ int undo_display_data(int dir) {
 			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
 			com.hist_display++;
 			undo_get_data(&gfit, &com.history[com.hist_display]);
+			populate_roi();
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();

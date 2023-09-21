@@ -234,6 +234,8 @@ void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 int populate_roi() {
+	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
+		return 1;
 	int retval = 0;
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	size_t npixels_gfit = gfit.rx * gfit.ry;

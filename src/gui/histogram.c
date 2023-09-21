@@ -137,6 +137,7 @@ static void init_toggles() {
 static void histo_startup() {
 	add_roi_callback(change_between_roi_and_image);
 	roi_supported(TRUE);
+	copy_gfit_to_backup();
 	if (fit->naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
 		setup_hsl();
 
@@ -158,7 +159,6 @@ static void histo_startup() {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
 	}
-	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();
 	for (int i = 0; i < fit->naxes[2]; i++)
@@ -1174,7 +1174,17 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 	} else {
 		// the apply button resets everything after recomputing with the current values
+		if (histo_show_preview == FALSE || gui.roi.active) {
+			fit = &gfit;
+			copy_backup_to_gfit();
+			if (_payne_colourstretchmodel == COL_SAT) {
+				clear_hsl();
+				setup_hsl();
+			}
+		}
 		histo_recompute();
+		fit = gui.roi.active ? &gui.roi.fit : &gfit;
+		populate_roi();
 		// partial cleanup
 		if (invocation == HISTO_STRETCH) {
 			siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
