@@ -29,6 +29,7 @@
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
+#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
@@ -44,6 +45,7 @@ static int satu_hue_type;
 static gboolean satu_show_preview;
 
 static void satu_startup() {
+	roi_supported(TRUE);
 	copy_gfit_to_backup();
 	satu_amount = 0.0;
 	satu_hue_type = 6;
@@ -57,6 +59,8 @@ static void satu_close(gboolean revert) {
 		undo_save_state(get_preview_gfit_backup(),
 				_("Saturation enhancement (amount=%4.2lf)"), satu_amount);
 	}
+	backup_roi();
+	roi_supported(FALSE);
 	clear_backup();
 	notify_gfit_modified();
 }
@@ -99,6 +103,31 @@ void satu_set_hues_from_types(struct enhance_saturation_data *args, int type) {
 	}
 }
 
+static int satu_process_all() {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	set_cursor_waiting(TRUE);
+	if (satu_show_preview)
+		copy_backup_to_gfit();
+
+	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	satu_set_hues_from_types(args, satu_hue_type);
+
+	args->input = &gfit;
+	args->output = &gfit;
+	args->coeff = satu_amount;
+	args->background_factor = background_factor;
+	args->for_preview = TRUE;
+	args->for_final = TRUE;
+
+	start_in_new_thread(enhance_saturation, args);
+
+	return 0;
+}
+
 static int satu_update_preview() {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -106,15 +135,19 @@ static int satu_update_preview() {
 	}
 
 	set_cursor_waiting(TRUE);
+	if (satu_show_preview)
+		copy_backup_to_gfit();
+	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
 
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
-	args->input = satu_show_preview ? get_preview_gfit_backup() : &gfit;
-	args->output = &gfit;
+	args->input = fit;
+	args->output = fit;
 	args->coeff = satu_amount;
 	args->background_factor = background_factor;
 	args->for_preview = TRUE;
+	args->for_final = FALSE;
 
 	start_in_new_thread(enhance_saturation, args);
 
@@ -127,11 +160,8 @@ void on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (satu_show_preview == FALSE) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = satu_update_preview;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
+	if (satu_show_preview == FALSE || gui.roi.active) {
+		satu_process_all();
 	}
 
 	apply_satu_changes();
@@ -275,8 +305,10 @@ gpointer enhance_saturation(gpointer p) {
 			round_to_int(args->coeff * 100.0), args->background_factor);
 		args->output->history = g_slist_append(args->output->history, strdup(log));
 
-		notify_gfit_modified();
 	}
+	if (args->for_final)
+		populate_roi();
+	notify_gfit_modified();
 
 	free(args);
 	return GINT_TO_POINTER(retval);

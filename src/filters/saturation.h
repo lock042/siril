@@ -7,7 +7,7 @@
 struct enhance_saturation_data {
 	fits *input, *output;
 	double coeff, h_min, h_max, background_factor;
-	gboolean for_preview;
+	gboolean for_preview, for_final;
 };
 
 void apply_satu_cancel();
