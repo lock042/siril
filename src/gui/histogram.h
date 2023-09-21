@@ -30,6 +30,7 @@ typedef enum {
 
 gsl_histogram* computeHisto(fits*, int);
 gsl_histogram* computeHisto_Selection(fits*, int, rectangle *);
+void change_between_roi_and_image();
 void compute_histo_for_gfit();
 void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();

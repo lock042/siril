@@ -68,7 +68,7 @@
 #include "siril-window.h"
 #include "registration_preview.h"
 
-
+static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
@@ -280,6 +280,23 @@ int populate_roi() {
 	return retval;
 }
 
+static void call_roi_callbacks() {
+	GList *current = roi_callbacks;
+	while (current != NULL) {
+		ROICallback func = (ROICallback)(current->data);
+		func();
+		current = current->next;
+	}
+}
+
+void add_roi_callback(ROICallback func) {
+	roi_callbacks = g_list_append(roi_callbacks, func);
+}
+
+void remove_roi_callback(ROICallback func) {
+	roi_callbacks = g_list_remove(roi_callbacks, func);
+}
+
 void roi_supported(gboolean state) {
 	gui.roi.operation_supports_roi = state;
 	redraw(REDRAW_OVERLAY);
@@ -289,12 +306,16 @@ gpointer on_set_roi() {
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
 	gui.roi.active = TRUE;
 	populate_roi();
+	// Call any callbacks that need calling
+	call_roi_callbacks();
 	return GINT_TO_POINTER(0);
 }
 
 gpointer on_clear_roi() {
 	clearfits(&gui.roi.fit);
 	memset(&gui.roi, 0, sizeof(roi_t));
+	// Call any callbacks that need calling
+	call_roi_callbacks();
 	redraw(REDRAW_OVERLAY);
 	return GINT_TO_POINTER(0);
 }
