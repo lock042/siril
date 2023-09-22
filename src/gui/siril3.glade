@@ -6502,6 +6502,24 @@ enter a visible wavelength in nm</property>
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="bdeconv_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Generate the kernel and use it to deconvolve the current image or sequence</property>
+                <signal name="clicked" handler="on_bdeconv_roi_preview_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="bdeconv_apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>

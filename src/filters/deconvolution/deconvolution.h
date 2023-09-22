@@ -97,7 +97,7 @@ EXTERNC typedef struct estk_data {
 	char* savepsf_filename; // for the makepsf -savepsf= option
 	gboolean recalc_ks; // for the makepsf stars option
 	gboolean stars_need_clearing; // for the makepsf stars option
-	gboolean command_pass_obey_roi;
+	gboolean previewing;
 } estk_data;
 
 #ifdef __cplusplus
