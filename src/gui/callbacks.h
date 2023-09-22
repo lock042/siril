@@ -15,6 +15,7 @@ gpointer on_set_roi();
 gpointer on_clear_roi();
 void add_roi_callback(ROICallback func);
 void remove_roi_callback(ROICallback func);
+void update_roi_config();
 
 void roi_supported(gboolean state);
 void initialize_all_GUI(gchar *files);

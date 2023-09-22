@@ -143,7 +143,8 @@ preferences pref_init = {
 		.reg_settings = 0,
 		.reg_interpolation = OPENCV_LANCZOS4,
 		.reg_clamping = TRUE,
-		.pm_presets = NULL
+		.pm_presets = NULL,
+		.roi_mode = ROI_MANUAL
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -384,6 +385,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
+	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },

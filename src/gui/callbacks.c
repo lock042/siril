@@ -843,6 +843,27 @@ void update_display_selection() {
 	}
 }
 
+static void update_roi_from_selection() {
+	restore_roi();
+	copy_roi_into_gfit();
+	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	gui.roi.active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
+	if (gui.roi.active)
+		on_set_roi();
+	else
+		on_clear_roi();
+}
+
+void update_roi_config() {
+	if (com.pref.gui.roi_mode == ROI_AUTO)
+		register_selection_update_callback(update_roi_from_selection);
+	else
+		unregister_selection_update_callback(update_roi_from_selection);
+
+	gtk_widget_set_visible(lookup_widget("menu_gray_set_selection_to_roi"), com.pref.gui.roi_mode == ROI_MANUAL);
+	gtk_widget_set_visible(lookup_widget("menu_gray_clear_roi"), com.pref.gui.roi_mode == ROI_MANUAL);
+}
+
 void update_display_fwhm() {
 	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb" };
 	static gchar fwhm_buffer[256] = { 0 };
@@ -1454,6 +1475,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_FITS_name_entries();
 
 	initialize_log_tags();
+
+	/* Initialize ROI settings */
+	update_roi_config();
 
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);
