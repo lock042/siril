@@ -48,7 +48,7 @@ enum {
 	TYPE_REGULAR
 };
 
-static unsigned strategy;
+static unsigned strategy = 0;
 
 static void fft_to_spectra(fftwf_complex *frequency_repr, float *as, float *ps,
 		float *maxi, size_t nbdata) {
