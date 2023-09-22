@@ -135,7 +135,7 @@ static void init_toggles() {
 }
 
 static void histo_startup() {
-	add_roi_callback(change_between_roi_and_image);
+	add_roi_callback(histo_change_between_roi_and_image);
 	roi_supported(TRUE);
 	copy_gfit_to_backup();
 	if (fit->naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
@@ -191,7 +191,7 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	clear_backup();
 	clear_hist_backup();
 	roi_supported(FALSE);
-	remove_roi_callback(change_between_roi_and_image);
+	remove_roi_callback(histo_change_between_roi_and_image);
 }
 
 static void hsl_to_gfit (float* h, float* s, float* l) {
@@ -995,7 +995,7 @@ static void clear_hsl() {
 
 /* Callback functions */
 
-void change_between_roi_and_image() {
+void histo_change_between_roi_and_image() {
 	// This should be called if the ROI is set, changed or cleared to ensure the
 	// histogram dialog continues to process the right data. Especially important
 	// in GHT saturation stretch mode.

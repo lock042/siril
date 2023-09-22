@@ -39,7 +39,25 @@ static gboolean asinh_rgb_space = FALSE;
 static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
 static gboolean asinh_show_preview;
 
+static int asinh_update_preview() {
+	if (asinh_show_preview)
+		copy_backup_to_gfit();
+	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	asinhlut(fit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
+	notify_gfit_modified();
+	return 0;
+}
+
+void asinh_change_between_roi_and_image() {
+	// If we are showing the preview, update it after the ROI change.
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = asinh_update_preview;
+	param->show_preview = asinh_show_preview;
+	notify_update((gpointer) param);
+}
+
 static void asinh_startup() {
+	add_roi_callback(asinh_change_between_roi_and_image);
 	roi_supported(TRUE);
 	copy_gfit_to_backup();
 }
@@ -56,6 +74,7 @@ static void asinh_close(gboolean revert) {
 	}
 	backup_roi();
 	roi_supported(FALSE);
+	remove_roi_callback(asinh_change_between_roi_and_image);
 	clear_backup();
 	set_cursor_waiting(FALSE);
 }
@@ -65,15 +84,6 @@ static int asinh_process_all() {
 		copy_backup_to_gfit();
 	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	populate_roi();
-	notify_gfit_modified();
-	return 0;
-}
-
-static int asinh_update_preview() {
-	if (asinh_show_preview)
-		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
-	asinhlut(fit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	notify_gfit_modified();
 	return 0;
 }

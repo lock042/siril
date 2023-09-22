@@ -43,9 +43,19 @@
 static double satu_amount, background_factor;
 static int satu_hue_type;
 static gboolean satu_show_preview;
+static int satu_update_preview();
+
+void satu_change_between_roi_and_image() {
+	// If we are showing the preview, update it after the ROI change.
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = satu_update_preview;
+	param->show_preview = satu_show_preview;
+	notify_update((gpointer) param);
+}
 
 static void satu_startup() {
 	roi_supported(TRUE);
+	add_roi_callback(satu_change_between_roi_and_image);
 	copy_gfit_to_backup();
 	satu_amount = 0.0;
 	satu_hue_type = 6;
@@ -61,6 +71,7 @@ static void satu_close(gboolean revert) {
 	}
 	backup_roi();
 	roi_supported(FALSE);
+	remove_roi_callback(satu_change_between_roi_and_image);
 	clear_backup();
 	notify_gfit_modified();
 }
@@ -335,7 +346,7 @@ void on_combo_saturation_changed(GtkComboBox* box, gpointer user_data) {
 	satu_hue_type = gtk_combo_box_get_active(box);
 
 	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = 	satu_update_preview;
+	param->update_preview_fn = satu_update_preview;
 	param->show_preview = satu_show_preview;
 	notify_update((gpointer) param);
 }
