@@ -996,16 +996,20 @@ static void clear_hsl() {
 /* Callback functions */
 
 void change_between_roi_and_image() {
-	fit = gui.roi.active ? &gui.roi.fit : &gfit;
-	copy_backup_to_gfit();
 	// This should be called if the ROI is set, changed or cleared to ensure the
 	// histogram dialog continues to process the right data. Especially important
 	// in GHT saturation stretch mode.
+	fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	if (_payne_colourstretchmodel == COL_SAT) {
 		clear_hsl();
 		setup_hsl();
 	}
-
+	update_histo_mtf();
+	// If we are showing the preview, update it after the ROI change.
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = histo_show_preview;
+	notify_update((gpointer) param);
 }
 
 gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
