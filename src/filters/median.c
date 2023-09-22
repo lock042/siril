@@ -29,6 +29,8 @@
 #include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
+#include "gui/callbacks.h"
+#include "gui/siril_preview.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
@@ -39,13 +41,20 @@
 #include "median.h"
 #include "algos/median_fast.h"
 
+void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
+	roi_supported(TRUE);
+}
+
 void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
+	backup_roi();
+	roi_supported(FALSE);
 	siril_close_dialog("Median_dialog");
 }
 
 void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+
 	int combo_size = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(
 				gtk_builder_get_object(gui.builder, "combo_ksize_median")));
@@ -87,7 +96,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
 			args->ksize, args->ksize);
 
-	args->fit = &gfit;
+	args->fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	args->amount = amount;
 	args->iterations = iterations;
 	set_cursor_waiting(TRUE);
