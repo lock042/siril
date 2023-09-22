@@ -27,6 +27,7 @@
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
+#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
@@ -151,6 +152,7 @@ gpointer scnr(gpointer p) {
 }
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
+	roi_supported(TRUE);
 	GtkComboBox *comboscnr = GTK_COMBO_BOX(
 			gtk_builder_get_object(gui.builder, "combo_scnr"));
 	int type = gtk_combo_box_get_active(comboscnr);
@@ -177,7 +179,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
 			scnr_type_to_string(type), amount, preserve ? "true" : "false");
 
-	args->fit = &gfit;
+	args->fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	args->type = type;
 	args->amount = amount;
 	args->preserve = preserve;
@@ -186,6 +188,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
+	roi_supported(FALSE);
 	siril_close_dialog("SCNR_dialog");
 }
 
