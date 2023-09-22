@@ -69,7 +69,7 @@ static void free_struct(gpointer user_data) {
 int backup_roi() {
 	int retval;
 	if ((retval = copyfits(&gui.roi.fit, &preview_roi_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)))
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in ROI\n");
 
 	return retval;
 }
@@ -77,18 +77,18 @@ int backup_roi() {
 int restore_roi() {
 	int retval;
 	if ((retval = copyfits(&preview_roi_backup, &gui.roi.fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)))
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in ROI\n");
 
 	return retval;
 }
 
 void copy_gfit_to_backup() {
 	if (copyfits(&gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
 	if (gui.roi.active && backup_roi()) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in ROI\n");
 		return;
 	}
 	preview_is_active = TRUE;
@@ -100,11 +100,11 @@ int copy_backup_to_gfit() {
 		retval = 1;
 	else {
 		if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1)) {
-			siril_log_message(_("Image copy error in previews\n"));
+			siril_debug_print("Image copy error in previews\n");
 			retval = 1;
 		}
 		if (gui.roi.active && restore_roi()) {
-			siril_log_message(_("Image copy error in previews\n"));
+			siril_debug_print("Image copy error in ROI\n");
 			retval = 1;
 		}
 	}

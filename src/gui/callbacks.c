@@ -308,7 +308,7 @@ gpointer on_set_roi() {
 	// Ensure any pending ROI changes are overwritten by the backup
 	// Must copy the whole backup to gfit and gui.roi.fit to account
 	// for switching between full image and ROI
-	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0)
+	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
 		copy_backup_to_gfit();
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
 	gui.roi.active = TRUE;
@@ -849,8 +849,10 @@ void update_display_selection() {
 }
 
 static void update_roi_from_selection() {
-	restore_roi();
-	copy_roi_into_gfit();
+	if (gui.roi.active) {
+		restore_roi();
+		copy_roi_into_gfit();
+	}
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
 	gui.roi.active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
 	if (gui.roi.active)
