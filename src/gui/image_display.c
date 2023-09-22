@@ -1656,6 +1656,8 @@ void adjust_vport_size_to_image() {
 
 void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
+	if (npixels_roi == 0)
+		return;
 	size_t npixels_gfit = gfit.rx * gfit.ry;
 	if (gui.roi.fit.type == DATA_FLOAT) {
 #ifdef _OPENMP
