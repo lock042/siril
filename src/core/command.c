@@ -475,7 +475,7 @@ int process_denoise(int nb){
 	args->do_anscombe = FALSE;
 	args->do_cosme = TRUE;
 	args->suppress_artefacts = FALSE;
-	args->fit = !com.headless && gui.roi.active ? &gui.roi.fit : &gfit;
+	args->fit = &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
@@ -1490,8 +1490,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 		free(data);
 		return CMD_ARG_ERROR;
 	}
-
-	data->command_pass_obey_roi = (!com.headless && gui.roi.active);
 	// Guess the user's intentions for a kernel:
 	// Order of preference is: if a PSF has specifically been loaded, use that, else
 	// if com.stars is populated, assume the user wants to make a PSF from stars and
@@ -2220,17 +2218,15 @@ int process_asinh(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	fits *fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
+
 	set_cursor_waiting(TRUE);
 	image_cfa_warning_check();
-	asinhlut(fit, beta, offset, human_luminance);
+	asinhlut(&gfit, beta, offset, human_luminance);
 
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	if (!com.headless && gui.roi.active)
-		backup_roi();
 	notify_gfit_modified();
 	return CMD_OK;
 }
