@@ -45,8 +45,17 @@ gboolean do_anscombe = FALSE;
 gboolean do_cosme = TRUE;
 gboolean suppress_artefacts = FALSE;
 
+void denoise_roi_callback() {
+	gtk_widget_set_visible(lookup_widget("denoise_roi_preview"), gui.roi.active);
+	copy_backup_to_gfit();
+	notify_gfit_modified();
+}
+
 void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
+	copy_gfit_to_backup();
 	roi_supported(TRUE);
+	denoise_roi_callback();
+	add_roi_callback(denoise_roi_callback);
 	da3d = 0;
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
 	denoise_modulation = 1.f;
@@ -55,8 +64,9 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
-	backup_roi();
 	roi_supported(FALSE);
+	siril_preview_hide();
+	remove_roi_callback(denoise_roi_callback);
 	siril_close_dialog("denoise_dialog");
 }
 
@@ -142,7 +152,9 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	//	copy_gfit_to_backup();
 	gboolean suppress_artefacts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_denoise_suppress_artefacts")));
 	denoise_args *args = calloc(1, sizeof(denoise_args));
-	args->fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	args->previewing = ((GtkWidget*) button == lookup_widget("denoise_roi_preview"));
+	siril_debug_print("Previewing: %d\n", args->previewing);
+	args->fit = (gui.roi.active && args->previewing) ? &gui.roi.fit : &gfit;
 	args->da3d = da3d;
 	args->sos = 1;
 	args->rho = sos_rho;
@@ -157,50 +169,6 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 		free(args);
 		return;
 	}
-	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;
-	int n = 0, m = 0, q = 0;
-	n = snprintf(NULL, 0, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
-	msg1 = malloc(n + 1);
-	n = snprintf(msg1, n + 1, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
-	if (args->da3d) {
-		m = snprintf(NULL, 0, _(", DA3D enabled"));
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", DA3D enabled"));
-	} else if (args->sos > 1) {
-		m = snprintf(NULL, 0, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
-	} else if (args->do_anscombe) {
-		m = snprintf(NULL, 0, _(", VST enabled"));
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", VST enabled"));
-	}
-	if (args->do_cosme) {
-		q = snprintf(NULL, 0, _(", CC enabled)"));
-		msg3 = malloc(q + 1);
-		q = snprintf(msg3, q + 1, _(", CC enabled)"));
-	} else {
-		q = 1;
-		msg3 = malloc(q + 1);
-		q = snprintf(msg3, q + 1, _(")"));
-	}
-	log_msg = malloc(n + m + q + 1);
-	if (m == 0 && q == 0)
-		snprintf(log_msg, n + 1, "%s", msg1);
-	else if (m > 0 && q == 0)
-		snprintf(log_msg, n + m + 1, "%s%s", msg1, msg2);
-	else if (m == 0 && q > 0)
-		snprintf(log_msg, n + q + 1, "%s%s", msg1, msg3);
-	else if (m > 0 && q > 0)
-		snprintf(log_msg, n + m + q + 1, "%s%s%s", msg1, msg2, msg3);
-	else
-		snprintf(log_msg, 26, "Error, this can't happen!");
-
-	if (msg1) free(msg1);
-	if (msg2) free(msg2);
-	if (msg3) free(msg3);
-	undo_save_state(&gfit, "%s", log_msg);
-	free(log_msg);
 	if (gui.roi.active)
 		restore_roi();
 	control_window_switch_to_tab(OUTPUT_LOGS);

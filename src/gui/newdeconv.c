@@ -1364,7 +1364,6 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		seqargs->seqEntry = strdup(gtk_entry_get_text(deconvolutionSeqEntry));
 		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
 			seqargs->seqEntry = strdup("dec_");
-
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
 		copy_backup_to_gfit();

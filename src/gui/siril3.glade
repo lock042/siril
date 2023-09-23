@@ -8856,6 +8856,24 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="denoise_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Apply</property>
+                <signal name="clicked" handler="on_denoise_apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="denoise_apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -8870,7 +8888,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>

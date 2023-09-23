@@ -52,6 +52,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/undo.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
@@ -344,6 +345,10 @@ int process_unclip(int nb) {
 
 static gboolean end_denoise(gpointer p) {
 	struct denoise_args *args = (struct denoise_args *) p;
+	if (!args->previewing) {
+		copy_gfit_to_backup();
+		populate_roi();
+	}
 	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -354,6 +359,7 @@ static gboolean end_denoise(gpointer p) {
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
+	copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
 	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;
@@ -400,6 +406,8 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	if (msg3) free(msg3);
 
 	siril_log_message("%s\n", log_msg);
+	if (!args->previewing && !com.script)
+		undo_save_state(&gfit, "%s", log_msg);
 	if (args->suppress_artefacts)
 		siril_log_message(_("Colour artefact suppression active.\n"));
 	free(log_msg);
@@ -455,12 +463,12 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	} else {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
-	if (args->fit == &gfit)
-		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	siril_add_idle(end_denoise, args);
+	if (com.script && args->fit == &gfit)
+		notify_gfit_modified();
 	return GINT_TO_POINTER(retval);
 }
 
@@ -475,6 +483,7 @@ int process_denoise(int nb){
 	args->do_anscombe = FALSE;
 	args->do_cosme = TRUE;
 	args->suppress_artefacts = FALSE;
+	args->previewing = FALSE;
 	args->fit = &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
