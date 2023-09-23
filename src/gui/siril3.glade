@@ -2066,6 +2066,23 @@ artifacts may appear.</property>
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="Median_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_Median_roi_preview_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="Median_Apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -2080,7 +2097,7 @@ artifacts may appear.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -2290,6 +2307,7 @@ If the parameters is null, so no filter is apply at all.</property>
       </object>
     </child>
     <action-widgets>
+      <action-widget response="0">Median_roi_preview</action-widget>
       <action-widget response="0">Median_Apply</action-widget>
     </action-widgets>
   </object>
