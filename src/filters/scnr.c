@@ -31,6 +31,7 @@
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
+#include "gui/siril_preview.h" // For copy_gfit_to_backup() etc
 #include "gui/utils.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
@@ -60,6 +61,13 @@ gpointer scnr(gpointer p) {
 	struct timeval t_start, t_end;
 	double norm = get_normalized_value(args->fit);
 	double invnorm = 1.0 / norm;
+	// Ensure we are starting with a fresh copy of gfit with no previous
+	// ROI preview data
+	copy_backup_to_gfit();
+	// If we aren't being run from a command or ROI previewing, set undo state
+	if (!com.script && !args->previewing)
+		undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
+			scnr_type_to_string(args->type), args->amount, args->preserve ? "true" : "false");
 
 	siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
 			"green", scnr_type_to_string(args->type),
@@ -143,6 +151,14 @@ gpointer scnr(gpointer p) {
 	if (args->preserve && nb_above_1)
 		siril_log_message("%d pixels were truncated to a maximum value of 1\n", nb_above_1);
 
+	// If we are not previewing, we now update the backup *and the ROI*
+	// This must be done before notify_gfit_modified() is called or the ROI will
+	// be drawn with the old data
+	if (!args->previewing) {
+		copy_gfit_to_backup();
+		populate_roi();
+	}
+
 	free(args);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -151,14 +167,39 @@ gpointer scnr(gpointer p) {
 	return GINT_TO_POINTER(error);
 }
 
+void scnr_roi_callback() {
+	// Sets the visbility of the ROI preview button
+	gtk_widget_set_visible(lookup_widget("SCNR_roi_preview"), gui.roi.active);
+	// The next 2 lines ensure gfit looks fresh again and there isn't the
+	// remains of an old preview in the wrong place
+	copy_backup_to_gfit();
+	notify_gfit_modified();
+}
+
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
+	// Notify the overlay that this dialog supports ROI processing
 	roi_supported(TRUE);
+	// Call this directly on dialog start to set the ROI preview visibility
+	scnr_roi_callback();
+	// Set up the backup (this is used to go back to a fresh copy of the
+	// image after abandoning a ROI preview)
+	copy_gfit_to_backup();
 	GtkComboBox *comboscnr = GTK_COMBO_BOX(
 			gtk_builder_get_object(gui.builder, "combo_scnr"));
 	int type = gtk_combo_box_get_active(comboscnr);
 
 	if (type == -1)
 		gtk_combo_box_set_active(comboscnr, 0);
+}
+
+void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
+	// Notify the overlay that we are leaving a dialog that supports ROI
+	roi_supported(FALSE);
+	// Get rid of the gfit backup
+	siril_preview_hide();
+	// Remove the callback
+	remove_roi_callback(scnr_roi_callback);
+	siril_close_dialog("SCNR_dialog");
 }
 
 void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
@@ -176,20 +217,19 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
-	undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
-			scnr_type_to_string(type), amount, preserve ? "true" : "false");
+	// Tell the threaded function if this is a preview or for real
+	args->previewing = ((GtkWidget*) button == lookup_widget("SCNR_roi_preview"));
+	// undo_save_state(...) // We don't do this here, it has to be done
+	// in the thread after copy_gfit_to_backup
 
-	args->fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	// The fit to be operated on depends on if we are previewing with a ROI
+	// active or carrying out the final operation on gfit
+	args->fit = (args->previewing && gui.roi.active) ? &gui.roi.fit : &gfit;
 	args->type = type;
 	args->amount = amount;
 	args->preserve = preserve;
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(scnr, args);
-}
-
-void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
-	roi_supported(FALSE);
-	siril_close_dialog("SCNR_dialog");
 }
 
 void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {

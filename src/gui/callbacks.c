@@ -296,7 +296,7 @@ void add_roi_callback(ROICallback func) {
 }
 
 void remove_roi_callback(ROICallback func) {
-	roi_callbacks = g_list_remove(roi_callbacks, func);
+	roi_callbacks = g_list_remove_all(roi_callbacks, func);
 }
 
 void roi_supported(gboolean state) {

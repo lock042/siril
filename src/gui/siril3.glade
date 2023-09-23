@@ -5961,6 +5961,23 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="SCNR_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_SCNR_Apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="SCNR_Apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -5975,7 +5992,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -6112,6 +6129,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
       </object>
     </child>
     <action-widgets>
+      <action-widget response="0">SCNR_roi_preview</action-widget>
       <action-widget response="0">SCNR_Apply</action-widget>
     </action-widgets>
   </object>
