@@ -449,4 +449,3 @@ void notify_gfit_modified() {
 
 	siril_add_idle(end_gfit_operation, NULL);
 }
-

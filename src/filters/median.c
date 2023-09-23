@@ -41,13 +41,23 @@
 #include "median.h"
 #include "algos/median_fast.h"
 
+void median_roi_callback() {
+	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
+	copy_backup_to_gfit();
+	notify_gfit_modified();
+}
+
 void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
 	roi_supported(TRUE);
+	median_roi_callback();
+	add_roi_callback(median_roi_callback);
+	copy_gfit_to_backup();
 }
 
 void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
-	backup_roi();
+	siril_preview_hide();
 	roi_supported(FALSE);
+	remove_roi_callback(median_roi_callback);
 	siril_close_dialog("Median_dialog");
 }
 
@@ -68,6 +78,8 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	struct median_filter_data *args = malloc(sizeof(struct median_filter_data));
+
+	args->previewing = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
 
 	switch (combo_size) {
 		default:
@@ -93,10 +105,8 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 			args->ksize = 15;
 			break;
 	}
-	undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
-			args->ksize, args->ksize);
 
-	args->fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	args->fit = args->previewing && gui.roi.active ? &gui.roi.fit : &gfit;
 	args->amount = amount;
 	args->iterations = iterations;
 	set_cursor_waiting(TRUE);
@@ -245,12 +255,15 @@ double get_median_gsl(gsl_matrix *mat, const int xx, const int yy, const int w,
 
 static gboolean end_median_filter(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *) p;
-	stop_processing_thread();// can it be done here in case there is no thread?
+	if (!args->previewing) {
+		copy_gfit_to_backup();
+		populate_roi();
+	}
+	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
-
 	free(args);
 	return FALSE;
 }
@@ -775,10 +788,16 @@ static gpointer median_filter_float(gpointer p) {
  * processed independently. In-place operation is supported. */
 gpointer median_filter(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *)p;
+	copy_backup_to_gfit();
+	if (!com.script && !args->previewing)
+		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
+			args->ksize, args->ksize);
 	if (args->fit->type == DATA_USHORT)
 		return median_filter_ushort(p);
 	if (args->fit->type == DATA_FLOAT)
 		return median_filter_float(p);
 	siril_add_idle(end_median_filter, args);
+	if (com.script && (args->fit == &gfit))
+		notify_gfit_modified();
 	return GINT_TO_POINTER(1);
 }

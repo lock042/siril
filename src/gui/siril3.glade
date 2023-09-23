@@ -2071,7 +2071,8 @@ artifacts may appear.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_Median_roi_preview_clicked" swapped="no"/>
+                <property name="tooltip-text" translatable="yes">Note: ROI preview will show a black border. Do not panic, the border will be overwritten by future ROIs and when finally applying the median filter.</property>
+                <signal name="clicked" handler="on_Median_Apply_clicked" swapped="no"/>
                 <style>
                   <class name="suggested-action"/>
                 </style>
