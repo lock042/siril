@@ -8733,6 +8733,8 @@ int process_nomad(int nb) {
 				cat = CAT_EXOPLANETARCHIVE;
 			else if (!g_strcmp0(arg, "pgc"))
 				cat = CAT_PGC;
+			else if (!g_strcmp0(arg, "aavso_chart"))
+				cat = CAT_AAVSO_CHART;
 			else if (!g_strcmp0(arg, "solsys")) {
 				cat = CAT_IMCCE;
 				if (!gfit.date_obs) {
@@ -8751,7 +8753,7 @@ int process_nomad(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			obscode = g_strdup(arg);
-		}else if (g_str_has_prefix(word[arg_idx], "-phot")) {
+		} else if (g_str_has_prefix(word[arg_idx], "-phot")) {
 			photometric = TRUE;
 		} else {
 			gchar *end;
@@ -8825,8 +8827,10 @@ int process_nomad(int nb) {
 		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;
 		com.stars[j]->angle = 0.0f;
-		if (cat == CAT_IMCCE) // classes are deined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
+		if (cat == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
 			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
+		if (cat == CAT_AAVSO_CHART) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
+			siril_log_message("%s - V:%3.1f - B:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].mag, siril_cat->cat_items[i].bmag);
 		j++;
 	}
 	if (j > 0)

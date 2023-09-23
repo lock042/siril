@@ -32,6 +32,10 @@
 #endif
 #endif
 
+#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
+#include <json-glib/json-glib.h>
+#endif
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_app_dirs.h"
@@ -285,8 +289,8 @@ const char *catalog_to_str(object_catalog cat) {
 			return _("Exoplanet archive");
 		case CAT_IMCCE:
 			return _("IMCCE solar system");
-		// case CAT_AAVSO:
-		// 	return _("AAVSO");
+		case CAT_AAVSO_CHART:
+			return _("AAVSO Chart");
 		case CAT_LOCAL:
 			return _("local Tycho-2+NOMAD");
 		case CAT_ASNET:
@@ -803,16 +807,20 @@ static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorl
 		// AAVSO chart of comparison stars
 		//////////////////////////////////
 		case CAT_AAVSO_CHART:
+			url = g_string_new(AAVSOCHART_QUERY);
+			fmtstr = g_strdup_printf("&ra=%s&dec=%s&fov=%s&maglimit=%s", rafmt, decfmt, radiusfmt, limitmagfmt);
+			g_string_append_printf(url, fmtstr, siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center), radius_arcmin, mag_limit);
+			g_free(fmtstr);
+			return g_string_free_and_steal(url);
 		////////////////////////////
 		// IMCCE - skybot conesearch
 		////////////////////////////
 		case CAT_IMCCE:
-			url = g_string_new(IMCCE_QUERY);
 			if (!dateobs) { // should have been caught before... just in case
 				siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
-				g_string_free(url, TRUE);
 				return NULL;
 			}
+			url = g_string_new(IMCCE_QUERY);
 			dt = date_time_to_FITS_date(dateobs);
 			g_string_append_printf(url,"&-ep=%s", dt);
 			g_free(dt);
@@ -1018,7 +1026,7 @@ gpointer catsearch_worker(gpointer p) {
 }
 
 // Parsers for non-TAP queries
-// IMCCE skybot
+// IMCCE skybot - txt input delimited with " | " parsed to csv
 static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) {
 	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
 		return FALSE;
@@ -1048,36 +1056,82 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	g_strfreev(token);
 	return TRUE;
 }
-// AAVSO chart
-// static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
-// 	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
-// 		return FALSE;
-// 	if (!g_str_has_prefix(buffer, "# Flag: 1")) {
-// 		siril_log_color_message("IMCCE server returned: \n%s\n", "red", buffer);
-// 		return FALSE;
-// 	}
+// AAVSO chart - json input read with json-glib parsed to csv
+static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
+	GError *error = NULL;
+	JsonParser *parser = json_parser_new();
+	if (!json_parser_load_from_data(parser, buffer, -1, &error)) {
+		siril_log_color_message(_("Could not parse AAVSO chart bufer: %s\n"), error->message);
+		g_clear_object(&parser);
+		g_clear_error(&error);
+		return FALSE;
+	}
+	gsize n;
+	// parsing the AAVSO chart id
+	JsonReader *reader = json_reader_new(json_parser_get_root(parser));
+    json_reader_read_member(reader, "chartid");
+    const gchar *id = json_reader_get_string_value(reader);
+    json_reader_end_member(reader);
+	g_output_stream_printf(output_stream, &n, NULL, NULL, "#chartid:%s\n", id);
 
-// 	gchar **token = g_strsplit(buffer, "\n", -1);
-// 	int nb_lines = g_strv_length(token);
-// 	// writing the csv header
-// 	gsize n;
-// 	g_output_stream_printf(output_stream, &n, NULL, NULL, "ra,dec,mag,name,vra,vdec\n");
-// 	for (int i = 3; i < nb_lines; i++) {
-// 		// format is '# Num | Name | RA(h) | DE(deg) | Class | Mv | Err(arcsec) | d(arcsec) | dRA(arcsec/h) | dDEC(arcsec/h) | Dg(ua) | Dh(ua)'
-// 		gchar **vals = g_strsplit(token[i], " | ", -1);
-// 		if (g_strv_length(vals) < 12) {
-// 			g_strfreev(vals);
-// 			continue;
-// 		}
-// 		double ra = parse_hms(vals[2]);	// in hours
-// 		double dec = parse_dms(vals[3]);
-// 		if (!isnan(ra) && !isnan(dec))
-// 			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9]);
-// 		g_strfreev(vals);
-// 	}
-// 	g_strfreev(token);
-// 	return TRUE;
-// }
+	// writing the csv header
+	g_output_stream_printf(output_stream, &n, NULL, NULL, "name,ra,dec,mag,bmag,e_mag,e_bmag\n");
+
+	json_reader_read_member(reader, "photometry");
+	int nstars = json_reader_count_elements(reader);
+
+    for (int i = 0; i < nstars; i++) {
+        json_reader_read_element(reader, i);
+		// auid
+		json_reader_read_member(reader, "auid");
+		const gchar *name = json_reader_get_string_value(reader);
+		json_reader_end_member(reader);
+		// reading the data or V and B bands, bands being an array
+		json_reader_read_member(reader, "bands");
+		int nbands = json_reader_count_elements(reader);
+		const gchar *band = NULL;
+		double mag = 0., e_mag = 0., bmag = 0., e_bmag = 0.;
+		for (int j = 0; j < nbands; j++) {
+			json_reader_read_element(reader, j);
+			json_reader_read_member(reader, "band");
+			band = json_reader_get_string_value(reader);
+			json_reader_end_member(reader);
+			if (band && !strcmp(band, "V")) {
+				json_reader_read_member(reader, "error");
+				e_mag = json_reader_get_double_value(reader);
+				json_reader_end_member(reader);
+				json_reader_read_member(reader, "mag");
+				mag = json_reader_get_double_value(reader);
+				json_reader_end_member(reader);
+			} else if (band && !strcmp(band, "B")) {
+				json_reader_read_member(reader, "error");
+				e_bmag = json_reader_get_double_value(reader);
+				json_reader_end_member(reader);
+				json_reader_read_member(reader, "mag");
+				bmag = json_reader_get_double_value(reader);
+				json_reader_end_member(reader);
+			}
+			json_reader_end_element(reader);
+		}
+		json_reader_end_member(reader);
+		//dec
+		json_reader_read_member(reader, "dec");
+		const gchar *decstr = json_reader_get_string_value(reader);
+		double dec = parse_dms(decstr);
+		json_reader_end_member(reader);
+		//ra
+		json_reader_read_member(reader, "ra");
+		const gchar *rastr = json_reader_get_string_value(reader);
+		double ra = parse_hms(rastr);	// in hours
+		json_reader_end_member(reader);
+		if (!isnan(ra) && !isnan(dec))
+			g_output_stream_printf(output_stream, &n, NULL, NULL, "%s,%g,%+g,%g,%g,%g,%g\n", name, ra, dec, mag, bmag, e_mag, e_bmag);
+		json_reader_end_element(reader);
+    }
+	g_object_unref(reader);
+	g_object_unref(parser);
+	return TRUE;
+}
 
 GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag, gchar *obscode, GDateTime *date_obs) {
 #ifndef HAVE_NETWORKING
@@ -1087,35 +1141,39 @@ GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, do
 	GError *error = NULL;
 	gchar *str = NULL;
 	gchar *dt = NULL;
+	gchar *fmtstr = NULL;
 	/* ---------------- get Vizier catalog in a cache catalogue file --------------------- */
-	/* check if catalogue already exist in cache */
-	if (Catalog < CAT_IMCCE) {
-		gchar *fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s.csv", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt);
-		str = g_strdup_printf(fmtstr,
-			(int) Catalog,
-			siril_world_cs_get_alpha(catalog_center),
-			siril_world_cs_get_delta(catalog_center),
-			radius_arcmin, mag);
-		g_free(fmtstr);
-	} else if (Catalog < CAT_AN_MESSIER) {
-		if (!obscode || !date_obs) {
-			siril_debug_print("Queries for solar system should pass date and location code\n");
-			return NULL;
-		}
-		dt = date_time_to_date_time(date_obs);
-		gchar *fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%%s_%%s.csv", catcodefmt, rafmt, decfmt, radiusfmt);
-		str = g_strdup_printf(fmtstr,
+	/* check if catalogue already exists in cache */
+	switch (Catalog) {
+		case CAT_TYCHO2 ... CAT_AAVSO_CHART:
+			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s.csv", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt);
+			str = g_strdup_printf(fmtstr,
 				(int) Catalog,
 				siril_world_cs_get_alpha(catalog_center),
 				siril_world_cs_get_delta(catalog_center),
-				radius_arcmin,
-				dt,
-				obscode);
-		g_free(fmtstr);
-		g_free(dt);
-	} else {
-		siril_debug_print("should not happen, download_catalog should only be called for offline calls\n");
-		return NULL;
+				radius_arcmin, mag);
+			g_free(fmtstr);
+			break;
+		case CAT_IMCCE:
+			if (!obscode || !date_obs) {
+				siril_debug_print("Queries for solar system should pass date and location code\n");
+				return NULL;
+			}
+			dt = date_time_to_date_time(date_obs);
+			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%%s_%%s.csv", catcodefmt, rafmt, decfmt, radiusfmt);
+			str = g_strdup_printf(fmtstr,
+					(int) Catalog,
+					siril_world_cs_get_alpha(catalog_center),
+					siril_world_cs_get_delta(catalog_center),
+					radius_arcmin,
+					dt,
+					obscode);
+			g_free(fmtstr);
+			g_free(dt);
+			break;
+		default:
+			siril_debug_print("should not happen, download_catalog should only be called for online calls\n");
+			return NULL;
 	}
 	siril_debug_print("Catalogue file: %s\n", str);
 
@@ -1198,7 +1256,13 @@ GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, do
 						g_object_unref(file);
 						return NULL;
 					}
-				// case CAT_AAVSO:
+				case CAT_AAVSO_CHART:
+					if (!parse_AAVSO_Chart_buffer(buffer, output_stream)) {
+						g_free(buffer);
+						g_object_unref(output_stream);
+						g_object_unref(file);
+						return NULL;
+					}
 				default:
 					break;
 			}

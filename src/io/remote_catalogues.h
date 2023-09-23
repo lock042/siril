@@ -13,8 +13,7 @@
 #define VIZIER_TAP_QUERY "http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
 #define EXOPLANET_TAP_QUERY "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?format=csv&query=select+"
 #define IMCCE_QUERY "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?&-mime=text&-output=basic&-filter=0&-objFilter=111&-refsys=EQJ2000&-from=Siril"
-
-// #define AAVSOCHART_QUERY "https://app.aavso.org/vsp/api/chart/?"
+#define AAVSOCHART_QUERY "https://app.aavso.org/vsp/api/chart/?format=json"
 
 // only the first 9 columns are valid TAP queries
 // fields after this are used in other catalogues
