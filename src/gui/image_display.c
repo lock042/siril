@@ -759,13 +759,13 @@ static void draw_cut_line(const draw_data_t* dd) {
 			offendy = gui.cut.cut_end.y - (offset * point_spacing_x * step);
 			cairo_set_source_rgb(cr, line_r[offset+1], line_g[offset+1], line_b[offset+1]);
 			cairo_save(cr);
-			cairo_move_to(cr, offstartx, offstarty);
-			cairo_line_to(cr, offendx, offendy);
+			cairo_move_to(cr, offstartx + 0.5, offstarty + 0.5);
+			cairo_line_to(cr, offendx + 0.5, offendy + 0.5);
 			// Draw arrowheads at the end
-			point pt1 = { offendx - arrow_length * cos(angle - arrow_angle), offendy - arrow_length * sin(angle - arrow_angle) };
-			point pt2 = { offendx - arrow_length * cos(angle + arrow_angle), offendy - arrow_length * sin(angle + arrow_angle) };
+			point pt1 = { offendx + 0.5 - arrow_length * cos(angle - arrow_angle), offendy + 0.5 - arrow_length * sin(angle - arrow_angle) };
+			point pt2 = { offendx + 0.5 - arrow_length * cos(angle + arrow_angle), offendy + 0.5 - arrow_length * sin(angle + arrow_angle) };
 			cairo_line_to(cr, pt1.x, pt1.y);
-			cairo_move_to(cr, offendx, offendy);
+			cairo_move_to(cr, offendx + 0.5, offendy + 0.5);
 			cairo_line_to(cr, pt2.x, pt2.y);
 			cairo_stroke(cr);
 			cairo_restore(cr);
@@ -773,16 +773,16 @@ static void draw_cut_line(const draw_data_t* dd) {
 	} else {
 		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by siril plot
 		cairo_save(cr);
-		cairo_move_to(cr, gui.cut.cut_start.x, gui.cut.cut_start.y);
-		cairo_line_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);
+		cairo_move_to(cr, gui.cut.cut_start.x + 0.5, gui.cut.cut_start.y + 0.5);
+		cairo_line_to(cr, gui.cut.cut_end.x + 0.5, gui.cut.cut_end.y + 0.5);
 		// Draw an arrowhead at the end
 		double arrow_length = 10 / dd->zoom;
 		double arrow_angle = 0.5;
 		double angle = atan2(gui.cut.cut_end.y - gui.cut.cut_start.y, gui.cut.cut_end.x - gui.cut.cut_start.x);
-		point pt1 = { gui.cut.cut_end.x - arrow_length * cos(angle - arrow_angle), gui.cut.cut_end.y - arrow_length * sin(angle - arrow_angle) };
-		point pt2 = { gui.cut.cut_end.x - arrow_length * cos(angle + arrow_angle), gui.cut.cut_end.y - arrow_length * sin(angle + arrow_angle) };
+		point pt1 = { gui.cut.cut_end.x + 0.5 - arrow_length * cos(angle - arrow_angle), gui.cut.cut_end.y + 0.5 - arrow_length * sin(angle - arrow_angle) };
+		point pt2 = { gui.cut.cut_end.x + 0.5 - arrow_length * cos(angle + arrow_angle), gui.cut.cut_end.y + 0.5 - arrow_length * sin(angle + arrow_angle) };
 		cairo_line_to(cr, pt1.x, pt1.y);
-		cairo_move_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);
+		cairo_move_to(cr, gui.cut.cut_end.x + 0.5, gui.cut.cut_end.y + 0.5);
 		cairo_line_to(cr, pt2.x, pt2.y);
 		cairo_stroke(cr);
 		cairo_restore(cr);
@@ -798,8 +798,8 @@ static void draw_measurement_line(const draw_data_t* dd) {
 	cairo_set_dash(cr, dash_format, 2, 0);
 	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
 	cairo_save(cr);
-	cairo_move_to(cr, gui.measure_start.x, gui.measure_start.y);
-	cairo_line_to(cr, gui.measure_end.x, gui.measure_end.y);
+	cairo_move_to(cr, gui.measure_start.x + 0.5, gui.measure_start.y + 0.5);
+	cairo_line_to(cr, gui.measure_end.x + 0.5, gui.measure_end.y + 0.5);
 	cairo_stroke(cr);
 	cairo_restore(cr);
 }
