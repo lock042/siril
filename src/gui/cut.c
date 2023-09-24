@@ -39,7 +39,7 @@
 #include "io/sequence.h"
 #include "gui/image_display.h"
 
-void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat too much after opening a new file
+void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
@@ -409,13 +409,16 @@ static double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int d
 static void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro_spacing) {
 	point wndelta = { (double) arg->cut_wn2.x - arg->cut_wn1.x , (double) arg->cut_wn2.y - arg->cut_wn1.y };
 	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
-	double wndiff = arg->wavenumber2 - arg->wavenumber1;
-	*spectro_spacing = wndiff / wndiff_dist;
+	double wavelength1 = 10000000. / arg->wavenumber1;
+	double wavelength2 = 10000000. / arg->wavenumber2;
+
+	double wndiff = wavelength2 - wavelength1;
+	*spectro_spacing = wndiff / wndiff_dist; // Spacing is in wavelength
 
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
 	double z2_z1 = wndelta.y > wndelta.x ? wndelta.y : wndelta.x;
 	double z1_z0 = wndelta.y > wndelta.x ? arg->cut_wn1.y - arg->cut_start.y : arg->cut_wn1.x - arg->cut_start.x;
-	*zero = arg->wavenumber1 - ( ( z1_z0 * wndiff ) / z2_z1 );
+	*zero = wavelength1 - ( ( z1_z0 * wndiff ) / z2_z1 ); // Zero is in wavelength
 	return;
 }
 
@@ -551,7 +554,7 @@ gpointer cut_profile(gpointer p) {
 	gchar *xlabel = NULL, *title = NULL;
 	title = cut_make_title(arg, xscale); // must be freed with g_free()
 	if (xscale) {
-		xlabel = g_strdup_printf(_("Wavenumber / cm^{-1}"));
+		xlabel = g_strdup_printf(_("Wavelength / nm"));
 	} else {
 		if (arg->pref_as && conversionfactor != -DBL_MAX) {
 			xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
