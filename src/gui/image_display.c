@@ -749,6 +749,9 @@ static void draw_cut_line(const draw_data_t* dd) {
 		double line_r[3] = { 0.58, 0.0, 0.34 }; // These colours match the 3 lines plotted by siril plot
 		double line_g[3] = { 0.0, 0.62, 0.70 };
 		double line_b[3] = { 0.83, 0.45, 0.91 };
+		double arrow_length = 10 / dd->zoom;
+		double arrow_angle = 0.5;
+		double angle = atan2(gui.cut.cut_end.y - gui.cut.cut_start.y, gui.cut.cut_end.x - gui.cut.cut_start.x);
 		for (int offset = -1 ; offset < 2 ; offset++) {
 			offstartx = gui.cut.cut_start.x + (offset * point_spacing_y * step);
 			offstarty = gui.cut.cut_start.y - (offset * point_spacing_x * step);
@@ -758,6 +761,12 @@ static void draw_cut_line(const draw_data_t* dd) {
 			cairo_save(cr);
 			cairo_move_to(cr, offstartx, offstarty);
 			cairo_line_to(cr, offendx, offendy);
+			// Draw arrowheads at the end
+			point pt1 = { offendx - arrow_length * cos(angle - arrow_angle), offendy - arrow_length * sin(angle - arrow_angle) };
+			point pt2 = { offendx - arrow_length * cos(angle + arrow_angle), offendy - arrow_length * sin(angle + arrow_angle) };
+			cairo_line_to(cr, pt1.x, pt1.y);
+			cairo_move_to(cr, offendx, offendy);
+			cairo_line_to(cr, pt2.x, pt2.y);
 			cairo_stroke(cr);
 			cairo_restore(cr);
 		}
@@ -766,6 +775,15 @@ static void draw_cut_line(const draw_data_t* dd) {
 		cairo_save(cr);
 		cairo_move_to(cr, gui.cut.cut_start.x, gui.cut.cut_start.y);
 		cairo_line_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);
+		// Draw an arrowhead at the end
+		double arrow_length = 10 / dd->zoom;
+		double arrow_angle = 0.5;
+		double angle = atan2(gui.cut.cut_end.y - gui.cut.cut_start.y, gui.cut.cut_end.x - gui.cut.cut_start.x);
+		point pt1 = { gui.cut.cut_end.x - arrow_length * cos(angle - arrow_angle), gui.cut.cut_end.y - arrow_length * sin(angle - arrow_angle) };
+		point pt2 = { gui.cut.cut_end.x - arrow_length * cos(angle + arrow_angle), gui.cut.cut_end.y - arrow_length * sin(angle + arrow_angle) };
+		cairo_line_to(cr, pt1.x, pt1.y);
+		cairo_move_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);
+		cairo_line_to(cr, pt2.x, pt2.y);
 		cairo_stroke(cr);
 		cairo_restore(cr);
 	}
