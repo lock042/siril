@@ -8729,6 +8729,10 @@ int process_nomad(int nb) {
 				cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
+			else if (!g_strcmp0(arg, "vsx"))
+				cat = CAT_VSX;
+			else if (!g_strcmp0(arg, "simbad"))
+				cat = CAT_SIMBAD;
 			else if (!g_strcmp0(arg, "exo"))
 				cat = CAT_EXOPLANETARCHIVE;
 			else if (!g_strcmp0(arg, "pgc"))
@@ -8830,7 +8834,7 @@ int process_nomad(int nb) {
 		if (cat == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
 			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
 		if (cat == CAT_AAVSO_CHART) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
-			siril_log_message("%s - V:%3.1f - B:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].mag, siril_cat->cat_items[i].bmag);
+			siril_log_message("%s - V:%3.1f - B:%3.1f\n - RA:%g - DEC: %g", siril_cat->cat_items[i].name, siril_cat->cat_items[i].mag, siril_cat->cat_items[i].bmag, siril_cat->cat_items[i].ra, siril_cat->cat_items[i].dec);
 		j++;
 	}
 	if (j > 0)

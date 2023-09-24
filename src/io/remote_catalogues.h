@@ -11,7 +11,8 @@
 
 // new queries
 #define VIZIER_TAP_QUERY "http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
-#define EXOPLANET_TAP_QUERY "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?format=csv&query=select+"
+#define EXOPLANETARCHIVE_TAP_QUERY "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?format=csv&query=select+"
+#define SIMBAD_TAP_QUERY "https://simbad.u-strasbg.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
 #define IMCCE_QUERY "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?&-mime=text&-output=basic&-filter=0&-objFilter=111&-refsys=EQJ2000&-from=Siril"
 #define AAVSOCHART_QUERY "https://app.aavso.org/vsp/api/chart/?format=json"
 
@@ -19,7 +20,6 @@
 // fields after this are used in other catalogues
 #define MAX_TAP_QUERY_COLUMNS 9
 #define MAX_CAT_COLUMNS 18
-#define MAX_CATCODE_LEN 30
 
 
 // all catalogues that can be used
@@ -43,6 +43,7 @@ typedef enum {
 	CAT_APASS,
 	CAT_GCVS,
 	CAT_VSX,
+	CAT_SIMBAD,
 	CAT_PGC = 20,
 // Other TAP Queries
 	CAT_EXOPLANETARCHIVE = 30,
@@ -70,8 +71,9 @@ typedef enum {
 // The structure used to declare the columns to be queried from the tables
 // for TAP queries only
 typedef struct {
-	gchar catcode[MAX_CATCODE_LEN];
+	gchar *catcode;
 	gchar *tap_columns[MAX_TAP_QUERY_COLUMNS];
+	gchar *tap_server;
 } cat_tap_query_fields;
 
 typedef enum {

@@ -89,102 +89,134 @@ static int get_column_index(gchar *field) {
 // cointaining the fields to be queried through TAP (only!)
 // to be freed by the caller
 // When adding a new catalog that can be queried through TAP:
-// - the required query fields and catalogue code needs to be added
+// - the required query fields, catalogue code and server need to be added
 // - it needs to be added to the object_catalog enum
 // Warning: For Vizier, the catcode needs to be enclosed between ", hence the %22 chars
 static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 	cat_tap_query_fields *tap = calloc(1, sizeof(cat_tap_query_fields));
 	switch (cat) {
 		case CAT_TYCHO2:
-			g_strlcpy(tap->catcode, "%22I/259/tyc2%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAmdeg";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEmdeg";
-			tap->tap_columns[CAT_FIELD_MAG] = "VTmag";
-			tap->tap_columns[CAT_FIELD_BMAG] = "BTmag";
-			tap->tap_columns[CAT_FIELD_PMRA] = "pmRA";
-			tap->tap_columns[CAT_FIELD_PMDEC] = "pmDE";
+			tap->catcode = g_strdup("%22I/259/tyc2%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAmdeg");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEmdeg");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("VTmag");
+			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("BTmag");
+			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
+			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			break;
 		case CAT_NOMAD:
-			g_strlcpy(tap->catcode, "%22I/297/out%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_PMRA] = "pmRA";
-			tap->tap_columns[CAT_FIELD_PMDEC] = "pmDE";
-			tap->tap_columns[CAT_FIELD_MAG] = "Vmag";
-			tap->tap_columns[CAT_FIELD_BMAG] = "Bmag";
-			tap->tap_columns[CAT_FIELD_NAME] = "NOMAD1";
+			tap->catcode = g_strdup("%22I/297/out%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
+			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
+			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("Bmag");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("NOMAD1");
 			break;
 		case CAT_GAIADR3:
-			g_strlcpy(tap->catcode, "%22I/355/gaiadr3%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_PMRA] = "pmRA";
-			tap->tap_columns[CAT_FIELD_PMDEC] = "pmDE";
-			tap->tap_columns[CAT_FIELD_MAG] = "Gmag";
-			tap->tap_columns[CAT_FIELD_BMAG] = "BPmag";
-			tap->tap_columns[CAT_FIELD_NAME] = "DR3Name";
+			tap->catcode = g_strdup("%22I/355/gaiadr3%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
+			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Gmag");
+			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("BPmag");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("DR3Name");
 			break;
 		case CAT_PPMXL:
-			g_strlcpy(tap->catcode, "%22I/317/sample%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_PMRA] = "pmRA";
-			tap->tap_columns[CAT_FIELD_PMDEC] = "pmDE";
-			tap->tap_columns[CAT_FIELD_MAG] = "Jmag";
-			tap->tap_columns[CAT_FIELD_NAME] = "PPMXL";
+			tap->catcode = g_strdup("%22I/317/sample%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
+			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Jmag");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PPMXL");
 			break;
 		case CAT_BSC:
-			g_strlcpy(tap->catcode, "%22V/50/catalog%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_PMRA] = "pmRA";
-			tap->tap_columns[CAT_FIELD_PMDEC] = "pmDE";
-			tap->tap_columns[CAT_FIELD_MAG] = "Vmag";
-			tap->tap_columns[CAT_FIELD_NAME] = "HD";
+			tap->catcode = g_strdup("%22V/50/catalog%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
+			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("HD");
 			break;
 		case CAT_APASS:
-			g_strlcpy(tap->catcode, "%22II/336/apass9%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_MAG] = "Vmag";
-			tap->tap_columns[CAT_FIELD_BMAG] = "Bmag";
-			tap->tap_columns[CAT_FIELD_E_MAG] = "e_Vmag";
-			tap->tap_columns[CAT_FIELD_E_BMAG] = "e_Bmag";
+			tap->catcode = g_strdup("%22II/336/apass9%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
+			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("Bmag");
+			tap->tap_columns[CAT_FIELD_E_MAG] = g_strdup("e_Vmag");
+			tap->tap_columns[CAT_FIELD_E_BMAG] = g_strdup("e_Bmag");
 			break;
 		case CAT_GCVS:
-			g_strlcpy(tap->catcode, "%22B/gcvs/gcvs_cat%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_MAG] = "magMax";
-			tap->tap_columns[CAT_FIELD_NAME] = "VarName";
+			tap->catcode = g_strdup("%22B/gcvs/gcvs_cat%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("magMax");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("VarName");
 			break;
 		case CAT_VSX:
-			g_strlcpy(tap->catcode, "%22B/vsx/vsx%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_MAG] = "max";
-			tap->tap_columns[CAT_FIELD_NAME] = "OID";
+			tap->catcode = g_strdup("%22B/vsx/vsx%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("max");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("OID");
+			break;
+		case CAT_SIMBAD:
+			tap->catcode = g_strdup("basic+JOIN+allfluxes+ON+oidref+=+oid");
+			tap->tap_server = g_strdup( SIMBAD_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("ra");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("dec");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("V");
+			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("B");
+			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmra");
+			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmdec");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("main_id");
 			break;
 		case CAT_PGC:
-			g_strlcpy(tap->catcode, "%22VII/237/pgc%22", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "RAJ2000";
-			tap->tap_columns[CAT_FIELD_DEC] = "DEJ2000";
-			tap->tap_columns[CAT_FIELD_NAME] = "PGC";
+			tap->catcode = g_strdup("%22VII/237/pgc%22");
+			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PGC");
 			break;
 		case CAT_EXOPLANETARCHIVE:
-			g_strlcpy(tap->catcode, "ps", MAX_CATCODE_LEN);
-			tap->tap_columns[CAT_FIELD_RA] = "ra";
-			tap->tap_columns[CAT_FIELD_DEC] = "dec";
-			tap->tap_columns[CAT_FIELD_PMRA] = "sy_pmra";
-			tap->tap_columns[CAT_FIELD_PMDEC] = "sy_pmdec";
-			tap->tap_columns[CAT_FIELD_MAG] = "sy_vmag";
-			tap->tap_columns[CAT_FIELD_NAME] = "pl_name";
+			tap->catcode = g_strdup("ps");
+			tap->tap_server = g_strdup( EXOPLANETARCHIVE_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("ra");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("dec");
+			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("sy_pmra");
+			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("sy_pmdec");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("sy_vmag");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("pl_name");
 			break;
 		default:
 			free(tap);
 			return NULL;
 	}
 	return tap;
+}
+
+static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
+	if (!tap)
+		return;
+	g_free(tap->tap_server);
+	g_free(tap->catcode);
+	for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
+		g_free(tap->tap_columns[i]);
+	}
+	free(tap);
 }
 
 // This function defines the fields that should be present in each catalog
@@ -195,6 +227,7 @@ uint32_t siril_catalog_colums(object_catalog cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_NOMAD:
 		case CAT_GAIADR3:
+		case CAT_SIMBAD:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME);
 		case CAT_PPMXL:
 		case CAT_BSC:
@@ -283,6 +316,10 @@ const char *catalog_to_str(object_catalog cat) {
 			return _("PPMXL");
 		case CAT_BSC:
 			return _("bright stars");
+		case CAT_VSX:
+			return _("AAVSO Variable stars");
+		case CAT_SIMBAD:
+			return _("SIMBAD");
 		case CAT_APASS:
 			return _("APASS");
 		case CAT_EXOPLANETARCHIVE:
@@ -290,7 +327,7 @@ const char *catalog_to_str(object_catalog cat) {
 		case CAT_IMCCE:
 			return _("IMCCE solar system");
 		case CAT_AAVSO_CHART:
-			return _("AAVSO Chart");
+			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
 			return _("local Tycho-2+NOMAD");
 		case CAT_ASNET:
@@ -773,17 +810,14 @@ static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorl
 #endif
 	GString *url;
 	gchar *fmtstr, *dt;
-	switch  (Catalog){
+	switch (Catalog){
 		/////////////////////////////////////////////////////////////
 		// TAP QUERY to csv - preferred way as it requires no parsing
 		/////////////////////////////////////////////////////////////
 		case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE:
 			cat_tap_query_fields *fields = catalog_to_tap_fields(Catalog);
 			uint32_t catcols = siril_catalog_colums(Catalog);
-			if (Catalog < CAT_EXOPLANETARCHIVE)
-				url = g_string_new(VIZIER_TAP_QUERY);
-			else
-				url = g_string_new(EXOPLANET_TAP_QUERY); // may need to write a function with switch later on
+			url = g_string_new(fields->tap_server);
 			gboolean first = TRUE;
 			for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
 				if (fields->tap_columns[i]) {
@@ -801,7 +835,7 @@ static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorl
 				fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
 				g_string_append_printf(url, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], mag_limit);
 			}
-			free(fields);
+			free_cat_tap_query_fields(fields);
 			return g_string_free_and_steal(url);
 		//////////////////////////////////
 		// AAVSO chart of comparison stars
@@ -1067,7 +1101,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		return FALSE;
 	}
 	gsize n;
-	// parsing the AAVSO chart id
+	// parsing the AAVSO chart id in the comments section
 	JsonReader *reader = json_reader_new(json_parser_get_root(parser));
     json_reader_read_member(reader, "chartid");
     const gchar *id = json_reader_get_string_value(reader);
@@ -1137,11 +1171,11 @@ GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, do
 #ifndef HAVE_NETWORKING
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 #else
-	gchar *buffer = NULL;
+	gchar *url = NULL, *buffer = NULL, *str = NULL, *dt = NULL, *fmtstr = NULL;
 	GError *error = NULL;
-	gchar *str = NULL;
-	gchar *dt = NULL;
-	gchar *fmtstr = NULL;
+	GOutputStream *output_stream = NULL;
+	GFile *file = NULL;
+	gboolean remove_file = FALSE;
 	/* ---------------- get Vizier catalog in a cache catalogue file --------------------- */
 	/* check if catalogue already exists in cache */
 	switch (Catalog) {
@@ -1182,16 +1216,17 @@ GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, do
 	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
 		if (g_mkdir_with_parents(root, 0755) < 0) {
 			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+			g_free(str);
 			g_free(root);
 			return NULL;
 		}
 	}
 	// and prepare to store the downloaded file there
-	GFile *file = g_file_new_build_filename(root, str, NULL);
+	file = g_file_new_build_filename(root, str, NULL);
 	g_free(str);
 	g_free(root);
 
-	GOutputStream *output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
+	output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
 
 	if (!output_stream) {
 		if (error) {
@@ -1224,15 +1259,12 @@ GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, do
 
 	if (output_stream) {
 		/* download */
-		gchar *url = siril_catalog_conesearch_get_url(Catalog, catalog_center, mag, radius_arcmin, obscode, date_obs);
+		url = siril_catalog_conesearch_get_url(Catalog, catalog_center, mag, radius_arcmin, obscode, date_obs);
 		if (url)
 			buffer = fetch_url(url);
 		else {
-			char *filestr = g_file_get_path(file);
-			g_object_unref(file);
-			g_unlink(g_file_peek_path(file));
-			free(filestr);
-			return NULL;
+			remove_file = TRUE;
+			goto download_error;
 		}
 		g_free(url);
 
@@ -1242,48 +1274,47 @@ GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, do
 				case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE: // TAP query, no parsing, we just write the whole buffer to the output stream
 					if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 						g_warning("%s\n", error->message);
-						g_clear_error(&error);
-						g_free(buffer);
-						g_object_unref(output_stream);
-						g_object_unref(file);
-						return NULL;
+						remove_file = TRUE;
+						goto download_error;
 					}
 					break;
 				case CAT_IMCCE:
 					if (!parse_IMCCE_buffer(buffer, output_stream)) {
-						g_free(buffer);
-						g_object_unref(output_stream);
-						g_object_unref(file);
-						return NULL;
+						remove_file = TRUE;
+						goto download_error;
 					}
 				case CAT_AAVSO_CHART:
 					if (!parse_AAVSO_Chart_buffer(buffer, output_stream)) {
-						g_free(buffer);
-						g_object_unref(output_stream);
-						g_object_unref(file);
-						return NULL;
+						remove_file = TRUE;
+						goto download_error;
 					}
 				default:
 					break;
 			}
 			g_object_unref(output_stream);
 			g_free(buffer);
-		} else { // remove the file form cache
-			char *filestr = g_file_get_path(file);
-			g_object_unref(file);
-			g_unlink(g_file_peek_path(file));
-			free(filestr);
-			return NULL;
+		} else { // remove the file from cache
+			remove_file = TRUE;
+			goto download_error;
 		}
 
 	}
 	return file;
 
 download_error:
-	g_warning("%s\n", error->message);
-	siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
-	g_clear_error(&error);
-	g_object_unref(file);
+	if (error) {
+		g_warning("%s\n", error->message);
+		siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
+		g_clear_error(&error);
+		}
+	g_free(buffer);
+	if (output_stream)
+		g_object_unref(output_stream);
+	if (file) {
+		if (remove_file)
+			g_unlink(g_file_peek_path(file));
+		g_object_unref(file);
+	}
 #endif
 	return NULL;
 }
