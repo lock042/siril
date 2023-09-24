@@ -1210,36 +1210,26 @@ void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_
 void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data);
 
 
-void on_cut_spin_wavelength1_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wn1 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber1");
-	double wn = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wn1, on_cut_spin_wavenumber1_value_changed, NULL);
-	gtk_spin_button_set_value(wn1, wn);
-	g_signal_handlers_unblock_by_func(wn1, on_cut_spin_wavenumber1_value_changed, NULL);
+void on_cut_spin_point1_value_changed(GtkSpinButton* button, gpointer user_data) {
+	gboolean wl_changed = ((GtkWidget*) button == lookup_widget("cut_spin_wavelength1"));
+	GtkSpinButton* wn1 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavenumber1"));
+	GtkSpinButton* wl1 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavelength1"));
+	double val = 10000000. / gtk_spin_button_get_value(button);
+	if (wl_changed)
+		gtk_spin_button_set_value(wn1, val);
+	else
+		gtk_spin_button_set_value(wl1, val);
 }
 
-void on_cut_spin_wavelength2_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wn2 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber2");
-	double wn = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wn2, on_cut_spin_wavenumber2_value_changed, NULL);
-	gtk_spin_button_set_value(wn2, wn);
-	g_signal_handlers_unblock_by_func(wn2, on_cut_spin_wavenumber2_value_changed, NULL);
-}
-
-void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wl1 = (GtkSpinButton*) lookup_widget("cut_spin_wavelength1");
-	double wl = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wl1, on_cut_spin_wavelength1_value_changed, NULL);
-	gtk_spin_button_set_value(wl1, wl);
-	g_signal_handlers_unblock_by_func(wl1, on_cut_spin_wavelength1_value_changed, NULL);
-}
-
-void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wl2 = (GtkSpinButton*) lookup_widget("cut_spin_wavelength2");
-	double wl = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
-	gtk_spin_button_set_value(wl2, wl);
-	g_signal_handlers_unblock_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
+void on_cut_spin_point2_value_changed(GtkSpinButton* button, gpointer user_data) {
+	gboolean wl_changed = ((GtkWidget*) button == lookup_widget("cut_spin_wavelength2"));
+	GtkSpinButton* wn2 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavenumber2"));
+	GtkSpinButton* wl2 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavelength2"));
+	double val = 10000000. / gtk_spin_button_get_value(button);
+	if (wl_changed)
+		gtk_spin_button_set_value(wn2, val);
+	else
+		gtk_spin_button_set_value(wl2, val);
 }
 
 void on_cut_dist_pref_as_group_changed(GtkRadioButton* button, gpointer user_data) {
