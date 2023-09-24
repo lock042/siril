@@ -417,8 +417,8 @@ static void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro
 	*spectro_spacing = wndiff / wndiff_dist; // Spacing is in wavelength
 
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
-	double z2_z1 = wndelta.y > wndelta.x ? wndelta.y : wndelta.x;
-	double z1_z0 = wndelta.y > wndelta.x ? arg->cut_wn1.y - arg->cut_start.y : arg->cut_wn1.x - arg->cut_start.x;
+	double z2_z1 = abs(wndelta.y) > abs(wndelta.x) ? wndelta.y : wndelta.x;
+	double z1_z0 = abs(wndelta.y) > abs(wndelta.x) ? arg->cut_wn1.y - arg->cut_start.y : arg->cut_wn1.x - arg->cut_start.x;
 	*zero = wavelength1 - ( ( z1_z0 * wndiff ) / z2_z1 ); // Zero is in wavelength
 	return;
 }
