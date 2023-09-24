@@ -1112,17 +1112,12 @@ gboolean deconvolve_idle(gpointer arg) {
 		copy_gfit_to_backup();
 		populate_roi();
 	}
-	notify_gfit_modified();
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified(); // Also stops the thread and updates the cursor
 	if (next_psf_is_previous && !com.headless && !com.script) {
 		args.psftype = PSF_PREVIOUS;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
 	}
-	set_cursor_waiting(FALSE);
 	siril_debug_print("Deconvolve idle stopping processing thread\n");
-	stop_processing_thread();
 	return FALSE;
 }
 
@@ -1132,6 +1127,7 @@ gpointer deconvolve(gpointer p) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
+		the_fit = &gfit;
 	}
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
