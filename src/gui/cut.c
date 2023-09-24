@@ -498,7 +498,7 @@ gpointer cut_profile(gpointer p) {
 		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
 	for (int i = 0 ; i < nbr_points ; i++) {
 		if (xscale) {
-			x[i] = zero + i * spectro_spacing;
+			x[i] = arg->plot_as_wavenumber ? 10000000 / (zero + i * spectro_spacing) : zero + i * spectro_spacing;
 		} else {
 			x[i] = i * point_spacing;
 		}
@@ -554,7 +554,7 @@ gpointer cut_profile(gpointer p) {
 	gchar *xlabel = NULL, *title = NULL;
 	title = cut_make_title(arg, xscale); // must be freed with g_free()
 	if (xscale) {
-		xlabel = g_strdup_printf(_("Wavelength / nm"));
+		xlabel = arg->plot_as_wavenumber ? g_strdup_printf(_("Wavenumber / cm^{-1}")) : g_strdup_printf(_("Wavelength / nm"));
 	} else {
 		if (arg->pref_as && conversionfactor != -DBL_MAX) {
 			xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
@@ -1185,6 +1185,10 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 		gui.cut.cfa = FALSE;
 	}
 	redraw(REDRAW_OVERLAY);
+}
+
+void on_spectro_x_axis_changed(GtkComboBox *combo, gpointer user_data) {
+	gui.cut.plot_as_wavenumber = gtk_combo_box_get_active(combo);
 }
 
 void on_cut_cfa_toggled(GtkToggleButton *button, gpointer user_data) {

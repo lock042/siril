@@ -8764,10 +8764,32 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Plot x axis</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
+              </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkComboBoxText" id="spectro_x_axis">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">When plotting a spectrogram, should the x axis show wavenumber or wavelength?</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Wavelength</item>
+                  <item translatable="yes">Wavenumber</item>
+                </items>
+                <signal name="changed" handler="on_spectro_x_axis_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">0</property>
+              </packing>
             </child>
             <child>
               <placeholder/>
