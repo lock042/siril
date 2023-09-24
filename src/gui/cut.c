@@ -304,15 +304,15 @@ static gboolean spectroscopy_selections_are_valid(cut_struct *arg) {
 
 static double interpf(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
-		return -DBL_MAX;
+		return NAN;
 	int w = fit->rx;
 	int h = fit->ry;
 	int npixels = w * h;
-	int x0 = (int)(x);
-	int x1 = (int)(x) + 1;
-	int y0 = (int)(y);
-	int y1 = (int)(y) + 1;
-	if (x0 < 0 || x1 > w-1 || y0 < 0 || y1 > h-1)
+	int x0 = (int) x;
+	int x1 = (int) x + 1;
+	int y0 = (int) y;
+	int y1 = (int) y + 1;
+	if (x0 < 0 || x1 > w - 1 || y0 < 0 || y1 > h - 1)
 		return NAN;
 	float val00 = fit->fdata[x0 + y0 * w + npixels * chan];
 	float val01 = fit->fdata[x1 + y0 * w + npixels * chan];
@@ -326,15 +326,15 @@ static double interpf(fits* fit, double x, double y, int chan) {
 
 static double interpw(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
-		return -DBL_MAX;
+		return NAN;
 	int w = fit->rx;
 	int h = fit->ry;
 	int npixels = w * h;
-	int x0 = (int)(x);
-	int x1 = (int)(x) + 1;
-	int y0 = (int)(y);
-	int y1 = (int)(y) + 1;
-	if (x0 < 0 || x1 > w-1 || y0 < 0 || y1 > h-1)
+	int x0 = (int) x;
+	int x1 = (int) x + 1;
+	int y0 = (int) y;
+	int y1 = (int) y + 1;
+	if (x0 < 0 || x1 > w - 1 || y0 < 0 || y1 > h - 1)
 		return NAN;
 	float val00 = (float) fit->data[x0 + y0 * w + npixels * chan];
 	float val01 = (float) fit->data[x1 + y0 * w + npixels * chan];
@@ -352,11 +352,11 @@ static double interp(fits *fit, double x, double y, int chan, int num, double dx
 	for (int i = -hw ; i < hw + 1 ; i++) {
 		switch (fit->type) {
 			case DATA_FLOAT:
-				val += interpf(fit, x + (i * dy), y + (i * dx), chan);
+				val += interpf(fit, x + ((double) i * dy), y + ((double) i * dx), chan);
 				break;
 			case DATA_USHORT:
 
-				val = interpw(fit, x + (i * dy), y + (i * dx), chan);
+				val = interpw(fit, x + ((double) i * dy), y + ((double) i * dx), chan);
 				break;
 			default:
 				return NAN;
