@@ -12,8 +12,8 @@ siril 1.4.0 xx xx, xx
 * Fixed running command catsearch threaded to avoid GUI freeze (#1167)
 
 siril 1.2.1 xx xx, xx
-
 * Fixed HEIF import (#1198)
+* Fixed Anscombe VST noise reduction option for mono images
 
 siril 1.2.0 September 15, 2023
 
