@@ -416,7 +416,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 		if (new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type)) {
 			retval = 1;
 		}
-		loop->naxis = 1;
+		loop->naxis = 2;
 		loop->naxes[2] = 1;
 		size_t npixels = args->fit->naxes[0] * args->fit->naxes[1];
 		if (retval == 0) {
