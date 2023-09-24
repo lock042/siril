@@ -9187,6 +9187,12 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
+		else if (g_str_has_prefix(arg, "-xaxis=wavenum")) {
+			cut_args->plot_as_wavenumber = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-xaxis=wavelen")) {
+			cut_args->plot_as_wavenumber = FALSE;
+		}
 		else if (g_str_has_prefix(arg, "-wavenumber1=")) {
 			arg += 13;
 			cut_args->wavenumber1 = g_ascii_strtod(arg, &end);

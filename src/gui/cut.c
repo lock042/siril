@@ -98,6 +98,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->cut_wn2.x = -1;
 	arg->cut_wn2.y = -1;
 	arg->cut_measure = FALSE;
+	arg->plot_as_wavenumber = FALSE;
 	arg->wavenumber1 = -1;
 	arg->wavenumber2 = -1;
 	arg->tri = FALSE;
@@ -208,28 +209,28 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		return FALSE;
 	}
 	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wavenumber1= is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength for point 1 is not set.\n"));
 		return FALSE;
 	}
 	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wavenumber2= is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength for point 2 is not set.\n"));
 		return FALSE;
 	}
 	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber1 set but corresponding location is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength set for point 1 but corresponding location is not set.\n"));
 		return FALSE;
 	}
 	if (arg->wavenumber2 >=0.0 && (arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber2 set but corresponding location is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength set for point 2 but corresponding location is not set.\n"));
 		return FALSE;
 	}
 	if ((arg->cut_wn1.x < 0.0 || arg->cut_wn2.y < 0.0 || arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0) &&
 		(!(arg->cut_wn1.x == -1.0 && arg->cut_wn1.y == -1.0 && arg->cut_wn2.x == -1.0 && arg->cut_wn2.y == -1.0))) {
-		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
 		return FALSE;
 	}
 	if (arg->cut_wn1.x > rx - 1 || arg->cut_wn2.x > rx - 1 || arg->cut_wn1.y > ry - 1 || arg->cut_wn2.y > ry - 1) {
-		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
 		return FALSE;
 	}
 	if (arg->cut_start.x > rx - 1 || arg->cut_start.y > ry - 1 || arg->cut_end.x > rx - 1 || arg->cut_end.y > ry - 1) {
@@ -498,7 +499,7 @@ gpointer cut_profile(gpointer p) {
 		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
 	for (int i = 0 ; i < nbr_points ; i++) {
 		if (xscale) {
-			x[i] = arg->plot_as_wavenumber ? 10000000 / (zero + i * spectro_spacing) : zero + i * spectro_spacing;
+			x[i] = arg->plot_as_wavenumber ? 10000000. / (zero + i * spectro_spacing) : zero + i * spectro_spacing;
 		} else {
 			x[i] = i * point_spacing;
 		}
