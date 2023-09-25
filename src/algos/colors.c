@@ -445,7 +445,7 @@ void rgb_to_xyz(double r, double g, double b, double *x, double *y, double *z) {
 	*x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b;
 	*y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b;
 	*z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b;
-
+}
 
 void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z) {
 	r = (r <= 0.04045f) ? r / 12.92f : powf(((r + 0.055f) / 1.055f), 2.4f);
