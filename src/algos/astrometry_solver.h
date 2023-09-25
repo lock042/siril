@@ -55,6 +55,7 @@ struct astrometry_data {
 	GFile *catalog_file;	// downloaded file containing raw catalog data
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
+	gboolean asnet_checked;	// local asnet availability already checked
 
 	/* runtime data */
 	psf_star **cstars;	// catalogue stars
