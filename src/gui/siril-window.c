@@ -70,6 +70,14 @@ static GActionEntry image_entries[] = {
 	{ "wcs-grid", wcs_grid_activate, NULL, "false", wcs_grid_state },
 	{ "search-object", search_object_activate },
 	{ "search-solar", search_object_solar_activate },
+//	{ "search-varstars", search_varstars_activate },
+	{ "cat_gcvs", search_stars_gcvs_activate },
+	{ "cat_aavso", search_stars_aavso_activate },
+	{ "cat_apass", search_stars_apass_activate },
+	{ "cat_nomad", search_stars_nomad_activate },
+	{ "cat_bsc", search_stars_bsc_activate },
+	{ "cat_ppmxl", search_stars_ppmxl_activate },
+	{ "cat_pgc", search_stars_pgc_activate },
 	{ "seq-list", seq_list_activate },
 	{ "regframe", regframe_activate , NULL, "true", regframe_state }
 };

@@ -113,7 +113,6 @@ int	process_mtf(int nb);
 int	process_neg(int nb);
 int	process_new(int nb);
 int	process_nomad(int nb);
-int	process_sso();
 int	process_nozero(int nb);
 
 int	process_offset(int nb);
@@ -204,6 +203,7 @@ int	process_set_ref(int nb);
 int	process_subsky(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
+int	process_sso();
 int	process_stat(int nb);
 int	process_stackall(int nb);
 int	process_stackone(int nb);
@@ -220,6 +220,7 @@ int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);
 int	process_unsharp(int nb);
 
+int	process_varstars();
 int	process_visu(int nb);
 
 int	process_wavelet(int nb);

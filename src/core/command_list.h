@@ -236,6 +236,7 @@ static command commands[] = {
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},
 	{"unsharp", 2, "unsharp sigma multi", process_unsharp, STR_UNSHARP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"varstars", 0, "varstars [-mag=] [-catalog={gcvs|aavso|apass|nomad|bsc|ppmxl|pgc}]", process_varstars, STR_VARSTARS, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 
 	/* wavelet transform in nbr_plan plans */

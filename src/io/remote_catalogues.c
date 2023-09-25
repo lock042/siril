@@ -82,11 +82,17 @@ const char *catalog_to_str(online_catalog cat) {
 		case CAT_PPMXL:
 			return _("PPMXL");
 		case CAT_BRIGHT_STARS:
-			return _("bright stars");
+			return _("BSC");
+		case CAT_PGC:
+			return _("PGC");
 		case CAT_APASS:
 			return _("APASS");
+		case CAT_GCVS:
+			return _("GCVS");
+		case CAT_AAVSO_Var:
+			return _("AAVSO (VSX)");
 		case CAT_AAVSO:
-			return _("AAVSO");
+			return _("APASS");
 		case CAT_LOCAL:
 			return _("local Tycho-2+NOMAD");
 		case CAT_ASNET:
@@ -561,7 +567,7 @@ void free_fetch_result(gchar *result) {
 }
 #endif
 
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, int type) {
+gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, int type, gboolean photo) {
 	GString *url;
 	gchar *coordinates = g_strdup_printf("%f+%f", siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center));
 	gchar *mag = g_strdup_printf("%2.2lf", mag_limit);
@@ -570,8 +576,13 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	switch (type) {
 	case CAT_NOMAD:
 		url = g_string_new(VIZIER_QUERY);
+		if (photo) {
 		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Vmag%20Bmag");
+		} else {
+		url = g_string_append(url, "I/297&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		}
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
 		url = g_string_append(url, coordinates);
@@ -583,7 +594,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	default:
 	case CAT_TYCHO2:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "I/259/tyc2&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "I/259/tyc2&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "I/259/tyc2&-out.meta=huD&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAmdeg%20DEmdeg%20VTmag%20BTmag");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
@@ -595,7 +607,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		break;
 	case CAT_GAIADR3:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "I/355/gaiadr3&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "I/355/gaiadr3&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "I/355/gaiadr3&-out.meta=huD&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Gmag%20BPmag%20e_Gmag%20e_BPmag%20DR3Name");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
@@ -611,8 +624,10 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		break;
 	case CAT_PPMXL:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "I/317&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Jmag");
+//		url = g_string_append(url, "I/317&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Jmag");
+		url = g_string_append(url, "I/317&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
 		url = g_string_append(url, coordinates);
@@ -623,8 +638,10 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		break;
 	case CAT_BRIGHT_STARS:
 		url = g_string_new(VIZIER_QUERY);
-		url = g_string_append(url, "V/50/catalog&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "&-out.add=_RAJ,_DEJ&-out=Vmag&-out=B-V");
+//		url = g_string_append(url, "V/50/catalog&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
+//		url = g_string_append(url, "&-out.add=_RAJ,_DEJ&-out=Vmag&-out=B-V");
+		url = g_string_append(url, "V/50/catalog&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
 		url = g_string_append(url, coordinates);
@@ -646,21 +663,53 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&Vmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case CAT_AAVSO: // for photometry only
-		{
-			int ra_h, ra_m;
-			double ra_s;
-			siril_world_cs_get_ra_hour_min_sec(center, &ra_h, &ra_m, &ra_s);
-			int dec_deg, dec_m;
-			double dec_s;
-			siril_world_cs_get_dec_deg_min_sec(center, &dec_deg, &dec_m, &dec_s);
-			url = g_string_new(AAVSO_QUERY);
-			g_string_append_printf(url, "ra=%02d:%02d:%02.lf", ra_h, ra_m, ra_s);
-			g_string_append_printf(url, "&dec=%02d:%02d:%02.lf", dec_deg, dec_m, dec_s);
-			url = g_string_append(url, "&fov=");
-			url = g_string_append(url, fov);
-			g_string_append_printf(url, "&maglimit=%s&format=json", mag);
-		}
+	case CAT_GCVS: // for variable stars
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "B/gcvs/gcvs_cat&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&magMax=<");
+		url = g_string_append(url, mag);
+		break;
+	case CAT_PGC: // for galaxies
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "VII/237&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&magMax=<");
+		url = g_string_append(url, mag);
+		break;
+	case CAT_AAVSO_Var: // for variable stars from AAVSO
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "B/vsx/vsx&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&max=<");
+		url = g_string_append(url, mag);
+		break;
+	case CAT_AAVSO: // for photometry only   becomes a VizieR URL
+		url = g_string_new(VIZIER_QUERY);
+		url = g_string_append(url, "II/336&-out.meta=huD&-out.add=_r&-sort=_r");
+		url = g_string_append(url, "&-out.all");
+		url = g_string_append(url, "&-out.max=200000");
+		url = g_string_append(url, "&-c=");
+		url = g_string_append(url, coordinates);
+		url = g_string_append(url, "&-c.rm=");
+		url = g_string_append(url, fov);
+		url = g_string_append(url, "&Vmag=<");
+		url = g_string_append(url, mag);
 		break;
 	}
 
@@ -755,6 +804,47 @@ gpointer catsearch_worker(gpointer p) {
 	return GINT_TO_POINTER(!found_it);
 }
 
+gpointer search_in_online_vizier(gpointer p) {
+	struct astrometry_data *args = (struct astrometry_data *) p;
+
+	double ra = 0.0, dec = 0.0;
+	center2wcs(args->fit, &ra, &dec);
+	double fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
+	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
+	int retval = 0;
+
+	if (!args->onlineCatalog) args->onlineCatalog = CAT_GCVS;
+	
+	gchar *url = get_catalog_url(center, args->limit_mag, fov, args->onlineCatalog, FALSE);	
+	siril_log_message(_("Looking for objects according to %s in your field of view...\n"), catalog_to_str(args->onlineCatalog));
+
+	gchar *cleaned_url = url_cleanup(url);
+	char *result = fetch_url(cleaned_url);
+	siril_debug_print(_("URL: %s\n"), cleaned_url);
+
+	g_free(cleaned_url);
+	g_free(url);
+
+	if (result)
+		retval = parse_vizier_buffer(result, args->limit_mag, args->onlineCatalog);
+	
+#if defined HAVE_LIBCURL
+	free(result);
+#else
+	g_free(result);
+#endif
+	if (!retval) {
+		siril_add_idle(end_process_varstars, args);
+	} else {
+		free(args);
+		siril_add_idle(end_generic, NULL);
+	}
+
+	return GINT_TO_POINTER(retval);
+}
+
+
+
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
 #ifndef HAVE_NETWORKING
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
@@ -806,7 +896,7 @@ GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_cent
 
 	if (output_stream) {
 		/* download and save */
-		gchar *url = get_catalog_url(catalog_center, mag, radius_arcmin, onlineCatalog);
+		gchar *url = get_catalog_url(catalog_center, mag, radius_arcmin, onlineCatalog, TRUE);
 		buffer = fetch_url(url);
 		g_free(url);
 
@@ -981,118 +1071,4 @@ int load_catalog(GFile *catalog_file, gboolean phot, psf_star **ret_stars, int *
 	return 0;
 }
 
-// TODO to be reviewed
-// uses gfit for an is_inside() check
-int read_photo_aavso_buffer(const char *buffer, struct compstars_arg *args) {
-	gchar **token = g_strsplit(buffer, "auid", -1);
-	int nargs = g_strv_length(token);
-	args->cat_stars = malloc((min(MAX_STARS, nargs) + 1) * sizeof(psf_star *));
-	int nb_stars = 0;
-	char chartid[28];
-
-	if (nargs == 0) return 0;
-
-	if (g_str_has_prefix(token[0], "{\"chartid\":\"")) {
-		gchar **fields = g_strsplit(token[0], "\":\"", -1);
-		sscanf(fields[0], "%s", chartid);
-		g_strfreev (fields);
-	}
-
-	for (int i = 0; i < nargs; i++) {
-		double ra = 0.0, dec = 0.0, Vmag = 0.0, Bmag = 0.0, e_Vmag = 0.0, e_Bmag = 0.0;
-		double hours = 0.0, min = 0.0, seconds = 0.0, degres = 0.0;
-		char sname[28];
-		char chartid[28];
-		char star_uri[128];
-
-		// Fields containing the "chart id" and the chart URL according to the AAVSO
-		// TODO: why here and above?
-		if (g_str_has_prefix(token[i], "{\"chartid\":\"")) {
-			gchar **fields = g_strsplit(token[i], "\":\"", -1);
-			gchar **subfields = g_strsplit(fields[1], "\",\"", -1);
-			// TODO: string length checks to not overflow buffer
-			sscanf(subfields[0], "%s", chartid);		// chartid is a fixed 8 caracters string
-			// TODO: g_strfreev required
-			subfields = g_strsplit(fields[2], "\",\"", -1);
-			sscanf(subfields[0], "%s", star_uri);		// star_uri is a fixed 56 caracters string
-			g_strfreev (subfields);
-			g_strfreev (fields);
-		}
-
-		gchar **fields = g_strsplit(token[i], "\":\"", -1);
-
-		if (g_str_has_prefix(token[i], "\":\"")) {
-			int ind = 1;
-			while (fields[ind]) {
-				gchar **part = g_strsplit(fields[ind], "\",\"", -1);
-
-				// Field containing the name
-				if (ind == 1)	sscanf(part[0], "%s", sname);
-				// Field containing the RA
-				if (ind == 2) {
-					gchar **slice = g_strsplit(part[0], ":", -1);
-					sscanf(slice[0], "%lf", &hours);
-					sscanf(slice[1], "%lf", &min);
-					sscanf(slice[2], "%lf", &seconds);
-					ra = 360.0*hours/24.0 + 360.0*min/(24.0*60.0) + 360.0*seconds/(24.0*60.0*60.0);
-					g_free(slice);
-				}
-				// Field containing the DEC
-				if (ind == 3) {
-					gchar **slice = g_strsplit(part[0], ":", -1);
-					sscanf(slice[0], "%lf", &degres);
-					sscanf(slice[1], "%lf", &min);
-					sscanf(slice[2], "%lf", &seconds);
-					if (degres < 0.0)
-						dec = degres - min/60.0 - seconds/3600.0;
-					else dec = degres + min/60.0 + seconds/3600.0;
-					g_free(slice);
-				}
-				// Field containing Vmag/Bmag and e_Vmag/e_Bmag
-				if (ind >= 4 && ind <= 5) {
-					gchar *mag = NULL;
-					char *start = strchr(fields[ind], ':');
-					char *end = strstr(start, ",\"e");
-					mag = g_strndup(start + 1, end - start - 3);
-					if (ind == 4) sscanf(mag, "%lf", &Vmag);
-					if (ind == 5) sscanf(mag, "%lf", &Bmag);
-					g_free(mag);
-
-					gchar *e_mag = NULL;
-					start = strstr(fields[ind], "r\":");
-					end = strrchr(start, '}');
-					e_mag = g_strndup(start + 3, end - start - 3);
-					if (ind == 4) sscanf(e_mag, "%lf", &e_Vmag);
-					if (ind == 5) sscanf(e_mag, "%lf", &e_Bmag);
-					g_free(e_mag);
-				}
-				g_free(part);
-				ind++;
-			}
-		}
-		g_strfreev (fields);
-		double x, y;	// for display purposes only
-		if (!is_inside2(&gfit, ra, dec, &x, &y))
-			continue;
-		args->cat_stars[nb_stars].star_name = g_strdup(sname);
-		args->cat_stars[nb_stars].xpos = x;
-		args->cat_stars[nb_stars].ypos = gfit.ry - y - 1;	// why the hell do we need that here?
-		args->cat_stars[nb_stars].ra = ra;
-		args->cat_stars[nb_stars].dec = dec;
-		args->cat_stars[nb_stars].mag = Vmag;
-		args->cat_stars[nb_stars].Bmag = Bmag;
-		args->cat_stars[nb_stars].s_mag = e_Vmag;
-		args->cat_stars[nb_stars].s_Bmag = e_Bmag;
-		args->cat_stars[nb_stars].BV = Bmag - Vmag;
-		args->cat_stars[nb_stars].phot = NULL;
-		args->AAVSO_uri = g_strdup(star_uri);
-		args->AAVSO_chartid = g_strdup(chartid);
-		siril_debug_print(_("name: %s, ra: %lf, dec: %lf, Vmag: %lf, e_Vmag, %lf, Bmag: %lf, e_Bmag: %lf\n"),
-				g_strdup(sname), ra, dec, Vmag, e_Vmag, Bmag, e_Bmag);
-		if (nb_stars == MAX_STARS)
-			break;
-	}
-	g_strfreev(token);
-	return nb_stars;
-}
 
