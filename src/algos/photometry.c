@@ -408,7 +408,11 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	if (min_date != DBL_MAX)
 		julian0 = (int)min_date;
 
-	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
+	siril_log_message(_("Calibrated data for %d points of the light curve (#%d total, %d invalid calibration, %d unselected)\n"),
+			nb_valid_images,
+			seq->number,
+			seq->selnum - nb_valid_images,
+			seq->number - seq->selnum);
 
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
 	gchar *titleimg = g_strdup_printf("%s %s%s",
