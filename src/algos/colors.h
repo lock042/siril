@@ -35,6 +35,9 @@ void linrgb_to_xyz(double r, double g, double b, double *x, double *y, double *z
 void xyz_to_linrgb(double x, double y, double z, double *r, double *g, double *b, gboolean scale);
 void linrgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z, gboolean scale);
 void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b, gboolean scale);
+void rgb_to_yuvf(float red, float green, float blue, float *y, float *u, float *v);
+void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blue);
+
 
 double BV_to_T(double BV);
 

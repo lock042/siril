@@ -434,10 +434,10 @@ void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
 }
 
 void rgb_to_xyz(double r, double g, double b, double *x, double *y, double *z) {
-/*	r = (r <= 0.04045) ? r / 12.92 : pow(((r + 0.055) / 1.055), 2.4);
+	r = (r <= 0.04045) ? r / 12.92 : pow(((r + 0.055) / 1.055), 2.4);
 	g = (g <= 0.04045) ? g / 12.92 : pow(((g + 0.055) / 1.055), 2.4);
 	b = (b <= 0.04045) ? b / 12.92 : pow(((b + 0.055) / 1.055), 2.4);
-*/
+
 	r *= 100;
 	g *= 100;
 	b *= 100;
@@ -472,9 +472,9 @@ void linrgb_to_xyz(double r, double g, double b, double *x, double *y, double *z
 		b *= 100;
 	}
 
-	*x = 0.412453 * r + 0.357580 * g + 0.180423 * b;
-	*y = 0.212671 * r + 0.715160 * g + 0.072169 * b;
-	*z = 0.019334 * r + 0.119193 * g + 0.950227 * b;
+	*x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b;
+	*y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b;
+	*z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b;
 }
 
 void linrgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z, gboolean scale) {
@@ -484,9 +484,9 @@ void linrgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z, gbo
 		b *= 100.f;
 	}
 
-	*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
-	*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
-	*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+	*x = 0.4124564f * r + 0.3575761f * g + 0.1804375f * b;
+	*y = 0.2126729f * r + 0.7151522f * g + 0.0721750f * b;
+	*z = 0.0193339f * r + 0.1191920f * g + 0.9503041f * b;
 }
 
 void xyz_to_linrgb(double x, double y, double z, double *r, double *g, double *b, gboolean scale) {
@@ -496,9 +496,9 @@ void xyz_to_linrgb(double x, double y, double z, double *r, double *g, double *b
 		z /= 100.0;
 	}
 
-	*r =  3.240479 * x - 1.537150 * y - 0.498535 * z;
-	*g = -0.969256 * x + 1.875992 * y + 0.041556 * z;
-	*b =  0.055648 * x - 0.204043 * y + 1.057311 * z;
+	*r =  3.2404542 * x - 1.5371385 * y - 0.4985314 * z;
+	*g = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z;
+	*b =  0.0556434 * x - 0.2040259 * y + 1.0572252 * z;
 }
 
 void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b, gboolean scale) {
@@ -508,10 +508,29 @@ void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b, gbo
 		z /= 100.f;
 	}
 
-	*r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
-	*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
-	*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
+	*r =  3.2404542f * x - 1.5371385f * y - 0.4985314f * z;
+	*g = -0.9692660f * x + 1.8760108f * y + 0.0415560f * z;
+	*b =  0.0556434f * x - 0.2040259f * y + 1.0572252f * z;
 }
+
+void rgb_to_yuvf(float red, float green, float blue, float *y, float *u, float *v) {
+	const float a = 1.f / sqrtf(3.f);
+	const float b = 1.f / sqrtf(2.f);
+	const float c = 2.f * a * sqrtf(2.f);
+	*y = a * (red + green + blue);
+	*u = b * (red - blue);
+	*v = c * (0.25f * red - 0.5f * green + 0.25f * blue);
+}
+
+void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blue) {
+	const float a = 1.f / sqrtf(3.f);
+	const float b = 1.f / sqrtf(2.f);
+	const float c = a / b;
+	*red = (a * y) + (b * u) + (c * 0.5f * v);
+	*green = (a * y) - (c * v);
+	*blue = (a * y) - (b * u) + (c * 0.5f * v);
+}
+
 
 void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {
 	x /= 95.047;
