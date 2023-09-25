@@ -48,7 +48,7 @@ static void build_the_dialog() {
 
 	file_chooser = gtk_file_chooser_button_new (_("Select the NINA star list file"),
 			GTK_FILE_CHOOSER_ACTION_OPEN);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(file_chooser), com.wd);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(file_chooser), g_build_path(com.wd, PHOTO_FOLDER, NULL));
 	g_object_set(G_OBJECT(file_chooser), "margin", 15, NULL);
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, _("CSV file (*.csv)"));

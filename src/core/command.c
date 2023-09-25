@@ -4113,6 +4113,8 @@ int process_light_curve(int nb) {
 			clearfits(&first);
 			return CMD_GENERIC_ERROR;
 		}
+		file = !check_subfolder(PHOTO_FOLDER) ? g_build_filename(PHOTO_FOLDER, file, NULL) : file;
+
 		if (!seq_has_wcs) {
 			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
 			free(args);

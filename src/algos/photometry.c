@@ -415,9 +415,21 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 			seq->number - seq->selnum);
 
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
-	gchar *titleimg = g_strdup_printf("%s %s%s",
-			_("Light curve of star"), target_descr, subtitleimg);
-	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
+
+	const char *title = NULL;
+	gchar *titleimg = NULL;
+	gchar *subtitledat = NULL;
+	if (!lcargs->metadata) {		// Case of headless use
+		title = g_strdup(_("Light curve of star"));
+		titleimg = g_strdup(_(" "));
+		subtitledat = g_strdup(_(" "));
+	}
+	else {
+		title = lcargs->metadata->is_checkstar ? "Light curve of check star for" : "Light curve of star";
+		titleimg = g_strdup_printf("%s %s%s", title, lcargs->metadata->target_name, subtitleimg);
+		subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
+	}
+
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
 
@@ -513,8 +525,15 @@ gpointer light_curve_worker(gpointer arg) {
 	memset(&com.selection, 0, sizeof(rectangle));
 
 	/* analyse data and create the light curve */
+	gchar *outfile_name = NULL;
+	if (!args->metadata) outfile_name = g_strdup(_("light_curve.dat"));
+	else outfile_name = replace_ext(args->metadata->nina_file, "_LC.dat");
+
+	// Changes the name to include the right photometry output folder
+	outfile_name = !check_subfolder(PHOTO_FOLDER) ? g_build_filename(PHOTO_FOLDER, outfile_name, NULL) : outfile_name;
+
 	if (!retval)
-		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, args->display_graph, args);
+		retval = new_light_curve(args->seq, outfile_name, args->target_descr, args->display_graph, args);
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}
