@@ -9,6 +9,7 @@ siril 1.2.1
 xx/xx/xx
 
 * Fixed Anscombe VST noise reduction option for mono images
+* Fixed colored artefacts in RGB deconvolution (#1201)
 
 siril 1.2.0
 09/15/23
