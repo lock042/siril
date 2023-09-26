@@ -1212,18 +1212,17 @@ gpointer deconvolve(gpointer p) {
 
 	next_psf_is_previous = (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) ? TRUE : FALSE;
 
-	float *xyzdata = NULL;
+	float *yuvdata = NULL;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
 		int npixels = the_fit->rx * the_fit->ry;
-		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
+		yuvdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
 		for (int i = 0 ; i < npixels ; i++) {
-			rgb_to_xyzf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
-			xyz_to_LABf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+			rgb_to_yuvf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
 		}
 		args.nchans = 1;
 		free(args.fdata);
-		args.fdata = xyzdata; // fdata now points to the L part of xyzdata
+		args.fdata = yuvdata; // fdata now points to the Y part of yuvdata
 	}
 
 	if (get_thread_run() || sequence_is_running == 1) {
@@ -1274,10 +1273,9 @@ gpointer deconvolve(gpointer p) {
 		args.nchans = 3;
 		args.fdata = malloc(npixels * args.nchans * sizeof(float));
 		for (int i = 0 ; i < npixels ; i++) {
-			LAB_to_xyzf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
-			xyz_to_rgbf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
+			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
 		}
-		free(xyzdata);
+		free(yuvdata);
 	}
 
 	// Update the_fit with the result

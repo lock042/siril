@@ -12,6 +12,11 @@ xx/xx/xx
 * Fixed running command catsearch threaded to avoid GUI freeze (#1167)
 * Add ROI processing for certain functions (!571, fixes #1098 and #1188)
 
+siril 1.2.1
+xx/xx/xx
+
+* Fixed Anscombe VST noise reduction option for mono images
+
 siril 1.2.0
 09/15/23
 
