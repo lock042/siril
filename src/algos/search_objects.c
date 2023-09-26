@@ -31,6 +31,8 @@
 #include "gui/utils.h"
 #include "gui/image_display.h"
 
+#define MAX_DATA_ITEMS 4
+
 /* parse response from online catalogue lookups (search_in_online_catalogs()
  * for QUERY_SERVER_EPHEMCC and QUERY_SERVER_SIMBAD_PHOTO) and stores the
  * result in the local annotation catalogues and returns it in the argument if
@@ -230,6 +232,240 @@ int parse_catalog_buffer(const gchar *buffer, psf_star **result) {
 		siril_world_cs_unref(world_cs);
 	return 1;
 }
+
+/////////////////////////////////////////////////////////
+// Defines the possible data contained in a Vizier catalogue
+/////////////////////////////////////////////////////////
+
+typedef struct {
+	int CAT_TYP;		// Catalogue type, or number
+	int ra_len;			// Lenght of the RA field in the returned stream
+	int ra_ind;			// Index of the RA field in the returned stream
+	int dec_len;		// Lenght of the DEC field in the returned stream
+	int dec_ind;		// Index of the DEC field in the returned stream
+	int name_len;		// Lenght of the NAME field in the returned stream
+	int name_ind;		// Index of the NAME field in the returned stream
+	int Vmag_len;		// Lenght of the Vmag field in the returned stream
+	int Vmag_ind;		// Index of the Vmag field in the returned stream
+	int Bmag_len;		// Lenght of the Bmag field in the returned stream
+	int Bmag_ind;		// Index of the Bmag field in the returned stream
+	int eVmag_len;		// Lenght of the eVmag field in the returned stream
+	int eVmag_ind;		// Index of the eVmag field in the returned stream
+	int eBmag_len;		// Lenght of the eBmag field in the returned stream
+	int eBmag_ind;		// Index of the eBmag field in the returned stream
+	int fmt;			// Data type for RA and DEC: 0 stands for Alphanumeric, 1 stands for Double
+} catalog_plan;
+
+static catalog_plan catalog_data = {0};
+
+
+	//// APASS fields: RAJ2000 DEJ2000 Vmag Bmag e_Vmag e_Bmag recno
+	//// NOMAD fields: RAJ2000 DEJ2000 Vmag Bmag
+	//// GAIA3 fields: RAJ2000 DEJ2000 Gmag BPmag e_Gmag e_BPmag DR3Name
+	// 1- For now, only the 4 first data are used, but could be extended to
+	//    the next items defined in catalog_plan
+	// 2- The keyword order (RA/DEC/Name/mg/...) must be kept as is.
+	// 3- The catalogue order MUST match the one defined in the structure 'online_catalog' in "remote_catalogues.h"
+	// 4- The keywords are specific to each catalogue and are explained in the Vizier pages
+static char *catalog_data_label[][MAX_DATA_ITEMS] = {	
+	{"RAJ2000", "DEJ2000", "recno", "VTmag"},				//CAT_TYCHO2
+	{"RAJ2000", "DEJ2000", "NOMAD1", "Vmag"},				//CAT_NOMAD
+	{"RAJ2000", "DEJ2000", "DR3Name", "Gmag"},				//CAT_GAIADR3
+	{"RAJ2000", "DEJ2000", "PPMXL", "imag"},				//CAT_PPMXL
+	{"RAJ2000", "DEJ2000", "HD", "Vmag"},					//CAT_BRIGHT_STARS
+	{"RAJ2000", "DEJ2000", "Name", NULL},					//CAT_APASS No real interrest as this is the same as CAT_AAVSO with no name fields
+	{"RAJ2000", "DEJ2000", "GCVS", "magMax"},				//CAT_GCVS
+	{"RAJ2000", "DEJ2000", "Name", "max"},					//CAT_AAVSO_Var
+	{"RAJ2000", "DEJ2000", "recno", "Vmag"},				//CAT_AAVSO
+	{"RAJ2000", "DEJ2000", "PGC", ""},						//CAT_PGC
+	{NULL, NULL, NULL, NULL}								// Dummy
+};
+
+// Designed to get the index/lenght (see catalog_plan) of the dataset determined by the keywords (see catalog_data_label)
+int catalog_mapping(const gchar *buffer, int cata) {
+	gchar **token = g_strsplit(buffer, "\n", -1);
+	int nb_lines = g_strv_length(token);
+	catalog_data.fmt = 0;
+	size_t label_qty = sizeof(catalog_data_label[cata]) / (sizeof(catalog_data_label[cata][0]));
+
+	for (int j =0; j < label_qty; j++) {		// Loop on items contained in the catalogue
+		int cumul = 0;		// cumulative index
+		int F77_len = 0;	// lenght of each item
+		for (int i = 0; i < nb_lines; i++) {		// Loops on the lines
+			gchar *line = token[i];
+
+		// Prototype of a significant line:
+		// #Column	Item	(F77 format statement)	[useless stuff]
+		// Example:
+		// #Column	RAJ2000	(F10.6)		[ucd=pos.eq.ra;meta.main]
+		// #Column	DEJ2000	(F10.6)		[ucd=pos.eq.dec;meta.main]
+
+			if (g_str_has_prefix(line, "#Column")) {		// A significant line begins with "#Column" in the header
+				gchar **sub_line = g_strsplit(line, "\t", -1);
+
+				char *start = strchr(sub_line[2], '(');		// extract lenght
+				if (start && *(start+1) != '\0') {
+					start += 1; // 
+					gchar *tmp = NULL;
+					char *end = strchr(start, '.');
+					if (end) {
+						end -= 1; // 
+						tmp = g_strndup(start+1, end-start);
+						F77_len = g_ascii_strtoll(tmp, NULL, 10);
+					} else {
+						end = strchr(start, ')');
+						end -= 1; // 
+						tmp = g_strndup(start+1, end-start);
+						F77_len = g_ascii_strtoll(tmp, NULL, 10);
+					}
+					g_free(tmp);
+
+
+					if (!g_strcmp0(sub_line[1], catalog_data_label[cata][j]) && catalog_data_label[cata][j]) {		// one item is found
+						switch (j) {
+							case 0:		//0 being the index of the 1st data, ie RA
+								catalog_data.ra_ind = cumul;
+								catalog_data.ra_len = F77_len;
+								if (g_str_has_prefix(sub_line[2], "(F")) catalog_data.fmt = 1;	// RA/DEC format, 1: FLOAT, 0: CHAR. Depends on catalogue
+								break;
+							case 1:		//1 being the index of the 2nd data, ie DEC
+								catalog_data.dec_ind = cumul;
+								catalog_data.dec_len = F77_len;
+								if (g_str_has_prefix(sub_line[2], "(F")) catalog_data.fmt = 1;	// RA/DEC format, 1: FLOAT, 0: CHAR. Depends on catalogue
+								break;
+							case 2:		//2 being the index of the 3rd data, ie Name/Label of the object
+								catalog_data.name_ind = cumul;
+								catalog_data.name_len = F77_len;
+								break;
+							case 3:		//3 being the index of the 4th data, ie Vmag
+								catalog_data.Vmag_ind = cumul;
+								catalog_data.Vmag_len = F77_len;
+								break;
+						}
+					}
+					cumul = F77_len + 1 + cumul;	
+				}
+				g_free(sub_line);
+			}			
+		}	
+	}
+	g_strfreev(token);
+	return 0;
+}
+
+int parse_vizier_buffer(const gchar *buffer, double lim_mag, int cata) {
+	gchar **token = g_strsplit(buffer, "\n", -1);
+	int nb_lines = g_strv_length(token);
+	SirilWorldCS *world_cs = NULL;
+	purge_temp_user_catalogue();
+
+	if (!buffer || nb_lines <= 25) {				// 25 because nearly the end of the INFO lines in the header...(that's why -out.meta=huD is mandatory)
+		siril_log_color_message(_("Useless file. Check if server available. Aborted.\n"), "red");
+		g_strfreev(token);
+		return 0;
+	}
+
+	double ra = 0.0, dec = 0.0;
+	double mag = 0.0;
+	int cat = cata - 0;
+	gboolean valid = FALSE;
+	gboolean unlock = FALSE;
+	gboolean first_blank = FALSE;
+	guint nbr_a = 0;
+	gchar *objname = NULL;
+	gchar *magg = NULL;
+
+// Determines the data mapping of he used catalogue
+	catalog_mapping(buffer, cat);
+
+// Discards header lines
+	for (int i = 0; i < nb_lines; i++) {		// Loops on the lines
+		gchar *line = token[i];
+		guint line_len = strlen (line);
+		valid = FALSE;
+
+		if (!unlock) {
+			if (!line[0] && first_blank) {
+				siril_log_color_message(_("No object from %s found in this FOV.\n"), "salmon", catalog_to_str(cat));
+				return 0;
+			}
+			if (g_str_has_prefix(line, "#INFO	Error")) {		// case described here: https://gitlab.com/free-astro/siril/-/issues/1131#note_1446793482
+				siril_log_color_message(_("The VizieR server returned a connetion error. Try later.\n"), "salmon");
+				return 0;
+			}		
+			if (!line[0]) first_blank = TRUE;					// Loops until the begining is found
+			if (g_str_has_prefix(line, "-----")) unlock = TRUE;	// Flag line is found, unlock and go ahead
+			continue;
+		}
+
+		if (!line[0] && unlock) break;				// The first blank line after a good data block is the end of the file (avoids "is_blank()" and a new dependency)
+
+// If we reach this point, the file is valid and the index/lenghts have been found
+// Reading the desired data in a valid line
+		for (int j= 0; j < line_len; j++) {			// Loop across one line
+			if (j == catalog_data.ra_ind) {			// RA read
+				gchar *temp = g_strndup(&line[j], catalog_data.ra_len);
+				ra = catalog_data.fmt ? g_ascii_strtod(temp, NULL) : parse_hms(temp);
+				g_free(temp);
+			}
+			if (j == catalog_data.dec_ind) {			// DEC read
+				gchar *temp = g_strndup(&line[j], catalog_data.dec_len);
+				dec = catalog_data.fmt ? g_ascii_strtod(temp, NULL) : parse_dms(temp);
+				g_free(temp);
+			}
+			if (j == catalog_data.Vmag_ind) 			// Magitude read
+				magg = g_strndup(&line[j], catalog_data.Vmag_len);
+
+			if (j == catalog_data.name_ind) {		// Name read
+				gchar *temp = g_strndup(&line[j], catalog_data.name_len);	
+				if (cat == CAT_PGC)	objname = g_strconcat("PGC ", temp, NULL);	// Adding a prefix for PGC. Much nicer!!
+				else if (cat == CAT_BRIGHT_STARS)	objname = g_strconcat("HD ", temp, NULL);	// Adding a prefix for BSC. Much nicer also!!
+				else objname = g_strdup(temp);
+				if (!temp) objname = "x";		// if noname, just "x", but should not happen
+				g_free(temp);
+			}
+		}
+		valid = !isnan(dec) && !isnan(ra);
+
+		if (valid) {
+			world_cs = siril_world_cs_new_from_a_d(ra, dec);
+			gchar *end;
+
+			if (cat == CAT_PGC)	{
+				mag = -99.0;							// PGC doesn't contain magnitude data
+			} else mag = g_ascii_strtod(magg, &end);
+
+			if (end == magg)
+				valid = FALSE;
+			else if (mag < lim_mag && is_inside(&gfit, ra, dec))
+				nbr_a++;
+			else valid = FALSE;
+		}
+
+// And finally displays the result (or not)
+		if (world_cs && objname && valid) {
+			gchar* alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+			gchar* delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+			siril_log_message(_("Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"),
+					objname, alpha, delta, mag);
+			g_free(alpha);
+			g_free(delta);
+
+			if (!com.script && !com.headless) {	// Write in catalogue only if in GUI mode
+				add_object_in_catalogue(objname, world_cs, FALSE, USER_TEMP_CAT_INDEX);
+				com.pref.gui.catalog[USER_TEMP_CAT_INDEX] = TRUE;	// and display it
+				siril_world_cs_unref(world_cs);
+				world_cs = NULL;
+			}
+		}
+	}
+	g_free(magg);
+	g_free(objname);
+	g_strfreev(token);
+	siril_log_message(_("Found %d Objects with mag < %0.1lf\n"), nbr_a, lim_mag);
+	return nbr_a <= 0;
+}
+
 
 int parse_conesearch_buffer(const gchar *buffer, double lim_mag) {
 	if (!buffer || buffer[0] == '\0')

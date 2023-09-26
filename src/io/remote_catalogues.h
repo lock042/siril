@@ -20,7 +20,10 @@ typedef enum {
 	CAT_PPMXL,
 	CAT_BRIGHT_STARS,
 	CAT_APASS,
-	CAT_AAVSO,
+	CAT_GCVS,
+	CAT_AAVSO_Var,
+	CAT_AAVSO,			// becomes a VizieR URL
+	CAT_PGC,
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_ASNET = 100,	// solve-field local (astrometry.net)
@@ -29,7 +32,7 @@ typedef enum {
 const char *catalog_to_str(online_catalog cat);
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
+gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type, gboolean photo);
 
 gchar *fetch_url(const gchar *url);
 void free_fetch_result(gchar *result);
@@ -37,12 +40,9 @@ void free_fetch_result(gchar *result);
 int read_projected_catalog(GInputStream *stream, psf_star **cstars, online_catalog cat);
 
 gpointer search_in_online_conesearch(gpointer p);
+gpointer search_in_online_vizier(gpointer p);
 gpointer catsearch_worker(gpointer p);
 
-// temp
-//struct compstars_arg;
 int load_catalog(GFile *catalog_file, gboolean phot, psf_star **ret_stars, int *ret_nb_stars);
-//int read_photo_catalog_buffer(const char *buffer, struct compstars_arg *args);
-//int read_photo_aavso_buffer(const char *buffer, struct compstars_arg *args);
 
 #endif

@@ -8845,6 +8845,76 @@ int process_sso() {
 	return CMD_OK;
 }
 
+
+int process_varstars(int nb) {
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+
+	purge_temp_user_catalogue();
+	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+	args->fit = &gfit;
+
+	double lim_mag = 13.0;
+	args->onlineCatalog = CAT_GCVS;
+	int arg_idx = 1;
+
+	while (arg_idx < nb) {
+		if (g_str_has_prefix(word[arg_idx], "-mag=")) {	
+			char *next, *value = word[arg_idx] + 5;
+			lim_mag = g_ascii_strtod(value, &next);
+			if (next == value) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				free(args);
+				return CMD_ARG_ERROR;
+			}
+
+		} else if (g_str_has_prefix(word[arg_idx], "-catalog=")) {
+			const char *cat = word[arg_idx] + 9;
+			if (!g_ascii_strcasecmp(cat, "gcvs"))
+				args->onlineCatalog = CAT_GCVS;
+			else if (!g_ascii_strcasecmp(cat, "aavso"))
+				args->onlineCatalog = CAT_AAVSO_Var;
+			else if (!g_ascii_strcasecmp(cat, "apass"))
+				args->onlineCatalog = CAT_AAVSO;
+			else if (!g_ascii_strcasecmp(cat, "ppmxl"))
+				args->onlineCatalog = CAT_PPMXL;
+			else if (!g_ascii_strcasecmp(cat, "bsc"))
+				args->onlineCatalog = CAT_BRIGHT_STARS;
+			else if (!g_ascii_strcasecmp(cat, "pgc"))
+				args->onlineCatalog = CAT_PGC;
+			else if (!g_ascii_strcasecmp(cat, "nomad"))
+				args->onlineCatalog = CAT_NOMAD;
+			else {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Unknown option provided: %s\n"), word[arg_idx]);
+			return CMD_ARG_ERROR;
+		}
+		arg_idx++;
+	}
+
+
+	args->limit_mag = lim_mag;
+	args->focal_length = gfit.focal_length;
+	args->pixel_size = gfit.pixel_size_x;
+	args->scale = get_resolution(args->focal_length, args->pixel_size);
+	if (args->scale == 0.0) {
+		siril_log_message(_("Could not compute image resolution\n"));
+		free(args);
+		redraw(REDRAW_OVERLAY);
+		return CMD_INVALID_IMAGE;
+	}
+
+	start_in_new_thread(search_in_online_vizier, args);
+	return CMD_OK;
+}
+
+
 int process_catsearch(int nb){
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
