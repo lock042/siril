@@ -31,8 +31,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "core/icc_profile.h"
-#include "core/processing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
@@ -276,10 +274,6 @@ int readbmp(const char *name, fits *fit) {
 	}
 	fit->type = DATA_USHORT;
 	free(buf);
-	// Initialize ICC profile. As the buffer is set to NULL, this sets the
-	// profile as sRGB (or Gray g22) which is what we want for 8-bit BMPs
-	fits_initialize_icc(fit, NULL, 0);
-
 	char *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading BMP: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
@@ -311,42 +305,6 @@ int savebmp(const char *name, fits *fit) {
 
 	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
-	// Apply the colorspace transform
-	void *buf = NULL;
-	void *dest = NULL;
-	gboolean src_is_float = (fit->type == DATA_FLOAT);
-
-	// Transform the data
-	if (fit->icc_profile && fit->color_managed) {
-		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-		size_t npixels = fit->rx * fit->ry;
-		size_t nchans = fit->naxes[2];
-		cmsUInt32Number trans_type;
-		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
-		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
-		}
-		gboolean threaded = !get_thread_run();
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
-		cmsUInt32Number data_format_size = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * data_format_size;
-		cmsUInt32Number bytesperplane = npixels * data_format_size;
-		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(save_transform);
-		gbuf[0] = (WORD *) dest;
-		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
-		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
-		gbuff[0] = (float *) dest;
-		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
-		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
-		// No profile will be embedded as the version of BITMAPINFOHEADER
-		// we use does not support them: the assumption is that the data is
-		// sRGB (or possibly "Windows color space" which seems to be more or
-		// less the same thing).
-	}
 
 	unsigned int padsize = (4 - (width * 3) % 4) % 4;
 	size_t datasize = width * height * 3 + padsize * height;
@@ -441,7 +399,6 @@ int savebmp(const char *name, fits *fit) {
 	siril_log_message(_("Saving BMP: file %s, %ld layer(s), %ux%u pixels\n"), filename,
 			fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
-	free(dest);
 	return 0;
 }
 
@@ -541,19 +498,18 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		else
 			stride = fit->rx * 3;
 		tmpbuf = malloc(stride * fit->ry);
-		WORD *newdata = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-		if (newdata)
-			fit->data = newdata;
-		if (newdata == NULL || tmpbuf == NULL) {
+		WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+		if (tmp == NULL || tmpbuf == NULL) {
 			PRINT_ALLOC_ERR;
 			fclose(file);
-			if (fit->data)
+			if (fit->data && !tmp)
 				free(fit->data);
 			if (tmpbuf)
 				free(tmpbuf);
 			fit->data = NULL;
 			return -1;
 		}
+		fit->data = tmp;
 		if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
 			siril_log_color_message(_("Error reading 8-bit PPM image data.\n"), "red");
 			fclose(file);
@@ -604,19 +560,18 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			WORD *tmpbuf;
 			stride = fit->rx * 3 * sizeof(WORD);
 			tmpbuf = malloc(stride * fit->ry);
-			WORD *newdata = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-			if (newdata)
-				fit->data = newdata;
-			if (newdata == NULL || tmpbuf == NULL) {
+			WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+			if (tmp == NULL || tmpbuf == NULL) {
 				PRINT_ALLOC_ERR;
 				fclose(file);
-				if (fit->data)
+				if (fit->data && !tmp)
 					free(fit->data);
 				if (tmpbuf)
 					free(tmpbuf);
-				fit->data = NULL;
+				tmp = NULL;
 				return -1;
 			}
+			fit->data = tmp;
 			if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
 				siril_log_color_message(
 						_("Error reading 16-bit color PPM image data.\n"), "red");
@@ -641,10 +596,6 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	fit->type = DATA_USHORT;
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
-	// Initialize ICC profile. As the buffer is set to NULL, this sets the
-	// profile as sRGB (or Gray g22) which is what we want
-	fits_initialize_icc(fit, NULL, 0);
-
 	fclose(file);
 	char *basename = g_path_get_basename(filename);
 	siril_log_message(_("Reading NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
@@ -666,38 +617,6 @@ static int saveppm(const char *name, fits *fit) {
 	fprintf(fp, "P6\n%s\n%u %u\n%u\n", comment, fit->rx, fit->ry, USHRT_MAX);
 	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
-
-	// Apply the colorspace transform
-	gboolean src_is_float = (fit->type == DATA_FLOAT);
-	void *buf = NULL;
-	void *dest = NULL;
-
-	// Colorspace transform the data
-	if (fit->color_managed && fit->icc_profile) {
-		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-		const size_t npixels = fit->rx * fit->ry;
-		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-		}
-		gboolean threaded = !get_thread_run();
-		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
-		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(save_transform);
-		gbuf[0] = (WORD *) dest;
-		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
-		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
-		gbuff[0] = (float *) dest;
-		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
-		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
-	}
-
 	fits_flip_top_to_bottom(fit);
 	norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	if (fit->type == DATA_USHORT) {
@@ -729,7 +648,6 @@ static int saveppm(const char *name, fits *fit) {
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
-	free(dest);
 	return 0;
 }
 
@@ -739,34 +657,6 @@ static int savepgm(const char *name, fits *fit) {
 	double norm;
 	WORD *gbuf = fit->pdata[RLAYER];
 	float *gbuff = fit->fpdata[RLAYER];
-
-	// Apply the colorspace transform
-	void *buf = NULL;
-	void *dest = NULL;
-	gboolean src_is_float = (fit->type == DATA_FLOAT);
-
-	// Colorspace transform the data
-	if (fit->color_managed && fit->icc_profile) {
-		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
-		const size_t npixels = fit->rx * fit->ry;
-		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
-		}
-		gboolean threaded = get_thread_run();
-		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
-		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
-		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
-		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(save_transform);
-		gbuf = (WORD *) dest;
-		gbuff = (float *) dest;
-	}
-
 	const char *comment = "# CREATOR : SIRIL";
 
 	fp = g_fopen(name, "wb");
@@ -797,7 +687,6 @@ static int savepgm(const char *name, fits *fit) {
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
-	free(dest);
 	return 0;
 }
 
@@ -819,6 +708,7 @@ int saveNetPBM(const char *name, fits *fit) {
 	free(filename);
 	return retval;
 }
+
 
 static int pictofit(const WORD *buf, fits *fit) {
 	WORD *data, *olddata = fit->data;
@@ -1011,12 +901,6 @@ int readpic(const char *name, fits *fit) {
 		g_strchug(pic_file->time);	// removing left white spaces if exist
 		siril_log_message(_("Time (of observation): %s\n"), pic_file->time);
 	}
-
-	// Initialize ICC profile. As the buffer is set to NULL, this sets the
-	// profile as sRGB (or Gray g22) which *I think* is what we want for
-	// PIC files. If anyone is still using them, please correct me if I'm
-	// wrong!
-	fits_initialize_icc(fit, NULL, 0);
 
 	_pic_close_file(pic_file);
 	g_free(basename);

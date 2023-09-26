@@ -26,7 +26,6 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "core/icc_profile.h"
 #include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/ccd-inspector.h"
@@ -55,10 +54,6 @@
 #endif
 
 #include "image_display.h"
-
-/* is gfit.icc_profile identical to the monitor profile, if so we can avoid the
- * transform */
-static cmsBool identical = FALSE;
 
 /* remap index data, an index for each layer */
 static float last_pente;
@@ -90,13 +85,14 @@ static int allocate_full_surface(struct image_view *view) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 		view->full_surface_stride = stride;
 		view->full_surface_height = gfit.ry;
-		guchar *newbuf = realloc(view->buf, stride * gfit.ry * sizeof(guchar));
-		if (!newbuf) {
+		guchar *tmp = realloc(view->buf, stride * gfit.ry * sizeof(guchar));
+		if (!tmp) {
 			PRINT_ALLOC_ERR;
+			if (view->buf)
+				free(view->buf);
 			return 1;
-		} else {
-			view->buf = newbuf;
 		}
+		view->buf = tmp;
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
@@ -109,12 +105,6 @@ static int allocate_full_surface(struct image_view *view) {
 		}
 	}
 	return 0;
-}
-
-void check_gfit_profile_identical_to_monitor() {
-	if (!com.headless && gfit.icc_profile && gfit.color_managed)
-		identical = profiles_identical(gfit.icc_profile, gui.icc.monitor);
-	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
 }
 
 static void remaprgb(void) {
@@ -150,7 +140,7 @@ static void remaprgb(void) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
-// flush to ensure all writing to the image was done and redraw the surface
+	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
 	invalidate_image_render_cache(RGB_VPORT);
@@ -186,8 +176,6 @@ static int make_hd_index_for_current_display(int vport);
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
-// remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
-
 static void remap(int vport) {
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
@@ -196,7 +184,8 @@ static void remap(int vport) {
 	WORD *src;
 	float *fsrc;
 	gboolean inverted;
-	siril_debug_print("HISTEQ / STF remap %d\n", vport);
+
+	siril_debug_print("remap %d\n", vport);
 	if (vport == RGB_VPORT) {
 		remaprgb();
 		return;
@@ -215,32 +204,36 @@ static void remap(int vport) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	}
 	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *neg_state = g_action_get_state(action_neg);
-	inverted = g_variant_get_boolean(neg_state);
-	g_variant_unref(neg_state);
-	neg_state = NULL;
+	GVariant *state = g_action_get_state(action_neg);
+
+	inverted = g_variant_get_boolean(state);
+	g_variant_unref(state);
 
 	if (gui.rendering_mode == HISTEQ_DISPLAY) {
 		double hist_sum, nb_pixels;
 		size_t i, hist_nb_bins;
 		gsl_histogram *histo;
+
 		compute_histo_for_gfit();
 		histo = com.layers_hist[vport];
 		hist_nb_bins = gsl_histogram_bins(histo);
 		nb_pixels = (double)(gfit.rx * gfit.ry);
+
 		// build the remap_index
 		index = gui.remap_index[0];
 		index[0] = 0;
 		hist_sum = gsl_histogram_get(histo, 0);
 		for (i = 1; i < hist_nb_bins; i++) {
 			hist_sum += gsl_histogram_get(histo, i);
-			index[i] = round_to_BYTE((hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
+			index[i] = round_to_BYTE(
+					(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
 		}
 
 		last_mode = gui.rendering_mode;
 		histo = com.layers_hist[vport];
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
+		// for all other modes and ushort data, the index can be reused
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
 				find_unlinked_midtones_balance_default(&gfit, stf);
@@ -260,10 +253,9 @@ static void remap(int vport) {
 	dst = view->buf;
 
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant *rainbow_state = g_action_get_state(action_color);
-	color_map color = g_variant_get_boolean(rainbow_state);
-	g_variant_unref(rainbow_state);
-	rainbow_state = NULL;
+	state = g_action_get_state(action_color);
+	color_map color = g_variant_get_boolean(state);
+	g_variant_unref(state);
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
@@ -276,8 +268,9 @@ static void remap(int vport) {
 	else
 		index = gui.remap_index[target_index];
 
+	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || (gui.rendering_mode == STF_DISPLAY && !(gui.use_hd_remap && gfit.type == DATA_FLOAT)));
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) private(y) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
 	for (y = 0; y < gfit.ry; y++) {
 		guint x;
@@ -289,15 +282,28 @@ static void remap(int vport) {
 			if (gfit.type == DATA_USHORT) {
 				if (hd_mode) {
 					dst_pixel_value = index[src[src_index] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
-				} else {
+				}
+				else if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[src[src_index]];
+				else if (gui.cut_over && src[src_index] > gui.hi)	// cut
+					dst_pixel_value = 0;
+				else {
+					dst_pixel_value = index[src[src_index] - gui.lo < 0 ? 0 : src[src_index] - gui.lo];
 				}
 			} else if (gfit.type == DATA_FLOAT) {
 				if (hd_mode)
 					dst_pixel_value = index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)];
-				else
+				else if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
+				else if (gui.cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > gui.hi)	// cut
+					dst_pixel_value = 0;
+				else {
+					dst_pixel_value = index[
+						roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
+							roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo];
+				}
 			}
+
 			dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
 
 			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
@@ -312,159 +318,13 @@ static void remap(int vport) {
 			}
 		}
 	}
+
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
 	invalidate_image_render_cache(vport);
+
 	test_and_allocate_reference_image(vport);
-}
-
-static void remap_all_vports() {
-	gboolean inverted;
-	int vport = 0;
-	static GtkApplicationWindow *app_win = NULL;
-	if (app_win == NULL) {
-		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	}
-	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
-	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *state_neg = g_action_get_state(action_neg);
-	inverted = g_variant_get_boolean(state_neg);
-	g_variant_unref(state_neg);
-	state_neg = NULL;
-	// We are now dealing with a 3-channel image
-
-	// Check if we need a rainbow color map
-	BYTE rainbow_index[UCHAR_MAX + 1][3];
-	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant* rainbow_state = g_action_get_state(action_color);
-	color_map color = g_variant_get_boolean(rainbow_state);
-	g_variant_unref(rainbow_state);
-	rainbow_state = NULL;
-	if (color == RAINBOW_COLOR)
-		make_index_for_rainbow(rainbow_index);
-
-	// This function maps fit data with a linear LUT between lo and hi levels
-	// to the buffer to be displayed; display only is modified
-	guint y;
-	BYTE *dst[3], *index;
-	WORD *src[3];
-	float *fsrc[3];
-
-	if (gfit.type == DATA_UNSUPPORTED) {
-		siril_debug_print("data is not loaded yet\n");
-		return;
-	}
-
-	if (gfit.color_managed) {
-		// Set the display transform in case it is missing
-		if (!gui.icc.display_transform) {
-			gui.icc.display_transform = initialize_display_transform();
-		}
-
-		if (gui.rendering_mode == SOFT_PROOF_DISPLAY && !gui.icc.proofing_transform)
-			gui.icc.proofing_transform = initialize_proofing_transform();
-		// Calling color_manage() like this updates the color management button tooltip
-		color_manage(&gfit, gfit.color_managed);
-	}
-
-	make_index_for_current_display(vport);
-	index = gui.remap_index[vport];
-	set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
-
-	last_mode = gui.rendering_mode;
-
-	for (int i = 0 ; i < 3 ; i++) {
-		src[i] = gfit.pdata[i];
-		fsrc[i] = gfit.fpdata[i];
-		if (allocate_full_surface(view[i]))
-			return;
-		dst[i] = view[i]->buf;
-	}
-
-	int norm = (int) get_normalized_value(&gfit);
-	{
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
-#endif
-		for (y = 0; y < gfit.ry; y++) {
-			guint x;
-			guint src_i = y * gfit.rx;
-			guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
-
-			// Set up a buffer so that the color space transform can be carried out on
-			//a whole row at a time using OpenMP to parallelize rows and the single
-			// threaded lcms2 context to give SIMD parallelisation within the rows
-			WORD *pixelbuf = calloc(gfit.rx * 3, sizeof(WORD));
-			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
-			if (gfit.type == DATA_FLOAT) {
-				for (int c = 0 ; c < 3 ; c++) {
-					WORD *line = linebuf[c];
-					float *source = fsrc[c];
-#pragma omp simd
-					for (x = 0 ; x < gfit.rx ; x++)
-						line[x] = roundf_to_WORD(source[src_i + x] * USHRT_MAX_SINGLE);
-				}
-			} else if (norm == UCHAR_MAX) {
-				for (int c = 0 ; c < 3 ; c++) {
-					WORD *line = linebuf[c];
-					WORD *source = src[c];
-#pragma omp simd
-					for (x = 0 ; x < gfit.rx ; x++)
-						line[x] = source[src_i + x] << 8;
-				}
-			} else {
-				for (int c = 0 ; c < 3 ; c++)
-// No omp simd here as memcpy should already be highly optimized
-					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
-			}
-			if (gui.icc.display_transform && !identical) {
-				cmsDoTransform((gui.rendering_mode == SOFT_PROOF_DISPLAY && gui.icc.proofing_transform) ?
-								gui.icc.proofing_transform :
-								gui.icc.display_transform,
-								pixelbuf, pixelbuf, gfit.rx);
-			}
-			if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
-				for (int c = 0 ; c < 3 ; c++) {
-					WORD *line = linebuf[c];
-#pragma omp simd
-					for (x = 0 ; x < gfit.rx ; x++)
-						line[x] = line[x] >> 8;
-				}
-			}
-
-			for (int c = 0 ; c < 3 ; c++) {
-				for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
-					BYTE dst_pixel_value = 0;
-						WORD val = linebuf[c][x];
-						if (gui.cut_over && val > gui.hi)	// cut
-							dst_pixel_value = 0;
-						else {
-							dst_pixel_value = index[val - gui.lo < 0 ? 0 : val - gui.lo];
-						}
-					dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
-					// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-					guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
-					switch (color) {
-						default:
-						case NORMAL_COLOR:
-							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
-							break;
-						case RAINBOW_COLOR:
-							*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
-					}
-				}
-			}
-			free(pixelbuf);
-		}
-	}
-	// flush to ensure all writing to the image was done and redraw the surface
-	for (int vport = 0 ; vport < 3 ; vport++) {
-		cairo_surface_flush(view[vport]->full_surface);
-		cairo_surface_mark_dirty(view[vport]->full_surface);
-		invalidate_image_render_cache(vport);
-		test_and_allocate_reference_image(vport);
-	}
 }
 
 static int make_hd_index_for_current_display(int vport) {
@@ -1784,12 +1644,8 @@ void redraw(remap_type doremap) {
 			break;
 		case REMAP_ALL:
 			stf_computed = FALSE;
-			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
-				for (int i = 0; i < gfit.naxes[2]; i++) {
-					remap(i);
-				}
-			} else {
-				remap_all_vports();
+			for (int i = 0; i < gfit.naxes[2]; i++) {
+				remap(i);
 			}
 			if (gfit.naxis == 3)
 				remaprgb();
