@@ -100,7 +100,6 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	areas[0].x = 0; areas[0].y = 0;
 	int ra_index = -1, dec_index = -1, name_index = 2;
 	int stars_count = 0;
-	gchar *cat_name = NULL;
 	gboolean ready_to_parse = FALSE, target_acquired = FALSE;
 	while (fgets(buf, 512, fd)) {
 		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
@@ -112,7 +111,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				args->metadata = calloc(1, sizeof(struct compstars_arg));
 				gchar **tokens = g_strsplit(buf, "::", -1);	// ... using the "::" pattern 
 				args->metadata->target_name = g_strdup(tokens[1]);
-				cat_name = g_strdup(tokens[3]);
+				args->metadata->cat_n = g_strdup(tokens[3]);
 				g_strfreev(tokens);	
 			}
 
@@ -255,8 +254,8 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 
 		// All the necessary data have been gathered to rebuild the wanted file names (matches the names format in write_nina_file)
 		args->metadata->nina_file = args->metadata->is_checkstar
-				? g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s_check.csv", args->metadata->target_name, args->metadata->delta_Vmag, args->metadata->delta_BV, cat_name)
-				: g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s.csv", args->metadata->target_name, args->metadata->delta_Vmag, args->metadata->delta_BV, cat_name);
+				? g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s_check.csv", args->metadata->target_name, args->metadata->delta_Vmag, args->metadata->delta_BV, args->metadata->cat_n)
+				: g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s.csv", args->metadata->target_name, args->metadata->delta_Vmag, args->metadata->delta_BV, args->metadata->cat_n);
 		siril_log_message(_(" csv  file %s\n"), args->metadata->nina_file);
 		
 		g_strfreev(tokens);
@@ -561,10 +560,10 @@ gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 	if (metadata->nb_comp_stars_sel > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0) {
 		if (for_plot)
 			g_string_append_printf(str,
-				"\n<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f</span>",
-				metadata->nb_comp_stars_sel, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
-		else g_string_append_printf(str, "#%d %s delta Vmag = %.2f, delta BV = %.2f",
-					metadata->nb_comp_stars_sel, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
+				"\n<span size=\"small\">%s, %d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f</span>",
+				metadata->cat_n, metadata->nb_comp_stars_sel, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
+		else g_string_append_printf(str, "#%s, %d %s delta Vmag = %.2f, delta BV = %.2f",
+					metadata->cat_n, metadata->nb_comp_stars_sel, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
 		first = FALSE;
 	}
 	if (metadata->AAVSO_chartid) {
