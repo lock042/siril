@@ -867,8 +867,7 @@ void update_roi_config() {
 	else
 		unregister_selection_update_callback(update_roi_from_selection);
 
-	gtk_widget_set_visible(lookup_widget("menu_gray_set_selection_to_roi"), com.pref.gui.roi_mode == ROI_MANUAL);
-	gtk_widget_set_visible(lookup_widget("menu_gray_clear_roi"), com.pref.gui.roi_mode == ROI_MANUAL);
+	gtk_widget_set_visible(lookup_widget("submenu_gray_roi"), com.pref.gui.roi_mode == ROI_MANUAL);
 }
 
 void update_display_fwhm() {

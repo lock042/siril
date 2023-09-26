@@ -16116,30 +16116,73 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_gray_crop">
+      <object class="GtkMenuItem" id="submenu_gray_crop">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="action-name">win.crop</property>
         <property name="label" translatable="yes">Crop</property>
         <property name="use-underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="crop_menu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_crop">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.crop</property>
+                <property name="label" translatable="yes">Crop</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_rotateandcrop">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.rotation-processing</property>
+                <property name="label" translatable="yes">Rotate &amp; Crop</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_crop_seq">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.seq-crop</property>
+                <property name="label" translatable="yes">Crop Sequence...</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_gray_crop_seq">
+      <object class="GtkMenuItem" id="submenu_gray_roi">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="action-name">win.seq-crop</property>
-        <property name="label" translatable="yes">Crop Sequence...</property>
+        <property name="label" translatable="yes">ROI</property>
         <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_gray_rotateandcrop">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.rotation-processing</property>
-        <property name="label" translatable="yes">Rotate&amp;Crop</property>
-        <property name="use-underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="roi_menu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_set_selection_to_roi">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.set_roi</property>
+                <property name="label" translatable="yes">Set ROI to selection</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_clear_roi">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.clear_roi</property>
+                <property name="label" translatable="yes">Clear ROI</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
     <child>
@@ -16178,22 +16221,6 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
             </child>
           </object>
         </child>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_gray_set_selection_to_roi">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.set_roi</property>
-        <property name="label" translatable="yes">Set ROI to selection</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_gray_clear_roi">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.clear_roi</property>
-        <property name="label" translatable="yes">Clear ROI</property>
       </object>
     </child>
   </object>

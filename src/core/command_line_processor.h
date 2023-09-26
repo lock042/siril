@@ -26,10 +26,12 @@ typedef enum {
 	CMD_FOR_PLATE_SOLVED = 1 << 18,
 	CMD_NEED_INIT_FIRST = 1 << 19,
 	CMD_ALLOC_ERROR = 1 << 20,
-	CMD_THREAD_RUNNING = 1 << 21,
-	// not an error but is used to notify to call notify_gfit_modified()
-	CMD_NOTIFY_GFIT_MODIFIED = 1 << 22
+	CMD_THREAD_RUNNING = 1 << 21
 } cmd_errors;
+
+typedef enum {
+	CMD_NOTIFY_GFIT_MODIFIED = 1 << 22
+} cmd_status;
 
 void parse_line(char *myline, int len, int *nb);
 void remove_trailing_cr(char *str);

@@ -199,7 +199,7 @@ int execute_command(int wordnb) {
 	// process the command
 	siril_log_color_message(_("Running command: %s\n"), "salmon", word[0]);
 	fprintf(stdout, "%lu: running command %s\n", time(NULL), word[0]);
-	cmd_errors retval = commands[i].process(wordnb);
+	int retval = commands[i].process(wordnb);
 	if (gui.roi.active)
 		populate_roi();
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
