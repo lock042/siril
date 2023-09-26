@@ -9042,6 +9042,7 @@ int process_show(int nb) {
 
 	if (g_str_has_prefix(word[next_arg], "-list=")) {
 		const char *file = word[next_arg] + 6;
+		file = !check_subfolder(PHOTO_FOLDER) ? g_build_filename(PHOTO_FOLDER, file, NULL) : file;		
 		if (load_csv_targets_to_temp(file))
 			return CMD_ARG_ERROR;
 		goto display;
