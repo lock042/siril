@@ -1895,7 +1895,7 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 
 void on_histo_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (histo_show_preview == TRUE) {
-		siril_preview_hide();
+		copy_backup_to_gfit();
 	} else {
 		copy_gfit_to_backup();
 

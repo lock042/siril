@@ -69,7 +69,6 @@ static void satu_close(gboolean revert) {
 		undo_save_state(get_preview_gfit_backup(),
 				_("Saturation enhancement (amount=%4.2lf)"), satu_amount);
 	}
-	backup_roi();
 	roi_supported(FALSE);
 	remove_roi_callback(satu_change_between_roi_and_image);
 	clear_backup();
@@ -123,6 +122,8 @@ static int satu_process_all() {
 	set_cursor_waiting(TRUE);
 	if (satu_show_preview)
 		copy_backup_to_gfit();
+	else if (gui.roi.active)
+		restore_roi();
 
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
@@ -395,7 +396,7 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (satu_show_preview == TRUE) {
 		/* if user click very fast */
 		waiting_for_thread();
-		siril_preview_hide();
+		copy_backup_to_gfit();
 	} else {
 		copy_gfit_to_backup();
 
