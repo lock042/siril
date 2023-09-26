@@ -572,7 +572,7 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
-typedef struct roi_t {
+typedef struct roi {
 	fits fit;
 	rectangle selection;
 	gboolean active;
