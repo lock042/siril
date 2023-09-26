@@ -721,7 +721,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	/* get number of valid frames for each star */
 	int ref_valid_count[MAX_SEQPSF] = { 0 };
 	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
-	for (i = 0; i < plot->nb; i++) {
+	for (i = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
@@ -737,7 +737,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int nb_ref_stars = 0;
 	// select reference stars that are only available at least 3/4 of the time
 	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-		ref_valid[r] = ref_valid_count[r] >= nbImages * 3 / 4;
+		ref_valid[r] = ref_valid_count[r] >= round_to_int(nbImages * 4.0 / 5.0);
 		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", r, ref_valid_count[r], nbImages, ref_valid[r] ? "including" : "discarding");
 		if (ref_valid[r])
 			nb_ref_stars++;
@@ -764,7 +764,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		return -1;
 	}
 	// i is index in dataset, j is index in output
-	for (i = 0, j = 0; i < plot->nb; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		double cmag = 0.0, cerr = 0.0;
@@ -803,8 +803,12 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 	int nb_valid_images = j;
 
-	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
-
+	siril_log_message(_("Calibrated data for %d points of the light curve (#%d total, %d invalid calibration, %d unselected)\n"),
+			nb_valid_images,
+			seq->number,
+			seq->selnum - nb_valid_images,
+			seq->number - seq->selnum);
+			
 	/*  data are computed, now plot the graph. */
 
 	spl_data = malloc(sizeof(siril_plot_data));
