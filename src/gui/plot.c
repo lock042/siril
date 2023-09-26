@@ -1221,7 +1221,9 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	SirilWidget *widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
 	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
 
-	gtk_file_chooser_set_current_folder(dialog, com.wd);
+	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
+	if (use_photometry) check_subfolder(PHOTO_FOLDER);
+	gtk_file_chooser_set_current_folder(dialog, use_photometry ? g_build_path(com.wd, PHOTO_FOLDER, NULL) : com.wd);
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
 	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
 	gtk_file_chooser_set_current_name(dialog, format);
@@ -1232,7 +1234,6 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = siril_file_chooser_get_filename(dialog);
 		export_function(plot_data, &com.seq, file);
-
 		g_free(file);
 	}
 	siril_widget_destroy(widgetdialog);
