@@ -269,6 +269,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	} else {
 		free(areas);
 	}
+	args->metadata->nb_comp_stars_sel = stars_count - 1;
 	fclose(fd);
 	return !target_acquired;
 }
@@ -557,13 +558,13 @@ gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 		return g_strdup("");
 	GString *str = g_string_new("");
 	gboolean first = TRUE;
-	if (metadata->nb_comp_stars > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0) {
+	if (metadata->nb_comp_stars_sel > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0) {
 		if (for_plot)
 			g_string_append_printf(str,
 				"\n<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f</span>",
-				metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
+				metadata->nb_comp_stars_sel, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
 		else g_string_append_printf(str, "#%d %s delta Vmag = %.2f, delta BV = %.2f",
-					metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
+					metadata->nb_comp_stars_sel, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
 		first = FALSE;
 	}
 	if (metadata->AAVSO_chartid) {

@@ -17,7 +17,8 @@ struct compstars_arg {
 	// for internal use
 	psf_star *target_star;	// the considered variable star
 	psf_star *cat_stars;	// the list of stars for the field
-	int nb_cat_stars;
+	int nb_cat_stars;		// Number of comparison stars found after the sorting process
+	int nb_cat_stars_sel;	// Number of valid comparison stars (a discarded comp stars has a # prefix in the csv file)
 	psf_star **comp_stars;	// the list of photometric comparison stars
 	int nb_comp_stars;
 	gchar *AAVSO_chartid;
