@@ -11,6 +11,11 @@ siril 1.4.0 xx xx, xx
 * Fixed running command catsearch threaded to avoid GUI freeze (#1167)
 * Added specific subfolder for photometry use (!569)
 
+siril 1.2.1
+xx/xx/xx
+
+* Fixed Anscombe VST noise reduction option for mono images
+
 siril 1.2.0 September 15, 2023
 
 * Fixed crash in background extraction samples removing (#1123)
