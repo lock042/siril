@@ -319,6 +319,7 @@ void on_asinh_RGBspace_toggled(GtkToggleButton *togglebutton, gpointer user_data
 void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (asinh_show_preview == TRUE) {
 		copy_backup_to_gfit();
+		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();
 

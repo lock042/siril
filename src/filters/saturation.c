@@ -397,6 +397,7 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		/* if user click very fast */
 		waiting_for_thread();
 		copy_backup_to_gfit();
+		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();
 
