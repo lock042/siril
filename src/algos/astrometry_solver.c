@@ -50,6 +50,7 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
 #include "opencv/opencv.h"
 #include "registration/registration.h"
@@ -151,27 +152,27 @@ static void compute_limit_mag(struct astrometry_data *args) {
 	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
 }
 
-static gchar *project_catalog(GFile *catalogue_name, SirilWorldCS *catalog_center) {
-	GError *error = NULL;
-	gchar *foutput = NULL;
-	/* --------- Project coords of Vizier catalog and save it into catalog.proj ------- */
+// static gchar *project_catalog(GFile *catalogue_name, SirilWorldCS *catalog_center) {
+// 	GError *error = NULL;
+// 	gchar *foutput = NULL;
+// 	/* --------- Project coords of Vizier catalog and save it into catalog.proj ------- */
 
-	GFile *fproj = g_file_new_build_filename(g_get_tmp_dir(), "catalog.proj", NULL);
+// 	GFile *fproj = g_file_new_build_filename(g_get_tmp_dir(), "catalog.proj", NULL);
 
-	/* We want to remove the file if already exisit */
-	if (!g_file_delete(fproj, NULL, &error)
-			&& !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND)) {
-		// deletion failed for some reason other than the file not existing:
-		// so report the error
-		g_warning("Failed to delete %s: %s", g_file_peek_path(fproj),
-				error->message);
-	}
+// 	/* We want to remove the file if already exisit */
+// 	if (!g_file_delete(fproj, NULL, &error)
+// 			&& !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND)) {
+// 		// deletion failed for some reason other than the file not existing:
+// 		// so report the error
+// 		g_warning("Failed to delete %s: %s", g_file_peek_path(fproj),
+// 				error->message);
+// 	}
 
-	convert_catalog_coords(catalogue_name, catalog_center, fproj);
-	foutput = g_file_get_path(fproj);
-	g_object_unref(fproj);
-	return foutput;
-}
+// 	convert_catalog_coords(catalogue_name, catalog_center, fproj);
+// 	foutput = g_file_get_path(fproj);
+// 	g_object_unref(fproj);
+// 	return foutput;
+// }
 
 gboolean has_any_keywords() {
 	return (gfit.focal_length > 0.0 ||
@@ -435,6 +436,8 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	if (args->onlineCatalog == CAT_ASNET)
 		return 0;
 
+	siril_catalogue *siril_cat;
+
 	/* obtaining a star catalogue */
 	if (!args->catalog_file && !args->use_local_cat) {
 		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
@@ -443,49 +446,18 @@ static int get_catalog_stars(struct astrometry_data *args) {
 			args->message = g_strdup(_("Could not download the online star catalogue."));
 			return 1;
 		}
-	}
-	CHECK_FOR_CANCELLATION_RET;
-
-	args->cstars = new_fitted_stars(MAX_STARS);
-	if (!args->cstars) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	/* project and open the file */
-	gchar *catalogStars;	// file name of the projected catalog
-	if (args->use_local_cat) {
-		catalogStars = get_and_project_local_catalog(args->cat_center,
-				args->used_fov / 120.0, args->limit_mag, FALSE);
+		siril_cat = siril_catalog_load_from_file(g_file_peek_path(args->catalog_file), args->for_photometry_cc);
 	} else {
-		catalogStars = project_catalog(args->catalog_file, args->cat_center);
-		if (!catalogStars) {
-			args->message = g_strdup(_("Cannot project the star catalog."));
-			return 1;
-		}
+		siril_cat = siril_catalog_get_raw_stars_from_local_catalogues(args->cat_center,
+				args->used_fov / 120.0, args->limit_mag, args->for_photometry_cc);
 	}
+	if (!siril_cat)
+		return 1;
 	CHECK_FOR_CANCELLATION_RET;
-	GFile *catalog = g_file_new_for_path(catalogStars);
-	GError *error = NULL;
-	GInputStream *input_stream = (GInputStream*) g_file_read(catalog, NULL, &error);
-	if (!input_stream) {
-		if (error != NULL) {
-			args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), error->message);
-			g_clear_error(&error);
-		}
-		args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), "generic error");
-		return 1;
-	}
-
-	args->n_cat = read_projected_catalog(input_stream, args->cstars, args->onlineCatalog);
-	if (args->n_cat <= 0) {
-		args->message = g_strdup(_("No stars have been retrieved from the online catalog. "
-					"This may mean that the servers are down. Note that you can install local catalogs."));
-		return 1;
-	}
-	g_object_unref(input_stream);
-	g_object_unref(catalog);
-	g_free(catalogStars);
+	double ra0 = siril_world_cs_get_alpha(args->cat_center);
+	double dec0 = siril_world_cs_get_delta(args->cat_center);
+	if (!siril_catalog_project_at_center(siril_cat, ra0, dec0, FALSE, NULL))
+		args->cstars = convert_siril_cat_to_psf_stars(siril_cat, &args->n_cat);
 	return 0;
 }
 
@@ -661,8 +633,10 @@ gpointer plate_solver(gpointer p) {
 				args->ret = ERROR_PHOTOMETRY;
 			}
 		} else {
-			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit, TRUE,
-					&pcc_stars, &nb_pcc_stars);
+			siril_catalogue *siril_cat = siril_catalog_load_from_file(g_file_peek_path(args->catalog_file), TRUE);
+			siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE);
+			pcc_stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
+			args->ret = nb_stars > 0;
 		}
 		if (args->ret) {
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));

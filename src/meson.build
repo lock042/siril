@@ -150,6 +150,7 @@ src_files = [
   'io/seqwriter.c',
   'io/ser.c',
   'io/single_image.c',
+  'io/siril_catalogues.c',
   'io/siril_plot.c',
   'io/SirilXISFReader.cpp',
 

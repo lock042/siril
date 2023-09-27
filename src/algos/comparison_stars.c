@@ -28,6 +28,7 @@
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/search_objects.h"
+#include "io/siril_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
@@ -388,7 +389,9 @@ static int get_catstars(struct compstars_arg *args) {
 	siril_log_message(_("The %s catalog has been successfully downloaded.\n"),
 			catalog_to_str(args->cat));
 
-	load_catalog(catalog_file, TRUE, &args->cat_stars, &args->nb_cat_stars);
+	siril_catalogue *siril_cat = siril_catalog_load_from_file(g_file_peek_path(catalog_file), TRUE);
+	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE))
+		args->cat_stars = convert_siril_cat_to_psf_stars(siril_cat, &args->nb_cat_stars)[0];
 
 	g_object_unref(catalog_file);
 	return 0;

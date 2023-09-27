@@ -313,6 +313,8 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	io/siril_catalogues.c \
+	io/siril_catalogues.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
 	livestacking/livestacking.c \

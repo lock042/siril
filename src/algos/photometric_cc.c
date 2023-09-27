@@ -468,7 +468,10 @@ gpointer photometric_cc_standalone(gpointer p) {
 		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
 
 		/* project using WCS */
-		retval = project_catalog_with_WCS(catalog_file, args->fit, TRUE, &stars, &nb_stars);
+		siril_catalogue *siril_cat = siril_catalog_load_from_file(g_file_peek_path(catalog_file), TRUE);
+		siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE);
+		stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
+		retval = nb_stars > 0;
 	}
 
 	if (!retval) {
@@ -492,3 +495,37 @@ gpointer photometric_cc_standalone(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars) {
+	*nbstars = 0;
+	if (!siril_cat || !siril_cat->nbincluded)
+		return NULL;
+	if (siril_cat->nbincluded <= -1) {
+		siril_debug_print("Catalog has not been projected\n");
+		return NULL;
+	}
+	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG)))
+		return NULL;
+	pcc_star *results = malloc(siril_cat->nbincluded * sizeof(pcc_star));
+
+	int n = 0;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		if (n > siril_cat->nbincluded) {
+			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated");
+		}
+		if (siril_cat->cat_items[i].included) {
+			results[n].x = siril_cat->cat_items[i].x;
+			results[n].y = siril_cat->cat_items[i].y;
+			results[n].mag = siril_cat->cat_items[i].mag;
+			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
+			n++;
+		}
+	}
+	n--;
+	if (n != siril_cat->nbincluded) {
+		siril_debug_print("problem when converting siril_cat to pcc_stars, number differs from catalogue info");
+		free(results);
+		return NULL;
+	}
+	*nbstars = n;
+	return results;
+}

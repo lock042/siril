@@ -58,6 +58,7 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
@@ -8771,7 +8772,7 @@ int process_nomad(int nb) {
 	}
 
 	pcc_star *stars = NULL;
-	siril_catalog *siril_cat = NULL;
+	siril_catalogue *siril_cat = NULL;
 	int nb_stars = 0;
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);

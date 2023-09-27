@@ -692,6 +692,87 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	return retval;
 }
 
+/* similar to get_raw_stars_from_local_catalogues except it returns deepStarData
+stars instead of deepStarData_dist*/
+static int get_raw_stars_from_local_catalogues2(double target_ra, double target_dec, double radius,
+		float max_mag, gboolean photometric, deepStarData **stars, uint32_t *nb_stars) {
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
+	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
+	uint32_t total_nb_stars = 0;
+	int retval = 0, catalogue = 0;
+
+	siril_debug_print("looking for stars in local catalogues for target %f, %f, radius %f, magnitude %.2f, photometric: %d\n", target_ra, target_dec, radius, max_mag, photometric);
+	for (; catalogue < nb_catalogues; catalogue++) {
+		if (catalogue == 3 && max_mag < 12.0) {
+			siril_debug_print("not querying NOMAD for this limit magnitude\n");
+			catalogue_stars[catalogue] = NULL;
+			catalogue_nb_stars[catalogue] = 0;
+			continue;
+		}
+
+		// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
+		retval = read_trixels_from_catalogue(com.pref.catalogue_paths[catalogue],
+				target_ra, target_dec, radius,
+				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
+		if (retval)
+			break;
+		total_nb_stars += catalogue_nb_stars[catalogue];
+		siril_debug_print("%d raw stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
+	}
+
+	if (catalogue == nb_catalogues) {
+		// aggregate and filter
+		*stars = malloc(total_nb_stars * sizeof(deepStarData));
+		if (!*stars) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+		} else {
+			uint32_t j = 0;
+			int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
+			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+				deepStarData *cat_stars = catalogue_stars[catalogue];
+				uint32_t cat_nb_stars = catalogue_nb_stars[catalogue];
+
+				for (uint32_t i = 0; i < cat_nb_stars ; i++) {
+					int16_t mag;
+					if (cat_stars[i].B >= 30000) {
+						if (photometric) continue;
+						mag = cat_stars[i].V;
+					}
+					else mag = cat_stars[i].B;
+					if (cat_stars[i].V >= 30000) {
+						if (photometric) continue;
+						mag = cat_stars[i].B;
+					}
+					else mag = cat_stars[i].V;
+					if (mag >= 30000) continue;
+					if (mag >= mag_threshold)
+						continue;
+
+					// catalogue has RA in hours, hence the x15
+					double ra = cat_stars[i].RA * .000015;
+					double dec = cat_stars[i].Dec * .00001;
+					double dist = compute_coords_distance(ra, dec, target_ra, target_dec);
+					if (dist > radius)
+						continue;
+					deepStarData *sdd = &cat_stars[i];
+					(*stars)[j] = *sdd;
+					j++;
+				}
+				free(catalogue_stars[catalogue]);
+			}
+
+			*nb_stars = j;
+			*stars = realloc(*stars, j * sizeof(deepStarData));
+		}
+	}
+
+	free(catalogue_nb_stars);
+	free(catalogue_stars);
+	return retval;
+}
+
 /* project a list of stars for plate solving
  * see registration/matching/project_coords.c proc_star_file() for original
  * code, based on a downloaded text file catalog */
@@ -795,6 +876,37 @@ gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius
 	siril_debug_print("Got %u stars from local catalogues.\n", nb_stars);
 
 	return foutput;
+}
+
+siril_catalogue *siril_catalog_get_raw_stars_from_local_catalogues(SirilWorldCS *catalog_center, double radius, double max_mag,
+		gboolean for_photometry) {
+	deepStarData *stars = NULL;
+	uint32_t nb_stars;
+	double center_ra = siril_world_cs_get_alpha(catalog_center);
+	double center_dec = siril_world_cs_get_delta(catalog_center);
+	if (get_raw_stars_from_local_catalogues2(center_ra, center_dec, radius, max_mag,
+				for_photometry, &stars, &nb_stars))
+		return NULL;
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->catalog_center_ra = center_ra;
+	siril_cat->catalog_center_dec = center_dec;
+	siril_cat->cattype = CAT_LOCAL;
+	siril_cat->radius = radius;
+	siril_cat->limitmag = max_mag;
+	siril_cat->phot = for_photometry;
+	siril_cat->columns = siril_catalog_colums(CAT_LOCAL);
+	siril_cat->nbincluded = -1;
+	siril_cat->nbitems = (int)nb_stars;
+	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		siril_cat->cat_items[i].ra = (double)stars[i].RA * .000015;
+		siril_cat->cat_items[i].dec = (double)stars[i].Dec * .00001;
+		siril_cat->cat_items[i].pmra = (double)stars[i].dRA;
+		siril_cat->cat_items[i].pmdec = (double)stars[i].dDec;
+		siril_cat->cat_items[i].mag = (float)stars[i].V * .001;
+		siril_cat->cat_items[i].mag = (float)stars[i].B * .001;
+	}
+	return siril_cat;
 }
 
 #if 0
