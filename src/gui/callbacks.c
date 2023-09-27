@@ -299,10 +299,7 @@ void remove_roi_callback(ROICallback func) {
 	roi_callbacks = g_list_remove_all(roi_callbacks, func);
 }
 
-void roi_supported(gboolean state) {
-	gui.roi.operation_supports_roi = state;
-	// Provide a one-time notification about ROI support
-	if (state && gui.roi.active && com.pref.gui.enable_roi_warning) {
+static void roi_info_message_if_needed() {
 		GtkWidget *check = NULL;
 		GtkWindow *parent = siril_get_active_window();
 		if (!GTK_IS_WINDOW(parent))
@@ -310,11 +307,12 @@ void roi_supported(gboolean state) {
 		GtkWidget *dialog = gtk_message_dialog_new(parent, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, _("Region of Interest supported"));
 		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
 					_("This image operation supports ROI processing. This is "
-					"indicated by the blue border around the ROI. Image "
-					"operation dialogs that do not support ROI processing will "
-					"retain the original amber ROI outline.\n\nWhile a ROI is "
-					"active, processing will only preview the ROI. When the Apply "
-					"button is clicked, the operation will apply to the whole image."));
+					"indicated by the blue border around the ROI. In image "
+					"operation dialogs that do not support ROI processing, and "
+					"when no dialog is open, the ROI will have an amber outline.\n\n"
+					"While a ROI is active, processing will only preview the ROI. "
+					"When the Apply button is clicked, the operation will apply "
+					"to the whole image."));
 		check = gtk_check_button_new_with_mnemonic(_("_Do not show this dialog again"));
 		gtk_box_pack_end(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG (dialog))),
 				check, FALSE, FALSE, 0);
@@ -324,11 +322,19 @@ void roi_supported(gboolean state) {
 		gtk_dialog_run(GTK_DIALOG(dialog));
 		com.pref.gui.enable_roi_warning = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check));
 		gtk_widget_destroy(dialog);
-	}
+}
+
+void roi_supported(gboolean state) {
+	gui.roi.operation_supports_roi = state;
+	// Provide a one-time notification about ROI support
+	if (state && gui.roi.active && com.pref.gui.enable_roi_warning)
+		roi_info_message_if_needed();
 	redraw(REDRAW_OVERLAY);
 }
 
 gpointer on_set_roi() {
+	if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
+		roi_info_message_if_needed();
 	// Ensure any pending ROI changes are overwritten by the backup
 	// Must copy the whole backup to gfit and gui.roi.fit to account
 	// for switching between full image and ROI
