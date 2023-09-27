@@ -205,6 +205,7 @@ struct gui_config {
 	int default_rendering_mode; // Default view STF to use at startup
 	int display_histogram_mode; // Default histogram view to use at startup
 	roi_mode_t roi_mode; // Whether to set the ROI manually or auto from selection
+	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

@@ -29,6 +29,7 @@
 #include "algos/colors.h"
 #include "opencv/opencv.h"
 #include "gui/image_display.h"
+#include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
@@ -52,7 +53,10 @@ static void clahe_startup() {
 static void clahe_close(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
-		siril_preview_hide();
+		copy_backup_to_gfit();
+		populate_roi();
+		redraw(REMAP_ALL);
+		clear_backup();
 	} else {
 		invalidate_stats_from_fit(&gfit);
 		undo_save_state(get_preview_gfit_backup(),
@@ -84,6 +88,7 @@ static gboolean end_clahe(gpointer p) {
 
 	free(args);
 
+	populate_roi();
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -187,7 +192,9 @@ void on_clahe_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (clahe_show_preview == TRUE) {
 		/* if user click very fast */
 		waiting_for_thread();
-		siril_preview_hide();
+		copy_backup_to_gfit();
+		populate_roi();
+		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();
 
