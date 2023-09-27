@@ -493,24 +493,23 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	if (max_val == UCHAR_MAX) {
 		/* 8-bit file */
 		unsigned char *tmpbuf = NULL;
-		WORD *olddata;
 		if (fit->naxes[2] == 1)
 			stride = fit->rx;
 		else
 			stride = fit->rx * 3;
 		tmpbuf = malloc(stride * fit->ry);
-		olddata = fit->data;
-		fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-		if (fit->data == NULL || tmpbuf == NULL) {
+		WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+		if (tmp == NULL || tmpbuf == NULL) {
 			PRINT_ALLOC_ERR;
 			fclose(file);
-			if (olddata && !fit->data)
-				free(olddata);
+			if (fit->data && !tmp)
+				free(fit->data);
 			if (tmpbuf)
 				free(tmpbuf);
 			fit->data = NULL;
 			return -1;
 		}
+		fit->data = tmp;
 		if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
 			siril_log_color_message(_("Error reading 8-bit PPM image data.\n"), "red");
 			fclose(file);
@@ -558,20 +557,21 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 		} else {
 			/* RGB 16-bit image */
-			WORD *tmpbuf, *olddata = fit->data;
+			WORD *tmpbuf;
 			stride = fit->rx * 3 * sizeof(WORD);
 			tmpbuf = malloc(stride * fit->ry);
-			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-			if (fit->data == NULL || tmpbuf == NULL) {
+			WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+			if (tmp == NULL || tmpbuf == NULL) {
 				PRINT_ALLOC_ERR;
 				fclose(file);
-				if (olddata && !fit->data)
-					free(olddata);
+				if (fit->data && !tmp)
+					free(fit->data);
 				if (tmpbuf)
 					free(tmpbuf);
-				fit->data = NULL;
+				tmp = NULL;
 				return -1;
 			}
+			fit->data = tmp;
 			if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
 				siril_log_color_message(
 						_("Error reading 16-bit color PPM image data.\n"), "red");
