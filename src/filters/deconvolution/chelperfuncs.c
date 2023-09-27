@@ -178,7 +178,8 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	fftwf_free(a);
 }
 
-static float bilinear(float *x, int w, int h, float i, float j) {
+// Returns a floating-point interpolated value between 4 pixels in a float* array.
+float bilinear(float *x, int w, int h, float i, float j) {
 	int ii = (int) i;
 	int jj = (int) j;
 	float (*xx)[w] = (void*)x;
@@ -186,6 +187,21 @@ static float bilinear(float *x, int w, int h, float i, float j) {
 	float b = xx[min(max(jj + 1, 0), h - 1)][min(max(ii, 0), w - 1)];
 	float c = xx[min(max(jj, 0), h - 1)][min(max(ii + 1, 0), w - 1)];
 	float d = xx[min(max(jj + 1, 0), h - 1)][min(max(ii + 1, 0), w - 1)];
+	float xoff = i-ii;
+	float yoff = j-jj;
+	return (a * (1 - xoff) * (1 - yoff)) + (b * (1 - xoff) * yoff) + (c * xoff * (1 - yoff)) + (d * xoff * yoff);
+}
+
+// Returns a floating-point interpolated value between 4 pixels in a WORD* array.
+// No scaling is done so the value is between 0.f and 65535.f
+float bilinear_ushort(WORD *x, int w, int h, float i, float j) {
+	int ii = (int) i;
+	int jj = (int) j;
+	WORD (*xx)[w] = (void*)x;
+	float a = (float) xx[min(max(jj, 0), h - 1)][min(max(ii, 0), w - 1)];
+	float b = (float) xx[min(max(jj + 1, 0), h - 1)][min(max(ii, 0), w - 1)];
+	float c = (float) xx[min(max(jj, 0), h - 1)][min(max(ii + 1, 0), w - 1)];
+	float d = (float) xx[min(max(jj + 1, 0), h - 1)][min(max(ii + 1, 0), w - 1)];
 	float xoff = i-ii;
 	float yoff = j-jj;
 	return (a * (1 - xoff) * (1 - yoff)) + (b * (1 - xoff) * yoff) + (c * xoff * (1 - yoff)) + (d * xoff * yoff);
