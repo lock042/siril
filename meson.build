@@ -699,6 +699,7 @@ subdir('data')
 subdir('po')
 subdir('scripts')
 subdir('3rdparty')
+subdir('3rdparty_licenses')
 
 ################################################################################
 # Install misc
@@ -717,11 +718,10 @@ man_files = [
 ]
 
 install_man(man_files)
-install_data(['AUTHORS', 'LICENSE.md', 'LICENSE_sleef.txt'],
+install_data(['AUTHORS', 'LICENSE.md'],
              rename : [
 	       'doc/siril/AUTHORS',
 	       'doc/siril/LICENSE.md',
-	       'doc/siril/LICENSE_sleef.txt',
 	     ],
              install_dir : siril_share)
 

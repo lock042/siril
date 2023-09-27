@@ -417,7 +417,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 		if (new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type)) {
 			retval = 1;
 		}
-		loop->naxis = 1;
+		loop->naxis = 2;
 		loop->naxes[2] = 1;
 		size_t npixels = args->fit->naxes[0] * args->fit->naxes[1];
 		if (retval == 0) {
@@ -3669,8 +3669,9 @@ int process_pm(int nb) {
 			*end = 0;
 			gboolean found = FALSE;
 			for (int j = 0; j < i; j++) {
-				gchar *test = g_strrstr(args->varname[j], start + 1);
-				if (test)
+/*				gchar *test = g_strrstr(args->varname[j], start + 1);
+				if (test)*/
+				if (!g_strcmp0(args->varname[j], start + 1))
 					found = TRUE;
 			}
 			if (!found)
@@ -8389,6 +8390,9 @@ int process_pcc(int nb) {
 	if (seqps) {
 		if (!(seq = load_sequence(word[1], NULL)))
 			return CMD_SEQUENCE_NOT_FOUND;
+		if (seq->type == SEQ_SER) {
+			siril_log_color_message(_("SER cannot contain WCS info, plate solving will export to FITS cube format\n"), "salmon");
+		}
 		next_arg++;
 	}
 
@@ -8417,7 +8421,7 @@ int process_pcc(int nb) {
 	while (nb > next_arg && word[next_arg]) {
 		if (!strcmp(word[next_arg], "-noflip"))
 			noflip = TRUE;
-		else if (!strcmp(word[next_arg], "-platesolve"))
+		else if (!seqps && !strcmp(word[next_arg], "-platesolve"))
 			plate_solve = TRUE;
 		else if (!strcmp(word[next_arg], "-downscale"))
 			downsample = TRUE;
@@ -8513,6 +8517,13 @@ int process_pcc(int nb) {
 	}
 
 	if (seqps) {
+		if (cat == CAT_ASNET && !asnet_is_available()) {
+			siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
+			if (target_coords)
+				siril_world_cs_unref(target_coords);
+			return CMD_GENERIC_ERROR;
+		}
+
 		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
@@ -8537,6 +8548,7 @@ int process_pcc(int nb) {
 		args->for_sequence = TRUE;
 		args->verbose = FALSE;
 		args->for_photometry_cc = FALSE;
+		args->asnet_checked = TRUE;
 
 		start_sequence_astrometry(seq, args);
 		return CMD_OK;

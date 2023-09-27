@@ -624,11 +624,12 @@ static void save_stars_dialog() {
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
 	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
 	gtk_file_chooser_set_current_name(dialog, "stars.lst");
+	gtk_file_chooser_set_local_only(dialog, FALSE);
 	set_filter(dialog);
 
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = gtk_file_chooser_get_filename(dialog);
+		gchar *file = siril_file_chooser_get_filename(dialog);
 		export_to_csv(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")), file);
 
 		g_free(file);

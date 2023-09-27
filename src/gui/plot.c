@@ -1225,11 +1225,12 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
 	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
 	gtk_file_chooser_set_current_name(dialog, format);
+	gtk_file_chooser_set_local_only(dialog, FALSE);
 	set_filter(dialog, format);
 
 	gint res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = gtk_file_chooser_get_filename(dialog);
+		gchar *file = siril_file_chooser_get_filename(dialog);
 		export_function(plot_data, &com.seq, file);
 
 		g_free(file);

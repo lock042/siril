@@ -190,7 +190,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			g_free(ext);
 			g_free(upcase);
 		}
-		film_filter[strlen(film_filter) - 1] = '\0';
+		film_filter[strlen(film_filter)] = '\0';
 
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
@@ -251,6 +251,7 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		if (whichdial == OD_FLATLIB) {
 			if (com.pref.prepro.flat_lib != NULL) {
 				gchar *path = g_path_get_dirname(com.pref.prepro.flat_lib);
@@ -278,12 +279,14 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		break;
 	case OD_OPEN:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
 		siril_file_chooser_add_preview(dialog, preview);
@@ -293,6 +296,7 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, TRUE);
 		set_filters_dialog(dialog, whichdial);
 		break;
@@ -300,6 +304,7 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_single_filter_dialog(dialog, _("Cosmetic correction file (*.lst)"), "*.lst;*.LST");
 	}
@@ -320,7 +325,7 @@ static void opendial(int whichdial) {
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
-		filename = gtk_file_chooser_get_filename(chooser);
+		filename = siril_file_chooser_get_filename(chooser);
 		if (!filename)
 			goto wait;
 
@@ -397,7 +402,7 @@ static void opendial(int whichdial) {
 			break;
 
 		case OD_CONVERT:
-			list = gtk_file_chooser_get_filenames(chooser);
+			list = siril_file_chooser_get_filenames(chooser);
 			list = g_slist_sort(list, (GCompareFunc) strcompare);
 			fill_convert_list(list);
 			g_slist_free(list);
