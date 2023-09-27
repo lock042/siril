@@ -37,10 +37,9 @@
 
 static gboolean asinh_rgb_space = FALSE;
 static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
-static gboolean asinh_show_preview;
 
 static int asinh_update_preview() {
-	if (asinh_show_preview)
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
 		copy_backup_to_gfit();
 	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	asinhlut(fit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
@@ -52,7 +51,7 @@ void asinh_change_between_roi_and_image() {
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = asinh_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
 }
 
@@ -80,7 +79,7 @@ static void asinh_close(gboolean revert) {
 }
 
 static int asinh_process_all() {
-	if (asinh_show_preview)
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
 		copy_backup_to_gfit();
 	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	populate_roi();
@@ -240,12 +239,10 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_spin_button_set_increments(spin_black_p, 0.001, 0.01);
 	set_notify_block(FALSE);
 
-	asinh_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
-
 	/* default parameters transform image, we need to update preview */
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = asinh_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
 }
 
@@ -256,7 +253,7 @@ void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (asinh_show_preview == FALSE || gui.roi.active) {
+	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))) || gui.roi.active) {
 		asinh_process_all();
 	}
 
@@ -287,7 +284,7 @@ void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	/* default parameters transform image, we need to update preview */
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = asinh_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
 }
 
@@ -296,7 +293,7 @@ void on_spin_asinh_value_changed(GtkSpinButton *button, gpointer user_data) {
 	asinh_stretch_value = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = asinh_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
 }
 
@@ -304,7 +301,7 @@ void on_black_point_spin_asinh_value_changed(GtkSpinButton *button, gpointer use
 	asinh_black_value = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = asinh_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
 }
 
@@ -312,12 +309,12 @@ void on_asinh_RGBspace_toggled(GtkToggleButton *togglebutton, gpointer user_data
 	asinh_rgb_space = gtk_toggle_button_get_active(togglebutton);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = asinh_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
 }
 
 void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (asinh_show_preview == TRUE) {
+	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")))) {
 		copy_backup_to_gfit();
 		redraw(REMAP_ALL);
 	} else {
@@ -328,5 +325,4 @@ void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
 	}
-	asinh_show_preview = !asinh_show_preview;
 }
