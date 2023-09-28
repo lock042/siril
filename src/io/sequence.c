@@ -611,6 +611,7 @@ int set_seq(const char *name){
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
+	on_clear_roi(); // Always clear a ROI when changing images
 	clear_stars_list(TRUE);
 	invalidate_gfit_histogram();
 	undo_flush();
