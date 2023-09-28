@@ -82,17 +82,17 @@ static int allocate_full_surface(struct image_view *view) {
 	if (stride != view->full_surface_stride
 			|| gfit.ry != view->full_surface_height
 			|| !view->full_surface || !view->buf) {
-		guchar *oldbuf = view->buf;
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 		view->full_surface_stride = stride;
 		view->full_surface_height = gfit.ry;
-		view->buf = realloc(oldbuf, stride * gfit.ry * sizeof(guchar));
-		if (!view->buf) {
+		guchar *tmp = realloc(view->buf, stride * gfit.ry * sizeof(guchar));
+		if (!tmp) {
 			PRINT_ALLOC_ERR;
-			if (oldbuf)
-				free(oldbuf);
+			if (view->buf)
+				free(view->buf);
 			return 1;
 		}
+		view->buf = tmp;
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
