@@ -80,7 +80,7 @@ static void background_startup() {
 static void copy_gfit_to_bkg_backup() {
 	if (!background_computed) return;
 	if (copyfits(&gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
 }
@@ -91,7 +91,7 @@ static int copy_bkg_backup_to_gfit() {
 	if (!gfit.data && !gfit.fdata)
 		retval = 1;
 	else if (copyfits(&background_backup, &gfit, CP_COPYA, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in previews\n");
 		retval = 1;
 	}
 	return retval;
@@ -107,7 +107,7 @@ gboolean end_background(gpointer p) {
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
 		}
-
+		populate_roi();
 		notify_gfit_modified();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
