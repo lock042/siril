@@ -652,9 +652,9 @@ static void rotate_context(cairo_t *cr, double rotation) {
 static void draw_roi(const draw_data_t *dd) {
 	double r, g, b;
 	if (gui.roi.operation_supports_roi) {
-		r = 0.6; g = 0.6; b = 1.0;
+		r = 0.3; g = 1.0; b = 0.3;
 	} else {
-		r = 1.0; g = 0.8; b = 0.8;
+		r = 1.0; g = 0.0; b = 0.0;
 	}
 	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && gui.roi.active) {
 		cairo_t *cr = dd->cr;

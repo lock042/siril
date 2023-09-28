@@ -307,9 +307,9 @@ static void roi_info_message_if_needed() {
 		GtkWidget *dialog = gtk_message_dialog_new(parent, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, _("Region of Interest supported"));
 		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
 					_("This image operation supports ROI processing. This is "
-					"indicated by the blue border around the ROI. In image "
+					"indicated by the green border around the ROI. In image "
 					"operation dialogs that do not support ROI processing, and "
-					"when no dialog is open, the ROI will have an amber outline.\n\n"
+					"when no dialog is open, the ROI will have a red outline.\n\n"
 					"While a ROI is active, processing will only preview the ROI. "
 					"When the Apply button is clicked, the operation will apply "
 					"to the whole image."));

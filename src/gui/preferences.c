@@ -271,6 +271,7 @@ static void update_misc_preferences() {
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
+	com.pref.gui.enable_roi_warning = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI"))) ? FALSE : TRUE;
 }
 
 void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -647,6 +648,7 @@ void update_preferences_from_model() {
 	initialize_starnet_weights(pref->starnet_weights);
 	initialize_asnet_directory(pref->asnet_dir);
 
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI")), pref->gui.enable_roi_warning ? FALSE : TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);

@@ -32751,6 +32751,21 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="position">1</property>
                               </packing>
                             </child>
+                            <child>
+                              <object class="GtkCheckButton" id="miscHideInfoROI">
+                                <property name="label" translatable="yes">Don't explain about ROI processing in related dialogs</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Suppress info dialog explaining about ROI processing when opening an appropriate dialog</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                         <child type="label">
