@@ -107,7 +107,6 @@ gboolean end_background(gpointer p) {
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
 		}
-		populate_roi();
 		notify_gfit_modified();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
