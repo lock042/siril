@@ -311,7 +311,6 @@ void negative_processing() {
 	set_cursor_waiting(TRUE);
 	undo_save_state(&gfit, _("Negative Transformation"));
 	pos_to_neg(&gfit);
-	populate_roi();
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
