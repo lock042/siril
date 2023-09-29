@@ -77,7 +77,8 @@ static GActionEntry image_entries[] = {
 static GActionEntry selection_entries[] = {
 	{ "pickstar", pick_star_activate },
 	{ "psf", psf_activate },
-	{ "crop", crop_activate }
+	{ "crop", crop_activate },
+	{ "set_roi", set_roi }
 };
 
 static GActionEntry selection_sequence_entries[] = {
@@ -103,7 +104,8 @@ static GActionEntry any_processing_entries[] = {
 	{ "starnet-processing", starnet_activate },
 	{ "fix-banding-processing", fix_banding_activate },
 	{ "cosmetic-processing", cosmetic_activate },
-	{ "background-extr-processing", background_extr_activate }
+	{ "background-extr-processing", background_extr_activate },
+	{ "clear_roi", clear_roi }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
@@ -208,6 +210,7 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"starnet-processing",
 		"cosmetic-processing",
 		"background-extr-processing",
+		"clear_roi",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_processing_actions, enable);
@@ -262,6 +265,8 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 		"pickstar",
 		"psf",
 		"crop",
+		"set_roi",
+
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_actions, enable);

@@ -29,6 +29,7 @@
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
+#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
@@ -42,8 +43,19 @@
 static double satu_amount, background_factor;
 static int satu_hue_type;
 static gboolean satu_show_preview;
+static int satu_update_preview();
+
+void satu_change_between_roi_and_image() {
+	// If we are showing the preview, update it after the ROI change.
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = satu_update_preview;
+	param->show_preview = satu_show_preview;
+	notify_update((gpointer) param);
+}
 
 static void satu_startup() {
+	roi_supported(TRUE);
+	add_roi_callback(satu_change_between_roi_and_image);
 	copy_gfit_to_backup();
 	satu_amount = 0.0;
 	satu_hue_type = 6;
@@ -57,6 +69,8 @@ static void satu_close(gboolean revert) {
 		undo_save_state(get_preview_gfit_backup(),
 				_("Saturation enhancement (amount=%4.2lf)"), satu_amount);
 	}
+	roi_supported(FALSE);
+	remove_roi_callback(satu_change_between_roi_and_image);
 	clear_backup();
 	notify_gfit_modified();
 }
@@ -99,6 +113,33 @@ void satu_set_hues_from_types(struct enhance_saturation_data *args, int type) {
 	}
 }
 
+static int satu_process_all() {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return 1;
+	}
+
+	set_cursor_waiting(TRUE);
+	if (satu_show_preview)
+		copy_backup_to_gfit();
+	else if (gui.roi.active)
+		restore_roi();
+
+	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	satu_set_hues_from_types(args, satu_hue_type);
+
+	args->input = &gfit;
+	args->output = &gfit;
+	args->coeff = satu_amount;
+	args->background_factor = background_factor;
+	args->for_preview = TRUE;
+	args->for_final = TRUE;
+
+	start_in_new_thread(enhance_saturation, args);
+
+	return 0;
+}
+
 static int satu_update_preview() {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -106,15 +147,19 @@ static int satu_update_preview() {
 	}
 
 	set_cursor_waiting(TRUE);
+	if (satu_show_preview)
+		copy_backup_to_gfit();
+	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
 
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
-	args->input = satu_show_preview ? get_preview_gfit_backup() : &gfit;
-	args->output = &gfit;
+	args->input = fit;
+	args->output = fit;
 	args->coeff = satu_amount;
 	args->background_factor = background_factor;
 	args->for_preview = TRUE;
+	args->for_final = FALSE;
 
 	start_in_new_thread(enhance_saturation, args);
 
@@ -127,11 +172,8 @@ void on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (satu_show_preview == FALSE) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = satu_update_preview;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
+	if (satu_show_preview == FALSE || gui.roi.active) {
+		satu_process_all();
 	}
 
 	apply_satu_changes();
@@ -275,8 +317,10 @@ gpointer enhance_saturation(gpointer p) {
 			round_to_int(args->coeff * 100.0), args->background_factor);
 		args->output->history = g_slist_append(args->output->history, strdup(log));
 
-		notify_gfit_modified();
 	}
+	if (args->for_final)
+		populate_roi();
+	notify_gfit_modified();
 
 	free(args);
 	return GINT_TO_POINTER(retval);
@@ -303,7 +347,7 @@ void on_combo_saturation_changed(GtkComboBox* box, gpointer user_data) {
 	satu_hue_type = gtk_combo_box_get_active(box);
 
 	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = 	satu_update_preview;
+	param->update_preview_fn = satu_update_preview;
 	param->show_preview = satu_show_preview;
 	notify_update((gpointer) param);
 }
@@ -352,7 +396,8 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (satu_show_preview == TRUE) {
 		/* if user click very fast */
 		waiting_for_thread();
-		siril_preview_hide();
+		copy_backup_to_gfit();
+		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();
 
