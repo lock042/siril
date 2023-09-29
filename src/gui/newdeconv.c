@@ -579,6 +579,7 @@ void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
+	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	roi_supported(TRUE);
 	deconv_roi_callback();
 	add_roi_callback(deconv_roi_callback);

@@ -2041,6 +2041,7 @@ artifacts may appear.</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_Median_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_Median_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox27">
@@ -5936,6 +5937,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_SCNR_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_SCNR_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox8">
@@ -6510,6 +6512,7 @@ enter a visible wavelength in nm</property>
     <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_bdeconv_close_clicked" swapped="no"/>
     <signal name="show" handler="on_bdeconv_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -8867,6 +8870,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
     <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_denoise_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_denoise_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
