@@ -195,7 +195,8 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			g_free(ext);
 			g_free(upcase);
 		}
-		film_filter[strlen(film_filter)] = '\0';
+		if (strlen(film_filter) > 0)
+			film_filter[strlen(film_filter) - 1] = '\0';
 
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,

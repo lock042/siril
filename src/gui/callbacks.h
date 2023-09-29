@@ -8,6 +8,16 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 void on_press_seq_field();
 void launch_clipboard_survey();
 
+// Region of Interest processing
+typedef void (*ROICallback)();
+int populate_roi();
+gpointer on_set_roi();
+gpointer on_clear_roi();
+void add_roi_callback(ROICallback func);
+void remove_roi_callback(ROICallback func);
+void update_roi_config();
+
+void roi_supported(gboolean state);
 void initialize_all_GUI(gchar *files);
 void siril_set_theme(int active);
 void load_prefered_theme(gint theme);

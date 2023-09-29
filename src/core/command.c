@@ -52,6 +52,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/undo.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
@@ -344,6 +345,10 @@ int process_unclip(int nb) {
 
 static gboolean end_denoise(gpointer p) {
 	struct denoise_args *args = (struct denoise_args *) p;
+	if (!args->previewing) {
+		copy_gfit_to_backup();
+		populate_roi();
+	}
 	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -354,6 +359,7 @@ static gboolean end_denoise(gpointer p) {
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
+	copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
 	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;
@@ -400,6 +406,8 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	if (msg3) free(msg3);
 
 	siril_log_message("%s\n", log_msg);
+	if (!args->previewing && !com.script)
+		undo_save_state(&gfit, "%s", log_msg);
 	if (args->suppress_artefacts)
 		siril_log_message(_("Colour artefact suppression active.\n"));
 	free(log_msg);
@@ -455,13 +463,11 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	} else {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
-	if (args->fit == &gfit)
-		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	siril_add_idle(end_denoise, args);
-	return GINT_TO_POINTER(retval);
+	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
 int process_denoise(int nb){
@@ -475,6 +481,7 @@ int process_denoise(int nb){
 	args->do_anscombe = FALSE;
 	args->do_cosme = TRUE;
 	args->suppress_artefacts = FALSE;
+	args->previewing = FALSE;
 	args->fit = &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -1028,8 +1035,7 @@ int process_imoper(int nb){
 	int retval = imoper(&gfit, &fit, oper, !com.pref.force_16bit);
 
 	clearfits(&fit);
-	notify_gfit_modified();
-	return retval;
+	return retval | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_addmax(int nb){
@@ -1037,13 +1043,9 @@ int process_addmax(int nb){
 
 	if (readfits(word[1], &fit, NULL, gfit.type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
-	if (addmax(&gfit, &fit) == 0) {
-		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		redraw_previews();
-	}
+	addmax(&gfit, &fit);
 	clearfits(&fit);
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_fdiv(int nb){
@@ -1061,9 +1063,7 @@ int process_fdiv(int nb){
 
 	clearfits(&fit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_fmul(int nb){
@@ -1082,11 +1082,8 @@ int process_fmul(int nb){
 		gfit.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
 		set_cutoff_sliders_max_values();
 	}
-
 	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_entropy(int nb){
@@ -1120,8 +1117,7 @@ int process_gauss(int nb){
 	char log[90];
 	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_getref(int nb) {
@@ -1147,6 +1143,7 @@ int process_getref(int nb) {
 
 	if (!seq->imgparam[ref_image].incl)
 		siril_log_message(_("Warning: this image is excluded from the sequence main processing list\n"));
+	adjust_cutoff_from_updated_gfit();
 	return CMD_OK;
 }
 
@@ -1156,11 +1153,8 @@ int process_grey_flat(int nb) {
 	}
 
 	compute_grey_flat(&gfit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
 
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_makepsf(int nb) {
@@ -1787,8 +1781,7 @@ int process_unsharp(int nb) {
 	char log[90];
 	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", sigma, multi);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 static gboolean crop_command_idle(gpointer arg) {
@@ -1843,10 +1836,9 @@ int process_crop(int nb) {
 					area.x, area.y, area.w, area.h);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	notify_gfit_modified();
 	siril_add_idle(crop_command_idle, NULL);
 
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_cd(int nb) {
@@ -1899,11 +1891,8 @@ int process_wrecons(int nb) {
 		else return CMD_GENERIC_ERROR;
 		g_free(dir[i]);
 	}
-
 	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *params, struct ght_data *seqdata) {
@@ -2178,9 +2167,9 @@ int process_ghs(int nb, int stretchtype) {
 	}
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	free(params);
-
-	notify_gfit_modified();
-	return CMD_OK;
+	if (gui.roi.active)
+		populate_roi();
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_ght(int nb) {
@@ -2261,9 +2250,7 @@ int process_wavelet(int nb) {
 int process_log(int nb){
 	loglut(&gfit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_linear_match(int nb) {
@@ -2285,18 +2272,16 @@ int process_linear_match(int nb) {
 
 	if (readfits(word[1], &ref, NULL, gfit.type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
+	cmd_errors retval = CMD_OK;
 	if (!find_linear_coeff(&gfit, &ref, low, high, a, b, NULL)) {
 		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
-
 		adjust_cutoff_from_updated_gfit();
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+		retval |= CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	clearfits(&ref);
-	return CMD_OK;
+	return retval;
 }
 
 int process_asinh(int nb) {
@@ -2333,8 +2318,7 @@ int process_asinh(int nb) {
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_clahe(int nb) {
@@ -2760,14 +2744,12 @@ int process_mirrorx(int nb){
 		siril_log_message(_("Mirroring image to convert to bottom-up data\n"));
 	}
 	mirrorx(&gfit, TRUE);
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_mirrory(int nb){
 	mirrory(&gfit, TRUE);
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_mtf(int nb) {
@@ -2820,8 +2802,7 @@ int process_mtf(int nb) {
 			params.shadows, params.midtones, params.highlights);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_autoghs(int nb) {
@@ -2930,8 +2911,7 @@ int process_autoghs(int nb) {
 			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_autostretch(int nb) {
@@ -2982,8 +2962,7 @@ int process_autostretch(int nb) {
 			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_binxy(int nb) {
@@ -3001,8 +2980,7 @@ int process_binxy(int nb) {
 	image_cfa_warning_check();
 	fits_binning(&gfit, factor, mean);
 
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_resample(int nb) {
@@ -3094,9 +3072,8 @@ int process_resample(int nb) {
 			", clamped" : "");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	notify_gfit_modified();
 	if (!com.script) update_MenuItem();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_rgradient(int nb) {
@@ -3206,10 +3183,7 @@ int process_rotate(int nb) {
 		new_selection_zone();
 	}
 	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_rotatepi(int nb){
@@ -3217,9 +3191,7 @@ int process_rotatepi(int nb){
 		return CMD_GENERIC_ERROR;
 
 	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_set(int nb) {
@@ -4447,8 +4419,7 @@ int process_thresh(int nb){
 	char log[90];
 	sprintf(log, "Image clamped to [%d, %d]", lo, hi);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_threshlo(int nb) {
@@ -4464,8 +4435,7 @@ int process_threshlo(int nb) {
 	char log[90];
 	sprintf(log, "Image clamped to [%d, max]", lo);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_threshhi(int nb) {
@@ -4481,16 +4451,14 @@ int process_threshhi(int nb) {
 	char log[90];
 	sprintf(log, "Image clamped to [min, %d]", hi);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_neg(int nb) {
 	set_cursor_waiting(TRUE);
 	pos_to_neg(&gfit);
 	gfit.history = g_slist_append(gfit.history, strdup("Image made negative"));
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_nozero(int nb){
@@ -4506,8 +4474,7 @@ int process_nozero(int nb){
 	char log[90];
 	sprintf(log, "Replaced zeros with %d", level);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_ddp(int nb) {
@@ -4529,8 +4496,7 @@ int process_ddp(int nb) {
 	}
 	image_cfa_warning_check();
 	ddp(&gfit, level, coeff, sigma);
-	notify_gfit_modified();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_new(int nb){
@@ -4613,8 +4579,7 @@ int process_ffill(int nb) {
 	area.x = gfit.rx - area.x - area.w;
 	area.y = gfit.ry - area.y - area.h;
 	fill(&gfit, level, &area);
-	redraw(REMAP_ALL);
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
@@ -4845,8 +4810,7 @@ int process_findhot(int nb){
 int process_fix_xtrans(int nb) {
 	fix_xtrans_ac(&gfit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_cosme(int nb) {
@@ -4879,9 +4843,7 @@ int process_cosme(int nb) {
 
 	invalidate_stats_from_fit(&gfit);
 	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_seq_cosme(int nb) {
@@ -5034,8 +4996,7 @@ int process_fill(int nb){
 		siril_log_message(_("Wrong parameters.\n"));
 		return CMD_ARG_ERROR;
 	}
-	redraw(REMAP_ALL);
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_offset(int nb) {
@@ -5048,9 +5009,7 @@ int process_offset(int nb) {
 	}
 	off(&gfit, (float)level);
 	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_scnr(int nb){
