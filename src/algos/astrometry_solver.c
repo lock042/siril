@@ -635,8 +635,8 @@ gpointer plate_solver(gpointer p) {
 		} else {
 			siril_catalogue *siril_cat = siril_catalog_load_from_file(g_file_peek_path(args->catalog_file), TRUE);
 			siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE);
-			pcc_stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
-			args->ret = nb_stars > 0;
+			pcc_stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_pcc_stars);
+			args->ret = nb_pcc_stars == 0;
 		}
 		if (args->ret) {
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
@@ -710,7 +710,7 @@ clearup:
 	if (!args->for_sequence) {
 		com.child_is_running = EXT_NONE;
 		if (g_unlink("stop"))
-			siril_debug_print("g_unlink() failed");
+			siril_debug_print("g_unlink() failed\n");
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);

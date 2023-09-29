@@ -471,7 +471,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		siril_catalogue *siril_cat = siril_catalog_load_from_file(g_file_peek_path(catalog_file), TRUE);
 		siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE);
 		stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
-		retval = nb_stars > 0;
+		retval = nb_stars == 0;
 	}
 
 	if (!retval) {
@@ -495,6 +495,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+// TODO: remove pcc_star?
+// This interface enables for now to use new catalogues and pcc_star where required
 pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars) {
 	*nbstars = 0;
 	if (!siril_cat || !siril_cat->nbincluded)
@@ -520,7 +522,6 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 			n++;
 		}
 	}
-	n--;
 	if (n != siril_cat->nbincluded) {
 		siril_debug_print("problem when converting siril_cat to pcc_stars, number differs from catalogue info");
 		free(results);
