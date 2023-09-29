@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-09-10 23:41+0200\n"
-"PO-Revision-Date: 2023-09-15 22:46+0000\n"
+"PO-Revision-Date: 2023-09-28 08:10+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -924,7 +924,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:4319
 msgid "Keep all samples"
-msgstr ""
+msgstr "Сохранить все образцы"
 
 #: src/gui/siril3.glade:4323
 msgid ""
@@ -932,6 +932,10 @@ msgid ""
 "gradients if tolerance 6 is insufficient: you will need to remove samples "
 "from astronomical objects manually."
 msgstr ""
+"Переопределяет допуск и сохраняет все образцы. Может быть полезным в случае "
+"экстремальных градиентов, если максимальное значение допуска (6) "
+"недостаточно: вам будет необходимо удалить образцы с астрономических "
+"объектов вручную."
 
 #: src/gui/siril3.glade:4344
 msgid ""
@@ -10889,11 +10893,11 @@ msgstr "Дальний космос (глобальная регистрация
 
 #: src/compositing/compositing.c:443
 msgid "Planetary (DFT image pattern alignment)"
-msgstr ""
+msgstr "Планеты (выравнивание по шаблону DFT)"
 
 #: src/compositing/compositing.c:444
 msgid "Planetary (KOMBAT image pattern alignment)"
-msgstr ""
+msgstr "Планеты (выравнивание по шаблону KOMBAT)"
 
 #: src/compositing/compositing.c:445
 msgid "Manual alignment"
@@ -10921,6 +10925,8 @@ msgid ""
 "The meximum number of images of this size has been reached based on "
 "available memory limits."
 msgstr ""
+"Достигнуто максимальное количество изображений данного размера (на основе "
+"доступных ограничений памяти)."
 
 #: src/compositing/compositing.c:650 src/compositing/compositing.c:655
 #: src/core/preprocess.c:1007 src/core/preprocess.c:1008
@@ -10993,6 +10999,8 @@ msgid ""
 "The image sizes are not consistent. This may happen as the result of "
 "previous alignment operations. Please reload the input images.\n"
 msgstr ""
+"Размеры изображений не согласуются. Это может быть результатом предыдущих "
+"операций выравнивания. Пожалуйста, перезагрузите входящие изображения.\n"
 
 #: src/compositing/compositing.c:886
 #, c-format
@@ -11009,6 +11017,10 @@ msgid ""
 "result? (This may alter image dimensions in which case the images must be re-"
 "loaded to retry alignment.)"
 msgstr ""
+"Некоторые изображения не были выравнены корректно. Продолжить, чтобы увидеть "
+"результат частичного выравнивания? (Это может изменить размеры изображений. "
+"В этом случае для повторной попытки выравнивания изображения должны быть "
+"перезагружены)"
 
 #: src/compositing/compositing.c:916 src/core/siril_actions.c:335
 #: src/gui/utils.c:269
@@ -11059,17 +11071,19 @@ msgstr "Ошибка"
 
 #: src/compositing/compositing.c:1645
 msgid "No layers loaded: no files to save"
-msgstr ""
+msgstr "Слои не загружены: нет файлов для сохранения"
 
 #: src/compositing/compositing.c:1661
 msgid "All layer images saved correctly.\n"
-msgstr ""
+msgstr "Все изображения слоёв сохранены корректно.\n"
 
 #: src/compositing/compositing.c:1663
 msgid ""
 "Error encountered in saving one or more files. Check previous log messages "
 "for details.\n"
 msgstr ""
+"Обнаружена ошибка при сохранении одного или нескольких файлов. Проверьте "
+"предыдущие сообщения в журнале.\n"
 
 #: src/compositing/compositing.c:1670
 msgid "At least 2 images must be loaded to perform linear matching."
@@ -11081,6 +11095,8 @@ msgstr ""
 #, c-format
 msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
 msgstr ""
+"Не удалось найти коэффициенты линейного сопоставления для слоя %d. "
+"Пропускаем...\n"
 
 #: src/compositing/compositing.c:1695
 msgid "Linear match layers"
@@ -11161,6 +11177,10 @@ msgid ""
 "function not intended for this kind of image. This is likely to give poor "
 "results: check your intended workflow.\n"
 msgstr ""
+"Предупреждение: последовательность содержит недебайеризованные изображения "
+"CFA. Применение функции последовательности, не предназначенной для такого "
+"рода изображений. Это, скорее всего, приведет к плохим результатам: "
+"проверьте предполагаемый рабочий процесс.\n"
 
 #: src/core/command.c:164
 msgid ""
@@ -11168,6 +11188,10 @@ msgid ""
 "intended for this kind of image. This is likely to give poor results: check "
 "your intended workflow.\n"
 msgstr ""
+"Предупреждение: загружено недебайеризованное изображение CFA. Применение "
+"функции последовательности, не предназначенной для такого рода изображений. "
+"Это, скорее всего, приведет к плохим результатам: проверьте предполагаемый "
+"рабочий процесс.\n"
 
 #: src/core/command.c:193
 msgid "Currently loaded image has no FITS header\n"
@@ -12285,6 +12309,9 @@ msgid ""
 "results for this image but will not perform optimally and star parameters "
 "may be inaccurate.\n"
 msgstr ""
+"Предупреждение: загружено недебайеризованное изображение CFA. Определение "
+"звёзд может дать результат для этого изображения, но не будет работать "
+"оптимально, а параметры звёзд могут быть неточными.\n"
 
 #: src/core/command.c:4654
 msgid "Option -out= is not available for sequences, ignoring\n"
@@ -12296,6 +12323,9 @@ msgid ""
 "produce results for this sequence but will not perform optimally and star "
 "parameters may be inaccurate.\n"
 msgstr ""
+"Предупреждение: последовательность содержит недебайеризованные изображения "
+"CFA. Определение звёзд может дать результат для этого изображения, но не "
+"будет работать оптимально, а параметры звёзд могут быть неточными.\n"
 
 #: src/core/command.c:4674
 msgid "find_hot must be applied on an one-channel master-dark frame"
@@ -13075,6 +13105,8 @@ msgstr "Все изображения должны быть монохромны
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr ""
+"SER не может содержать информацию WCS, астрономическое решение будет "
+"экспортировано в формат куба FITS\n"
 
 #: src/core/command.c:8404 src/core/command.c:8416 src/core/command.c:9056
 #: src/core/command.c:9068
@@ -13107,6 +13139,8 @@ msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr ""
+"Локальный решатель astrometry.net не найден, прерывание. Пожалуйста, "
+"проверьте настройки.\n"
 
 #: src/core/command.c:8566
 #, c-format
@@ -13520,6 +13554,14 @@ msgid ""
 "done for the date and Earth location found in the image's header, using the "
 "IMCCE Miriade service"
 msgstr ""
+"Выполняет поиск объекта по имени <b>name</b> и добавляет его в "
+"пользовательский аннотированный каталог. Объект сначала ищется в "
+"аннотированных каталогах. Если объект не найден, выполняется запрос "
+"удалённого сервера SIMBAD.\n"
+"Объектом может быть тело Солнечной системы. В этом случае необходим префикс "
+"'a:' для астероида, 'p:' для планеты и 'c:' для кометы. Поиск выполняется "
+"для даты и местоположению Земли, указанным в заголовке файла, с помощью "
+"сервиса Miriade от Института небесной механики и вычисления эфемерид (IMCCE)"
 
 #: src/core/command_def.h:20
 msgid ""
@@ -13794,6 +13836,9 @@ msgid ""
 "Extracts <b>NbPlans</b> planes of wavelet domain of the loaded image.\n"
 "See also WAVELET and WRECONS. For color extraction, see SPLIT"
 msgstr ""
+"Извлекает <b>NbPlans</b> слоёв вейвлетного домена из загруженного "
+"изображения.\n"
+"См. также WAVELET и WRECONS. Для извлечения цвета см. SPLIT"
 
 #: src/core/command_def.h:39
 msgid ""
@@ -13802,6 +13847,11 @@ msgid ""
 "green filter data as a new half-sized FITS file. A new file is created, its "
 "name is prefixed with \"Green_\""
 msgstr ""
+"Извлекает зелёный сигнал из загруженного изображения CFA. Информация о "
+"шаблоне Байера читается из изображения или настроек, после чего "
+"экспортируются усреднённые данные зелёного фильтра как новое изображение "
+"FITS, имеющее половинный размер. Создаётся новый файл, чьё название "
+"начинается с префикса \"Green_\""
 
 #: src/core/command_def.h:40
 msgid ""
@@ -13810,6 +13860,11 @@ msgid ""
 "filter data as a new half-sized FITS file. A new file is created, its name "
 "is prefixed with \"Ha_\""
 msgstr ""
+"Извлекает сигнал H-альфа из загруженного изображения CFA. Информация о "
+"шаблоне Байера читается из изображения или настроек, после чего "
+"экспортируются усреднённые данные красного фильтра как новое изображение "
+"FITS, имеющее половинный размер. Создаётся новый файл, чьё название "
+"начинается с префикса \"Ha_\""
 
 #: src/core/command_def.h:41
 msgid ""
@@ -14059,6 +14114,10 @@ msgid ""
 "\n"
 "See also UNSHARP, the same with a blending parameter"
 msgstr ""
+"Применяет размытие по Гауссу с указанной <b>sigma</b> к загруженному "
+"изображению.\n"
+"\n"
+"См. также UNSHARP, аналогичная команда с параметром смешения"
 
 #: src/core/command_def.h:59
 msgid ""
@@ -14141,6 +14200,9 @@ msgid ""
 "the same process used on flats during calibration when the option equalize "
 "CFA is used"
 msgstr ""
+"Выравнивает среднюю интенсивность слоёв RGB в загруженном изображении CFA. "
+"Этот же процесс применяется к кадрам плоского поля во время калибровки, "
+"когда используется опция \"Выровнять CFA\""
 
 #: src/core/command_def.h:64
 msgid "Lists the available commands or help for one command"
@@ -14288,6 +14350,10 @@ msgid ""
 "directory. This is useful to avoid conversions of JPEG results or other "
 "files that may end up in the directory"
 msgstr ""
+"Аналогична команде CONVERT, но конвертирует только изображения FITS, "
+"найденные в текущей рабочей директории. Это удобно, чтобы избежать "
+"конвертации файлов JPEG или других файлов, которые могут находиться в "
+"директории"
 
 #: src/core/command_def.h:79
 msgid ""
@@ -14332,6 +14398,9 @@ msgid ""
 "following formula: log(1 - (value - min) / (max - min)), with min and max "
 "being the minimum and maximum pixel value for the channel"
 msgstr ""
+"Вычисляет и применяет логарифмический масштаб к загруженном изображению, "
+"используя формулу: log(1 - (value - min) / (max - min)), где min и max это, "
+"соответственно, минимальное и максимальное значения пикселя в канале"
 
 #: src/core/command_def.h:83
 msgid "Lists files and directories in the working directory"
@@ -16064,7 +16133,6 @@ msgstr ""
 "Аргумент <b>extension</b> может быть \"fit\", \"fts\" или \"fits\""
 
 #: src/core/command_def.h:170
-#, fuzzy
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -16099,7 +16167,7 @@ msgid ""
 msgstr ""
 "Определяет параметры определения звёзд для команд FINDSTAR и REGISTER.\n"
 "\n"
-"При отсутствии параметра отображаются текущие значения.\n"
+"При отсутствии параметра выводит список текущих значений.\n"
 "Передача <b>reset</b> сбрасывает все значения к значениям по умолчанию. Вы "
 "всё ещё можете передавать значения после этого ключевого слова.\n"
 "\n"
@@ -16117,8 +16185,8 @@ msgstr ""
 "сохраняемых амплитуд звёзд, нормализованные между 0 и 1.\n"
 "<b>-focal=</b> определяет фокусное расстояние телескопа.\n"
 "<b>-pixelsize=</b> определяет размер пикселя сенсора.\n"
-"<b> -gaussian</b> и <b>-moffat</b> настраивает используемую модель решателя "
-"(по умолчанию — Гауссова).\n"
+"<b> -gaussian</b> и <b>-moffat</b> настраивает используемую модель решателя ("
+"по умолчанию - Гауссова).\n"
 "Если выбрана модель Моффата, аргумент <b>-minbeta=</b> определяет "
 "минимальное значение параметра β для которого будут приняты кандидаты в "
 "звёзды и должно быть больше или равно 0.0 и меньше чем 10.0.\n"
@@ -16148,7 +16216,6 @@ msgstr ""
 "Чтобы сбросить константу звёздной величины см. UNSETMAG"
 
 #: src/core/command_def.h:172
-#, fuzzy
 msgid ""
 "Sets a new ratio of used memory on free memory.\n"
 "\n"
@@ -16165,8 +16232,10 @@ msgstr ""
 "Значение <b>ratio</b> должно быть между 0.05 и 2, в зависимости от "
 "загруженности машины. Бо́льшее соотношение должно позволить siril выполнять "
 "укладку быстрее. Однако установка доли памяти, используемой для укладки, "
-"больше 1 потребует использования памяти на диске, что очень медленно и это "
-"не рекомендуется"
+"больше 1 потребует использования памяти на диске, что очень медленно и не "
+"рекомендуется (иногда даже не поддерживается), что приводит к сбою систему. "
+"Также может быть установлен фиксированный объём памяти в общих настройках с "
+"помощью SET, вместо указания соотношения"
 
 #: src/core/command_def.h:173
 #, fuzzy
@@ -16194,9 +16263,11 @@ msgid ""
 "<b>image_number</b> is the sequential number of the image in the sequence, "
 "not the number in the filename, starting at 1"
 msgstr ""
+"Устанавливает опорное изображение последовательности, указанной в первом "
+"аргументе. <b>image_number</b> это последовательный номер изображения в "
+"последовательности (начиная с 1), а не номер в названии файла"
 
 #: src/core/command_def.h:175
-#, fuzzy
 msgid ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
@@ -16214,7 +16285,6 @@ msgstr ""
 "графический интерфейс Siril"
 
 #: src/core/command_def.h:176
-#, fuzzy
 msgid ""
 "Splits the loaded color image into three distinct files (one for each color) "
 "and saves them in <b>file1</b>.fit, <b>file2</b>.fit and <b>file3</b>.fit "
@@ -16223,13 +16293,13 @@ msgid ""
 "provided, the extraction is of RGB type, meaning no conversion is done"
 msgstr ""
 "Разделяет цветное изображение на три отдельных файла (по одному для каждого "
-"цвета) и сохраняет их как <b>file1</b>.fit, <b>file2</b>.fit и <b>file3</b>."
-"fit. Последний необязательный аргумент, <b>-hsl</b>, <b>-hsv</b> или <b>lab</"
-"b>, указывает применять ли извлечение HSL, HSV или CieLAB. Если никакой "
-"опции не указано, по умолчанию извлекаются RGB изображения"
+"цвета) и сохраняет их как <b>file1</b>.fit, <b>file2</b>.fit и <b>file3</"
+"b>.fit. Последний необязательный аргумент, <b>-hsl</b>, <b>-hsv</b> или "
+"<b>lab</b>, указывает применять ли извлечение HSL, HSV или CieLAB. Если "
+"никакой опции не указано, извлекаются RGB изображения, что означает, что "
+"преобразование не выполняется"
 
 #: src/core/command_def.h:177
-#, fuzzy
 msgid ""
 "Splits the loaded CFA image into four distinct files (one for each channel) "
 "and saves them in files"
@@ -16243,6 +16313,11 @@ msgid ""
 "solved image's field of view, using the online IMCCE SkyBoT cone search "
 "tool. Use <b>-mag=</b> to change the limit magnitude, defaults to 20"
 msgstr ""
+"Ищет и отображает объекты Солнечной системы в поле зрения изображения, "
+"загруженного в настоящий момент и имеющего астрономическое решение, "
+"используя удалённый инструмент SkyBoT cone search от Института небесной "
+"механики и вычисления эфемерид (IMCCE). Для изменения предельной звёздной "
+"величины используйте <b>-mag=</b> (по умолчанию - 20)"
 
 #: src/core/command_def.h:179
 #, fuzzy
@@ -17892,15 +17967,20 @@ msgstr ""
 "Не удалось проверить обновления с этой версией, отсутствующая зависимость\n"
 
 #: src/core/siril_actions.c:334 src/gui/utils.c:268
+#, fuzzy
 msgid "Undebayered CFA image loaded"
-msgstr ""
+msgstr "Загружено недебайеризованное изображение CFA"
 
 #: src/core/siril_actions.c:335
+#, fuzzy
 msgid ""
 "The star detection functions in the Dynamic PSF dialog may produce results "
 "for this CFA image but will not perform optimally and star parameters may be "
 "inaccurate. Are you sure you wish to proceed?"
 msgstr ""
+"Функция определения звёзд в диалоге \"Динамическая PSF\" может дать "
+"результаты для изображения CFA, но будет выполнена неоптимально и параметры "
+"звёзд могут быть неточными. Уверены, что хотите продолжить?"
 
 #: src/core/siril_actions.c:356 src/gui/PSF_list.c:804
 msgid "Current selection is too large"
@@ -20939,10 +21019,13 @@ msgid "Disk Space: N/A"
 msgstr "На диске: н/д"
 
 #: src/gui/utils.c:269
+#, fuzzy
 msgid ""
 "You are about to apply a function that is not intended for use on an "
 "undebayered CFA image. Are you sure you wish to proceed?"
 msgstr ""
+"Вы собираетесь применить функцию, не предназначенную для использования с "
+"недебайеризованным изображением CFA. Вы уверены, что хотите продолжить?"
 
 #: src/io/conversion.c:160
 msgid "BMP images, "
@@ -21504,7 +21587,6 @@ msgid "FITS error: %s\n"
 msgstr "Ошибка FITS: %s\n"
 
 #: src/io/image_format_fits.c:1122
-#, fuzzy
 msgid "Normalizing input data to our float range [0, 1]\n"
 msgstr ""
 "Нормализация входящих данных к нашему диапазону плавающих значений [0, 1]\n"
@@ -21795,7 +21877,7 @@ msgid "Catalog APASS size: %d objects\n"
 msgstr "Размер каталога APASS: %d объектов\n"
 
 #: src/io/remote_catalogues.c:507
-#, fuzzy, c-format
+#, c-format
 msgid "After %ld tries, Server unreachable or unresponsive. (%s)\n"
 msgstr "После %ld попыток сервер недоступен или не отвечает. (%s)\n"
 
@@ -23109,14 +23191,12 @@ msgstr ""
 "'нет', прерывание\n"
 
 #: src/registration/applyreg.c:573
-#, fuzzy
 msgid ""
 "Applying registration with changes in output image sizeis not allowed when "
 "interpolation is set to none , aborting\n"
 msgstr ""
-"Применение регистрации, рассчитанной с бо́льшим количеством степеней свободы "
-"(%d), чем простой сдвиг не допускается, если интерполяция установлена в "
-"'нет', прерывание\n"
+"Применение регистрации с изменением размера исходящих изображений не "
+"допускается, если интерполяция установлена в 'нет', прерывание\n"
 
 #: src/registration/applyreg.c:579
 msgid ""

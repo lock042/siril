@@ -649,6 +649,27 @@ static void rotate_context(cairo_t *cr, double rotation) {
 	cairo_transform(cr, &transform);
 }
 
+static void draw_roi(const draw_data_t *dd) {
+	double r, g, b;
+	if (gui.roi.operation_supports_roi) {
+		r = 0.3; g = 1.0; b = 0.3;
+	} else {
+		r = 1.0; g = 0.0; b = 0.0;
+	}
+	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && gui.roi.active) {
+		cairo_t *cr = dd->cr;
+		static double dash_format[] = { 4.0, 2.0 };
+		cairo_set_line_width(cr, 1.5 / dd->zoom);
+		cairo_set_dash(cr, dash_format, 2, 0);
+		cairo_set_source_rgb(cr, r, g, b);
+		cairo_save(cr); // save the original transform
+		cairo_rectangle(cr, (double) gui.roi.selection.x, (double) gui.roi.selection.y,
+						(double) gui.roi.selection.w, (double) gui.roi.selection.h);
+		cairo_stroke(cr);
+		cairo_restore(cr);
+	}
+}
+
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		if ((com.selection.x + com.selection.w > gfit.rx) ||
@@ -1659,9 +1680,41 @@ void adjust_vport_size_to_image() {
 	}
 }
 
+void copy_roi_into_gfit() {
+	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
+	if (npixels_roi == 0 || com.script)
+		return;
+	size_t npixels_gfit = gfit.rx * gfit.ry;
+	if (gui.roi.fit.type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) collapse(2)
+#endif
+		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				float *destindex = gfit.fdata + (c * npixels_gfit) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
+				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
+			}
+		}
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) collapse(2)
+#endif
+		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				WORD *destindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
+				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
+			}
+		}
+	}
+}
+
 void redraw(remap_type doremap) {
 	if (com.script) return;
 //	siril_debug_print("redraw %d\n", doremap);
+	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data)))
+		copy_roi_into_gfit();
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;
@@ -1757,6 +1810,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* selection rectangle */
 	draw_selection(&dd);
+
+	/* ROI */
+	draw_roi(&dd);
 
 	/* cut line */
 	draw_cut_line(&dd);

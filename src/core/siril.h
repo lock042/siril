@@ -573,6 +573,13 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
+typedef struct roi {
+	fits fit;
+	rectangle selection;
+	gboolean active;
+	gboolean operation_supports_roi;
+} roi_t;
+
 typedef struct draw_data {
 	cairo_t *cr;	// the context to draw to
 	int vport;	// the viewport index to draw
@@ -649,6 +656,8 @@ struct guiinf {
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
 	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
+
+	roi_t roi; // Region of interest struct
 };
 
 /* The global data structure of siril core */
