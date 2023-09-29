@@ -42,6 +42,7 @@
 #include "core/undo.h"
 #include "core/OS_utils.h"
 #include "gui/utils.h"
+#include "gui/siril_preview.h"
 #include "gui/progress_and_log.h"
 #include "gui/newdeconv.h"
 #include "gui/newdeconv_fit.h"
@@ -102,7 +103,7 @@ void reset_conv_args(estk_data* args) {
 	args->stars_need_clearing = FALSE;
 	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
-	the_fit = &gfit;
+	the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
 	imageorientation = get_imageorientation();
 	args->fdata = NULL;
 	args->rx = 0;
@@ -477,12 +478,6 @@ void on_bdeconv_psfprevious_toggled(GtkToggleButton *button, gpointer user_data)
 	args.psftype = PSF_PREVIOUS;
 }
 
-void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
-	if (sequence_is_running == 0)
-		reset_conv_controls_and_args();
-	siril_close_dialog("bdeconv_dialog");
-}
-
 void on_bdeconv_reset_clicked(GtkButton *button, gpointer user_data) {
 	reset_conv_controls_and_args();
 }
@@ -569,7 +564,26 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_visible(lookup_widget("bdeconv_starpsf_details"), TRUE);
 }
 
+void deconv_roi_callback() {
+	gtk_widget_set_visible(lookup_widget("bdeconv_roi_preview"), gui.roi.active);
+	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
+}
+
+void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
+	if (sequence_is_running == 0)
+		reset_conv_controls_and_args();
+	roi_supported(FALSE);
+	siril_preview_hide();
+	remove_roi_callback(deconv_roi_callback);
+	siril_close_dialog("bdeconv_dialog");
+}
+
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
+	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	roi_supported(TRUE);
+	deconv_roi_callback();
+	add_roi_callback(deconv_roi_callback);
+	copy_gfit_to_backup();
 	reset_conv_controls_and_args();
 	if (com.kernel && com.kernelsize > 0) {
 		args.psftype = PSF_PREVIOUS;
@@ -1095,16 +1109,16 @@ gboolean deconvolve_idle(gpointer arg) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	free(args.fdata);
 	args.fdata = NULL;
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	if (!args.previewing) {
+		copy_gfit_to_backup();
+		populate_roi();
+	}
+	notify_gfit_modified(); // Also stops the thread and updates the cursor
 	if (next_psf_is_previous && !com.headless && !com.script) {
 		args.psftype = PSF_PREVIOUS;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
 	}
-	set_cursor_waiting(FALSE);
 	siril_debug_print("Deconvolve idle stopping processing thread\n");
-	stop_processing_thread();
 	return FALSE;
 }
 
@@ -1114,6 +1128,7 @@ gpointer deconvolve(gpointer p) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
+		the_fit = &gfit;
 	}
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
@@ -1171,8 +1186,8 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	if (the_fit == &gfit)
-		if (!com.script && !com.headless)
+	if (the_fit == &gfit || the_fit == &gui.roi.fit)
+		if (!com.script && !com.headless && !args.previewing)
 			undo_save_state(&gfit, _("Deconvolution"));
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
 	args.fdata = malloc(args.ndata * sizeof(float));
@@ -1304,7 +1319,25 @@ ENDDECONV:
 void on_bdeconv_symkern_toggled(GtkToggleButton *button, gpointer user_data) {
 	args.symkern = gtk_toggle_button_get_active(button);
 	start_in_new_thread(estimate_only, NULL);
+}
 
+void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
+	sequence_is_running = 0;
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	GtkToggleButton* seq = GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_seqapply"));
+	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
+	set_deconvolve_params();
+	if (!check_ok_if_cfa())
+		return;
+	set_cursor_waiting(TRUE);
+	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Sequence selected"), _("Preview cannot be used with \"Apply to Sequence\" selected"));
+	} else {
+		copy_backup_to_gfit();
+		args.previewing = TRUE;
+		the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
+		start_in_new_thread(deconvolve, NULL);
+	}
 }
 
 void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -1315,6 +1348,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkEntry* deconvolutionSeqEntry = GTK_ENTRY(lookup_widget("bdeconv_seq_prefix"));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
+	args.previewing = FALSE;
 	if (!check_ok_if_cfa())
 		return;
 	set_cursor_waiting(TRUE);
@@ -1325,9 +1359,9 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		seqargs->seqEntry = strdup(gtk_entry_get_text(deconvolutionSeqEntry));
 		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
 			seqargs->seqEntry = strdup("dec_");
-
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
+		copy_backup_to_gfit();
 		the_fit = &gfit;
 		start_in_new_thread(deconvolve, NULL);
 	}
@@ -1339,7 +1373,8 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	if(!sequence_is_loaded())
-		the_fit = &gfit;
+		the_fit = &gfit; // The blind estimate is still always done on the whole image.
+		// TODO: consider if this should be done on the ROI if active...
 	if(!com.headless)
 		set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	if (args.psftype == PSF_STARS || args.psftype == PSF_BLIND)

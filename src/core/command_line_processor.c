@@ -23,6 +23,7 @@
 #include <ctype.h>
 
 #include "core/siril.h"
+#include "algos/statistics.h"
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
@@ -33,6 +34,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "gui/histogram.h"
 #include "gui/preferences.h"
 #include "core/processing.h"
 #include "core/command_list.h"
@@ -197,7 +199,14 @@ int execute_command(int wordnb) {
 	// process the command
 	siril_log_color_message(_("Running command: %s\n"), "salmon", word[0]);
 	fprintf(stdout, "%lu: running command %s\n", time(NULL), word[0]);
-	return commands[i].process(wordnb);
+	int retval = commands[i].process(wordnb);
+	if (gui.roi.active)
+		populate_roi();
+	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
+		notify_gfit_modified();
+		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
+	}
+	return (int) retval;
 }
 
 static void update_log_icon(gboolean is_running) {

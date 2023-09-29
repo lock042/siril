@@ -200,6 +200,8 @@ static void update_user_interface_preferences() {
 	com.pref.gui.thumbnail_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"))) == 1 ? 256 : 128;
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
+	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
+	update_roi_config();
 }
 
 static void update_FITS_options_preferences() {
@@ -269,6 +271,7 @@ static void update_misc_preferences() {
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
+	com.pref.gui.enable_roi_warning = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI"))) ? FALSE : TRUE;
 }
 
 void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -626,7 +629,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
-
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
 
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
@@ -645,6 +648,7 @@ void update_preferences_from_model() {
 	initialize_starnet_weights(pref->starnet_weights);
 	initialize_asnet_directory(pref->asnet_dir);
 
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI")), pref->gui.enable_roi_warning ? FALSE : TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);

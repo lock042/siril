@@ -14,6 +14,8 @@ void hd_remap_indices_cleanup();
 
 void initialize_image_display();
 
+void copy_roi_into_gfit();
+
 void redraw(remap_type doremap);	// redraw the image, possibly with a remap
 void queue_redraw(remap_type doremap); // call redraw from another thread
 

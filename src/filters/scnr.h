@@ -16,6 +16,7 @@ struct scnr_data {
 	scnr_type type;
 	double amount;
 	gboolean preserve;
+	gboolean previewing; // Tells the threaded fn whether previewing or for real
 };
 
 gpointer scnr(gpointer p);
