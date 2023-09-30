@@ -32008,50 +32008,68 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkBox">
+                                  <object class="GtkFrame">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="homogeneous">True</property>
+                                    <property name="label-xalign">0</property>
+                                    <property name="shadow-type">none</property>
                                     <child>
+                                      <!-- n-columns=2 n-rows=1 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="row-homogeneous">True</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Type of selection</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="pref_ui_roimode">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-markup" translatable="yes">Sets the method of selecting a ROI.
+&lt;b&gt;Manual&lt;/b&gt; requires the ROI to be selected and cleared manually using the right mouse button menu.
+&lt;b&gt;Automatic&lt;/b&gt; automatically synchronises the ROI with the current selection, and clears it when the selection is cleared.</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">Manual</item>
+                                              <item translatable="yes">Automatic from selection</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="label">
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Region of Interest selection</property>
+                                        <property name="margin-top">10</property>
+                                        <property name="margin-bottom">10</property>
+                                        <property name="label" translatable="yes">Region of Interest</property>
                                         <attributes>
                                           <attribute name="weight" value="bold"/>
                                         </attributes>
                                       </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkComboBoxText" id="pref_ui_roimode">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="tooltip-markup" translatable="yes">Sets the method of selecting a ROI.
-&lt;b&gt;Manual&lt;/b&gt; requires the ROI to be selected and cleared manually using the right mouse button menu.
-&lt;b&gt;Automatic&lt;/b&gt; automatically synchronises the ROI with the current selection, and clears it when the selection is cleared.</property>
-                                        <property name="active">0</property>
-                                        <items>
-                                          <item translatable="yes">Manual</item>
-                                          <item translatable="yes">Automatic from selection</item>
-                                        </items>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
                                     </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">6</property>
+                                    <property name="position">7</property>
                                   </packing>
                                 </child>
                               </object>
