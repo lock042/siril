@@ -9,6 +9,7 @@ siril 1.4.0 xx xx, xx
 * Improved RGB composition tool to do full homography registration (#943)
 * Added new init for PSF fitting of oversampled stars (!537)
 * Fixed running command catsearch threaded to avoid GUI freeze (#1167)
+* Added git script repository integration (!560)
 * Add ROI processing for certain functions (!571, fixes #1098 and #1188)
 
 siril 1.2.1

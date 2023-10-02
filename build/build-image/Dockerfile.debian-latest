@@ -28,6 +28,7 @@ RUN apt-get update -qyy \
         libswscale-dev \
         libswresample-dev \
         libcurl4-gnutls-dev \
+        libgit2-dev \
         wcslib-dev \
         meson \
         python3 \
