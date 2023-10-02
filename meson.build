@@ -60,6 +60,7 @@ enable_ffmpeg    = get_option('ffmpeg')
 enable_criterion = get_option('criterion')
 enable_wcslib    = get_option('wcslib')
 enable_libjxl    = get_option('libjxl')
+enable_libgit2    = get_option('libgit2')
 
 # General version
 siril_version = meson.project_version()
@@ -397,6 +398,11 @@ if enable_libXISF
   libXISF_dep = dependency('libxisf', required : true, version: '>= 0.2.5')
 endif
 
+libgit2_dep = no_dep
+if enable_libgit2
+  libgit2_dep = dependency('libgit2', required : true)
+endif
+
 ffms2_dep = no_dep
 if enable_ffms2
   ffms2_dep = dependency('ffms2', required : true)
@@ -576,6 +582,12 @@ else
   conf_data.set('HAVE_LIBXISF', false, description : 'Using XISF.')
 endif
 
+if libgit2_dep.found()
+  conf_data.set('HAVE_LIBGIT2', true, description : 'Using libgit2.')
+else
+  conf_data.set('HAVE_LIBGIT2', false, description : 'Using libgit2.')
+endif
+
 ffmpeg_found = false
 foreach dep : ffmpeg
   if not dep.found()
@@ -686,6 +698,7 @@ externals_dep = declare_dependency(
     gio_platform_dep,
     gtk_dep,
     libcurl_dep,
+    libgit2_dep,
     gsl_dep,
     opencv4_dep,
     rtprocess_dep,
@@ -782,6 +795,7 @@ summary(
     'PNG'               : libpng_dep.found(),
     'HEIF'              : libheif_dep.found(),
     'FFMS2'             : ffms2_dep.found(),
+    'libgit2'           : libgit2_dep.found(),
     'ffmpeg'            : ffmpeg_found,
     'libcurl'           : libcurl_dep.found(),
     'glib-networking'   : glib_networking_works,

@@ -38,6 +38,7 @@
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "stacking/stacking.h"
+#include "io/gitscripts.h"
 
 #include "preferences.h"
 #include "filters/starnet.h"
@@ -184,6 +185,12 @@ static void update_scripts_preferences() {
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
 	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+#ifdef HAVE_LIBGIT2
+	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
+	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
+#else
+	com.pref.use_scripts_repository = FALSE;
+#endif
 }
 
 static void update_user_interface_preferences() {
@@ -618,6 +625,8 @@ void update_preferences_from_model() {
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
 
 	/* tab 8 */
 	siril_language_fill_combo(pref->lang);
@@ -687,6 +696,11 @@ static void dump_ui_to_global_var() {
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
 	update_preferences_from_model();
+#ifndef HAVE_LIBGIT2
+	hide_git_widgets();
+#else
+	fill_script_repo_list(FALSE);
+#endif
 }
 
 gboolean check_pref_sanity(gchar **error) {
@@ -721,8 +735,12 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		free_preferences(&com.pref);
 		dump_ui_to_global_var();
-		// set_wisdom_file();
+#ifdef HAVE_LIBGIT2
+		if (!com.pref.use_scripts_repository)
+			on_disable_gitscripts();
+#endif
 		initialize_FITS_name_entries();	// To update UI with new preferences
+		refresh_script_menu();	// To update the UI with scripts from the repo
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();

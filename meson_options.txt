@@ -24,6 +24,12 @@ option('exiv2',
  description: 'build with exiv2 support'
 )
 
+option('libgit2',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with libgit2 git integration'
+)
+
 option('libraw',
  type : 'boolean',
  value : 'true',

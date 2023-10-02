@@ -6188,7 +6188,7 @@ int process_jsonmetadata(int nb) {
 	GSList *header = read_header_keyvals_strings(fptr);
 
 	imstats *stats[3] = { NULL };
-	int nb_channels;
+	int nb_channels = 0;
 	if (compute_stats) {
 		if (use_gfit) {
 			compute_all_channels_statistics_single_image(&gfit, STATS_BASIC | STATS_FOR_CFA, MULTI_THREADED, stats);

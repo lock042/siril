@@ -140,6 +140,7 @@ src_files = [
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
+  'io/gitscripts.c',
   'io/local_catalogues.c',
   'io/mp4_output.c',
   'io/path_parse.c',

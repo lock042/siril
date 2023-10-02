@@ -27,6 +27,7 @@ RUN sed -i 's/oldstable\/updates/oldstable-security\/updates/' /etc/apt/sources.
         libswscale-dev \
         libswresample-dev \
         liblcms2-dev \
+        libgit2-dev \
         wget \
         libtool \
         libcurl4-gnutls-dev \
