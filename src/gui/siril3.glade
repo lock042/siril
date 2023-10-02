@@ -18432,6 +18432,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
       <pattern>*.ser</pattern>
       <pattern>*.tif</pattern>
       <pattern>*.tiff</pattern>
+      <pattern>*.fit.fz</pattern>
+      <pattern>*.fts.fz</pattern>
+      <pattern>*.fits.fz</pattern>
     </patterns>
   </object>
   <object class="GtkRecentChooserMenu" id="recent_menu">
