@@ -316,6 +316,11 @@ PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
 		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
 		  AC_MSG_WARN([json-glib not found. Not using automatic updates.]))
 
+dnl Check for libgit
+PKG_CHECK_MODULES([LIBGIT], [libgit2],
+		  [AC_DEFINE([HAVE_LIBGIT2], [1], [Using online scripts])],
+		  AC_MSG_WARN([libgit2 was not found. Not using online scripts.]))
+
 dnl ================================================================
 dnl Collect some arguments.
 dnl ================================================================

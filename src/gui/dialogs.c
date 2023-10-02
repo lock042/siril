@@ -67,6 +67,7 @@ static const SirilDialogEntry entries[] =
 	{"rotation_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"satu_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
 	{"SCNR_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"script_contents_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"search_objects", NULL, SEARCH_ENTRY_DIALOG, FALSE, NULL},
 	{"settings_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"seqlist_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
