@@ -20,6 +20,7 @@ AM_CPPFLAGS = \
 	$(FFMS2_CFLAGS) \
 	$(WCSLIB_CFLAGS) \
 	$(LIBCONFIG_CFLAGS) \
+	$(LIBGIT_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
 siril_common_SOURCES = \
@@ -291,6 +292,8 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gitscripts.c \
+	io/gitscripts.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
@@ -388,7 +391,8 @@ siril_common_LDADD = \
 	$(EXTRA_LIBS) \
 	$(LIBATOMIC_LIBS) \
 	$(libdbghelp) \
-	$(librtprocesslibs)
+	$(librtprocesslibs) \
+	$(LIBGIT_LIBS)
 
 siril_common_SOURCES += \
 	algos/demosaicing_rtp.cpp \
