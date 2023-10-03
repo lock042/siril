@@ -203,6 +203,10 @@ int buildseqfile(sequence *seq, int force_recompute);
 /****************** statistics_list.h ******************/
 void computeStat();
 
+/****************** chelperfuncs.h *********************/
+float bilinear(float *x, int w, int h, float i, float j);
+float bilinear_ushort(WORD *x, int w, int h, float i, float j);
+
 #ifdef __cplusplus
 }
 #endif
