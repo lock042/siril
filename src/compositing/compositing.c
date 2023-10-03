@@ -156,6 +156,8 @@ static void compute_compositor_mem_limits(fits* fit) {
 	int limit = compute_nb_images_fit_memory_from_fit(fit, 1.0, FALSE, &MB_per_image, &MB_per_scaled_image, &MB_avail);
 	if (limit > 0) {
 		uint64_t float_channel_size = fit->rx * fit->ry * sizeof(float) / BYTES_IN_A_MB;
+		if (float_channel_size == 0)
+			float_channel_size = 1;
 		required = float_channel_size * 2;
 		limit = (MB_avail - (3.f * float_channel_size) * overlap_allowance) / required;
 		// UI limitations make it practically difficult to deal with > 10 images

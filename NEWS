@@ -11,6 +11,7 @@ siril 1.4.0 xx xx, xx
 * Fixed running command catsearch threaded to avoid GUI freeze (#1167)
 * Added git script repository integration (!560)
 * Add ROI processing for certain functions (!571, fixes #1098 and #1188)
+* Fixed crash in the new RGB compositing tool (#1205)
 
 siril 1.2.1
 xx/xx/xx
