@@ -1,13 +1,3 @@
-#ifdef _WIN32
-#include <windows.h>
-#include <io.h>
-#include <fileapi.h>
-#include <gio/gwin32inputstream.h>
-#else
-#include <fcntl.h>
-#include <gio/gunixinputstream.h>
-#endif
-
 #include <assert.h>
 #include <inttypes.h>
 #include "core/siril.h"
@@ -214,7 +204,6 @@ static int reset_repository() {
 static int lg2_fetch(git_repository *repo)
 {
 	git_remote *remote = NULL;
-//	const git_indexer_progress *stats;
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 
 	// Reference to the remote
@@ -256,26 +245,11 @@ static gboolean script_version_check(const gchar* filename) {
 #ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
 #endif
-	GInputStream *stream = NULL;
-#ifdef _WIN32
-	HANDLE fh = CreateFile(scriptpath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,NULL);
-	if (fh == INVALID_HANDLE_VALUE) {
-		printf("error testing script version\n");
-		g_free(scriptpath);
-		return FALSE;
-	}
-	stream = g_win32_input_stream_new(fh, FALSE);
-#else
-	int fd = open(scriptpath, O_RDONLY);
-	if (fd == -1) {
-		perror("open");
-		g_free(scriptpath);
-		return FALSE;
-	}
-	stream = g_unix_input_stream_new(fd, FALSE);
-#endif
-	gchar *buffer;
+	gchar *buffer = NULL;
+	GError *error = NULL;
 	gsize length = 0;
+	GFile *file = g_file_new_for_path(scriptpath);
+	GInputStream *stream = (GInputStream*) g_file_read(file, NULL, &error);
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
@@ -316,16 +290,13 @@ static gboolean script_version_check(const gchar* filename) {
 				break;
 		}
 	}
+	g_input_stream_close(stream, NULL, &error);
 	g_free(scriptpath);
 	g_strfreev(fullVersionNumber);
 	g_strfreev(fullRequiresVersion);
 	g_object_unref(data_input);
 	g_object_unref(stream);
-#ifdef _WIN32
-	CloseHandle(fh);
-#else
-	close(fd);
-#endif
+	g_object_unref(file);
 	return retval;
 }
 
