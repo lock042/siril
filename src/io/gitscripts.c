@@ -12,6 +12,7 @@
 #include "core/siril_update.h" // for the version_number struct
 
 #ifdef _WIN32
+#include <fileapi.h>
 #include <gio/gwin32inputstream.h>
 #else
 #include <fcntl.h>
@@ -259,7 +260,7 @@ static gboolean script_version_check(const gchar* filename) {
 		g_free(scriptpath);
 		return FALSE;
 	}
-	stream = g_win32_input_stream_new(fd, FALSE);
+	stream = g_win32_input_stream_new(fh, FALSE);
 #else
 	fd = open(scriptpath, O_RDONLY);
 	if (fd == -1) {
