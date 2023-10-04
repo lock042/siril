@@ -9,6 +9,16 @@
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "gui/script_menu.h"
+#include "core/siril_update.h" // for the version_number struct
+
+#ifdef _WIN32
+#include <gio/gwin32inputstream.h>
+#else
+#include <fcntl.h>
+#include <gio/gunixinputstream.h>
+#endif
+
+//#define DEBUG_GITSCRIPTS
 
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
@@ -218,6 +228,96 @@ static int lg2_fetch(git_repository *repo)
 on_error:
 	git_remote_free(remote);
 	return -1;
+}
+
+static gboolean script_version_check(const gchar* filename) {
+	// Get the current version number
+	gchar **fullVersionNumber = NULL;
+	gchar **fullRequiresVersion = NULL;
+	version_number version;
+	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
+	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
+	version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
+	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
+
+	// Open the script and look for the required version number
+#ifdef _WIN32
+	gchar* scriptpath = g_build_path("\\", siril_get_scripts_repo_path(), filename, NULL);
+#else
+	gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), filename, NULL);
+#endif
+	int fd;
+	gboolean retval = FALSE;
+#ifdef DEBUG_GITSCRIPTS
+	printf("checking script version requirements: %s\n", scriptpath);
+#endif
+	GInputStream *stream = NULL;
+#ifdef _WIN32
+	HANDLE fh = CreateFile(_T(scriptpath), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,NULL);
+	if (fh == INVALID_HANDLE_VALUE) {
+		printf("error testing script version\n");
+		g_free(scriptpath);
+		return FALSE;
+	}
+	stream = g_win32_input_stream_new(fd, FALSE);
+#else
+	fd = open(scriptpath, O_RDONLY);
+	if (fd == -1) {
+		perror("open");
+		g_free(scriptpath);
+		return FALSE;
+	}
+	stream = g_unix_input_stream_new(fd, FALSE);
+#endif
+	gchar *buffer;
+	gsize length = 0;
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
+					NULL, NULL))) {
+		if (g_str_has_prefix(buffer, "requires")) {
+			gchar *ver = buffer + 9;
+			version_number requires;
+			fullRequiresVersion = g_strsplit_set(ver, ".-", -1);
+			requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
+			requires.minor_version = g_ascii_strtoull(fullRequiresVersion[1], NULL, 10);
+			requires.micro_version = g_ascii_strtoull(fullRequiresVersion[2], NULL, 10);
+#ifdef DEBUG_GITSCRIPTS
+			printf("requires: %d.%d.%d; has %d.%d.%d\n", requires.major_version, requires.minor_version, requires.micro_version, version.major_version, version.minor_version, version.micro_version);
+#endif
+			if (requires.major_version < version.major_version) {
+#ifdef DEBUG_GITSCRIPTS
+				printf("requirement met\n");
+#endif
+				retval = TRUE;
+			} else if (requires.major_version == version.major_version && requires.minor_version < version.minor_version) {
+#ifdef DEBUG_GITSCRIPTS
+				printf("requirement met\n");
+#endif
+				retval = TRUE;
+			} else if (requires.major_version == version.major_version && requires.minor_version == version.minor_version &&
+					 requires.micro_version <= version.micro_version) {
+#ifdef DEBUG_GITSCRIPTS
+				printf("requirement met\n");
+#endif
+				retval = TRUE;
+			}
+			g_free(buffer);
+			buffer = NULL;
+			if (retval)
+				break;
+		}
+	}
+	g_free(scriptpath);
+	g_strfreev(fullVersionNumber);
+	g_strfreev(fullRequiresVersion);
+	g_object_unref(data_input);
+	g_object_unref(stream);
+#ifdef _WIN32
+	CloseHandle(fh);
+#else
+	close(fd);
+#endif
+	return retval;
 }
 
 static int analyse(git_repository *repo) {
@@ -482,9 +582,9 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
-		if (g_str_has_suffix(entry->path, ".ssf")) {
+		if (g_str_has_suffix(entry->path, ".ssf") && script_version_check(entry->path)) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
-#ifdef DEBUG_SCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
 #endif
 		}
@@ -565,7 +665,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 #else
 			gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
 #endif
-#ifdef DEBUG_SCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", scriptpath);
 #endif
 			// Check whether the script appears in the list
@@ -699,7 +799,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 
 	if (!val) {
 		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
-#ifdef DEBUG_SCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", script_path);
 #endif
 			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
