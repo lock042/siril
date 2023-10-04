@@ -21,7 +21,7 @@
 #include "gui/script_menu.h"
 #include "core/siril_update.h" // for the version_number struct
 
-#define DEBUG_GITSCRIPTS
+//#define DEBUG_GITSCRIPTS
 
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
