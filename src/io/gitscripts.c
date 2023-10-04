@@ -21,7 +21,7 @@
 #include "gui/script_menu.h"
 #include "core/siril_update.h" // for the version_number struct
 
-//#define DEBUG_GITSCRIPTS
+#define DEBUG_GITSCRIPTS
 
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
@@ -276,8 +276,9 @@ static gboolean script_version_check(const gchar* filename) {
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
-		if (g_str_has_prefix(buffer, "requires")) {
-			gchar *ver = buffer + 9;
+		gchar *ver = strstr(buffer, "requires");
+		if (ver) {
+			ver += 9;
 			version_number requires;
 			fullRequiresVersion = g_strsplit_set(ver, ".-", -1);
 			requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
