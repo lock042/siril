@@ -1,4 +1,6 @@
 #ifdef _WIN32
+#include <windows.h>
+#include <io.h>
 #include <fileapi.h>
 #include <gio/gwin32inputstream.h>
 #else
