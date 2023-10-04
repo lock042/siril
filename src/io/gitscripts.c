@@ -1,3 +1,11 @@
+#ifdef _WIN32
+#include <fileapi.h>
+#include <gio/gwin32inputstream.h>
+#else
+#include <fcntl.h>
+#include <gio/gunixinputstream.h>
+#endif
+
 #include <assert.h>
 #include <inttypes.h>
 #include "core/siril.h"
@@ -10,14 +18,6 @@
 #include "gui/utils.h"
 #include "gui/script_menu.h"
 #include "core/siril_update.h" // for the version_number struct
-
-#ifdef _WIN32
-#include <fileapi.h>
-#include <gio/gwin32inputstream.h>
-#else
-#include <fcntl.h>
-#include <gio/gunixinputstream.h>
-#endif
 
 //#define DEBUG_GITSCRIPTS
 
@@ -247,14 +247,13 @@ static gboolean script_version_check(const gchar* filename) {
 #else
 	gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), filename, NULL);
 #endif
-	int fd;
 	gboolean retval = FALSE;
 #ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
 #endif
 	GInputStream *stream = NULL;
 #ifdef _WIN32
-	HANDLE fh = CreateFile(_T(scriptpath), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,NULL);
+	HANDLE fh = CreateFile(scriptpath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,NULL);
 	if (fh == INVALID_HANDLE_VALUE) {
 		printf("error testing script version\n");
 		g_free(scriptpath);
@@ -262,7 +261,7 @@ static gboolean script_version_check(const gchar* filename) {
 	}
 	stream = g_win32_input_stream_new(fh, FALSE);
 #else
-	fd = open(scriptpath, O_RDONLY);
+	int fd = open(scriptpath, O_RDONLY);
 	if (fd == -1) {
 		perror("open");
 		g_free(scriptpath);
