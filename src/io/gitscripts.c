@@ -27,6 +27,7 @@
 #include <git2.h>
 
 const gchar *REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
+const gchar sep[2] = { G_DIR_SEPARATOR, 0 };
 
 static GtkListStore *list_store = NULL;
 static GString *git_pending_commit_buffer = NULL, *git_conflict_buffer = NULL;
@@ -233,6 +234,12 @@ on_error:
 	return -1;
 }
 
+static char* find_str_before_comment(const char* str1, const char* str2, const char* str3) {
+	char* strpos = strstr(str1, str2);
+	char* chrpos = strstr(str1, str3);
+	return !strpos ? NULL : (chrpos && chrpos < strpos) ? NULL : strpos;
+}
+
 static gboolean script_version_check(const gchar* filename) {
 	// Get the current version number
 	gchar **fullVersionNumber = NULL;
@@ -244,7 +251,7 @@ static gboolean script_version_check(const gchar* filename) {
 	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
 
 	// Open the script and look for the required version number
-	gchar* scriptpath = g_build_path(G_DIR_SEPARATOR, siril_get_scripts_repo_path(), filename, NULL);
+	gchar* scriptpath = g_build_path(&sep[0], siril_get_scripts_repo_path(), filename, NULL);
 	gboolean retval = FALSE;
 #ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
@@ -272,7 +279,7 @@ static gboolean script_version_check(const gchar* filename) {
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
-		gchar *ver = strstr(buffer, "requires");
+		gchar *ver = find_str_before_comment(buffer, "requires", "#");
 		if (ver) {
 			ver += 9;
 			version_number requires;
@@ -659,7 +666,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			// here we populate the GtkTreeView from GList gui.repo_scripts
 			gchar* category = g_strrstr((gchar*)iterator->data, "preprocessing") ? "Preprocessing" : "Processing";
 			gchar* scriptname = g_path_get_basename((gchar*)iterator->data);
-			gchar* scriptpath = g_build_path(G_DIR_SEPARATOR, siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
+			gchar* scriptpath = g_build_path(&sep[0], siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", scriptpath);
 #endif
@@ -685,7 +692,6 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 	}
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
-
 	return FALSE;
 }
 
