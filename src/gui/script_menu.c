@@ -149,7 +149,13 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	gchar *script_file = g_strdup_printf("%s", (gchar *) user_data);
+	gchar *script_file;
+	if (g_str_has_suffix((gchar *) user_data, SCRIPT_EXT)) {
+		script_file= g_strdup_printf("%s", (gchar *) user_data); // remote scripts
+
+	} else {
+		script_file= g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT); // local scripts
+	}
 
 	GFile *file = g_file_new_for_path(script_file);
 	GError *error = NULL;
