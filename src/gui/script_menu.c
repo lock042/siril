@@ -246,12 +246,14 @@ int initialize_script_menu() {
 				/* write an item per script file */
 				GtkWidget *menu_item;
 				gchar* basename = g_path_get_basename(ss->data);
-				menu_item = gtk_menu_item_new_with_label(basename);
+				char* basename_no_ext = remove_ext_from_filename(basename);
+				g_free(basename);
+				menu_item = gtk_menu_item_new_with_label(basename_no_ext);
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
 						G_CALLBACK(on_script_execution), (gchar * ) ss->data);
-				siril_log_message(_("Loading script: %s\n"), basename);
-				g_free(basename);
+				siril_log_message(_("Loading script: %s\n"), basename_no_ext);
+				free(basename_no_ext);
 				gtk_widget_show(menu_item);
 				new_list = g_list_prepend(new_list, ss->data);
 			} else {
