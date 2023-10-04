@@ -287,6 +287,9 @@ static gboolean script_version_check(const gchar* filename) {
 			requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
 			requires.minor_version = g_ascii_strtoull(fullRequiresVersion[1], NULL, 10);
 			requires.micro_version = g_ascii_strtoull(fullRequiresVersion[2], NULL, 10);
+			// Detect badly formed requires command (bad input to g_ascii_strtoull returns 0) and ignore it
+			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
+				continue;
 #ifdef DEBUG_GITSCRIPTS
 			printf("requires: %d.%d.%d; has %d.%d.%d\n", requires.major_version, requires.minor_version, requires.micro_version, version.major_version, version.minor_version, version.micro_version);
 #endif
