@@ -240,19 +240,24 @@ static gboolean script_version_check(const gchar* filename) {
 	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
 
 	// Open the script and look for the required version number
+	GFile *file = NULL;
+	GInputStream *stream = NULL;
+	GDataInputStream *data_input = NULL;
+	GError *error = NULL;
+	gchar *buffer = NULL;
+	gsize length = 0;
 	gchar* scriptpath = g_build_path(&sep[0], siril_get_scripts_repo_path(), filename, NULL);
 	gboolean retval = FALSE;
 #ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
 #endif
-	gchar *buffer = NULL;
-	GError *error = NULL;
-	gsize length = 0;
-	GFile *file = g_file_new_for_path(scriptpath);
-	GInputStream *stream = (GInputStream*) g_file_read(file, NULL, &error);
-	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	file = g_file_new_for_path(scriptpath);
+	stream = (GInputStream*) g_file_read(file, NULL, &error);
+	if (error)
+		goto ERROR_OR_COMPLETE;
+	data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
-					NULL, NULL))) {
+					NULL, &error)) && !error) {
 		gchar *ver = find_str_before_comment(buffer, "requires", "#");
 		if (ver) {
 			ver += 9;
@@ -290,7 +295,10 @@ static gboolean script_version_check(const gchar* filename) {
 				break;
 		}
 	}
+ERROR_OR_COMPLETE:
 	g_input_stream_close(stream, NULL, &error);
+	if (error)
+		siril_debug_print("Error closing data input stream from file\n");
 	g_free(scriptpath);
 	g_strfreev(fullVersionNumber);
 	g_strfreev(fullRequiresVersion);
