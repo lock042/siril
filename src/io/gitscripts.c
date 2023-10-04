@@ -244,11 +244,7 @@ static gboolean script_version_check(const gchar* filename) {
 	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
 
 	// Open the script and look for the required version number
-#ifdef _WIN32
-	gchar* scriptpath = g_build_path("\\", siril_get_scripts_repo_path(), filename, NULL);
-#else
-	gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), filename, NULL);
-#endif
+	gchar* scriptpath = g_build_path(G_DIR_SEPARATOR, siril_get_scripts_repo_path(), filename, NULL);
 	gboolean retval = FALSE;
 #ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
@@ -663,11 +659,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			// here we populate the GtkTreeView from GList gui.repo_scripts
 			gchar* category = g_strrstr((gchar*)iterator->data, "preprocessing") ? "Preprocessing" : "Processing";
 			gchar* scriptname = g_path_get_basename((gchar*)iterator->data);
-#ifdef _WIN32
-			gchar* scriptpath = g_build_path("\\", siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
-#else
-			gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
-#endif
+			gchar* scriptpath = g_build_path(G_DIR_SEPARATOR, siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", scriptpath);
 #endif
