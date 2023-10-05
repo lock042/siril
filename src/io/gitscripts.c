@@ -561,7 +561,7 @@ int auto_update_gitscripts(gboolean sync) {
 		retval = 1;
 
 	/* populate gui.repo_scripts with all the scripts in the index.
-		* We ignore anything not ending in .ssf */
+		* We ignore anything not ending in SCRIPT_EXT */
 	size_t entry_count = git_index_entrycount(index);
 	if (gui.repo_scripts) {
 		g_list_free_full(gui.repo_scripts, g_free);
@@ -569,7 +569,7 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
-		if (g_str_has_suffix(entry->path, ".ssf") && script_version_check(entry->path)) {
+		if (g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
