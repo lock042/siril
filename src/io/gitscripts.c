@@ -9,6 +9,9 @@
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "gui/script_menu.h"
+#include "core/siril_update.h" // for the version_number struct
+
+//#define DEBUG_GITSCRIPTS
 
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
@@ -200,7 +203,6 @@ static int reset_repository() {
 static int lg2_fetch(git_repository *repo)
 {
 	git_remote *remote = NULL;
-//	const git_indexer_progress *stats;
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 
 	// Reference to the remote
@@ -218,6 +220,91 @@ static int lg2_fetch(git_repository *repo)
 on_error:
 	git_remote_free(remote);
 	return -1;
+}
+
+static char* find_str_before_comment(const char* str1, const char* str2, const char* str3) {
+	char* strpos = strstr(str1, str2);
+	char* chrpos = strstr(str1, str3);
+	return !strpos ? NULL : (chrpos && chrpos < strpos) ? NULL : strpos;
+}
+
+static gboolean script_version_check(const gchar* filename) {
+	// Get the current version number
+	gchar **fullVersionNumber = NULL;
+	gchar **fullRequiresVersion = NULL;
+	version_number version;
+	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
+	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
+	version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
+	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
+
+	// Open the script and look for the required version number
+	GFile *file = NULL;
+	GInputStream *stream = NULL;
+	GDataInputStream *data_input = NULL;
+	GError *error = NULL;
+	gchar *buffer = NULL;
+	gsize length = 0;
+	gchar* scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
+	gboolean retval = FALSE;
+#ifdef DEBUG_GITSCRIPTS
+	printf("checking script version requirements: %s\n", scriptpath);
+#endif
+	file = g_file_new_for_path(scriptpath);
+	stream = (GInputStream*) g_file_read(file, NULL, &error);
+	if (error)
+		goto ERROR_OR_COMPLETE;
+	data_input = g_data_input_stream_new(stream);
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
+					NULL, &error)) && !error) {
+		gchar *ver = find_str_before_comment(buffer, "requires", "#");
+		if (ver) {
+			ver += 9;
+			version_number requires;
+			fullRequiresVersion = g_strsplit_set(ver, ".-", -1);
+			requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
+			requires.minor_version = g_ascii_strtoull(fullRequiresVersion[1], NULL, 10);
+			requires.micro_version = g_ascii_strtoull(fullRequiresVersion[2], NULL, 10);
+			// Detect badly formed requires command (bad input to g_ascii_strtoull returns 0) and ignore it
+			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
+				continue;
+#ifdef DEBUG_GITSCRIPTS
+			printf("requires: %d.%d.%d; has %d.%d.%d\n", requires.major_version, requires.minor_version, requires.micro_version, version.major_version, version.minor_version, version.micro_version);
+#endif
+			if (requires.major_version < version.major_version) {
+#ifdef DEBUG_GITSCRIPTS
+				printf("requirement met\n");
+#endif
+				retval = TRUE;
+			} else if (requires.major_version == version.major_version && requires.minor_version < version.minor_version) {
+#ifdef DEBUG_GITSCRIPTS
+				printf("requirement met\n");
+#endif
+				retval = TRUE;
+			} else if (requires.major_version == version.major_version && requires.minor_version == version.minor_version &&
+					 requires.micro_version <= version.micro_version) {
+#ifdef DEBUG_GITSCRIPTS
+				printf("requirement met\n");
+#endif
+				retval = TRUE;
+			}
+			g_free(buffer);
+			buffer = NULL;
+			if (retval)
+				break;
+		}
+	}
+ERROR_OR_COMPLETE:
+	g_input_stream_close(stream, NULL, &error);
+	if (error)
+		siril_debug_print("Error closing data input stream from file\n");
+	g_free(scriptpath);
+	g_strfreev(fullVersionNumber);
+	g_strfreev(fullRequiresVersion);
+	g_object_unref(data_input);
+	g_object_unref(stream);
+	g_object_unref(file);
+	return retval;
 }
 
 static int analyse(git_repository *repo) {
@@ -474,7 +561,7 @@ int auto_update_gitscripts(gboolean sync) {
 		retval = 1;
 
 	/* populate gui.repo_scripts with all the scripts in the index.
-		* We ignore anything not ending in .ssf */
+		* We ignore anything not ending in SCRIPT_EXT */
 	size_t entry_count = git_index_entrycount(index);
 	if (gui.repo_scripts) {
 		g_list_free_full(gui.repo_scripts, g_free);
@@ -482,9 +569,9 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
-		if (g_str_has_suffix(entry->path, ".ssf")) {
+		if (g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
-#ifdef DEBUG_SCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
 #endif
 		}
@@ -560,12 +647,8 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			// here we populate the GtkTreeView from GList gui.repo_scripts
 			gchar* category = g_strrstr((gchar*)iterator->data, "preprocessing") ? "Preprocessing" : "Processing";
 			gchar* scriptname = g_path_get_basename((gchar*)iterator->data);
-#ifdef _WIN32
-			gchar* scriptpath = g_build_path("\\", siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
-#else
-			gchar* scriptpath = g_build_path("/", siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
-#endif
-#ifdef DEBUG_SCRIPTS
+			gchar* scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
+#ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", scriptpath);
 #endif
 			// Check whether the script appears in the list
@@ -590,7 +673,6 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 	}
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
-
 	return FALSE;
 }
 
@@ -699,7 +781,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 
 	if (!val) {
 		if (!(g_list_find(com.pref.selected_scripts, script_path))) {
-#ifdef DEBUG_SCRIPTS
+#ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", script_path);
 #endif
 			com.pref.selected_scripts = g_list_prepend(com.pref.selected_scripts, script_path);
