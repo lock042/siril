@@ -17,7 +17,6 @@
 #include <git2.h>
 
 const gchar *REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
-const gchar sep[2] = { G_DIR_SEPARATOR, 0 };
 
 static GtkListStore *list_store = NULL;
 static GString *git_pending_commit_buffer = NULL, *git_conflict_buffer = NULL;
@@ -246,7 +245,7 @@ static gboolean script_version_check(const gchar* filename) {
 	GError *error = NULL;
 	gchar *buffer = NULL;
 	gsize length = 0;
-	gchar* scriptpath = g_build_path(&sep[0], siril_get_scripts_repo_path(), filename, NULL);
+	gchar* scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
 	gboolean retval = FALSE;
 #ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
@@ -648,7 +647,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 			// here we populate the GtkTreeView from GList gui.repo_scripts
 			gchar* category = g_strrstr((gchar*)iterator->data, "preprocessing") ? "Preprocessing" : "Processing";
 			gchar* scriptname = g_path_get_basename((gchar*)iterator->data);
-			gchar* scriptpath = g_build_path(&sep[0], siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
+			gchar* scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar*)iterator->data, NULL);
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", scriptpath);
 #endif
