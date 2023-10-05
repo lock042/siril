@@ -594,7 +594,8 @@ static void update_metadata() {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(&layers[firstlayer]->the_fit);
+	if (firstlayer >= 0)
+		load_WCS_from_memory(&layers[firstlayer]->the_fit);
 	free(f);
 }
 
@@ -1679,6 +1680,7 @@ void on_compositing_linear_match_clicked(GtkButton *button, gpointer *user_data)
 			break;
 		}
 	}
+	if (ref_layer < 0) return;
 	fits *ref = &layers[ref_layer]->the_fit;
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layer == ref_layer)
