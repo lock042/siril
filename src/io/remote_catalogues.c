@@ -344,7 +344,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 		/////////////////////////////////////////////////////////////
 		// TAP QUERY to csv - preferred way as it requires no parsing
 		/////////////////////////////////////////////////////////////
-		case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE:
+		case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE:;
 			cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cattype);
 			uint32_t catcols = siril_catalog_columns(siril_cat->cattype);
 			url = g_string_new(fields->tap_server);
@@ -366,7 +366,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 				g_string_append_printf(url, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
 			}
 			free_cat_tap_query_fields(fields);
-			return g_string_free_and_steal(url);
+			return g_string_free(url, FALSE);
 		//////////////////////////////////
 		// AAVSO chart of comparison stars
 		//////////////////////////////////
@@ -375,7 +375,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 			fmtstr = g_strdup_printf("&ra=%s&dec=%s&fov=%s&maglimit=%s", rafmt, decfmt, radiusfmt, limitmagfmt);
 			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag);
 			g_free(fmtstr);
-			return g_string_free_and_steal(url);
+			return g_string_free(url, FALSE);
 		////////////////////////////
 		// IMCCE - skybot conesearch
 		////////////////////////////
@@ -392,7 +392,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
 			g_free(fmtstr);
 			g_string_append_printf(url,"&-loc=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
-			return g_string_free_and_steal(url);
+			return g_string_free(url, FALSE);
 		default:
 			break;
 	}
