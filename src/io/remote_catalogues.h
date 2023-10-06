@@ -34,14 +34,14 @@
 #define MAX_TAP_QUERY_COLUMNS 9
 
 // The structure used to declare the columns to be queried from the tables
-// for TAP queries only
+// for TAP queries only!
 typedef struct {
 	gchar *catcode;
 	gchar *tap_columns[MAX_TAP_QUERY_COLUMNS];
 	gchar *tap_server;
 } cat_tap_query_fields;
 
-GFile *download_catalog(object_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag, gchar *obscode, GDateTime *date_obs);
+gchar *download_catalog(siril_catalogue *siril_cat);
 
 gchar *fetch_url(const gchar *url);
 void free_fetch_result(gchar *result);
@@ -49,5 +49,6 @@ void free_fetch_result(gchar *result);
 gpointer search_in_online_conesearch(gpointer p);
 gpointer catsearch_worker(gpointer p);
 
+int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat);
 
 #endif

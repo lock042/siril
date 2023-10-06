@@ -95,6 +95,12 @@ typedef enum {
 	CAT_FIELD_TYPE
 } cat_fields;
 
+typedef enum {
+	CAT_PROJ_NONE,
+	CAT_PROJ_PLATE,
+	CAT_PROJ_WCS
+} cat_proj;
+
 typedef struct {
 	// filled from catalogue
 	double ra, dec;	// celestial coordinates
@@ -117,27 +123,31 @@ typedef struct {
 
 typedef struct {
 	object_catalog cattype;
-	double catalog_center_ra;
-	double catalog_center_dec;
-	double radius; // fov radius (unit TBD)
+	double center_ra;
+	double center_dec;
+	double radius; // fov radius (in degrees)
 	double limitmag; // limiting magnitude
-	double dateobs; // date-obs in JD
-	double sitelat, sitelon, siteelev; // obs site
+	GDateTime *dateobs; // date-obs in JD
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry
 	cat_item *cat_items;
 	int nbitems; // the number of items stored
 	int nbincluded; // the number of items included after projection
+	cat_proj projected; // the type of projection applied
 	uint32_t columns; // the list of columns which where parsed when read
 } siril_catalogue;
 
 
-uint32_t siril_catalog_colums(object_catalog cat);
+uint32_t siril_catalog_columns(object_catalog cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
 const char *catalog_to_str(object_catalog cat);
 const gchar **get_cat_colums_names();
 
-siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean phot);
+void siril_catalog_free_items(siril_catalogue *siril_cat);
+void siril_catalog_free(siril_catalogue *siril_cat);
+
+int siril_catalog_conesearch(siril_catalogue *siril_cat);
+int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion);
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 

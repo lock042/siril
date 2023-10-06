@@ -433,46 +433,45 @@ gpointer photometric_cc_standalone(gpointer p) {
 	if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
 		mag += args->magnitude_arg;
 
+	// preparing the catalogue query
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cattype = args->catalog;
+	siril_cat->center_ra = ra;
+	siril_cat->center_dec = dec;
+	siril_cat->radius = radius * 60.;
+	siril_cat->limitmag = mag;
+	siril_cat->phot = TRUE;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
+
 	int retval = 0;
-	if (args->use_local_cat) {
+	if (args->catalog == CAT_LOCAL) {
 		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
-		if (get_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars, TRUE)) {
-			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-			retval = 1;
-		}
 	} else {
-		const gchar *cat = NULL;
 		switch (args->catalog) {
 			case CAT_APASS:
-				cat = "APASS";
 				mag = min(mag, 17.0);	// in APASS, B is available for V < 17
 				break;
 			case CAT_NOMAD:
-				cat = "NOMAD";
 				mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
 				break;
 			default:
 				siril_log_color_message(_("No valid catalog found.\n"), "red");
 				return GINT_TO_POINTER(1);
 		}
-		siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), radius * 2.0, mag);
-
-		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-		GFile *catalog_file = download_catalog(args->catalog, center, radius * 60.0, mag, NULL, NULL);
-		siril_world_cs_unref(center);
-		if (!catalog_file) {
-			siril_log_message(_("Could not download the online star catalog.\n"));
-			siril_add_idle(end_generic, NULL);
-			return GINT_TO_POINTER(1);
-		}
-		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
-
+		siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog),radius * 2.0,  mag);
+		siril_cat->limitmag = mag;
+	}
+	
+	/* Fetching the catalog*/
+	if (!siril_catalog_conesearch(siril_cat)) {
+		retval = 1;
+	} else {
 		/* project using WCS */
-		siril_catalogue *siril_cat = siril_catalog_load_from_file(g_file_peek_path(catalog_file), TRUE);
 		siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE);
 		stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
 		retval = nb_stars == 0;
 	}
+	siril_catalog_free(siril_cat);
 
 	if (!retval) {
 		if (!com.script) {

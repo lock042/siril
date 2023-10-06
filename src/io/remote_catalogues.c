@@ -331,7 +331,8 @@ void free_fetch_result(gchar *result) {
 }
 #endif
 
-static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorldCS *center, double mag_limit, double radius_arcmin, gchar *obscode, GDateTime *dateobs) {
+// Returns url to be queried based on catalog type and query
+static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 #ifndef HAVE_NETWORKING
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 	return NULL;
@@ -339,13 +340,13 @@ static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorl
 	GString *url;
 	gchar *fmtstr, *dt;
 	const gchar **cat_columns = get_cat_colums_names();
-	switch (Catalog){
+	switch (siril_cat->cattype){
 		/////////////////////////////////////////////////////////////
 		// TAP QUERY to csv - preferred way as it requires no parsing
 		/////////////////////////////////////////////////////////////
 		case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE:
-			cat_tap_query_fields *fields = catalog_to_tap_fields(Catalog);
-			uint32_t catcols = siril_catalog_colums(Catalog);
+			cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cattype);
+			uint32_t catcols = siril_catalog_columns(siril_cat->cattype);
 			url = g_string_new(fields->tap_server);
 			gboolean first = TRUE;
 			for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
@@ -358,11 +359,11 @@ static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorl
 			g_string_append_printf(url,"+FROM+%s", fields->catcode);
 			g_string_append_printf(url,"+WHERE+CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
 			fmtstr = g_strdup_printf("CIRCLE('ICRS',%s,%s,%s))=1", rafmt, decfmt, radiusfmt);
-			g_string_append_printf(url, fmtstr, siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center), radius_arcmin / 60.);
+			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
 			g_free(fmtstr);
-			if (mag_limit > 0 && catcols & (1 << CAT_FIELD_MAG)) {
+			if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG)) {
 				fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
-				g_string_append_printf(url, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], mag_limit);
+				g_string_append_printf(url, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
 			}
 			free_cat_tap_query_fields(fields);
 			return g_string_free_and_steal(url);
@@ -372,25 +373,25 @@ static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorl
 		case CAT_AAVSO_CHART:
 			url = g_string_new(AAVSOCHART_QUERY);
 			fmtstr = g_strdup_printf("&ra=%s&dec=%s&fov=%s&maglimit=%s", rafmt, decfmt, radiusfmt, limitmagfmt);
-			g_string_append_printf(url, fmtstr, siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center), radius_arcmin, mag_limit);
+			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag);
 			g_free(fmtstr);
 			return g_string_free_and_steal(url);
 		////////////////////////////
 		// IMCCE - skybot conesearch
 		////////////////////////////
 		case CAT_IMCCE:
-			if (!dateobs) { // should have been caught before... just in case
+			if (!siril_cat->dateobs) { // should have been caught before... just in case
 				siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
 				return NULL;
 			}
 			url = g_string_new(IMCCE_QUERY);
-			dt = date_time_to_FITS_date(dateobs);
+			dt = date_time_to_FITS_date(siril_cat->dateobs);
 			g_string_append_printf(url,"&-ep=%s", dt);
 			g_free(dt);
 			fmtstr = g_strdup_printf("&-ra=%s&-dec=%s&-rd=%s", rafmt, decfmt, radiusfmt);
-			g_string_append_printf(url, fmtstr, siril_world_cs_get_alpha(center), siril_world_cs_get_delta(center), radius_arcmin / 60.);
+			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
 			g_free(fmtstr);
-			g_string_append_printf(url,"&-loc=%s", (obscode) ? obscode : "500");
+			g_string_append_printf(url,"&-loc=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
 			return g_string_free_and_steal(url);
 		default:
 			break;
@@ -398,73 +399,73 @@ static gchar *siril_catalog_conesearch_get_url(object_catalog Catalog, SirilWorl
 	return NULL;
 }
 
-gpointer search_in_online_conesearch(gpointer p) {
-#ifndef HAVE_NETWORKING
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-	return GINT_TO_POINTER(1);
-#else
-	struct astrometry_data *args = (struct astrometry_data *) p;
-	if (!args->fit->date_obs) {
-		free(args);
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(-1);
-	}
-	double ra, dec;
-	center2wcs(args->fit, &ra, &dec);
-	int retval = 0;
+// gpointer search_in_online_conesearch(gpointer p) {
+// #ifndef HAVE_NETWORKING
+// 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+// 	return GINT_TO_POINTER(1);
+// #else
+// 	struct astrometry_data *args = (struct astrometry_data *) p;
+// 	if (!args->fit->date_obs) {
+// 		free(args);
+// 		siril_add_idle(end_generic, NULL);
+// 		return GINT_TO_POINTER(-1);
+// 	}
+// 	double ra, dec;
+// 	center2wcs(args->fit, &ra, &dec);
+// 	int retval = 0;
 
-	// https://vo.imcce.fr/webservices/skybot/?conesearch
-	GString *string_url = g_string_new(IMCCE_QUERY);
-	string_url = g_string_append(string_url, "&-ep=");
-	gchar *formatted_date = date_time_to_FITS_date(args->fit->date_obs);
-	string_url = g_string_append(string_url, formatted_date);
-	string_url = g_string_append(string_url, "&-ra=");		// RA
-	g_string_append_printf(string_url, "%lf", ra);
-	string_url = g_string_append(string_url, "&-dec=");		// DEC
-	g_string_append_printf(string_url, "%lf", dec);
-	string_url = g_string_append(string_url, "&-rm=");		// FOV
-	g_string_append_printf(string_url, "%lf", get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry));
-	string_url = g_string_append(string_url, "&-mime=text");
-	string_url = g_string_append(string_url, "&-output=object");
-	string_url = g_string_append(string_url, "&-loc=500");
-	string_url = g_string_append(string_url, "&-filter=0");
-	string_url = g_string_append(string_url, "&-objFilter=111");
-	string_url = g_string_append(string_url, "&-refsys=EQJ2000");
-	string_url = g_string_append(string_url, "&-from=Siril;");
+// 	// https://vo.imcce.fr/webservices/skybot/?conesearch
+// 	GString *string_url = g_string_new(IMCCE_QUERY);
+// 	string_url = g_string_append(string_url, "&-ep=");
+// 	gchar *formatted_date = date_time_to_FITS_date(args->fit->date_obs);
+// 	string_url = g_string_append(string_url, formatted_date);
+// 	string_url = g_string_append(string_url, "&-ra=");		// RA
+// 	g_string_append_printf(string_url, "%lf", ra);
+// 	string_url = g_string_append(string_url, "&-dec=");		// DEC
+// 	g_string_append_printf(string_url, "%lf", dec);
+// 	string_url = g_string_append(string_url, "&-rm=");		// FOV
+// 	g_string_append_printf(string_url, "%lf", get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry));
+// 	string_url = g_string_append(string_url, "&-mime=text");
+// 	string_url = g_string_append(string_url, "&-output=object");
+// 	string_url = g_string_append(string_url, "&-loc=500");
+// 	string_url = g_string_append(string_url, "&-filter=0");
+// 	string_url = g_string_append(string_url, "&-objFilter=111");
+// 	string_url = g_string_append(string_url, "&-refsys=EQJ2000");
+// 	string_url = g_string_append(string_url, "&-from=Siril;");
 
-	if (!gfit.date_obs) {
-		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
-		return NULL;
-	}
-	siril_log_message(_("Solar System Objects search on observation date %s\n"), formatted_date);
+// 	if (!gfit.date_obs) {
+// 		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+// 		return NULL;
+// 	}
+// 	siril_log_message(_("Solar System Objects search on observation date %s\n"), formatted_date);
 
-	gchar *url = g_string_free(string_url, FALSE);
-	gchar *cleaned_url = url_cleanup(url);
-	gchar *result = fetch_url(cleaned_url);
-	siril_debug_print(_("URL: %s\n"), cleaned_url);
+// 	gchar *url = g_string_free(string_url, FALSE);
+// 	gchar *cleaned_url = url_cleanup(url);
+// 	gchar *result = fetch_url(cleaned_url);
+// 	siril_debug_print(_("URL: %s\n"), cleaned_url);
 
-	g_free(cleaned_url);
-	g_free(url);
-	g_free(formatted_date);
+// 	g_free(cleaned_url);
+// 	g_free(url);
+// 	g_free(formatted_date);
 
-	if (result) {
-		retval = parse_conesearch_buffer(result, args->limit_mag);
-	}
-#if defined HAVE_LIBCURL
-	free(result);
-#else
-	g_free(result);
-#endif
-	if (!retval) {
-		siril_add_idle(end_process_sso, args);
-	} else {
-		free(args);
-		siril_add_idle(end_generic, NULL);
-	}
+// 	if (result) {
+// 		retval = parse_conesearch_buffer(result, args->limit_mag);
+// 	}
+// #if defined HAVE_LIBCURL
+// 	free(result);
+// #else
+// 	g_free(result);
+// #endif
+// 	if (!retval) {
+// 		siril_add_idle(end_process_sso, args);
+// 	} else {
+// 		free(args);
+// 		siril_add_idle(end_generic, NULL);
+// 	}
 
-	return GINT_TO_POINTER(retval);
-#endif
-}
+// 	return GINT_TO_POINTER(retval);
+// #endif
+// }
 
 gpointer catsearch_worker(gpointer p) {
 	gchar *name = (gchar*)p;
@@ -590,144 +591,175 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	return TRUE;
 }
 
-GFile *download_catalog(object_catalog Catalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag, gchar *obscode, GDateTime *date_obs) {
-#ifndef HAVE_NETWORKING
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-#else
-	gchar *url = NULL, *buffer = NULL, *str = NULL, *dt = NULL, *fmtstr = NULL;
-	GError *error = NULL;
-	GOutputStream *output_stream = NULL;
-	GFile *file = NULL;
-	gboolean remove_file = FALSE;
-	/* ---------------- get Vizier catalog in a cache catalogue file --------------------- */
-	/* check if catalogue already exists in cache */
-	switch (Catalog) {
+static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat) {
+	gchar *filename = NULL;
+	gchar *dt = NULL, *fmtstr = NULL;
+	switch (siril_cat->cattype) {
 		case CAT_TYCHO2 ... CAT_AAVSO_CHART:
 			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s.csv", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt);
-			str = g_strdup_printf(fmtstr,
-				(int) Catalog,
-				siril_world_cs_get_alpha(catalog_center),
-				siril_world_cs_get_delta(catalog_center),
-				radius_arcmin, mag);
+			filename = g_strdup_printf(fmtstr,
+				(int)siril_cat->cattype,
+				siril_cat->center_ra,
+				siril_cat->center_dec,
+				siril_cat->radius,
+				siril_cat->limitmag);
 			g_free(fmtstr);
+			return filename;
 			break;
 		case CAT_IMCCE:
-			if (!obscode || !date_obs) {
+			if (!siril_cat->IAUcode || !siril_cat->dateobs) {
 				siril_debug_print("Queries for solar system should pass date and location code\n");
 				return NULL;
 			}
-			dt = date_time_to_date_time(date_obs);
+			dt = date_time_to_date_time(siril_cat->dateobs);
 			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%%s_%%s.csv", catcodefmt, rafmt, decfmt, radiusfmt);
-			str = g_strdup_printf(fmtstr,
-					(int) Catalog,
-					siril_world_cs_get_alpha(catalog_center),
-					siril_world_cs_get_delta(catalog_center),
-					radius_arcmin,
-					dt,
-					obscode);
+			filename = g_strdup_printf(fmtstr,
+				(int)siril_cat->cattype,
+				siril_cat->center_ra,
+				siril_cat->center_dec,
+				siril_cat->radius,
+				dt,
+				siril_cat->IAUcode);
 			g_free(fmtstr);
 			g_free(dt);
+			return filename;
 			break;
 		default:
 			siril_debug_print("should not happen, download_catalog should only be called for online calls\n");
 			return NULL;
 	}
-	siril_debug_print("Catalogue file: %s\n", str);
+	siril_debug_print("catalog type not handled, should not happen\n");
+	return NULL;
+}
 
-	// checking that catalog cache folder exists, create it otherwise
+// Parses the catalogue name and checks if it exists in cache
+// Returns the path to write to (if in_cache is FALSE)
+// or the path to read directly (if in_cache is TRUE)
+static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gboolean *in_cache) {
+	GError *error = NULL;
+	GFile *file = NULL;
+	*in_cache = FALSE;
+	gchar *filename = parse_remote_catalogue_filename(siril_cat);
+	if (!filename)
+		return NULL;
+	siril_debug_print("Catalogue file: %s\n", filename);
+
+	// check if download_cache folder exists, create it otherwise
 	gchar *root = g_build_filename(siril_get_config_dir(), PACKAGE, "download_cache", NULL);
+	gchar *filepath = g_build_filename(root, filename, NULL);
+
 	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
 		if (g_mkdir_with_parents(root, 0755) < 0) {
 			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
-			g_free(str);
+			g_free(filepath);
 			g_free(root);
-			return NULL;
+			return NULL; // we won't be able to write to the file
 		}
 	}
-	// and prepare to store the downloaded file there
-	file = g_file_new_build_filename(root, str, NULL);
-	g_free(str);
 	g_free(root);
 
-	output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
-
-	if (!output_stream) {
-		if (error) {
-			/* if file already exists */
-			if (error->code == G_IO_ERROR_EXISTS) {
-				GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_TIME_MODIFIED "," G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, NULL);
-				/* test if size is not 0 */
-				if ((g_file_info_get_size(info)) == 0) {
-					if (g_file_delete(file, NULL, &error)) {
-						output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
-						if (!output_stream) {
-							goto download_error;
-						}
-					} else {
-						goto download_error;
-					}
-				} else {
-					siril_log_message(_("Using already downloaded star catalogue %s\n"), catalog_to_str(Catalog));
-				}
-				g_clear_error(&error);
-			} else {
-				goto download_error;
+	if (g_file_test(filepath, G_FILE_TEST_EXISTS)) { // file already exists in cache
+		file = g_file_new_for_path(filepath);
+		GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_TIME_MODIFIED "," G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, NULL);
+		if ((g_file_info_get_size(info)) == 0) { // test if not empty and delete in case it is
+			if (!g_file_delete(file, NULL, &error)) {
+				siril_log_color_message(_("A corrupted version of %s was found in cache but cannot be deleted, aborting\n"), "red", filepath);
+				g_free(filepath);
+				return NULL;
 			}
+			return filepath; // the corrupted version was successfully deleted, passing the filepath
 		} else {
-			siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), "unknown error");
-			g_object_unref(file);
-			return NULL;
+			*in_cache = TRUE;
+			return filepath;
 		}
 	}
+	// TODO: expand cache search to find catalogs matching query within certain criteria:
+	// - same catalog type
+	// - sufficient overlap of the sky region
+	// - large enough mag
+	// - valid date and sitelocation (for sso)
+	return filepath;
+}
 
-	if (output_stream) {
-		/* download */
-		url = siril_catalog_conesearch_get_url(Catalog, catalog_center, mag, radius_arcmin, obscode, date_obs);
-		if (url)
-			buffer = fetch_url(url);
-		else {
-			remove_file = TRUE;
-			goto download_error;
-		}
-		g_free(url);
+/* Downloads and writes to download_cache (if required) the online catalogue
+   as per given catalogue type, center, radius, limit mag (optionnaly obscode and date obs for sso)
+   Returns the path to the file (whether already cached or downloaded)
+*/
+gchar *download_catalog(siril_catalogue *siril_cat) {
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+#else
+	gchar *str = NULL, *filepath = NULL, *url = NULL, *buffer = NULL;
+	GError *error = NULL;
+	GOutputStream *output_stream = NULL;
+	GFile *file = NULL;
+	gboolean remove_file = FALSE, catalog_is_in_cache = FALSE;
 
-		/* save (and parse if required)*/
-		if (buffer) {
-			switch (Catalog) {
-				case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE: // TAP query, no parsing, we just write the whole buffer to the output stream
-					if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
-						g_warning("%s\n", error->message);
-						remove_file = TRUE;
-						goto download_error;
-					}
-					break;
-				case CAT_IMCCE:
-					if (!parse_IMCCE_buffer(buffer, output_stream)) {
-						remove_file = TRUE;
-						goto download_error;
-					}
-				case CAT_AAVSO_CHART:
-					if (!parse_AAVSO_Chart_buffer(buffer, output_stream)) {
-						remove_file = TRUE;
-						goto download_error;
-					}
-				default:
-					break;
-			}
-			g_object_unref(output_stream);
-			g_free(buffer);
-		} else { // remove the file from cache
-			remove_file = TRUE;
-			goto download_error;
-		}
+	/* check if catalogue already exists in cache */
+	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache);
+	g_free(str);
 
+	if (catalog_is_in_cache) {
+		siril_log_message(_("Using already downloaded star catalogue %s\n"), catalog_to_str(siril_cat->cattype));
+		return filepath;
 	}
-	return file;
+	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
+		g_free(str);
+		return NULL;
+	}
+
+	// the catalog needs to be downloaded, prepare the output stream
+	file = g_file_new_for_path(filepath);
+	output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
+	if (!output_stream) {
+		goto download_error;
+	}
+
+
+	/* download */
+	url = siril_catalog_conesearch_get_url(siril_cat);
+	if (!url) {
+		remove_file = TRUE;
+		goto download_error;
+	}
+	buffer = fetch_url(url);
+	g_free(url);
+
+	/* save (and parse if required)*/
+	if (buffer) {
+		switch (siril_cat->cattype) {
+			case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE: // TAP query, no parsing, we just write the whole buffer to the output stream
+				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
+					g_warning("%s\n", error->message);
+					remove_file = TRUE;
+					goto download_error;
+				}
+				break;
+			case CAT_IMCCE:
+				if (!parse_IMCCE_buffer(buffer, output_stream)) {
+					remove_file = TRUE;
+					goto download_error;
+				}
+			case CAT_AAVSO_CHART:
+				if (!parse_AAVSO_Chart_buffer(buffer, output_stream)) {
+					remove_file = TRUE;
+					goto download_error;
+				}
+			default:
+				break;
+		}
+		g_object_unref(output_stream);
+		g_free(buffer);
+	} else { // remove the file from cache
+		remove_file = TRUE;
+		goto download_error;
+	}
+	return filepath;
 
 download_error:
 	if (error) {
 		g_warning("%s\n", error->message);
-		siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
+		siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);
 		}
 	g_free(buffer);
@@ -738,8 +770,30 @@ download_error:
 			g_unlink(g_file_peek_path(file));
 		g_object_unref(file);
 	}
+	if (filepath)
+		g_free(filepath);
 #endif
 	return NULL;
 }
 
+/* This function is the main interface to collect an online catalogue
+   It sends a conesearch around given center, within given radius and for stars below limit_mag
+   Internally, it uses download_catalog to search cache and download catalog as required
+   It fills the siril_catalogue given in input
+   Returns the number of stars fetched
+*/
+int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
+	if (!siril_cat)
+		return 0;
+	if (siril_cat->cattype >= CAT_AN_MESSIER) {
+		siril_debug_print("Online cat query - Should not happen\n");
+		return 0;
+	}
+	gchar *catfile = download_catalog(siril_cat);
+	if (!catfile)
+		return 0;
+	if (!siril_catalog_load_from_file(siril_cat, catfile))
+		return siril_cat->nbitems;
+	return 0;
+}
 

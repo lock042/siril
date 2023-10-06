@@ -37,6 +37,7 @@
 #include "gui/photometric_cc.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/siril_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 
@@ -300,18 +301,18 @@ gboolean end_process_catsearch(gpointer p) {
 	return end_generic(NULL);
 }
 
-gboolean end_process_sso(gpointer p) {
-	struct astrometry_data *args = (struct astrometry_data *) p;
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	refresh_found_objects();
-	if (!gtk_toggle_tool_button_get_active(button)) {
-		gtk_toggle_tool_button_set_active(button, TRUE);
-	} else {
-		redraw(REDRAW_OVERLAY);
-	}
-	free(args);
-	return end_generic(NULL);
-}
+// gboolean end_process_sso(gpointer p) {
+// 	struct astrometry_data *args = (struct astrometry_data *) p;
+// 	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+// 	refresh_found_objects();
+// 	if (!gtk_toggle_tool_button_get_active(button)) {
+// 		gtk_toggle_tool_button_set_active(button, TRUE);
+// 	} else {
+// 		redraw(REDRAW_OVERLAY);
+// 	}
+// 	free(args);
+// 	return end_generic(NULL);
+// }
 
 gboolean end_plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
@@ -640,6 +641,8 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->autocrop = is_autocrop_activated();
 	args->flip_image = flip_image_after_ps();
 	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
+	args->ref_stars = calloc(1, sizeof(siril_catalogue));
+	args->ref_stars->phot = args->for_photometry_cc;
 
 	process_plate_solver_input(args);
 
@@ -659,7 +662,11 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			return 1;
 		}
 	}
-	else args->cat_center = catalog_center;
+	else {
+		args->cat_center = catalog_center;
+		args->ref_stars->center_ra = siril_world_cs_get_alpha(catalog_center);
+		args->ref_stars->center_dec = siril_world_cs_get_delta(catalog_center);
+	}
 
 	if (!args->for_photometry_cc && use_local_asnet) {
 		// non-cropped version of the fov
@@ -667,9 +674,8 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->uncentered = FALSE;
 		if (com.selection.w != 0 && com.selection.h != 0)
 			siril_log_message(_("Selection is not used with the astrometry.net solver\n"));
-		args->use_local_cat = TRUE;
-		args->catalog_file = NULL;
-		args->onlineCatalog = CAT_ASNET;
+
+		args->ref_stars->cattype = CAT_ASNET;
 
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 			args->filename = g_strdup(com.uniq->filename);
@@ -685,41 +691,36 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	args->onlineCatalog = args->for_photometry_cc ?
+	args->ref_stars->cattype = args->for_photometry_cc ?
 		get_photometry_catalog_from_GUI() :
-		get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
+		get_astrometry_catalog(args->used_fov, args->ref_stars->limitmag, auto_cat);
 	gboolean has_local_cat = local_catalogues_available();
-	gboolean use_local = FALSE;
+
 
 	if (auto_cat) {
 		if (has_local_cat) {
 			siril_debug_print("using local star catalogues\n");
-			args->use_local_cat = TRUE;
-			args->catalog_file = NULL;
-			args->onlineCatalog = CAT_LOCAL;
-			use_local = TRUE;
+			args->ref_stars->cattype = CAT_LOCAL;
 		}
 	} else {
-		if (has_local_cat && (args->onlineCatalog == CAT_NOMAD || args->onlineCatalog == CAT_BSC || args->onlineCatalog == CAT_TYCHO2)) {
+		if (has_local_cat && (args->ref_stars->cattype == CAT_NOMAD || args->ref_stars->cattype == CAT_BSC || args->ref_stars->cattype == CAT_TYCHO2)) {
 			siril_debug_print("using local star catalogues\n");
-			args->use_local_cat = TRUE;
-			args->catalog_file = NULL;
-			args->onlineCatalog = CAT_LOCAL;
-			use_local = TRUE;
+			args->ref_stars->cattype = CAT_LOCAL;
 		}
 	}
-	if (!use_local) {
-		/* currently the GUI version downloads the catalog here, because
-		 * siril_message_dialog() doesn't use idle function, we could change that */
-		GFile *catalog_file = download_catalog(args->onlineCatalog,
-				catalog_center, args->used_fov * 0.5, args->limit_mag, NULL, NULL);
-		if (!catalog_file) {
-			siril_world_cs_unref(catalog_center);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
-			return 1;
-		}
-		args->catalog_file = catalog_file;
-	}
+	args->ref_stars->columns = siril_catalog_columns(args->ref_stars->cattype);
+
+	// if (!use_local) {
+	// 	/* currently the GUI version downloads the catalog here, because
+	// 	 * siril_message_dialog() doesn't use idle function, we could change that */
+	// 	GFile *catalog_file = download_catalog(args->onlineCatalog,
+	// 			catalog_center, args->used_fov * 0.5, args->limit_mag, NULL, NULL);
+	// 	if (!catalog_file) {
+	// 		siril_world_cs_unref(catalog_center);
+	// 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
+	// 		return 1;
+	// 	}
+	// }
 	return 0;
 }
 

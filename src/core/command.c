@@ -8517,6 +8517,7 @@ int process_pcc(int nb) {
 		local_cat = FALSE;
 	}
 
+
 	if (seqps) {
 		if (cat == CAT_ASNET && !asnet_is_available()) {
 			siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
@@ -8528,15 +8529,26 @@ int process_pcc(int nb) {
 		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
-		args->use_local_cat = local_cat;
-		if (!local_cat && cat == CAT_AUTO)
-			args->onlineCatalog = CAT_NOMAD;
-		else args->onlineCatalog = cat;
-		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
+		if (target_coords) {
+			args->cat_center = target_coords;
+		}
+
+		// catalog query parameters
+		args->ref_stars = calloc(1, sizeof(siril_catalogue));
+		// if (!local_cat && cat == CAT_AUTO)
+		// 	cat = CAT_NOMAD;
+		args->ref_stars->cattype = cat;
+		args->ref_stars->columns =  siril_catalog_columns(cat);
+		args->ref_stars->phot = FALSE;
+		if (target_coords) {
+			args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+			args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+		}
+
 		if (target_mag > -1.0) {
 			args->mag_mode = LIMIT_MAG_ABSOLUTE;
 			args->magnitude_arg = target_mag;
@@ -8674,20 +8686,23 @@ int process_pcc(int nb) {
 	}
 
 	if (plate_solve) {
-		args->use_local_cat = local_cat;
 		if (cat == CAT_ASNET)
 			args->filename = g_strdup(com.uniq->filename);
-		args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
+		args->ref_stars = calloc(1, sizeof(siril_catalogue));
+		// preparing the catalogue query
+		args->ref_stars->cattype = cat;
+		args->ref_stars->columns =  siril_catalog_columns(cat);
+		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 		process_plate_solver_input(args);
 	}
 
 	if (pcc_command) {
-		pcc_args->use_local_cat = local_cat;
 		pcc_args->catalog = cat;
 		if (plate_solve) {
 			args->for_photometry_cc = TRUE;
@@ -8708,7 +8723,6 @@ int process_nomad(int nb) {
 	float limit_mag = 13.0f;
 	gboolean photometric = FALSE;
 	object_catalog cat = CAT_AUTO;
-	GDateTime *dateobs = NULL;
 	gchar *obscode = NULL;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -8746,7 +8760,6 @@ int process_nomad(int nb) {
 					siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
 					return CMD_INVALID_IMAGE;
 				}
-				dateobs = gfit.date_obs;
 			} else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
 				return CMD_ARG_ERROR;
@@ -8771,63 +8784,60 @@ int process_nomad(int nb) {
 		arg_idx++;
 	}
 
-	pcc_star *stars = NULL;
-	siril_catalogue *siril_cat = NULL;
+	gboolean local_cat = local_catalogues_available();
+	if (cat == CAT_AUTO)
+		cat = (local_cat)? CAT_LOCAL : CAT_NOMAD;
+
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
 	int nb_stars = 0;
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
-	double resolution = get_wcs_image_resolution(&gfit);
-	uint64_t sqr_radius = ((uint64_t) gfit.rx * gfit.rx + (uint64_t) gfit.ry * gfit.ry) / 4;
-	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
-	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
+	double resolution = get_wcs_image_resolution(&gfit)* 3600.;
 
-	if (cat == CAT_AUTO) {
-		// stars coordinates are the raw wcs2pix values, so FITS/WCS coordinates
-		if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars, photometric)) {
-			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-			return CMD_GENERIC_ERROR;
-		}
-		siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
-	} else {
-		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-		if (cat == CAT_IMCCE && !obscode) {
-			obscode  = g_strdup("500");
+
+	// Preparing the catalogue query
+	siril_cat->cattype = cat;
+	siril_cat->columns =  siril_catalog_columns(cat);
+	siril_cat->center_ra = ra;
+	siril_cat->center_dec = dec;
+	siril_cat->radius = get_radius_deg(resolution, gfit.rx, gfit.ry) * 60.;
+	siril_cat->limitmag = limit_mag;
+	siril_cat->phot = photometric;
+	if (cat == CAT_IMCCE) {
+		siril_cat->IAUcode = (obscode)? g_strdup(obscode) : g_strdup("500");
+		if (!obscode)
 			siril_log_color_message(_("Did not specify an observatory code, using 500 by default\n"), "salmon");
-		}
-		GFile *catalog_file = download_catalog(cat, center, radius * 60.0, limit_mag, obscode, dateobs);
-		g_free(obscode);
-		siril_world_cs_unref(center);
-		if (!catalog_file) {
-			siril_log_message(_("Could not download the online star catalog.\n"));
-			return CMD_GENERIC_ERROR;
-		}
-		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(cat));
-		siril_cat = siril_catalog_load_from_file(g_file_peek_path(catalog_file), photometric);
-		if (!siril_cat)
-			return CMD_GENERIC_ERROR;
-		/* project using WCS */
-		gboolean use_proper_motion = (gfit.date_obs != NULL) && (siril_catalog_colums(cat) & (1 << CAT_FIELD_PMRA)) != 0;
-		if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion))
-			return CMD_GENERIC_ERROR;
-		nb_stars = siril_cat->nbitems;
-		sort_cat_items_by_mag(siril_cat);
+		siril_cat->dateobs = gfit.date_obs;
 	}
+	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", ra, dec, siril_cat->radius);
+
+	// and retrieving its results
+	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
+		siril_catalog_free(siril_cat);
+		return CMD_GENERIC_ERROR;
+	}
+	if (cat != CAT_LOCAL)
+		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(cat));
+
+	/* project using WCS */
+	gboolean use_proper_motion = (gfit.date_obs != NULL) && (siril_catalog_columns(cat) & (1 << CAT_FIELD_PMRA)) != 0;
+	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion)) {
+		siril_catalog_free(siril_cat);
+		return CMD_GENERIC_ERROR;
+	}
+	nb_stars = siril_cat->nbitems;
+	sort_cat_items_by_mag(siril_cat);
+
 
 	clear_stars_list(FALSE);
 	int j = 0;
 	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
-		if (stars && (stars[i].x < 0.0 || stars[i].x >= gfit.rx ||
-				stars[i].y < 0.0 || stars[i].y >= gfit.ry))
-			continue;
 		if (siril_cat && (!siril_cat->cat_items[i].included || siril_cat->cat_items[i].mag > limit_mag))
 			continue;
 		if (!com.stars)
 			com.stars = new_fitted_stars(MAX_STARS);
 		com.stars[j] = new_psf_star();
-		if (siril_cat)
-			fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
-		else
-			fits_to_display(stars[i].x, stars[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
+		fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
 		com.stars[j]->fwhmx = 5.0f;
 		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;
@@ -8840,54 +8850,10 @@ int process_nomad(int nb) {
 	}
 	if (j > 0)
 		com.stars[j] = NULL;
-	free(stars);
+
 	siril_log_message("%d stars found%s in the image (mag limit %.2f)\n", j,
 			photometric ? " with valid photometry data" : "", limit_mag);
 	redraw(REDRAW_OVERLAY);
-	return CMD_OK;
-}
-
-int process_sso() {
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return CMD_FOR_PLATE_SOLVED;
-	}
-
-	if (!gfit.date_obs) {
-		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
-		return CMD_INVALID_IMAGE;
-	}
-
-	purge_temp_user_catalogue();
-
-	double lim_mag = 20.0;
-	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
-	args->fit = &gfit;
-
-	char *arg = word[1];
-	if (word[1] && g_str_has_prefix(arg, "-mag=")) {
-		char *next, *value = arg + 5;
-		lim_mag = g_ascii_strtod(value, &next);
-		if (next == value) {
-			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
-			free(args);
-			redraw(REDRAW_OVERLAY);
-			return CMD_ARG_ERROR;
-		}
-	}
-
-	args->limit_mag = lim_mag;
-	args->focal_length = gfit.focal_length;
-	args->pixel_size = gfit.pixel_size_x;
-	args->scale = get_resolution(args->focal_length, args->pixel_size);
-	if (args->scale == 0.0) {
-		siril_log_message(_("Could not compute image resolution\n"));
-		free(args);
-		redraw(REDRAW_OVERLAY);
-		return CMD_INVALID_IMAGE;
-	}
-
-	start_in_new_thread(search_in_online_conesearch, args);
 	return CMD_OK;
 }
 

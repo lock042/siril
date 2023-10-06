@@ -364,7 +364,6 @@ static int get_catstars(struct compstars_arg *args) {
 
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
-	SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
 
 	double resolution = get_wcs_image_resolution(&gfit);
 	uint64_t sqr_radius = 0;
@@ -379,22 +378,27 @@ static int get_catstars(struct compstars_arg *args) {
 		radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	}
 
-	double limit_mag = max(args->target_star->mag + 6.0, 17.0);
-	GFile *catalog_file = download_catalog(args->cat, center, radius * 60.0, limit_mag, NULL, NULL);
-	siril_world_cs_unref(center);
-	if (!catalog_file) {
-		siril_log_message(_("Could not download the online star catalog.\n"));
+	// preparing the query
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cattype = args->cat;
+	siril_cat->center_ra = ra;
+	siril_cat->center_dec = dec;
+	siril_cat->radius = radius * 60.;
+	siril_cat->limitmag = max(args->target_star->mag + 6.0, 17.0);
+	siril_cat->phot = TRUE;
+	siril_cat->columns = siril_catalog_columns(args->cat);
+
+	// and retrieving its results
+	if (!siril_catalog_conesearch(siril_cat)) // returns the nb of stars
 		return 1;
-	}
-	siril_log_message(_("The %s catalog has been successfully downloaded.\n"),
-			catalog_to_str(args->cat));
 
-	siril_catalogue *siril_cat = siril_catalog_load_from_file(g_file_peek_path(catalog_file), TRUE);
-	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE))
+	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE)) {
 		args->cat_stars = convert_siril_cat_to_psf_stars(siril_cat, &args->nb_cat_stars)[0];
+		args->nb_cat_stars = siril_cat->nbitems;
+	}
+	siril_catalog_free(siril_cat);
 
-	g_object_unref(catalog_file);
-	return 0;
+	return (int)(args->nb_cat_stars == 0);
 }
 
 static void write_nina_file(struct compstars_arg *args) {

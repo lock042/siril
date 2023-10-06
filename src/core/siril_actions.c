@@ -388,7 +388,7 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 
 void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (has_wcs(&gfit))
-		process_sso();
+		process_nomad(1);
 }
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {

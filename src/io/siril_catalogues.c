@@ -45,6 +45,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
 #include "io/remote_catalogues.h"
+#include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
 
 // This list defines the columns that can possibly be found in any catalogue
@@ -84,7 +85,7 @@ static int get_column_index(gchar *field) {
 
 // This function defines the fields that should be present in each catalog
 // To be used as sanity check
-uint32_t siril_catalog_colums(object_catalog cat) {
+uint32_t siril_catalog_columns(object_catalog cat) {
 	switch (cat) {
 		case CAT_TYCHO2:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
@@ -210,7 +211,7 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_ca
 	if (!nbcols)
 		return FALSE;
 
-	uint32_t catspec = siril_catalog_colums(Catalog);
+	uint32_t catspec = siril_catalog_columns(Catalog);
 	uint32_t res = 0;
 	for (int i = 0; i < nbcols; i++) {
 		int val = get_column_index(fields[i]);
@@ -235,62 +236,51 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_ca
 	return FALSE;
 }
 
-static siril_catalogue *siril_cat_init(const gchar *filename) {
-	siril_catalogue *new_cat = calloc(1, sizeof(siril_catalogue));
-	if (!new_cat) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-	if (!filename) // if no filename is passed, we just return the allocated structure
-		return new_cat;
+// not used for now
+// static int siril_cat_init_from_filename(siril_catalogue *siril_cat, const gchar *filename) {
+// 	if (!siril_cat) {
+// 		PRINT_ALLOC_ERR;
+// 		return 1;
+// 	}
+// 	if (!filename)
+// 		return 1;
 
-	// remove the extension
-	gchar *basename = g_path_get_basename(filename);
-	GString *name = g_string_new(basename);
-	g_string_replace(name, ".csv", "", 0);
-	gchar *namewoext = g_string_free_and_steal(name);
+// 	// remove the extension
+// 	gchar *basename = g_path_get_basename(filename);
+// 	GString *name = g_string_new(basename);
+// 	g_string_replace(name, ".csv", "", 0);
+// 	gchar *namewoext = g_string_free_and_steal(name);
 
-	// if a filename is passed, we will parse its name to fill the structure
-	if (g_str_has_prefix(namewoext, "cat")) {
-		gchar **fields = g_strsplit(namewoext, "_", -1);
-		int n = g_strv_length(fields);
-		if (n < 6 && n > 7) {
-			siril_log_color_message(_("Could not parse the catalogue name %s, aborting\n"), "red", namewoext);
-			g_strfreev(fields);
-			free(new_cat);
-			return NULL;
-		}
-		new_cat->cattype = (int)g_ascii_strtoll(fields[1], NULL, 10);
-		new_cat->catalog_center_ra = g_ascii_strtod(fields[2], NULL);
-		new_cat->catalog_center_dec = g_ascii_strtod(fields[3], NULL);
-		new_cat->radius = g_ascii_strtod(fields[4], NULL);
-		if (n < 7) {
-			new_cat->limitmag = g_ascii_strtod(fields[5], NULL);
-		} else {
-			GDateTime *dt = FITS_date_to_date_time(fields[5]);
-			new_cat->dateobs = date_time_to_Julian(dt);
-			g_date_time_unref(dt);
-			new_cat->IAUcode = g_strdup(fields[6]);
-		}
-		g_strfreev(fields);
-		new_cat->nbincluded = -1;
-		return new_cat;
-	}
-	return NULL;
-}
+// 	// if a filename is passed, we will parse its name to fill the structure
+// 	if (g_str_has_prefix(namewoext, "cat")) {
+// 		gchar **fields = g_strsplit(namewoext, "_", -1);
+// 		int n = g_strv_length(fields);
+// 		if (n < 6 && n > 7) {
+// 			siril_log_color_message(_("Could not parse the catalogue name %s, aborting\n"), "red", namewoext);
+// 			g_strfreev(fields);
+// 			return NULL;
+// 		}
+// 		siril_cat->cattype = (int)g_ascii_strtoll(fields[1], NULL, 10);
+// 		siril_cat->center_ra = g_ascii_strtod(fields[2], NULL);
+// 		siril_cat->center_dec = g_ascii_strtod(fields[3], NULL);
+// 		siril_cat->radius = g_ascii_strtod(fields[4], NULL);
+// 		if (n < 7) {
+// 			siril_cat->limitmag = g_ascii_strtod(fields[5], NULL);
+// 		} else {
+// 			GDateTime *dt = FITS_date_to_date_time(fields[5]);
+// 			siril_cat->dateobs = dt;
+// 			siril_cat->IAUcode = g_strdup(fields[6]);
+// 		}
+// 		g_strfreev(fields);
+// 		return 0;
+// 	}
+// 	return 1;
+// }
 
 static void siril_catalog_free_item(cat_item *item) {
 	g_free(item->name);
 	g_free(item->alias);
-	free(item);
-}
-
-static void siril_catalog_free(siril_catalogue *siril_cat) {
-	for (int i = 0; i < siril_cat->nbitems; i++)
-		siril_catalog_free_item(&siril_cat->cat_items[i]);
-	free(siril_cat->cat_items);
-	g_free(siril_cat->IAUcode);
-	free(siril_cat);
+	g_free(item->type);
 }
 
 static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) {
@@ -355,7 +345,32 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 	}
 }
 
-siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean phot) {
+void siril_catalog_free_items(siril_catalogue *siril_cat) {
+	if (!siril_cat || !siril_cat->cat_items)
+		return;
+	for (int i = 0; i < siril_cat->nbitems; i++)
+		siril_catalog_free_item(&siril_cat->cat_items[i]);
+	siril_cat->cat_items = NULL;
+}
+
+void siril_catalog_free(siril_catalogue *siril_cat) {
+	siril_catalog_free_items(siril_cat);
+	g_free(siril_cat->IAUcode);
+	free(siril_cat);
+}
+
+int siril_catalog_conesearch(siril_catalogue *siril_cat) {
+	int nbstars = 0;
+	if (siril_cat->cattype < CAT_AN_MESSIER) // online
+		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
+	else if (siril_cat->cattype == CAT_LOCAL)
+		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
+	else
+		siril_debug_print("trying to conesearch an invalid catalog type");
+	return nbstars;
+}
+
+int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename) {
 	GError *error = NULL;
 	GFile *catalog_file = g_file_new_for_path(filename);
 	GInputStream *input_stream = (GInputStream*) g_file_read(catalog_file, NULL, &error);
@@ -365,22 +380,16 @@ siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean ph
 			g_clear_error(&error);
 		} else
 			siril_log_message(_("Could not load the star catalog (%s)."), "generic error");
-		return NULL;
-	}
-	// init the structure holding catalogue metadata and list of items
-	siril_catalogue *siril_cat = siril_cat_init(filename);
-	if (!siril_cat) {
-		siril_log_message(_("Could not parse the star catalog name (%s)."), filename);
-		return NULL;
+		return 1;
 	}
 
 	int nb_alloc = 1200, nb_items = 0;
-	cat_item *cat_items = malloc(nb_alloc * sizeof(cat_item));
+	cat_item *cat_items = calloc(nb_alloc, sizeof(cat_item));
 	if (!cat_items) {
 		PRINT_ALLOC_ERR;
 		g_object_unref(input_stream);
 		siril_catalog_free(siril_cat);
-		return NULL;
+		return 1;
 	}
 
 	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
@@ -412,7 +421,7 @@ siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean ph
 				g_object_unref(input_stream);
 				siril_catalog_free(siril_cat);
 				g_free(line);
-				return NULL;
+				return 1;
 			}
 			header_read = TRUE;
 			g_free(line);
@@ -427,7 +436,7 @@ siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean ph
 			siril_catalog_free(siril_cat);
 			g_free(line);
 			g_strfreev(vals);
-			return NULL;
+			return 1;
 		}
 		if (nb_items >= nb_alloc) { // re-allocating if there is more to read
 			nb_alloc *= 2;
@@ -439,7 +448,7 @@ siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean ph
 				siril_catalog_free(siril_cat);
 				g_free(line);
 				g_strfreev(vals);
-				return NULL;
+				return 1;
 			}
 			cat_items = new_array;
 		}
@@ -448,7 +457,7 @@ siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean ph
 			fill_cat_item(&cat_items[nb_items], vals[i], indexes[i]);
 		}
 		// magnitudes above 30 are a code for 'undefined'
-		if (phot && (cat_items[nb_items].mag == 0. || cat_items[nb_items].mag > 30. ||
+		if (siril_cat->phot && (cat_items[nb_items].mag == 0. || cat_items[nb_items].mag > 30. ||
 					 cat_items[nb_items].bmag == 0. || cat_items[nb_items].bmag > 30.)) {
 			// we reset the values and skip incrementing
 			cat_items[nb_items].mag = 0.;
@@ -462,21 +471,24 @@ siril_catalogue *siril_catalog_load_from_file(const gchar *filename, gboolean ph
 	g_object_unref(input_stream);
 	if (nb_items == 0) {
 		free(cat_items);
-		siril_catalog_free(siril_cat);
 		siril_log_color_message(_("Catalog %s was read but no items were found\n"), "red", filename);
-		return NULL;
+		return 1;
 	}
 	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
 	siril_cat->cat_items = final_array;
 	siril_cat->nbitems = nb_items;
-	siril_debug_print("read %d%s items from catalogue\n", nb_items, phot ? " photometric" : "");
-	return siril_cat;
+	siril_debug_print("read %d%s items from catalogue\n", nb_items, siril_cat->phot ? " photometric" : "");
+	return 0;
 }
 
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion) {
 #ifndef HAVE_WCSLIB
 	return 1
 #endif
+	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG))) {
+		siril_debug_print("catalogue %s does not have the necessary columns\n");
+		return 1;
+	}
 	int nbincluded = 0;
 	double jyears = 0.;
 	if (use_proper_motion) {
@@ -515,7 +527,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
 	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG)))
-		return 0;
+		return 1;
 	double jyears = 0.;
 	if (use_proper_motion) {
 		if (!date_obs) {
