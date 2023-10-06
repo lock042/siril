@@ -30,6 +30,7 @@ static const gchar *siril_share_dir = NULL;
 static const gchar *siril_config_dir = NULL;
 static const gchar *siril_startup_dir = NULL;
 static const gchar *siril_locale_dir = NULL;
+static const gchar *siril_scripts_repo_dir = NULL;
 
 /* To set the data dir we are looking for the glade file */
 static void search_for_data_dir() {
@@ -161,6 +162,10 @@ static void search_for_locale_dir() {
 #endif
 }
 
+static void search_for_scripts_repo_dir() {
+	siril_scripts_repo_dir = g_build_filename(g_get_user_data_dir(), "siril-scripts", NULL);
+}
+
 /** Public functions **/
 
 const gchar* siril_get_locale_dir() {
@@ -183,5 +188,9 @@ void initialize_siril_directories() {
 	search_for_locale_dir();
 	search_for_startup_dir();
 	search_for_config_dir();
+	search_for_scripts_repo_dir();
 }
 
+const gchar* siril_get_scripts_repo_path() {
+	return siril_scripts_repo_dir;
+}

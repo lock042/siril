@@ -27,6 +27,8 @@ typedef struct update_preview_struct {
 	int (*update_preview_fn)(void);
 } update_image;
 
+int backup_roi();
+int restore_roi();
 void copy_gfit_to_backup();
 int copy_backup_to_gfit();
 fits *get_preview_gfit_backup();

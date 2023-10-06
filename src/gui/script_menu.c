@@ -43,8 +43,10 @@
 #include "algos/sorting.h"
 #include "script_menu.h"
 
-#define SCRIPT_EXT ".ssf"
 #define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Running automatic scripts is something that is easy and generally it provides a nice image. However you have to keep in mind that scripts are not magic; automatic choices are made where human decision would probably be better. Also, every commands used in a script are available on the interface with a better parameter control.")
+
+static GtkWidget *menuscript = NULL;
+
 
 static GSList *initialize_script_paths(){
 	GSList *list = NULL;
@@ -146,10 +148,17 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	gchar *script_file = g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT);
+	gchar *script_file;
+	if (g_str_has_suffix((gchar *) user_data, SCRIPT_EXT)) {
+		script_file= g_strdup_printf("%s", (gchar *) user_data); // remote scripts
+
+	} else {
+		script_file= g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT); // local scripts
+	}
+
 	GFile *file = g_file_new_for_path(script_file);
 	GError *error = NULL;
-	GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+	const GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
 			G_FILE_QUERY_INFO_NONE, NULL, &error);
 	if (info) {
 		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
@@ -174,8 +183,10 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 }
 
 int initialize_script_menu() {
-	static GtkWidget *menuscript = NULL;
 	GSList *list, *script_paths, *s;
+#ifdef HAVE_LIBGIT2
+	GList *ss;
+#endif
 	gint nb_item = 0;
 
 	if (!menuscript)
@@ -213,7 +224,46 @@ int initialize_script_menu() {
 			g_slist_free_full(list, g_free);
 		}
 	}
+#ifdef HAVE_LIBGIT2
+	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0 ) {
+		GtkWidget *separator = gtk_separator_menu_item_new();
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
+		gtk_widget_show(separator);
+		GList *new_list = NULL;
+		for (ss = com.pref.selected_scripts ; ss ; ss = ss->next) {
+			nb_item++;
+			/* check that the selected script is still in the repository */
 
+			gboolean included = FALSE;
+			GList *iterator;
+			for (iterator = gui.repo_scripts ; iterator ; iterator = iterator->next) {
+				if (g_strrstr((gchar*) ss->data, (gchar*)iterator->data)) {
+					included = TRUE;
+				}
+			}
+			if (included) {
+				/* write an item per script file */
+				GtkWidget *menu_item;
+				gchar* basename = g_path_get_basename(ss->data);
+				char* basename_no_ext = remove_ext_from_filename(basename);
+				g_free(basename);
+				menu_item = gtk_menu_item_new_with_label(basename_no_ext);
+				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+				g_signal_connect(G_OBJECT(menu_item), "activate",
+						G_CALLBACK(on_script_execution), (gchar * ) ss->data);
+				siril_log_message(_("Loading script: %s\n"), basename_no_ext);
+				free(basename_no_ext);
+				gtk_widget_show(menu_item);
+				new_list = g_list_prepend(new_list, ss->data);
+			} else {
+				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
+			}
+		}
+		GList *tmp = com.pref.selected_scripts;
+		com.pref.selected_scripts = new_list;
+		g_list_free (g_steal_pointer (&tmp));
+	}
+#endif
 	if (!nb_item) {
 		gtk_widget_hide(menuscript);
 		return 0;
@@ -221,6 +271,14 @@ int initialize_script_menu() {
 	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 	if (!gtk_widget_get_visible(menuscript))
 		gtk_widget_show(menuscript);
+	return 0;
+}
+
+int refresh_script_menu() {
+	if (menuscript) {
+		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
+	}
+	initialize_script_menu();
 	return 0;
 }
 
@@ -280,53 +338,3 @@ GSList *set_list_to_preferences_dialog(GSList *list) {
 	}
 	return list;
 }
-
-/* Get Scripts menu */
-
-#define GET_SCRIPTS_URL "https://siril.readthedocs.io"
-
-void siril_get_on_script_pages() {
-	gboolean ret;
-	const char *locale;
-	const char *supported_languages[] = { "de", "fr", "it", "ru", NULL };  // en is NULL: default language
-	gchar *lang = NULL;
-	int i = 0;
-
-	if (!com.pref.lang || !g_strcmp0(com.pref.lang, "")) {
-		locale = setlocale(LC_MESSAGES, NULL);
-	} else {
-		locale = com.pref.lang;
-	}
-
-	if (locale) {
-		while (supported_languages[i]) {
-			if (!strncmp(locale, supported_languages[i], 2)) {
-				lang = g_strndup(locale, 2);
-				break;
-			}
-			i++;
-		}
-	}
-	if (!lang) {
-		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
-	}
-
-	gchar *url = g_build_path("/", GET_SCRIPTS_URL, lang, "/stable/Scripts.html#getting-more-scripts", NULL);
-
-#if GTK_CHECK_VERSION(3, 22, 0)
-	GtkWidget* win = lookup_widget("control_window");
-	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
-			gtk_get_current_event_time(), NULL);
-#else
-	ret = gtk_show_uri(gdk_screen_get_default(), url,
-			gtk_get_current_event_time(), NULL);
-#endif
-	if (!ret) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not show link"),
-				_("Please go to <a href=\""GET_SCRIPTS_URL"\">"GET_SCRIPTS_URL"</a> "
-								"by copying the link."));
-	}
-	g_free(url);
-	g_free(lang);
-}
-

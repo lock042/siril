@@ -67,7 +67,7 @@ src/gui/about_dialog.c
 src/gui/astrometry_solver.c
 src/gui/background_extraction.c
 src/gui/callbacks.c
-src/gui/compstars.c 
+src/gui/compstars.c
 src/gui/conversion.c
 src/gui/cut.c
 src/gui/colors.c
@@ -107,6 +107,7 @@ src/io/conversion.c
 src/io/films.c
 src/io/fits_sequence.c
 src/io/FITS_symlink.c
+src/io/gitscripts.c
 src/io/image_formats_internal.c
 src/io/image_formats_libraries.c
 src/io/image_format_fits.c

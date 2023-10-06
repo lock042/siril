@@ -56,6 +56,7 @@
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
+#include "io/gitscripts.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/utils.h"
@@ -172,6 +173,7 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;
+	gui.repo_scripts = NULL;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;
@@ -275,6 +277,13 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+
+#ifdef HAVE_LIBGIT2
+	if (com.pref.use_scripts_repository)
+		auto_update_gitscripts(com.pref.auto_script_update);
+	else
+		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+#endif
 
 	if (com.headless) {
 		if (main_option_script) {

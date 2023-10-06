@@ -32,6 +32,7 @@
 #include "algos/photometry.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/image_format_fits.h"
 #include "gui/open_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"

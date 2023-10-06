@@ -1000,6 +1000,8 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 		 */
 		uint64_t double_channel_size = args->seq->rx * args->seq->ry * sizeof(double);
 		unsigned int double_channel_size_MB = double_channel_size / BYTES_IN_A_MB;
+		if (double_channel_size_MB == 0)
+			double_channel_size_MB = 1;
 		required = MB_per_image + double_channel_size_MB * 2;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)

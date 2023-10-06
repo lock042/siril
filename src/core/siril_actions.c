@@ -123,7 +123,9 @@ void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_get_on_script_pages();
+	siril_open_dialog("settings_window");
+	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
+//	siril_get_on_script_pages();
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -688,5 +690,13 @@ void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		siril_close_dialog("cut_spectroscopy_dialog");
 		siril_close_dialog("cut_dialog");
 	}
+}
+
+void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_clear_roi();
+}
+
+void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_set_roi();
 }
 

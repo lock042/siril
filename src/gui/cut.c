@@ -39,7 +39,7 @@
 #include "io/sequence.h"
 #include "gui/image_display.h"
 
-void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat too much after opening a new file
+void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
@@ -98,6 +98,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->cut_wn2.x = -1;
 	arg->cut_wn2.y = -1;
 	arg->cut_measure = FALSE;
+	arg->plot_as_wavenumber = FALSE;
 	arg->wavenumber1 = -1;
 	arg->wavenumber2 = -1;
 	arg->tri = FALSE;
@@ -208,28 +209,28 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		return FALSE;
 	}
 	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wn1= is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength for point 1 is not set.\n"));
 		return FALSE;
 	}
 	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wn2= is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength for point 2 is not set.\n"));
 		return FALSE;
 	}
 	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber1 set but corresponding location is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength set for point 1 but corresponding location is not set.\n"));
 		return FALSE;
 	}
 	if (arg->wavenumber2 >=0.0 && (arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber2 set but corresponding location is not set.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength set for point 2 but corresponding location is not set.\n"));
 		return FALSE;
 	}
 	if ((arg->cut_wn1.x < 0.0 || arg->cut_wn2.y < 0.0 || arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0) &&
 		(!(arg->cut_wn1.x == -1.0 && arg->cut_wn1.y == -1.0 && arg->cut_wn2.x == -1.0 && arg->cut_wn2.y == -1.0))) {
-		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
 		return FALSE;
 	}
 	if (arg->cut_wn1.x > rx - 1 || arg->cut_wn2.x > rx - 1 || arg->cut_wn1.y > ry - 1 || arg->cut_wn2.y > ry - 1) {
-		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
 		return FALSE;
 	}
 	if (arg->cut_start.x > rx - 1 || arg->cut_start.y > ry - 1 || arg->cut_end.x > rx - 1 || arg->cut_end.y > ry - 1) {
@@ -301,61 +302,16 @@ static gboolean spectroscopy_selections_are_valid(cut_struct *arg) {
 	return a && b && c;
 }
 
-static double interpf(fits* fit, double x, double y, int chan) {
-	if (chan >= fit->naxes[2])
-		return -DBL_MAX;
-	int w = fit->rx;
-	int h = fit->ry;
-	int npixels = w * h;
-	int x0 = (int)(x);
-	int x1 = (int)(x) + 1;
-	int y0 = (int)(y);
-	int y1 = (int)(y) + 1;
-	if (x0 < 0 || x1 > w-1 || y0 < 0 || y1 > h-1)
-		return NAN;
-	float val00 = fit->fdata[x0 + y0 * w + npixels * chan];
-	float val01 = fit->fdata[x1 + y0 * w + npixels * chan];
-	float val10 = fit->fdata[x0 + y1 * w + npixels * chan];
-	float val11 = fit->fdata[x1 + y1 * w + npixels * chan];
-	float interp1 = (x - x0) * val00 + (x1 - x) * val01;
-	float interp2 = (x - x0) * val10 + (x1 - x) * val11;
-	float interp = (y - y0) * interp1 + (y1 - y) * interp2;
-	return (double) interp;
-}
-
-static double interpw(fits* fit, double x, double y, int chan) {
-	if (chan >= fit->naxes[2])
-		return -DBL_MAX;
-	int w = fit->rx;
-	int h = fit->ry;
-	int npixels = w * h;
-	int x0 = (int)(x);
-	int x1 = (int)(x) + 1;
-	int y0 = (int)(y);
-	int y1 = (int)(y) + 1;
-	if (x0 < 0 || x1 > w-1 || y0 < 0 || y1 > h-1)
-		return NAN;
-	float val00 = (float) fit->data[x0 + y0 * w + npixels * chan];
-	float val01 = (float) fit->data[x1 + y0 * w + npixels * chan];
-	float val10 = (float) fit->data[x0 + y1 * w + npixels * chan];
-	float val11 = (float) fit->data[x1 + y1 * w + npixels * chan];
-	float interp1 = (x - x0) * val00 + (x1 - x) * val01;
-	float interp2 = (x - x0) * val10 + (x1 - x) * val11;
-	float interp = (y - y0) * interp1 + (y1 - y) * interp2;
-	return (double) interp;
-}
-
 static double interp(fits *fit, double x, double y, int chan, int num, double dx, double dy) {
 	double val = 0.0;
 	int hw = (num - 1) / 2;
 	for (int i = -hw ; i < hw + 1 ; i++) {
 		switch (fit->type) {
 			case DATA_FLOAT:
-				val += interpf(fit, x + (i * dy), y + (i * dx), chan);
+				val += bilinear(fit->fpdata[chan], fit->rx, fit->ry, x + ((double) i * dy), y + ((double) i * dx));
 				break;
 			case DATA_USHORT:
-
-				val = interpw(fit, x + (i * dy), y + (i * dx), chan);
+				val += bilinear_ushort(fit->pdata[chan], fit->rx, fit->ry, x + ((double) i * dy), y + ((double) i * dx));
 				break;
 			default:
 				return NAN;
@@ -409,13 +365,16 @@ static double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int d
 static void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro_spacing) {
 	point wndelta = { (double) arg->cut_wn2.x - arg->cut_wn1.x , (double) arg->cut_wn2.y - arg->cut_wn1.y };
 	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
-	double wndiff = arg->wavenumber2 - arg->wavenumber1;
-	*spectro_spacing = wndiff / wndiff_dist;
+	double wavelength1 = 10000000. / arg->wavenumber1;
+	double wavelength2 = 10000000. / arg->wavenumber2;
+
+	double wndiff = wavelength2 - wavelength1;
+	*spectro_spacing = wndiff / wndiff_dist; // Spacing is in wavelength
 
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
-	double z2_z1 = wndelta.y > wndelta.x ? wndelta.y : wndelta.x;
-	double z1_z0 = wndelta.y > wndelta.x ? arg->cut_wn1.y - arg->cut_start.y : arg->cut_wn1.x - arg->cut_start.x;
-	*zero = arg->wavenumber1 - ( ( z1_z0 * wndiff ) / z2_z1 );
+	double z2_z1 = fabs(wndelta.y) > fabs(wndelta.x) ? wndelta.y : wndelta.x;
+	double z1_z0 = fabs(wndelta.y) > fabs(wndelta.x) ? arg->cut_wn1.y - arg->cut_start.y : arg->cut_wn1.x - arg->cut_start.x;
+	*zero = wavelength1 - ( ( z1_z0 * wndiff ) / z2_z1 ); // Zero is in wavelength
 	return;
 }
 
@@ -495,7 +454,7 @@ gpointer cut_profile(gpointer p) {
 		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
 	for (int i = 0 ; i < nbr_points ; i++) {
 		if (xscale) {
-			x[i] = zero + i * spectro_spacing;
+			x[i] = arg->plot_as_wavenumber ? 10000000. / (zero + i * spectro_spacing) : zero + i * spectro_spacing;
 		} else {
 			x[i] = i * point_spacing;
 		}
@@ -551,7 +510,7 @@ gpointer cut_profile(gpointer p) {
 	gchar *xlabel = NULL, *title = NULL;
 	title = cut_make_title(arg, xscale); // must be freed with g_free()
 	if (xscale) {
-		xlabel = g_strdup_printf(_("Wavenumber / cm^{-1}"));
+		xlabel = arg->plot_as_wavenumber ? g_strdup_printf(_("Wavenumber / cm^{-1}")) : g_strdup_printf(_("Wavelength / nm"));
 	} else {
 		if (arg->pref_as && conversionfactor != -DBL_MAX) {
 			xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
@@ -1184,6 +1143,10 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 	redraw(REDRAW_OVERLAY);
 }
 
+void on_spectro_x_axis_changed(GtkComboBox *combo, gpointer user_data) {
+	gui.cut.plot_as_wavenumber = gtk_combo_box_get_active(combo);
+}
+
 void on_cut_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 	gui.cut.cfa = gtk_toggle_button_get_active(button);
 	if (gui.cut.cfa) {
@@ -1202,36 +1165,26 @@ void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_
 void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data);
 
 
-void on_cut_spin_wavelength1_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wn1 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber1");
-	double wn = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wn1, on_cut_spin_wavenumber1_value_changed, NULL);
-	gtk_spin_button_set_value(wn1, wn);
-	g_signal_handlers_unblock_by_func(wn1, on_cut_spin_wavenumber1_value_changed, NULL);
+void on_cut_spin_point1_value_changed(GtkSpinButton* button, gpointer user_data) {
+	gboolean wl_changed = ((GtkWidget*) button == lookup_widget("cut_spin_wavelength1"));
+	GtkSpinButton* wn1 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavenumber1"));
+	GtkSpinButton* wl1 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavelength1"));
+	double val = 10000000. / gtk_spin_button_get_value(button);
+	if (wl_changed)
+		gtk_spin_button_set_value(wn1, val);
+	else
+		gtk_spin_button_set_value(wl1, val);
 }
 
-void on_cut_spin_wavelength2_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wn2 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber2");
-	double wn = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wn2, on_cut_spin_wavenumber2_value_changed, NULL);
-	gtk_spin_button_set_value(wn2, wn);
-	g_signal_handlers_unblock_by_func(wn2, on_cut_spin_wavenumber2_value_changed, NULL);
-}
-
-void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wl1 = (GtkSpinButton*) lookup_widget("cut_spin_wavelength1");
-	double wl = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wl1, on_cut_spin_wavelength1_value_changed, NULL);
-	gtk_spin_button_set_value(wl1, wl);
-	g_signal_handlers_unblock_by_func(wl1, on_cut_spin_wavelength1_value_changed, NULL);
-}
-
-void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data) {
-	GtkSpinButton* wl2 = (GtkSpinButton*) lookup_widget("cut_spin_wavelength2");
-	double wl = 10000000. / gtk_spin_button_get_value(button);
-	g_signal_handlers_block_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
-	gtk_spin_button_set_value(wl2, wl);
-	g_signal_handlers_unblock_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
+void on_cut_spin_point2_value_changed(GtkSpinButton* button, gpointer user_data) {
+	gboolean wl_changed = ((GtkWidget*) button == lookup_widget("cut_spin_wavelength2"));
+	GtkSpinButton* wn2 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavenumber2"));
+	GtkSpinButton* wl2 = GTK_SPIN_BUTTON(lookup_widget("cut_spin_wavelength2"));
+	double val = 10000000. / gtk_spin_button_get_value(button);
+	if (wl_changed)
+		gtk_spin_button_set_value(wn2, val);
+	else
+		gtk_spin_button_set_value(wl2, val);
 }
 
 void on_cut_dist_pref_as_group_changed(GtkRadioButton* button, gpointer user_data) {
