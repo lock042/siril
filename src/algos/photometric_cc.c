@@ -433,16 +433,6 @@ gpointer photometric_cc_standalone(gpointer p) {
 	if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
 		mag += args->magnitude_arg;
 
-	// preparing the catalogue query
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cattype = args->catalog;
-	siril_cat->center_ra = ra;
-	siril_cat->center_dec = dec;
-	siril_cat->radius = radius * 60.;
-	siril_cat->limitmag = mag;
-	siril_cat->phot = TRUE;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
-
 	int retval = 0;
 	if (args->catalog == CAT_LOCAL) {
 		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
@@ -459,8 +449,10 @@ gpointer photometric_cc_standalone(gpointer p) {
 				return GINT_TO_POINTER(1);
 		}
 		siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog),radius * 2.0,  mag);
-		siril_cat->limitmag = mag;
 	}
+	// preparing the catalogue query
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(args->fit, args->catalog, mag);
+	siril_cat->phot = TRUE;
 	
 	/* Fetching the catalog*/
 	if (!siril_catalog_conesearch(siril_cat)) {

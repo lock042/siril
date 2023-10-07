@@ -8498,8 +8498,6 @@ int process_pcc(int nb) {
 
 		// catalog query parameters
 		args->ref_stars = calloc(1, sizeof(siril_catalogue));
-		// if (!local_cat && cat == CAT_AUTO)
-		// 	cat = CAT_NOMAD;
 		args->ref_stars->cattype = cat;
 		args->ref_stars->columns =  siril_catalog_columns(cat);
 		args->ref_stars->phot = FALSE;

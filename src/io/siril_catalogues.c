@@ -349,6 +349,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, object_catalog cat, floa
 	}
 	return siril_cat;
 }
+
 /* This is the entry point to query the catalogues
  * It will call the necessary functions whether the query 
  * is for a local catalogue or an online one

@@ -408,14 +408,9 @@ static int get_catstars(struct compstars_arg *args) {
 	}
 
 	// preparing the query
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cattype = args->cat;
-	siril_cat->center_ra = ra;
-	siril_cat->center_dec = dec;
-	siril_cat->radius = radius * 60.;
-	siril_cat->limitmag = max(args->target_star->mag + 6.0, 17.0);
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, args->cat, max(args->target_star->mag + 6.0, 17.0));
+	siril_cat->radius = radius * 60.; // overwriting to account for narrow argument
 	siril_cat->phot = TRUE;
-	siril_cat->columns = siril_catalog_columns(args->cat);
 
 	// and retrieving its results
 	if (!siril_catalog_conesearch(siril_cat)) // returns the nb of stars
