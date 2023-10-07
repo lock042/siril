@@ -152,6 +152,7 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
 	args->delta_Vmag = delta_Vmag;
 	args->delta_BV = delta_BV;
+	args->max_emag = 0.03; // TODO:add required GUI element
 	args->nina_file = g_strdup("auto");
 
 	start_in_new_thread(compstars_worker, args);

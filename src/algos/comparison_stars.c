@@ -33,6 +33,8 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 
+#define BORDER_RATIO 0.10 // the amount of image that is considered at border
+
 // area is not recovering another at least half their size (assumed square and identical)
 static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 	int half_size = area->w / 2;
@@ -69,10 +71,6 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 	*ret_area = area;
 	siril_debug_print("Pixel coordinates of a star: %.1f, %.1f\n", dx, dy);
 	return 0;
-}
-
-static gboolean is_inside_border(fits *fit, double ra, double dec, double offset_ratio) {
-	return wcs2pix_off(fit, ra, dec, NULL, NULL, offset_ratio) == 0;
 }
 
 /* com.pref.phot_set.outer needs to be set at this point */
@@ -271,8 +269,7 @@ static gboolean end_compstars(gpointer p) {
 			for (int i = 0; i < args->nb_comp_stars; i++) {
 				double x, y;
 				if (!wcs2pix(&gfit, com.stars[i]->ra, com.stars[i]->dec, &x, &y)) {
-					com.stars[i]->xpos = x;
-					com.stars[i]->ypos = gfit.ry - y - 1;
+					fits_to_display(x, y, &com.stars[i]->xpos, &com.stars[i]->ypos, gfit.ry);
 				}
 			}
 		}
@@ -291,10 +288,7 @@ static gboolean end_compstars(gpointer p) {
 	}
 	g_free(args->nina_file);
 
-	for (int i = 0; i < args->nb_cat_stars; i++)
-		if (args->cat_stars[i].star_name)
-			g_free(args->cat_stars[i].star_name);
-	free(args->cat_stars);
+	siril_catalog_free(args->cat_stars);
 
 	if (args->target_star)
 		free_psf(args->target_star);
@@ -308,44 +302,79 @@ static gboolean end_compstars(gpointer p) {
 
 #define ONE_ARCSEC 0.000277778
 /* determines if two stars are the same based on their coordinates */
-static gboolean is_same_star(psf_star *s1, psf_star *s2) {
+static gboolean is_same_star(psf_star *s1, cat_item *s2) {
 	return (fabs(s1->ra - s2->ra) < 2.0 * ONE_ARCSEC) &&
 			(fabs(s1->dec - s2->dec) < 2.0 * ONE_ARCSEC);
 }
 
 int sort_compstars(struct compstars_arg *args) {
-	if (!args->target_star || !args->cat_stars || args->nb_cat_stars <= 0) {
+	if (!args->target_star || !args->cat_stars || args->cat_stars->nbitems <= 0) {
 		siril_log_color_message(_("Not enough stars available\n"), "salmon");
 		return 1;
 	}
-	siril_log_message(_("Sort parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf\n"),
-			args->delta_Vmag, args->delta_BV);
-	siril_log_message(_("Target star: Vmag=%2.2lf, Bmag=%2.2lf\n"),
-			args->target_star->mag, args->target_star->Bmag);
+	siril_catalogue *siril_cat = args->cat_stars;
+	siril_log_message(_("Sort parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: %1.3lf\n"),
+			args->delta_Vmag, args->delta_BV, args->max_emag);
+	siril_log_message(_("Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"),
+			args->target_star->mag, args->target_star->Bmag - args->target_star->mag);
+
 	int nb_phot_stars = 0;
-	args->comp_stars = malloc((args->nb_cat_stars + 1) * sizeof(psf_star *));
+	args->comp_stars = malloc((siril_cat->nbincluded + 1) * sizeof(psf_star *));
 	double BV0 = fabs(args->target_star->mag - args->target_star->Bmag);	// B-V of the target star
+	double xmin, xmax, ymin, ymax;
+	xmin = (double)gfit.rx * BORDER_RATIO;
+	xmax = (double)gfit.rx * (1. - BORDER_RATIO);
+	ymin = (double)gfit.ry * BORDER_RATIO;
+	ymax = (double)gfit.ry * (1. - BORDER_RATIO);
+
 
 	for (int i = 0; i < args->nb_cat_stars; i++) {
-		double d_mag = fabs(args->cat_stars[i].mag - args->target_star->mag);
-		double BVi = fabs(args->cat_stars[i].mag - args->cat_stars[i].Bmag);
+		if (!siril_cat->cat_items[i].included) // included means inside the image
+			continue;
+		double d_mag = fabs(siril_cat->cat_items[i].mag - args->target_star->mag);
+		// TODO: the fabs should not be there, it's B-V to get the color
+		//double BVi = fabs(siril_cat->cat_items[i].mag - siril_cat->cat_items[i].bmag);
+		double BVi = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // B-V index
 
 		// Criteria #0: the star has to be within the image and far from the borders
 		// (discards 15% of the width/height on both borders)
-		if (is_inside_border(&gfit, args->cat_stars[i].ra, args->cat_stars[i].dec, 0.15) &&
+		if ((siril_cat->cat_items[i].x > xmin && siril_cat->cat_items[i].x < xmax && siril_cat->cat_items[i].y > ymin && siril_cat->cat_items[i].y < ymax) &&
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
+				// TODO: AAVSO guide says the compstars do not need to be the same color as target
+				// but that their BV index should be between +0.3 and +1.0, preferably around +0.7, do we need to do smthg with that info?
 				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
-				!is_same_star(args->target_star, &args->cat_stars[i]) &&
-				args->cat_stars[i].s_mag < 0.015 && args->cat_stars[i].s_Bmag < 0.015) {	// Criteria #3: e_Vmag and e_Bmag < 0.015
-			args->comp_stars[nb_phot_stars] = duplicate_psf(&args->cat_stars[i]);
-			if (!args->comp_stars[nb_phot_stars]->star_name)
-				args->comp_stars[nb_phot_stars]->star_name = g_strdup_printf("%d", nb_phot_stars+1);
+				!is_same_star(args->target_star, &siril_cat->cat_items[i]) &&
+				// TODO: AAVSO guide mentions compstars should have a low magnitude error, not sure it means in Bband
+				// Here this criterion (which is not optional) discards most stars and forces to increase d_mag
+				// Stars in AAVSO charts commonly have Vmag above 0.02
+				// siril_cat->cat_items[i].e_mag < 0.015 && siril_cat->cat_items[i].e_bmag < 0.015) {	// Criteria #3: e_Vmag and e_Bmag < 0.015
+				siril_cat->cat_items[i].e_mag < args->max_emag) {
+			// TODO: we could use a siril_cat output, and provided csv_writer later on
+			args->comp_stars[nb_phot_stars] = new_psf_star();
+			args->comp_stars[nb_phot_stars]->xpos = siril_cat->cat_items[i].x;
+			args->comp_stars[nb_phot_stars]->ypos = siril_cat->cat_items[i].y;
+			args->comp_stars[nb_phot_stars]->mag = siril_cat->cat_items[i].mag;
+			args->comp_stars[nb_phot_stars]->Bmag = siril_cat->cat_items[i].bmag;
+			args->comp_stars[nb_phot_stars]->s_mag = siril_cat->cat_items[i].e_mag;
+			args->comp_stars[nb_phot_stars]->s_Bmag = siril_cat->cat_items[i].e_bmag;
+			args->comp_stars[nb_phot_stars]->ra = siril_cat->cat_items[i].ra;
+			args->comp_stars[nb_phot_stars]->dec = siril_cat->cat_items[i].dec;
+			if (siril_cat->cat_items[i].name)
+				args->comp_stars[nb_phot_stars]->star_name = g_strdup(siril_cat->cat_items[i].name);
+			else
+				args->comp_stars[nb_phot_stars]->star_name = g_strdup_printf("%d", nb_phot_stars + 1);
 			nb_phot_stars++;
 		}
 		i++;
 	}
 	args->comp_stars[nb_phot_stars] = NULL;
-
+	// reallocating list to the required size
+	psf_star **result = realloc(args->comp_stars, (nb_phot_stars + 1) * sizeof(psf_star *));
+	if (!result) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	args->comp_stars = result;
 	siril_log_message(_("%d comparison stars after sort.\n"), nb_phot_stars);
 	args->nb_comp_stars = nb_phot_stars;
 	return nb_phot_stars == 0;
@@ -370,8 +399,8 @@ static int get_catstars(struct compstars_arg *args) {
 	double radius = 0.0;
 
 	if (args->narrow_fov) {
-		// Limited to ry, to avoid the corners with their potential vignettage
-		radius = resolution * gfit.ry / 2.0;	// in degres
+		// Limited to the image smallest dimension, to avoid the corners with their potential vignettage
+		radius = resolution * min(gfit.rx, gfit.ry) / 2.0;	// in degrees
 	} else {
 		// The whole Field of View
 		sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
@@ -391,13 +420,12 @@ static int get_catstars(struct compstars_arg *args) {
 	// and retrieving its results
 	if (!siril_catalog_conesearch(siril_cat)) // returns the nb of stars
 		return 1;
+	sort_cat_items_by_mag(siril_cat);
 
 	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE)) {
-		args->cat_stars = convert_siril_cat_to_psf_stars(siril_cat, &args->nb_cat_stars)[0];
 		args->nb_cat_stars = siril_cat->nbitems;
+		args->cat_stars = siril_cat;
 	}
-	siril_catalog_free(siril_cat);
-
 	return (int)(args->nb_cat_stars == 0);
 }
 
@@ -406,8 +434,8 @@ static void write_nina_file(struct compstars_arg *args) {
 		return;
 	if (!g_strcmp0(args->nina_file, "auto")) {
 		g_free(args->nina_file);
-		args->nina_file = g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%s.csv",
-				args->target_star->star_name, args->delta_Vmag, args->delta_BV,
+		args->nina_file = g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%1.2lf_%s.csv",
+				args->target_star->star_name, args->delta_Vmag, args->delta_BV, args->max_emag,
 				catalog_to_str(args->cat));
 	}
 	FILE *fd = g_fopen(args->nina_file, "w+");
@@ -425,8 +453,8 @@ static void write_nina_file(struct compstars_arg *args) {
 
 	if (args->delta_Vmag <= 0.0 && args->delta_BV <= 0.0)
 		fprintf(fd, "# No criteria applied\n");
-	else fprintf(fd, "# Siril: %d stars, dVmag %.2f, dBV %.2f\n",
-			args->nb_comp_stars, args->delta_Vmag, args->delta_BV);
+	else fprintf(fd, "# Siril: %d stars, dVmag %.2f, dBV %.2f, max e_mag\n",
+			args->nb_comp_stars, args->delta_Vmag, args->delta_BV, args->max_emag);
 
 	fprintf(fd, "Type,Name,HFR,xPos,yPos,AvgBright,MaxBright,Background,Ra,Dec\n");
 
@@ -453,27 +481,22 @@ void chk_compstars(struct compstars_arg *args) {
 	}
 
 	siril_log_message("d_mag and d_BV are discrepancies from Vmag and B-V of the target star\n");
-	siril_log_message(_("e_Vmag and e_Bmag are intrinsec errors supplied from %s\n"), catalog_to_str(args->cat));
-	siril_log_message("Index_nbr / Vmag / Bmag / d_mag / d_BV / e_Vmag / e_Bmag\n");
-	siril_log_message(_("Target star: %2.2lf, %2.2lf, 0, %1.3lf, %1.3lf, %1.3lf\n"),
-			args->target_star->mag, args->target_star->Bmag,
-			fabs(fabs(args->target_star->mag - args->target_star->Bmag) - 0.7),
-			args->target_star->s_mag, args->target_star->s_Bmag);
-
+	siril_log_message(_("e_Vmag and e_Bmag are photometric errors supplied from %s\n"), catalog_to_str(args->cat));
+	siril_log_message("Index_nbr        V     B-V   d_mag    d_BV  e_Vmag e_Bmag\n");
 	int i = 0;
-	int Cmp_St = 0;
+	double BV0 = args->target_star->Bmag - args->target_star->mag;
 	while (args->comp_stars[i]) {
 		const char *title = "Comp star";
-		Cmp_St++;
-		siril_log_message(_("%s  %d: %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"),
-				title, i+1, args->comp_stars[i]->mag, args->comp_stars[i]->Bmag,
-				fabs(args->comp_stars[i]->mag - args->target_star->mag),
-				fabs(fabs(args->comp_stars[i]->mag - args->comp_stars[i]->Bmag) - 0.7),
+		double BVi = args->comp_stars[i]->Bmag - args->comp_stars[i]->mag;
+		siril_log_message(_("%s %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf\n"),
+				title, i + 1, args->comp_stars[i]->mag, BVi,
+				args->comp_stars[i]->mag - args->target_star->mag,
+				BVi - BV0,
 				args->comp_stars[i]->s_mag, args->comp_stars[i]->s_Bmag);
 		i++;
 	}
 
-	if (Cmp_St) {
+	if (args->nb_comp_stars) {
 		write_nina_file(args);
 	} else siril_log_message(_("No csv output file to create\n"));
 }

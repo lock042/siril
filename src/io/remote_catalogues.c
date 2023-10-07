@@ -488,16 +488,20 @@ gpointer catsearch_worker(gpointer p) {
 static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) {
 	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
 		return FALSE;
-	if (!g_str_has_prefix(buffer, "# Flag: 1")) {
+	if (!g_str_has_prefix(buffer, "# Flag: 1") && !g_str_has_prefix(buffer, "# Flag: 0")) {
 		siril_log_color_message("IMCCE server returned: \n%s\n", "red", buffer);
 		return FALSE;
 	}
-
-	gchar **token = g_strsplit(buffer, "\n", -1);
-	int nb_lines = g_strv_length(token);
 	// writing the csv header
 	gsize n;
 	g_output_stream_printf(output_stream, &n, NULL, NULL, "ra,dec,mag,name,vra,vdec,type\n");
+	// Flag 0 is the code for no object found
+	// we have written the header and an empty table beneath, we're done
+	if (g_str_has_prefix(buffer, "# Flag: 0")) {
+		return TRUE;
+	}
+	gchar **token = g_strsplit(buffer, "\n", -1);
+	int nb_lines = g_strv_length(token);
 	for (int i = 3; i < nb_lines; i++) {
 		// format is '# Num | Name | RA(h) | DE(deg) | Class | Mv | Err(arcsec) | d(arcsec) | dRA(arcsec/h) | dDEC(arcsec/h) | Dg(ua) | Dh(ua)'
 		gchar **vals = g_strsplit(token[i], " | ", -1);
@@ -519,7 +523,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	GError *error = NULL;
 	JsonParser *parser = json_parser_new();
 	if (!json_parser_load_from_data(parser, buffer, -1, &error)) {
-		siril_log_color_message(_("Could not parse AAVSO chart bufer: %s\n"), error->message);
+		siril_log_color_message(_("Could not parse AAVSO chart buffer: %s\n"), error->message);
 		g_clear_object(&parser);
 		g_clear_error(&error);
 		return FALSE;
@@ -740,6 +744,7 @@ gchar *download_catalog(siril_catalogue *siril_cat) {
 					remove_file = TRUE;
 					goto download_error;
 				}
+				break;
 			case CAT_AAVSO_CHART:
 				if (!parse_AAVSO_Chart_buffer(buffer, output_stream)) {
 					remove_file = TRUE;

@@ -172,7 +172,6 @@ void sort_cat_items_by_mag(siril_catalogue *siril_cat) {
  *   the image and far from its borders. The required object is psf_star.
  */
 
-//TODO: to be expanded
 // returns the pretty name of a catalogue
 const char *catalog_to_str(object_catalog cat) {
 	switch (cat) {
@@ -186,12 +185,14 @@ const char *catalog_to_str(object_catalog cat) {
 			return _("PPMXL");
 		case CAT_BSC:
 			return _("bright stars");
+		case CAT_APASS:
+			return _("APASS");
 		case CAT_VSX:
 			return _("AAVSO Variable stars");
 		case CAT_SIMBAD:
 			return _("SIMBAD");
-		case CAT_APASS:
-			return _("APASS");
+		case CAT_PGC:
+			return _("PGC");
 		case CAT_EXOPLANETARCHIVE:
 			return _("Exoplanet archive");
 		case CAT_IMCCE:
@@ -354,6 +355,8 @@ void siril_catalog_free_items(siril_catalogue *siril_cat) {
 }
 
 void siril_catalog_free(siril_catalogue *siril_cat) {
+	if (!siril_cat)
+		return;
 	siril_catalog_free_items(siril_cat);
 	g_free(siril_cat->IAUcode);
 	free(siril_cat);
@@ -493,7 +496,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	double jyears = 0.;
 	if (use_proper_motion) {
 		if (!fit->date_obs) {
-			siril_log_color_message(_("This image does not have any DATE-OBS information, cannot account for stars proper motions\n"), "red");
+			siril_log_color_message(_("This image does not have any DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
 			use_proper_motion = FALSE;
 		} else if (!(siril_cat->columns & (1 << CAT_FIELD_PMRA)) || !(siril_cat->columns & (1 << CAT_FIELD_PMDEC))) {
 			siril_log_color_message(_("This catalog does not have proper motion info, will not be computed\n"), "salmon");
@@ -531,7 +534,7 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 	double jyears = 0.;
 	if (use_proper_motion) {
 		if (!date_obs) {
-			siril_log_color_message(_("no DATE-OBS information, cannot account for stars proper motions\n"), "red");
+			siril_log_color_message(_("no DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
 			use_proper_motion = FALSE;
 		} else if (!(siril_cat->columns & (1 << CAT_FIELD_PMRA)) || !(siril_cat->columns & (1 << CAT_FIELD_PMDEC))) {
 			siril_log_color_message(_("This catalog does not have proper motion info, will not be computed\n"), "salmon");
@@ -572,9 +575,9 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 // TODO: using this for the moment to avoid chaging too many files
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars) {
 	*nbstars = 0;
-	if (!siril_cat || !siril_cat->nbincluded)
+	if (!siril_cat)
 		return NULL;
-	if (siril_cat->nbincluded <= -1) {
+	if (siril_cat->projected == CAT_PROJ_NONE) {
 		siril_debug_print("Catalog has not been projected\n");
 		return NULL;
 	}
@@ -592,6 +595,7 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 			results[n]->xpos = siril_cat->cat_items[i].x;
 			results[n]->ypos = siril_cat->cat_items[i].y;
 			results[n]->mag = siril_cat->cat_items[i].mag;
+			results[n]->Bmag = siril_cat->cat_items[i].bmag;
 			results[n]->ra = siril_cat->cat_items[i].ra;
 			results[n]->dec = siril_cat->cat_items[i].dec;
 			if (siril_cat->cat_items[i].name)

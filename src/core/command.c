@@ -8756,7 +8756,7 @@ int process_nomad(int nb) {
 
 	// Preparing the catalogue query
 	siril_cat->cattype = cat;
-	siril_cat->columns =  siril_catalog_columns(cat);
+	siril_cat->columns = siril_catalog_columns(cat);
 	siril_cat->center_ra = ra;
 	siril_cat->center_dec = dec;
 	siril_cat->radius = get_radius_deg(resolution, gfit.rx, gfit.ry) * 60.;
@@ -8787,7 +8787,6 @@ int process_nomad(int nb) {
 	nb_stars = siril_cat->nbitems;
 	sort_cat_items_by_mag(siril_cat);
 
-
 	clear_stars_list(FALSE);
 	int j = 0;
 	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
@@ -8803,8 +8802,15 @@ int process_nomad(int nb) {
 		com.stars[j]->angle = 0.0f;
 		if (cat == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
 			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
-		if (cat == CAT_AAVSO_CHART) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
-			siril_log_message("%s - V:%3.1f - B:%3.1f\n - RA:%g - DEC: %g", siril_cat->cat_items[i].name, siril_cat->cat_items[i].mag, siril_cat->cat_items[i].bmag, siril_cat->cat_items[i].ra, siril_cat->cat_items[i].dec);
+		if (cat == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
+			siril_log_message("%s - V:%3.1f [%5.3f]- B:%3.1f [%5.3f] - RA:%g - DEC: %g\n",
+			siril_cat->cat_items[i].name, 
+			siril_cat->cat_items[i].mag, 
+			siril_cat->cat_items[i].e_mag, 
+			siril_cat->cat_items[i].bmag,
+			siril_cat->cat_items[i].e_bmag, 
+			siril_cat->cat_items[i].ra,
+			siril_cat->cat_items[i].dec);
 		j++;
 	}
 	if (j > 0)
@@ -8832,7 +8838,7 @@ int process_catsearch(int nb){
 }
 
 int process_findcompstars(int nb) {
-	// findcompstars star_name [-narrow] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-out=nina_file.csv]
+	// findcompstars star_name [-narrow] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-emag=0.03] [-out=nina_file.csv]
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
@@ -8840,7 +8846,7 @@ int process_findcompstars(int nb) {
 	const char *target = word[1];
 	gboolean narrow = FALSE;
 	object_catalog used_cat = CAT_APASS;
-	double delta_Vmag = 3.0, delta_BV = 0.5;
+	double delta_Vmag = 3.0, delta_BV = 0.5, emag = 0.03;
 	const char *nina_file = NULL;
 
 	int arg_idx = 2;
@@ -8878,6 +8884,15 @@ int process_findcompstars(int nb) {
 				return CMD_ARG_ERROR;
 			}
 		}
+		else if (!g_ascii_strncasecmp(word[arg_idx], "-emag=", 6)) {
+			const char *val = word[arg_idx] + 6;
+			gchar *end;
+			emag = g_ascii_strtod(val, &end);
+			if (end == val || emag < 0.0 || emag > 0.1) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
 		else if (g_str_has_prefix(word[arg_idx], "-out=")) {
 			nina_file = word[arg_idx] + 5;
 			if (nina_file[0] == '\0') {
@@ -8898,6 +8913,7 @@ int process_findcompstars(int nb) {
 	args->cat = used_cat;
 	args->delta_Vmag = delta_Vmag;
 	args->delta_BV = delta_BV;
+	args->max_emag = emag;
 	args->nina_file = g_strdup(nina_file);
 
 	start_in_new_thread(compstars_worker, args);
