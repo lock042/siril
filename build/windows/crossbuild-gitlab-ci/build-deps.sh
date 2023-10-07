@@ -14,7 +14,7 @@ crossroad install lcms2 \
                   cfitsio \
                   libgit2 \
                   heif-thumbnailer \
-                  heif-gdk-pixbuf
+                  heif-gdk-pixbuf \
 # need to uninstall crt-git
 # probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
 # otherwise, it's messing up all the subsequent builds
