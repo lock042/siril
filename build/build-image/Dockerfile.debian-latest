@@ -22,6 +22,8 @@ RUN apt-get update -qyy \
         libjpeg-dev \
         libjxl-dev \
         libheif-dev \
+        heif-thumbnailer \
+        heif-gdk-pixbuf \
         libpng-dev \
         libavformat-dev \
         libavutil-dev \
