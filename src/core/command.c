@@ -8678,8 +8678,8 @@ int process_pcc(int nb) {
 	return CMD_OK;
 }
 
-int process_nomad(int nb) {
-	float limit_mag = 13.0f;
+int process_conesearch(int nb) {
+	float limit_mag = -1.0f;
 	gboolean photometric = FALSE;
 	object_catalog cat = CAT_AUTO;
 	gchar *obscode = NULL;
@@ -8745,80 +8745,19 @@ int process_nomad(int nb) {
 
 	gboolean local_cat = local_catalogues_available();
 	if (cat == CAT_AUTO)
-		cat = (local_cat)? CAT_LOCAL : CAT_NOMAD;
+		cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
 
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	int nb_stars = 0;
-	double ra, dec;
-	center2wcs(&gfit, &ra, &dec);
-	double resolution = get_wcs_image_resolution(&gfit)* 3600.;
-
-
-	// Preparing the catalogue query
-	siril_cat->cattype = cat;
-	siril_cat->columns = siril_catalog_columns(cat);
-	siril_cat->center_ra = ra;
-	siril_cat->center_dec = dec;
-	siril_cat->radius = get_radius_deg(resolution, gfit.rx, gfit.ry) * 60.;
-	siril_cat->limitmag = limit_mag;
+	// preparing the catalogue query
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, cat, limit_mag);
 	siril_cat->phot = photometric;
 	if (cat == CAT_IMCCE) {
 		siril_cat->IAUcode = (obscode)? g_strdup(obscode) : g_strdup("500");
 		if (!obscode)
 			siril_log_color_message(_("Did not specify an observatory code, using 500 by default\n"), "salmon");
-		siril_cat->dateobs = gfit.date_obs;
 	}
-	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", ra, dec, siril_cat->radius);
+	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
 
-	// and retrieving its results
-	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
-		siril_catalog_free(siril_cat);
-		return CMD_GENERIC_ERROR;
-	}
-	if (cat != CAT_LOCAL)
-		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(cat));
-
-	/* project using WCS */
-	gboolean use_proper_motion = (gfit.date_obs != NULL) && (siril_catalog_columns(cat) & (1 << CAT_FIELD_PMRA)) != 0;
-	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion)) {
-		siril_catalog_free(siril_cat);
-		return CMD_GENERIC_ERROR;
-	}
-	nb_stars = siril_cat->nbitems;
-	sort_cat_items_by_mag(siril_cat);
-
-	clear_stars_list(FALSE);
-	int j = 0;
-	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
-		if (siril_cat && (!siril_cat->cat_items[i].included || siril_cat->cat_items[i].mag > limit_mag))
-			continue;
-		if (!com.stars)
-			com.stars = new_fitted_stars(MAX_STARS);
-		com.stars[j] = new_psf_star();
-		fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
-		com.stars[j]->fwhmx = 5.0f;
-		com.stars[j]->fwhmy = 5.0f;
-		com.stars[j]->layer = 0;
-		com.stars[j]->angle = 0.0f;
-		if (cat == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
-			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
-		if (cat == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
-			siril_log_message("%s - V:%3.1f [%5.3f]- B:%3.1f [%5.3f] - RA:%g - DEC: %g\n",
-			siril_cat->cat_items[i].name, 
-			siril_cat->cat_items[i].mag, 
-			siril_cat->cat_items[i].e_mag, 
-			siril_cat->cat_items[i].bmag,
-			siril_cat->cat_items[i].e_bmag, 
-			siril_cat->cat_items[i].ra,
-			siril_cat->cat_items[i].dec);
-		j++;
-	}
-	if (j > 0)
-		com.stars[j] = NULL;
-
-	siril_log_message("%d stars found%s in the image (mag limit %.2f)\n", j,
-			photometric ? " with valid photometry data" : "", limit_mag);
-	redraw(REDRAW_OVERLAY);
+	start_in_new_thread(conesearch_worker, siril_cat);
 	return CMD_OK;
 }
 

@@ -500,9 +500,8 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 	*nbstars = 0;
 	if (!siril_cat || !siril_cat->nbincluded)
 		return NULL;
-	if (siril_cat->nbincluded <= -1) {
+	if (siril_cat->projected == CAT_PROJ_NONE) {
 		siril_debug_print("Catalog has not been projected\n");
-		return NULL;
 	}
 	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG)))
 		return NULL;

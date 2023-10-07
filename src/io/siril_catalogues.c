@@ -47,6 +47,8 @@
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
+#include "gui/image_display.h"
+#include "gui/PSF_list.h"
 
 // This list defines the columns that can possibly be found in any catalogue
 const gchar *cat_columns[] = { 
@@ -148,29 +150,19 @@ void sort_cat_items_by_mag(siril_catalogue *siril_cat) {
 		qsort(siril_cat->cat_items, siril_cat->nbitems, sizeof(cat_item), compare_items_by_mag);
 }
 
-//TODO: to be rewritten
-/* There are several ways of obtaining star catalogue data in Siril.
- * The raw catalogue contain in general star name, RA and dec coords, V and B
- * magnitudes. The download_catalog function makes a request to an online
- * source with a centre, a radius and a limit magnitude and stores that in a
- * raw cache file named 'cat-type-ra-dec-radius-mag.cat'.
- *
- * Then these raw catalogues can be used in different ways:
- * - The astrometric solver reads them and projects stars on a 2D image
- *   centered on the catalogue center and saves that to another file (the
- *   function project_catalog does that) called catalog.proj. Then the function
- *   read_projected_catalog below reads this intermediary projection catalogue
- *   and stores that in an array of psf_star objects. The obtained stars can be
- *   used for registration, but do not correspond to image coordinates.
- *
- * - The PCC reads them and projects stars on a plate-solved image using WCS
- *   and stores them in condensed form (pcc_star struct containing only
- *   x,y,b,v), done in the function project_catalog_with_WCS
- *
- * - Comparison star list creation needs equatorial coordinates and B-V
- *   magnitudes, projection is also used but only to check if a star is inside
- *   the image and far from its borders. The required object is psf_star.
- */
+// returns the default magnitude to be used in conesearch
+static float siril_catalog_get_default_limit_mag(object_catalog cat) {
+	switch(cat) {
+		case CAT_IMCCE:
+			return 20.f;
+		case CAT_AAVSO_CHART:
+			return 14.5f;
+		case CAT_PGC:
+			return 0.f;
+		default:
+			return 13.f;
+	}
+}
 
 // returns the pretty name of a catalogue
 const char *catalog_to_str(object_catalog cat) {
@@ -236,47 +228,6 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_ca
 	siril_log_color_message(_("Did not find the minimal set of columns necessary for this catalog, aborting\n"), "red");
 	return FALSE;
 }
-
-// not used for now
-// static int siril_cat_init_from_filename(siril_catalogue *siril_cat, const gchar *filename) {
-// 	if (!siril_cat) {
-// 		PRINT_ALLOC_ERR;
-// 		return 1;
-// 	}
-// 	if (!filename)
-// 		return 1;
-
-// 	// remove the extension
-// 	gchar *basename = g_path_get_basename(filename);
-// 	GString *name = g_string_new(basename);
-// 	g_string_replace(name, ".csv", "", 0);
-// 	gchar *namewoext = g_string_free_and_steal(name);
-
-// 	// if a filename is passed, we will parse its name to fill the structure
-// 	if (g_str_has_prefix(namewoext, "cat")) {
-// 		gchar **fields = g_strsplit(namewoext, "_", -1);
-// 		int n = g_strv_length(fields);
-// 		if (n < 6 && n > 7) {
-// 			siril_log_color_message(_("Could not parse the catalogue name %s, aborting\n"), "red", namewoext);
-// 			g_strfreev(fields);
-// 			return NULL;
-// 		}
-// 		siril_cat->cattype = (int)g_ascii_strtoll(fields[1], NULL, 10);
-// 		siril_cat->center_ra = g_ascii_strtod(fields[2], NULL);
-// 		siril_cat->center_dec = g_ascii_strtod(fields[3], NULL);
-// 		siril_cat->radius = g_ascii_strtod(fields[4], NULL);
-// 		if (n < 7) {
-// 			siril_cat->limitmag = g_ascii_strtod(fields[5], NULL);
-// 		} else {
-// 			GDateTime *dt = FITS_date_to_date_time(fields[5]);
-// 			siril_cat->dateobs = dt;
-// 			siril_cat->IAUcode = g_strdup(fields[6]);
-// 		}
-// 		g_strfreev(fields);
-// 		return 0;
-// 	}
-// 	return 1;
-// }
 
 static void siril_catalog_free_item(cat_item *item) {
 	g_free(item->name);
@@ -346,14 +297,20 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 	}
 }
 
+// frees the member cat_items of a catalogue
+// This is useful to launch the same query again, updating simply the catalog center for instance
 void siril_catalog_free_items(siril_catalogue *siril_cat) {
 	if (!siril_cat || !siril_cat->cat_items)
 		return;
 	for (int i = 0; i < siril_cat->nbitems; i++)
 		siril_catalog_free_item(&siril_cat->cat_items[i]);
 	siril_cat->cat_items = NULL;
+	siril_cat->nbitems = 0;
+	siril_cat->nbincluded = -1;
+	siril_cat->projected = CAT_PROJ_NONE;
 }
 
+// frees a siril_catalogue
 void siril_catalog_free(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return;
@@ -362,9 +319,64 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 	free(siril_cat);
 }
 
+// returns a siril_catalogue structure with center
+siril_catalogue *siril_catalog_fill_from_fit(fits *fit, object_catalog cat, float limit_mag) {
+#ifndef HAVE_WCSLIB
+	return NULL;
+#endif
+	if (!fit) {
+		return NULL;
+	}
+	if (!has_wcs(fit)) {
+		siril_debug_print("This only works on plate solved images\n");
+		return NULL;
+	}
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	double ra, dec;
+	center2wcs(fit, &ra, &dec);
+	double resolution = get_wcs_image_resolution(fit) * 3600.;
+	if (limit_mag == -1)
+		limit_mag = siril_catalog_get_default_limit_mag(cat);
+	// Preparing the catalogue query
+	siril_cat->cattype = cat;
+	siril_cat->columns = siril_catalog_columns(cat);
+	siril_cat->center_ra = ra;
+	siril_cat->center_dec = dec;
+	siril_cat->radius = get_radius_deg(resolution, fit->rx, fit->ry) * 60.;
+	siril_cat->limitmag = limit_mag;
+	if (fit->date_obs) {
+		siril_cat->dateobs = fit->date_obs;
+	}
+	return siril_cat;
+}
+/* This is the entry point to query the catalogues
+ * It will call the necessary functions whether the query 
+ * is for a local catalogue or an online one
+ *
+ * Then these raw catalogues can be used in different ways:
+ * - The astrometric solver reads them and projects stars on a 2D image
+ *   centered on the catalogue center and saves that to another file (the
+ *   function project_catalog does that) called catalog.proj. Then the function
+ *   read_projected_catalog below reads this intermediary projection catalogue
+ *   and stores that in an array of psf_star objects. The obtained stars can be
+ *   used for registration, but do not correspond to image coordinates.
+ *
+ * - The PCC reads them and projects stars on a plate-solved image using WCS
+ *   and stores them in condensed form (pcc_star struct containing only
+ *   x,y,b,v), done in the function project_catalog_with_WCS
+ *
+ * - Comparison star list creation needs equatorial coordinates and B-V
+ *   magnitudes, projection is also used but only to check if a star is inside
+ *   the image and far from its borders. The required object is psf_star.
+ */
+
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	int nbstars = 0;
 	if (siril_cat->cattype < CAT_AN_MESSIER) // online
+#ifndef HAVE_NETWORKING
+	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+	return 0;
+#endif
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 	else if (siril_cat->cattype == CAT_LOCAL)
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
@@ -373,6 +385,7 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	return nbstars;
 }
 
+// loads the file and fills the cat_items members of the catalogue in entry
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename) {
 	GError *error = NULL;
 	GFile *catalog_file = g_file_new_for_path(filename);
@@ -466,6 +479,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 			cat_items[nb_items].mag = 0.;
 			cat_items[nb_items].bmag = 0.;
 		} else {
+			cat_items[nb_items].included = TRUE;
 			nb_items++;
 		}
 		g_free(line);
@@ -480,10 +494,14 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
 	siril_cat->cat_items = final_array;
 	siril_cat->nbitems = nb_items;
+	siril_cat->nbincluded = nb_items;
 	siril_debug_print("read %d%s items from catalogue\n", nb_items, siril_cat->phot ? " photometric" : "");
 	return 0;
 }
 
+// projects passed catalogue using the wcs data contained in the fit
+// corrects for proper motions if the flag is TRUE and the necessary data is contained
+// in the fit (dateobs) and in the catalogue (pmra and pmdec fields)
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion) {
 #ifndef HAVE_WCSLIB
 	return 1
@@ -522,12 +540,17 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			siril_cat->cat_items[i].y = y;
 			siril_cat->cat_items[i].included = TRUE;
 			nbincluded++;
+		} else {
+			siril_cat->cat_items[i].included = FALSE;
 		}
 	}
 	siril_cat->nbincluded = nbincluded;
 	return 0;
 } 
 
+// projects passed catalogue wrt to the center ra0 and dec0 coordinates
+// corrects for proper motions if the flag is TRUE and the necessary data is passed
+// (dateobs) and found in the catalogue (pmra and pmdec fields)
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
 	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG)))
 		return 1;
@@ -569,17 +592,89 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 		siril_cat->cat_items[i].included = TRUE;
 	}
 	siril_cat->nbincluded = siril_cat->nbitems;
+	siril_cat->projected = CAT_PROJ_PLATE;
 	return 0;
 }
 
+static gboolean end_conesearch(gpointer p) {
+	siril_catalogue *siril_cat = (siril_catalogue *) p;
+	siril_catalog_free(siril_cat);
+	if (!com.script)
+		redraw(REDRAW_OVERLAY);
+	return end_generic(NULL);
+}
+
+// worker for the command conesearch
+gpointer conesearch_worker(gpointer p) {
+	siril_catalogue *siril_cat = (siril_catalogue *) p;
+	if (!siril_cat) {
+		siril_debug_print("no query passed");
+		return GINT_TO_POINTER(-1);
+	}
+
+	// launching the query
+	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
+		siril_catalog_free(siril_cat);
+		return GINT_TO_POINTER(-1);
+	}
+	if (siril_cat->cattype != CAT_LOCAL)
+		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(siril_cat->cattype));
+
+	/* project using WCS */
+	gboolean use_proper_motion = (siril_cat->dateobs != NULL) && (siril_cat->columns & (1 << CAT_FIELD_PMRA)) != 0;
+	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion)) {
+		siril_catalog_free(siril_cat);
+		return GINT_TO_POINTER(-1);
+	}
+	int nb_stars = siril_cat->nbitems;
+	sort_cat_items_by_mag(siril_cat);
+	if (!com.script) {
+		clear_stars_list(FALSE);
+	}
+	int j = 0;
+	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
+		if (!siril_cat->cat_items[i].included || siril_cat->cat_items[i].mag > siril_cat->limitmag)
+			continue;
+		if (!com.script && !com.stars)
+			com.stars = new_fitted_stars(MAX_STARS);
+		if (!com.script) {
+			com.stars[j] = new_psf_star();
+			fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
+			com.stars[j]->fwhmx = 5.0f;
+			com.stars[j]->fwhmy = 5.0f;
+			com.stars[j]->layer = 0;
+			com.stars[j]->angle = 0.0f;
+		}
+		if (siril_cat->cattype == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
+			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
+		if (siril_cat->cattype == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
+			siril_log_message("%s - V:%3.1f [%5.3f]- B:%3.1f [%5.3f] - RA:%g - DEC: %g\n",
+			siril_cat->cat_items[i].name, 
+			siril_cat->cat_items[i].mag, 
+			siril_cat->cat_items[i].e_mag, 
+			siril_cat->cat_items[i].bmag,
+			siril_cat->cat_items[i].e_bmag, 
+			siril_cat->cat_items[i].ra,
+			siril_cat->cat_items[i].dec);
+		j++;
+	}
+	if (j > 0 && !com.script)
+		com.stars[j] = NULL;
+
+	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
+			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
+	siril_add_idle(end_conesearch, NULL);
+	return GINT_TO_POINTER(0);
+}
 // TODO: using this for the moment to avoid chaging too many files
+// This copies the info contained in the catalogue to a psf_star ** list
+// only the included items are copied over
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars) {
 	*nbstars = 0;
 	if (!siril_cat)
 		return NULL;
 	if (siril_cat->projected == CAT_PROJ_NONE) {
 		siril_debug_print("Catalog has not been projected\n");
-		return NULL;
 	}
 	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG)))
 		return NULL;

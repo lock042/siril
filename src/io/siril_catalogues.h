@@ -152,5 +152,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars);
+siril_catalogue *siril_catalog_fill_from_fit(fits *fit, object_catalog cat, float limit_mag);
+gpointer conesearch_worker(gpointer p);
 
 #endif

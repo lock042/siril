@@ -399,74 +399,6 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 	return NULL;
 }
 
-// gpointer search_in_online_conesearch(gpointer p) {
-// #ifndef HAVE_NETWORKING
-// 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-// 	return GINT_TO_POINTER(1);
-// #else
-// 	struct astrometry_data *args = (struct astrometry_data *) p;
-// 	if (!args->fit->date_obs) {
-// 		free(args);
-// 		siril_add_idle(end_generic, NULL);
-// 		return GINT_TO_POINTER(-1);
-// 	}
-// 	double ra, dec;
-// 	center2wcs(args->fit, &ra, &dec);
-// 	int retval = 0;
-
-// 	// https://vo.imcce.fr/webservices/skybot/?conesearch
-// 	GString *string_url = g_string_new(IMCCE_QUERY);
-// 	string_url = g_string_append(string_url, "&-ep=");
-// 	gchar *formatted_date = date_time_to_FITS_date(args->fit->date_obs);
-// 	string_url = g_string_append(string_url, formatted_date);
-// 	string_url = g_string_append(string_url, "&-ra=");		// RA
-// 	g_string_append_printf(string_url, "%lf", ra);
-// 	string_url = g_string_append(string_url, "&-dec=");		// DEC
-// 	g_string_append_printf(string_url, "%lf", dec);
-// 	string_url = g_string_append(string_url, "&-rm=");		// FOV
-// 	g_string_append_printf(string_url, "%lf", get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry));
-// 	string_url = g_string_append(string_url, "&-mime=text");
-// 	string_url = g_string_append(string_url, "&-output=object");
-// 	string_url = g_string_append(string_url, "&-loc=500");
-// 	string_url = g_string_append(string_url, "&-filter=0");
-// 	string_url = g_string_append(string_url, "&-objFilter=111");
-// 	string_url = g_string_append(string_url, "&-refsys=EQJ2000");
-// 	string_url = g_string_append(string_url, "&-from=Siril;");
-
-// 	if (!gfit.date_obs) {
-// 		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
-// 		return NULL;
-// 	}
-// 	siril_log_message(_("Solar System Objects search on observation date %s\n"), formatted_date);
-
-// 	gchar *url = g_string_free(string_url, FALSE);
-// 	gchar *cleaned_url = url_cleanup(url);
-// 	gchar *result = fetch_url(cleaned_url);
-// 	siril_debug_print(_("URL: %s\n"), cleaned_url);
-
-// 	g_free(cleaned_url);
-// 	g_free(url);
-// 	g_free(formatted_date);
-
-// 	if (result) {
-// 		retval = parse_conesearch_buffer(result, args->limit_mag);
-// 	}
-// #if defined HAVE_LIBCURL
-// 	free(result);
-// #else
-// 	g_free(result);
-// #endif
-// 	if (!retval) {
-// 		siril_add_idle(end_process_sso, args);
-// 	} else {
-// 		free(args);
-// 		siril_add_idle(end_generic, NULL);
-// 	}
-
-// 	return GINT_TO_POINTER(retval);
-// #endif
-// }
-
 gpointer catsearch_worker(gpointer p) {
 	gchar *name = (gchar*)p;
 	if(!name)
@@ -719,7 +651,6 @@ gchar *download_catalog(siril_catalogue *siril_cat) {
 		goto download_error;
 	}
 
-
 	/* download */
 	url = siril_catalog_conesearch_get_url(siril_cat);
 	if (!url) {
@@ -784,6 +715,9 @@ download_error:
 /* This function is the main interface to collect an online catalogue
    It sends a conesearch around given center, within given radius and for stars below limit_mag
    Internally, it uses download_catalog to search cache and download catalog as required
+   The cache folder (named download_cache) stores all downloaded queries in the form 
+   of csv files, named as 'cat-cattype-ra-dec-radius[-mag].csv' or
+   'cat-cattype-ra-dec-radius-date-obscode.csv' for solar syatem queries (IMCCE)
    It fills the siril_catalogue given in input
    Returns the number of stars fetched
 */

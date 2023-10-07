@@ -59,6 +59,7 @@
 #include "gui/remixer.h"
 #include "livestacking/livestacking.h"
 #include "registration/registration.h"
+#include "io/siril_catalogues.h"
 
 #include "siril_actions.h"
 
@@ -389,8 +390,11 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (has_wcs(&gfit))
-		process_nomad(1);
+	if (has_wcs(&gfit)) {
+		siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, CAT_IMCCE, -1.f);
+		siril_cat->IAUcode = g_strdup("500");
+		start_in_new_thread(conesearch_worker, siril_cat);
+	}
 }
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {

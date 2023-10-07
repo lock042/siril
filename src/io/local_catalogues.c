@@ -558,6 +558,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
 	siril_cat->nbitems = (int)nb_stars;
+	siril_cat->nbincluded = (int)nb_stars;
 	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		siril_cat->cat_items[i].ra = (double)stars[i].RA * .000015;
@@ -566,6 +567,8 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->cat_items[i].pmdec = (double)stars[i].dDec;
 		siril_cat->cat_items[i].mag = (float)stars[i].V * .001;
 		siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
+		siril_cat->cat_items[i].included = TRUE;
 	}
+	free(stars);
 	return siril_cat->nbitems;
 }

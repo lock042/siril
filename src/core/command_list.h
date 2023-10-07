@@ -31,6 +31,7 @@ static command commands[] = {
 	{"clear", 0, "clear", process_clear, STR_CLEAR, FALSE, REQ_CMD_NONE},
 	{"clearstar", 0, "clearstar", process_clearstar, STR_CLEARSTAR, FALSE, REQ_CMD_NONE},
 	{"close", 0, "close", process_close, STR_CLOSE, TRUE, REQ_CMD_NONE},
+	{"conesearch", 0, "conesearch [limit_magnitude] [-catalog=] [-photo] [-obscode]", process_conesearch, STR_CONESEARCH, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"convert", 1, "convert basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERT, TRUE, REQ_CMD_NO_THREAD},
 	{"convertraw", 1, "convertraw basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERTRAW, TRUE, REQ_CMD_NO_THREAD},
 	{"cosme", 1, "cosme [filename].lst", process_cosme, STR_COSME, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -114,7 +115,6 @@ static command commands[] = {
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
-	{"nomad", 0, "nomad [limit_magnitude] [-catalog=] [-photo]", process_nomad, STR_NOMAD, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -206,7 +206,6 @@ static command commands[] = {
 	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE, REQ_CMD_NONE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE, REQ_CMD_NONE},
 	{"show", 1, "show [-clear] [{ -list=file.csv | [name] RA Dec }]", process_show, STR_SHOW, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	// {"solsys", 0, "solsys [-mag=20.0]", process_sso, STR_SSO, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 	{"stack", 1, "stack seqfilename\n"

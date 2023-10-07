@@ -421,7 +421,10 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	CHECK_FOR_CANCELLATION_RET;
 	double ra0 = siril_world_cs_get_alpha(args->cat_center);
 	double dec0 = siril_world_cs_get_delta(args->cat_center);
-	if (!siril_catalog_project_at_center(args->ref_stars, ra0, dec0, TRUE, NULL)) {
+	GDateTime *dateobs = NULL;
+	if (args->fit && args->fit->date_obs)
+		dateobs = args->fit->date_obs;
+	if (!siril_catalog_project_at_center(args->ref_stars, ra0, dec0, TRUE, dateobs)) {
 		args->cstars = convert_siril_cat_to_psf_stars(args->ref_stars, &args->n_cat);
 		args->n_cat = args->ref_stars->nbitems;
 	}
