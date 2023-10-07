@@ -607,15 +607,15 @@ static gboolean end_conesearch(gpointer p) {
 // worker for the command conesearch
 gpointer conesearch_worker(gpointer p) {
 	siril_catalogue *siril_cat = (siril_catalogue *) p;
+	int retval = -1;
 	if (!siril_cat) {
 		siril_debug_print("no query passed");
-		return GINT_TO_POINTER(-1);
+		goto end_conesearch;
 	}
 
 	// launching the query
 	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
-		siril_catalog_free(siril_cat);
-		return GINT_TO_POINTER(-1);
+		goto end_conesearch;
 	}
 	if (siril_cat->cattype != CAT_LOCAL)
 		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(siril_cat->cattype));
@@ -623,8 +623,7 @@ gpointer conesearch_worker(gpointer p) {
 	/* project using WCS */
 	gboolean use_proper_motion = (siril_cat->dateobs != NULL) && (siril_cat->columns & (1 << CAT_FIELD_PMRA)) != 0;
 	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion)) {
-		siril_catalog_free(siril_cat);
-		return GINT_TO_POINTER(-1);
+		goto end_conesearch;
 	}
 	int nb_stars = siril_cat->nbitems;
 	sort_cat_items_by_mag(siril_cat);
@@ -663,11 +662,14 @@ gpointer conesearch_worker(gpointer p) {
 
 	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
 			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
-	siril_add_idle(end_conesearch, NULL);
-	return GINT_TO_POINTER(0);
+	retval = 0;
+end_conesearch:
+	siril_add_idle(end_conesearch, siril_cat);
+	return GINT_TO_POINTER(retval);
 }
+
 // TODO: using this for the moment to avoid chaging too many files
-// This copies the info contained in the catalogue to a psf_star ** list
+// This copies the info contained in the catalogue to a psf_star** list
 // only the included items are copied over
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars) {
 	*nbstars = 0;

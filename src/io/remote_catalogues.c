@@ -421,7 +421,14 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	if (!buffer || buffer[0] == '\0' || !g_str_has_prefix(buffer, "# Flag:"))
 		return FALSE;
 	if (!g_str_has_prefix(buffer, "# Flag: 1") && !g_str_has_prefix(buffer, "# Flag: 0")) {
-		siril_log_color_message("IMCCE server returned: \n%s\n", "red", buffer);
+		siril_log_color_message(_("IMCCE server returned:\n"), "red");
+		gchar **err_lines = g_strsplit(buffer, "\n", -1);
+		int n_err = min(g_strv_length(err_lines), 3); // displaying max 3 lines
+		for (int i = 0; i < n_err; i++) {
+			if (err_lines[i][0] != '\0')
+				siril_log_color_message("%s\n", "red", err_lines[i]);
+		}
+		g_strfreev(err_lines);
 		return FALSE;
 	}
 	// writing the csv header
