@@ -27,7 +27,7 @@
 #include "algos/annotate.h"
 #include "algos/PSF.h"
 
-#define CDSSESAME "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame"
+#define CDSSESAME "http://cds.unistra.fr/cgi-bin/nph-sesame"
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
 #define SIMBADSESAME "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
 
@@ -39,8 +39,7 @@ typedef enum {
 	QUERY_SERVER_VIZIER,
 	QUERY_SERVER_SIMBAD,
 	QUERY_SERVER_EPHEMCC,
-	QUERY_SERVER_SIMBAD_PHOTO,
-	QUERY_SERVER_SKYBOT, // In case of adding other items, leave this one at the end of the list
+	QUERY_SERVER_SIMBAD_PHOTO
 } query_server;
 
 typedef enum {
@@ -62,7 +61,6 @@ struct sky_object {
 };
 
 int parse_catalog_buffer(const gchar *buffer, psf_star **result);
-int parse_conesearch_buffer(const gchar *buffer, double lim_mag);
 int cached_object_lookup(const gchar *name, psf_star **opt_result);
 gchar *search_in_online_catalogs(const gchar *object, query_server server);
 

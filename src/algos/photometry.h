@@ -8,7 +8,6 @@
 #include "algos/astrometry_solver.h"
 #include "algos/PSF.h"
 #include "io/siril_plot.h"
-#include"io/siril_catalogues.h"
 
 struct photometry_struct {
 	double mag;	// magnitude

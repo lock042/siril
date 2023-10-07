@@ -28,8 +28,7 @@ struct astrometry_data {
 	fits *fit;		// the image
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
-	// gboolean use_local_cat;	// use local catalogues if installed
-	// object_catalog onlineCatalog;	// choice of catalog for the plate solve
+	siril_catalogue *ref_stars; // siril_catalogue containing query parameters and results
 	SirilWorldCS *cat_center;	// starting point for the search
 	gboolean downsample;	// downsample image before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
@@ -49,11 +48,8 @@ struct astrometry_data {
 	struct photometric_cc_data *pcc;// PCC configuration
 
 	/* program-processed input, by process_plate_solver_input() */
-	siril_catalogue *ref_stars;
-	// double limit_mag;	// limit magnitude to search for in the catalog
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
-	// GFile *catalog_file;	// downloaded file containing raw catalog data
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
 	gboolean asnet_checked;	// local asnet availability already checked

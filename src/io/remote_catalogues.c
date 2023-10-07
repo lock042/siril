@@ -68,7 +68,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 	switch (cat) {
 		case CAT_TYCHO2:
 			tap->catcode = g_strdup("%22I/259/tyc2%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAmdeg");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEmdeg");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("VTmag");
@@ -78,7 +78,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_NOMAD:
 			tap->catcode = g_strdup("%22I/297/out%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
@@ -89,7 +89,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_GAIADR3:
 			tap->catcode = g_strdup("%22I/355/gaiadr3%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
@@ -100,7 +100,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_PPMXL:
 			tap->catcode = g_strdup("%22I/317/sample%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
@@ -110,7 +110,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_BSC:
 			tap->catcode = g_strdup("%22V/50/catalog%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
@@ -120,7 +120,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_APASS:
 			tap->catcode = g_strdup("%22II/336/apass9%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
@@ -130,7 +130,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_GCVS:
 			tap->catcode = g_strdup("%22B/gcvs/gcvs_cat%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("magMax");
@@ -138,7 +138,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_VSX:
 			tap->catcode = g_strdup("%22B/vsx/vsx%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("max");
@@ -157,7 +157,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_PGC:
 			tap->catcode = g_strdup("%22VII/237/pgc%22");
-			tap->tap_server = g_strdup( VIZIER_TAP_QUERY);
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PGC");

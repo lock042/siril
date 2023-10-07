@@ -301,19 +301,6 @@ gboolean end_process_catsearch(gpointer p) {
 	return end_generic(NULL);
 }
 
-// gboolean end_process_sso(gpointer p) {
-// 	struct astrometry_data *args = (struct astrometry_data *) p;
-// 	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-// 	refresh_found_objects();
-// 	if (!gtk_toggle_tool_button_get_active(button)) {
-// 		gtk_toggle_tool_button_set_active(button, TRUE);
-// 	} else {
-// 		redraw(REDRAW_OVERLAY);
-// 	}
-// 	free(args);
-// 	return end_generic(NULL);
-// }
-
 gboolean end_plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	stop_processing_thread();
@@ -709,18 +696,6 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		}
 	}
 	args->ref_stars->columns = siril_catalog_columns(args->ref_stars->cattype);
-
-	// if (!use_local) {
-	// 	/* currently the GUI version downloads the catalog here, because
-	// 	 * siril_message_dialog() doesn't use idle function, we could change that */
-	// 	GFile *catalog_file = download_catalog(args->onlineCatalog,
-	// 			catalog_center, args->used_fov * 0.5, args->limit_mag, NULL, NULL);
-	// 	if (!catalog_file) {
-	// 		siril_world_cs_unref(catalog_center);
-	// 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
-	// 		return 1;
-	// 	}
-	// }
 	return 0;
 }
 
