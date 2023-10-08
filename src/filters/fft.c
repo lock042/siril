@@ -426,6 +426,8 @@ static gboolean end_fourier_transform(gpointer p) {
 	redraw(REMAP_ALL);
 	redraw_previews();
 	free(args->type);
+	g_free(args->modulus);
+	g_free(args->phase);
 	free(args);
 	set_cursor_waiting(FALSE);
 
@@ -568,7 +570,7 @@ end:
 void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	const char *mag, *phase;
+	gchar *mag, *phase;
 	char *type = NULL, page;
 	int type_order = -1;
 	static GtkToggleButton *order = NULL;
@@ -607,8 +609,8 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		type_order = !gtk_toggle_button_get_active(order);
 		type = strdup("fftd");
-		mag = gtk_entry_get_text(entry_mag);
-		phase = gtk_entry_get_text(entry_phase);
+		mag = g_strdup(gtk_entry_get_text(entry_mag));
+		phase = g_strdup(gtk_entry_get_text(entry_phase));
 	} else {
 		type = strdup("ffti");
 		mag = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_mag")));
@@ -636,6 +638,8 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 		start_in_new_thread(fourier_transform, args);
 	} else {
 		free(type);
+		g_free(mag);
+		g_free(phase);
 	}
 }
 

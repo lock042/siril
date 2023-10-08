@@ -5,7 +5,7 @@
 struct fft_data {
 	fits *fit;
 	char *type;
-	const char *modulus, *phase;
+	gchar *modulus, *phase;
 	int type_order;
 	int retval;
 };
