@@ -566,8 +566,9 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		double ra = siril_cat->cat_items[i].ra;
 		double dec = siril_cat->cat_items[i].dec;
+		double decrad = dec * DEGTORAD;
 		if (use_proper_motion) {
-			ra += siril_cat->cat_items[i].pmra / cos(dec) * jyears * 2.77777778e-7;
+			ra += siril_cat->cat_items[i].pmra / cos(decrad) * jyears * 2.77777778e-7;
 			dec += siril_cat->cat_items[i].pmdec * jyears * 2.77777778e-7;
 		}
 		if (!wcs2pix(fit, ra, dec, &x, &y)) {
@@ -606,17 +607,18 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 		}
 	}
 	dec0 *= DEGTORAD;
-	ra0 *= DEGTORAD;
 	double sindec0 = sin(dec0);
 	double cosdec0 = cos(dec0);
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		double ra = siril_cat->cat_items[i].ra;
-		double dec = siril_cat->cat_items[i].dec * DEGTORAD;
+		double dec = siril_cat->cat_items[i].dec;
+		double decrad = dec * DEGTORAD;
 		if (use_proper_motion) {
-			ra += siril_cat->cat_items[i].pmra / cos(dec) * jyears * 2.77777778e-7;
+			ra += siril_cat->cat_items[i].pmra / cos(decrad) * jyears * 2.77777778e-7;
 			dec += siril_cat->cat_items[i].pmdec * jyears * 2.77777778e-7;
 		}
-		double delta_ra = ra * DEGTORAD - ra0;
+		dec *= DEGTORAD;
+		double delta_ra = (ra - ra0) * DEGTORAD;
 		double xx = cos(dec) * sin(delta_ra);
 		double yy = sindec0 * sin(dec) + cosdec0 * cos(dec) * cos(delta_ra);
 		double xi = (xx / yy);
