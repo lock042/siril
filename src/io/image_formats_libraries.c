@@ -2407,8 +2407,9 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	struct heif_encoding_options *options = heif_encoding_options_alloc();
 	options->save_alpha_channel = FALSE;
 	options->output_nclx_profile = NULL;
+#if LIBHEIF_HAVE_VERSION(1, 14, 0)
 	options->image_orientation = heif_orientation_normal;
-
+#endif
     error = heif_context_encode_image(ctx, image, encoder, options, &handle);
 	if (error.code != heif_error_Ok) {
 		fprintf(stderr, "Error encoding image: %s.\n", error.message);
