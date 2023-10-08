@@ -114,11 +114,13 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_AN_MESSIER:
 		case CAT_AN_NGC:
 		case CAT_AN_IC:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS) | (1 << CAT_FIELD_DIAMETER) | (1 << CAT_FIELD_MAG);
 		case CAT_AN_LDN:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME);
 		case CAT_AN_SH2:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_STARS:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME); //| (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) //TODO:Add pm
 		case CAT_AN_USER_DSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_AN_USER_SSO:
@@ -128,6 +130,7 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_LOCAL:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME);
 		default:
 			return 0;
 	}
@@ -195,6 +198,24 @@ const char *catalog_to_str(object_catalog cat) {
 			return _("local Tycho-2+NOMAD");
 		case CAT_ASNET:
 			return _("local astrometry.net");
+		case CAT_AN_MESSIER:
+			return "Messier";
+		case CAT_AN_NGC:
+			return "NGC";
+		case CAT_AN_IC:
+			return "IC";
+		case CAT_AN_LDN:
+			return "LDN";
+		case CAT_AN_SH2:
+			return "Sh2";
+		case CAT_AN_STARS:
+			return "stars";
+		case CAT_AN_USER_DSO:
+			return "user-DSO";
+		case CAT_AN_USER_SSO:
+			return "user-SSO";
+		case CAT_AN_USER_TEMP:
+			return "user-temp";
 		default:
 			return _("unknown");
 	}
@@ -225,7 +246,7 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_ca
 		*collist = res;
 		return TRUE;
 	}
-	siril_log_color_message(_("Did not find the minimal set of columns necessary for this catalog, aborting\n"), "red");
+	siril_log_color_message(_("Did not find the minimal set of columns necessary for the catalog %s, aborting\n"), "red", catalog_to_str(Catalog));
 	return FALSE;
 }
 
@@ -316,6 +337,7 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 		return;
 	siril_catalog_free_items(siril_cat);
 	g_free(siril_cat->IAUcode);
+	g_free(siril_cat->header);
 	free(siril_cat);
 }
 
@@ -414,8 +436,18 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	gboolean header_read = FALSE, has_error = FALSE;
 	int *indexes = NULL;
 	int nbcols;
+	GString *header = NULL;
 	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
-		if (line[0] == COMMENT_CHAR) { // skipping comments
+		if (line[0] == '\0') {
+			g_free(line);
+			continue;
+		}
+		remove_trailing_eol(line);
+		if (line[0] == COMMENT_CHAR) { // storing header lines
+			if (!header)
+				header = g_string_new(line);
+			else
+				g_string_append_printf(header, "\n%s", line);
 			g_free(line);
 			continue;
 		}
@@ -496,6 +528,8 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	siril_cat->cat_items = final_array;
 	siril_cat->nbitems = nb_items;
 	siril_cat->nbincluded = nb_items;
+	if (header)
+		siril_cat->header = g_string_free(header, FALSE);
 	siril_debug_print("read %d%s items from catalogue\n", nb_items, siril_cat->phot ? " photometric" : "");
 	return 0;
 }

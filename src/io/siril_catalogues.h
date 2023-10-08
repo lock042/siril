@@ -135,6 +135,7 @@ typedef struct {
 	int nbincluded; // the number of items included after projection
 	cat_proj projected; // the type of projection applied
 	uint32_t columns; // the list of columns which where parsed when read
+	gchar *header; // the file header lines (#) if read from file
 } siril_catalogue;
 
 

@@ -76,8 +76,8 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 /* com.pref.phot_set.outer needs to be set at this point */
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
 		gboolean use_comp1, gboolean use_comp2, fits *first) {
-	/* The file is a CSV with these fields:
-	 * Type,Name,HFR,xPos,yPos,AvgBright,MaxBright,Background,Ra,Dec
+	/* The file is a CSV with at least these fields:
+	 * Type,Name, Ra,Dec
 	 *
 	 * Type can be 'Target' for the variable star to analyse, 'Var' for variable stars to
 	 * absolutely exclude as calibration reference, 'Comp1' are reference stars obtained
@@ -88,167 +88,72 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	 * In the comments we put some metadata, like parameters that were used to select
 	 * the stars of the list. We can parse them to keep them within the light curve.
 	 */
-	FILE *fd = g_fopen(file_path, "r");
-	if (!fd) {
-		siril_log_message(_("Could not open file %s: %s\n"), file_path, strerror(errno));
-		return 1;
-	}
-
-	char buf[512];
-	rectangle *areas = malloc(MAX_REF_STARS * sizeof(rectangle));
-	areas[0].x = 0; areas[0].y = 0;
-	int ra_index = -1, dec_index = -1, name_index = 2;
-	int stars_count = 0;
-	gboolean ready_to_parse = FALSE, target_acquired = FALSE;
-	while (fgets(buf, 512, fd)) {
-		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n')
-			continue;
-		remove_trailing_eol(buf);
-		if (buf[0] == '#') {
-			if (g_str_has_prefix(buf, "# Siril: ")) {
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cattype = CAT_COMPSTARS;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
+	siril_catalog_load_from_file(siril_cat, file_path);
+	
+	// parsing the file header to get metadata
+	if (siril_cat->header) { 
+		gchar **tokens = g_strsplit(siril_cat->header, "\n", -1);
+		int length = g_strv_length(tokens);
+		for (int i = 0; i < length; i++) {
+			if (g_str_has_prefix(tokens[i], "# Siril: ")) {
 				args->metadata = calloc(1, sizeof(struct compstars_arg));
 				/* parse the siril header */
-				int nb = sscanf(buf, "# Siril: %d stars, dVmag %lf, dBV %lf",
+				int nb = sscanf(tokens[i], "# Siril: %d stars, dVmag %lf, dBV %lf, max e_mag %lf",
 						&args->metadata->nb_comp_stars,
 						&args->metadata->delta_Vmag,
-						&args->metadata->delta_BV);
-				if (nb == 0) {
+						&args->metadata->delta_BV,
+						&args->metadata->max_emag);
+				if (nb != 4) {
 					free(args->metadata);
 					args->metadata = NULL;
 				}
 			}
-			continue;
-		}
-		gchar **tokens = g_strsplit(buf, ",", -1);
-		int length = g_strv_length(tokens);
-		if (!tokens[0] || length <= ra_index || length <= dec_index) {
-			siril_debug_print("malformed line: %s\n", buf);
-			g_strfreev(tokens);
-			continue;
-		}
-		gchar *type = tokens[0];
-		if (!ready_to_parse) {
-			if (!strcasecmp(type, "type")) {
-				siril_debug_print("header from the NINA file: %s\n", buf);
-				for (int i = 1; tokens[i]; i++) {
-					if (!strcasecmp(tokens[i], "ra"))
-						ra_index = i;
-					else if (!strcasecmp(tokens[i], "dec"))
-						dec_index = i;
-					else if (!strcasecmp(tokens[i], "name"))
-						name_index = i;
-				}
-				g_strfreev(tokens);
-
-				if (ra_index < 1 || dec_index < 1) {
-					siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-					target_acquired = FALSE;
-					break;
-				}
-				siril_debug_print("Found RA and Dec indices in file: %d and %d\n", ra_index, dec_index);
-				ready_to_parse = TRUE;
-				continue;
-			}
-			siril_debug_print("malformed line: %s\n", buf);
-			siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-			g_strfreev(tokens);
-			target_acquired = FALSE;
-			break;
-		}
-
-		if (!strcasecmp(type, "#")) continue;	// skip comment line
-
-		if (!strcasecmp(type, "target")) {
-			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1);
-			double dec = g_ascii_strtod(tokens[dec_index], &end2);
-			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				target_acquired = FALSE;
-				break;
-			}
-
-			args->target_descr = g_strdup(tokens[name_index]);
-			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[0])) {
-				target_acquired = TRUE;
-				stars_count++;
-				siril_log_message(_("Target star identified: %s\n"), tokens[name_index]);
-			} else {
-				siril_log_message(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"));
-			}
-		}
-		else if (!strcasecmp(type, "var")) {
-			// we don't use them for this, but we could add them in the
-			// user catalogue for annotations, or a local database
-		}
-		else if (!strcasecmp(type, "comp1")) {
-			if (!use_comp1) {
-				siril_debug_print("ignoring comp1 star\n");
-				g_strfreev(tokens);
-				continue;
-			}
-			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1);
-			double dec = g_ascii_strtod(tokens[dec_index], &end2);
-			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				target_acquired = FALSE;
-				break;
-			}
-			int index = target_acquired ? stars_count : stars_count + 1;
-			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
-				if (area_is_unique(&areas[index], areas, index)) {
-					stars_count++;
-					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
-				}
-				else siril_log_message(_("Star %s ignored because it was too close to another\n"), tokens[name_index]);
-			}
-			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
-		}
-		else if (!strcasecmp(type, "comp2")) {
-			if (!use_comp2) {
-				siril_debug_print("ignoring comp2 star\n");
-				g_strfreev(tokens);
-				continue;
-			}
-			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1);
-			double dec = g_ascii_strtod(tokens[dec_index], &end2);
-			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				target_acquired = FALSE;
-				break;
-			}
-			int index = target_acquired ? stars_count : stars_count + 1;
-			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
-				if (area_is_unique(&areas[index], areas, index)) {
-					stars_count++;
-					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
-				}
-				else siril_log_message(_("Star %s ignored because it was too close to another\n"), tokens[name_index]);
-			}
-			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
-		}
-		else {
-			siril_debug_print("malformed line: %s\n", buf);
 		}
 		g_strfreev(tokens);
-		if (stars_count >= MAX_REF_STARS)
+	}
+
+	rectangle *areas = malloc(MAX_REF_STARS * sizeof(rectangle));
+	areas[0].x = 0; areas[0].y = 0;
+	int stars_count = 0;
+	gboolean target_acquired = FALSE;
+
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		cat_item item = siril_cat->cat_items[i];
+		if (!strcasecmp(item.type, "target")) {
+			args->target_descr = g_strdup(item.name);
+			if (!get_photo_area_from_ra_dec(first, item.ra, item.dec, &areas[0])) {
+				target_acquired = TRUE;
+				stars_count++;
+				siril_log_message(_("Target star identified: %s\n"), item.name);
+			} else {
+				siril_log_color_message(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"), "red");
+				break;
+			}
+		} else if ((use_comp1 && !strcasecmp(item.type, "comp1")) || (use_comp2 && !strcasecmp(item.type, "comp2"))) {
+			int index = target_acquired ? stars_count : stars_count + 1;
+			if (!get_photo_area_from_ra_dec(first, item.ra, item.dec, &areas[index])) {
+				if (area_is_unique(&areas[index], areas, index)) {
+					stars_count++;
+					siril_log_message(_("star %s [%s] added as a reference star\n"), item.name, item.type);
+				}
+				else siril_log_message(_("Star %s ignored because it was too close to another\n"), item.name);
+			}
+			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), item.name);
+		}
+		if (stars_count == MAX_REF_STARS)
 			break;
 	}
+
 	if (target_acquired) {
 		args->areas = areas;
 		args->nb = stars_count;
 	} else {
 		free(areas);
 	}
-	fclose(fd);
+	siril_catalog_free(siril_cat);
 	return !target_acquired;
 }
 
@@ -337,7 +242,7 @@ int sort_compstars(struct compstars_arg *args) {
 		double BVi = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // B-V index
 
 		// Criteria #0: the star has to be within the image and far from the borders
-		// (discards 15% of the width/height on both borders)
+		// (discards 10% of the width/height on both borders)
 		if ((siril_cat->cat_items[i].x > xmin && siril_cat->cat_items[i].x < xmax && siril_cat->cat_items[i].y > ymin && siril_cat->cat_items[i].y < ymax) &&
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
 				// TODO: AAVSO guide says the compstars do not need to be the same color as target
@@ -448,17 +353,17 @@ static void write_nina_file(struct compstars_arg *args) {
 
 	if (args->delta_Vmag <= 0.0 && args->delta_BV <= 0.0)
 		fprintf(fd, "# No criteria applied\n");
-	else fprintf(fd, "# Siril: %d stars, dVmag %.2f, dBV %.2f, max e_mag\n",
+	else fprintf(fd, "# Siril: %d stars, dVmag %.2f, dBV %.2f, max e_mag %.2f\n",
 			args->nb_comp_stars, args->delta_Vmag, args->delta_BV, args->max_emag);
 
-	fprintf(fd, "Type,Name,HFR,xPos,yPos,AvgBright,MaxBright,Background,Ra,Dec\n");
+	fprintf(fd, "Type,Name,Ra,Dec\n");
 
-	fprintf(fd, "Target,%s,,,,,,,%lf,%lf\n", args->target_star->star_name,
+	fprintf(fd, "Target,%s,%lf,%lf\n", args->target_star->star_name,
 			args->target_star->ra, args->target_star->dec);
 
 	int i = 0;
 	while (args->comp_stars[i]) {
-		int retval = fprintf(fd, "Comp1,%s,,,,,,,%f,%f\n",
+		int retval = fprintf(fd, "Comp1,%s,%f,%f\n",
 				args->comp_stars[i]->star_name /*? args->comp_stars[i]->star_name : "x"*/,
 				args->comp_stars[i]->ra, args->comp_stars[i]->dec);
 		if (retval < 0)
@@ -542,13 +447,13 @@ gchar *generate_lc_subtitle(struct compstars_arg *metadata, gboolean for_plot) {
 		return g_strdup("");
 	GString *str = g_string_new("");
 	gboolean first = TRUE;
-	if (metadata->nb_comp_stars > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0) {
+	if (metadata->nb_comp_stars > 0 && metadata->delta_Vmag != 0.0 && metadata->delta_BV != 0.0 && metadata->max_emag != 0.0) {
 		if (for_plot)
 			g_string_append_printf(str,
-				"\n<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f</span>",
-				metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
-		else g_string_append_printf(str, "#%d %s delta Vmag = %.2f, delta BV = %.2f",
-					metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV);
+				"\n<span size=\"small\">%d %s &#x03B4;<sub>Vmag</sub> = %.2f, &#x03B4;<sub>BV</sub> = %.2f, max e_mag = %.2f</span>",
+				metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV, metadata->max_emag);
+		else g_string_append_printf(str, "#%d %s delta Vmag = %.2f, delta BV = %.2f, max e_mag = %.2f",
+					metadata->nb_comp_stars, _("stars within"), metadata->delta_Vmag, metadata->delta_BV, metadata->max_emag);
 		first = FALSE;
 	}
 	if (metadata->AAVSO_chartid) {

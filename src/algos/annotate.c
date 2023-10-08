@@ -30,27 +30,29 @@
 #include "gui/utils.h"
 #include "algos/siril_wcs.h"
 #include "gui/image_display.h"
+#include "io/siril_catalogues.h"
 
 #include "annotate.h"
 
 #define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec
+#define CAT_AN_INDEX_OFFSET 60
 
 static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
 
 static gboolean show_catalog(annotations_cat catalog);
 
 static const gchar *cat[] = {
-	"messier.txt",
-	"ngc.txt",
-	"ic.txt",
-	"ldn.txt",
-	"sh2.txt",
-	"stars.txt",
+	"messier.csv",
+	"ngc.csv",
+	"ic.csv",
+	"ldn.csv",
+	"sh2.csv",
+	"stars.csv",
 	/* below this line, user catalogues are in the user directory, not the
 	 * siril install dir. See also USER_DSO_CAT_INDEX which gives the index
 	 * of this separation */
-	"user-DSO-catalogue.txt",
-	"user-SSO-catalogue.txt"
+	"user-DSO-catalogue.csv",
+	"user-SSO-catalogue.csv"
 };
 // update USER_DSO_CAT_INDEX and USER_SSO_CAT_INDEX from the .h in case of change
 // make sure com.pref.gui.catalog matches this too
@@ -62,13 +64,12 @@ struct _CatalogObjects {
 	gdouble dec;	// degrees
 	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
 			// negative for no accurate size
-	gchar *name;
 	gchar *alias;
 	annotations_cat catalogue; // index from the list of catalogues above
 };
 
 static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
-		gdouble dec, gdouble radius, const gchar *name, const gchar *alias,
+		gdouble dec, gdouble radius, const gchar *alias,
 		annotations_cat catalogue) {
 	CatalogObjects *object = g_new(CatalogObjects, 1);
 
@@ -77,35 +78,13 @@ static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
 	object->ra = ra;
 	object->dec = dec;
 	object->radius = radius;
-	object->name = g_strdup(name);
 	object->alias = g_strdup(alias);
 	object->catalogue = catalogue;
 	return object;
 }
 
 const char *cat_index_to_name(annotations_cat index) {
-	switch (index) {
-		case ANCAT_MESSIER:
-			return "Messier";
-		case ANCAT_NGC:
-			return "NGC";
-		case ANCAT_IC:
-			return "IC";
-		case ANCAT_LDN:
-			return "LDN";
-		case ANCAT_SH2:
-			return "Sh2";
-		case ANCAT_STARS:
-			return "stars";
-		case USER_DSO_CAT_INDEX:
-			return "user-DSO";
-		case USER_SSO_CAT_INDEX:
-			return "user-SSO";
-		case USER_TEMP_CAT_INDEX:
-			return "user-temp";
-		default:
-			return "(undefined)";
-	}
+	return catalog_to_str(index + CAT_AN_INDEX_OFFSET);
 }
 
 /* compare two objects, looking for duplicates based on the alias names againts the code of the object to search */
@@ -135,8 +114,6 @@ static gint object_compare(gconstpointer *a, gconstpointer *b) {
 static gboolean add_alias_to_object(CatalogObjects *obj, gchar *code) {
 	if (obj->code && !strcasecmp(obj->code, code))
 		return FALSE;
-	if (obj->name && !strcasecmp(obj->name, code))
-		return FALSE;
 	if (obj->alias && obj->alias[0] != '\0') {
 		if (!strchr(obj->alias, '/')) {
 			if (!strcasecmp(obj->alias, code))
@@ -161,169 +138,36 @@ static gboolean add_alias_to_object(CatalogObjects *obj, gchar *code) {
 	return TRUE;
 }
 
-/**
- * Catalogue must be formatted as follow:
- * This is a "; separated value" file
- * code ; ra ; dec sign ; dec ; radius ; name ; alias
- *
+/*
+ * Loads a csv catalogue using generic csv parser
  */
 static GSList *load_catalog(const gchar *filename, gint cat_index) {
-	GFile *file;
-	gchar *line;
 	GSList *list = NULL;
-
-	file = g_file_new_for_path(filename);
-	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, NULL);
-
-	if (input_stream == NULL) {
-		siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
-		g_object_unref(file);
-		return NULL;
-	}
-
-	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
-	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
-				NULL, NULL))) {
-		if (g_str_has_prefix (line, "Code")) {
-			g_free(line);
-			continue;
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cattype = cat_index + CAT_AN_INDEX_OFFSET;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
+	if (!siril_catalog_load_from_file(siril_cat, filename)) {// use the generic csv parser
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			CatalogObjects *object = new_catalog_object(siril_cat->cat_items[i].name,
+			siril_cat->cat_items[i].ra,
+			siril_cat->cat_items[i].dec,
+			siril_cat->cat_items[i].diameter * 0.5,
+			siril_cat->cat_items[i].alias,
+			cat_index);
+			list = g_slist_prepend(list, (gpointer) object);
 		}
-		gchar **token = g_strsplit(line, ";", -1);
-		guint nargs = g_strv_length(token);
-
-		const gchar *code = NULL, *name = NULL, *alias = NULL;
-		gdouble ra, dec, radius;
-
-		/* mandatory tokens */
-		code = token[0];
-		ra = g_ascii_strtod(token[1], NULL) * 15.0;
-		dec = g_strcmp0(token[2], "-") ? g_ascii_strtod(token[3], NULL) : g_ascii_strtod(token[3], NULL) * -1.0;
-		radius = g_ascii_strtod(token[4], NULL) * 0.5;
-
-		/* optional tokens */
-		if (nargs > 5) {
-			name = token[6];
-			if (nargs > 6) {
-				alias = token[7];
-			}
-		}
-
-		CatalogObjects *object = new_catalog_object(code, ra, dec, radius, name, alias, cat_index);
-
-		list = g_slist_prepend(list, (gpointer) object);
-
-		g_strfreev(token);
-		g_free(line);
+		list = g_slist_reverse(list);
 	}
-	list = g_slist_reverse(list);
 	siril_debug_print("loaded %d objects from annotations catalogue %s\n", g_slist_length(list), filename);
-
-	g_object_unref(data_input);
-	g_object_unref(input_stream);
-	g_object_unref(file);
 	return list;
 }
 
-// for the show command, load a list of objects from a file into the temp cat
+// for the show command, loads a list of objects from a file into the temp cat
 int load_csv_targets_to_temp(const gchar *filename) {
-	GFile *file = g_file_new_for_path(filename);
-	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, NULL);
-
-	if (input_stream == NULL) {
-		siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
-		g_object_unref(file);
-		return 1;
-	}
-
-	int name_index = 0, ra_index = 1, dec_index = 2, max_index = 2;
-	gboolean nina_file = FALSE;
-	gboolean first_line = TRUE;
-
-	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
-	GSList *list = NULL;
-	gchar *line;
-	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
-					NULL, NULL))) {
-		if (line[0] == '\0' || line[0] == '\r' || line[0] == '\n' || line[0] == '#') {
-			first_line = TRUE;
-			g_free(line);
-			continue;
-		}
-		remove_trailing_eol(line);
-
-		gchar **token = g_strsplit(line, ",", -1);
-		guint nargs = g_strv_length(token);
-
-		if (first_line) {
-			first_line = FALSE;
-			// this could be a NINA stars type CSV file, it's easy to
-			// also support it in this function
-			if (!strcasecmp(token[0], "type") && token[1]) {
-				// first non-comment line must start with 'Type,'
-				siril_debug_print("header from the NINA file: %s\n", line);
-				name_index = -1; ra_index = -1; dec_index = -1;
-				for (int i = 1; token[i]; i++) {
-					if (!strcasecmp(token[i], "ra"))
-						ra_index = i;
-					else if (!strcasecmp(token[i], "dec"))
-						dec_index = i;
-					else if (!strcasecmp(token[i], "name"))
-						name_index = i;
-				}
-				g_strfreev(token);
-				g_free(line);
-				if (name_index == -1 || ra_index == -1 || dec_index == -1) {
-					siril_log_color_message(_("Stars file did not contain the expected header for NINA-style format\n"), "red");
-					break;
-				}
-				max_index = max(name_index, max(ra_index, dec_index));
-				nina_file = TRUE;
-				continue;
-			}
-		}
-
-		if (nargs < max_index + 1) {
-			siril_log_message(_("Malformed line: %s\n"), line);
-			g_strfreev(token);
-			g_free(line);
-			continue;
-		}
-		if (nina_file && strncasecmp(line, "comp", 4)) {
-			// ignore the target and variable stars from the list
-			g_strfreev(token);
-			g_free(line);
-			continue;
-		}
-
-		/* mandatory tokens */
-		const gchar *code = token[name_index];
-		double ra, dec;
-		if (!code) code = "";
-		if (strchr(token[ra_index], ' ') || strchr(token[ra_index], ':')) {
-			ra = parse_hms(token[ra_index]);	// in hours
-			dec = parse_dms(token[dec_index]);
-		} else {
-			ra = g_ascii_strtod(token[ra_index], NULL);	// in degrees
-			dec = g_ascii_strtod(token[dec_index], NULL);
-		}
-		if (isnan(ra) || isnan(dec) || (ra == 0.0 && dec == 0.0)) {
-			siril_log_message(_("Malformed line: %s\n"), line);
-		} else {
-			CatalogObjects *object = new_catalog_object(code, ra, dec, 0.0, NULL, NULL, USER_TEMP_CAT_INDEX);
-			list = g_slist_prepend(list, (gpointer) object);
-
-		}
-		g_strfreev(token);
-		g_free(line);
-	}
-	//list = g_slist_reverse(list);
+	GSList *list = load_catalog(filename, USER_TEMP_CAT_INDEX);
 	siril_debug_print("loaded %d objects from CSV temporary annotation %s\n", g_slist_length(list), filename);
 	if (list)
 		siril_catalogue_list = g_slist_concat(list, siril_catalogue_list);
-
-	g_object_unref(data_input);
-	g_object_unref(input_stream);
-	g_object_unref(file);
 	return list == NULL;
 }
 
@@ -558,7 +402,7 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean check_dupl
 
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
-			NULL, NULL, cat_idx);
+			NULL, cat_idx);
 
 	siril_catalogue_list = g_slist_prepend(siril_catalogue_list, new_object);
 	write_in_user_catalogue(new_object, cat_idx);
@@ -616,20 +460,12 @@ const CatalogObjects *search_in_annotations_by_name(const char *input) {
 						found = obj;
 						break;
 					}
+					if (!probable && strstr(token[i], target)) {
+						probable = obj;
+					}
 					i++;
 				}
 				g_strfreev(token);
-			}
-		}
-		// name are 'given names' like trifid, sunflower, vega...
-		if (obj->name) {
-			if (!strcasecmp(obj->name, target)) {
-				found = obj;
-				break;
-			}
-			// TODO: strcasestr, but it's not standard
-			if (!probable && strstr(obj->name, target)) {
-				probable = obj;
 			}
 		}
 		cur = cur->next;
@@ -643,10 +479,6 @@ const CatalogObjects *search_in_annotations_by_name(const char *input) {
 		siril_debug_print("probable object found in annotation catalogues: %s\n", probable->code);
 	else siril_debug_print("object %s not found in annotation catalogues\n", input);
 	return probable;
-}
-
-gchar *get_catalogue_object_name(const CatalogObjects *object) {
-	return object->name;
 }
 
 gchar *get_catalogue_object_code(const CatalogObjects *object) {
@@ -671,7 +503,6 @@ gdouble get_catalogue_object_radius(const CatalogObjects *object) {
 
 void free_catalogue_object(CatalogObjects *object) {
 	g_free(object->code);
-	g_free(object->name);
 	g_free(object->alias);
 	g_free(object);
 }

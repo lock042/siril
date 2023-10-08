@@ -470,10 +470,10 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	gsize n;
 	// parsing the AAVSO chart id in the comments section
 	JsonReader *reader = json_reader_new(json_parser_get_root(parser));
-    json_reader_read_member(reader, "chartid");
-    const gchar *id = json_reader_get_string_value(reader);
-    json_reader_end_member(reader);
-	g_output_stream_printf(output_stream, &n, NULL, NULL, "#chartid:%s\n", id);
+	json_reader_read_member(reader, "chartid");
+	const gchar *id = json_reader_get_string_value(reader);
+	json_reader_end_member(reader);
+	g_output_stream_printf(output_stream, &n, NULL, NULL, "#ChartID:%s\n", id);
 
 	// writing the csv header
 	g_output_stream_printf(output_stream, &n, NULL, NULL, "name,ra,dec,mag,bmag,e_mag,e_bmag\n");
@@ -481,8 +481,8 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	json_reader_read_member(reader, "photometry");
 	int nstars = json_reader_count_elements(reader);
 
-    for (int i = 0; i < nstars; i++) {
-        json_reader_read_element(reader, i);
+	for (int i = 0; i < nstars; i++) {
+		json_reader_read_element(reader, i);
 		// auid
 		json_reader_read_member(reader, "auid");
 		const gchar *name = json_reader_get_string_value(reader);
@@ -528,7 +528,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		if (!isnan(ra) && !isnan(dec))
 			g_output_stream_printf(output_stream, &n, NULL, NULL, "%s,%g,%+g,%g,%g,%g,%g\n", name, ra, dec, mag, bmag, e_mag, e_bmag);
 		json_reader_end_element(reader);
-    }
+	}
 	g_object_unref(reader);
 	g_object_unref(parser);
 	return TRUE;
