@@ -643,7 +643,7 @@ gchar *download_catalog(siril_catalogue *siril_cat) {
 	g_free(str);
 
 	if (catalog_is_in_cache) {
-		siril_log_message(_("Using already downloaded star catalogue %s\n"), catalog_to_str(siril_cat->cattype));
+		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cattype));
 		return filepath;
 	}
 	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
@@ -664,6 +664,7 @@ gchar *download_catalog(siril_catalogue *siril_cat) {
 		remove_file = TRUE;
 		goto download_error;
 	}
+	siril_log_message(_("Contacting server\n"));
 	buffer = fetch_url(url);
 	g_free(url);
 
@@ -701,8 +702,7 @@ gchar *download_catalog(siril_catalogue *siril_cat) {
 
 download_error:
 	if (error) {
-		g_warning("%s\n", error->message);
-		siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", filepath, error->message);
+		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);
 		}
 	g_free(buffer);

@@ -21,6 +21,7 @@
 #define SRC_ALGOS_ANNOTATE_H_
 
 #include "core/siril_world_cs.h"
+#include "io/siril_catalogues.h"
 
 typedef struct _CatalogObjects CatalogObjects;
 
@@ -56,5 +57,6 @@ void purge_temp_user_catalogue();
 gboolean is_inside(fits *fit, double ra, double dec);
 gboolean is_inside2(fits *fit, double ra, double dec, double *x, double *y);
 int load_csv_targets_to_temp(const gchar *filename);
+int load_siril_cat_to_temp(siril_catalogue *siril_cat);
 
 #endif /* SRC_ALGOS_ANNOTATE_H_ */

@@ -113,7 +113,7 @@ typedef struct {
 	double sitelat, sitelon, siteelev; // obs site for solar system
 	double vra, vdec; // speed vector in ra/dec for solar system
 	gchar *name;  // name of the object
-	gchar *alias; // aliases given in annotation catalogues, tab-separated
+	gchar *alias; // aliases given in annotation catalogues, '/'-separated
 	gchar *type; // type of the object, for solsys and compstars
 
 	// computed
@@ -149,6 +149,7 @@ void siril_catalog_free(siril_catalogue *siril_cat);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
+gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename, gchar *header);
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion);
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 

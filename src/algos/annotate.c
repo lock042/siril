@@ -37,7 +37,7 @@
 #define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec
 #define CAT_AN_INDEX_OFFSET 60
 
-static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
+static GSList *siril_annot_catalogue_list = NULL; // loaded data from all annotation catalogues
 
 static gboolean show_catalog(annotations_cat catalog);
 
@@ -157,29 +157,49 @@ static GSList *load_catalog(const gchar *filename, gint cat_index) {
 			list = g_slist_prepend(list, (gpointer) object);
 		}
 		list = g_slist_reverse(list);
+		siril_catalog_free(siril_cat);
 	}
 	siril_debug_print("loaded %d objects from annotations catalogue %s\n", g_slist_length(list), filename);
 	return list;
 }
 
 // for the show command, loads a list of objects from a file into the temp cat
+// The file must have at least name, ra and dec columns
 int load_csv_targets_to_temp(const gchar *filename) {
 	GSList *list = load_catalog(filename, USER_TEMP_CAT_INDEX);
 	siril_debug_print("loaded %d objects from CSV temporary annotation %s\n", g_slist_length(list), filename);
 	if (list)
-		siril_catalogue_list = g_slist_concat(list, siril_catalogue_list);
+		siril_annot_catalogue_list = g_slist_concat(list, siril_annot_catalogue_list);
+	return list == NULL;
+}
+
+int load_siril_cat_to_temp(siril_catalogue *siril_cat) {
+	GSList *list = NULL;
+	if (!siril_cat)
+		return 1;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		CatalogObjects *object = new_catalog_object((siril_cat->cat_items[i].name) ? siril_cat->cat_items[i].name : "",
+		siril_cat->cat_items[i].ra,
+		siril_cat->cat_items[i].dec,
+		siril_cat->cat_items[i].diameter * 0.5,
+		siril_cat->cat_items[i].alias,
+		USER_TEMP_CAT_INDEX);
+		list = g_slist_prepend(list, (gpointer) object);
+	}
+	if (list)
+		siril_annot_catalogue_list = g_slist_concat(list, siril_annot_catalogue_list);
 	return list == NULL;
 }
 
 // this will also purge the temporary list
 static void reload_all_catalogues() {
 	siril_debug_print("reloading annotation catalogues\n");
-	if (siril_catalogue_list) {
+	if (siril_annot_catalogue_list) {
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
 
-		g_slist_free_full(siril_catalogue_list, (GDestroyNotify)free_catalogue_object);
-		siril_catalogue_list = NULL;
+		g_slist_free_full(siril_annot_catalogue_list, (GDestroyNotify)free_catalogue_object);
+		siril_annot_catalogue_list = NULL;
 	}
 
 	int cat_size = G_N_ELEMENTS(cat);
@@ -189,17 +209,17 @@ static void reload_all_catalogues() {
 			filename = g_build_filename(siril_get_system_data_dir(), "catalogue", cat[i], NULL);
 		else filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[i], NULL);
 		if (g_file_test(filename, G_FILE_TEST_EXISTS))
-			siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, i));
+			siril_annot_catalogue_list = g_slist_concat(siril_annot_catalogue_list, load_catalog(filename, i));
 		g_free(filename);
 	}
 }
 
-static GSList *get_siril_catalogue_list() {
-	return siril_catalogue_list;
+static GSList *get_siril_annot_catalogue_list() {
+	return siril_annot_catalogue_list;
 }
 
 static gboolean is_catalogue_loaded() {
-	return siril_catalogue_list != NULL;
+	return siril_annot_catalogue_list != NULL;
 }
 
 typedef struct {
@@ -343,7 +363,7 @@ gboolean is_inside2(fits *fit, double ra, double dec, double *x, double *y) {
 	return wcs2pix(fit, ra, dec, x, y) == 0;
 }
 
-/* get a list of objects from all catalogues (= from siril_catalogue_list) that
+/* get a list of objects from all catalogues (= from siril_annot_catalogue_list) that
  * are framed in the passed plate solved image */
 GSList *find_objects_in_field(fits *fit) {
 	if (!has_wcs(fit)) return NULL;
@@ -351,7 +371,7 @@ GSList *find_objects_in_field(fits *fit) {
 
 	if (!is_catalogue_loaded())
 		reload_all_catalogues();
-	GSList *list = get_siril_catalogue_list();
+	GSList *list = get_siril_annot_catalogue_list();
 
 	for (GSList *l = list; l; l = l->next) {
 		CatalogObjects *cur = (CatalogObjects *)l->data;
@@ -375,7 +395,7 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean check_dupl
 	if (!is_catalogue_loaded())
 		reload_all_catalogues();
 	if (check_duplicates) {	// duplicate check based on coordinates within 1"
-		GSList *cur = siril_catalogue_list;
+		GSList *cur = siril_annot_catalogue_list;
 		double ra = siril_world_cs_get_alpha(wcs);
 		double dec = siril_world_cs_get_delta(wcs);
 		while (cur) {
@@ -404,7 +424,7 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean check_dupl
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
 			NULL, cat_idx);
 
-	siril_catalogue_list = g_slist_prepend(siril_catalogue_list, new_object);
+	siril_annot_catalogue_list = g_slist_prepend(siril_annot_catalogue_list, new_object);
 	write_in_user_catalogue(new_object, cat_idx);
 }
 
@@ -431,7 +451,7 @@ const CatalogObjects *search_in_annotations_by_name(const char *input) {
 	siril_debug_print("target name after transformation: %s\n", target);
 
 	CatalogObjects *found = NULL, *probable = NULL;
-	GSList *cur = siril_catalogue_list;
+	GSList *cur = siril_annot_catalogue_list;
 	while (cur) {
 		CatalogObjects *obj = cur->data;
 		if (obj->catalogue == USER_SSO_CAT_INDEX ||
@@ -535,15 +555,15 @@ static void remove_temp_from_found(gpointer data, gpointer user_data) {
 void purge_temp_user_catalogue() {
 	g_slist_foreach(com.found_object, remove_temp_from_found, NULL);
 
-	GSList *cur = siril_catalogue_list, *prev = NULL;
+	GSList *cur = siril_annot_catalogue_list, *prev = NULL;
 	while (cur) {
 		CatalogObjects *obj = cur->data;
 		if (obj->catalogue == USER_TEMP_CAT_INDEX) {
-			if (cur == siril_catalogue_list) {
-				siril_catalogue_list = cur->next;
+			if (cur == siril_annot_catalogue_list) {
+				siril_annot_catalogue_list = cur->next;
 				free_catalogue_object(obj);
 				g_slist_free_1(cur);
-				cur = siril_catalogue_list;
+				cur = siril_annot_catalogue_list;
 			} else {
 				GSList *tmp = cur;
 				cur = cur->next;

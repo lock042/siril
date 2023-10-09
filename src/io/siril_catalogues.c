@@ -32,6 +32,7 @@
 #endif
 #endif
 
+#include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_app_dirs.h"
@@ -49,6 +50,7 @@
 #include "registration/matching/misc.h"
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
+#include "gui/utils.h"
 
 // This list defines the columns that can possibly be found in any catalogue
 const gchar *cat_columns[] = { 
@@ -85,6 +87,48 @@ static int get_column_index(gchar *field) {
 	return -1;
 }
 
+static gchar *get_field_to_str(cat_item item, cat_fields field) {
+	switch (field) {
+		case CAT_FIELD_RA:
+			return (item.ra) ? g_strdup_printf("%g", item.ra) : NULL;
+		case CAT_FIELD_DEC:
+			return (item.dec) ? g_strdup_printf("%g", item.dec) : NULL;
+		case CAT_FIELD_PMRA:
+			return (item.pmra) ? g_strdup_printf("%g", item.pmra) : NULL;
+		case CAT_FIELD_PMDEC:
+			return (item.pmdec) ? g_strdup_printf("%g", item.pmdec) : NULL;
+		case CAT_FIELD_MAG:
+			return (item.mag) ? g_strdup_printf("%g", item.mag) : NULL;
+		case CAT_FIELD_BMAG:
+			return (item.bmag) ? g_strdup_printf("%g", item.bmag) : NULL;
+		case CAT_FIELD_E_MAG:
+			return (item.e_mag) ? g_strdup_printf("%g", item.e_mag) : NULL;
+		case CAT_FIELD_E_BMAG:
+			return (item.e_bmag) ? g_strdup_printf("%g", item.e_bmag) : NULL;
+		case CAT_FIELD_DIAMETER:
+			return (item.diameter) ? g_strdup_printf("%g", item.diameter) : NULL;
+		case CAT_FIELD_DATEOBS:
+			return (item.dateobs) ? g_strdup_printf("%g", item.dateobs) : NULL;
+		case CAT_FIELD_SITELAT:
+			return (item.sitelat) ? g_strdup_printf("%g", item.sitelat) : NULL;
+		case CAT_FIELD_SITELON:
+			return (item.sitelon) ? g_strdup_printf("%g", item.sitelon) : NULL;
+		case CAT_FIELD_SITEELEV:
+			return (item.siteelev) ? g_strdup_printf("%g", item.siteelev) : NULL;
+		case CAT_FIELD_VRA:
+			return (item.vra) ? g_strdup_printf("%g", item.vra) : NULL;
+		case CAT_FIELD_VDEC:
+			return (item.vdec) ? g_strdup_printf("%g", item.vdec) : NULL;
+		case CAT_FIELD_NAME:
+			return (item.name) ? g_strdup(item.name) : NULL;
+		case CAT_FIELD_ALIAS:
+			return (item.alias) ? g_strdup(item.alias) : NULL;
+		case CAT_FIELD_TYPE:
+			return (item.type) ? g_strdup(item.type) : NULL;
+		default:
+			return NULL;
+	}
+}
 // This function defines the fields that should be present in each catalog
 // To be used as sanity check
 uint32_t siril_catalog_columns(object_catalog cat) {
@@ -122,7 +166,7 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_AN_STARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME); //| (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) //TODO:Add pm
 		case CAT_AN_USER_DSO:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC);
 		case CAT_AN_USER_SSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV);
 		case CAT_COMPSTARS:
@@ -283,7 +327,7 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 			item->e_bmag = (float)g_ascii_strtod(input, NULL);
 			break;
 		case CAT_FIELD_NAME:
-			item->name = g_strdup(input);
+			item->name = g_shell_unquote(input, NULL); // TAP queries return quoted names
 			break;
 		case CAT_FIELD_DIAMETER:
 			item->diameter = (float)g_ascii_strtod(input, NULL);
@@ -408,7 +452,9 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	return nbstars;
 }
 
-// loads the file and fills the cat_items members of the catalogue in entry
+// This is the generic parser for all csv catalogues used by Siril
+// (annotation, downloaded, nina lists...)
+// Loads the csv file and fills the cat_items members of the catalogue in entry
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename) {
 	GError *error = NULL;
 	GFile *catalog_file = g_file_new_for_path(filename);
@@ -534,6 +580,81 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	return 0;
 }
 
+// Writes the catalogue to the given filepath
+// Optionally writes the header if provided
+gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename, gchar *header) {
+	if (!siril_cat || !filename)
+		return FALSE;
+
+	/* First we test if root directory already exists */
+	gchar *root = g_path_get_dirname(filename);
+	if (!g_file_test(root, G_FILE_TEST_IS_DIR)) {
+		if (g_mkdir_with_parents(root, 0755) < 0) {
+			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+			g_free(root);
+			return FALSE;
+		}
+	}
+
+	// Then we delete it if it exists
+	GError *error = NULL;
+	GFile *file = g_file_new_for_path(filename);
+	if (g_file_test(filename, G_FILE_TEST_EXISTS)) { // file already exists, we removed it
+		if (!g_file_delete(file, NULL, &error)) {
+			siril_log_color_message(_("File % cannot be deleted (%s), aborting\n"), "red", filename, (error) ? error->message : "unknown error");
+			g_object_unref(file);
+			return FALSE;
+		}
+	}
+
+	// and we open the stream to write to
+	GOutputStream *output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
+	if (!output_stream) {
+		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filename, (error) ? error->message : "unknown error");
+		g_clear_error(&error);
+		g_object_unref(file);
+		return FALSE;
+	}
+	gsize n;
+	if (header)
+		g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", header);
+	
+	// we write the line containing the columns names based on catalog spec
+	GString *columns = NULL;
+	int nbcols = 0;
+	int index[MAX_CAT_COLUMNS];
+	for (int i = 0; i < MAX_CAT_COLUMNS; i++) {
+		if (siril_cat->columns & (1 << i)) {
+			if (!columns)
+				columns = g_string_new(cat_columns[i]);
+			else
+				g_string_append_printf(columns, ",%s", cat_columns[i]);
+			index[nbcols++] = i;
+		}
+	}
+	gchar *columns_str = g_string_free(columns, FALSE);
+	if (columns_str) {
+		g_output_stream_printf(output_stream, &n, NULL, NULL, "%s", columns_str);
+	} else {
+		siril_debug_print("no columns to write");
+		g_object_unref(file);
+		g_object_unref(output_stream);
+		return FALSE;
+	}
+	g_free(columns_str);
+	for (int j = 0; j < siril_cat->nbitems; j++) {
+		gchar **tokens = calloc(nbcols + 1, sizeof(gchar *));
+		for (int i = 0; i < nbcols; i++) {
+			tokens[i] = get_field_to_str(siril_cat->cat_items[j], index[i]);
+		}
+		gchar *newline = g_strjoinv(",", tokens);
+		g_output_stream_printf(output_stream, &n, NULL, NULL, "\n%s", newline);
+		g_free(newline);
+		g_strfreev(tokens);
+	}
+	g_object_unref(output_stream);
+	return TRUE;
+}
 // projects passed catalogue using the wcs data contained in the fit
 // corrects for proper motions if the flag is TRUE and the necessary data is contained
 // in the fit (dateobs) and in the catalogue (pmra and pmdec fields)
@@ -581,7 +702,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		}
 	}
 	siril_cat->nbincluded = nbincluded;
-	return 0;
+	return !(nbincluded > 0);
 } 
 
 // projects passed catalogue wrt to the center ra0 and dec0 coordinates
@@ -633,17 +754,30 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 	return 0;
 }
 
+// TODO: move to a file for callbacks and remove gtk include
 static gboolean end_conesearch(gpointer p) {
-	siril_catalogue *siril_cat = (siril_catalogue *) p;
-	siril_catalog_free(siril_cat);
-	if (!com.script)
-		redraw(REDRAW_OVERLAY);
+	siril_catalogue *temp_cat = (siril_catalogue *) p;
+	if (temp_cat) {
+		purge_temp_user_catalogue();
+		if (!load_siril_cat_to_temp(temp_cat)) {
+			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+			refresh_found_objects();
+			if (!gtk_toggle_tool_button_get_active(button)) {
+				gtk_toggle_tool_button_set_active(button, TRUE);
+			} else {
+				refresh_found_objects();
+				redraw(REDRAW_OVERLAY);
+			}
+		}
+		siril_catalog_free(temp_cat);
+	}
 	return end_generic(NULL);
 }
 
 // worker for the command conesearch
 gpointer conesearch_worker(gpointer p) {
 	siril_catalogue *siril_cat = (siril_catalogue *) p;
+	siril_catalogue *temp_cat = NULL;
 	int retval = -1;
 	if (!siril_cat) {
 		siril_debug_print("no query passed");
@@ -664,22 +798,21 @@ gpointer conesearch_worker(gpointer p) {
 	}
 	int nb_stars = siril_cat->nbitems;
 	sort_cat_items_by_mag(siril_cat);
-	if (!com.script) {
-		clear_stars_list(FALSE);
-	}
 	int j = 0;
-	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
+	// preparing the output catalog
+	temp_cat = calloc(1, sizeof(siril_catalogue));
+	temp_cat->cattype = CAT_AN_USER_TEMP;
+	temp_cat->columns = siril_catalog_columns(CAT_AN_USER_TEMP);
+	for (int i = 0; i < nb_stars; i++) {
 		if (!siril_cat->cat_items[i].included || siril_cat->cat_items[i].mag > siril_cat->limitmag)
 			continue;
-		if (!com.script && !com.stars)
-			com.stars = new_fitted_stars(MAX_STARS);
+		if (!com.script && !temp_cat->cat_items)
+			temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
 		if (!com.script) {
-			com.stars[j] = new_psf_star();
-			fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
-			com.stars[j]->fwhmx = 5.0f;
-			com.stars[j]->fwhmy = 5.0f;
-			com.stars[j]->layer = 0;
-			com.stars[j]->angle = 0.0f;
+			temp_cat->cat_items[j].ra = siril_cat->cat_items[i].ra;
+			temp_cat->cat_items[j].dec = siril_cat->cat_items[i].dec;
+			if (siril_cat->cat_items[i].name)
+				temp_cat->cat_items[j].name = g_strdup(siril_cat->cat_items[i].name);
 		}
 		if (siril_cat->cattype == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
 			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
@@ -694,14 +827,18 @@ gpointer conesearch_worker(gpointer p) {
 			siril_cat->cat_items[i].dec);
 		j++;
 	}
-	if (j > 0 && !com.script)
-		com.stars[j] = NULL;
-
 	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
 			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
 	retval = 0;
 end_conesearch:
-	siril_add_idle(end_conesearch, siril_cat);
+	siril_catalog_free(siril_cat);
+	if (!com.script) {
+		if (temp_cat)
+			temp_cat->nbitems = j;
+		siril_add_idle(end_conesearch, temp_cat); // temp_cat will be freed in the idle
+	} else {
+		end_generic(NULL);
+	}
 	return GINT_TO_POINTER(retval);
 }
 

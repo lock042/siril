@@ -17,8 +17,8 @@ struct compstars_arg {
 	// for internal use
 	psf_star *target_star;	// the considered variable star
 	siril_catalogue *cat_stars;	// the list of stars for the field
-	int nb_cat_stars;
-	psf_star **comp_stars;	// the list of photometric comparison stars
+	siril_catalogue *comp_stars;	// the list of photometric comparison stars
+	
 	int nb_comp_stars;
 	gchar *AAVSO_chartid;
 	gchar *AAVSO_uri;
