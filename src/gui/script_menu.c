@@ -43,7 +43,6 @@
 #include "algos/sorting.h"
 #include "script_menu.h"
 
-#define SCRIPT_EXT ".ssf"
 #define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Running automatic scripts is something that is easy and generally it provides a nice image. However you have to keep in mind that scripts are not magic; automatic choices are made where human decision would probably be better. Also, every commands used in a script are available on the interface with a better parameter control.")
 
 static GtkWidget *menuscript = NULL;
@@ -149,10 +148,17 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	gchar *script_file = g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT);
+	gchar *script_file;
+	if (g_str_has_suffix((gchar *) user_data, SCRIPT_EXT)) {
+		script_file= g_strdup_printf("%s", (gchar *) user_data); // remote scripts
+
+	} else {
+		script_file= g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT); // local scripts
+	}
+
 	GFile *file = g_file_new_for_path(script_file);
 	GError *error = NULL;
-	GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+	const GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
 			G_FILE_QUERY_INFO_NONE, NULL, &error);
 	if (info) {
 		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
@@ -239,12 +245,14 @@ int initialize_script_menu() {
 				/* write an item per script file */
 				GtkWidget *menu_item;
 				gchar* basename = g_path_get_basename(ss->data);
-				menu_item = gtk_menu_item_new_with_label(basename);
+				char* basename_no_ext = remove_ext_from_filename(basename);
+				g_free(basename);
+				menu_item = gtk_menu_item_new_with_label(basename_no_ext);
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
 						G_CALLBACK(on_script_execution), (gchar * ) ss->data);
-				siril_log_message(_("Loading script: %s\n"), basename);
-				g_free(basename);
+				siril_log_message(_("Loading script: %s\n"), basename_no_ext);
+				free(basename_no_ext);
 				gtk_widget_show(menu_item);
 				new_list = g_list_prepend(new_list, ss->data);
 			} else {

@@ -156,6 +156,8 @@ static void compute_compositor_mem_limits(fits* fit) {
 	int limit = compute_nb_images_fit_memory_from_fit(fit, 1.0, FALSE, &MB_per_image, &MB_per_scaled_image, &MB_avail);
 	if (limit > 0) {
 		uint64_t float_channel_size = fit->rx * fit->ry * sizeof(float) / BYTES_IN_A_MB;
+		if (float_channel_size == 0)
+			float_channel_size = 1;
 		required = float_channel_size * 2;
 		limit = (MB_avail - (3.f * float_channel_size) * overlap_allowance) / required;
 		// UI limitations make it practically difficult to deal with > 10 images
@@ -592,7 +594,8 @@ static void update_metadata() {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(&layers[firstlayer]->the_fit);
+	if (firstlayer >= 0)
+		load_WCS_from_memory(&layers[firstlayer]->the_fit);
 	free(f);
 }
 
@@ -1677,6 +1680,7 @@ void on_compositing_linear_match_clicked(GtkButton *button, gpointer *user_data)
 			break;
 		}
 	}
+	if (ref_layer < 0) return;
 	fits *ref = &layers[ref_layer]->the_fit;
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layer == ref_layer)

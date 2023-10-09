@@ -18,7 +18,7 @@ mingw-w64-x86_64-opencv \
 mingw-w64-x86_64-libheif \
 mingw-w64-x86_64-ffms2 \
 mingw-w64-x86_64-cfitsio \
-mingw-w64-x86_64-libgit2 \
+mingw-w64-x86_64-libgit2-winhttp \
 
 # Build LibRaw from github
 mkdir _deps && cd _deps

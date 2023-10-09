@@ -503,6 +503,7 @@ typedef struct cut_struct {
 	gboolean cut_measure;		// Whether or not to measure cuts
 	double wavenumber1;
 	double wavenumber2;
+	gboolean plot_as_wavenumber; // If true, plot as wavenumber; if false, plot as wavelength
 	gboolean tri;
 	gboolean cfa;
 	cut_mode mode;

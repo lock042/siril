@@ -8822,13 +8822,13 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/curve.svg</property>
   </object>
-  <object class="GtkAdjustment" id="cut_adj_waveleength2">
-    <property name="upper">10000</property>
+  <object class="GtkAdjustment" id="cut_adj_wavelength1">
+    <property name="upper">100000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="cut_adj_wavelength1">
-    <property name="upper">10000</property>
+  <object class="GtkAdjustment" id="cut_adj_wavelength2">
+    <property name="upper">100000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -8924,11 +8924,11 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
             </child>
             <child>
               <object class="GtkButton" id="cut_wavenumber1">
-                <property name="label" translatable="yes">Pick wavenumber 1</property>
+                <property name="label" translatable="yes">Pick point 1</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavelength / wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavelength / wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber1_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8938,11 +8938,11 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
             </child>
             <child>
               <object class="GtkButton" id="cut_wavenumber2">
-                <property name="label" translatable="yes">Pick wavenumber 2</property>
+                <property name="label" translatable="yes">Pick point 2</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavelength / wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavelength / wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber2_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8958,7 +8958,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="text" translatable="yes">0</property>
                 <property name="adjustment">adj_cut_wn1</property>
                 <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavenumber1_value_changed" swapped="no"/>
+                <signal name="value-changed" handler="on_cut_spin_point1_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">3</property>
@@ -8973,7 +8973,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="text" translatable="yes">0</property>
                 <property name="adjustment">adj_cut_wn2</property>
                 <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavenumber2_value_changed" swapped="no"/>
+                <signal name="value-changed" handler="on_cut_spin_point2_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">3</property>
@@ -9043,6 +9043,45 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength1">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_wavelength1</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_cut_spin_point1_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength2">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_wavelength2</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_cut_spin_point2_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">wavelength / nm</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -9059,46 +9098,29 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">wavelength / nm</property>
+                <property name="label" translatable="yes">Plot x axis</property>
               </object>
               <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">1</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkSpinButton" id="cut_spin_wavelength1">
+              <object class="GtkComboBoxText" id="spectro_x_axis">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
-                <property name="adjustment">cut_adj_wavelength1</property>
-                <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavelength1_value_changed" swapped="no"/>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">When plotting a spectrogram, should the x axis show wavenumber or wavelength?</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Wavelength</item>
+                  <item translatable="yes">Wavenumber</item>
+                </items>
+                <signal name="changed" handler="on_spectro_x_axis_changed" swapped="no"/>
               </object>
               <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">2</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">0</property>
               </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="cut_spin_wavelength2">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
-                <property name="adjustment">cut_adj_waveleength2</property>
-                <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavelength2_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
             <child>
               <placeholder/>
