@@ -32,6 +32,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
+int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_spatial);
+
 int cvClahe(fits *image, double clip_limit, int size);
 
 void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout);

@@ -1678,6 +1678,31 @@ int process_unsharp(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+int process_bilateral(int nb) {
+	gchar *end;
+	double d = g_ascii_strtod(word[1], &end);
+	if (end == word[1]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	double sigma_col = g_ascii_strtod(word[2], &end);
+	if (end == word[2] || sigma_col <= 0.0) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+		return CMD_ARG_ERROR;
+	}
+	double sigma_space = g_ascii_strtod(word[2], &end);
+	if (end == word[3] || sigma_space <= 0.0) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[3]);
+		return CMD_ARG_ERROR;
+	}
+	bilateral(&(gfit), d, sigma_col, sigma_space, TRUE);
+
+	char log[90];
+	sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f", d, sigma_col, sigma_space);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
 static gboolean crop_command_idle(gpointer arg) {
 	// operations that are not in the generic idle of notify_gfit_modified()
 	clear_stars_list(TRUE);

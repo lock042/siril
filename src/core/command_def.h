@@ -10,6 +10,7 @@
 
 #define STR_BG N_("Returns the background level of the loaded image")
 #define STR_BGNOISE N_("Returns the background noise level of the loaded image")
+#define STR_BILATERAL N_("Applies a bilateral filter with diameter <b>d</b>, sigma (color filtering) <b>sigma_color</b> and sigma (spatial filtering) <b>color_spatial</b>. A value d less than 0 will cause the bilateral filter to automatically set d based on sigma(spatial).\n\nBe careful with values of d > 9 as the algorithm can be computationally expensive")
 #define STR_BINXY N_("Computes the numerical binning of the in-memory image (sum of the pixels 2x2, 3x3..., like the analogic binning of CCD camera). If the optional argument <b>-sum</b> is passed, then the sum of pixels is computed, while it is the average when no optional argument is provided")
 #define STR_BOXSELECT N_("Make a selection area in the currently loaded image with the arguments <b>x</b>, <b>y</b>, <b>width</b> and <b>height</b>, with <b>x</b> and <b>y</b> being the coordinates of the top left corner starting at (0, 0), and <b>width</b> and <b>height</b>, the size of the selection. The <b>-clear</b> argument deletes any selection area. If no argument is passed, the current selection is printed")
 

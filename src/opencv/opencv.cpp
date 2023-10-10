@@ -393,7 +393,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	unsigned char *ret = NULL;
 
 	/* 	build vectors with lists of stars.
-		When defined with offset, the -0.5 term comes from the difference 
+		When defined with offset, the -0.5 term comes from the difference
 		in convention between how we compute PSF
 		and opencv (zero coordinate at edge of pixel vs at center) */
 	switch (type) {
@@ -534,6 +534,27 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	if (fabs(amount) > 0.0) {
 		out = in * (1 + amount) + out * (-amount);
 	}
+
+	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+}
+
+int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_space) {
+	Mat in, out;
+	void *bgr = NULL;
+	int target_rx = image->rx, target_ry = image->ry;
+
+	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
+		return 1;
+
+	//setUseOptimized(false);
+	//std::cout << "---- OpenCV setUseOptimize(false) ----" << std::endl;
+	//std::cout << getBuildInformation();
+
+	/* 3rd argument: Gaussian kernel size. When width and height are zeros
+	 * they are computed from sigma.
+	 */
+	siril_debug_print("using opencv Bilateral Filter (CPU)\n");
+	bilateralFilter(in, out, d, sigma_col, sigma_space, BORDER_DEFAULT);
 
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
