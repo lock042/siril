@@ -34,12 +34,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   </object>
   <object class="GtkAdjustment" id="adjustment_bilat_sigma_col">
     <property name="upper">100</property>
-    <property name="step-increment">1.0000000000000001e-05</property>
+    <property name="step-increment">0.001</property>
     <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_bilat_sigma_spatial">
     <property name="upper">100</property>
-    <property name="step-increment">1.0000000000000001e-05</property>
+    <property name="step-increment">0.001</property>
     <property name="page-increment">0.10</property>
   </object>
   <object class="GtkDialog" id="bilat_dialog">
@@ -198,7 +198,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="width-chars">8</property>
                 <property name="text" translatable="yes">0.00000</property>
                 <property name="adjustment">adjustment_bilat_sigma_col</property>
-                <property name="digits">5</property>
+                <property name="digits">3</property>
                 <property name="numeric">True</property>
                 <signal name="value-changed" handler="on_spin_bilat_sigma_col_value_changed" swapped="no"/>
               </object>
@@ -259,7 +259,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
                 <property name="adjustment">adjustment_bilat_sigma_spatial</property>
-                <property name="digits">5</property>
+                <property name="digits">3</property>
                 <property name="numeric">True</property>
                 <signal name="value-changed" handler="on_spin_bilat_sigma_spatial_value_changed" swapped="no"/>
               </object>
