@@ -431,6 +431,7 @@ siril_cli_LDADD = $(siril_common_LDADD)
 
 pkgdata_DATA = \
 	gui/siril3.glade \
+	gui/bilateral.ui \
 	gui/siril-shortcuts.ui \
 	gui/siril.css
 
