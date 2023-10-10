@@ -140,8 +140,8 @@ void load_ui_files() {
 	}
 	siril_debug_print("Successfully loaded '%s'\n", uifile);
 
-
-	for (uint32_t i = 1 ; i < NUM_UI_FILES ; i++) {
+	uint32_t i = 1;
+	while (*ui_files[i]) {
 		uifile = g_build_filename(siril_get_system_data_dir(), ui_files[i], NULL);
 
 		/* try to load each successive UI file, from the sources defined above */
@@ -156,6 +156,7 @@ void load_ui_files() {
 		}
 		siril_debug_print("Successfully loaded '%s'\n", uifile);
 		g_free(uifile);
+		i++;
 	}
 }
 
