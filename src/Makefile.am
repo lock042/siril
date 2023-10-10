@@ -137,6 +137,8 @@ siril_common_SOURCES = \
 	filters/asinh.h \
 	filters/banding.c \
 	filters/banding.h \
+	filters/bilat.c \
+	filters/bilat.h \
 	filters/clahe.c \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \

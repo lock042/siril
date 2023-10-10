@@ -19037,6 +19037,21 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_bilat">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the median filter dialog</property>
+            <property name="action-name">win.bilateral-processing</property>
+            <property name="text" translatable="yes">Bilateral Filter...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">16</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="proc_denoise">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -19048,7 +19063,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">16</property>
+            <property name="position">17</property>
           </packing>
         </child>
         <child>
@@ -19063,7 +19078,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">17</property>
+            <property name="position">18</property>
           </packing>
         </child>
         <child>
@@ -19077,7 +19092,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">18</property>
+            <property name="position">19</property>
           </packing>
         </child>
         <child>
@@ -19088,7 +19103,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">19</property>
+            <property name="position">20</property>
           </packing>
         </child>
         <child>
@@ -19102,7 +19117,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">20</property>
+            <property name="position">21</property>
           </packing>
         </child>
         <child>
@@ -19113,7 +19128,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">21</property>
+            <property name="position">22</property>
           </packing>
         </child>
         <child>
@@ -19128,7 +19143,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">22</property>
+            <property name="position">23</property>
           </packing>
         </child>
         <child>
@@ -19142,7 +19157,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">23</property>
+            <property name="position">24</property>
           </packing>
         </child>
         <child>
@@ -19157,7 +19172,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">24</property>
+            <property name="position">25</property>
           </packing>
         </child>
         <child>
@@ -19172,7 +19187,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">25</property>
+            <property name="position">26</property>
           </packing>
         </child>
         <child>
@@ -19186,7 +19201,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">26</property>
+            <property name="position">27</property>
           </packing>
         </child>
         <child>
@@ -19197,7 +19212,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">27</property>
+            <property name="position">28</property>
           </packing>
         </child>
         <child>
@@ -19212,7 +19227,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">28</property>
+            <property name="position">29</property>
           </packing>
         </child>
       </object>

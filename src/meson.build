@@ -80,6 +80,7 @@ src_files = [
 
   'filters/asinh.c',
   'filters/banding.c',
+  'filters/bilat.c',
   'filters/clahe.c',
   'filters/cosmetic_correction.c',
   'filters/fft.c',
@@ -277,7 +278,7 @@ siril_cli = executable('siril-cli', 'main-cli.c', win_res,
 ################################################################################
 # Install GUI files
 
-install_data(['gui/siril.css', 'gui/siril3.glade', 'gui/siril-shortcuts.ui'],
+install_data(['gui/siril.css', 'gui/siril3.glade', 'gui/bilateral.ui', 'gui/siril-shortcuts.ui'],
              install_dir : siril_datadir)
 
 

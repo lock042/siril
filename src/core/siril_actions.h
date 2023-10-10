@@ -99,6 +99,7 @@ void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 void cosmetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void bilat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
