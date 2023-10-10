@@ -13,6 +13,8 @@ xx/xx/xx
 * Added git script repository integration (!560)
 * Add ROI processing for certain functions (!571, fixes #1098 and #1188)
 * Fixed crash in the new RGB compositing tool (#1205)
+* Added bilateral filter tool (!576)
+* Added support for multiple UI files (!576)
 
 siril 1.2.1
 xx/xx/xx
