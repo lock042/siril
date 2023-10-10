@@ -56,9 +56,9 @@
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "io/gitscripts.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -125,26 +125,38 @@ static GActionEntry app_entries[] = {
 };
 
 
-void load_glade_file() {
+void load_ui_files() {
 	GError *err = NULL;
-	gchar* gladefile;
+	gchar* uifile;
 	gboolean retval;
 
-	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
-
-	/* try to load the glade file, from the sources defined above */
-	gui.builder = gtk_builder_new();
-	// TODO: the following gtk_builder_add_from_file call is the source
-	// of libfontconfig memory leaks.
-	retval = gtk_builder_add_from_file(gui.builder, gladefile, &err);
-	if (!retval) {
+	/* try to load the first UI file, from the sources defined above */
+	uifile = g_build_filename(siril_get_system_data_dir(), ui_files[0], NULL);
+	gui.builder = gtk_builder_new_from_file(uifile);
+	if (!gui.builder) {
 		g_error(_("%s was not found or contains errors, "
-					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
-		g_clear_error(&err);
+					"cannot render GUI.\n Exiting.\n"), uifile);
 		exit(EXIT_FAILURE);
 	}
-	g_print(_("Successfully loaded '%s'\n"), gladefile);
-	g_free(gladefile);
+	siril_debug_print("Successfully loaded '%s'\n", uifile);
+
+
+	for (uint32_t i = 1 ; i < NUM_UI_FILES ; i++) {
+		uifile = g_build_filename(siril_get_system_data_dir(), ui_files[i], NULL);
+
+		/* try to load each successive UI file, from the sources defined above */
+		// TODO: the following gtk_builder_add_from_file call is the source
+		// of libfontconfig memory leaks.
+		retval = gtk_builder_add_from_file(gui.builder, uifile, &err);
+		if (!retval) {
+			g_error(_("%s was not found or contains errors, "
+						"cannot render GUI:\n%s\n Exiting.\n"), uifile, err->message);
+			g_clear_error(&err);
+			exit(EXIT_FAILURE);
+		}
+		siril_debug_print("Successfully loaded '%s'\n", uifile);
+		g_free(uifile);
+	}
 }
 
 #if defined (HAVE_FFTW3F_THREADS) && (_OPENMP)
@@ -173,7 +185,6 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;
-	gui.repo_scripts = NULL;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;
@@ -278,13 +289,6 @@ static void siril_app_activate(GApplication *application) {
 
 	init_num_procs();
 
-#ifdef HAVE_LIBGIT2
-	if (com.pref.use_scripts_repository)
-		auto_update_gitscripts(com.pref.auto_script_update);
-	else
-		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
-#endif
-
 	if (com.headless) {
 		if (main_option_script) {
 			GInputStream *input_stream = NULL;
@@ -322,8 +326,8 @@ static void siril_app_activate(GApplication *application) {
 		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */
 		load_css_style_sheet();
-		/* Load glade file */
-		load_glade_file();
+		/* Load UI files */
+		load_ui_files();
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
