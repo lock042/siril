@@ -28,6 +28,7 @@
 #include <iomanip>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/ximgproc/edge_filter.hpp>
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
@@ -539,7 +540,8 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 }
 
 int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_space) {
-	Mat in, out;
+	Mat in, yuv, merged, out;
+	Mat yuvchannels[3];
 	void *bgr = NULL;
 	int target_rx = image->rx, target_ry = image->ry;
 
@@ -555,6 +557,16 @@ int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_spac
 	 */
 	siril_debug_print("using opencv Bilateral Filter (CPU)\n");
 	bilateralFilter(in, out, d, sigma_col, sigma_space, BORDER_DEFAULT);
+//	ximgproc::guidedFilter(in, in, out, d, sqrt(sigma_col), -1);
+/*	cvtColor(in, yuv, COLOR_BGR2YUV);
+	split(yuv, yuvchannels);
+	Mat y = yuvchannels[0];
+	Mat u = yuvchannels[1];
+	Mat v = yuvchannels[2];
+	ximgproc::guidedFilter(y, u, u, d, sqrt(sigma_col), -1); // guide, source, dest, radius, eps, -1
+	ximgproc::guidedFilter(y, v, v, d, sqrt(sigma_col), -1);
+	merge(yuvchannels, 3, merged);
+	cvtColor(merged, out, COLOR_YUV2BGR);*/
 
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }

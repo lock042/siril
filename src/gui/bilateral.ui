@@ -28,19 +28,19 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2019 -->
   <object class="GtkAdjustment" id="adjustment_bilat_d">
-    <property name="upper">15</property>
+    <property name="upper">20</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">1</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_bilat_sigma_col">
-    <property name="upper">100</property>
-    <property name="step-increment">0.001</property>
+    <property name="upper">1</property>
+    <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_bilat_sigma_spatial">
-    <property name="upper">100</property>
-    <property name="step-increment">0.001</property>
-    <property name="page-increment">0.10</property>
+    <property name="upper">20</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">1</property>
   </object>
   <object class="GtkDialog" id="bilat_dialog">
     <property name="width-request">400</property>
@@ -136,6 +136,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkSpinButton" id="spin_bilat_d">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This affects the diameter the bilateral filter applies over. If it is zero, the spatial extent is set by the spatial sigma value.</property>
                 <property name="text" translatable="yes">0.0</property>
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
@@ -162,7 +163,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <object class="GtkScale" id="scale_bilat_d">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">The parameter stretch factor allows to adjust the non-linearity factor.</property>
+            <property name="tooltip-text" translatable="yes">This affects the diameter the bilateral filter applies over. If it is zero, the spatial extent is set by the spatial sigma value.</property>
             <property name="hexpand">True</property>
             <property name="adjustment">adjustment_bilat_d</property>
             <property name="draw-value">False</property>
@@ -195,6 +196,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkSpinButton" id="spin_bilat_sigma_col">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This value affects the range of color similarity the bilateral filter aplies over</property>
                 <property name="width-chars">8</property>
                 <property name="text" translatable="yes">0.00000</property>
                 <property name="adjustment">adjustment_bilat_sigma_col</property>
@@ -220,7 +222,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <object class="GtkScale" id="scale_bilat_sigma_col">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Constant value that is subtracted from the image.</property>
+            <property name="tooltip-text" translatable="yes">This value affects the range of color similarity the bilateral filter aplies over</property>
             <property name="hexpand">True</property>
             <property name="adjustment">adjustment_bilat_sigma_col</property>
             <property name="digits">5</property>
@@ -259,7 +261,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="progress-fraction">0.01</property>
                 <property name="progress-pulse-step">0.01</property>
                 <property name="adjustment">adjustment_bilat_sigma_spatial</property>
-                <property name="digits">3</property>
+                <property name="digits">1</property>
                 <property name="numeric">True</property>
                 <signal name="value-changed" handler="on_spin_bilat_sigma_spatial_value_changed" swapped="no"/>
               </object>
@@ -281,7 +283,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <object class="GtkScale" id="scalee_bilat_sigma_spatial">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Constant value that is subtracted from the image.</property>
+            <property name="tooltip-text" translatable="yes">This parameter affects the spatial extent of the bilateral filter. It is overridden by the diameter if the diameter is non-zero.</property>
             <property name="hexpand">True</property>
             <property name="adjustment">adjustment_bilat_sigma_spatial</property>
             <property name="digits">5</property>
