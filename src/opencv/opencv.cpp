@@ -28,7 +28,6 @@
 #include <iomanip>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/ximgproc/edge_filter.hpp>
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
