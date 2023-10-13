@@ -186,7 +186,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkFileChooserButton" id="guided_filter_guideimage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Select guide image. No need to select a file if the "self guided" check box is checked.</property>
+                    <property name="tooltip-text" translatable="yes">Select guide image. No need to select a file if the "self guided" check box is checked.
+WARNING: using guide images that are not based on the original image is likely to produce nonsense results.</property>
                     <property name="title" translatable="yes"/>
                     <signal name="file-set" handler="on_guided_filter_guideimage_file_set" swapped="no"/>
                   </object>

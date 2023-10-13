@@ -91,12 +91,15 @@ int	process_grey_flat(int nb);
 
 int	process_help(int nb);
 int	process_histo(int nb);
+int	process_hslcomp(int nb);
+int	process_hsvcomp(int nb);
 
 int	process_jsonmetadata(int nb);
 
 int	process_imoper(int nb);
 int	process_inspector(int nb);
 
+int	process_labcomp(int nb);
 int	process_light_curve(int nb);
 int	process_link(int nb);
 int	process_linear_match(int nb);
@@ -226,6 +229,9 @@ int	process_visu(int nb);
 int	process_wavelet(int nb);
 int	process_wiener(int nb);
 int	process_wrecons(int nb);
+
+int	process_yuvcomp(int nb);
+
 
 /* live stacking specials */
 int process_start_ls(int nb);

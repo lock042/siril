@@ -75,6 +75,8 @@ static command commands[] = {
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
 	{"histo", 1, "histo channel (channel=0, 1, 2 with 0: red, 1: green, 2: blue)", process_histo, STR_HISTO, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"hslcomp", 3, "hslcomp h s l [-out=result_filename]\n", process_hslcomp, STR_HSLCOMP, TRUE, REQ_CMD_NONE},
+	{"hsvcomp", 3, "hsvcomp h s v [-out=result_filename]\n", process_hsvcomp, STR_HSVCOMP, TRUE, REQ_CMD_NONE},
 
 	/* commands open filename and current image */
 	{"iadd", 1, "iadd filename", process_imoper, STR_IADD, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -88,6 +90,7 @@ static command commands[] = {
 
 	{"jsonmetadata", 1, "jsonmetadata FITS_file [-stats_from_loaded] [-nostats] [-out=]", process_jsonmetadata, STR_JSONMETADATA, TRUE, REQ_CMD_NONE},
 
+	{"labcomp", 3, "labcomp l a b [-out=result_filename]\n", process_labcomp, STR_LABCOMP, TRUE, REQ_CMD_NONE},
 	{"light_curve", 3, "light_curve sequencename channel [-autoring] { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...\n"
 				"light_curve sequencename channel [-autoring] -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -244,6 +247,7 @@ static command commands[] = {
 	{"wiener", 0, "wiener [-loadpsf=] [-alpha=]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"yuvcomp", 3, "yuvcomp y u v [-out=result_filename]\n", process_yuvcomp, STR_YUVCOMP, TRUE, REQ_CMD_NONE},
 	EXTRA_COMMANDS
 
 	{"",0,"",0, STR_NONE, FALSE, REQ_CMD_NONE}

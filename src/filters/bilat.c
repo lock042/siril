@@ -251,6 +251,7 @@ void on_bilat_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_visible(lookup_widget("bilat_sigma_spatial_settings"), TRUE);
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("guided_filter_guideimage")));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("guided_filter_selfguide")), TRUE);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ep_filter_type")), EP_BILATERAL);
 	gtk_spin_button_set_value(spin_d, bilat_d_value);
 	gtk_spin_button_set_value(spin_bilat_sigma_spatial, bilat_sigma_spatial_value);
 	gtk_spin_button_set_value(spin_bilat_sigma_col, bilat_sigma_col_value);

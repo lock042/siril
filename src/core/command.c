@@ -8250,13 +8250,24 @@ int process_boxselect(int nb){
 	return CMD_OK;
 }
 
-int process_rgbcomp(int nb) {
+enum {
+	RGB_MODE,
+	LAB_MODE,
+	HSL_MODE,
+	HSV_MODE,
+	YUV_MODE
+};
+
+int process_fixedcomp(int nb, int mode) {
 	fits r = { 0 }, g = { 0 }, b = { 0 };
 	fits rgb = { 0 }, *rgbptr = &rgb;
 	int retval = 0, next_arg;
 	char *default_result_name;
 
 	if (g_str_has_prefix(word[1], "-lum=")) {
+		if (mode != RGB_MODE) {
+			return CMD_ARG_ERROR;
+		}
 		char *lum_file = word[1] + 5;
 		if (nb < 3) {
 			return CMD_WRONG_N_ARG;
@@ -8334,12 +8345,34 @@ int process_rgbcomp(int nb) {
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
-			rgb.fpdata[RLAYER][i] = r.fdata[i];
-			rgb.fpdata[GLAYER][i] = g.fdata[i];
-			rgb.fpdata[BLAYER][i] = b.fdata[i];
+			switch (mode) {
+				case RGB_MODE:
+					rgb.fpdata[RLAYER][i] = r.fdata[i];
+					rgb.fpdata[GLAYER][i] = g.fdata[i];
+					rgb.fpdata[BLAYER][i] = b.fdata[i];
+					default_result_name = "composed_rgb";
+					break;
+				case LAB_MODE:
+					float x, y, z;
+					LAB_to_xyzf(r.fdata[i], g.fdata[i], b.fdata[i], &x, &y, &z);
+					xyz_to_rgbf(x, y, z, &rgb.fpdata[RLAYER][i], &rgb.fpdata[GLAYER][i], &rgb.fpdata[BLAYER][i]);
+					default_result_name = "composed_lab";
+					break;
+				case HSL_MODE:
+					hsl_to_rgbf(r.fdata[i], g.fdata[i], b.fdata[i], &rgb.fpdata[RLAYER][i], &rgb.fpdata[GLAYER][i], &rgb.fpdata[BLAYER][i]);
+					default_result_name = "composed_hsl";
+					break;
+				case HSV_MODE:
+					hsv_to_rgbf(r.fdata[i], g.fdata[i], b.fdata[i], &rgb.fpdata[RLAYER][i], &rgb.fpdata[GLAYER][i], &rgb.fpdata[BLAYER][i]);
+					default_result_name = "composed_hsv";
+					break;
+				case YUV_MODE:
+					yuv_to_rgbf(r.fdata[i], g.fdata[i], b.fdata[i], &rgb.fpdata[RLAYER][i], &rgb.fpdata[GLAYER][i], &rgb.fpdata[BLAYER][i]);
+					default_result_name = "composed_yuv";
+					break;
+			}
 		}
 		next_arg = 4;
-		default_result_name = "composed_rgb";
 	}
 
 	clearfits(&r); clearfits(&g); clearfits(&b);
@@ -8357,6 +8390,22 @@ int process_rgbcomp(int nb) {
 	clearfits(rgbptr);
 
 	return retval;
+}
+
+int process_rgbcomp(int nb) {
+	return process_fixedcomp(nb, RGB_MODE);
+}
+int process_labcomp(int nb) {
+	return process_fixedcomp(nb, LAB_MODE);
+}
+int process_hslcomp(int nb) {
+	return process_fixedcomp(nb, HSL_MODE);
+}
+int process_hsvcomp(int nb) {
+	return process_fixedcomp(nb, HSV_MODE);
+}
+int process_yuvcomp(int nb) {
+	return process_fixedcomp(nb, YUV_MODE);
 }
 
 // used for plate solver and PCC commands

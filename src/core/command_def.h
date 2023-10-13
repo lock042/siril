@@ -64,6 +64,8 @@
 
 #define STR_HELP N_("Lists the available commands or help for one command")
 #define STR_HISTO N_("Calculates the histogram of the <b>layer</b> of the loaded image and produces file histo_[channel name].dat in the working directory.\nlayer = 0, 1 or 2 with 0=red, 1=green and 2=blue")
+#define STR_HSLCOMP N_("Creates an RGB composition using three independent H, S and L images. Result image is called composed_hsl.fit unless another name is provided in the optional argument")
+#define STR_HSVCOMP N_("Creates an RGB composition using three independent H, S and V images. Result image is called composed_hsv.fit unless another name is provided in the optional argument")
 
 #define STR_IADD N_("Adds the image <b>filename</b> to the loaded image.\nResult will be in 32 bits per channel if allowed in the preferences")
 #define STR_IDIV N_("Divides the loaded image by the image <b>filename</b>.\nResult will be in 32 bits per channel if allowed in the preferences.\n\nSee also FDIV")
@@ -74,6 +76,7 @@
 #define STR_IMUL N_("Multiplies image <b>filename</b> by the loaded image.\nResult will be in 32 bits per channel if allowed in the preferences")
 #define STR_ISUB N_("Subtracts the loaded image by the image <b>filename</b>.\nResult will be in 32 bits per channel if allowed in the preferences, so capable of storing negative values. To clip negative value, use 16 bit mode or use the THRESHLO command")
 
+#define STR_LABCOMP N_("Creates an RGB composition using three independent CIE L*, A* and B* images. Result image is called composed_lab.fit unless another name is provided in the optional argument")
 #define STR_LIGHTCURVE N_("Analyses several stars with aperture photometry in a sequence of images and produces a light curve for one, calibrated by the others. The first coordinates, in pixels if <b>-at=</b> is used or in degrees if <b>-wcs=</b> is used, are for the star whose light will be plotted, the others for the comparison stars.\nAlternatively, a list of target and reference stars can be passed in the format of the NINA exoplanet plugin star list, with the <b>-ninastars=</b> option. Siril will verify that all reference stars can be used before actually using them. A data file is created in the current directory named light_curve.dat, Siril plots the result to a PNG image if available\nThe ring radii for aperture photometry can either be configured in the settings or set to a factor of the reference image's FWHM if <b>-autoring</b> is passed.\n\nSee also SEQPSF for operations on single star")
 #define STR_LMATCH N_("Computes and applies a linear function between a <b>reference</b> image and the loaded image.\n\nThe algorithm will ignore all reference pixels whose values are outside of the [<b>low</b>, <b>high</b>] range")
 #define STR_LINK N_("Same as CONVERT but converts only FITS files found in the current working directory. This is useful to avoid conversions of JPEG results or other files that may end up in the directory")
@@ -200,5 +203,6 @@
 #define STR_WAVELET N_("Computes the wavelet transform of the loaded image on (<b>nbr_layers</b>=1...6) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' algorithm. The result is stored in a file as a structure containing the layers, ready for weighted reconstruction with WRECONS.\n\nSee also EXTRACT")
 #define STR_WIENER N_("Restores an image using the Wiener deconvolution method.\n\nOptionally, a PSF created by MAKEPSF may be loaded using the argument <b>-loadpsf=<i>filename</i></b>.\n\nThe parameter <b>-alpha=</b> provides the Gaussian noise modelled regularization factor")
 #define STR_WRECONS N_("Reconstructs to current image from the layers previously computed with wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> according to the number of layers used for wavelet transform, after the use of WAVELET")
+#define STR_YUVCOMP N_("Creates an RGB composition using three independent Y, U and V images. Result image is called composed_yuv.fit unless another name is provided in the optional argument")
 
 #endif /* SRC_CORE_COMMAND_DEF_H_ */

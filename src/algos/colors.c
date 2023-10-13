@@ -433,6 +433,54 @@ void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
 	}
 }
 
+void hsv_to_rgbf(float h, float s, float v, float *r, float *g, float *b) {
+	float p, q, t, f;
+	int i;
+
+	if (h >= 1.f)
+		h -= 1.f;
+	h *= 6.f;
+	i = (int)h;
+	f = h - (float)i;
+	p = v * (1.f - s);
+	q = v * (1.f - (s * f));
+	t = v * (1.f - (s * (1.f - f)));
+
+	switch (i) {
+		case 0:
+			*r = v;
+			*g = t;
+			*b = p;
+			break;
+		case 1:
+			*r = q;
+			*g = v;
+			*b = p;
+			break;
+		case 2:
+			*r = p;
+			*g = v;
+			*b = t;
+			break;
+		case 3:
+			*r = p;
+			*g = q;
+			*b = v;
+			break;
+		case 4:
+			*r = t;
+			*g = p;
+			*b = v;
+			break;
+		case 5:
+		default:
+			*r = v;
+			*g = p;
+			*b = q;
+			break;
+	}
+}
+
 void rgb_to_xyz(double r, double g, double b, double *x, double *y, double *z) {
 	r = (r <= 0.04045) ? r / 12.92 : pow(((r + 0.055) / 1.055), 2.4);
 	g = (g <= 0.04045) ? g / 12.92 : pow(((g + 0.055) / 1.055), 2.4);

@@ -22,6 +22,7 @@ void rgb_to_hslf(float r, float g, float b, float *h, float *s, float *l);
 void hsl_to_rgb(double, double, double, double *, double *, double *);
 void hsl_to_rgbf(float h, float s, float l, float * r, float * g, float * b);
 void rgb_to_hsv(double, double, double, double *, double *, double *);
+void hsv_to_rgbf(float, float, float, float *, float *, float *);
 void hsv_to_rgb(double, double, double, double *, double *, double *);
 void rgb_to_xyz(double, double, double, double *, double *, double *);
 void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z);
@@ -37,7 +38,6 @@ void linrgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z, gbo
 void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b, gboolean scale);
 void rgb_to_yuvf(float red, float green, float blue, float *y, float *u, float *v);
 void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blue);
-
 
 double BV_to_T(double BV);
 
