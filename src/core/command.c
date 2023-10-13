@@ -79,6 +79,7 @@
 #include "gui/script_menu.h"
 #include "gui/preferences.h"
 #include "filters/asinh.h"
+#include "filters/bilat.h"
 #include "filters/banding.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "filters/clahe.h"
@@ -1695,7 +1696,7 @@ int process_bilateral(int nb) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[3]);
 		return CMD_ARG_ERROR;
 	}
-	bilateral(&(gfit), d, sigma_col, sigma_space, TRUE);
+	edge_preserving_filter(&(gfit), NULL, d, sigma_col, sigma_space, EP_BILATERAL, TRUE);
 
 	char log[90];
 	sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f", d, sigma_col, sigma_space);

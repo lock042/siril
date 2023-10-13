@@ -39,10 +39,12 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
+#include "guidedfilter.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #ifdef __cplusplus
 }
@@ -187,7 +189,15 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 			channel[1].release();
 			channel[2].release();
 		} else {
-			image->data = (WORD *)out->data;
+			size_t data_size = ndata * sizeof(WORD);
+			WORD *newdata = (WORD *) malloc(data_size);
+			if (!newdata) {
+				PRINT_ALLOC_ERR;
+				out->release();
+				return 1;
+			}
+			image->data = newdata;
+			memcpy(image->fdata, out->data, data_size);
 			image->pdata[RLAYER] = image->data;
 			image->pdata[GLAYER] = image->data;
 			image->pdata[BLAYER] = image->data;
@@ -218,7 +228,15 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 			channel[1].release();
 			channel[2].release();
 		} else {
-			image->fdata = (float *)out->data;
+			size_t data_size = ndata * sizeof(float);
+			float *newdata = (float *) malloc(data_size);
+			if (!newdata) {
+				PRINT_ALLOC_ERR;
+				out->release();
+				return 1;
+			}
+			image->fdata = newdata;
+			memcpy(image->fdata, out->data, data_size);
 			image->fpdata[RLAYER] = image->fdata;
 			image->fpdata[GLAYER] = image->fdata;
 			image->fpdata[BLAYER] = image->fdata;
@@ -540,35 +558,51 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 }
 
 int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_space) {
-	Mat in, yuv, merged, out;
-	Mat yuvchannels[3];
+	Mat in, out;
 	void *bgr = NULL;
-	int target_rx = image->rx, target_ry = image->ry;
-
-	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
+	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
 		return 1;
-
-	//setUseOptimized(false);
-	//std::cout << "---- OpenCV setUseOptimize(false) ----" << std::endl;
-	//std::cout << getBuildInformation();
-
-	/* 3rd argument: Gaussian kernel size. When width and height are zeros
-	 * they are computed from sigma.
-	 */
 	siril_debug_print("using opencv Bilateral Filter (CPU)\n");
 	bilateralFilter(in, out, d, sigma_col, sigma_space, BORDER_DEFAULT);
-//	ximgproc::guidedFilter(in, in, out, d, sqrt(sigma_col), -1);
-/*	cvtColor(in, yuv, COLOR_BGR2YUV);
-	split(yuv, yuvchannels);
-	Mat y = yuvchannels[0];
-	Mat u = yuvchannels[1];
-	Mat v = yuvchannels[2];
-	ximgproc::guidedFilter(y, u, u, d, sqrt(sigma_col), -1); // guide, source, dest, radius, eps, -1
-	ximgproc::guidedFilter(y, v, v, d, sqrt(sigma_col), -1);
-	merge(yuvchannels, 3, merged);
-	cvtColor(merged, out, COLOR_YUV2BGR);*/
+	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
+}
 
-	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
+	Mat in, out, guide_mat;
+	void *bgr = NULL;
+	int rx = guide->rx, ry = guide->ry;
+
+	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
+		return 1;
+	if (image == guide) {
+		guide_mat = in.clone();
+	} else {
+		if (guide->type == DATA_USHORT) {
+			if (guide->naxes[2] == 1) {
+				guide_mat = Mat(ry, rx, CV_16UC1, guide->data);
+			} else if (guide->naxes[2] == 3) {
+				WORD *bgr_u = fits_to_bgrbgr_ushort(guide);
+				if (!bgr_u) return -1;
+				guide_mat = Mat(ry, rx, CV_16UC3, bgr_u);
+			}
+		}
+		else if (guide->type == DATA_FLOAT) {
+			if (guide->naxes[2] == 1) {
+				guide_mat = Mat(ry, rx, CV_32FC1, guide->fdata);
+			}
+			else if (guide->naxes[2] == 3) {
+				float *bgr_f = fits_to_bgrbgr_float(guide);
+				if (!bgr_f) return -1;
+				guide_mat = Mat(ry, rx, CV_32FC3, bgr_f);
+			}
+		}
+	}
+	if (guide_mat.channels() != in.channels())
+		cvtColor(guide_mat, guide_mat, COLOR_GRAY2BGR);
+	siril_debug_print("using Guided Filter (CPU)\n");
+	out = guidedFilter(in, guide_mat, r, eps, -1);
+	guide_mat.release();
+	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
 }
 
 /* Work on grey images. If image is in RGB it must be first converted

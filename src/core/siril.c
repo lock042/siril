@@ -219,6 +219,7 @@ int bilateral(fits *fit, double d, double sigma_col, double sigma_space, gboolea
 	}
 	return 0;
 }
+
 /* This entropy function computes the entropy for the image in gfit for its
  * layer 'layer', in the area designated by area which can be NULL.
  * An optional imstats parameter can be used to provide the background and

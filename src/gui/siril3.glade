@@ -19043,7 +19043,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Open the median filter dialog</property>
             <property name="action-name">win.bilateral-processing</property>
-            <property name="text" translatable="yes">Bilateral Filter...</property>
+            <property name="text" translatable="yes">Edge Preserving Filters...</property>
           </object>
           <packing>
             <property name="expand">False</property>

@@ -160,6 +160,8 @@ src_files = [
 
   'opencv/opencv.cpp',
   'opencv/opencv.h',
+  'opencv/guidedfilter.cpp',
+  'opencv/guidedfilter.h',
   'opencv/kombat/kombat.cpp',
   'opencv/kombat/kombat.h',
 

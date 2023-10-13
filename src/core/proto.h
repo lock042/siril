@@ -184,7 +184,6 @@ int threshhi(fits *fit, WORD level);
 int nozero(fits *fit, WORD level);
 int gaussian_blur_RT(fits *fit, double sigma, int threads);
 int unsharp(fits*, double sigma, double mult, gboolean verbose);
-int bilateral(fits *fit, double d, double sigma_col, double sigma_space, gboolean verbose);
 float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
 int loglut(fits *fit);
 int ddp(fits *a, float lev, float coef, float sig);
