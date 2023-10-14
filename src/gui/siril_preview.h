@@ -31,6 +31,7 @@ int backup_roi();
 int restore_roi();
 void copy_gfit_to_backup();
 int copy_backup_to_gfit();
+fits *get_roi_backup();
 fits *get_preview_gfit_backup();
 gboolean is_preview_active();
 void clear_backup();

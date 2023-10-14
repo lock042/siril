@@ -36,11 +36,13 @@
 #include "algos/annotate.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/image_interactions.h"
 #include "gui/registration_preview.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
+#include "gui/siril_preview.h"
 #include "livestacking/livestacking.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
@@ -1685,6 +1687,35 @@ void copy_roi_into_gfit() {
 	if (npixels_roi == 0 || com.script)
 		return;
 	size_t npixels_gfit = gfit.rx * gfit.ry;
+	if (gui.roi.fit.type != gfit.type) {
+		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
+		if (gfit.type == DATA_FLOAT) {
+			fit_replace_buffer(&gui.roi.fit, gui.roi.fit.bitpix == BYTE_IMG ? ushort8_buffer_to_float(gui.roi.fit.data, roi_ndata): ushort_buffer_to_float(gui.roi.fit.data, roi_ndata), DATA_FLOAT);
+			if (is_preview_active()) {
+				fits *roi_backup = get_roi_backup();
+				fit_replace_buffer(roi_backup, roi_backup->bitpix == BYTE_IMG ? ushort8_buffer_to_float(roi_backup->data, roi_ndata) : ushort_buffer_to_float(roi_backup->data, roi_ndata), DATA_FLOAT);
+			}
+		} else {
+			fit_replace_buffer(&gui.roi.fit, float_buffer_to_ushort(gui.roi.fit.fdata, roi_ndata), DATA_USHORT);
+			if (gfit.bitpix == BYTE_IMG) {
+				for (size_t i = 0 ; i < roi_ndata ; i++) {
+					gui.roi.fit.data[i] >>= 8;
+				}
+				gui.roi.fit.bitpix = BYTE_IMG;
+			}
+			if (is_preview_active()) {
+				fits *roi_backup = get_roi_backup();
+				fit_replace_buffer(roi_backup, float_buffer_to_ushort(roi_backup->fdata, roi_ndata), DATA_USHORT);
+				if (gfit.bitpix == BYTE_IMG) {
+					for (size_t i = 0 ; i < roi_ndata ; i++) {
+						roi_backup->data[i] >>= 8;
+					}
+					roi_backup->bitpix = BYTE_IMG;
+				}
+			}
+		}
+	}
+
 	if (gui.roi.fit.type == DATA_FLOAT) {
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) collapse(2)

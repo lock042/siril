@@ -115,6 +115,10 @@ fits *get_preview_gfit_backup() {
 	return (is_preview_active()) ? &preview_gfit_backup : &gfit;
 }
 
+fits *get_roi_backup() {
+	return (is_preview_active()) ? &preview_roi_backup : &gui.roi.fit;
+}
+
 gboolean is_preview_active() {
 	return preview_is_active;
 }

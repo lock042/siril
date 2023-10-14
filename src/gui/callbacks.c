@@ -990,16 +990,20 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 							"Getting back to 32 bits will not recover this loss.\n"
 							"Are you sure you want to convert your data?"), _("Convert to 16 bits"));
 			if (convert) {
-				if (is_preview_active())
-					fit_replace_buffer(get_preview_gfit_backup(), float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
+				if (is_preview_active()) {
+					fits *backup_gfit = get_preview_gfit_backup();
+					fit_replace_buffer(backup_gfit, float_buffer_to_ushort(backup_gfit->fdata, ndata), DATA_USHORT);
+				}
 				fit_replace_buffer(&gfit, float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
 				redraw(REMAP_ALL);
 			}
 		} else if (gfit.type == DATA_USHORT) {
-			if (is_preview_active())
-				fit_replace_buffer(get_preview_gfit_backup(), ushort_buffer_to_float(gfit.data, ndata), DATA_FLOAT);
+			if (is_preview_active()) {
+				fits *backup_gfit = get_preview_gfit_backup();
+				fit_replace_buffer(backup_gfit, ushort_buffer_to_float(backup_gfit->data, ndata), DATA_FLOAT);
+			}
 			fit_replace_buffer(&gfit, ushort_buffer_to_float(gfit.data, ndata), DATA_FLOAT);
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
