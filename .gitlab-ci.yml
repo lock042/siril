@@ -281,8 +281,8 @@ macos:
     REP_DIR: /Users/Shared/build/dmgs
     WRK_DIR: /Users/Shared/work
     SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.36_$ARCHITECTURE.dmg
-    RELEASE_TAG: r22
+    RELEASE_ARCHIVE: jhb-0.39_$ARCHITECTURE.dmg
+    RELEASE_TAG: r23
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/dependencies/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
@@ -292,9 +292,6 @@ macos:
       git -C siril_macos submodule update --init --recursive
     - siril_macos/jhb/usr/bin/archive uninstall_dmg  # after_script doesn't run for cancelled/timed out jobs
     - siril_macos/jhb/usr/bin/archive install_dmg
-    - |
-      # disable platform check, it doesn't handle MACOSX_DEPLOYMENT_TARGET
-      sed -i "" "s|\(sys_platform_is_supported\)|: #\1|g" "$WRK_DIR"/$(basename -s _$ARCHITECTURE.dmg $RELEASE_ARCHIVE)/usr/bin/jhb
     - |
       cd siril_macos
       ./build_siril.sh
