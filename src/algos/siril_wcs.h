@@ -32,7 +32,7 @@ void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d);
 #endif
 void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double *world_y);
 int wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y);
-int wcs2pix_off(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y, double offset_ratio);
+int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y);
 void center2wcs(fits *fit, double *r, double *d);
 double get_wcs_image_resolution(fits *fit);
 

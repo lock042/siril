@@ -656,18 +656,22 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 	return TRUE;
 }
 // projects passed catalogue using the wcs data contained in the fit
-// corrects for proper motions if the flag is TRUE and the necessary data is contained
+// corrects for proper motions if the flag is TRUE and the necessary data is included
 // in the fit (dateobs) and in the catalogue (pmra and pmdec fields)
-int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion) {
+// corrects for object velocity if deltahours is non null and if necessary data is included
+// in the catalogue (vra and vdec fields)
+int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, double deltahours) {
 #ifndef HAVE_WCSLIB
 	return 1
 #endif
-	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG))) {
+	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC))) {
 		siril_debug_print("catalogue %s does not have the necessary columns\n");
 		return 1;
 	}
 	int nbincluded = 0;
 	double jyears = 0.;
+	double *world = NULL, *x = NULL, *y = NULL;
+	int *status = NULL;
 	if (use_proper_motion) {
 		if (!fit->date_obs) {
 			siril_log_color_message(_("This image does not have any DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
@@ -683,7 +687,17 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			jyears = (jd - J2000) / 365.25;
 		}
 	}
-	double x, y;
+	if (deltahours && (!(siril_cat->columns & (1 << CAT_FIELD_VRA)) || !(siril_cat->columns & (1 << CAT_FIELD_VDEC)))) {
+		siril_log_color_message(_("This catalog does not have velocity info, will not be computed\n"), "salmon");
+	}
+	world = malloc( 2 * siril_cat->nbitems * sizeof(double));
+	x = malloc(siril_cat->nbitems * sizeof(double));
+	y = malloc(siril_cat->nbitems * sizeof(double));
+	if (!world || !x || !y) {
+		PRINT_ALLOC_ERR;
+		goto clean_and_exit;
+	}
+	int ind = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		double ra = siril_cat->cat_items[i].ra;
 		double dec = siril_cat->cat_items[i].dec;
@@ -692,16 +706,31 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			ra += siril_cat->cat_items[i].pmra / cos(decrad) * jyears * 2.77777778e-7;
 			dec += siril_cat->cat_items[i].pmdec * jyears * 2.77777778e-7;
 		}
-		if (!wcs2pix(fit, ra, dec, &x, &y)) {
-			siril_cat->cat_items[i].x = x;
-			siril_cat->cat_items[i].y = y;
+		if (!deltahours) {
+			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-7;
+			dec += siril_cat->cat_items[i].pmdec * deltahours * 2.77777778e-7;
+		}
+		world[ind++] = ra;
+		world[ind++] = dec;
+	}
+	status = wcs2pix_array(fit, siril_cat->nbitems, world, x, y);
+	if (!status)
+		goto clean_and_exit;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		if (!status[i]) {
+			siril_cat->cat_items[i].x = x[i];
+			siril_cat->cat_items[i].y = y[i];
 			siril_cat->cat_items[i].included = TRUE;
 			nbincluded++;
 		} else {
 			siril_cat->cat_items[i].included = FALSE;
 		}
 	}
+clean_and_exit:
 	siril_cat->nbincluded = nbincluded;
+	free(world);
+	free(x);
+	free(y);
 	return !(nbincluded > 0);
 } 
 
@@ -709,7 +738,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 // corrects for proper motions if the flag is TRUE and the necessary data is passed
 // (dateobs) and found in the catalogue (pmra and pmdec fields)
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
-	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG)))
+	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)))
 		return 1;
 	double jyears = 0.;
 	if (use_proper_motion) {
@@ -793,7 +822,7 @@ gpointer conesearch_worker(gpointer p) {
 
 	/* project using WCS */
 	gboolean use_proper_motion = (siril_cat->dateobs != NULL) && (siril_cat->columns & (1 << CAT_FIELD_PMRA)) != 0;
-	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion)) {
+	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion, 0.)) {
 		goto end_conesearch;
 	}
 	int nb_stars = siril_cat->nbitems;

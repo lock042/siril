@@ -608,7 +608,7 @@ gpointer plate_solver(gpointer p) {
 		}
 		siril_catalog_free_items(args->ref_stars);
 		siril_catalog_conesearch(args->ref_stars);
-		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE);
+		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, 0.);
 		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
 		args->ret = nb_pcc_stars == 0;
 

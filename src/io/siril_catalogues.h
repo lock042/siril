@@ -150,7 +150,7 @@ void siril_catalog_free(siril_catalogue *siril_cat);
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
 gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename, gchar *header);
-int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion);
+int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, double deltahours);
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars);

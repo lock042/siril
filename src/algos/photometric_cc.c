@@ -459,7 +459,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		retval = 1;
 	} else {
 		/* project using WCS */
-		siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE);
+		siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, 0.);
 		stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
 		retval = nb_stars == 0;
 	}

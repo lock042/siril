@@ -367,7 +367,7 @@ static int get_catstars(struct compstars_arg *args) {
 	}
 	sort_cat_items_by_mag(siril_cat); // sort by magnitude for nicer display
 
-	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE)) {
+	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE, 0.)) {
 		args->cat_stars = siril_cat;
 	} else {
 		siril_log_color_message(_("No comparison stars found in the image, aborting\n"), "red");
