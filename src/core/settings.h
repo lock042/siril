@@ -162,6 +162,11 @@ struct comp_config {
 	double fits_hcompress_scale;	// scale factor for Hcompress compression
 };
 
+typedef enum {
+	ROI_MANUAL,
+	ROI_AUTO
+} roi_mode_t;
+
 struct gui_config {
 	gchar *first_start;		// use to display information at first use
 	gboolean silent_quit;
@@ -199,6 +204,8 @@ struct gui_config {
 	GSList *pm_presets; // list of pixel math presets
 	int default_rendering_mode; // Default view STF to use at startup
 	int display_histogram_mode; // Default histogram view to use at startup
+	roi_mode_t roi_mode; // Whether to set the ROI manually or auto from selection
+	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -292,7 +299,11 @@ struct pref_struct {
 	struct stack_config stack;
 	struct comp_config comp;
 	fftw_params fftw_conf;
+	GList *selected_scripts;
+	gboolean use_scripts_repository;
+	gboolean auto_script_update; // automatically update scripts repository at startup
 };
+
 typedef struct pref_struct preferences;
 /**
  * End of preference structure. Read above if modified.

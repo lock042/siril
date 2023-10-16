@@ -38,6 +38,7 @@
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "stacking/stacking.h"
+#include "io/gitscripts.h"
 
 #include "preferences.h"
 #include "filters/starnet.h"
@@ -184,6 +185,12 @@ static void update_scripts_preferences() {
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
 	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+#ifdef HAVE_LIBGIT2
+	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
+	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
+#else
+	com.pref.use_scripts_repository = FALSE;
+#endif
 }
 
 static void update_user_interface_preferences() {
@@ -200,6 +207,8 @@ static void update_user_interface_preferences() {
 	com.pref.gui.thumbnail_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"))) == 1 ? 256 : 128;
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
+	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
+	update_roi_config();
 }
 
 static void update_FITS_options_preferences() {
@@ -269,6 +278,7 @@ static void update_misc_preferences() {
 	com.pref.copyright = g_strdup(copy);
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
+	com.pref.gui.enable_roi_warning = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI"))) ? FALSE : TRUE;
 }
 
 void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -615,6 +625,8 @@ void update_preferences_from_model() {
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
 
 	/* tab 8 */
 	siril_language_fill_combo(pref->lang);
@@ -626,7 +638,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
-
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
 
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
@@ -645,6 +657,7 @@ void update_preferences_from_model() {
 	initialize_starnet_weights(pref->starnet_weights);
 	initialize_asnet_directory(pref->asnet_dir);
 
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI")), pref->gui.enable_roi_warning ? FALSE : TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
@@ -683,6 +696,11 @@ static void dump_ui_to_global_var() {
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
 	update_preferences_from_model();
+#ifndef HAVE_LIBGIT2
+	hide_git_widgets();
+#else
+	fill_script_repo_list(FALSE);
+#endif
 }
 
 gboolean check_pref_sanity(gchar **error) {
@@ -717,8 +735,12 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		free_preferences(&com.pref);
 		dump_ui_to_global_var();
-		// set_wisdom_file();
+#ifdef HAVE_LIBGIT2
+		if (!com.pref.use_scripts_repository)
+			on_disable_gitscripts();
+#endif
 		initialize_FITS_name_entries();	// To update UI with new preferences
+		refresh_script_menu();	// To update the UI with scripts from the repo
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();

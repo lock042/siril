@@ -503,6 +503,7 @@ typedef struct cut_struct {
 	gboolean cut_measure;		// Whether or not to measure cuts
 	double wavenumber1;
 	double wavenumber2;
+	gboolean plot_as_wavenumber; // If true, plot as wavenumber; if false, plot as wavelength
 	gboolean tri;
 	gboolean cfa;
 	cut_mode mode;
@@ -574,6 +575,13 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
+typedef struct roi {
+	fits fit;
+	rectangle selection;
+	gboolean active;
+	gboolean operation_supports_roi;
+} roi_t;
+
 typedef struct draw_data {
 	cairo_t *cr;	// the context to draw to
 	int vport;	// the viewport index to draw
@@ -611,6 +619,11 @@ struct guiinf {
 	point measure_end;
 
 	void (*draw_extra)(draw_data_t *dd);
+
+	/* List of all scripts from the repository */
+	GList* repo_scripts; // the list of selected scripts is in com.pref
+	/* gboolean to confirm the script repository has been opened without error */
+	gboolean script_repo_available;
 
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
@@ -650,6 +663,8 @@ struct guiinf {
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
 	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
+
+	roi_t roi; // Region of interest struct
 };
 
 /* The global data structure of siril core */

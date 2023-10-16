@@ -66,6 +66,9 @@ preferences pref_init = {
 	.starnet_weights = NULL,
 	.gnuplot_dir = NULL,
 	.asnet_dir = NULL,
+	.selected_scripts = NULL,
+	.use_scripts_repository = FALSE,
+	.auto_script_update = FALSE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -143,7 +146,9 @@ preferences pref_init = {
 		.reg_settings = 0,
 		.reg_interpolation = OPENCV_LANCZOS4,
 		.reg_clamping = TRUE,
-		.pm_presets = NULL
+		.pm_presets = NULL,
+		.roi_mode = ROI_MANUAL,
+		.enable_roi_warning = TRUE
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -197,7 +202,7 @@ preferences pref_init = {
 	},
 	.fftw_conf = {
 		.timelimit = 60,
-		.strategy = 1,
+		.strategy = 0,
 		.multithreaded = TRUE,
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
@@ -243,7 +248,6 @@ void initialize_default_settings() {
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
-	// set_wisdom_file();
 }
 
 void update_gain_from_gfit() {
@@ -284,7 +288,7 @@ struct settings_access all_settings[] = {
 #endif
 	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
 	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
-	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
+	{ "core", "fftwf_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
 	{ "core", "fftw_multithreaded", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
@@ -377,6 +381,9 @@ struct settings_access all_settings[] = {
 	{ "gui", "font_scale", STYPE_DOUBLE, N_("font scale in percent"), &com.pref.gui.font_scale },
 	{ "gui", "icon_symbolic", STYPE_BOOL, N_("icon style"), &com.pref.gui.icon_symbolic },
 	{ "gui", "script_path", STYPE_STRLIST, N_("list of script directories"), &com.pref.gui.script_path },
+	{ "gui", "use_scripts_repository", STYPE_BOOL, N_("use and sync online scripts repository"), &com.pref.use_scripts_repository },
+	{ "gui", "auto_update_scripts", STYPE_BOOL, N_("auto sync online scripts repository"), &com.pref.auto_script_update },
+	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
 	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
@@ -384,6 +391,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
+	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
+	{ "gui", "roi_warning", STYPE_BOOL, N_("Enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },

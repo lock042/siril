@@ -1,13 +1,13 @@
 # Build properties
-option('relocatable-bundle', 
- type: 'combo', 
+option('relocatable-bundle',
+ type: 'combo',
  value: 'platform-default',
  description: 'build with resources considered bundled under the same prefix',
  choices: [ 'yes', 'no', 'platform-default' ]
 )
 
-option('openmp', 
- type : 'boolean', 
+option('openmp',
+ type : 'boolean',
  value : 'true',
  description: 'build with OpenMP support'
 )
@@ -22,6 +22,12 @@ option('exiv2',
  type : 'boolean',
  value : 'true',
  description: 'build with exiv2 support'
+)
+
+option('libgit2',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with libgit2 git integration'
 )
 
 option('libraw',
@@ -73,7 +79,7 @@ option('ffmpeg',
 )
 
 option('enable-libcurl',
- type: 'combo', 
+ type: 'combo',
  value: 'platform-default',
  description: 'Use libcurl instead of GIO',
  choices: [ 'yes', 'no', 'platform-default' ]

@@ -16,6 +16,7 @@ typedef struct denoise_args {
 	gboolean do_anscombe;
 	gboolean do_cosme;
 	gboolean suppress_artefacts;
+	gboolean previewing;
 } denoise_args;
 
 EXTERNC int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe);

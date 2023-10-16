@@ -35,6 +35,7 @@
 #include "io/image_format_fits.h"
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
+#include "gui/callbacks.h"
 
 #include "geometry.h"
 
@@ -137,6 +138,7 @@ static void fits_rotate_pi_float(fits *fit) {
 }
 
 static void fits_rotate_pi(fits *fit) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		fits_rotate_pi_ushort(fit);
 	} else if (fit->type == DATA_FLOAT) {
@@ -267,7 +269,7 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 
 	siril_log_color_message(_("Binning x%d: processing...\n"), "green", factor);
 	gettimeofday(&t_start, NULL);
-
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		fits_binning_ushort(fit, factor, mean);
 	} else if (fit->type == DATA_FLOAT) {
@@ -318,7 +320,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 			"green", interp_to_str(interpolation));
 
 	gettimeofday(&t_start, NULL);
-
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
@@ -351,6 +353,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	siril_log_color_message(
 			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
 			_("No"), (double)angle);
@@ -408,6 +411,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 
 #ifdef HAVE_WCSLIB
 	int orig_ry = image->ry; // required to compute flips afterwards
@@ -499,6 +503,7 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 }
 
 void mirrorx(fits *fit, gboolean verbose) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		mirrorx_ushort(fit, verbose);
 	} else if (fit->type == DATA_FLOAT) {
@@ -524,6 +529,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 }
 
 void mirrory(fits *fit, gboolean verbose) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	struct timeval t_start, t_end;
 
 	if (verbose) {
@@ -618,6 +624,7 @@ static int crop_float(fits *fit, rectangle *bounds) {
 }
 
 int crop(fits *fit, rectangle *bounds) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;

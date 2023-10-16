@@ -2041,6 +2041,8 @@ artifacts may appear.</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_Median_cancel_clicked" swapped="no"/>
+    <signal name="show" handler="on_Median_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox27">
         <property name="can-focus">False</property>
@@ -2065,6 +2067,24 @@ artifacts may appear.</property>
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="Median_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Note: ROI preview will show a black border. Do not panic, the border will be overwritten by future ROIs and when finally applying the median filter.</property>
+                <signal name="clicked" handler="on_Median_Apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="Median_Apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -2079,7 +2099,7 @@ artifacts may appear.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -2289,6 +2309,7 @@ If the parameters is null, so no filter is apply at all.</property>
       </object>
     </child>
     <action-widgets>
+      <action-widget response="0">Median_roi_preview</action-widget>
       <action-widget response="0">Median_Apply</action-widget>
     </action-widgets>
   </object>
@@ -5916,6 +5937,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_SCNR_cancel_clicked" swapped="no"/>
     <signal name="show" handler="on_SCNR_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox8">
@@ -5941,6 +5963,23 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="SCNR_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_SCNR_Apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="SCNR_Apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -5955,7 +5994,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -6092,6 +6131,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
       </object>
     </child>
     <action-widgets>
+      <action-widget response="0">SCNR_roi_preview</action-widget>
       <action-widget response="0">SCNR_Apply</action-widget>
     </action-widgets>
   </object>
@@ -6472,6 +6512,7 @@ enter a visible wavelength in nm</property>
     <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_bdeconv_close_clicked" swapped="no"/>
     <signal name="show" handler="on_bdeconv_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -6498,6 +6539,24 @@ enter a visible wavelength in nm</property>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="bdeconv_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Generate the kernel and use it to deconvolve the current image or sequence</property>
+                <signal name="clicked" handler="on_bdeconv_roi_preview_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -8491,13 +8550,13 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/curve.svg</property>
   </object>
-  <object class="GtkAdjustment" id="cut_adj_waveleength2">
-    <property name="upper">10000</property>
+  <object class="GtkAdjustment" id="cut_adj_wavelength1">
+    <property name="upper">100000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="cut_adj_wavelength1">
-    <property name="upper">10000</property>
+  <object class="GtkAdjustment" id="cut_adj_wavelength2">
+    <property name="upper">100000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -8593,11 +8652,11 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
             </child>
             <child>
               <object class="GtkButton" id="cut_wavenumber1">
-                <property name="label" translatable="yes">Pick wavenumber 1</property>
+                <property name="label" translatable="yes">Pick point 1</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavelength / wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavelength / wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber1_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8607,11 +8666,11 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
             </child>
             <child>
               <object class="GtkButton" id="cut_wavenumber2">
-                <property name="label" translatable="yes">Pick wavenumber 2</property>
+                <property name="label" translatable="yes">Pick point 2</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavelength / wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavelength / wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber2_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8627,7 +8686,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="text" translatable="yes">0</property>
                 <property name="adjustment">adj_cut_wn1</property>
                 <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavenumber1_value_changed" swapped="no"/>
+                <signal name="value-changed" handler="on_cut_spin_point1_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">3</property>
@@ -8642,7 +8701,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="text" translatable="yes">0</property>
                 <property name="adjustment">adj_cut_wn2</property>
                 <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavenumber2_value_changed" swapped="no"/>
+                <signal name="value-changed" handler="on_cut_spin_point2_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">3</property>
@@ -8712,6 +8771,45 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength1">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_wavelength1</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_cut_spin_point1_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength2">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_wavelength2</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_cut_spin_point2_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">wavelength / nm</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -8728,46 +8826,29 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">wavelength / nm</property>
+                <property name="label" translatable="yes">Plot x axis</property>
               </object>
               <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">1</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkSpinButton" id="cut_spin_wavelength1">
+              <object class="GtkComboBoxText" id="spectro_x_axis">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
-                <property name="adjustment">cut_adj_wavelength1</property>
-                <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavelength1_value_changed" swapped="no"/>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">When plotting a spectrogram, should the x axis show wavenumber or wavelength?</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Wavelength</item>
+                  <item translatable="yes">Wavenumber</item>
+                </items>
+                <signal name="changed" handler="on_spectro_x_axis_changed" swapped="no"/>
               </object>
               <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">2</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">0</property>
               </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="cut_spin_wavelength2">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
-                <property name="adjustment">cut_adj_waveleength2</property>
-                <property name="digits">1</property>
-                <signal name="value-changed" handler="on_cut_spin_wavelength2_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">4</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -8811,6 +8892,8 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
     <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_denoise_cancel_clicked" swapped="no"/>
+    <signal name="show" handler="on_denoise_dialog_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
@@ -8836,6 +8919,24 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="denoise_roi_preview">
+                <property name="label" translatable="yes">ROI Preview</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Apply</property>
+                <signal name="clicked" handler="on_denoise_apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="denoise_apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -8850,7 +8951,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -13948,6 +14049,20 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <column type="guint64"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="liststore_script_repo">
+    <columns>
+      <!-- column-name category -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name active -->
+      <column type="gboolean"/>
+      <!-- column-name fullpath -->
+      <column type="gchararray"/>
+      <!-- column-name bgcolor -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="liststore_scripts">
     <columns>
       <!-- column-name Path -->
@@ -16160,30 +16275,73 @@ The limit magnitude can be tuned with the `varstars` command. </property>
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_gray_crop">
+      <object class="GtkMenuItem" id="submenu_gray_crop">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="action-name">win.crop</property>
         <property name="label" translatable="yes">Crop</property>
         <property name="use-underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="crop_menu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_crop">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.crop</property>
+                <property name="label" translatable="yes">Crop</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_rotateandcrop">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.rotation-processing</property>
+                <property name="label" translatable="yes">Rotate &amp; Crop</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_crop_seq">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.seq-crop</property>
+                <property name="label" translatable="yes">Crop Sequence...</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_gray_crop_seq">
+      <object class="GtkMenuItem" id="submenu_gray_roi">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="action-name">win.seq-crop</property>
-        <property name="label" translatable="yes">Crop Sequence...</property>
+        <property name="label" translatable="yes">ROI</property>
         <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_gray_rotateandcrop">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.rotation-processing</property>
-        <property name="label" translatable="yes">Rotate&amp;Crop</property>
-        <property name="use-underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="roi_menu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_set_selection_to_roi">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.set_roi</property>
+                <property name="label" translatable="yes">Set ROI to selection</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_gray_clear_roi">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.clear_roi</property>
+                <property name="label" translatable="yes">Clear ROI</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
     <child>
@@ -17256,6 +17414,24 @@ Each image in the sequence will only be processed if the corresponding images fo
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="HistoCheckPreview">
+                    <property name="label" translatable="yes">Preview</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Toggle preview on / off</property>
+                    <property name="halign">start</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                    <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
               </object>
@@ -19587,6 +19763,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
       <pattern>*.ser</pattern>
       <pattern>*.tif</pattern>
       <pattern>*.tiff</pattern>
+      <pattern>*.fit.fz</pattern>
+      <pattern>*.fts.fz</pattern>
+      <pattern>*.fits.fz</pattern>
     </patterns>
   </object>
   <object class="GtkRecentChooserMenu" id="recent_menu">
@@ -20083,6 +20262,102 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">5</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkTextBuffer" id="script_textbuffer"/>
+  <object class="GtkDialog" id="script_contents_dialog">
+    <property name="can-focus">False</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="script_text_close">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_script_text_close_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel" id="script_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Script Filename</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="shadow-type">in</property>
+                <property name="min-content-width">400</property>
+                <property name="min-content-height">600</property>
+                <property name="propagate-natural-width">True</property>
+                <property name="propagate-natural-height">True</property>
+                <child>
+                  <object class="GtkTextView" id="script_contents">
+                    <property name="width-request">400</property>
+                    <property name="height-request">600</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="vscroll-policy">natural</property>
+                    <property name="editable">False</property>
+                    <property name="wrap-mode">word</property>
+                    <property name="buffer">script_textbuffer</property>
+                    <property name="accepts-tab">False</property>
+                    <property name="monospace">True</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </object>
@@ -31986,6 +32261,71 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="position">5</property>
                                   </packing>
                                 </child>
+                                <child>
+                                  <object class="GtkFrame">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label-xalign">0</property>
+                                    <property name="shadow-type">none</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=1 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="row-homogeneous">True</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Type of selection</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="pref_ui_roimode">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-markup" translatable="yes">Sets the method of selecting a ROI.
+&lt;b&gt;Manual&lt;/b&gt; requires the ROI to be selected and cleared manually using the right mouse button menu.
+&lt;b&gt;Automatic&lt;/b&gt; automatically synchronises the ROI with the current selection, and clears it when the selection is cleared.</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">Manual</item>
+                                              <item translatable="yes">Automatic from selection</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="label">
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-top">10</property>
+                                        <property name="margin-bottom">10</property>
+                                        <property name="label" translatable="yes">Region of Interest</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">7</property>
+                                  </packing>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -32005,7 +32345,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkBox" id="scripts_page">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
@@ -32159,6 +32499,177 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame" id="frame_gitscripts">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">6</property>
+                            <child>
+                              <object class="GtkCheckButton" id="pref_use_gitscripts">
+                                <property name="label" translatable="yes">Enable use of the siril-scripts online repository</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-markup" translatable="yes">Siril will fetch and update scripts from the official siril-scripts repository. These will be available offline and specific scripts can be selected for adding to the Scripts menu.
+
+&lt;b&gt;Note:&lt;/b&gt;
+Activating the repository will take place immediately, so that you can select scripts once the list populates. Deactivating the repository will only take place when the Apply button is clicked, in the usual way.</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_pref_use_gitscripts_toggled" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="padding">6</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="homogeneous">True</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="pref_script_automatic_updates">
+                                    <property name="label" translatable="yes">Automatic updates</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Automatically update the repository at startup.</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="manual_script_sync_button">
+                                    <property name="label" translatable="yes">Manual update</property>
+                                    <property name="name">update_scripts_now</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">Update the scripts repository now. If there are any pending changes, the commit messages will be shown and you will be asked to confirm applying the changes.</property>
+                                    <signal name="clicked" handler="on_manual_script_sync_button_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScrolledWindow">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="shadow-type">in</property>
+                                <property name="min-content-height">200</property>
+                                <property name="max-content-height">350</property>
+                                <child>
+                                  <object class="GtkTreeView" id="treeview2">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to view the script description and code.</property>
+                                    <property name="hscroll-policy">natural</property>
+                                    <property name="vscroll-policy">natural</property>
+                                    <property name="model">liststore_script_repo</property>
+                                    <property name="headers-clickable">False</property>
+                                    <property name="search-column">1</property>
+                                    <property name="show-expanders">False</property>
+                                    <property name="enable-grid-lines">horizontal</property>
+                                    <signal name="row-activated" handler="on_treeview2_row_activated" swapped="no"/>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection"/>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="treeviewcolumn33">
+                                        <property name="resizable">True</property>
+                                        <property name="title" translatable="yes">Category</property>
+                                        <property name="expand">True</property>
+                                        <property name="clickable">True</property>
+                                        <property name="sort-column-id">0</property>
+                                        <child>
+                                          <object class="GtkCellRendererText" id="cellrenderertext13"/>
+                                          <attributes>
+                                            <attribute name="background">4</attribute>
+                                            <attribute name="text">0</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="treeviewcolumn32">
+                                        <property name="resizable">True</property>
+                                        <property name="title" translatable="yes">Script</property>
+                                        <property name="expand">True</property>
+                                        <property name="clickable">True</property>
+                                        <property name="sort-column-id">1</property>
+                                        <child>
+                                          <object class="GtkCellRendererText" id="cellrenderertext12"/>
+                                          <attributes>
+                                            <attribute name="background">4</attribute>
+                                            <attribute name="text">1</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="script_repo_treeview_sel">
+                                        <property name="resizable">True</property>
+                                        <property name="title" translatable="yes">Sel</property>
+                                        <child>
+                                          <object class="GtkCellRendererToggle" id="cellrenderertoggle16">
+                                            <signal name="toggled" handler="on_script_list_active_toggled" swapped="no"/>
+                                          </object>
+                                          <attributes>
+                                            <attribute name="cell-background">4</attribute>
+                                            <attribute name="active">2</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Siril Scripts Repository&lt;/b&gt;</property>
+                            <property name="use-markup">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>
@@ -32447,8 +32958,10 @@ Configuring a memory amount larger than what is available on your system may res
                               <object class="GtkComboBoxText" id="pref_fftw_plan_strategy">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it optimise FFT calculations of given sizes. For each successive level of planning strategy, more work will be done to find the optimum calculation strategy the first time an unknown FFT size is encountered. The first-time calculation will be progressively slower, but the wisdom is stored and will make subsequent runs faster. For most users the default Patient strategy is fine. If you regularly deal with images of many different sizes, Estimate or Measure may be better; if all your images are always exactly the same size, you may wish to try Exhaustive. Note that the initial plan for a given size and planning level takes longer to generate if you have selected multithreaded FFTW.</property>
-                                <property name="active">1</property>
+                                <property name="tooltip-text" translatable="yes">Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it optimise FFT calculations of given sizes. For each successive level of planning strategy, more work will be done to find the optimum calculation strategy the first time an unknown FFT size is encountered. The first-time calculation will be progressively slower, but the wisdom is stored and will make subsequent runs faster. For most users the default Estimate strategy is fine. If all your images are usually exactly the same size, you may wish to try Measure or Patient. Exhaustive is probably too slow for use with large images. Note that the initial plan for a given size and planning level takes longer to generate if you have selected multithreaded FFTW.
+
+This setting is used in Deconvolution, but is ignored by the Fourier Transform function which always uses Estimate, as the overhead generated by the other strategies is not worth it for a single Fourier Transform.</property>
+                                <property name="active">0</property>
                                 <items>
                                   <item translatable="yes">Estimate</item>
                                   <item translatable="yes">Measure</item>
@@ -32685,6 +33198,21 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="miscHideInfoROI">
+                                <property name="label" translatable="yes">Don't explain about ROI processing in related dialogs</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Suppress info dialog explaining about ROI processing when opening an appropriate dialog</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                           </object>

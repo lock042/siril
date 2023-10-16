@@ -68,7 +68,7 @@
 #include "siril-window.h"
 #include "registration_preview.h"
 
-
+static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
@@ -231,6 +231,131 @@ void on_combo_theme_changed(GtkComboBox *box, gpointer user_data) {
 	int active = gtk_combo_box_get_active(box);
 
 	siril_set_theme(active);
+}
+
+int populate_roi() {
+	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
+		return 1;
+	int retval = 0;
+	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
+	size_t npixels_gfit = gfit.rx * gfit.ry;
+	size_t nchans = gfit.naxes[2];
+	g_assert(nchans ==1 || nchans == 3);
+	gboolean rgb = (nchans == 3);
+	clearfits(&gui.roi.fit);
+	copyfits(&gfit, &gui.roi.fit, CP_FORMAT, -1);
+	gui.roi.fit.rx = gui.roi.fit.naxes[0] = gui.roi.selection.w;
+	gui.roi.fit.ry = gui.roi.fit.naxes[1] = gui.roi.selection.h;
+	gui.roi.fit.naxes[2] = nchans;
+	gui.roi.fit.naxis = nchans == 1 ? 2 : 3;
+	if (gui.roi.fit.type == DATA_FLOAT) {
+		gui.roi.fit.fdata = malloc(npixels_roi * nchans * sizeof(float));
+		if (!gui.roi.fit.fdata)
+			retval = 1;
+		gui.roi.fit.fpdata[0] = gui.roi.fit.fdata;
+		gui.roi.fit.fpdata[1] = rgb? gui.roi.fit.fdata + npixels_roi : gui.roi.fit.fdata;
+		gui.roi.fit.fpdata[2] = rgb? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
+		for (uint32_t c = 0 ; c < nchans ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				float *srcindex = gfit.fdata + (npixels_gfit * c) + ((gfit.ry - y - gui.roi.selection.y) * gfit.rx) + gui.roi.selection.x;
+				float *destindex = gui.roi.fit.fdata + (npixels_roi * c) + (gui.roi.fit.rx * y);
+				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(float));
+			}
+		}
+	} else {
+		gui.roi.fit.data = malloc(npixels_roi * nchans * sizeof(WORD));
+		if (!gui.roi.fit.data)
+			retval = 1;
+		gui.roi.fit.pdata[0] = gui.roi.fit.data;
+		gui.roi.fit.pdata[1] = rgb? gui.roi.fit.data + npixels_roi : gui.roi.fit.data;
+		gui.roi.fit.pdata[2] = rgb? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
+		for (uint32_t c = 0 ; c < nchans ; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+				WORD *srcindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - y - gui.roi.selection.y) * gfit.rx) + gui.roi.selection.x;
+				WORD *destindex = gui.roi.fit.data + (npixels_roi * c) + y * gui.roi.fit.rx;
+				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(WORD));
+			}
+		}
+	}
+	backup_roi();
+	gui.roi.active = TRUE;
+	return retval;
+}
+
+static void call_roi_callbacks() {
+	GList *current = roi_callbacks;
+	while (current != NULL) {
+		ROICallback func = (ROICallback)(current->data);
+		func();
+		current = current->next;
+	}
+}
+
+void add_roi_callback(ROICallback func) {
+	roi_callbacks = g_list_append(roi_callbacks, func);
+}
+
+void remove_roi_callback(ROICallback func) {
+	roi_callbacks = g_list_remove_all(roi_callbacks, func);
+}
+
+static void roi_info_message_if_needed() {
+		GtkWidget *check = NULL;
+		GtkWindow *parent = siril_get_active_window();
+		if (!GTK_IS_WINDOW(parent))
+			parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		GtkWidget *dialog = gtk_message_dialog_new(parent, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, _("Region of Interest supported"));
+		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
+					_("This image operation supports ROI processing. This is "
+					"indicated by the green border around the ROI. In image "
+					"operation dialogs that do not support ROI processing, and "
+					"when no dialog is open, the ROI will have a red outline.\n\n"
+					"While a ROI is active, processing will only preview the ROI. "
+					"When the Apply button is clicked, the operation will apply "
+					"to the whole image."));
+		check = gtk_check_button_new_with_mnemonic(_("_Do not show this dialog again"));
+		gtk_box_pack_end(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG (dialog))),
+				check, FALSE, FALSE, 0);
+		gtk_widget_set_halign(check, GTK_ALIGN_START);
+		gtk_widget_set_margin_start(check, 6);
+		gtk_widget_show(check);
+		gtk_dialog_run(GTK_DIALOG(dialog));
+		com.pref.gui.enable_roi_warning = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check));
+		gtk_widget_destroy(dialog);
+}
+
+void roi_supported(gboolean state) {
+	gui.roi.operation_supports_roi = state;
+	// Provide a one-time notification about ROI support
+	if (state && gui.roi.active && com.pref.gui.enable_roi_warning)
+		roi_info_message_if_needed();
+	redraw(REDRAW_OVERLAY);
+}
+
+gpointer on_set_roi() {
+	if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
+		roi_info_message_if_needed();
+	// Ensure any pending ROI changes are overwritten by the backup
+	// Must copy the whole backup to gfit and gui.roi.fit to account
+	// for switching between full image and ROI
+	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	gui.roi.active = TRUE;
+	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
+		copy_backup_to_gfit();
+	populate_roi();
+	backup_roi();
+	// Call any callbacks that need calling
+	call_roi_callbacks();
+	return GINT_TO_POINTER(0);
+}
+
+gpointer on_clear_roi() {
+	clearfits(&gui.roi.fit);
+	memset(&gui.roi, 0, sizeof(roi_t));
+	// Call any callbacks that need calling
+	call_roi_callbacks();
+	redraw(REDRAW_OVERLAY);
+	return GINT_TO_POINTER(0);
 }
 
 static void initialize_theme_GUI() {
@@ -754,6 +879,28 @@ void update_display_selection() {
 	}
 }
 
+static void update_roi_from_selection() {
+	if (gui.roi.active) {
+		restore_roi();
+		copy_roi_into_gfit();
+	}
+	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	gui.roi.active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
+	if (gui.roi.active)
+		on_set_roi();
+	else
+		on_clear_roi();
+}
+
+void update_roi_config() {
+	if (com.pref.gui.roi_mode == ROI_AUTO)
+		register_selection_update_callback(update_roi_from_selection);
+	else
+		unregister_selection_update_callback(update_roi_from_selection);
+
+	gtk_widget_set_visible(lookup_widget("submenu_gray_roi"), com.pref.gui.roi_mode == ROI_MANUAL);
+}
+
 void update_display_fwhm() {
 	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb" };
 	static gchar fwhm_buffer[256] = { 0 };
@@ -843,16 +990,20 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 							"Getting back to 32 bits will not recover this loss.\n"
 							"Are you sure you want to convert your data?"), _("Convert to 16 bits"));
 			if (convert) {
-				if (is_preview_active())
-					fit_replace_buffer(get_preview_gfit_backup(), float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
+				if (is_preview_active()) {
+					fits *backup_gfit = get_preview_gfit_backup();
+					fit_replace_buffer(backup_gfit, float_buffer_to_ushort(backup_gfit->fdata, ndata), DATA_USHORT);
+				}
 				fit_replace_buffer(&gfit, float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
 				redraw(REMAP_ALL);
 			}
 		} else if (gfit.type == DATA_USHORT) {
-			if (is_preview_active())
-				fit_replace_buffer(get_preview_gfit_backup(), ushort_buffer_to_float(gfit.data, ndata), DATA_FLOAT);
+			if (is_preview_active()) {
+				fits *backup_gfit = get_preview_gfit_backup();
+				fit_replace_buffer(backup_gfit, ushort_buffer_to_float(backup_gfit->data, ndata), DATA_FLOAT);
+			}
 			fit_replace_buffer(&gfit, ushort_buffer_to_float(gfit.data, ndata), DATA_FLOAT);
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
@@ -1327,6 +1478,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
 	gui.preview_area[0] = lookup_widget("drawingarea_preview1");
 	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
+	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
 	initialize_image_display();
 	init_mouse();
 	/* populate language combo */
@@ -1372,6 +1524,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_FITS_name_entries();
 
 	initialize_log_tags();
+
+	/* Initialize ROI settings */
+	update_roi_config();
 
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);
