@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-10-13 10:23+0200\n"
-"PO-Revision-Date: 2023-09-01 09:26+0000\n"
+"PO-Revision-Date: 2023-10-18 08:52+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -581,15 +581,17 @@ msgstr "Filtre Médian"
 
 #: src/gui/siril3.glade:2071 src/gui/siril3.glade:5967
 #: src/gui/siril3.glade:6546 src/gui/siril3.glade:8923
-#, fuzzy
 msgid "ROI Preview"
-msgstr "Aperçu"
+msgstr "Aperçu ROI"
 
 #: src/gui/siril3.glade:2075
 msgid ""
 "Note: ROI preview will show a black border. Do not panic, the border will be "
 "overwritten by future ROIs and when finally applying the median filter."
 msgstr ""
+"Remarque : la prévisualisation du ROI affiche une bordure noire. Ne paniquez "
+"pas, la bordure sera écrasée par les futurs ROI et lors de l'application "
+"finale du filtre médian."
 
 #: src/gui/siril3.glade:2129 src/gui/siril3.glade:2109
 msgid "Kernel Size:"
@@ -2085,9 +2087,8 @@ msgstr ""
 "la coupe sera utilisée."
 
 #: src/gui/siril3.glade:8655
-#, fuzzy
 msgid "Pick point 1"
-msgstr "Pointer objet dans #1"
+msgstr "Pointer le point 1"
 
 #: src/gui/siril3.glade:8659 src/gui/siril3.glade:8673
 msgid ""
@@ -2097,11 +2098,15 @@ msgid ""
 "these points snap to the profile line and are reset if the profile line is "
 "moved."
 msgstr ""
+"Choisissez un point sur la ligne de profil correspondant à une longueur "
+"d'onde / un nombre d'ondes connu. Il s'agit généralement d'une ligne "
+"spectrale connue ou, pour les images de spectrographes, de la longueur "
+"d'onde ou du nombre d'onde central. Remarque : ces points s'accrochent à la "
+"ligne de profil et sont réinitialisés si la ligne de profil est déplacée."
 
 #: src/gui/siril3.glade:8669
-#, fuzzy
 msgid "Pick point 2"
-msgstr "Pointer objet dans #2"
+msgstr "Pointer le point 2"
 
 #: src/gui/siril3.glade:8626 src/gui/siril3.glade:8641
 msgid "Enter the wavenumber corresponding to the selected point"
@@ -2145,23 +2150,23 @@ msgid "wavenumber / cm<sup>-1</sup>"
 msgstr "nombre d'onde / cm<sup>-1</sup>"
 
 #: src/gui/siril3.glade:8829
-#, fuzzy
 msgid "Plot x axis"
-msgstr "Var. graph"
+msgstr "Tracer l'axe des x"
 
 #: src/gui/siril3.glade:8840
 msgid ""
 "When plotting a spectrogram, should the x axis show wavenumber or wavelength?"
 msgstr ""
+"Lors du tracé d'un spectre, l'axe des x doit-il représenter les nombres "
+"d'onde ou la longueur d'onde ?"
 
 #: src/gui/siril3.glade:8843
-#, fuzzy
 msgid "Wavelength"
-msgstr "Longueur d'onde / nm"
+msgstr "Longueur d'onde"
 
 #: src/gui/siril3.glade:8844
 msgid "Wavenumber"
-msgstr ""
+msgstr "Nombre d'onde"
 
 #: src/gui/siril3.glade:8891 src/gui/siril3.glade:8810
 msgid "Image Denoising"
@@ -4531,9 +4536,8 @@ msgid "Crop"
 msgstr "Recadrer"
 
 #: src/gui/siril3.glade:16182
-#, fuzzy
 msgid "Rotate & Crop"
-msgstr "Rotation&Recadrage"
+msgstr "Rotation & Recadrage"
 
 #: src/gui/siril3.glade:16190 src/gui/siril3.glade:16057
 msgid "Crop Sequence..."
@@ -4541,17 +4545,15 @@ msgstr "Recadrer la séquence..."
 
 #: src/gui/siril3.glade:16202
 msgid "ROI"
-msgstr ""
+msgstr "ROI"
 
 #: src/gui/siril3.glade:16213
-#, fuzzy
 msgid "Set ROI to selection"
-msgstr "Zoomer sur la sélection"
+msgstr "Définir la ROI sur la sélection"
 
 #: src/gui/siril3.glade:16221
-#, fuzzy
 msgid "Clear ROI"
-msgstr "Effacer"
+msgstr "Effacer la ROI"
 
 #: src/gui/siril3.glade:16238 src/gui/siril3.glade:16080
 msgid "RGB align"
@@ -4820,9 +4822,8 @@ msgstr ""
 "des tons moyens."
 
 #: src/gui/siril3.glade:17306
-#, fuzzy
 msgid "Toggle preview on / off"
-msgstr "Activer / désactiver le mode plein écran"
+msgstr "Activer / désactiver l'aperçu"
 
 #: src/gui/siril3.glade:17368 src/gui/siril3.glade:17192
 msgid ""
@@ -5475,9 +5476,8 @@ msgid "Type of algorithm used for rotation"
 msgstr "Type d'algorithme utilisé pour la rotation"
 
 #: src/gui/siril3.glade:20195
-#, fuzzy
 msgid "Script Filename"
-msgstr "Nom de fichier :"
+msgstr "Nom du fichier de script"
 
 #: src/gui/siril3.glade:20249 src/gui/siril3.glade:19974
 msgid "Search Object"
@@ -9264,9 +9264,8 @@ msgid "Histogram Display"
 msgstr "Affichage de l'histogramme"
 
 #: src/gui/siril3.glade:32164
-#, fuzzy
 msgid "Type of selection"
-msgstr "Aucune sélection"
+msgstr "Type de sélection"
 
 #: src/gui/siril3.glade:32175
 msgid ""
@@ -9276,20 +9275,23 @@ msgid ""
 "<b>Automatic</b> automatically synchronises the ROI with the current "
 "selection, and clears it when the selection is cleared."
 msgstr ""
+"Définit la méthode de sélection de la ROI.\n"
+"<b>Manuel</b> nécessite que la ROI soit sélectionnée et effacée manuellement "
+"à l'aide du menu du bouton droit de la souris.\n"
+"<b>Automatique</b> synchronise automatiquement la ROI avec la sélection "
+"actuelle et l'efface lorsque la sélection est effacée."
 
 #: src/gui/siril3.glade:32180
-#, fuzzy
 msgid "Manual"
-msgstr "PSF manuelle"
+msgstr "Manuelle"
 
 #: src/gui/siril3.glade:32181
-#, fuzzy
 msgid "Automatic from selection"
-msgstr "Auto-détection"
+msgstr "Automatique à partir de la sélection"
 
 #: src/gui/siril3.glade:32197
 msgid "Region of Interest"
-msgstr ""
+msgstr "Région d'intérêt (ROI)"
 
 #: src/gui/siril3.glade:32269 src/gui/siril3.glade:31929
 msgid ""
@@ -9341,7 +9343,7 @@ msgstr "Avertissements"
 
 #: src/gui/siril3.glade:32399
 msgid "Enable use of the siril-scripts online repository"
-msgstr ""
+msgstr "Permettre l'utilisation du dépôt en ligne siril-scripts"
 
 #: src/gui/siril3.glade:32403
 msgid ""
@@ -9354,20 +9356,27 @@ msgid ""
 "select scripts once the list populates. Deactivating the repository will "
 "only take place when the Apply button is clicked, in the usual way."
 msgstr ""
+"Siril va récupérer et mettre à jour les scripts du dépôt officiel siril-"
+"scripts. Ceux-ci seront disponibles hors ligne et des scripts spécifiques "
+"peuvent être sélectionnés pour être ajoutés au menu Scripts.\n"
+"\n"
+"<b>Note :</b>\n"
+"L'activation du dépôt se fait immédiatement, de sorte que vous pouvez "
+"sélectionner les scripts dès que la liste se remplit. La désactivation du "
+"dépôt n'interviendra que lorsque vous cliquerez sur le bouton Appliquer, de "
+"la manière habituelle."
 
 #: src/gui/siril3.glade:32424
-#, fuzzy
 msgid "Automatic updates"
-msgstr "Auto-détection"
+msgstr "Mises à jour automatiques"
 
 #: src/gui/siril3.glade:32428
 msgid "Automatically update the repository at startup."
-msgstr ""
+msgstr "Mettre à jour automatiquement le dépôt au démarrage."
 
 #: src/gui/siril3.glade:32439
-#, fuzzy
 msgid "Manual update"
-msgstr "Aucune coordonnées"
+msgstr "Mise à jour manuelle"
 
 #: src/gui/siril3.glade:32444
 msgid ""
@@ -9375,26 +9384,30 @@ msgid ""
 "commit messages will be shown and you will be asked to confirm applying the "
 "changes."
 msgstr ""
+"Mettez à jour le dépôt de scripts maintenant. S'il y a des modifications en "
+"attente, les messages de validation seront affichés et il vous sera demandé "
+"de confirmer l'application des modifications."
 
 #: src/gui/siril3.glade:32471
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to view the script description and code."
 msgstr ""
+"Liste des scripts disponibles. Les scripts sélectionnés sont accessibles via "
+"le menu Scripts. Double-cliquez sur une ligne pour afficher la description "
+"et le code du script."
 
 #: src/gui/siril3.glade:32486
 msgid "Category"
-msgstr ""
+msgstr "Catégorie"
 
 #: src/gui/siril3.glade:32502
-#, fuzzy
 msgid "Script"
-msgstr "Scripts"
+msgstr "Script"
 
 #: src/gui/siril3.glade:32545
-#, fuzzy
 msgid "<b>Siril Scripts Repository</b>"
-msgstr "<b>Répertoire des scripts</b>"
+msgstr "<b>Répertoires des scripts</b>"
 
 #: src/gui/siril3.glade:32573 src/gui/siril3.glade:32936
 #: src/gui/siril3.glade:32062 src/gui/siril3.glade:32423
@@ -9514,7 +9527,6 @@ msgid "FFTW planning strategy"
 msgstr "Stratégie de planification de la FFTW"
 
 #: src/gui/siril3.glade:32842
-#, fuzzy
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -9532,18 +9544,23 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 "Définit la stratégie de planification de la FFTW. La FFTW génère et stocke "
-"la `sagesse` pour l'aider à optimiser les calculs FFT de tailles données. "
-"Pour chaque niveau successif de stratégie de planification, davantage de "
-"travail sera effectué pour trouver la stratégie de calcul optimale la "
-"première fois qu'une taille de FFT inconnue est rencontrée. Le premier "
-"calcul sera progressivement plus lent, mais la sagesse est stockée et rendra "
-"les exécutions suivantes plus rapides. Pour la plupart des utilisateurs, la "
-"stratégie par défaut du `Patient` est parfaite. Si vous traitez "
-"régulièrement des images de tailles très différentes, Éstimer ou Mesurer "
-"peut être préférable ; si toutes vos images ont toujours exactement la même "
-"taille, vous pouvez essayer Exhaustive. Notez que le plan initial pour une "
-"taille et un niveau de planification donnés est plus long à générer si vous "
-"avez sélectionné la FFTW multithreadée."
+"une sagesse qui l'aide à optimiser les calculs FFT de tailles données. Pour "
+"chaque niveau successif de stratégie de planification, plus de travail sera "
+"effectué pour trouver la stratégie de calcul optimale la première fois "
+"qu'une taille de FFT inconnue est rencontrée. Le premier calcul sera "
+"progressivement plus lent, mais la sagesse est stockée et rendra les "
+"exécutions suivantes plus rapides. Pour la plupart des utilisateurs, la "
+"stratégie d'estimation par défaut convient parfaitement. Si toutes vos "
+"images ont généralement la même taille, vous pouvez essayer Mesure ou "
+"Patient. La stratégie Exhaustive est probablement trop lente pour être "
+"utilisée avec des images de grande taille. Notez que le plan initial pour "
+"une taille et un niveau de planification donnés est plus long à générer si "
+"vous avez sélectionné la stratégie FFTW multithread.\n"
+"\n"
+"Ce paramètre est utilisé dans Déconvolution, mais est ignoré par la fonction "
+"Transformée de Fourier qui utilise toujours Estimation, car la surcharge "
+"générée par les autres stratégies n'en vaut pas la peine pour une seule "
+"transformée de Fourier."
 
 #: src/gui/siril3.glade:32848 src/gui/siril3.glade:32335
 msgid "Measure"
@@ -9646,13 +9663,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:33086
 msgid "Don't explain about ROI processing in related dialogs"
-msgstr ""
+msgstr "Ne pas donner l'explication des ROI dans les dialogues connexes"
 
 #: src/gui/siril3.glade:33090
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr ""
+"Suppression de la boîte de dialogue expliquant le traitement avec ROI lors "
+"de l'ouverture d'une boîte de dialogue appropriée"
 
 #: src/gui/siril3.glade:33129 src/gui/siril3.glade:32601
 msgid "Play introduction"
@@ -10048,6 +10067,8 @@ msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "scripts...\n"
 msgstr ""
+"Le dépôt de scripts en ligne n'est pas activé. Pas de récupération ou de "
+"mise à jour de siril-scripts...\n"
 
 #: src/main.c:362 src/core/command.c:7146 src/core/command_line_processor.c:628
 #: src/gui/single_image.c:82 src/main.c:353 src/core/command.c:7187
@@ -13979,8 +14000,8 @@ msgstr "Les images doivent avoir les mêmes dimensions et être monochromes\n"
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr ""
-"La SER ne peut pas contenir d'informations WCS, la résolution astrométrique "
-"sera exportée au format FITS cube\n"
+"Le SER ne peut pas contenir d'informations WCS, la résolution astrométrique "
+"sera exportée au format FITS cube.\n"
 
 #: src/core/command.c:8363 src/core/command.c:8375 src/core/command.c:9015
 #: src/core/command.c:9027 src/core/command.c:8404 src/core/command.c:8416
@@ -15876,6 +15897,53 @@ msgid ""
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My Title"
 "\""
 msgstr ""
+"Génère un tracé de profil d'intensité entre 2 points de l'image, également "
+"appelé <i>coupe</i>. Les arguments peuvent être présentés dans n’importe "
+"quel ordre. Les arguments <b>-to=x,y</b> et <b>-from=x,y</b> sont "
+"obligatoires.\n"
+"\n"
+"L'argument <b>-layer=<i>{red | green | blue | lum | col}</i></b> spécifie "
+"quel canal (ou luminance ou couleur) tracer si l'image est en couleur. Ceci "
+"peut être utilisé conjointement avec des options spectrométriques. Il peut "
+"par ailleurs être utilisé avec l'option <b>-tri</b>, qui génère 3 profils "
+"parallèles équidistants séparés chacun par <b>-spacing=</b> pixels, mais "
+"notez que pour les profils tri, l'option <i><b>col</b></i> sera traitée de "
+"la même manière que l'option <i><b>lum</b></i>.\n"
+"\n"
+"L'option <b>-cfa</b> sélectionne le mode CFA, qui génère 4 profils : 1 pour "
+"chaque canal CFA dans une image à motif Bayer. Cette option ne peut pas être "
+"utilisée avec des images couleur ou des images monochromes sans motif Bayer, "
+"et ne peut pas être utilisée en même temps que l'option <b>-tri</b>.\n"
+"\n"
+"L'option <b>-arcsec</b> fait que l'axe des x affiche la distance en arcsec, "
+"si les métadonnées nécessaires sont disponibles. Cette option est remplacée "
+"si des options spectrométriques sont fournies. Si elle n’est pas fournie ou "
+"si les métadonnées ne sont pas disponibles, la distance sera affichée en "
+"unités de pixels.\n"
+"\n"
+"L'argument <b>-savedat</b> provoquera la sauvegarde des fichiers de données :"
+" le nom du fichier sera écrit dans le journal. Alternativement, l'argument "
+"<b>-filename=</b> peut être utilisé pour spécifier un nom de fichier dans "
+"lequel écrire le fichier de données. (L'option <b>-filename=</b> implique "
+"<b>-savedat</b>.)\n"
+"\n"
+"<b>Options spectrométriques</b>\n"
+"\n"
+"Si des options spectrométriques sont fournies, tous les éléments suivants "
+"doivent être fournis : <b>-wavenumber1=</b> / <b>-wavelength1=</b> et "
+"<b>-wavenumber2=</b> / <b> -wavelength2=</b> spécifie 2 nombres d'ondes en "
+"cm<sup>-1</sup> / longueurs d'onde en nm, et <b>-wn1=x,y</b> et <b>-wn2=x,y "
+"</b> spécifiez les points dans l'image correspondant à ces nombres d'onde. "
+"Par commodité, <b>-wavelength1=</b> et <b>-wavelength2=</b> peuvent être "
+"utilisés à la place pour fournir des longueurs d'onde en nm. Les arguments "
+"spectrométriques facultatifs suivants peuvent être fournis : <b>-width=</b>, "
+"qui spécifie le nombre de pixels dont la moyenne doit être moyenne "
+"perpendiculairement à la ligne de profil, et l'un des éléments suivants : "
+"<b>-xaxis=wavelength</b> ou <b>-xaxis=wavenumber</b>, qui définit les unités "
+"pour l'axe x (la valeur par défaut est la longueur d'onde).\n"
+"\n"
+"L'argument <b>\"-title=<i>Mon Titre\"</i></b> définit un titre personnalisé "
+"\"Mon Titre\""
 
 #: src/core/command_def.h:107
 msgid ""
@@ -16717,19 +16785,18 @@ msgid ""
 "possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 msgstr ""
 "Astrométrie d'une séquence. Une nouvelle séquence sera créée avec le préfixe "
-"\"ps_\". Si la séquence d'entrée est SER, la fourniture des métadonnées est "
-"obligatoire et la séquence de sortie sera au format cube FITS, car SER ne "
-"peut pas stocker les données WCS.\n"
-"Si les données WCS ou d'autres métadonnées d'image sont erronées ou "
-"manquantes, des arguments doivent être transmis :\n"
-"  les coordonnées approximatives du centre de l'image peuvent être fournies "
-"en degrés décimaux ou en degrés/heures minutes secondes (J2000 avec "
-"séparateurs deux-points), avec des valeurs d'ascension droite et de "
-"déclinaison séparées par une virgule ou un espace (non obligatoire pour "
-"astrometry.net). Un seul extrait de catalogue sera réalisé pour l'ensemble "
-"de la séquence, s'il y a beaucoup de dérives qui risquent de ne pas réussir "
-"pour toutes les images.\n"
-"  la distance focale et la taille des pixels peuvent être transmises avec "
+"\"ps_\". Si la séquence d'entrée est en SER, la fourniture des métadonnées "
+"est obligatoire et la séquence de sortie sera au format FITS cube, le SER ne "
+"pouvant pas stocker les données WCS.\n"
+"Si les données WCS ou d'autres métadonnées d'image sont erronés ou "
+"manquants, des arguments doivent être transmis :\n"
+"   les coordonnées approximatives du centre de l'image peuvent être fournies "
+"en degrés décimaux ou en degrés/heure minute seconde (J2000 avec séparateurs "
+"deux-points), avec les valeurs d'ascension droite et de déclinaison séparées "
+"par une virgule ou un espace (pas obligatoire pour astrometry.net). Un seul "
+"extrait de catalogue sera fait pour toute la séquence, s'il y a beaucoup de "
+"dérives qui risquent cela risque de ne pas réussir pour toutes les images.\n"
+"   la distance focale et la taille des pixels peuvent être passées avec "
 "<b>-focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
 "valeurs des images et des paramètres.\n"
 "\n"
@@ -16740,24 +16807,22 @@ msgstr ""
 "\n"
 "Les images peuvent être soit résolues par Siril à l'aide d'un catalogue "
 "d'étoiles et de l'algorithme d'alignement global, soit par la commande "
-"locale de résolution de champ d'astrometry.net (activée avec <b>-localasnet</"
-"b>).\n"
+"locale solve-field d'astrometry.net (activée avec <b>-localasnet</b>).\n"
 "Les options suivantes s'appliquent uniquement à la résolution astrométrique "
 "de Siril.\n"
-"La magnitude limite des étoiles utilisée pour la résolution astrométrique "
+"La magnitude limite des étoiles utilisées pour la résolution astrométrique "
 "est automatiquement calculée à partir de la taille du champ de vision, mais "
 "peut être modifiée en passant une valeur +offset ou -offset à <b>-limitmag=</"
-"b>, ou simplement une valeur absolue : valeur positive pour la grandeur "
+"b>, ou simplement une valeur absolue valeur positive pour la magnitude "
 "limite.\n"
-"Le choix du catalogue d'étoiles est automatique sauf si l'option <b>-"
-"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
-"utilisés, sinon le choix se fait en fonction du champ de vision et de "
-"l'ampleur limite. Si l'option est passée, elle force l'utilisation du "
+"Le choix du catalogue d'étoiles est automatique sauf si l'option "
+"<b>-catalog=</b> est passée : si des catalogues locaux sont installés, ils "
+"sont utilisés, sinon le choix est basé sur le champ de vision et la "
+"magnitude limite. Si l'option est passée, elle force l'utilisation du "
 "catalogue distant donné en argument, avec les valeurs possibles : tycho2, "
 "nomad, gaia, ppmxl, brightstars, apass"
 
 #: src/core/command_def.h:152
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in each image in the "
 "sequence. After the mandatory first argument stating the sequence to "
@@ -16767,11 +16832,13 @@ msgid ""
 "the given title should end with () (e.g. \"My Sequence ()\" and the numbers "
 "will be populated automatically)"
 msgstr ""
-"Génère un tracé du profil d'intensité entre 2 points de chaque image de la "
-"séquence. Si l'on traite une séquence et que l'on souhaite que le numéro de "
-"l'image en cours et le nombre total d'images soient affichés dans le format "
-"\"Ma séquence (1 / 5)\", le titre donné doit se terminer par () (par "
-"exemple, \"Ma séquence ()\" et les nombres seront remplis automatiquement)"
+"Génère un tracé de profil d'intensité entre 2 points dans chaque image de la "
+"séquence. Après le premier argument obligatoire indiquant la séquence à "
+"traiter, les autres arguments sont les mêmes que pour la commande "
+"<b>profile</b>. Si vous traitez une séquence et que vous souhaitez afficher "
+"le numéro d'image actuel et le nombre total d'images au format \"Ma séquence "
+"(1/5)\", le titre donné doit se terminer par () (par exemple \"Ma séquence ()"
+"\" et les numéros seront renseignés automatiquement)"
 
 #: src/core/command_def.h:153
 msgid ""
@@ -16803,39 +16870,39 @@ msgid ""
 "at= allowing coordinates in pixels to be provided for the target star and -"
 "wcs= allowing J2000 equatorial coordinates to be provided"
 msgstr ""
-"Même commande que PSF mais fonctionne sur des séquences. Elle est similaire "
-"à l'alignement sur une étoile, sauf que les résultats peuvent être utilisés "
-"pour l'analyse de la photométrie plutôt que pour l'alignement des images et "
-"que les coordonnées de l'étoile peuvent être fournies par des options.\n"
-"Cette commande est ce qui est appelé en interne par le menu qui apparaît "
-"lors d'un clic droit dans l'image, avec la PSF pour la séquence. Par défaut, "
-"elle fonctionnera avec la parallélisation activée ; si des données "
-"d'alignement existent déjà pour la séquence, elles seront utilisées pour "
-"décaler la fenêtre de recherche dans chaque image. S'il n'y a pas de données "
-"d'alignement et s'il y a un décalage important entre les images de la "
-"séquence, les paramètres par défaut ne permettront pas de trouver des "
+"Même commande que PSF mais s'exécute sur des séquences. Ceci est similaire à "
+"l'alignement sur une étoile, sauf que les résultats peuvent être utilisés "
+"pour l'analyse photométrique plutôt que pour aligner les images et que les "
+"coordonnées de l'étoile peuvent être fournies par des options.\n"
+"C'est cette commande qui est appelée en interne par le menu qui apparaît au "
+"clic droit dans l'image, avec la PSF de la séquence. Par défaut, il "
+"fonctionnera avec la parallélisation activée ; si des données d'alignement "
+"existent déjà pour la séquence, elles seront utilisées pour décaler la "
+"fenêtre de recherche dans chaque image. S'il n'y a pas de données "
+"d'alignement et s'il y a un décalage important entre les images dans la "
+"séquence, les paramètres par défaut ne parviendront pas à trouver les "
 "étoiles dans la position initiale de la zone de recherche.\n"
-"L'option de suivi des étoiles peut alors être activée en allant dans "
-"l'onglet alignement, en sélectionnant l'alignement sur une étoile et en "
-"cochant la case de suivi du mouvement des étoiles (par défaut dans le mode "
-"console si aucune donnée d'alignement n'est disponible).\n"
+"L'option suivre l'étoile peut alors être activée en allant dans l'onglet "
+"Alignement, en sélectionnant l'alignement une étoile et en cochant la case "
+"suivre le mouvement de l'étoile (par défaut en mode console si aucune donnée "
+"d'aligbelebt n'est disponible).\n"
 "\n"
 "Les résultats seront affichés dans l'onglet Graphique, à partir duquel ils "
 "peuvent également être exportés vers un fichier de valeurs séparées par des "
 "virgules (CSV) pour une analyse externe.\n"
 "\n"
 "Lors de la création d'une courbe de lumière, la première étoile pour "
-"laquelle seqpsf a été exécuté, marquée 'V' dans l'affichage, sera considérée "
-"comme l'étoile variable. Toutes les autres étoiles sont moyennées pour créer "
-"une courbe lumineuse de référence soustraite à la courbe lumineuse de "
-"l'étoile variable.\n"
+"laquelle seqpsf a été exécuté, marquée 'V' à l'écran, sera considérée comme "
+"l'étoile variable. Tous les autres sont moyennés pour créer une courbe de "
+"lumière de référence soustraite à la courbe de lumière de l'étoile variable."
 "\n"
-"Actuellement, en mode console, la commande imprime certaines données "
-"analysées dans la console, une autre commande permet d'analyser plusieurs "
-"étoiles et de tracer une courbe de lumière : LIGHT_CURVE. Les arguments sont "
-"obligatoires en mode console, avec -at= qui permet de fournir les "
-"coordonnées en pixels de l'étoile cible et -wcs= qui permet de fournir les "
-"coordonnées équatoriales J2000"
+"\n"
+"Actuellement, en fonctionnement console, la commande imprime certaines "
+"données analysées dans la console, une autre commande permet d'analyser "
+"plusieurs étoiles et de les tracer sous forme de courbe de lumière : "
+"LIGHT_CURVE. Les arguments sont obligatoires en console, avec -at= "
+"permettant de fournir les coordonnées en pixels de l'étoile cible et -wcs= "
+"permettant de fournir les coordonnées équatoriales J2000"
 
 #: src/core/command_def.h:154
 msgid ""
@@ -18817,16 +18884,15 @@ msgstr "liste des répertoires de scripts"
 
 #: src/core/settings.c:384
 msgid "use and sync online scripts repository"
-msgstr ""
+msgstr "utiliser et synchroniser le dépôt de scripts en ligne"
 
 #: src/core/settings.c:385
 msgid "auto sync online scripts repository"
-msgstr ""
+msgstr "synchronisation automatique du dépôt de scripts en ligne"
 
 #: src/core/settings.c:386
-#, fuzzy
 msgid "list of scripts selected from the repository"
-msgstr "liste des répertoires de scripts"
+msgstr "liste des scripts sélectionnés dans le dépôt"
 
 #: src/core/settings.c:387 src/core/settings.c:380
 msgid "warn when launching a script"
@@ -18857,13 +18923,12 @@ msgid "default histogram display mode"
 msgstr "mode d'affichage de l'histogramme par défaut"
 
 #: src/core/settings.c:394
-#, fuzzy
 msgid "ROI selection mode"
-msgstr "Aucune sélection"
+msgstr "Mode de sélection de la ROI"
 
 #: src/core/settings.c:395
 msgid "Enable ROI dialog warning"
-msgstr ""
+msgstr "Activer l'avertissement du dialogue de la ROI"
 
 #: src/core/settings.c:397 src/core/settings.c:388
 msgid "index of the compass position over grid"
@@ -19890,9 +19955,8 @@ msgid "You must first compute the background model."
 msgstr "Vous devez d'abord calculer le modèle d'arrière-plan."
 
 #: src/gui/callbacks.c:307
-#, fuzzy
 msgid "Region of Interest supported"
-msgstr ", imbrication non supportée"
+msgstr "Région d'intérêt supportée"
 
 #: src/gui/callbacks.c:309
 msgid ""
@@ -19903,6 +19967,15 @@ msgid ""
 "While a ROI is active, processing will only preview the ROI. When the Apply "
 "button is clicked, the operation will apply to the whole image."
 msgstr ""
+"Cette opération d'image prend en charge le traitement des ROI. Ceci est "
+"indiqué par la bordure verte autour de la ROI. Dans les boîtes de dialogue "
+"d'opération d'image qui ne prennent pas en charge le traitement des ROI, et "
+"lorsque aucune boîte de dialogue n'est ouverte, la ROI est entouré d'une "
+"couleur rouge.\n"
+"\n"
+"Lorsqu'une ROI est active, le traitement ne fait qu'afficher un aperçu de la "
+"ROI. Lorsque vous cliquez sur le bouton Appliquer, l'opération s'applique à "
+"l'ensemble de l'image."
 
 #: src/gui/callbacks.c:316 src/gui/message_dialog.c:284
 #: src/gui/message_dialog.c:201
@@ -20363,31 +20436,38 @@ msgid "Error: wavenumber points are the same.\n"
 msgstr "Erreur : les points du nombre d'ondes sont les mêmes.\n"
 
 #: src/gui/cut.c:212
-#, fuzzy
 msgid "Error: wavenumber / wavelength for point 1 is not set.\n"
-msgstr "Erreur : Impossible de lire les données\n"
+msgstr ""
+"Erreur : le nombre d'onde / la longueur d'onde pour le point 1 n'est pas "
+"défini.\n"
 
 #: src/gui/cut.c:216
-#, fuzzy
 msgid "Error: wavenumber / wavelength for point 2 is not set.\n"
-msgstr "Erreur : Impossible de lire les données\n"
+msgstr ""
+"Erreur : le nombre d'onde / la longueur d'onde pour le point 2 n'est pas "
+"défini.\n"
 
 #: src/gui/cut.c:220
 msgid ""
 "Error: wavenumber / wavelength set for point 1 but corresponding location is "
 "not set.\n"
 msgstr ""
+"Erreur : le nombre d'onde / la longueur d'onde est défini pour le point 1, "
+"mais l'emplacement correspondant n'est pas défini.\n"
 
 #: src/gui/cut.c:224
 msgid ""
 "Error: wavenumber / wavelength set for point 2 but corresponding location is "
 "not set.\n"
 msgstr ""
+"Erreur : le nombre d'onde / la longueur d'onde est défini pour le point 2, "
+"mais l'emplacement correspondant n'est pas défini.\n"
 
 #: src/gui/cut.c:229 src/gui/cut.c:233
-#, fuzzy
 msgid "Error: wavenumber / wavelength point outside image dimensions.\n"
-msgstr "Erreur : Impossible de lire les données\n"
+msgstr ""
+"Erreur : le point en nombre d'onde / de longueur d'onde est en dehors des "
+"dimensions de l'image.\n"
 
 #: src/gui/cut.c:236
 msgid "Error: profile line endpoint outside image dimensions.\n"
@@ -21018,13 +21098,14 @@ msgid "Richardson-Lucy deconvolution..."
 msgstr "Déconvolution Lucy-Richardson..."
 
 #: src/gui/newdeconv.c:1334
-#, fuzzy
 msgid "Sequence selected"
-msgstr "Sélection de la séquence"
+msgstr "Séquence sélectionnée"
 
 #: src/gui/newdeconv.c:1334
 msgid "Preview cannot be used with \"Apply to Sequence\" selected"
 msgstr ""
+"La prévisualisation ne peut pas être utilisée lorsque l'option \"Appliquer à "
+"la séquence\" est sélectionnée"
 
 #: src/gui/newdeconv.c:1441 src/gui/newdeconv.c:1408
 msgid ""
@@ -21676,6 +21757,7 @@ msgstr "Chargement du script %s\n"
 msgid ""
 "Script %s no longer exists in repository, removing from Scripts menu...\n"
 msgstr ""
+"Le script %s n'existe plus dans le dépôt, suppression du menu Scripts...\n"
 
 #: src/gui/script_menu.c:290 src/gui/script_menu.c:232
 msgid "Cannot refresh the scripts if the list is empty.\n"
@@ -22402,41 +22484,44 @@ msgstr ""
 
 #: src/io/gitscripts.c:110
 msgid "libgit2: unable to parse some refish\n"
-msgstr ""
+msgstr "libgit2 : impossible d'analyser certaines références\n"
 
 #: src/io/gitscripts.c:125
 msgid "Failed to find commit with given OID.\n"
-msgstr ""
+msgstr "Échec de la recherche d'un commit avec l'OID donné.\n"
 
 #: src/io/gitscripts.c:169 src/io/gitscripts.c:180 src/io/gitscripts.c:189
 msgid ""
 "Error performing hard reset. You may need to delete the local git repository "
 "and allow Siril to re-clone it.\n"
 msgstr ""
+"Erreur lors de la réinitialisation. Il se peut que vous deviez supprimer le "
+"dépôt git local et permettre à Siril de le re-cloner.\n"
 
 #: src/io/gitscripts.c:196 src/io/gitscripts.c:753 src/io/gitscripts.c:755
 #: src/io/gitscripts.c:759 src/io/gitscripts.c:762
-#, fuzzy
 msgid "Manual Update"
-msgstr "Aucune coordonnées"
+msgstr "Mise à jour manuelle"
 
 #: src/io/gitscripts.c:196
 msgid "Success! The local repository is up-to-date with the remote."
-msgstr ""
+msgstr "Succès ! Le dépôt local est à jour par rapport au dépôt distant."
 
 #: src/io/gitscripts.c:329
 #, c-format
 msgid "libgit2: repository is in unexpected state %d. Cleaning up...\n"
-msgstr ""
+msgstr "libgit2 : le dépôt est dans un état inattendu %d. Nettoyage...\n"
 
 #: src/io/gitscripts.c:333
 msgid "libgit2: repository failed to clean up properly. Cannot continue.\n"
 msgstr ""
+"libgit2 : le dépôt n'a pas réussi à se nettoyer correctement. Impossible de "
+"continuer.\n"
 
 #: src/io/gitscripts.c:424 src/io/gitscripts.c:428
-#, fuzzy, c-format
+#, c-format
 msgid "Commit message: %s\n"
-msgstr "Usage : %s\n"
+msgstr "Message de validation : %s\n"
 
 #: src/io/gitscripts.c:483
 #, c-format
@@ -22444,21 +22529,21 @@ msgid ""
 "Cannot open repository: %s\n"
 "Attempting to clone from remote source...\n"
 msgstr ""
+"Impossible d'ouvrir le dépôt : %s\n"
+"Tentative de clonage à partir d'une source distante...\n"
 
 #: src/io/gitscripts.c:489
-#, fuzzy, c-format
+#, c-format
 msgid "Error cloning repository: %s\n"
-msgstr "Erreur lors de la fermeture du fichier : %s\n"
+msgstr "Erreur de clonage du dépôt : %s\n"
 
 #: src/io/gitscripts.c:494
-#, fuzzy
 msgid "Repository cloned successfully!\n"
-msgstr "Séquence empilée avec succès.\n"
+msgstr "Le dépôt a été cloné avec succès !\n"
 
 #: src/io/gitscripts.c:506
-#, fuzzy
 msgid "Failed to lookup remote.\n"
-msgstr "Échec de l'écriture dans le fichier de sortie\n"
+msgstr "Échec de la recherche de l'adresse distante.\n"
 
 #: src/io/gitscripts.c:517
 #, c-format
@@ -22467,31 +22552,35 @@ msgid ""
 "its remote. You should remove the folder %s and restart Siril to re-clone "
 "the correct repository.\n"
 msgstr ""
+"Erreur : le dossier local du dépôt siril-scripts n'est pas configuré avec %s "
+"comme répertoire distant. Vous devez supprimer le dossier %s et redémarrer "
+"Siril pour recréer le bon dépôt.\n"
 
 #: src/io/gitscripts.c:535 src/io/gitscripts.c:545
 msgid ""
 "Error performing hard reset. If the problem persists you may need to delete "
 "the local git repository and allow Siril to re-clone it.\n"
 msgstr ""
+"Erreur lors de la réinitialisation. Si le problème persiste, il se peut que "
+"vous deviez supprimer le dépôt git local et permettre à Siril de le re-"
+"cloner.\n"
 
 #: src/io/gitscripts.c:552
 msgid "Local scripts repository is up-to-date!\n"
-msgstr ""
+msgstr "Le dépôt local de scripts est à jour !\n"
 
 #: src/io/gitscripts.c:600
-#, fuzzy
 msgid "Error: unable to open local scripts repository.\n"
-msgstr "Erreur : impossible de passer au répertoire de travail Siril...\n"
+msgstr "Erreur : Impossible d'ouvrir le dépôt local de scripts.\n"
 
 #: src/io/gitscripts.c:728
 msgid "Error getting the list of unmerged changes"
-msgstr ""
+msgstr "Erreur lors de l'obtention de la liste des changements non fusionnés"
 
 #. Merge cannot be fast forwarded
 #: src/io/gitscripts.c:732
-#, fuzzy
 msgid "Warning!"
-msgstr "Attention"
+msgstr "Attention !"
 
 #: src/io/gitscripts.c:732
 msgid ""
@@ -22507,31 +22596,44 @@ msgid ""
 "update and copy your modified scripts to another location, and add this "
 "location to the list of script directories to be searched."
 msgstr ""
+"L'analyse de la fusion montre que la fusion ne peut pas être accélérée. Cela "
+"indique que vous avez apporté des modifications au dépôt local de scripts. "
+"Siril ne fournit pas toutes les fonctionnalités de git et ne peut pas être "
+"utilisé pour fusionner des mises à jour en amont dans un dépôt local modifié."
+"\n"
+"\n"
+"Si vous acceptez la mise à jour, le dépôt local sera réinitialisé pour "
+"correspondre au dépôt distant et toutes les modifications locales seront "
+"perdues.\n"
+"\n"
+"Si vous avez apporté des modifications locales que vous souhaitez conserver, "
+"vous devez annuler cette mise à jour et copier vos scripts modifiés à un "
+"autre emplacement, et ajouter cet emplacement à la liste des répertoires de "
+"scripts à rechercher."
 
 #: src/io/gitscripts.c:743
 msgid "Accept"
-msgstr ""
+msgstr "Accepter"
 
 #: src/io/gitscripts.c:753
 msgid "Read and confirm the pending changes to be synced"
-msgstr ""
+msgstr "Lire et confirmer les changements en attente de synchronisation"
 
 #: src/io/gitscripts.c:753
-#, fuzzy
 msgid "Confirm"
-msgstr "Confirmer Recadrage"
+msgstr "Confirmer"
 
 #: src/io/gitscripts.c:755
 msgid "Error! Scripts failed to update."
-msgstr ""
+msgstr "Erreur ! La mise à jour des scripts a échoué."
 
 #: src/io/gitscripts.c:759
 msgid "Update cancelled. Updates have not been applied."
-msgstr ""
+msgstr "Mise à jour annulée. Les mises à jour n'ont pas été appliquées."
 
 #: src/io/gitscripts.c:762
 msgid "The scripts repository is up to date."
-msgstr ""
+msgstr "Le dépôt de scripts est à jour."
 
 #: src/io/image_formats_internal.c:210
 msgid "Error opening BMP.\n"
