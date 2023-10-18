@@ -146,6 +146,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 
 	set_cursor_waiting(TRUE);
 	background_neutralize(&gfit, black_selection);
+	populate_roi();
 	delete_selected_area();
 
 	update_gfit_histogram_if_needed();
@@ -279,6 +280,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 
 	show_time(t_start, t_end);
 
+	populate_roi();
 	delete_selected_area();
 
 	redraw(REMAP_ALL);
