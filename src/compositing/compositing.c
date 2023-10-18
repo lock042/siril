@@ -548,7 +548,7 @@ static void check_gfit_is_ours() {
 
 	/* create the new result image if it's the first opened image */
 	close_single_image();
-	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1)) {
+	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_INIT | CP_EXPAND, -1)) {
 		clearfits(&layers[update_from_layer]->the_fit);
 		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
 		return;
