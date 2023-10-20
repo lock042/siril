@@ -106,16 +106,18 @@ int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, d
 		fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 	}
 	double eps = sigma_col * sigma_col;
+	fits *guide_roi = NULL, *guidance = NULL;
+	gboolean roi_fitting_method;
 	switch (filter_type) {
 		case EP_BILATERAL:
 			cvBilateralFilter(fit, d, eps, sigma_space);
 			break;
 		case EP_GUIDED:
-			fits *guide_roi = malloc(sizeof(fits));
-			gboolean roi_fitting_needed = (fit == &gui.roi.fit && guide != &gui.roi.fit && gui.roi.active);
+			guide_roi = malloc(sizeof(fits));
+			roi_fitting_needed = (fit == &gui.roi.fit && guide != &gui.roi.fit && gui.roi.active);
 			if (roi_fitting_needed)
 				match_guide_to_roi(guide, guide_roi);
-			fits *guidance = roi_fitting_needed ? guide_roi : guide;
+			guidance = roi_fitting_needed ? guide_roi : guide;
 			cvGuidedFilter(fit, guidance, d, eps);
 			break;
 	}
