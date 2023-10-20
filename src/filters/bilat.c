@@ -107,7 +107,7 @@ int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, d
 	}
 	double eps = sigma_col * sigma_col;
 	fits *guide_roi = NULL, *guidance = NULL;
-	gboolean roi_fitting_method;
+	gboolean roi_fitting_needed;
 	switch (filter_type) {
 		case EP_BILATERAL:
 			cvBilateralFilter(fit, d, eps, sigma_space);
