@@ -8344,6 +8344,7 @@ int process_fixedcomp(int nb, int mode) {
 		merge_fits_headers_to_result(rgbptr, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
+		float x, y, z;
 		for (size_t i = 0; i < nbpix; i++) {
 			switch (mode) {
 				case RGB_MODE:
@@ -8353,7 +8354,6 @@ int process_fixedcomp(int nb, int mode) {
 					default_result_name = "composed_rgb";
 					break;
 				case LAB_MODE:
-					float x, y, z;
 					LAB_to_xyzf(r.fdata[i], g.fdata[i], b.fdata[i], &x, &y, &z);
 					xyz_to_rgbf(x, y, z, &rgb.fpdata[RLAYER][i], &rgb.fpdata[GLAYER][i], &rgb.fpdata[BLAYER][i]);
 					default_result_name = "composed_lab";
