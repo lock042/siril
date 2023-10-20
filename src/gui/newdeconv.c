@@ -572,6 +572,7 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void deconv_roi_callback() {
+	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(lookup_widget("bdeconv_roi_preview"), gui.roi.active);
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 }

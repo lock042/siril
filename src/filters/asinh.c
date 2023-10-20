@@ -48,6 +48,7 @@ static int asinh_update_preview() {
 }
 
 void asinh_change_between_roi_and_image() {
+	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;

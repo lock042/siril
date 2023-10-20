@@ -168,6 +168,7 @@ gpointer scnr(gpointer p) {
 }
 
 void scnr_roi_callback() {
+	gui.roi.operation_supports_roi = TRUE;
 	// Sets the visbility of the ROI preview button
 	gtk_widget_set_visible(lookup_widget("SCNR_roi_preview"), gui.roi.active);
 	// The next 2 lines ensure gfit looks fresh again and there isn't the
