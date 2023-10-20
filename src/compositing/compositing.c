@@ -548,7 +548,7 @@ static void check_gfit_is_ours() {
 
 	/* create the new result image if it's the first opened image */
 	close_single_image();
-	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_EXPAND, -1)) {
+	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_INIT | CP_EXPAND, -1)) {
 		clearfits(&layers[update_from_layer]->the_fit);
 		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
 		return;
@@ -639,7 +639,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	// layers, it has to allow for either luminance or non-
 	// luminance compositions
 	if (layers[layer]->the_fit.rx == 0 && number_of_images_loaded() == maximum_layers) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"), _("The meximum number of images of this size has been reached based on available memory limits."));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"), _("The maximum number of images of this size has been reached based on available memory limits."));
 		return;
 	}
 

@@ -2587,7 +2587,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 
 			if ((oper & CP_INIT)) {
 				// clearing to->fdata allocated above
-				memset(to->fdata, 0, nbdata * depth * sizeof(WORD));
+				memset(to->fdata, 0, nbdata * depth * sizeof(float));
 			}
 		}
 		else {
