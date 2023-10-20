@@ -34,8 +34,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   </object>
   <object class="GtkAdjustment" id="adjustment_bilat_sigma_col">
     <property name="upper">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.10</property>
+    <property name="step-increment">0.0001</property>
+    <property name="page-increment">0.001</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_bilat_sigma_spatial">
     <property name="upper">20</property>
@@ -187,7 +187,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="tooltip-text" translatable="yes">Select guide image. No need to select a file if the "self guided" check box is checked.
-WARNING: using guide images that are not based on the original image is likely to produce nonsense results.</property>
+WARNING: using guide images that are not based on the original image is likely to produce bad results.</property>
                     <property name="title" translatable="yes"/>
                     <signal name="file-set" handler="on_guided_filter_guideimage_file_set" swapped="no"/>
                   </object>
@@ -307,7 +307,7 @@ WARNING: using guide images that are not based on the original image is likely t
                     <property name="text" translatable="yes">0.000</property>
                     <property name="progress-pulse-step">0</property>
                     <property name="adjustment">adjustment_bilat_sigma_col</property>
-                    <property name="digits">3</property>
+                    <property name="digits">5</property>
                     <property name="numeric">True</property>
                     <signal name="value-changed" handler="on_spin_bilat_sigma_col_value_changed" swapped="no"/>
                   </object>

@@ -105,10 +105,10 @@ int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, d
 		ndata = fit->rx * fit->ry * fit->naxes[2];
 		fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 	}
-
+	double eps = sigma_col * sigma_col;
 	switch (filter_type) {
 		case EP_BILATERAL:
-			cvBilateralFilter(fit, d, sigma_col, sigma_space);
+			cvBilateralFilter(fit, d, eps, sigma_space);
 			break;
 		case EP_GUIDED:
 			fits *guide_roi = malloc(sizeof(fits));
@@ -116,8 +116,7 @@ int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, d
 			if (roi_fitting_needed)
 				match_guide_to_roi(guide, guide_roi);
 			fits *guidance = roi_fitting_needed ? guide_roi : guide;
-			cvGuidedFilter(fit, guidance, d, sigma_col * sigma_col);
-//			cvGuidedFilter(guidance, fit, d, sigma_col * sigma_col);
+			cvGuidedFilter(fit, guidance, d, eps);
 			break;
 	}
 
@@ -136,14 +135,13 @@ static int bilat_update_preview() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bilat_preview"))))
 		copy_backup_to_gfit();
 	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
-	if (filter_type != EP_BILATERAL) {
+	if (filter_type == EP_GUIDED) {
 		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("guided_filter_selfguide")))) {
 			guide = fit;
 		} else {
 			if (loaded_fit) {
 				guide = loaded_fit;
 			} else {
-				siril_log_color_message(_("Error, no guide image loaded."), "red");
 				return 1;
 			}
 		}
@@ -157,6 +155,7 @@ static int bilat_update_preview() {
 
 void bilat_change_between_roi_and_image() {
 	// If we are showing the preview, update it after the ROI change.
+	roi_supported(TRUE);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = bilat_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bilat_preview")));
@@ -164,9 +163,9 @@ void bilat_change_between_roi_and_image() {
 }
 
 static void bilat_startup() {
+	copy_gfit_to_backup();
 	add_roi_callback(bilat_change_between_roi_and_image);
 	roi_supported(TRUE);
-	copy_gfit_to_backup();
 }
 
 static void bilat_close(gboolean revert) {
@@ -308,6 +307,10 @@ void on_ep_filter_type_changed(GtkComboBox *combo, gpointer user_data) {
 	filter_type = gtk_combo_box_get_active(combo);
 	gtk_widget_set_visible(lookup_widget("guide_image_widgets"), filter_type != EP_BILATERAL);
 	gtk_widget_set_visible(lookup_widget("bilat_sigma_spatial_settings"), filter_type == EP_BILATERAL);
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = bilat_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bilat_preview")));
+	notify_update((gpointer) param);
 }
 
 void on_guided_filter_selfguide_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -329,8 +332,13 @@ void on_guided_filter_selfguide_toggled(GtkToggleButton *button, gpointer user_d
 
 void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	gchar *filename = siril_file_chooser_get_filename(filechooser);
-	if (!loaded_fit)
+	if (!loaded_fit) {
 		loaded_fit = calloc(1, sizeof(fits));
+	} else {
+		clearfits(loaded_fit);
+		free(loaded_fit);
+		loaded_fit = NULL;
+	}
 	if (readfits(filename, loaded_fit, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 			_("Image loading failed"));
