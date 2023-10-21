@@ -113,7 +113,7 @@
 #include "algos/geometry.h"
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/comparison_stars.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
@@ -8764,13 +8764,14 @@ int process_catsearch(int nb){
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
-	gchar *name = NULL;
+	sky_object_query_args *args = init_sky_object_query();
+	args->fit = &gfit;
 	if (nb > 2) {
-		name = build_string_from_words(word + 1);
+		args->name = build_string_from_words(word + 1);
 	} else {
-		name = g_strdup(word[1]);
+		args->name = g_strdup(word[1]);
 	}
-	start_in_new_thread(catsearch_worker, name);
+	start_in_new_thread(catsearch_worker, args);
 	return CMD_OK;
 }
 
@@ -8955,7 +8956,7 @@ int process_show(int nb) {
 	int next_arg = 1;
 	if (!g_strcmp0(word[next_arg], "-clear")) {
 		next_arg++;
-		purge_temp_user_catalogue();
+		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (nb == 2) {
 			redraw(REDRAW_OVERLAY);
 			return CMD_OK;
@@ -9003,7 +9004,7 @@ parse_coords:
 		return CMD_ARG_ERROR;
 	}
 
-	add_object_in_catalogue(name, coords, FALSE, USER_TEMP_CAT_INDEX);
+	// add_object_in_catalogue(name, coords, FALSE, USER_TEMP_CAT_INDEX);
 
 display:
 	/* display the new 'found_object' */

@@ -24,7 +24,7 @@
 #include <glib.h>
 #include "core/siril.h"
 #include "core/siril_world_cs.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/PSF.h"
 
 #define CDSSESAME "http://cds.unistra.fr/cgi-bin/nph-sesame"
@@ -32,9 +32,10 @@
 #define SIMBADSESAME "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
 
 #define SIMBAD "http://simbad.cds.unistra.fr/simbad/sim-id?output.format=ASCII&Ident="
-#define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?"
+#define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?-tcoor=5&-mime=text/csv&-output=--jd&-from=Siril"
 
 typedef enum {
+	QUERY_SERVER_UNSET= -1,
 	QUERY_SERVER_CDS,
 	QUERY_SERVER_VIZIER,
 	QUERY_SERVER_SIMBAD,
@@ -60,13 +61,15 @@ struct sky_object {
 	gboolean south;
 };
 
-int parse_catalog_buffer(const gchar *buffer, psf_star **result);
-int cached_object_lookup(const gchar *name, psf_star **opt_result);
-gchar *search_in_online_catalogs(const gchar *object, query_server server);
+int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args);
+int cached_object_lookup(sky_object_query_args *args);
+gchar *search_in_online_catalogs(sky_object_query_args *args);
 
-void add_plated_from_annotations(const CatalogObjects *obj);
+void add_plated_from_annotations(const cat_item *obj);
 void free_Platedobject();
 gboolean has_nonzero_coords();
 int parse_resolver_buffer(const gchar *buffer, struct sky_object *obj);
+
+gpointer catsearch_worker(gpointer p);
 
 #endif

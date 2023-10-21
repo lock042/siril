@@ -42,7 +42,7 @@
 #include "algos/PSF.h"
 #include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
 #include "io/remote_catalogues.h"
@@ -90,41 +90,41 @@ static int get_column_index(gchar *field) {
 static gchar *get_field_to_str(cat_item item, cat_fields field) {
 	switch (field) {
 		case CAT_FIELD_RA:
-			return (item.ra) ? g_strdup_printf("%g", item.ra) : NULL;
+			return (item.ra) ? g_strdup_printf("%g", item.ra) : "";
 		case CAT_FIELD_DEC:
-			return (item.dec) ? g_strdup_printf("%g", item.dec) : NULL;
+			return (item.dec) ? g_strdup_printf("%g", item.dec) : "";
 		case CAT_FIELD_PMRA:
-			return (item.pmra) ? g_strdup_printf("%g", item.pmra) : NULL;
+			return (item.pmra) ? g_strdup_printf("%g", item.pmra) : "";
 		case CAT_FIELD_PMDEC:
-			return (item.pmdec) ? g_strdup_printf("%g", item.pmdec) : NULL;
+			return (item.pmdec) ? g_strdup_printf("%g", item.pmdec) : "";
 		case CAT_FIELD_MAG:
-			return (item.mag) ? g_strdup_printf("%g", item.mag) : NULL;
+			return (item.mag) ? g_strdup_printf("%g", item.mag) : "";
 		case CAT_FIELD_BMAG:
-			return (item.bmag) ? g_strdup_printf("%g", item.bmag) : NULL;
+			return (item.bmag) ? g_strdup_printf("%g", item.bmag) : "";
 		case CAT_FIELD_E_MAG:
-			return (item.e_mag) ? g_strdup_printf("%g", item.e_mag) : NULL;
+			return (item.e_mag) ? g_strdup_printf("%g", item.e_mag) : "";
 		case CAT_FIELD_E_BMAG:
-			return (item.e_bmag) ? g_strdup_printf("%g", item.e_bmag) : NULL;
+			return (item.e_bmag) ? g_strdup_printf("%g", item.e_bmag) : "";
 		case CAT_FIELD_DIAMETER:
-			return (item.diameter) ? g_strdup_printf("%g", item.diameter) : NULL;
+			return (item.diameter) ? g_strdup_printf("%g", item.diameter) : "";
 		case CAT_FIELD_DATEOBS:
-			return (item.dateobs) ? g_strdup_printf("%g", item.dateobs) : NULL;
+			return (item.dateobs) ? g_strdup_printf("%.12f", item.dateobs) : "";
 		case CAT_FIELD_SITELAT:
-			return (item.sitelat) ? g_strdup_printf("%g", item.sitelat) : NULL;
+			return (item.sitelat) ? g_strdup_printf("%g", item.sitelat) : "";
 		case CAT_FIELD_SITELON:
-			return (item.sitelon) ? g_strdup_printf("%g", item.sitelon) : NULL;
+			return (item.sitelon) ? g_strdup_printf("%g", item.sitelon) : "";
 		case CAT_FIELD_SITEELEV:
-			return (item.siteelev) ? g_strdup_printf("%g", item.siteelev) : NULL;
+			return (item.siteelev) ? g_strdup_printf("%g", item.siteelev) : "";
 		case CAT_FIELD_VRA:
-			return (item.vra) ? g_strdup_printf("%g", item.vra) : NULL;
+			return (item.vra) ? g_strdup_printf("%g", item.vra) : "";
 		case CAT_FIELD_VDEC:
-			return (item.vdec) ? g_strdup_printf("%g", item.vdec) : NULL;
+			return (item.vdec) ? g_strdup_printf("%g", item.vdec) : "";
 		case CAT_FIELD_NAME:
-			return (item.name) ? g_strdup(item.name) : NULL;
+			return (item.name) ? g_strdup(item.name) : "";
 		case CAT_FIELD_ALIAS:
-			return (item.alias) ? g_strdup(item.alias) : NULL;
+			return (item.alias) ? g_strdup(item.alias) : "";
 		case CAT_FIELD_TYPE:
-			return (item.type) ? g_strdup(item.type) : NULL;
+			return (item.type) ? g_strdup(item.type) : "";
 		default:
 			return NULL;
 	}
@@ -154,7 +154,7 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_AAVSO_CHART:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_E_MAG) | (1 << CAT_FIELD_E_BMAG) | (1 << CAT_FIELD_NAME);
 		case CAT_IMCCE:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME)| (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_AN_MESSIER:
 		case CAT_AN_NGC:
 		case CAT_AN_IC:
@@ -168,7 +168,7 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_AN_USER_DSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC);
 		case CAT_AN_USER_SSO:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV) | (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_COMPSTARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
 		case CAT_LOCAL:
@@ -205,6 +205,7 @@ static float siril_catalog_get_default_limit_mag(object_catalog cat) {
 		case CAT_AAVSO_CHART:
 			return 14.5f;
 		case CAT_PGC:
+		case CAT_EXOPLANETARCHIVE:
 			return 0.f;
 		default:
 			return 13.f;
@@ -265,6 +266,21 @@ const char *catalog_to_str(object_catalog cat) {
 	}
 }
 
+gboolean is_star_catalogue(object_catalog Catalog) {
+	switch (Catalog) {
+		case CAT_TYCHO2 ...	CAT_SIMBAD:
+		case CAT_EXOPLANETARCHIVE:
+		case CAT_AAVSO_CHART:
+		case CAT_AN_STARS:
+		case CAT_LOCAL:
+		case CAT_AN_USER_SSO:
+		case CAT_AN_USER_TEMP:
+			return TRUE;
+	default:
+		return FALSE;
+	}
+}
+
 static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_catalog Catalog, int *indexes, uint32_t *collist) {
 	if (!nbcols)
 		return FALSE;
@@ -294,7 +310,7 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_ca
 	return FALSE;
 }
 
-static void siril_catalog_free_item(cat_item *item) {
+void siril_catalog_free_item(cat_item *item) {
 	g_free(item->name);
 	g_free(item->alias);
 	g_free(item->type);
@@ -362,6 +378,21 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 	}
 }
 
+// copies all the data from an item to another item
+void siril_catalogue_copy_item(cat_item *from, cat_item *to) {
+	if (!from || !to) {
+		siril_debug_print("no item to copy from or to\n");
+		return;
+	}
+	memcpy(to, from, sizeof(cat_item));
+	if (from->name)
+		to->name = g_strdup(from->name);
+	if (from->alias)
+		to->alias = g_strdup(from->alias);
+	if (from->type)
+		to->type = g_strdup(from->type);
+}
+
 // frees the member cat_items of a catalogue
 // This is useful to launch the same query again, updating simply the catalog center for instance
 void siril_catalog_free_items(siril_catalogue *siril_cat) {
@@ -383,6 +414,18 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 	g_free(siril_cat->IAUcode);
 	g_free(siril_cat->header);
 	free(siril_cat);
+}
+
+void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
+	if (!siril_cat)
+		return;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		siril_cat->cat_items[i].x = 0.;
+		siril_cat->cat_items[i].y = 0.;
+		siril_cat->cat_items[i].included = TRUE;
+	}
+	siril_cat->nbincluded = siril_cat->nbitems;
+	siril_cat->projected = CAT_PROJ_NONE;
 }
 
 // returns a siril_catalogue structure with center
@@ -567,7 +610,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	g_object_unref(input_stream);
 	if (nb_items == 0) {
 		free(cat_items);
-		siril_log_color_message(_("Catalog %s was read but no items were found\n"), "red", filename);
+		siril_log_color_message(_("Catalog %s was read but no items were found, nothing to show\n"), "salmon", filename);
 		return 1;
 	}
 	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
@@ -650,17 +693,63 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 		gchar *newline = g_strjoinv(",", tokens);
 		g_output_stream_printf(output_stream, &n, NULL, NULL, "\n%s", newline);
 		g_free(newline);
-		g_strfreev(tokens);
 	}
 	g_object_unref(output_stream);
 	return TRUE;
 }
+
+// appends an item at the end of a siril_catalogue
+gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item) {
+	if (!siril_cat || !item)
+		return FALSE;
+	cat_item *new_array = realloc(siril_cat->cat_items, (siril_cat->nbitems + 1) * sizeof(cat_item));
+	if (!new_array) {
+		PRINT_ALLOC_ERR;
+		return FALSE;
+	}
+	siril_cat->cat_items = new_array;
+	siril_catalogue_copy_item(item, &siril_cat->cat_items[siril_cat->nbitems]);
+	siril_cat->nbitems++;
+	// we can't have a catalogue only partially projected so we reset its projection if any
+	if (siril_cat->projected > CAT_PROJ_NONE) 
+		siril_catalog_reset_projection(siril_cat);
+	return TRUE;
+}
+
+gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
+	if (!fit || !siril_cat)
+		return FALSE;
+	if (!fit->date_obs) {
+		siril_debug_print("This image does not have any DATE-OBS information, cannot account for stars proper motions\n");
+		return FALSE;
+	}
+	if (!(siril_cat->columns & (1 << CAT_FIELD_PMRA)) || !(siril_cat->columns & (1 << CAT_FIELD_PMDEC))) {
+		siril_debug_print("This catalog does not have proper motion info, will not be computed\n");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
+	if (!fit || !siril_cat)
+		return FALSE;
+	if (!fit->date_obs) {
+		siril_debug_print("This image does not have any DATE-OBS information, cannot account for velocity\n");
+		return FALSE;
+	}
+	if (!(siril_cat->columns & (1 << CAT_FIELD_VRA)) || !(siril_cat->columns & (1 << CAT_FIELD_VDEC))) {
+		siril_debug_print("This catalog does not have velocity info, will not be computed\n");
+		return FALSE;
+	}
+	return TRUE;
+}
+
 // projects passed catalogue using the wcs data contained in the fit
 // corrects for proper motions if the flag is TRUE and the necessary data is included
 // in the fit (dateobs) and in the catalogue (pmra and pmdec fields)
-// corrects for object velocity if deltahours is non null and if necessary data is included
+// corrects for object velocity if the flag is true and if necessary data is included
 // in the catalogue (vra and vdec fields)
-int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, double deltahours) {
+int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity) {
 #ifndef HAVE_WCSLIB
 	return 1
 #endif
@@ -672,23 +761,18 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	double jyears = 0.;
 	double *world = NULL, *x = NULL, *y = NULL;
 	int *status = NULL;
-	if (use_proper_motion) {
-		if (!fit->date_obs) {
-			siril_log_color_message(_("This image does not have any DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
-			use_proper_motion = FALSE;
-		} else if (!(siril_cat->columns & (1 << CAT_FIELD_PMRA)) || !(siril_cat->columns & (1 << CAT_FIELD_PMDEC))) {
-			siril_log_color_message(_("This catalog does not have proper motion info, will not be computed\n"), "salmon");
-			use_proper_motion = FALSE;
-		} else {
-			GDateTime *dt = g_date_time_ref(fit->date_obs);
-			gdouble jd = date_time_to_Julian(dt);
-			g_date_time_unref(dt);
-			double J2000 = 2451545.0;
-			jyears = (jd - J2000) / 365.25;
-		}
+	double tobs = 0.;
+	if (use_proper_motion && can_use_proper_motion(fit, siril_cat)) {
+		GDateTime *dt = g_date_time_ref(fit->date_obs);
+		gdouble jd = date_time_to_Julian(dt);
+		g_date_time_unref(dt);
+		double J2000 = 2451545.0;
+		jyears = (jd - J2000) / 365.25;
 	}
-	if (deltahours && (!(siril_cat->columns & (1 << CAT_FIELD_VRA)) || !(siril_cat->columns & (1 << CAT_FIELD_VDEC)))) {
-		siril_log_color_message(_("This catalog does not have velocity info, will not be computed\n"), "salmon");
+	if (use_velocity && can_use_velocity(fit, siril_cat)) {
+		GDateTime *dt = g_date_time_ref(fit->date_obs);
+		tobs = date_time_to_Julian(dt);
+		g_date_time_unref(dt);
 	}
 	world = malloc( 2 * siril_cat->nbitems * sizeof(double));
 	x = malloc(siril_cat->nbitems * sizeof(double));
@@ -706,9 +790,12 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			ra += siril_cat->cat_items[i].pmra / cos(decrad) * jyears * 2.77777778e-7;
 			dec += siril_cat->cat_items[i].pmdec * jyears * 2.77777778e-7;
 		}
-		if (!deltahours) {
-			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-7;
-			dec += siril_cat->cat_items[i].pmdec * deltahours * 2.77777778e-7;
+		if (use_velocity) {
+			double deltahours = (tobs - siril_cat->cat_items[i].dateobs) * 24.;
+			if (fabs(deltahours) < 18.) {//TODO: use constant
+				ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
+				dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
+			}
 		}
 		world[ind++] = ra;
 		world[ind++] = dec;
@@ -731,6 +818,7 @@ clean_and_exit:
 	free(world);
 	free(x);
 	free(y);
+	siril_cat->projected = CAT_PROJ_WCS;
 	return !(nbincluded > 0);
 } 
 
@@ -787,7 +875,7 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 static gboolean end_conesearch(gpointer p) {
 	siril_catalogue *temp_cat = (siril_catalogue *) p;
 	if (temp_cat) {
-		purge_temp_user_catalogue();
+		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(temp_cat)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
 			refresh_found_objects();
@@ -798,7 +886,7 @@ static gboolean end_conesearch(gpointer p) {
 				redraw(REDRAW_OVERLAY);
 			}
 		}
-		siril_catalog_free(temp_cat);
+		// siril_catalog_free(temp_cat);
 	}
 	return end_generic(NULL);
 }
@@ -810,20 +898,21 @@ gpointer conesearch_worker(gpointer p) {
 	int retval = -1;
 	if (!siril_cat) {
 		siril_debug_print("no query passed");
-		goto end_conesearch;
+		goto exit_conesearch;
 	}
 
 	// launching the query
 	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
-		goto end_conesearch;
+		goto exit_conesearch;
 	}
 	if (siril_cat->cattype != CAT_LOCAL)
 		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(siril_cat->cattype));
 
 	/* project using WCS */
-	gboolean use_proper_motion = (siril_cat->dateobs != NULL) && (siril_cat->columns & (1 << CAT_FIELD_PMRA)) != 0;
-	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion, 0.)) {
-		goto end_conesearch;
+	gboolean use_proper_motion = can_use_proper_motion(&gfit, siril_cat);
+	gboolean use_velocity = can_use_velocity(&gfit, siril_cat);
+	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion, use_velocity)) { // TODO: pass *fit instead of gfit
+		goto exit_conesearch;
 	}
 	int nb_stars = siril_cat->nbitems;
 	sort_cat_items_by_mag(siril_cat);
@@ -843,6 +932,7 @@ gpointer conesearch_worker(gpointer p) {
 			if (siril_cat->cat_items[i].name)
 				temp_cat->cat_items[j].name = g_strdup(siril_cat->cat_items[i].name);
 		}
+		// some catalogues display the list of found objects
 		if (siril_cat->cattype == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
 			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
 		if (siril_cat->cattype == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
@@ -854,12 +944,14 @@ gpointer conesearch_worker(gpointer p) {
 			siril_cat->cat_items[i].e_bmag, 
 			siril_cat->cat_items[i].ra,
 			siril_cat->cat_items[i].dec);
+		if (siril_cat->cattype == CAT_EXOPLANETARCHIVE)
+			siril_log_message("%s - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].mag);
 		j++;
 	}
 	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
 			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
 	retval = 0;
-end_conesearch:
+exit_conesearch:
 	siril_catalog_free(siril_cat);
 	if (!com.script) {
 		if (temp_cat)
@@ -871,6 +963,20 @@ end_conesearch:
 	return GINT_TO_POINTER(retval);
 }
 
+// Haversine formula on unit sphere
+// https://en.wikipedia.org/wiki/Haversine_formula
+// dec is phi, ra is lambda
+// in degrees
+double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
+	double dec1_r = dec1 * DEGTORAD, dec2_r = dec2 * DEGTORAD;
+	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
+	double ddec_2 = 0.5 * (dec2_r - dec1_r);
+	double sin_ddec = sin(ddec_2), sin_dra = sin(dra_2);
+	double h = sin_ddec * sin_ddec + cos(dec1_r) * cos(dec2_r) * sin_dra * sin_dra;
+	if (h > 1.)
+		return 180.0;   // h = 1, asin(1) is pi/2
+	return 2.0 * asin(sqrt(h)) * RADTODEG;
+}
 // TODO: using this for the moment to avoid chaging too many files
 // This copies the info contained in the catalogue to a psf_star** list
 // only the included items are copied over
@@ -911,5 +1017,15 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 	}
 	*nbstars = n;
 	return results;
+}
+
+sky_object_query_args *init_sky_object_query() {
+	sky_object_query_args *new_query = calloc(1, sizeof(sky_object_query_args));
+	if (!new_query) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	new_query->server = -1;
+	return new_query;
 }
 

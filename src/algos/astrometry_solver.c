@@ -43,7 +43,7 @@
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/photometry.h"
 #include "algos/photometric_cc.h"
 #include "algos/siril_wcs.h"
@@ -608,7 +608,7 @@ gpointer plate_solver(gpointer p) {
 		}
 		siril_catalog_free_items(args->ref_stars);
 		siril_catalog_conesearch(args->ref_stars);
-		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, 0.);
+		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
 		args->ret = nb_pcc_stars == 0;
 

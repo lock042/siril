@@ -22,7 +22,7 @@
 #include <gtk/gtk.h>
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/search_objects.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -431,7 +431,7 @@ static void add_object_in_tree_view(const gchar *object) {
 	set_cursor_waiting(TRUE);
 	gboolean found = FALSE;
 
-	const CatalogObjects *local_obj = search_in_annotations_by_name(object);
+	const cat_item *local_obj = search_in_annotations_by_name(object, NULL);
 	if (local_obj) {	// always search for local first
 		add_plated_from_annotations(local_obj);
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
@@ -439,8 +439,10 @@ static void add_object_in_tree_view(const gchar *object) {
 		g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 		found = TRUE;
 	} else {
-		query_server server = get_server_from_combobox();
-		gchar *result = search_in_online_catalogs(object, server);
+		sky_object_query_args *args= init_sky_object_query();
+		args->name = g_strdup(object);
+		args->server = get_server_from_combobox();
+		gchar *result = search_in_online_catalogs(args);
 		if (result) {
 			free_Platedobject();
 			struct sky_object obj;

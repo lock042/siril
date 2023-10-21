@@ -418,21 +418,6 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	return 0;
 }
 
-// Haversine formula on unit sphere
-// https://en.wikipedia.org/wiki/Haversine_formula
-// dec is phi, ra is lambda
-// in degrees
-static double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
-	double dec1_r = dec1 * DEGTORAD, dec2_r = dec2 * DEGTORAD;
-	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
-	double ddec_2 = 0.5 * (dec2_r - dec1_r);
-	double sin_ddec = sin(ddec_2), sin_dra = sin(dra_2);
-	double h = sin_ddec * sin_ddec + cos(dec1_r) * cos(dec2_r) * sin_dra * sin_dra;
-	if (h > 1.)
-		return 180.0;   // h = 1, asin(1) is pi/2
-	return 2.0 * asin(sqrt(h)) * RADTODEG;
-}
-
 /* Fetches the stars from local catalogs in the form of deepStarData stars
    Filters out stars w/o photometric data if photometric is TRUE
 */

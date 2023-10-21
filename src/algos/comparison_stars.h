@@ -8,6 +8,7 @@
 
 struct compstars_arg {
 	// feature input
+	fits *fit; // the fits image
 	gchar *target_name;	// star name to be looked-up on online sources
 	gboolean narrow_fov;	// limit to image height as diameter
 	object_catalog cat;	// the catalogue where comparison stars will be queried

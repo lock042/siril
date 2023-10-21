@@ -138,23 +138,46 @@ typedef struct {
 	gchar *header; // the file header lines (#) if read from file
 } siril_catalogue;
 
+typedef struct {
+	// query parameters
+	fits *fit;
+	gchar* name;
+	int server;
+
+	// query result
+	int retval;
+	cat_item *item;
+
+} sky_object_query_args;
+
 
 uint32_t siril_catalog_columns(object_catalog cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
 const char *catalog_to_str(object_catalog cat);
 const gchar **get_cat_colums_names();
 
+void siril_catalog_free_item(cat_item *item);
 void siril_catalog_free_items(siril_catalogue *siril_cat);
 void siril_catalog_free(siril_catalogue *siril_cat);
+void siril_catalog_reset_projection(siril_catalogue *siril_cat);
+gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);
+void siril_catalogue_copy_item(cat_item *from, cat_item *to);
+gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat);
+gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat);
+gboolean is_star_catalogue(object_catalog Catalog);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
 gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename, gchar *header);
-int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, double deltahours);
+int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity);
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars);
 siril_catalogue *siril_catalog_fill_from_fit(fits *fit, object_catalog cat, float limit_mag);
 gpointer conesearch_worker(gpointer p);
+
+double compute_coords_distance(double ra1, double dec1, double ra2, double dec2);
+
+sky_object_query_args *init_sky_object_query();
 
 #endif

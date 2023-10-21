@@ -45,7 +45,7 @@
 #include "algos/PSF.h"
 #include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
 #include "io/siril_catalogues.h"
@@ -146,7 +146,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			break;
 		case CAT_SIMBAD:
 			tap->catcode = g_strdup("basic+JOIN+allfluxes+ON+oidref+=+oid");
-			tap->tap_server = g_strdup( SIMBAD_TAP_QUERY);
+			tap->tap_server = g_strdup(SIMBAD_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("ra");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("dec");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("V");
@@ -163,8 +163,8 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PGC");
 			break;
 		case CAT_EXOPLANETARCHIVE:
-			tap->catcode = g_strdup("ps");
-			tap->tap_server = g_strdup( EXOPLANETARCHIVE_TAP_QUERY);
+			tap->catcode = g_strdup("pscomppars"); // we query pscomppars instead of ps to get a single entry per planet
+			tap->tap_server = g_strdup(EXOPLANETARCHIVE_TAP_QUERY);
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("ra");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("dec");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("sy_pmra");
@@ -399,22 +399,6 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 	return NULL;
 }
 
-gpointer catsearch_worker(gpointer p) {
-	gchar *name = (gchar*)p;
-	if(!name)
-		return GINT_TO_POINTER(1);
-
-	int found_it = cached_object_lookup(name, NULL) == 0;
-	if (found_it)
-		siril_add_idle(end_process_catsearch, NULL);
-	else {
-		siril_log_message(_("Object %s not found or encountered an error processing it\n"), name);
-		siril_add_idle(end_generic, NULL);
-	}
-	g_free(name);
-	return GINT_TO_POINTER(!found_it);
-}
-
 // Parsers for non-TAP queries
 // IMCCE skybot - txt input delimited with " | " parsed to csv
 static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) {
@@ -628,7 +612,7 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
    as per given catalogue type, center, radius, limit mag (optionnaly obscode and date obs for sso)
    Returns the path to the file (whether already cached or downloaded)
 */
-gchar *download_catalog(siril_catalogue *siril_cat) {
+static gchar *download_catalog(siril_catalogue *siril_cat) {
 #ifndef HAVE_NETWORKING
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 #else

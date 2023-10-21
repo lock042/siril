@@ -1,0 +1,708 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <math.h>
+#include <string.h>
+
+#include "core/siril.h"
+#include "core/proto.h"
+#include "core/siril_world_cs.h"
+#include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
+#include "core/siril_date.h"
+#include "gui/message_dialog.h"
+#include "gui/utils.h"
+#include "algos/siril_wcs.h"
+#include "gui/image_display.h"
+#include "io/siril_catalogues.h"
+#include "algos/search_objects.h"
+
+#include "annotation_catalogues.h"
+
+#define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec or 1s in hrs
+#define CAT_AN_INDEX_OFFSET 60
+
+static GSList *siril_annot_catalogue_list = NULL; // loaded data from all annotation catalogues
+
+static gboolean show_catalog(annotations_cat catalog);
+
+static const gchar *cat[] = {
+	"messier.csv",
+	"ngc.csv",
+	"ic.csv",
+	"ldn.csv",
+	"sh2.csv",
+	"stars.csv",
+	/* below this line, user catalogues are in the user directory, not the
+	 * siril install dir. See also USER_DSO_CAT_INDEX which gives the index
+	 * of this separation */
+	"user-DSO-catalogue.csv",
+	"user-SSO-catalogue.csv"
+};
+// update USER_DSO_CAT_INDEX and USER_SSO_CAT_INDEX from the .h in case of change
+// make sure com.pref.gui.catalog matches this too
+
+struct _CatalogObjects {
+	gchar *code;	// displayed name
+	gchar *pretty_code;	// name with greek characters
+	double x;	// in fits_display coords
+	double y;	// in fits_display coords
+	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
+			// negative for no accurate size
+	gchar *alias;
+	annotations_cat catalogue; // index from the list of catalogues above
+};
+
+static CatalogObjects* new_catalog_object(const gchar *name, double x,
+		double y, double radius, const gchar *alias,
+		annotations_cat catalogue) {
+	CatalogObjects *object = g_new(CatalogObjects, 1);
+
+	object->code = (name) ? g_strdup(name) : NULL;
+	object->pretty_code = NULL;
+	object->x= x;
+	object->y = y;
+	object->radius = radius;
+	object->alias = (alias) ? g_strdup(alias) : NULL;
+	object->catalogue = catalogue;
+	return object;
+}
+
+const char *cat_index_to_name(annotations_cat index) {
+	return catalog_to_str(index + CAT_AN_INDEX_OFFSET);
+}
+
+/* compare two objects, looking for duplicates based on the alias names against the name of the object to search */
+static gint object_compare(gconstpointer *a, gconstpointer *b) {
+	const CatalogObjects *s1 = (const CatalogObjects *) a;
+	const CatalogObjects *s2 = (const CatalogObjects *) b;
+
+	if (!s1->alias) return 1;
+
+	if (!strchr(s1->alias, '/'))
+		return g_strcmp0(s1->alias, s2->code);
+
+	gchar **token = g_strsplit(s1->alias, "/", -1);
+	guint i = 0;
+	while (token[i]) {
+		if (!g_strcmp0(token[i], s2->code)) {
+			g_strfreev(token);
+			return 0;
+		}
+		i++;
+	}
+	g_strfreev(token);
+	return 1;
+}
+
+// returns true if it was added
+static gboolean add_alias_to_item(cat_item *item, gchar *name) {
+	if (item->name && !strcasecmp(item->name, name))
+		return FALSE;
+	if (item->alias && item->alias[0] != '\0') {
+		if (!strchr(item->alias, '/')) {
+			if (!strcasecmp(item->alias, name))
+				return FALSE;
+		} else {
+			gchar **token = g_strsplit(item->alias, "/", -1);
+			guint i = 0;
+			while (token[i]) {
+				if (!strcasecmp(token[i], name))
+					return FALSE;
+			}
+			g_strfreev(token);
+		}
+		gchar *oldalias = item->alias;
+		item->alias = g_strjoin("/", item->alias, name, NULL);
+		g_free(oldalias);
+		siril_debug_print("new alias: '%s'\n", item->alias);
+		return TRUE;
+	}
+	item->alias = g_strdup(name);
+	return TRUE;
+}
+
+static GSList *get_siril_annot_catalogue_list() {
+	return siril_annot_catalogue_list;
+}
+
+static gboolean is_catalogue_loaded() {
+	return siril_annot_catalogue_list != NULL;
+}
+
+void free_catalogue_object(CatalogObjects *object) {
+	g_free(object->code);
+	g_free(object->alias);
+	g_free(object);
+}
+
+void free_annotation_catalogue(annotations_catalogue_t *object) {
+	siril_catalog_free(object->cat);
+}
+
+gchar *get_annotation_catalog_filename(annotations_cat cat_index, gboolean for_reading) {
+	if (cat_index < ANCAT_MESSIER || cat_index > USER_SSO_CAT_INDEX) {
+		siril_debug_print("Wrong catalog index\n");
+		return NULL;
+	}
+	gchar *filename = NULL;
+	if (cat_index < USER_DSO_CAT_INDEX)
+		filename = g_build_filename(siril_get_system_data_dir(), "catalogue", cat[cat_index], NULL);
+	else
+		filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[cat_index], NULL);
+	if (for_reading && !g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		siril_debug_print("Catalog file %s does not exist\n", cat[cat_index]);
+		g_free(filename);
+		filename = NULL;
+	}
+	return filename;
+}
+/*
+ * Loads a csv catalogue using generic csv parser
+ */
+static annotations_catalogue_t *load_catalog(annotations_cat cat_index) {
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cattype = cat_index + CAT_AN_INDEX_OFFSET;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
+	gchar *filename = get_annotation_catalog_filename(cat_index, TRUE);
+	if (!filename || siril_catalog_load_from_file(siril_cat, filename)) {// use the generic csv parser
+		siril_debug_print("Could not load the catalog %s\n", cat[cat_index]);
+		siril_catalog_free(siril_cat);
+		return NULL;
+	}
+	siril_debug_print("loaded %d objects from annotations catalogue %s\n", siril_cat->nbitems, filename);
+	annotations_catalogue_t *annot_cat = g_new(annotations_catalogue_t, 1);
+	annot_cat->cat = siril_cat;
+	annot_cat->show = show_catalog(cat_index);
+	return annot_cat;
+}
+
+// loads all catalogues from files
+static void load_all_catalogues() {
+	siril_debug_print("reloading annotation catalogues\n");
+	int cat_size = G_N_ELEMENTS(cat);
+	for (int i = 0; i < cat_size; i++) {
+		annotations_catalogue_t *newcat = load_catalog(i);
+		if (newcat)
+			siril_annot_catalogue_list = g_slist_prepend(siril_annot_catalogue_list, newcat);
+	}
+	siril_annot_catalogue_list = g_slist_reverse(siril_annot_catalogue_list);
+}
+
+static GSList *find_catalogue_by_index(annotations_cat cat_index) {
+	if (cat_index < ANCAT_MESSIER || cat_index > USER_TEMP_CAT_INDEX) {
+		siril_debug_print("Wrong catalog index\n");
+		return NULL;
+	}
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	GSList *cur = siril_annot_catalogue_list;
+	while (cur) {
+		annotations_catalogue_t *curcat = cur->data;
+		if (curcat->cat->cattype - CAT_AN_INDEX_OFFSET == cat_index)
+			return cur;
+		cur = cur->next;
+	}
+	return NULL;
+}
+
+void refresh_annotation_visibility() {
+	GSList *cur = siril_annot_catalogue_list;
+	while (cur) {
+		annotations_catalogue_t *curcat = cur->data;
+		annotations_cat cat_index = curcat->cat->cattype - CAT_AN_INDEX_OFFSET;
+		curcat->show = show_catalog(cat_index);
+		cur = cur->next;
+	}
+}
+
+int load_siril_cat_to_temp(siril_catalogue *siril_cat) {
+	if (!siril_cat)
+		return 1;
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	annotations_catalogue_t *annot_cat = g_new(annotations_catalogue_t, 1);
+	annot_cat->cat = siril_cat;
+	annot_cat->show = TRUE;
+	annot_cat->cat->cattype = CAT_AN_USER_TEMP;
+	siril_annot_catalogue_list = g_slist_append(siril_annot_catalogue_list, annot_cat);
+	return 0;
+}
+
+// for the show command, loads a list of objects from a file into the temp cat
+// The file must have at least name, ra and dec columns
+int load_csv_targets_to_temp(const gchar *filename) {
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	annotations_catalogue_t *annot_cat = load_catalog(USER_TEMP_CAT_INDEX);
+	siril_debug_print("loaded %d objects from CSV temporary annotation %s\n", annot_cat->cat->nbitems, filename);
+	if (annot_cat)
+		siril_annot_catalogue_list = g_slist_append(siril_annot_catalogue_list, annot_cat);
+	return 0;
+}
+
+typedef struct {
+	const char *greek;		// Greek letter of stars
+	const char *latin;		// Greek letter written in Latin
+} GreekLetters;
+
+static GreekLetters convert_to_greek[] = {
+	{ "\u03b1", "alf" },
+	{ "\u03b2", "bet" },
+	{ "\u03b3", "gam" },
+	{ "\u03b4", "del" },
+	{ "\u03b5", "eps" },
+	{ "\u03b6", "zet" },
+	{ "\u03b7", "eta" },
+	{ "\u03b8", "tet" },
+	{ "\u03b9", "iot" },
+	{ "\u03ba", "kap" },
+	{ "\u03bb", "lam" },
+	{ "\u03bc", "mu." },
+	{ "\u03bd", "nu." },
+	{ "\u03be", "ksi" },
+	{ "\u03bf", "omi" },
+	{ "\u03c0", "pi." },
+	{ "\u03c1", "rho" },
+	{ "\u03c3", "sig" },
+	{ "\u03c4", "tau" },
+	{ "\u03c5", "ups" },
+	{ "\u03c6", "phi" },
+	{ "\u03c7", "chi" },
+	{ "\u03c8", "psi" },
+	{ "\u03c9", "ome" },
+	{ NULL, NULL }
+};
+
+static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
+	gchar *result;
+	int i, cnt = 0;
+	int newlen = strlen(new);
+	int oldlen = strlen(old);
+
+	// Counting the number of times old word
+	// occur in the string
+	for (i = 0; s[i] != '\0'; i++) {
+		if (g_strstr_len(&s[i], -1, old) == &s[i]) {
+			cnt++;
+
+			// Jumping to index after the old word.
+			i += oldlen - 1;
+		}
+	}
+
+	// Making new string of enough length
+	result = g_malloc(i + cnt * (newlen - oldlen) + 1);
+
+	i = 0;
+	while (*s) {
+		// compare the substring with the result
+		if (g_strstr_len(s, -1, old) == s) {
+			strcpy(&result[i], new);
+			i += newlen;
+			s += oldlen;
+		} else
+			result[i++] = *s++;
+	}
+
+	result[i] = '\0';
+	return result;
+}
+
+gchar *get_catalogue_object_code_pretty(CatalogObjects *object) {
+	gboolean found = FALSE;
+	int i = 0;
+	if (!object->pretty_code) {
+		if (!object->code)
+			return NULL;
+		/* in case of stars we want to convert to Greek letter */
+		while (convert_to_greek[i].latin) {
+			gchar *latin_code = g_strstr_len(object->code, -1, convert_to_greek[i].latin);
+			if (latin_code) {
+				found = TRUE;
+				break;
+			}
+			i++;
+		}
+		if (found) {
+			object->pretty_code = replace_str(object->code,
+					convert_to_greek[i].latin, convert_to_greek[i].greek);
+		} else {
+			object->pretty_code = g_strdup(object->code);
+		}
+	}
+	return object->pretty_code;
+}
+
+static void write_in_user_catalogue(int cat_index) {;
+	// only these two catalogs are writable
+	if (cat_index != USER_DSO_CAT_INDEX && cat_index != USER_SSO_CAT_INDEX)
+		return;
+	GSList *cur = find_catalogue_by_index(cat_index);
+	if (!cur || !cur->data)
+		return;
+	gchar *filename = get_annotation_catalog_filename(cat_index, FALSE);
+	annotations_catalogue_t *annot_cat = cur->data; 
+	siril_catalogue *siril_cat = annot_cat->cat;
+	if (!siril_catalog_write_to_file(siril_cat, filename, NULL)) {
+		siril_log_color_message(_("Could not write the updated catalogue %s\n"), "red", cat[cat_index]);
+	}
+}
+
+
+gboolean is_inside(fits *fit, double ra, double dec) {
+	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
+}
+
+/* get a list of objects from all catalogues (= from siril_annot_catalogue_list) that
+ * are framed in the passed plate solved image */
+GSList *find_objects_in_field(fits *fit) {
+	if (!has_wcs(fit))
+		return NULL;
+	GSList *targets = NULL;
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	gdouble starradius = get_wcs_image_resolution(fit) * 6. * 60.0;
+	GSList *list = get_siril_annot_catalogue_list();
+	for (GSList *l = list; l; l = l->next) {
+		annotations_catalogue_t *curcat = l->data;
+		if (!curcat->show) // the catalog show member is set at read-out
+			continue;
+		siril_catalogue *siril_cat = curcat->cat;
+		annotations_cat cat_index = siril_cat->cattype - CAT_AN_INDEX_OFFSET;
+		gboolean is_star_cat = is_star_catalogue(siril_cat->cattype);
+		if (siril_cat->projected != CAT_PROJ_WCS) {
+			gboolean use_proper_motion = can_use_proper_motion(fit, siril_cat);
+			gboolean use_velocity = can_use_velocity(fit, siril_cat);
+			siril_catalog_project_with_WCS(siril_cat,fit, use_proper_motion, use_velocity);
+
+		}
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			if (siril_cat->cat_items[i].included) { //included means it is within the bounds of the image after projection
+				double x, y;
+				// we write directly in display coordinates to avoid the substraction at every redraw
+				fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &x, &y, fit->ry);
+				CatalogObjects *cur = new_catalog_object(
+					siril_cat->cat_items[i].name,
+					x,
+					y,
+					(is_star_cat) ? starradius : .5 * siril_cat->cat_items[i].diameter,
+					siril_cat->cat_items[i].alias,
+					cat_index
+				);
+				if (!g_slist_find_custom(targets, cur, (GCompareFunc)object_compare))
+					targets = g_slist_prepend(targets, cur);
+				else
+					free_catalogue_object(cur);
+			}
+		}
+	}
+	if (targets) {
+		targets = g_slist_reverse(targets);
+	}
+	return targets;
+}
+
+// compares (ra/dec) positions for all catalogues
+// except for sso where name, dateobs and observation sites are compared
+static gboolean is_same_item(cat_item *item1, cat_item *item2, annotations_cat cat) {
+	if (!item1 || !item2 || cat < ANCAT_MESSIER || cat > USER_TEMP_CAT_INDEX) {
+		siril_debug_print("problem when comparing two items\n");
+		return FALSE;
+	}
+	switch (cat) {
+		case USER_SSO_CAT_INDEX: // for SSO we need to check on more criteria than just the position
+			return !strcasecmp(item1->name, item2->name) // same name
+							// same night (time diff < 18hrs), we can then use vra/vdec to compute position throughout the night
+							&& fabs(item1->dateobs - item2->dateobs) * 2.777777777777778e-4 < 18.
+							// same observation site
+							&& fabs(item1->sitelat - item2->sitelat) < 1.e-4
+							&& fabs(item1->sitelon - item2->sitelon) < 1.e-4
+							&& fabs(item1->siteelev - item2->siteelev) < 1.;
+		default:
+			return fabs(item1->ra - item2->ra) < CATALOG_DIST_EPSILON
+				&& fabs(item1->dec - item2->dec) < CATALOG_DIST_EPSILON;
+	}
+}
+
+// adds an item in one of the catalogues of the static list
+// and writes the updated file
+void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean check_duplicates) {
+	if (!(cat_index == USER_DSO_CAT_INDEX || cat_index == USER_SSO_CAT_INDEX)) {
+		siril_debug_print("can't write to catalogue %s, aborting\n", catalog_to_str(cat_index + CAT_AN_INDEX_OFFSET));
+		return;
+	}
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	if (check_duplicates) {	// duplicate check based on coordinates within 1"
+		GSList *cur = siril_annot_catalogue_list;
+		while (cur) {
+			annotations_catalogue_t *curcat = cur->data;
+			for (int i = 0; i < curcat->cat->nbitems; i++) {
+				if (is_same_item(item, &curcat->cat->cat_items[i], cat_index)) {
+					siril_log_message(_("The object was already found in the %s catalog "
+								"under the name '%s', not adding it again\n"),
+								catalog_to_str(curcat->cat->cattype), curcat->cat->cat_items[i].name);
+					if (add_alias_to_item(&curcat->cat->cat_items[i], item->name)) {
+						siril_debug_print("alias %s added to %s in the runtime catalogue\n",
+								item->name, curcat->cat->cat_items[i].name);
+						/* we add it to the catalogue in memory, but it will be lost on
+						* purge/reload or when restarting siril. It's a bit complicated
+						* to modify existing entries from user catalogues and siril
+						* catalogues should not be considered writeable.
+						* at least it will help for consecutive requests
+						*/
+					}
+					return;
+				}
+			}
+			cur = cur->next;
+		}
+	}
+	siril_catalogue *siril_cat = NULL;
+	GSList *cur = find_catalogue_by_index(cat_index);
+	if (!cur || !cur->data) {// the catalog does not exist yet
+		annotations_catalogue_t *annot_cat = calloc(1, sizeof(annotations_catalogue_t));
+		siril_cat = calloc(1, sizeof(siril_catalogue));
+		siril_cat->cattype = cat_index + CAT_AN_INDEX_OFFSET;
+		siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
+		annot_cat->cat = siril_cat;
+		annot_cat->show = TRUE;
+		siril_annot_catalogue_list = g_slist_append(siril_annot_catalogue_list, annot_cat);
+	} else {
+		siril_cat = ((annotations_catalogue_t *)cur->data)->cat;
+	}
+	if (siril_catalog_append_item(siril_cat, item))
+		write_in_user_catalogue(cat_index);
+}
+
+
+// search DSO by name in all annotation catalogues, but remember the result does not
+// contain magnitudes, only name and J2000 equatorial coordinates
+// if *cattype is non NULL, fills it with the catlogue type enum
+// The caller must free the result
+cat_item *search_in_annotations_by_name(const char *input, object_catalog *cattype) {
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	if (!input || input[0] == '\0' || !cattype)
+		return NULL;
+	int len = strlen(input);
+	gchar *target;
+	// no space in our catalogues' codes
+	if (len >= 3 && !g_ascii_strncasecmp(input, "M ", 2) && input[2] >= '0' && input[2] <= '9')
+		target = g_strdup_printf("M%s", input+2);
+	else if (len >= 4 && !g_ascii_strncasecmp(input, "IC ", 3) && input[3] >= '0' && input[3] <= '9')
+		target = g_strdup_printf("IC%s", input+3);
+	else if (len >= 5 && !g_ascii_strncasecmp(input, "NGC ", 4) && input[4] >= '0' && input[4] <= '9')
+		target = g_strdup_printf("NGC%s", input+4);
+	else {
+		target = g_strdup(input);
+		target[0] = g_ascii_toupper(target[0]);	// in the catalogues, they're all starting with a caps
+	}
+	siril_debug_print("target name after transformation: %s\n", target);
+
+	cat_item *found = NULL, *probable = NULL;
+	GSList *cur = siril_annot_catalogue_list;
+	gboolean bingo = FALSE;
+	while (cur) {
+		annotations_catalogue_t *curcat = cur->data;
+		if (curcat->cat->cattype == CAT_AN_USER_SSO || curcat->cat->cattype == CAT_AN_USER_TEMP)
+			continue;
+		siril_catalogue *siril_cat = curcat->cat;
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			cat_item *item = &siril_cat->cat_items[i];
+			if (item->name && !strcasecmp(item->name, target)) {
+				found = item;
+				bingo = TRUE;
+				if (cattype)
+					*cattype = siril_cat->cattype;
+				break;
+			}
+			if (item->alias) {
+				if (!strchr(item->alias, '/')) {
+					if (!strcasecmp(item->alias, target)) {
+						found = item;
+						bingo = TRUE;
+						if (cattype)
+							*cattype = siril_cat->cattype;
+						break;
+					}
+				} else {
+					gchar **token = g_strsplit(item->alias, "/", -1);
+					guint i = 0;
+					while (token[i]) {
+						if (!strcasecmp(token[i], target)) {
+							g_strfreev(token);
+							bingo = TRUE;
+							if (cattype)
+								*cattype = siril_cat->cattype;
+							break;
+						}
+						if (!probable && strstr(token[i], target)) {
+							probable = item;
+							if (cattype)
+								*cattype = siril_cat->cattype;
+						}
+						i++;
+					}
+					g_strfreev(token);
+				}
+			}
+		}
+		if (bingo)
+			break;
+		cur = cur->next;
+	}
+
+	g_free(target);
+
+	if (found) {
+		siril_debug_print("object found in annotation catalogues: %s\n", found->name);
+		cat_item *output = calloc(1, sizeof(cat_item));
+		siril_catalogue_copy_item(found, output);
+		return output;
+	}
+	if (probable) {
+		siril_debug_print("probable object found in annotation catalogues: %s\n", probable->name);
+		cat_item *output = calloc(1, sizeof(cat_item));
+		siril_catalogue_copy_item(probable, output);
+		return output;
+	}
+	siril_debug_print("object %s not found in annotation catalogues\n", input);
+	return NULL;
+}
+
+// search SSO user catalog by name /datobs/ site position
+// The caller must free the result
+cat_item *search_in_solar_annotations(sky_object_query_args *args) {
+	if (!is_catalogue_loaded())
+		load_all_catalogues();
+	GSList *solar_an_cat = find_catalogue_by_index(USER_SSO_CAT_INDEX);
+	if (!solar_an_cat) {
+		siril_debug_print("no SSO catalogue\n");
+		return NULL;
+	}
+	siril_catalogue *solar_cat = ((annotations_catalogue_t *)solar_an_cat->data)->cat;
+	// preparing the item for comparison/output
+	gchar **tokens = g_strsplit(args->name, ":", -1);
+	if (g_strv_length(tokens) != 2) {
+		siril_log_color_message(_("Can't interpret SSO name %s, aborting\n"), "red", args->name);
+		g_strfreev(tokens);
+		return NULL;
+	}
+
+	cat_item *ref_item = calloc(1, sizeof(cat_item));
+	ref_item->name = g_strdup(tokens[1]);
+	g_strfreev(tokens);
+	ref_item->dateobs = date_time_to_Julian(args->fit->date_obs);
+	ref_item->sitelat = args->fit->sitelat;
+	ref_item->sitelon = args->fit->sitelong;
+	ref_item->siteelev = args->fit->siteelev;
+	for (int i = 0; i < solar_cat->nbitems; i++) {
+		if (is_same_item(ref_item, &solar_cat->cat_items[i], USER_SSO_CAT_INDEX)) {
+			siril_catalogue_copy_item(&solar_cat->cat_items[i], ref_item);
+			siril_log_message(_("Object %s record found in the local SSO catalog\n"), ref_item->name);
+			return ref_item;
+		}
+	}
+	siril_catalog_free_item(ref_item);
+	return NULL;
+}
+
+
+gchar *get_catalogue_object_code(const CatalogObjects *object) {
+	return object->code;
+}
+
+annotations_cat get_catalogue_object_cat(const CatalogObjects *object) {
+	return object->catalogue;
+}
+
+gdouble get_catalogue_object_x(const CatalogObjects *object) {
+	return object->x;
+}
+
+gdouble get_catalogue_object_y(const CatalogObjects *object) {
+	return object->y;
+}
+
+gdouble get_catalogue_object_radius(const CatalogObjects *object) {
+	return object->radius;
+}
+
+void refresh_found_objects() {
+	if (has_wcs(&gfit)) {
+		if (com.found_object) {
+			g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
+			com.found_object = NULL;
+		}
+		com.found_object = find_objects_in_field(&gfit);
+	}
+}
+
+static gboolean show_catalog(annotations_cat catalog) {
+	if (catalog >= G_N_ELEMENTS(com.pref.gui.catalog) || catalog < 0) {
+		siril_debug_print("BAD ANNOTATION CATALOGUE ENTRY DETECTED\n");
+		return FALSE;
+	}
+	return com.pref.gui.catalog[catalog];
+}
+
+static void remove_user_cat_from_found(gpointer data, gpointer user_data) {
+	object_catalog *cattype = (object_catalog *)user_data;
+	annotations_cat catalogue = *cattype - CAT_AN_INDEX_OFFSET;
+	CatalogObjects *obj = (CatalogObjects *) data;
+	if (obj->catalogue == catalogue)
+		com.found_object = g_slist_remove(com.found_object, data);
+	// this is a very inefficient way to remove objects from a list,
+	// but ok here because there are not many
+}
+
+void purge_user_catalogue(object_catalog cattype) {
+	// we remove the objects of type cattype from found_objects
+	g_slist_foreach(com.found_object, remove_user_cat_from_found, &cattype);
+	// we remove the catalog from the static list
+	GSList *cur = siril_annot_catalogue_list;
+	printf("nb_elts_before: %d\n", g_slist_length(siril_annot_catalogue_list));
+	while (cur) {
+		annotations_catalogue_t *curcat = cur->data;
+		if (curcat->cat->cattype == cattype) {
+			siril_annot_catalogue_list = g_slist_remove_link(siril_annot_catalogue_list, cur);
+			siril_catalog_free(curcat->cat);
+			printf("nb_elts_after: %d\n", g_slist_length(siril_annot_catalogue_list));
+			return;
+		}
+		cur = cur->next;
+	}
+	printf("nb_elts_after: %d\n", g_slist_length(siril_annot_catalogue_list));
+}
+
+// to be called when we close an image
+void cleanup_annotation_catalogues() {
+	g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
+	com.found_object = NULL;
+	purge_user_catalogue(CAT_AN_USER_TEMP);
+	GSList *cur = siril_annot_catalogue_list;
+	while (cur) {
+		annotations_catalogue_t *curcat = cur->data;
+		siril_catalog_reset_projection(curcat->cat);
+		cur = cur->next;
+	}
+}

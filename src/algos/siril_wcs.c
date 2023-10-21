@@ -320,6 +320,9 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 				c += 2;
 			}
 		}
+	} else {
+		free(status);
+		status = NULL;
 	}
 	free(intcrd);
 	free(pixcrd);

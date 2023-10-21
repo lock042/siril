@@ -35,7 +35,7 @@
 #include "gui/cut.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
@@ -2087,4 +2087,34 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}
+}
+
+void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
+	gboolean is_sso = g_strrstr(caller, "SSO") != NULL;
+	gchar *msg = g_strdup_printf(_("You are about to purge your %s user catalog. This means the "
+				"file containing the manually added objects will be deleted. "
+				"This operation cannot be undone."), (is_sso) ? _("SOLAR SYSTEM") : _("DEEP SKY"));
+
+	int confirm = siril_confirm_dialog(_("Catalog deletion"), msg, _("Purge Catalogue"));
+	g_free(msg);
+	if (!confirm) {
+		return;
+	}
+	annotations_cat cat_index = (is_sso) ? USER_SSO_CAT_INDEX : USER_DSO_CAT_INDEX;
+	gchar *filename = get_annotation_catalog_filename(cat_index, FALSE);
+	GFile *file = g_file_new_for_path(filename);
+
+	g_autoptr(GError) local_error = NULL;
+	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
+		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
+	} else {
+		gboolean was_displayed = com.found_object != NULL;
+		purge_user_catalogue(cat_index);
+		if (was_displayed) {
+			redraw(REDRAW_OVERLAY);
+		}
+	}
+	g_free(filename);
+	g_object_unref(file);
 }

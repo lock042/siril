@@ -612,6 +612,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
 	on_clear_roi(); // Always clear a ROI when changing images
+	cleanup_annotation_catalogues();
 	clear_stars_list(TRUE);
 	invalidate_gfit_histogram();
 	undo_flush();
@@ -637,6 +638,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			set_cutoff_sliders_values();	// update values for contrast sliders for this image
 			set_display_mode();		// display the display mode in the combo box
 		}
+		refresh_found_objects();
 		redraw(REMAP_ALL);
 		if (seq->is_variable)
 			clear_previews();

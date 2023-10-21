@@ -41,13 +41,8 @@ typedef struct {
 	gchar *tap_server;
 } cat_tap_query_fields;
 
-gchar *download_catalog(siril_catalogue *siril_cat);
-
 gchar *fetch_url(const gchar *url);
 void free_fetch_result(gchar *result);
-
-gpointer search_in_online_conesearch(gpointer p);
-gpointer catsearch_worker(gpointer p);
 
 int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat);
 

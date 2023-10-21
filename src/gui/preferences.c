@@ -26,7 +26,7 @@
 #include "core/siril_log.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"

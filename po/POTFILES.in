@@ -5,7 +5,6 @@ src/gui/siril3.glade
 src/gui/siril-shortcuts.ui
 src/main-cli.c
 src/main.c
-src/algos/annotate.c
 src/algos/astrometry_solver.c
 src/algos/background_extraction.c
 src/algos/ccd-inspector.c
@@ -102,6 +101,7 @@ src/gui/statistics_list.c
 src/gui/star_finder.c
 src/gui/starnetgui.c
 src/gui/utils.c
+src/io/annotation_catalogues.c
 src/io/Astro-TIFF.c
 src/io/conversion.c
 src/io/films.c

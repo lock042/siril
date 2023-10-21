@@ -28,7 +28,7 @@
 #include "core/siril_log.h"
 #include "core/initfile.h"
 #include "compositing/align_rgb.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
@@ -405,7 +405,7 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 	} else {
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
-		purge_temp_user_catalogue();
+		purge_user_catalogue(CAT_AN_USER_TEMP);
 	}
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);

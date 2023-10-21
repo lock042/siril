@@ -166,7 +166,7 @@ static gboolean end_compstars(gpointer p) {
 	// display the comp star list
 	clear_stars_list(args->has_GUI);
 	if (args->has_GUI && !args->retval) {
-		purge_temp_user_catalogue();
+		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(args->comp_stars)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
 			refresh_found_objects();
@@ -367,7 +367,7 @@ static int get_catstars(struct compstars_arg *args) {
 	}
 	sort_cat_items_by_mag(siril_cat); // sort by magnitude for nicer display
 
-	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE, 0.)) {
+	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE, FALSE)) {
 		args->cat_stars = siril_cat;
 	} else {
 		siril_log_color_message(_("No comparison stars found in the image, aborting\n"), "red");
@@ -379,8 +379,13 @@ static int get_catstars(struct compstars_arg *args) {
 gpointer compstars_worker(gpointer arg) {
 	int retval;
 	struct compstars_arg *args = (struct compstars_arg *) arg;
+	sky_object_query_args *query_args = init_sky_object_query();
+	query_args->fit = args->fit;
+	query_args->name = g_strdup(args->target_name);
+	query_args->server = QUERY_SERVER_SIMBAD_PHOTO;
+
 	// 1. search for the variable star
-	retval = cached_object_lookup(args->target_name, &args->target_star);
+	retval = cached_object_lookup(query_args);
 	if (retval)
 		goto end;
 	if (!args->target_star) {
