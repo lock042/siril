@@ -14274,6 +14274,8 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="spacing">2</property>
                     <property name="title" translatable="yes">Ra</property>
                     <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">5</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_ra"/>
                       <attributes>
@@ -14287,6 +14289,8 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="spacing">2</property>
                     <property name="title" translatable="yes">Dec</property>
                     <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">6</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_dec"/>
                       <attributes>
