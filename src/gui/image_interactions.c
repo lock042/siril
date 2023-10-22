@@ -188,6 +188,8 @@ void delete_selected_area() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	if (!com.script)
 		new_selection_zone();
+	if (gui.roi.active && com.pref.gui.roi_mode == ROI_AUTO)
+		on_clear_roi();
 }
 
 void reset_display_offset() {

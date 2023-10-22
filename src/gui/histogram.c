@@ -1003,6 +1003,7 @@ void histo_change_between_roi_and_image() {
 		setup_hsl();
 	}
 	update_histo_mtf();
+	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;

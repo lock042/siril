@@ -268,7 +268,14 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
 	}
 	/* Use the tag when documentation will be tagged */
-	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, "latest", DECONVOLUTION_TIPS_URL);
+	const gchar *version = NULL;
+#ifdef SIRIL_UNSTABLE
+	version = "latest";
+#else
+	version = "stable";
+#endif
+
+	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, version, DECONVOLUTION_TIPS_URL);
 	siril_log_message(_("Deconvolution usage hints and tips URL: %s\n"), url);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
@@ -565,6 +572,7 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void deconv_roi_callback() {
+	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(lookup_widget("bdeconv_roi_preview"), gui.roi.active);
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 }

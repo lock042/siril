@@ -796,8 +796,8 @@ static void draw_cut_line(const draw_data_t* dd) {
 			cairo_move_to(cr, offendx + 0.5, offendy + 0.5);
 			cairo_line_to(cr, pt2.x, pt2.y);
 			cairo_stroke(cr);
+			cairo_restore(cr);
 		}
-		cairo_restore(cr);
 	} else {
 		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by siril plot
 		cairo_save(cr);

@@ -25,7 +25,11 @@ build-librtprocess:
 	$(CMAKE) $(CMAKE_GENERATOR) -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=OFF -DOPTION_OMP=OFF $(abs_srcdir)/librtprocess/ && \
 	$(MAKE)
 
+clean-librtprocess:
+	rm -f $(abs_builddir)/librtprocess/build/CMakeCache.txt
+
 all: build-librtprocess
+clean: clean-librtprocess
 endif
 
 
@@ -39,5 +43,9 @@ build-htmesh:
 	$(CMAKE) $(CMAKE_GENERATOR) -DCMAKE_BUILD_TYPE="Release" -DCMAKE_CXX_FLAGS="-Wno-psabi -I$(abs_srcdir)/htmesh" $(abs_srcdir)/htmesh/ && \
 	$(MAKE)
 
+clean-htmesh:
+	rm -f $(abs_builddir)/htmesh/build/CMakeCache.txt
+
 all: build-htmesh
+clean: clean-htmesh
 endif
