@@ -6,6 +6,7 @@ siril 1.2.1 xx xx, xx
 * Fixed Anscombe VST noise reduction option for mono images
 * Fixed colored artefacts in RGB deconvolution (#1201)
 * Fixed data initialisation bugs in copyfits() and RGB compositing tool
+* Allowed for RA/DEC to be sorted in PSF windows (#1214)
 
 
 siril 1.2.0 September 15, 2023
