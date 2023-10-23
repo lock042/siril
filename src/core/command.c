@@ -8766,6 +8766,7 @@ int process_catsearch(int nb){
 	}
 	sky_object_query_args *args = init_sky_object_query();
 	args->fit = &gfit;
+	gchar *name = NULL;
 	if (nb > 2) {
 		args->name = build_string_from_words(word + 1);
 	} else {

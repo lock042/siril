@@ -142,12 +142,12 @@ typedef struct {
 	// query parameters
 	fits *fit;
 	gchar* name;
+	gchar *prefix; // c, a, s, p, dp for SSO
 	int server;
 
 	// query result
 	int retval;
 	cat_item *item;
-
 } sky_object_query_args;
 
 
@@ -179,5 +179,6 @@ gpointer conesearch_worker(gpointer p);
 double compute_coords_distance(double ra1, double dec1, double ra2, double dec2);
 
 sky_object_query_args *init_sky_object_query();
+void free_sky_object_query(sky_object_query_args *args);
 
 #endif

@@ -291,13 +291,25 @@ static void update_image_parameters_GUI() {
 }
 
 gboolean end_process_catsearch(gpointer p) {
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	refresh_found_objects();
-	if (!gtk_toggle_tool_button_get_active(button)) {
-		gtk_toggle_tool_button_set_active(button, TRUE);
-	} else {
-		redraw(REDRAW_OVERLAY);
+	sky_object_query_args *args = (sky_object_query_args*)p;
+	if (!com.script && !args->retval) {
+		GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+		refresh_annotation_visibility();
+		refresh_found_objects();
+		if (!gtk_toggle_tool_button_get_active(button)) {
+			gtk_toggle_tool_button_set_active(button, TRUE);
+		} else {
+			redraw(REDRAW_OVERLAY);
+		}
+		if (!args->retval) { // we close the dialog and clear the entry if it was triggered through GUI
+			GtkWidget *entry = lookup_widget("search_objects_entry");
+			if (gtk_widget_get_visible(entry)) {
+				gtk_entry_set_text(GTK_ENTRY(entry), "");
+				siril_close_dialog("search_objects");
+			}
+		}
 	}
+	free_sky_object_query(args);
 	return end_generic(NULL);
 }
 

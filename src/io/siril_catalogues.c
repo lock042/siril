@@ -311,6 +311,8 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, object_ca
 }
 
 void siril_catalog_free_item(cat_item *item) {
+	if (!item)
+		return;
 	g_free(item->name);
 	g_free(item->alias);
 	g_free(item->type);
@@ -1027,5 +1029,14 @@ sky_object_query_args *init_sky_object_query() {
 	}
 	new_query->server = -1;
 	return new_query;
+}
+
+void free_sky_object_query(sky_object_query_args *args) {
+	if (!args)
+		return;
+	g_free(args->name);
+	g_free(args->prefix);
+	siril_catalog_free_item(args->item);
+	free(args);
 }
 

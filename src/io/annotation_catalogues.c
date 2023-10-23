@@ -381,6 +381,7 @@ GSList *find_objects_in_field(fits *fit) {
 		load_all_catalogues();
 	gdouble starradius = get_wcs_image_resolution(fit) * 6. * 60.0;
 	GSList *list = get_siril_annot_catalogue_list();
+	double tref = date_time_to_Julian(fit->date_obs);
 	for (GSList *l = list; l; l = l->next) {
 		annotations_catalogue_t *curcat = l->data;
 		if (!curcat->show) // the catalog show member is set at read-out
@@ -392,12 +393,18 @@ GSList *find_objects_in_field(fits *fit) {
 			gboolean use_proper_motion = can_use_proper_motion(fit, siril_cat);
 			gboolean use_velocity = can_use_velocity(fit, siril_cat);
 			siril_catalog_project_with_WCS(siril_cat,fit, use_proper_motion, use_velocity);
-
 		}
 		for (int i = 0; i < siril_cat->nbitems; i++) {
+			if (siril_cat->cattype == CAT_AN_USER_SSO) { // we need to check the record is from the same night and same location
+				if (tref == 0. || fabs(siril_cat->cat_items[i].dateobs - tref) > 0.75 || // 18hrs
+					fabs(siril_cat->cat_items[i].sitelat - fit->sitelat) > 1.e-4 ||
+					fabs(siril_cat->cat_items[i].sitelon - fit->sitelong) > 1.e-4 ||
+					fabs(siril_cat->cat_items[i].siteelev - fit->siteelev) > 1.)
+					continue;
+			}
 			if (siril_cat->cat_items[i].included) { //included means it is within the bounds of the image after projection
 				double x, y;
-				// we write directly in display coordinates to avoid the substraction at every redraw
+				// we write directly in display coordinates to avoid the flip at every redraw
 				fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &x, &y, fit->ry);
 				CatalogObjects *cur = new_catalog_object(
 					siril_cat->cat_items[i].name,
@@ -429,13 +436,16 @@ static gboolean is_same_item(cat_item *item1, cat_item *item2, annotations_cat c
 	}
 	switch (cat) {
 		case USER_SSO_CAT_INDEX: // for SSO we need to check on more criteria than just the position
-			return !strcasecmp(item1->name, item2->name) // same name
-							// same night (time diff < 18hrs), we can then use vra/vdec to compute position throughout the night
-							&& fabs(item1->dateobs - item2->dateobs) * 2.777777777777778e-4 < 18.
-							// same observation site
-							&& fabs(item1->sitelat - item2->sitelat) < 1.e-4
-							&& fabs(item1->sitelon - item2->sitelon) < 1.e-4
-							&& fabs(item1->siteelev - item2->siteelev) < 1.;
+			return (!strcasecmp(item1->name, item2->name) || // same name
+					!strcasecmp(item1->alias, item2->alias) || // same alias
+					!strcasecmp(item1->name, item2->alias) || // or a mix'n'match
+					!strcasecmp(item1->alias, item2->name))
+					// same night (time diff < 18hrs), we can then use vra/vdec to compute position throughout the night
+					&& fabs(item1->dateobs - item2->dateobs) * 24. < 18.
+					// same observation site
+					&& fabs(item1->sitelat - item2->sitelat) < 1.e-4
+					&& fabs(item1->sitelon - item2->sitelon) < 1.e-4
+					&& fabs(item1->siteelev - item2->siteelev) < 1.;
 		default:
 			return fabs(item1->ra - item2->ra) < CATALOG_DIST_EPSILON
 				&& fabs(item1->dec - item2->dec) < CATALOG_DIST_EPSILON;
@@ -523,8 +533,10 @@ cat_item *search_in_annotations_by_name(const char *input, object_catalog *catty
 	gboolean bingo = FALSE;
 	while (cur) {
 		annotations_catalogue_t *curcat = cur->data;
-		if (curcat->cat->cattype == CAT_AN_USER_SSO || curcat->cat->cattype == CAT_AN_USER_TEMP)
+		if (curcat->cat->cattype == CAT_AN_USER_SSO || curcat->cat->cattype == CAT_AN_USER_TEMP) {
+			cur = cur->next;
 			continue;
+		}
 		siril_catalogue *siril_cat = curcat->cat;
 		for (int i = 0; i < siril_cat->nbitems; i++) {
 			cat_item *item = &siril_cat->cat_items[i];
@@ -600,17 +612,9 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 		return NULL;
 	}
 	siril_catalogue *solar_cat = ((annotations_catalogue_t *)solar_an_cat->data)->cat;
-	// preparing the item for comparison/output
-	gchar **tokens = g_strsplit(args->name, ":", -1);
-	if (g_strv_length(tokens) != 2) {
-		siril_log_color_message(_("Can't interpret SSO name %s, aborting\n"), "red", args->name);
-		g_strfreev(tokens);
-		return NULL;
-	}
 
 	cat_item *ref_item = calloc(1, sizeof(cat_item));
-	ref_item->name = g_strdup(tokens[1]);
-	g_strfreev(tokens);
+	ref_item->name = g_strdup(args->name);
 	ref_item->dateobs = date_time_to_Julian(args->fit->date_obs);
 	ref_item->sitelat = args->fit->sitelat;
 	ref_item->sitelon = args->fit->sitelong;
