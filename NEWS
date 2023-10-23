@@ -22,6 +22,7 @@ xx/xx/xx
 * Fixed problems with Fourier Transform planning > Estimate (#1199)
 * Fixed data initialisation bugs in copyfits() and RGB compositing tool
 * Allowed for RA/DEC to be sorted in PSF windows (#1214)
+* Added SET-TEMP as valid FITS header to be saved (#1215)
 
 siril 1.2.0 September 15, 2023
 

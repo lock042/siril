@@ -242,6 +242,8 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_double(str, fit->focal_length, "FOCALLEN", "Camera focal length");
 	if (fit->ccd_temp != -999.0)
 		siril_string_append_double(str, fit->ccd_temp, "CCD-TEMP", "CCD temp in C");
+	if (fit->set_temp != -999.0)
+		siril_string_append_double(str, fit->set_temp, "SET-TEMP", "Temperature setting in C");
 	if (fit->exposure > 0.0)
 		siril_string_append_double(str, fit->exposure, "EXPTIME", "Exposure time [s]");
 	if (fit->stackcnt)
