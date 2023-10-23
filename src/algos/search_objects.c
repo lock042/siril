@@ -38,7 +38,7 @@
  * result in the local annotation catalogues and returns it in the argument if
  * non-NULL */
 int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
-	gchar **token, *realname = NULL, *objname = NULL, *objtype = NULL;
+	gchar **token, *objname = NULL, *objtype = NULL;
 	int nargs;
 	gboolean check_for_duplicates = FALSE;
 	annotations_cat target_cat = ANCAT_NONE;
@@ -48,15 +48,17 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	token = g_strsplit(buffer, "\n", -1);
 	nargs = g_strv_length(token);
 
-	// This is for a request to SIMBAD (DSO)
-	if (g_str_has_prefix(buffer, "C.D.S.") && nargs > 2) {
-		// In case of a sad request...
-		if (g_strrstr(buffer, "No known catalog") || g_strrstr(buffer, "incorrect id")) return 1;
-		// This case does not end up being stored in a annotation catalogue, it's
-		// saved in an alternate structure that contains photometry and returns
-		realname = g_shell_unquote(token[2], NULL);
+	switch (args->server) {
+	case (QUERY_SERVER_SIMBAD_PHOTO):
+		// In case of a bad request...
+		if (nargs <= 2 || g_strrstr(buffer, "No known catalog") || g_strrstr(buffer, "incorrect id")) {
+			g_strfreev(token);
+			args->retval = 1;
+			break;
+		}
+		objname = g_shell_unquote(token[2], NULL);
 		gint rank = 3;
-		double ra = 0.0, dec = 0.0;
+		double ra = 0.0, dec = 0.0, pmra = 0.0, pmdec = 0.0;
 		double Vmag = 0.0, Bmag = 0.0;
 		while (token[rank]) {
 			if (g_str_has_prefix(token[rank], "Coordinates(ICRS")) {
@@ -74,10 +76,8 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 				if (degres < 0.0)
 					dec = degres - min/60.0 - seconds/3600.0;
 				else dec = degres + min/60.0 + seconds/3600.0;
-
 				g_strfreev(fields);
 			}
-
 			// Finally, retrieve the B and V magnitudes
 			else if (g_str_has_prefix(token[rank], "Flux B")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
@@ -89,31 +89,29 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 				sscanf(fields[3], "%lf", &Vmag);
 				g_strfreev(fields);
 			}
-
+			else if (g_str_has_prefix(token[rank], "Proper motions")){
+				gchar **fields = g_strsplit(token[rank], " ", -1);
+				sscanf(fields[2], "%lf", &pmra);
+				sscanf(fields[3], "%lf", &pmdec);
+				g_strfreev(fields);
+			}
 			rank++;
 		}
-
-		if (Vmag == 0.0 || Bmag == 0.0)
-			siril_log_color_message(_("No photometric data available for this object.\n"), "red");
 		cat_item *item = calloc(1, sizeof(cat_item));
 		item->mag = Vmag;
 		item->bmag = Bmag;
 		item->ra = ra;
 		item->dec = dec;
-		item->name = g_strdup(realname);
-
-		if (!is_inside(&gfit, ra, dec)) {
-			siril_log_color_message(_("Object not in the field of view...\n"), "salmon");
-			args->retval = 1;
-		} else {
-			args->item = item;
-		}
+		item->pmra = pmra;
+		item->pmdec = pmdec;
+		item->name = g_strdup(objname);
+		args->item = item;
+		args->retval = 0;
 		check_for_duplicates = TRUE;
 		target_cat = USER_DSO_CAT_INDEX;
-	}
-
+		break;
 	// This is for a Miriade emphemcc search (SSO)
-	else if (args->server == QUERY_SERVER_EPHEMCC) {
+	case QUERY_SERVER_EPHEMCC:
 		if (!g_str_has_prefix(buffer, "# Flag: 1")) {
 			siril_log_color_message(_("IMCCE server returned:\n"), "red");
 			int max_lines = min(3, nargs); // we display 3 lines max
@@ -129,7 +127,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		// "# Asteroid: 103516 2000 BY4 | ..."
 		// "# Planet : 4 Mars | ..."
 		gchar *pattern = "#(.+?):(.+?)\\|";
-		gchar **parts = g_regex_split_simple(pattern, token[2], G_REGEX_DEFAULT, G_REGEX_MATCH_NOTEMPTY);
+		gchar **parts = g_regex_split_simple(pattern, token[2], G_REGEX_DEFAULT, 0);
 		if (g_strv_length(parts) == 4) {
 			objtype = g_strdup(g_strstrip(parts[1]));
 			objname = g_strdup(g_strstrip(parts[2]));
@@ -149,7 +147,6 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		guint n = g_strv_length(fields);
 		if (n == 16) {
 			double ra, dec, vra, vdec, mag;
-			gboolean valid = FALSE;
 			ra = parse_hms(fields[2]);
 			dec = parse_dms(fields[3]);
 			vra = g_strtod(fields[13], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
@@ -186,16 +183,8 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		g_free(objname);
 		g_free(objtype);
 		g_strfreev(fields);
-	}
-	else if (g_str_has_prefix(buffer, "!! ")) {
-		// error response, for example:
-		// "!! 'kelt16' this identifier has an incorrect format for catalog:\n\tkelt : Kilodegree Extremely Little Telescope\n\n query string: kelt16\n"
-		siril_log_color_message(_("Failure in name resolution: %s\n"), "red", token[0]+3);
-		if (nargs > 1)
-			siril_log_color_message("%s\n", "red", token[1]);
-	} else {
-		// unsupported response format, should not happen
-		siril_log_color_message(_("Error in name resolution: %s\n"), "red", token[0]);
+	default:
+		siril_debug_print("unknown query catalogue\n");
 	}
 	g_strfreev(token);
 
@@ -211,10 +200,8 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			add_item_in_catalogue(args->item, target_cat, check_for_duplicates);
 			com.pref.gui.catalog[target_cat] = TRUE;	// and display it
 		}
-		g_free(realname);
 		return 0;
 	}
-	g_free(realname);
 	return 1;
 }
 
@@ -227,9 +214,15 @@ int cached_object_lookup(sky_object_query_args *args) {
 		object_catalog cattype;
 		args->item = search_in_annotations_by_name(args->name, &cattype);
 		if (args->item) {
-			siril_log_message(_("Object %s was found in the %s catalogue, RA = %f, Dec = %f\n"),
-					args->item->name, catalog_to_str(cattype),
-					args->item->ra, args->item->dec);
+			SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(args->item->ra, args->item->dec);
+			gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02.2lfs");
+			gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02.2lf\"");
+			siril_log_message(_("Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"),
+					args->name, args->item->name, catalog_to_str(cattype),
+					alpha, delta);
+			g_free(alpha);
+			g_free(delta);
+			siril_world_cs_unref(world_cs);
 		}
 	} else {
 		args->item = search_in_solar_annotations(args);
@@ -245,11 +238,22 @@ int cached_object_lookup(sky_object_query_args *args) {
 	} else {
 		args->retval = 0;
 	}
+	if (!args->retval) {
+		if (!is_inside(args->fit, args->item->ra, args->item->dec)) {
+			siril_log_message(_("Object %s record was found but is not within the bounds of the image\n"), args->name);
+			siril_catalog_free_item(args->item);
+			args->item = NULL;
+			args->retval = 1;
+		}
+	} else {
+		siril_log_message(_("Object %s not found or encountered an error processing it\n"), args->name);
+	}
 	return args->retval;
 }
 
 void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
-	if (!has_wcs(&gfit)) return;
+	if (!has_wcs(&gfit))
+		return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	sky_object_query_args *args = init_sky_object_query();
 	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
@@ -484,12 +488,6 @@ gpointer catsearch_worker(gpointer p) {
 	}
 	gboolean found_it = !cached_object_lookup(args);
 
-	if (found_it) {
-		if (!is_inside(args->fit, args->item->ra, args->item->dec))
-			siril_log_message(_("Object %s record was found but is not within the bounds of the image\n"), args->name);
-	} else {
-		siril_log_message(_("Object %s not found or encountered an error processing it\n"), args->name);
-	}
 	if (!com.script) { // we need to update GUI
 		siril_add_idle(end_process_catsearch, args); // this will free the args
 	} else {

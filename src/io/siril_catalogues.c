@@ -90,9 +90,9 @@ static int get_column_index(gchar *field) {
 static gchar *get_field_to_str(cat_item item, cat_fields field) {
 	switch (field) {
 		case CAT_FIELD_RA:
-			return (item.ra) ? g_strdup_printf("%g", item.ra) : "";
+			return (item.ra) ? g_strdup_printf("%.6f", item.ra) : "";
 		case CAT_FIELD_DEC:
-			return (item.dec) ? g_strdup_printf("%g", item.dec) : "";
+			return (item.dec) ? g_strdup_printf("%.6f", item.dec) : "";
 		case CAT_FIELD_PMRA:
 			return (item.pmra) ? g_strdup_printf("%g", item.pmra) : "";
 		case CAT_FIELD_PMDEC:
@@ -166,7 +166,7 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_AN_STARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME); //| (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) //TODO:Add pm
 		case CAT_AN_USER_DSO:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_USER_SSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV) | (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_COMPSTARS:

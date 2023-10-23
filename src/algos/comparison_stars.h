@@ -5,6 +5,7 @@
 #include "io/remote_catalogues.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
+#include "io/siril_catalogues.h"
 
 struct compstars_arg {
 	// feature input
@@ -16,7 +17,7 @@ struct compstars_arg {
 	gchar *nina_file;	// optional output NINA-type file name
 
 	// for internal use
-	psf_star *target_star;	// the considered variable star
+	cat_item *target_star;	// the considered variable star
 	siril_catalogue *cat_stars;	// the list of stars for the field
 	siril_catalogue *comp_stars;	// the list of photometric comparison stars
 	

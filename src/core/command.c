@@ -8847,6 +8847,7 @@ int process_findcompstars(int nb) {
 	}
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	args->fit = &gfit;
 	args->target_name = g_strdup(target);
 	args->narrow_fov = narrow;
 	args->cat = used_cat;

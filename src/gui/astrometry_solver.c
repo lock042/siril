@@ -301,12 +301,11 @@ gboolean end_process_catsearch(gpointer p) {
 		} else {
 			redraw(REDRAW_OVERLAY);
 		}
-		if (!args->retval) { // we close the dialog and clear the entry if it was triggered through GUI
-			GtkWidget *entry = lookup_widget("search_objects_entry");
-			if (gtk_widget_get_visible(entry)) {
-				gtk_entry_set_text(GTK_ENTRY(entry), "");
-				siril_close_dialog("search_objects");
-			}
+		// if was queried through the GUI, we clear the entry and close the dialog
+		GtkWidget *entry = lookup_widget("search_objects_entry");
+		if (gtk_widget_get_visible(entry)) {
+			gtk_entry_set_text(GTK_ENTRY(entry), "");
+			siril_close_dialog("search_objects");
 		}
 	}
 	free_sky_object_query(args);

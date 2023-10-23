@@ -177,12 +177,13 @@ static gboolean end_compstars(gpointer p) {
 				redraw(REDRAW_OVERLAY);
 			}
 		}
+	} else {
+		siril_catalog_free(args->comp_stars); // we don't free args->compstars if it's being used for the annotations
 	}
 	g_free(args->nina_file);
 	siril_catalog_free(args->cat_stars);
-	siril_catalog_free(args->comp_stars);
 	if (args->target_star)
-		free_psf(args->target_star);
+		siril_catalog_free_item(args->target_star);
 	g_free(args->AAVSO_chartid);
 	g_free(args->AAVSO_uri);
 	redraw(REDRAW_OVERLAY);
@@ -196,7 +197,7 @@ static void write_nina_file(struct compstars_arg *args) {
 	if (!g_strcmp0(args->nina_file, "auto")) {
 		g_free(args->nina_file);
 		args->nina_file = g_strdup_printf("%s_SirilstarList_%1.2lf_%1.2lf_%1.2lf_%s.csv",
-				args->target_star->star_name, args->delta_Vmag, args->delta_BV, args->max_emag,
+				args->target_star->name, args->delta_Vmag, args->delta_BV, args->max_emag,
 				catalog_to_str(args->cat));
 	}
 
@@ -204,7 +205,7 @@ static void write_nina_file(struct compstars_arg *args) {
 
 	GString *header_lines = g_string_new("");
 	g_string_append_printf(header_lines, "# Sorted comparison stars for %s from %s according to the following criteria\n",
-			args->target_star->star_name, catalog_to_str(args->cat));
+			args->target_star->name, catalog_to_str(args->cat));
 
 	// if (args->cat == CAT_AAVSO && args->AAVSO_chartid && args->AAVSO_uri) {
 	// 	fprintf(fd, "# AAVSO chartid: %s, image_uri: %s\n",
@@ -224,7 +225,7 @@ static void write_nina_file(struct compstars_arg *args) {
 
 #define ONE_ARCSEC 0.000277778
 /* determines if two stars are the same based on their coordinates */
-static gboolean is_same_star(psf_star *s1, cat_item *s2) {
+static gboolean is_same_star(cat_item *s1, cat_item *s2) {
 	return (fabs(s1->ra - s2->ra) < 2.0 * ONE_ARCSEC) &&
 			(fabs(s1->dec - s2->dec) < 2.0 * ONE_ARCSEC);
 }
@@ -247,7 +248,7 @@ int sort_compstars(struct compstars_arg *args) {
 	siril_log_message(_("Sort parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: %1.3lf\n"),
 			args->delta_Vmag, args->delta_BV, args->max_emag);
 	siril_log_message(_("Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"),
-			args->target_star->mag, args->target_star->Bmag - args->target_star->mag);
+			args->target_star->mag, args->target_star->bmag - args->target_star->mag);
 
 	// preparing the output catalog
 	args->comp_stars = calloc(1, sizeof(siril_catalogue));
@@ -255,11 +256,11 @@ int sort_compstars(struct compstars_arg *args) {
 	args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS);
 	cat_item *comp_items = calloc(args->cat_stars->nbincluded + 1, sizeof(cat_item));
 	// and write the target star
-	fill_compstar_item(&comp_items[0], args->target_star->ra, args->target_star->dec, args->target_star->star_name, "Target");
+	fill_compstar_item(&comp_items[0], args->target_star->ra, args->target_star->dec, args->target_star->name, "Target");
 	int nb_phot_stars = 0;
 
 	// prepare the reference values
-	double BV0 = fabs(args->target_star->mag - args->target_star->Bmag);	// B-V of the target star
+	double BV0 = args->target_star->bmag - args->target_star->mag;	// B-V of the target star
 	double xmin, xmax, ymin, ymax; // borders boundaries
 	xmin = (double)gfit.rx * BORDER_RATIO;
 	xmax = (double)gfit.rx * (1. - BORDER_RATIO);
@@ -379,7 +380,7 @@ static int get_catstars(struct compstars_arg *args) {
 gpointer compstars_worker(gpointer arg) {
 	int retval;
 	struct compstars_arg *args = (struct compstars_arg *) arg;
-	sky_object_query_args *query_args = init_sky_object_query();
+	sky_object_query_args *query_args = init_sky_object_query(); // for the reference star
 	query_args->fit = args->fit;
 	query_args->name = g_strdup(args->target_name);
 	query_args->server = QUERY_SERVER_SIMBAD_PHOTO;
@@ -388,26 +389,24 @@ gpointer compstars_worker(gpointer arg) {
 	retval = cached_object_lookup(query_args);
 	if (retval)
 		goto end;
-	if (!args->target_star) {
-		siril_log_color_message(_("Target star invalid.\n"), "red");
-		retval = 1;
-		goto end;
-	}
-	if (args->target_star->mag == 0.0 || args->target_star->Bmag == 0.0) {
+	if (query_args->item->mag == 0.0 || query_args->item->bmag == 0.0) {
 		siril_log_color_message(_("Target star photometric information not available.\n"), "red");
 		retval = 1;
 		goto end;
 	}
+	args->target_star = calloc(1, sizeof(cat_item));
+	siril_catalogue_copy_item(query_args->item, args->target_star);
 
 	// 2. get a catalogue of stars for the field
 	retval = get_catstars(args);
-	if (retval) goto end;
+	if (retval)
+		goto end;
 
 	// 3. extract those matching our photometry need
 	retval = sort_compstars(args);
-	if (retval) goto end;
 
 end:
+	free_sky_object_query(query_args);
 	args->retval = retval;
 	args->has_GUI = TRUE;
 	if (!siril_add_idle(end_compstars, args)) {

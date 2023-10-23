@@ -147,6 +147,7 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	args->fit = &gfit;
 	args->target_name = g_strdup(target_name);
 	args->narrow_fov = TRUE;
 	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;

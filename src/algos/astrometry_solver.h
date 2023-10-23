@@ -93,7 +93,6 @@ double get_fov_arcmin(double resolution, int rx, int ry);
 const char *catalog_to_str(object_catalog cat);
 
 /* from the GUI */
-// gboolean end_process_sso(gpointer p);
 gboolean end_process_catsearch(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);

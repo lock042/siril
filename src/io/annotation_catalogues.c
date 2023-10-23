@@ -126,6 +126,7 @@ static gboolean add_alias_to_item(cat_item *item, gchar *name) {
 			while (token[i]) {
 				if (!strcasecmp(token[i], name))
 					return FALSE;
+				i++;
 			}
 			g_strfreev(token);
 		}
@@ -455,10 +456,6 @@ static gboolean is_same_item(cat_item *item1, cat_item *item2, annotations_cat c
 // adds an item in one of the catalogues of the static list
 // and writes the updated file
 void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean check_duplicates) {
-	if (!(cat_index == USER_DSO_CAT_INDEX || cat_index == USER_SSO_CAT_INDEX)) {
-		siril_debug_print("can't write to catalogue %s, aborting\n", catalog_to_str(cat_index + CAT_AN_INDEX_OFFSET));
-		return;
-	}
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
 	if (check_duplicates) {	// duplicate check based on coordinates within 1"
@@ -471,14 +468,17 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 								"under the name '%s', not adding it again\n"),
 								catalog_to_str(curcat->cat->cattype), curcat->cat->cat_items[i].name);
 					if (add_alias_to_item(&curcat->cat->cat_items[i], item->name)) {
-						siril_debug_print("alias %s added to %s in the runtime catalogue\n",
-								item->name, curcat->cat->cat_items[i].name);
-						/* we add it to the catalogue in memory, but it will be lost on
-						* purge/reload or when restarting siril. It's a bit complicated
-						* to modify existing entries from user catalogues and siril
-						* catalogues should not be considered writeable.
-						* at least it will help for consecutive requests
+						if (!(cat_index == USER_DSO_CAT_INDEX || cat_index == USER_SSO_CAT_INDEX)) {
+							siril_debug_print("alias %s added to %s in the runtime catalogue\n",
+							item->name, curcat->cat->cat_items[i].name);
+							/* we add it to the catalogue in memory, but it will be lost on
+							* purge/reload or when restarting siril. It's a bit complicated
+							* to add to siril native catalogues as they should not be considered writeable.
+							* at least it will help for consecutive requests
 						*/
+						} else {
+							write_in_user_catalogue(cat_index);
+						}
 					}
 					return;
 				}
@@ -511,7 +511,7 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 cat_item *search_in_annotations_by_name(const char *input, object_catalog *cattype) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
-	if (!input || input[0] == '\0' || !cattype)
+	if (!input || input[0] == '\0')
 		return NULL;
 	int len = strlen(input);
 	gchar *target;
@@ -561,7 +561,7 @@ cat_item *search_in_annotations_by_name(const char *input, object_catalog *catty
 					guint i = 0;
 					while (token[i]) {
 						if (!strcasecmp(token[i], target)) {
-							g_strfreev(token);
+							found = item;
 							bingo = TRUE;
 							if (cattype)
 								*cattype = siril_cat->cattype;
