@@ -717,7 +717,7 @@ gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item) {
 	return TRUE;
 }
 
-gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
+static gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
 	if (!fit->date_obs) {
@@ -732,7 +732,7 @@ gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
 	return TRUE;
 }
 
-gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
+static gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
 	if (!fit->date_obs) {
@@ -757,13 +757,11 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	return 1
 #endif
 	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC))) {
-		siril_debug_print("catalogue %s does not have the necessary columns\n");
+		siril_debug_print("catalogue %s does not have the necessary columns\n", catalog_to_str(siril_cat->cattype));
 		return 1;
 	}
 	int nbincluded = 0;
 	double jyears = 0.;
-	double *world = NULL, *x = NULL, *y = NULL;
-	int *status = NULL;
 	double tobs = 0., deltahours = 0.;
 	gboolean use_tcat = FALSE;
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
@@ -786,14 +784,6 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			use_tcat = TRUE;
 		}
 	}
-	world = malloc( 2 * siril_cat->nbitems * sizeof(double));
-	x = malloc(siril_cat->nbitems * sizeof(double));
-	y = malloc(siril_cat->nbitems * sizeof(double));
-	if (!world || !x || !y) {
-		PRINT_ALLOC_ERR;
-		goto clean_and_exit;
-	}
-	int ind = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		double ra = siril_cat->cat_items[i].ra;
 		double dec = siril_cat->cat_items[i].dec;
@@ -808,27 +798,18 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
 			dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
 		}
-		world[ind++] = ra;
-		world[ind++] = dec;
-	}
-	status = wcs2pix_array(fit, siril_cat->nbitems, world, x, y);
-	if (!status)
-		goto clean_and_exit;
-	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (!status[i]) {
-			siril_cat->cat_items[i].x = x[i];
-			siril_cat->cat_items[i].y = y[i];
+		double x, y;
+		int status = wcs2pix(fit, ra, dec, &x, &y);
+		if (!status) {
+			siril_cat->cat_items[i].x = x;
+			siril_cat->cat_items[i].y = y;
 			siril_cat->cat_items[i].included = TRUE;
 			nbincluded++;
 		} else {
 			siril_cat->cat_items[i].included = FALSE;
 		}
 	}
-clean_and_exit:
 	siril_cat->nbincluded = nbincluded;
-	free(world);
-	free(x);
-	free(y);
 	siril_cat->projected = CAT_PROJ_WCS;
 	return !(nbincluded > 0);
 } 
@@ -890,10 +871,10 @@ static gboolean end_conesearch(gpointer p) {
 		if (!load_siril_cat_to_temp(temp_cat)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
 			refresh_annotation_visibility();
-			refresh_found_objects();
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
+				refresh_found_objects();
 				redraw(REDRAW_OVERLAY);
 			}
 		}
@@ -1055,3 +1036,89 @@ void free_sky_object_query(sky_object_query_args *args) {
 	free(args);
 }
 
+// TODO: this version of siril_catalog_project_with_WCS does not currently work
+// for images platesolved with distorsion, due to a bug fixed in wcslib 7.12
+// which causes wcs2pix_array to fail
+// will be reinstated when we update the lib
+#if 0
+int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity) {
+#ifndef HAVE_WCSLIB
+	return 1
+#endif
+	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC))) {
+		siril_debug_print("catalogue %s does not have the necessary columns\n");
+		return 1;
+	}
+	int nbincluded = 0;
+	double jyears = 0.;
+	double *world = NULL, *x = NULL, *y = NULL;
+	int *status = NULL;
+	double tobs = 0., deltahours = 0.;
+	gboolean use_tcat = FALSE;
+	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
+	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
+	if (use_proper_motion) {
+		GDateTime *dt = g_date_time_ref(fit->date_obs);
+		gdouble jd = date_time_to_Julian(dt);
+		g_date_time_unref(dt);
+		double J2000 = 2451545.0;
+		jyears = (jd - J2000) / 365.25;
+	}
+	if (use_velocity) {
+		GDateTime *dt = g_date_time_ref(fit->date_obs);
+		tobs = date_time_to_Julian(dt);
+		g_date_time_unref(dt);
+		// for IMCCE conesearch, the dateobs is common to the whole catalogue
+		// the time of the catalogue will be used instead of individual records
+		if (!(siril_cat->columns & (1 << CAT_FIELD_DATEOBS))) {
+			deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
+			use_tcat = TRUE;
+		}
+	}
+	world = malloc( 2 * siril_cat->nbitems * sizeof(double));
+	x = malloc(siril_cat->nbitems * sizeof(double));
+	y = malloc(siril_cat->nbitems * sizeof(double));
+	if (!world || !x || !y) {
+		PRINT_ALLOC_ERR;
+		goto clean_and_exit;
+	}
+	int ind = 0;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		double ra = siril_cat->cat_items[i].ra;
+		double dec = siril_cat->cat_items[i].dec;
+		double decrad = dec * DEGTORAD;
+		if (use_proper_motion) {
+			ra += siril_cat->cat_items[i].pmra / cos(decrad) * jyears * 2.77777778e-7;
+			dec += siril_cat->cat_items[i].pmdec * jyears * 2.77777778e-7;
+		}
+		if (use_velocity) {
+			if (!use_tcat)
+				deltahours = (tobs - siril_cat->cat_items[i].dateobs) * 24.;
+			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
+			dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
+		}
+		world[ind++] = ra;
+		world[ind++] = dec;
+	}
+	status = wcs2pix_array(fit, siril_cat->nbitems, world, x, y);
+	if (!status)
+		goto clean_and_exit;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		if (!status[i]) {
+			siril_cat->cat_items[i].x = x[i];
+			siril_cat->cat_items[i].y = y[i];
+			siril_cat->cat_items[i].included = TRUE;
+			nbincluded++;
+		} else {
+			siril_cat->cat_items[i].included = FALSE;
+		}
+	}
+clean_and_exit:
+	siril_cat->nbincluded = nbincluded;
+	free(world);
+	free(x);
+	free(y);
+	siril_cat->projected = CAT_PROJ_WCS;
+	return !(nbincluded > 0);
+}
+#endif

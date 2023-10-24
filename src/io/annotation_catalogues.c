@@ -178,11 +178,12 @@ gchar *get_annotation_catalog_filename(annotations_cat cat_index, gboolean for_r
 /*
  * Loads a csv catalogue using generic csv parser
  */
-static annotations_catalogue_t *load_catalog(annotations_cat cat_index) {
+static annotations_catalogue_t *load_catalog(annotations_cat cat_index, const gchar *filename) {
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
 	siril_cat->cattype = cat_index + CAT_AN_INDEX_OFFSET;
 	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
-	gchar *filename = get_annotation_catalog_filename(cat_index, TRUE);
+	if (!filename)
+		filename = get_annotation_catalog_filename(cat_index, TRUE);
 	if (!filename || siril_catalog_load_from_file(siril_cat, filename)) {// use the generic csv parser
 		siril_debug_print("Could not load the catalog %s\n", cat[cat_index]);
 		siril_catalog_free(siril_cat);
@@ -200,7 +201,7 @@ static void load_all_catalogues() {
 	siril_debug_print("reloading annotation catalogues\n");
 	int cat_size = G_N_ELEMENTS(cat);
 	for (int i = 0; i < cat_size; i++) {
-		annotations_catalogue_t *newcat = load_catalog(i);
+		annotations_catalogue_t *newcat = load_catalog(i, NULL);
 		if (newcat)
 			siril_annot_catalogue_list = g_slist_prepend(siril_annot_catalogue_list, newcat);
 	}
@@ -252,11 +253,13 @@ int load_siril_cat_to_temp(siril_catalogue *siril_cat) {
 int load_csv_targets_to_temp(const gchar *filename) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
-	annotations_catalogue_t *annot_cat = load_catalog(USER_TEMP_CAT_INDEX);
-	siril_debug_print("loaded %d objects from CSV temporary annotation %s\n", annot_cat->cat->nbitems, filename);
-	if (annot_cat)
+	annotations_catalogue_t *annot_cat = load_catalog(USER_TEMP_CAT_INDEX, filename);
+	if (annot_cat) {
 		siril_annot_catalogue_list = g_slist_append(siril_annot_catalogue_list, annot_cat);
-	return 0;
+		siril_debug_print("loaded %d objects from CSV temporary annotation %s\n", annot_cat->cat->nbitems, filename);
+		return 0;
+	}
+	return 1;
 }
 
 typedef struct {

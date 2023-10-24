@@ -162,8 +162,6 @@ void siril_catalog_free(siril_catalogue *siril_cat);
 void siril_catalog_reset_projection(siril_catalogue *siril_cat);
 gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);
 void siril_catalogue_copy_item(cat_item *from, cat_item *to);
-gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat);
-gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat);
 gboolean is_star_catalogue(object_catalog Catalog);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);

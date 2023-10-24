@@ -8766,7 +8766,6 @@ int process_catsearch(int nb){
 	}
 	sky_object_query_args *args = init_sky_object_query();
 	args->fit = &gfit;
-	gchar *name = NULL;
 	if (nb > 2) {
 		args->name = build_string_from_words(word + 1);
 	} else {
@@ -8955,6 +8954,7 @@ int process_show(int nb) {
 		return CMD_FOR_PLATE_SOLVED;
 	}
 	char *name = " ";
+	cat_item *item = NULL;
 	int next_arg = 1;
 	if (!g_strcmp0(word[next_arg], "-clear")) {
 		next_arg++;
@@ -9005,8 +9005,16 @@ parse_coords:
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 		return CMD_ARG_ERROR;
 	}
-
-	// add_object_in_catalogue(name, coords, FALSE, USER_TEMP_CAT_INDEX);
+	if (item) {
+		siril_catalog_free_item(item);
+		item = NULL;
+	}
+	item = calloc(1, sizeof(cat_item));
+	item->ra = siril_world_cs_get_alpha(coords);
+	item->dec = siril_world_cs_get_delta(coords);
+	if (name)
+		item->name = g_strdup(name);
+	add_item_in_catalogue(item, CAT_AN_USER_TEMP, FALSE);
 
 display:
 	/* display the new 'found_object' */
@@ -9016,6 +9024,10 @@ display:
 	} else {
 		refresh_found_objects();
 		redraw(REDRAW_OVERLAY);
+	}
+	if (item) {
+		siril_catalog_free_item(item);
+		item = NULL;
 	}
 	if (coords)
 		siril_world_cs_unref(coords);
