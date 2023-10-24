@@ -889,6 +889,7 @@ static gboolean end_conesearch(gpointer p) {
 		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(temp_cat)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+			refresh_annotation_visibility();
 			refresh_found_objects();
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
@@ -896,9 +897,9 @@ static gboolean end_conesearch(gpointer p) {
 				redraw(REDRAW_OVERLAY);
 			}
 		}
-		// siril_catalog_free(temp_cat);
 	}
 	return end_generic(NULL);
+	// we don't free temp_cat as it is passed as the new CAT_AN_USER_TEMP
 }
 
 // worker for the command conesearch
@@ -972,7 +973,7 @@ gpointer conesearch_worker(gpointer p) {
 exit_conesearch:
 	siril_catalog_free(siril_cat);
 	if (!com.script) {
-		siril_add_idle(end_conesearch, temp_cat); // temp_cat will be freed in the idle
+		siril_add_idle(end_conesearch, temp_cat);
 	} else {
 		end_generic(NULL);
 	}

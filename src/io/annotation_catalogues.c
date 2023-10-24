@@ -391,7 +391,7 @@ GSList *find_objects_in_field(fits *fit) {
 		annotations_cat cat_index = siril_cat->cattype - CAT_AN_INDEX_OFFSET;
 		gboolean is_star_cat = is_star_catalogue(siril_cat->cattype);
 		if (siril_cat->projected != CAT_PROJ_WCS) {
-			siril_catalog_project_with_WCS(siril_cat,fit, TRUE, TRUE); // samity check will be done during the projection
+			siril_catalog_project_with_WCS(siril_cat,fit, TRUE, TRUE); // sanity check will be done during the projection
 		}
 		for (int i = 0; i < siril_cat->nbitems; i++) {
 			if (siril_cat->cattype == CAT_AN_USER_SSO) { // we need to check the record is from the same night and same location
@@ -440,7 +440,7 @@ static gboolean is_same_item(cat_item *item1, cat_item *item2, annotations_cat c
 					!strcasecmp(item1->name, item2->alias) || // or a mix'n'match
 					!strcasecmp(item1->alias, item2->name))
 					// same night (time diff < 18hrs), we can then use vra/vdec to compute position throughout the night
-					&& fabs(item1->dateobs - item2->dateobs) * 24. < 18.
+					&& fabs(item1->dateobs - item2->dateobs) < 0.75
 					// same observation site
 					&& fabs(item1->sitelat - item2->sitelat) < 1.e-4
 					&& fabs(item1->sitelon - item2->sitelon) < 1.e-4
@@ -476,7 +476,7 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 							* to add to siril native catalogues as they should not be considered writeable.
 							* at least it will help for consecutive requests
 						*/
-						} else {
+						} else { // we update the user catalogues if required
 							write_in_user_catalogue(cat_index);
 						}
 					}
@@ -499,10 +499,9 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 	} else {
 		siril_cat = ((annotations_catalogue_t *)cur->data)->cat;
 	}
-	if (siril_catalog_append_item(siril_cat, item))
+	if (siril_catalog_append_item(siril_cat, item) && (cat_index == USER_DSO_CAT_INDEX || cat_index == USER_SSO_CAT_INDEX))
 		write_in_user_catalogue(cat_index);
 }
-
 
 // search DSO by name in all annotation catalogues, but remember the result does not
 // contain magnitudes, only name and J2000 equatorial coordinates
@@ -674,7 +673,7 @@ static void remove_user_cat_from_found(gpointer data, gpointer user_data) {
 	annotations_cat catalogue = *cattype - CAT_AN_INDEX_OFFSET;
 	CatalogObjects *obj = (CatalogObjects *) data;
 	if (obj->catalogue == catalogue)
-		com.found_object = g_slist_remove(com.found_object, data);
+		com.found_object = g_slist_remove(com.found_object, data); // does this actually free the data?
 	// this is a very inefficient way to remove objects from a list,
 	// but ok here because there are not many
 }
