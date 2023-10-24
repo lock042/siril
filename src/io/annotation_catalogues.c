@@ -463,8 +463,10 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 		GSList *cur = siril_annot_catalogue_list;
 		while (cur) {
 			annotations_catalogue_t *curcat = cur->data;
-			if (curcat->cat->cattype == CAT_AN_USER_TEMP)
+			if (curcat->cat->cattype == CAT_AN_USER_TEMP) {
+				cur = cur->next;
 				continue;
+			}
 			for (int i = 0; i < curcat->cat->nbitems; i++) {
 				if (is_same_item(item, &curcat->cat->cat_items[i], cat_index)) {
 					siril_log_message(_("The object was already found in the %s catalog "

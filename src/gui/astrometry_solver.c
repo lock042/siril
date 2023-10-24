@@ -294,11 +294,12 @@ gboolean end_process_catsearch(gpointer p) {
 	sky_object_query_args *args = (sky_object_query_args*)p;
 	if (!com.script && !args->retval) {
 		GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+		purge_user_catalogue(CAT_AN_USER_TEMP);
 		refresh_annotation_visibility();
-		refresh_found_objects();
 		if (!gtk_toggle_tool_button_get_active(button)) {
 			gtk_toggle_tool_button_set_active(button, TRUE);
 		} else {
+			refresh_found_objects();
 			redraw(REDRAW_OVERLAY);
 		}
 		// if was queried through the GUI, we clear the entry and close the dialog

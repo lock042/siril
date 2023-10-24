@@ -436,7 +436,7 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 		double ra = parse_hms(vals[2]);	// in hours
 		double dec = parse_dms(vals[3]);
 		if (!isnan(ra) && !isnan(dec))
-			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9], vals[4]);
+			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9], vals[4]); //TODO get accuracy for ra/dec
 		g_strfreev(vals);
 	}
 	g_strfreev(token);
@@ -511,7 +511,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		double ra = parse_hms(rastr);	// in hours
 		json_reader_end_member(reader);
 		if (!isnan(ra) && !isnan(dec))
-			g_output_stream_printf(output_stream, &n, NULL, NULL, "%s,%g,%+g,%g,%g,%g,%g\n", name, ra, dec, mag, bmag, e_mag, e_bmag);
+			g_output_stream_printf(output_stream, &n, NULL, NULL, "%s,%g,%+g,%g,%g,%g,%g\n", name, ra, dec, mag, bmag, e_mag, e_bmag); //TODO get accuracy for ra/dec
 		json_reader_end_element(reader);
 	}
 	g_object_unref(reader);
