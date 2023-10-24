@@ -161,6 +161,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PGC");
+			tap->tap_columns[CAT_FIELD_DIAMETER] = g_strdup("EXP(logD25)/10");
 			break;
 		case CAT_EXOPLANETARCHIVE:
 			tap->catcode = g_strdup("pscomppars"); // we query pscomppars instead of ps to get a single entry per planet

@@ -148,7 +148,7 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_VSX:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_PGC:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DIAMETER);
 		case CAT_EXOPLANETARCHIVE:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_AAVSO_CHART:
@@ -274,7 +274,6 @@ gboolean is_star_catalogue(object_catalog Catalog) {
 		case CAT_AN_STARS:
 		case CAT_LOCAL:
 		case CAT_AN_USER_SSO:
-		case CAT_AN_USER_TEMP:
 			return TRUE;
 	default:
 		return FALSE;
@@ -765,18 +764,27 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	double jyears = 0.;
 	double *world = NULL, *x = NULL, *y = NULL;
 	int *status = NULL;
-	double tobs = 0.;
-	if (use_proper_motion && can_use_proper_motion(fit, siril_cat)) {
+	double tobs = 0., deltahours = 0.;
+	gboolean use_tcat = FALSE;
+	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
+	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
+	if (use_proper_motion) {
 		GDateTime *dt = g_date_time_ref(fit->date_obs);
 		gdouble jd = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
 		double J2000 = 2451545.0;
 		jyears = (jd - J2000) / 365.25;
 	}
-	if (use_velocity && can_use_velocity(fit, siril_cat)) {
+	if (use_velocity) {
 		GDateTime *dt = g_date_time_ref(fit->date_obs);
 		tobs = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
+		// for IMCCE conesearch, the dateobs is common to the whole catalogue
+		// the time of the catalogue will be used instead of individual records
+		if (!(siril_cat->columns & (1 << CAT_FIELD_DATEOBS))) {
+			deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
+			use_tcat = TRUE;
+		}
 	}
 	world = malloc( 2 * siril_cat->nbitems * sizeof(double));
 	x = malloc(siril_cat->nbitems * sizeof(double));
@@ -795,10 +803,10 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			dec += siril_cat->cat_items[i].pmdec * jyears * 2.77777778e-7;
 		}
 		if (use_velocity) {
-			double deltahours = (tobs - siril_cat->cat_items[i].dateobs) * 24.;
+			if (!use_tcat)
+				deltahours = (tobs - siril_cat->cat_items[i].dateobs) * 24.;
 			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
 			dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
-
 		}
 		world[ind++] = ra;
 		world[ind++] = dec;
@@ -885,7 +893,6 @@ static gboolean end_conesearch(gpointer p) {
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
-				refresh_found_objects();
 				redraw(REDRAW_OVERLAY);
 			}
 		}
@@ -912,9 +919,8 @@ gpointer conesearch_worker(gpointer p) {
 		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(siril_cat->cattype));
 
 	/* project using WCS */
-	gboolean use_proper_motion = can_use_proper_motion(&gfit, siril_cat);
-	gboolean use_velocity = can_use_velocity(&gfit, siril_cat);
-	if (siril_catalog_project_with_WCS(siril_cat, &gfit, use_proper_motion, use_velocity)) { // TODO: pass *fit instead of gfit
+	// we need to project now to identify (and count) objects in the image
+	if (siril_catalog_project_with_WCS(siril_cat, &gfit, TRUE, TRUE)) { // TODO: pass *fit instead of gfit
 		goto exit_conesearch;
 	}
 	int nb_stars = siril_cat->nbitems;
@@ -923,17 +929,15 @@ gpointer conesearch_worker(gpointer p) {
 	// preparing the output catalog
 	temp_cat = calloc(1, sizeof(siril_catalogue));
 	temp_cat->cattype = CAT_AN_USER_TEMP;
-	temp_cat->columns = siril_catalog_columns(CAT_AN_USER_TEMP);
+	temp_cat->columns = siril_catalog_columns(siril_cat->cattype);
+	temp_cat->projected = CAT_PROJ_WCS;
 	for (int i = 0; i < nb_stars; i++) {
-		if (!siril_cat->cat_items[i].included || siril_cat->cat_items[i].mag > siril_cat->limitmag)
-			continue;
 		if (!com.script && !temp_cat->cat_items)
 			temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
+		if (!siril_cat->cat_items[i].included || siril_cat->cat_items[i].mag > siril_cat->limitmag)
+			continue;
 		if (!com.script) {
-			temp_cat->cat_items[j].ra = siril_cat->cat_items[i].ra;
-			temp_cat->cat_items[j].dec = siril_cat->cat_items[i].dec;
-			if (siril_cat->cat_items[i].name)
-				temp_cat->cat_items[j].name = g_strdup(siril_cat->cat_items[i].name);
+			siril_catalogue_copy_item(&siril_cat->cat_items[i], &temp_cat->cat_items[j]);
 		}
 		// some catalogues display the list of found objects
 		if (siril_cat->cattype == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
@@ -953,12 +957,21 @@ gpointer conesearch_worker(gpointer p) {
 	}
 	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
 			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
+	if (!com.script)  { // only for GUI
+		//re-allocating to the correct size as some may have been discarded by mag
+		cat_item *final_items = realloc(temp_cat->cat_items, j * sizeof(cat_item));
+		if (!final_items) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto exit_conesearch;
+		}
+		temp_cat->cat_items = final_items;
+		temp_cat->nbitems = j;
+	}
 	retval = 0;
 exit_conesearch:
 	siril_catalog_free(siril_cat);
 	if (!com.script) {
-		if (temp_cat)
-			temp_cat->nbitems = j;
 		siril_add_idle(end_conesearch, temp_cat); // temp_cat will be freed in the idle
 	} else {
 		end_generic(NULL);
