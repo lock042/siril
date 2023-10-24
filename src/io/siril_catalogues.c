@@ -722,13 +722,14 @@ gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
 	if (!fit->date_obs) {
-		siril_debug_print("This image does not have any DATE-OBS information, cannot account for stars proper motions\n");
+		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for stars proper motions\n");
 		return FALSE;
 	}
 	if (!(siril_cat->columns & (1 << CAT_FIELD_PMRA)) || !(siril_cat->columns & (1 << CAT_FIELD_PMDEC))) {
-		siril_debug_print("This catalog does not have proper motion info, will not be computed\n");
+		// siril_debug_print("This catalog does not have proper motion info, will not be computed\n");
 		return FALSE;
 	}
+	siril_debug_print("Catalogue %s will account for proper motions\n", catalog_to_str(siril_cat->cattype));
 	return TRUE;
 }
 
@@ -736,13 +737,14 @@ gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
 	if (!fit->date_obs) {
-		siril_debug_print("This image does not have any DATE-OBS information, cannot account for velocity\n");
+		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for velocity\n");
 		return FALSE;
 	}
 	if (!(siril_cat->columns & (1 << CAT_FIELD_VRA)) || !(siril_cat->columns & (1 << CAT_FIELD_VDEC))) {
-		siril_debug_print("This catalog does not have velocity info, will not be computed\n");
+		// siril_debug_print("This catalog does not have velocity info, will not be computed\n");
 		return FALSE;
 	}
+	siril_debug_print("Catalogue %s will account for velocities\n", catalog_to_str(siril_cat->cattype));
 	return TRUE;
 }
 
@@ -794,10 +796,9 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		}
 		if (use_velocity) {
 			double deltahours = (tobs - siril_cat->cat_items[i].dateobs) * 24.;
-			if (fabs(deltahours) < 18.) {//TODO: use constant
-				ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
-				dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
-			}
+			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
+			dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
+
 		}
 		world[ind++] = ra;
 		world[ind++] = dec;

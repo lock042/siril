@@ -391,9 +391,7 @@ GSList *find_objects_in_field(fits *fit) {
 		annotations_cat cat_index = siril_cat->cattype - CAT_AN_INDEX_OFFSET;
 		gboolean is_star_cat = is_star_catalogue(siril_cat->cattype);
 		if (siril_cat->projected != CAT_PROJ_WCS) {
-			gboolean use_proper_motion = can_use_proper_motion(fit, siril_cat);
-			gboolean use_velocity = can_use_velocity(fit, siril_cat);
-			siril_catalog_project_with_WCS(siril_cat,fit, use_proper_motion, use_velocity);
+			siril_catalog_project_with_WCS(siril_cat,fit, TRUE, TRUE); // samity check will be done during the projection
 		}
 		for (int i = 0; i < siril_cat->nbitems; i++) {
 			if (siril_cat->cattype == CAT_AN_USER_SSO) { // we need to check the record is from the same night and same location
@@ -454,7 +452,7 @@ static gboolean is_same_item(cat_item *item1, cat_item *item2, annotations_cat c
 }
 
 // adds an item in one of the catalogues of the static list
-// and writes the updated file
+// and writes the updated file (for user catalogues only)
 void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean check_duplicates) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
@@ -462,6 +460,8 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 		GSList *cur = siril_annot_catalogue_list;
 		while (cur) {
 			annotations_catalogue_t *curcat = cur->data;
+			if (curcat->cat->cattype == CAT_AN_USER_TEMP)
+				continue;
 			for (int i = 0; i < curcat->cat->nbitems; i++) {
 				if (is_same_item(item, &curcat->cat->cat_items[i], cat_index)) {
 					siril_log_message(_("The object was already found in the %s catalog "

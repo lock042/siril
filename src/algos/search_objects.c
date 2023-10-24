@@ -51,10 +51,14 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	switch (args->server) {
 	case (QUERY_SERVER_SIMBAD_PHOTO):
 		// In case of a bad request...
-		if (nargs <= 2 || g_strrstr(buffer, "No known catalog") || g_strrstr(buffer, "incorrect id")) {
+		if (nargs <= 2 || g_strrstr(buffer, "No known catalog") || g_strrstr(buffer, "incorrect id") || g_str_has_prefix(buffer, "!!")) {
+			siril_log_color_message(_("SIMBAD server returned:\n"), "red");
+			int max_lines = min(4, nargs); // we display 4 lines max
+			for (int i = 0; i < max_lines; i++)
+				siril_log_color_message(_("%s\n"), "red", token[i]);
 			g_strfreev(token);
 			args->retval = 1;
-			break;
+			return args->retval;
 		}
 		objname = g_shell_unquote(token[2], NULL);
 		gint rank = 3;
@@ -81,18 +85,22 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			// Finally, retrieve the B and V magnitudes
 			else if (g_str_has_prefix(token[rank], "Flux B")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				sscanf(fields[3], "%lf", &Bmag);
+				if (fields[3][0] != '~')
+					sscanf(fields[3], "%lf", &Bmag);
 				g_strfreev(fields);
 			}
 			else if (g_str_has_prefix(token[rank], "Flux V")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				sscanf(fields[3], "%lf", &Vmag);
+				if (fields[3][0] != '~')
+					sscanf(fields[3], "%lf", &Vmag);
 				g_strfreev(fields);
 			}
 			else if (g_str_has_prefix(token[rank], "Proper motions")){
 				gchar **fields = g_strsplit(token[rank], " ", -1);
-				sscanf(fields[2], "%lf", &pmra);
-				sscanf(fields[3], "%lf", &pmdec);
+				if (fields[2][0] != '~') {
+					sscanf(fields[2], "%lf", &pmra);
+					sscanf(fields[3], "%lf", &pmdec);
+				}
 				g_strfreev(fields);
 			}
 			rank++;
@@ -346,7 +354,6 @@ int parse_resolver_buffer(const char *buffer, struct sky_object *obj) {
 			}
 			g_strfreev(fields);
 		}
-
 		i++;
 	}
 	g_strfreev(token);
@@ -376,18 +383,6 @@ static gchar *retrieve_site_coord(fits *fit) {
 	// if lat and lon are null, we still format them so as to have consistent outputs to parse
 	GString *formatted_site_coord = g_string_new("");
 	g_string_printf(formatted_site_coord, "+%f,+%f,%f", fit->sitelat, fit->sitelong, fit->siteelev);
-
-	// if (fit->sitelat < 0.)
-	// 	formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
-	// else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
-	// g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelat));
-
-	// if (fit->sitelong < 0.)
-	// 	formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
-	// else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
-	// g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelong));
-
-	// g_string_append_printf(formatted_site_coord, "%f", fabs(fit->siteelev));
 
 	return g_string_free(formatted_site_coord, FALSE);
 }
@@ -442,7 +437,7 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
 		if (args->fit->sitelat == 0.0 && args->fit->sitelong == 0.0) {
-			siril_log_color_message(_("No topocentric data available. Set to geocentric\n"), "salmon");
+			siril_log_color_message(_("No topocentric data available. Set to 0,0,0\n"), "salmon");
 		} else {
 			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->sitelat,
 				args->fit->sitelong, args->fit->siteelev);
