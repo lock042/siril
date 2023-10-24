@@ -1621,12 +1621,12 @@ void save_fits_header(fits *fit) {
 				"Camera focal length", &status);
 
 	status = 0;
-	if (fit->ccd_temp != -999)
+	if (fit->ccd_temp != -999.0)
 		fits_update_key(fit->fptr, TDOUBLE, "CCD-TEMP", &(fit->ccd_temp),
 				"CCD temp in C", &status);
 
 	status = 0;
-	if (fit->set_temp != -999)
+	if (fit->set_temp != -999.0)
 		fits_update_key(fit->fptr, TDOUBLE, "SET-TEMP", &(fit->set_temp),
 				"Temperature setting in C", &status);
 
