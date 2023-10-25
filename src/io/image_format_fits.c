@@ -561,12 +561,12 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp, &status);
 	if (status == KEY_NO_EXIST) {
-		fit->ccd_temp = -999.0;
+		fit->ccd_temp = -999.9;
 	}
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "SET-TEMP", &(fit->set_temp), NULL, &status);
 	if (status == KEY_NO_EXIST) {
-		fit->set_temp = -999.0;
+		fit->set_temp = -999.9;
 	}
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
@@ -675,8 +675,8 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 	guint nargs = g_strv_length(token);
 
 	// we need to init these 2 fields
-	fit->ccd_temp = -999.0;
-	fit->set_temp = -999.0;
+	fit->ccd_temp = -999.9;
+	fit->set_temp = -999.9;
 
 	for (int i = 0; i < nargs; i++) {
 		int status = 0;
@@ -1621,12 +1621,12 @@ void save_fits_header(fits *fit) {
 				"Camera focal length", &status);
 
 	status = 0;
-	if (fit->ccd_temp != -999.0)
+	if (fit->ccd_temp > -999.0)
 		fits_update_key(fit->fptr, TDOUBLE, "CCD-TEMP", &(fit->ccd_temp),
 				"CCD temp in C", &status);
 
 	status = 0;
-	if (fit->set_temp != -999.0)
+	if (fit->set_temp > -999.0)
 		fits_update_key(fit->fptr, TDOUBLE, "SET-TEMP", &(fit->set_temp),
 				"Temperature setting in C", &status);
 
