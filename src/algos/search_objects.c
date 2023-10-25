@@ -135,7 +135,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		// "# Asteroid: 103516 2000 BY4 | ..."
 		// "# Planet : 4 Mars | ..."
 		gchar *pattern = "#(.+?):(.+?)\\|";
-		gchar **parts = g_regex_split_simple(pattern, token[2], G_REGEX_DEFAULT, 0);
+		gchar **parts = g_regex_split_simple(pattern, token[2], 0, 0);
 		if (g_strv_length(parts) == 4) {
 			objtype = g_strdup(g_strstrip(parts[1]));
 			objname = g_strdup(g_strstrip(parts[2]));
