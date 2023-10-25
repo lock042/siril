@@ -219,7 +219,7 @@ static void write_nina_file(struct compstars_arg *args) {
 			args->nb_comp_stars, args->delta_Vmag, args->delta_BV, args->max_emag);
 	gchar *header = g_string_free(header_lines, FALSE);
 	if (!siril_catalog_write_to_file(args->comp_stars, args->nina_file, header))
-		siril_log_color_message(_("Problem written the comparison stars file\n"), "red");
+		siril_log_color_message(_("Problem writing the comparison stars file\n"), "red");
 	g_free(header);
 }
 

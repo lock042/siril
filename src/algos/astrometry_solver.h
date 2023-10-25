@@ -54,7 +54,7 @@ struct astrometry_data {
 	gboolean uncentered;	// solvearea is not centered with image
 	gboolean asnet_checked;	// local asnet availability already checked
 
-	// /* runtime data */
+	/* runtime data */
 	psf_star **cstars;	// catalogue stars
 	int n_cat;		// number of catalogue stars
 

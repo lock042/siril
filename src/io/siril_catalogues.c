@@ -724,7 +724,7 @@ static gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
 		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for stars proper motions\n");
 		return FALSE;
 	}
-	if (!(siril_cat->columns & (1 << CAT_FIELD_PMRA)) || !(siril_cat->columns & (1 << CAT_FIELD_PMDEC))) {
+	if (!has_field(siril_cat, PMRA) || !has_field(siril_cat, PMDEC)) {
 		// siril_debug_print("This catalog does not have proper motion info, will not be computed\n");
 		return FALSE;
 	}
@@ -739,7 +739,7 @@ static gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for velocity\n");
 		return FALSE;
 	}
-	if (!(siril_cat->columns & (1 << CAT_FIELD_VRA)) || !(siril_cat->columns & (1 << CAT_FIELD_VDEC))) {
+	if (!has_field(siril_cat, VRA) || !has_field(siril_cat, VDEC)) {
 		// siril_debug_print("This catalog does not have velocity info, will not be computed\n");
 		return FALSE;
 	}
@@ -756,7 +756,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 #ifndef HAVE_WCSLIB
 	return 1
 #endif
-	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC))) {
+	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC)) {
 		siril_debug_print("catalogue %s does not have the necessary columns\n", catalog_to_str(siril_cat->cattype));
 		return 1;
 	}
@@ -779,7 +779,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		g_date_time_unref(dt);
 		// for IMCCE conesearch, the dateobs is common to the whole catalogue
 		// the time of the catalogue will be used instead of individual records
-		if (!(siril_cat->columns & (1 << CAT_FIELD_DATEOBS))) {
+		if (!has_field(siril_cat, DATEOBS)) {
 			deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
 			use_tcat = TRUE;
 		}
@@ -818,14 +818,14 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 // corrects for proper motions if the flag is TRUE and the necessary data is passed
 // (dateobs) and found in the catalogue (pmra and pmdec fields)
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
-	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)))
+	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC))
 		return 1;
 	double jyears = 0.;
 	if (use_proper_motion) {
 		if (!date_obs) {
 			siril_log_color_message(_("no DATE-OBS information, cannot account for stars proper motions\n"), "salmon");
 			use_proper_motion = FALSE;
-		} else if (!(siril_cat->columns & (1 << CAT_FIELD_PMRA)) || !(siril_cat->columns & (1 << CAT_FIELD_PMDEC))) {
+		} else if (!has_field(siril_cat, PMRA) || !has_field(siril_cat, PMDEC)) {
 			siril_log_color_message(_("This catalog does not have proper motion info, will not be computed\n"), "salmon");
 			use_proper_motion = FALSE;
 		} else {
@@ -991,7 +991,7 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 	if (siril_cat->projected == CAT_PROJ_NONE) {
 		siril_debug_print("Catalog has not been projected\n");
 	}
-	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC)) || !(siril_cat->columns & (1 << CAT_FIELD_MAG)))
+	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG))
 		return NULL;
 	psf_star **results = new_fitted_stars(siril_cat->nbincluded);
 
@@ -1051,7 +1051,7 @@ void free_sky_object_query(sky_object_query_args *args) {
 // #ifndef HAVE_WCSLIB
 // 	return 1
 // #endif
-// 	if (!(siril_cat->columns & (1 << CAT_FIELD_RA)) || !(siril_cat->columns & (1 << CAT_FIELD_DEC))) {
+//	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC)) {
 // 		siril_debug_print("catalogue %s does not have the necessary columns\n");
 // 		return 1;
 // 	}
@@ -1076,7 +1076,7 @@ void free_sky_object_query(sky_object_query_args *args) {
 // 		g_date_time_unref(dt);
 // 		// for IMCCE conesearch, the dateobs is common to the whole catalogue
 // 		// the time of the catalogue will be used instead of individual records
-// 		if (!(siril_cat->columns & (1 << CAT_FIELD_DATEOBS))) {
+//		if (!has_field(siril_cat, DATEOBS)) {
 // 			deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
 // 			use_tcat = TRUE;
 // 		}

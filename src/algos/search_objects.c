@@ -381,10 +381,7 @@ gboolean has_nonzero_coords() {
 // returns a string describing the site coordinates on Earth in a format suited for queries
 static gchar *retrieve_site_coord(fits *fit) {
 	// if lat and lon are null, we still format them so as to have consistent outputs to parse
-	GString *formatted_site_coord = g_string_new("");
-	g_string_printf(formatted_site_coord, "+%f,+%f,%f", fit->sitelat, fit->sitelong, fit->siteelev);
-
-	return g_string_free(formatted_site_coord, FALSE);
+	return g_strdup_printf("%+f,%+f,%f", fit->sitelat, fit->sitelong, fit->siteelev);
 }
 
 // free the result with free_fetch_result

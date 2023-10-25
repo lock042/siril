@@ -8701,6 +8701,8 @@ int process_conesearch(int nb) {
 				cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
+			else if (!g_strcmp0(arg, "gcvs"))
+				cat = CAT_GCVS;
 			else if (!g_strcmp0(arg, "vsx"))
 				cat = CAT_VSX;
 			else if (!g_strcmp0(arg, "simbad"))
@@ -8749,9 +8751,12 @@ int process_conesearch(int nb) {
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, cat, limit_mag);
 	siril_cat->phot = photometric;
 	if (cat == CAT_IMCCE) {
-		siril_cat->IAUcode = (obscode)? g_strdup(obscode) : g_strdup("500");
-		if (!obscode)
+		if (obscode)
+			siril_cat->IAUcode = obscode;
+		else {
+			siril_cat->IAUcode = g_strdup("500");
 			siril_log_color_message(_("Did not specify an observatory code, using 500 by default\n"), "salmon");
+		}
 	}
 	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
 

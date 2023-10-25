@@ -138,6 +138,8 @@ typedef struct {
 	gchar *header; // the file header lines (#) if read from file
 } siril_catalogue;
 
+#define has_field(cat, column) (cat->columns & (1 << CAT_FIELD_##column))
+
 typedef struct {
 	// query parameters
 	fits *fit;
