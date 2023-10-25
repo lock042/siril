@@ -406,6 +406,7 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
 		purge_user_catalogue(CAT_AN_USER_TEMP);
+		refresh_annotation_visibility();
 	}
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);

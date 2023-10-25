@@ -53,6 +53,7 @@ cat_item *search_in_annotations_by_name(const char *input, object_catalog *catty
 cat_item *search_in_solar_annotations(sky_object_query_args *args);
 const char *cat_index_to_name(annotations_cat index);
 void refresh_annotation_visibility();
+void refresh_annotation_to_temp();
 
 gchar *get_catalogue_object_code(const CatalogObjects *object);
 gchar *get_catalogue_object_code_pretty(CatalogObjects *object);

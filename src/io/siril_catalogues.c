@@ -611,7 +611,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	g_object_unref(input_stream);
 	if (nb_items == 0) {
 		free(cat_items);
-		siril_log_color_message(_("Catalog %s was read but no items were found, nothing to show\n"), "salmon", filename);
+		siril_log_color_message(_("Catalog %s was read but no items were found in the view cone, nothing to show\n"), "salmon", filename);
 		return 1;
 	}
 	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
@@ -870,7 +870,7 @@ static gboolean end_conesearch(gpointer p) {
 		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(temp_cat)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-			refresh_annotation_visibility();
+			refresh_annotation_to_temp();
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
@@ -898,13 +898,13 @@ gpointer conesearch_worker(gpointer p) {
 		goto exit_conesearch;
 	}
 	if (siril_cat->cattype != CAT_LOCAL)
-		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(siril_cat->cattype));
+		siril_log_message(_("The %s catalog has been successfully downloaded\n"), catalog_to_str(siril_cat->cattype));
 
 	/* project using WCS */
 	// we need to project now to identify (and count) objects in the image
 	if (siril_catalog_project_with_WCS(siril_cat, &gfit, TRUE, TRUE)) { // TODO: pass *fit instead of gfit
 		if (siril_cat->projected == CAT_PROJ_WCS) // the projection was successful but no item was found in the frame
-			siril_log_message(_("No item found in the image.\n"));
+			siril_log_color_message(_("No item found in the image\n"), "salmon");
 		goto exit_conesearch;
 	}
 	int nb_stars = siril_cat->nbitems;
