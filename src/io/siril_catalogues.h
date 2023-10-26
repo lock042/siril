@@ -165,6 +165,7 @@ void siril_catalog_reset_projection(siril_catalogue *siril_cat);
 gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);
 void siril_catalogue_copy_item(cat_item *from, cat_item *to);
 gboolean is_star_catalogue(object_catalog Catalog);
+gboolean display_names_for_catalogue(object_catalog Catalog);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);

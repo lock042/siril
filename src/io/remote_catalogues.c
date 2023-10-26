@@ -85,7 +85,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("Bmag");
-			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("NOMAD1");
 			break;
 		case CAT_GAIADR3:
 			tap->catcode = g_strdup("%22I/355/gaiadr3%22");
@@ -96,7 +95,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Gmag");
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("BPmag");
-			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("DR3Name");
 			break;
 		case CAT_PPMXL:
 			tap->catcode = g_strdup("%22I/317/sample%22");
@@ -106,7 +104,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Jmag");
-			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PPMXL");
 			break;
 		case CAT_BSC:
 			tap->catcode = g_strdup("%22V/50/catalog%22");
@@ -116,7 +113,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
-			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("HD");
 			break;
 		case CAT_APASS:
 			tap->catcode = g_strdup("%22II/336/apass9%22");
@@ -153,7 +149,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("B");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmra");
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmdec");
-			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("main_id");
 			break;
 		case CAT_PGC:
 			tap->catcode = g_strdup("%22VII/237/pgc%22");
@@ -161,7 +156,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("PGC");
-			tap->tap_columns[CAT_FIELD_DIAMETER] = g_strdup("EXP(logD25)/10");
+			tap->tap_columns[CAT_FIELD_DIAMETER] = g_strdup("EXP(logD25)/10"); // diameter in arcmin
 			break;
 		case CAT_EXOPLANETARCHIVE:
 			tap->catcode = g_strdup("pscomppars"); // we query pscomppars instead of ps to get a single entry per planet

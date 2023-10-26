@@ -174,7 +174,7 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_LOCAL:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 		default:
 			return 0;
 	}
@@ -274,6 +274,18 @@ gboolean is_star_catalogue(object_catalog Catalog) {
 		case CAT_AN_STARS:
 		case CAT_LOCAL:
 		case CAT_AN_USER_SSO:
+			return TRUE;
+	default:
+		return FALSE;
+	}
+}
+
+gboolean display_names_for_catalogue(object_catalog Catalog) {
+	switch (Catalog) {
+		case CAT_PGC:
+		case CAT_EXOPLANETARCHIVE:
+		case CAT_AAVSO_CHART:
+		case CAT_IMCCE:
 			return TRUE;
 	default:
 		return FALSE;
@@ -505,10 +517,10 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	GInputStream *input_stream = (GInputStream*) g_file_read(catalog_file, NULL, &error);
 	if (!input_stream) {
 		if (error != NULL) {
-			siril_log_message(_("Could not load the star catalog (%s)."), error->message);
+			siril_log_message(_("Could not open the catalog (%s)\n"), error->message);
 			g_clear_error(&error);
 		} else
-			siril_log_message(_("Could not load the star catalog (%s)."), "generic error");
+			siril_log_message(_("Could not open the catalog (%s)\n"), "generic error");
 		return 1;
 	}
 
@@ -890,6 +902,8 @@ gpointer conesearch_worker(gpointer p) {
 	siril_catalogue *siril_cat = (siril_catalogue *) p;
 	siril_catalogue *temp_cat = NULL;
 	int retval = -1;
+	double stardiam = 0.;
+	gboolean hide_display_name = FALSE;
 	if (!siril_cat) {
 		siril_debug_print("no query passed");
 		goto exit_conesearch;
@@ -912,11 +926,17 @@ gpointer conesearch_worker(gpointer p) {
 	int nb_stars = siril_cat->nbitems;
 	sort_cat_items_by_mag(siril_cat);
 	int j = 0;
-	// preparing the output catalog
-	temp_cat = calloc(1, sizeof(siril_catalogue));
-	temp_cat->cattype = CAT_AN_USER_TEMP;
-	temp_cat->columns = siril_catalog_columns(siril_cat->cattype);
-	temp_cat->projected = CAT_PROJ_WCS;
+	// preparing the output catalog if not script or headless
+	if (!com.script) {
+		temp_cat = calloc(1, sizeof(siril_catalogue));
+		temp_cat->cattype = CAT_AN_USER_TEMP;
+		temp_cat->columns = siril_catalog_columns(siril_cat->cattype);
+		temp_cat->projected = CAT_PROJ_WCS;
+		if (is_star_catalogue(siril_cat->cattype))
+			stardiam = 0.2; // in arcmin => 12"
+		if (!display_names_for_catalogue(siril_cat->cattype) && has_field(siril_cat, NAME))
+			hide_display_name = TRUE;
+	}
 	for (int i = 0; i < nb_stars; i++) {
 		if (!com.script && !temp_cat->cat_items)
 			temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
@@ -924,6 +944,12 @@ gpointer conesearch_worker(gpointer p) {
 			continue;
 		if (!com.script) {
 			siril_catalogue_copy_item(&siril_cat->cat_items[i], &temp_cat->cat_items[j]);
+			if (stardiam)
+				temp_cat->cat_items[j].diameter = stardiam;
+			if (hide_display_name) {
+				g_free(temp_cat->cat_items[j].name);
+				temp_cat->cat_items[j].name = NULL;
+			}
 		}
 		// some catalogues display the list of found objects
 		if (siril_cat->cattype == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
@@ -961,6 +987,8 @@ gpointer conesearch_worker(gpointer p) {
 	retval = 0;
 exit_conesearch:
 	siril_catalog_free(siril_cat);
+	if (retval && temp_cat)
+		siril_catalog_free(temp_cat);
 	if (!com.script) {
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {
