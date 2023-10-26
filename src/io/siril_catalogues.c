@@ -542,7 +542,12 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 			continue;
 		}
 		if (!header_read) { // reading the first line which holds the columns names
-			gchar **fields = g_strsplit(line, ",", -1);
+			int offset = 0;
+			if (g_str_has_prefix(line, "\uFEFF")) { // see https://en.wikipedia.org/wiki/Byte_order_mark
+				printf("BOM detected\n");
+				offset = 3;
+			}
+			gchar **fields = g_strsplit(line + offset, ",", -1);
 			nbcols = g_strv_length(fields);
 			if (!nbcols) {
 				siril_log_color_message(_("No columns found in the catalogue\n"), "red");
@@ -558,7 +563,6 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 			if (has_error) {
 				g_object_unref(data_input);
 				g_object_unref(input_stream);
-				siril_catalog_free(siril_cat);
 				g_free(line);
 				return 1;
 			}
@@ -572,7 +576,6 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 			siril_log_color_message(_("Malformed line found %s\n"), "red", line);
 			g_object_unref(data_input);
 			g_object_unref(input_stream);
-			siril_catalog_free(siril_cat);
 			g_free(line);
 			g_strfreev(vals);
 			return 1;
@@ -584,7 +587,6 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 				PRINT_ALLOC_ERR;
 				g_object_unref(data_input);
 				g_object_unref(input_stream);
-				siril_catalog_free(siril_cat);
 				g_free(line);
 				g_strfreev(vals);
 				return 1;
