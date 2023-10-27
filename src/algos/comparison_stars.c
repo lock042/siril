@@ -275,23 +275,15 @@ int sort_compstars(struct compstars_arg *args) {
 		if (!item->included) // included means inside the image after wcs projection
 			continue;
 		double d_mag = fabs(item->mag - args->target_star->mag);
-		// TODO: the fabs should not be there, it's B-V to get the color
-		//double BVi = fabs(item .mag - item .bmag);
 		double BVi = item->bmag - item->mag; // B-V index
 
 		// Criteria #0: the star has to be within the image and far from the borders
 		// (discards 10% of the width/height on both borders)
 		if ((item->x > xmin && item->x < xmax && item->y > ymin && item->y < ymax) &&
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
-				// TODO: AAVSO guide says the compstars do not need to be the same color as target
-				// but that their BV index should be between +0.3 and +1.0, preferably around +0.7, do we need to do smthg with that info?
 				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
 				!is_same_star(args->target_star, item) &&
-				// TODO: AAVSO guide mentions compstars should have a low magnitude error, not sure it means in Bband
-				// Here this criterion (which is not optional) discards most stars and forces to increase d_mag
-				// Stars in AAVSO charts commonly have Vmag above 0.02
-				// item->e_mag < 0.015 && item->e_bmag < 0.015) {	// Criteria #3: e_Vmag and e_Bmag < 0.015
-				item->e_mag < args->max_emag &&
+				item->e_mag < args->max_emag && // Criteria #3: e_mag smaller than threshold, for catalogues that have the info
 				((args->cat == CAT_APASS) ? (item->e_mag > 0.) : TRUE)) {
 			if (first) {
 				siril_log_message("d_mag and d_BV are discrepancies from Vmag and B-V of the target star\n");
