@@ -987,8 +987,10 @@ gpointer conesearch_worker(gpointer p) {
 	retval = 0;
 exit_conesearch:
 	siril_catalog_free(siril_cat);
-	if (retval && temp_cat)
+	if (retval && temp_cat) {
 		siril_catalog_free(temp_cat);
+		temp_cat = NULL;
+	}
 	if (!com.script) {
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {
