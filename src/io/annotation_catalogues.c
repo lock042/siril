@@ -628,8 +628,9 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 	siril_catalogue *solar_cat = ((annotations_catalogue_t *)solar_an_cat->data)->cat;
 
 	cat_item *ref_item = calloc(1, sizeof(cat_item));
+	double ref = date_time_to_Julian(args->fit->date_obs);
 	ref_item->name = g_strdup(args->name);
-	ref_item->dateobs = date_time_to_Julian(args->fit->date_obs);
+	ref_item->dateobs = ref;
 	ref_item->sitelat = args->fit->sitelat;
 	ref_item->sitelon = args->fit->sitelong;
 	ref_item->siteelev = args->fit->siteelev;
@@ -637,6 +638,17 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 		if (is_same_item(ref_item, &solar_cat->cat_items[i], USER_SSO_CAT_INDEX)) {
 			siril_catalogue_copy_item(&solar_cat->cat_items[i], ref_item);
 			siril_log_message(_("Object %s record found in the local SSO catalog\n"), ref_item->name);
+			GDateTime *timerecord = g_date_time_add_seconds(args->fit->date_obs, (ref_item->dateobs - ref) * 3600. * 24.); // doing this to avoid writing a converter julian to fits date...
+			gchar *dt = date_time_to_FITS_date(timerecord);
+			SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ref_item->ra, ref_item->dec);
+			gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02.2lfs");
+			gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02.2lf\"");
+			siril_log_message(_("at coordinates: %s, %s (on DATE-OBS:%s)\n"), alpha, delta, dt);
+			g_free(alpha);
+			g_free(delta);
+			g_free(dt);
+			g_date_time_unref(timerecord);
+			siril_world_cs_unref(world_cs);
 			return ref_item;
 		}
 	}

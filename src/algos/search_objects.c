@@ -47,6 +47,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 
 	token = g_strsplit(buffer, "\n", -1);
 	nargs = g_strv_length(token);
+	double ra = 0.0, dec = 0.0, pmra = 0.0, pmdec = 0.0;
+	double Vmag = 0.0, Bmag = 0.0, mag = 0.0;
+	double vra = 0.0, vdec = 0.0;
+	cat_item *item = NULL;
 
 	switch (args->server) {
 	case (QUERY_SERVER_SIMBAD_PHOTO):
@@ -62,8 +66,6 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		}
 		objname = g_shell_unquote(token[2], NULL);
 		gint rank = 3;
-		double ra = 0.0, dec = 0.0, pmra = 0.0, pmdec = 0.0;
-		double Vmag = 0.0, Bmag = 0.0;
 		while (token[rank]) {
 			if (g_str_has_prefix(token[rank], "Coordinates(ICRS")) {
 				gchar **fields = g_strsplit(token[rank], " ", -1);
@@ -105,7 +107,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			}
 			rank++;
 		}
-		cat_item *item = calloc(1, sizeof(cat_item));
+		item = calloc(1, sizeof(cat_item));
 		item->mag = Vmag;
 		item->bmag = Bmag;
 		item->ra = ra;
@@ -140,10 +142,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			objtype = g_strdup(g_strstrip(parts[1]));
 			objname = g_strdup(g_strstrip(parts[2]));
 		}
+		g_strfreev(parts);
 		if (!objname) {
 			siril_log_message(_("Unsupported object type in response: %s\n"), token[2]);
 			g_strfreev(token);
-			g_strfreev(parts);
 			g_free(objname);
 			g_free(objtype);
 			args->retval = 1;
@@ -153,41 +155,44 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		// Then, retrieve the data
 		gchar **fields = g_strsplit(token[4], ",", -1);
 		guint n = g_strv_length(fields);
-		if (n == 16) {
-			double ra, dec, vra, vdec, mag;
+		if (n == 16) { // with site coordinates passed
 			ra = parse_hms(fields[2]);
 			dec = parse_dms(fields[3]);
 			vra = g_strtod(fields[13], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
 			vdec = g_strtod(fields[14], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
 			mag = g_strtod(fields[9], NULL);
-			// and preparing to store
-			cat_item *item = calloc(1, sizeof(cat_item));
-			item->ra = ra;
-			item->dec = dec;
-			item->name = g_strdup(objname); // we use the offical name returned by the server
-			item->alias = g_strdup(args->name); // we store the name that was queried
-			item->sitelon = args->fit->sitelong;
-			item->sitelat = args->fit->sitelat;
-			item->siteelev = args->fit->siteelev;
-			item->dateobs = date_time_to_Julian(args->fit->date_obs);
-			item->type = g_strdup(objtype);
-			item->vra = vra;
-			item->vdec = vdec;
-			item->mag = mag;
-			args->item = item;
-			check_for_duplicates = TRUE;
-			target_cat = USER_SSO_CAT_INDEX;
-			args->retval = 0;
+		} else if (n == 11) { // with barycentric @500 passed
+			ra = parse_hms(fields[1]);
+			dec = parse_dms(fields[2]);
+			vra = g_strtod(fields[8], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
+			vdec = g_strtod(fields[9], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
+			mag = g_strtod(fields[5], NULL);
 		} else {
-			siril_log_message(_("Could not parse the server response: %s\n"), token[3]);
+			siril_log_message(_("Could not parse the server response: %s\n"), token[4]);
 			g_strfreev(token);
-			g_strfreev(parts);
 			g_free(objname);
 			g_free(objtype);
 			args->retval = 1;
 			return 1;
 		}
-		g_strfreev(parts);
+		// and preparing to store
+		item = calloc(1, sizeof(cat_item));
+		item->ra = ra;
+		item->dec = dec;
+		item->name = g_strdup(objname); // we use the offical name returned by the server
+		item->alias = g_strdup(args->name); // we store the name that was queried
+		item->sitelon = args->fit->sitelong;
+		item->sitelat = args->fit->sitelat;
+		item->siteelev = args->fit->siteelev;
+		item->dateobs = date_time_to_Julian(args->fit->date_obs);
+		item->type = g_strdup(objtype);
+		item->vra = vra;
+		item->vdec = vdec;
+		item->mag = mag;
+		args->item = item;
+		check_for_duplicates = TRUE;
+		target_cat = USER_SSO_CAT_INDEX;
+		args->retval = 0;
 		g_free(objname);
 		g_free(objtype);
 		g_strfreev(fields);
@@ -380,7 +385,8 @@ gboolean has_nonzero_coords() {
 
 // returns a string describing the site coordinates on Earth in a format suited for queries
 static gchar *retrieve_site_coord(fits *fit) {
-	// if lat and lon are null, we still format them so as to have consistent outputs to parse
+	if (fit->sitelat == 0.0 && fit->sitelong == 0.0)
+		return g_strdup("@500");
 	return g_strdup_printf("%+f,%+f,%f", fit->sitelat, fit->sitelong, fit->siteelev);
 }
 
@@ -434,7 +440,7 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
 		if (args->fit->sitelat == 0.0 && args->fit->sitelong == 0.0) {
-			siril_log_color_message(_("No topocentric data available. Set to 0,0,0\n"), "salmon");
+			siril_log_color_message(_("No topocentric data available. Set to barycentric, positions may be inaccurate\n"), "salmon");
 		} else {
 			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->sitelat,
 				args->fit->sitelong, args->fit->siteelev);
