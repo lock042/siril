@@ -794,8 +794,14 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 		// for IMCCE conesearch, the dateobs is common to the whole catalogue
 		// the time of the catalogue will be used instead of individual records
 		if (!has_field(siril_cat, DATEOBS)) {
-			deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
-			use_tcat = TRUE;
+			if (siril_cat->dateobs) {
+				deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
+				use_tcat = TRUE;
+			} else {
+				siril_log_color_message(_("Cannot correct for velocities, will use ra/dec as is\n"), "salmon");
+				siril_log_color_message(_("To tag solar system objects, please refer to conesearch command\n"), "salmon");
+				use_velocity = FALSE;
+			}
 		}
 	}
 	for (int i = 0; i < siril_cat->nbitems; i++) {
