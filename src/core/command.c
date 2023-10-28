@@ -3473,7 +3473,7 @@ int process_set_findstar(int nb) {
 					if (!(g_ascii_strcasecmp(value, "on"))) relax_checks = TRUE;
 					else if (!(g_ascii_strcasecmp(value, "off"))) relax_checks = FALSE;
 					else {
-						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
+						siril_log_message(_("Wrong parameter values. Relax must be set to on or off, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(current, "-convergence=")) {
@@ -8432,7 +8432,7 @@ int process_pcc(int nb) {
 				cat = CAT_GAIADR3;
 			else if (!g_strcmp0(arg, "ppmxl"))
 				cat = CAT_PPMXL;
-			else if (!g_strcmp0(arg, "brightstars"))
+			else if (!g_strcmp0(arg, "bsc"))
 				cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
@@ -8679,6 +8679,8 @@ int process_pcc(int nb) {
 int process_conesearch(int nb) {
 	float limit_mag = -1.0f;
 	gboolean photometric = FALSE;
+	super_bool display_names = BOOL_NOT_SET;
+	super_bool display_log = BOOL_NOT_SET;
 	object_catalog cat = CAT_AUTO;
 	gchar *obscode = NULL;
 	if (!has_wcs(&gfit)) {
@@ -8687,8 +8689,8 @@ int process_conesearch(int nb) {
 	}
 	int arg_idx = 1;
 	while (arg_idx < nb) {
-		if (g_str_has_prefix(word[arg_idx], "-catalog=")) {
-			char *arg = word[arg_idx] + 9;
+		if (g_str_has_prefix(word[arg_idx], "-cat=")) {
+			char *arg = word[arg_idx] + 5;
 			if (!g_strcmp0(arg, "tycho2"))
 				cat = CAT_TYCHO2;
 			else if (!g_strcmp0(arg, "nomad"))
@@ -8697,7 +8699,7 @@ int process_conesearch(int nb) {
 				cat = CAT_GAIADR3;
 			else if (!g_strcmp0(arg, "ppmxl"))
 				cat = CAT_PPMXL;
-			else if (!g_strcmp0(arg, "brightstars"))
+			else if (!g_strcmp0(arg, "bsc"))
 				cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
@@ -8730,8 +8732,28 @@ int process_conesearch(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			obscode = g_strdup(arg);
-		} else if (g_str_has_prefix(word[arg_idx], "-phot")) {
+		} else if (!strcmp(word[arg_idx], "-phot")) {
 			photometric = TRUE;
+		} else if (g_str_has_prefix(word[arg_idx], "-log=")) {
+			char *arg = word[arg_idx] + 5;
+			if (!(g_ascii_strcasecmp(arg, "on")))
+				display_log = BOOL_TRUE;
+			else if (!(g_ascii_strcasecmp(arg, "off")))
+				display_log = BOOL_FALSE;
+			else {
+				siril_log_message(_("Wrong parameter values. Log must be set to on or off, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else if (g_str_has_prefix(word[arg_idx], "-names=")) {
+			char *arg = word[arg_idx] + 7;
+			if (!(g_ascii_strcasecmp(arg, "on")))
+				display_names = BOOL_TRUE;
+			else if (!(g_ascii_strcasecmp(arg, "off")))
+				display_names = BOOL_FALSE;
+			else {
+				siril_log_message(_("Wrong parameter values. Log must be set to on or off, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
 		} else {
 			gchar *end;
 			limit_mag = g_ascii_strtod(word[arg_idx], &end);
@@ -8759,8 +8781,17 @@ int process_conesearch(int nb) {
 		}
 	}
 	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
-
-	start_in_new_thread(conesearch_worker, siril_cat);
+	conesearch_args *args = init_conesearch();
+	args->fit = &gfit;
+	args->siril_cat = siril_cat;
+	args->has_GUI = !com.script;
+	args->display_log = (display_log == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_log;
+	args->display_names = (display_names == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_names;
+	if (check_conesearch_args(args)) {// can't fail for now
+		free_conesearch(args);
+		return CMD_GENERIC_ERROR;
+	}
+	start_in_new_thread(conesearch_worker, args);
 	return CMD_OK;
 }
 

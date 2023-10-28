@@ -161,7 +161,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			vra = g_strtod(fields[13], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
 			vdec = g_strtod(fields[14], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
 			mag = g_strtod(fields[9], NULL);
-		} else if (n == 11) { // with barycentric @500 passed
+		} else if (n == 11) { // with @500 passed
 			ra = parse_hms(fields[1]);
 			dec = parse_dms(fields[2]);
 			vra = g_strtod(fields[8], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min

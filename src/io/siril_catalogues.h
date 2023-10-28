@@ -152,6 +152,15 @@ typedef struct {
 	cat_item *item;
 } sky_object_query_args;
 
+typedef struct {
+	fits *fit; // the image queried
+	siril_catalogue *siril_cat; // the catalogue queried
+	gboolean display_log; // if true, displays the list in the log
+	gboolean display_names; // if true, displays the names next to object in the annotations
+	//gboolean add_to_user; // if true, the objects are added to the user DSO catalogue (not SSO due to imprecision of obscode)
+	gboolean has_GUI; // true if we will need to refresh the disaply
+} conesearch_args;
+
 
 uint32_t siril_catalog_columns(object_catalog cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
@@ -181,5 +190,8 @@ double compute_coords_distance(double ra1, double dec1, double ra2, double dec2)
 
 sky_object_query_args *init_sky_object_query();
 void free_sky_object_query(sky_object_query_args *args);
+int check_conesearch_args(conesearch_args *args);
+conesearch_args *init_conesearch();
+void free_conesearch(conesearch_args *args);
 
 #endif

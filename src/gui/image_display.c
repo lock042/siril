@@ -57,6 +57,9 @@
 
 #include "image_display.h"
 
+#define ANGLE_TOP 315. * DEGTORAD
+#define ANGLE_BOT 45. * DEGTORAD
+
 /* remap index data, an index for each layer */
 static float last_pente;
 static display_mode last_mode;
@@ -1362,12 +1365,12 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 #endif
 }
 
-static gdouble x_circle(gdouble x, gdouble radius) {
-	return x + radius * cos(315 * M_PI / 180);
+static gdouble x_circle(gdouble x, gdouble radius, gdouble angle) {
+	return x + radius * cos(angle);
 }
 
-static gdouble y_circle(gdouble y, gdouble radius) {
-	return y + radius * sin(315 * M_PI / 180);
+static gdouble y_circle(gdouble y, gdouble radius, gdouble angle) {
+	return y + radius * sin(angle);
 }
 
 static void draw_annotates(const draw_data_t* dd) {
@@ -1390,6 +1393,9 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble y = get_catalogue_object_y(object);
 		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
+		gboolean revert = FALSE;
+		double angle = ANGLE_TOP;
+		double addoffset = 0.;
 
 		switch (catalog) {
 		case USER_DSO_CAT_INDEX:
@@ -1399,7 +1405,9 @@ static void draw_annotates(const draw_data_t* dd) {
 			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
 			break;
 		case USER_TEMP_CAT_INDEX:
-			cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.9);
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9); // will need to be changed that anyway
+			revert = TRUE;
+			angle = ANGLE_BOT;
 			break;
 		default:
 		case 0:
@@ -1414,16 +1422,16 @@ static void draw_annotates(const draw_data_t* dd) {
 		radius = radius / resolution / 60.0;
 		// radius now in pixels
 
-		point offset = {10, -10};
+		point offset = {5., revert ? 5. : -5.};
 		if (radius < 0) {
 			// objects we don't have an accurate location (LdN, Sh2)
 		} else if (radius > 5) {
 			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
 			cairo_stroke(cr);
 			if (code) {
-				cairo_move_to(cr, x_circle(x, radius), y_circle(y, radius));
-				offset.x = x_circle(x, radius * 1.3) - x;
-				offset.y = y_circle(y, radius * 1.3) - y;
+				cairo_move_to(cr, x_circle(x, radius, angle), y_circle(y, radius, angle));
+				offset.x = x_circle(x, radius * 1.3, angle) - x;
+				offset.y = y_circle(y, radius * 1.3, angle) - y;
 				cairo_line_to(cr, offset.x + x, offset.y + y);
 				cairo_stroke(cr);
 			}
@@ -1447,7 +1455,12 @@ static void draw_annotates(const draw_data_t* dd) {
 			gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
 			cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 			cairo_set_font_size(cr, size / dd->zoom);
-			cairo_move_to(cr, x + offset.x, y + offset.y);
+			if (revert) {
+				cairo_text_extents_t te;
+				cairo_text_extents(cr, name, &te); // getting the dimensions of the textbox
+				addoffset = te.height;
+			}
+			cairo_move_to(cr, x + offset.x, y + offset.y + addoffset);
 			cairo_show_text(cr, name);
 			cairo_stroke(cr);
 		}

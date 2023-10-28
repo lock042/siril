@@ -282,10 +282,7 @@ gboolean is_star_catalogue(object_catalog Catalog) {
 
 gboolean display_names_for_catalogue(object_catalog Catalog) {
 	switch (Catalog) {
-		case CAT_VSX:
-		case CAT_GCVS:
 		case CAT_BSC:
-		case CAT_SIMBAD:
 		case CAT_PGC:
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
@@ -894,7 +891,7 @@ static gboolean end_conesearch(gpointer p) {
 		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(temp_cat)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-			// refresh_annotation_to_temp();
+			// refresh_annotation_to_temp(); // may need to make that an option later on
 			refresh_annotation_visibility();
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
@@ -908,9 +905,25 @@ static gboolean end_conesearch(gpointer p) {
 	// we don't free temp_cat as it is passed as the new CAT_AN_USER_TEMP
 }
 
+// Conesearch command related functions
+
+// Sanity checks for conesearch args
+int check_conesearch_args(conesearch_args *args) {
+	if (args->display_log && !has_field(args->siril_cat, NAME)) {
+		siril_log_color_message(_("Won't log list of objects for catalog %s which does not have name information\n"), "salmon", catalog_to_str(args->siril_cat->cattype));
+		args->display_log = FALSE;
+	}
+	if (args->display_names && !has_field(args->siril_cat, NAME)) {
+		siril_log_color_message(_("Won't show objects names for catalog %s which does not have name information\n"), "salmon", catalog_to_str(args->siril_cat->cattype));
+		args->display_names = FALSE;
+	}
+	return 0;
+}
+
 // worker for the command conesearch
 gpointer conesearch_worker(gpointer p) {
-	siril_catalogue *siril_cat = (siril_catalogue *) p;
+	conesearch_args *args = (conesearch_args *)p;
+	siril_catalogue *siril_cat = args->siril_cat;
 	siril_catalogue *temp_cat = NULL;
 	int retval = -1;
 	double stardiam = 0.;
@@ -929,7 +942,7 @@ gpointer conesearch_worker(gpointer p) {
 
 	/* project using WCS */
 	// we need to project now to identify (and count) objects in the image
-	if (siril_catalog_project_with_WCS(siril_cat, &gfit, TRUE, TRUE)) { // TODO: pass *fit instead of gfit
+	if (siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, TRUE)) {
 		if (siril_cat->projected == CAT_PROJ_WCS) // the projection was successful but no item was found in the frame
 			siril_log_color_message(_("No item found in the image\n"), "salmon");
 		goto exit_conesearch;
@@ -937,45 +950,65 @@ gpointer conesearch_worker(gpointer p) {
 	int nb_stars = siril_cat->nbitems;
 	sort_cat_items_by_mag(siril_cat);
 	int j = 0;
-	// preparing the output catalog if not script or headless
-	if (!com.script) {
+	// preparing the annotation temp catalog if has_GUI
+	if (args->has_GUI) {
 		temp_cat = calloc(1, sizeof(siril_catalogue));
 		temp_cat->cattype = CAT_AN_USER_TEMP;
 		temp_cat->columns = siril_catalog_columns(siril_cat->cattype);
 		temp_cat->projected = CAT_PROJ_WCS;
 		if (is_star_catalogue(siril_cat->cattype))
 			stardiam = 0.2; // in arcmin => 12"
-		if (!display_names_for_catalogue(siril_cat->cattype) && has_field(siril_cat, NAME))
+		if (!args->display_names && has_field(siril_cat, NAME))
 			hide_display_name = TRUE;
+		temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
 	}
 	for (int i = 0; i < nb_stars; i++) {
-		if (!com.script && !temp_cat->cat_items)
-			temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
 		if (!siril_cat->cat_items[i].included || (siril_cat->limitmag && siril_cat->cat_items[i].mag > siril_cat->limitmag))
 			continue;
-		if (!com.script) {
+		if (args->has_GUI) {
 			siril_catalogue_copy_item(&siril_cat->cat_items[i], &temp_cat->cat_items[j]);
 			if (stardiam)
 				temp_cat->cat_items[j].diameter = stardiam;
 			if (hide_display_name) {
 				g_free(temp_cat->cat_items[j].name);
 				temp_cat->cat_items[j].name = NULL;
+			} else {
+				if (siril_cat->cattype == CAT_PGC) { // can't add PGC prefix through TAP query as can't concatenate a str and an int in ADQL...
+					g_free(temp_cat->cat_items[j].name);
+					temp_cat->cat_items[j].name = g_strdup_printf("PGC %s", siril_cat->cat_items[i].name);
+				}
 			}
 		}
-		// some catalogues display the list of found objects
-		if (siril_cat->cattype == CAT_IMCCE) // classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
-			siril_log_message("%s (%s) - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].type, siril_cat->cat_items[i].mag);
-		if (siril_cat->cattype == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
-			siril_log_message("%s - V:%3.1f [%5.3f]- B:%3.1f [%5.3f] - RA:%g - DEC: %g\n",
-			siril_cat->cat_items[i].name,
-			siril_cat->cat_items[i].mag,
-			siril_cat->cat_items[i].e_mag,
-			siril_cat->cat_items[i].bmag,
-			siril_cat->cat_items[i].e_bmag,
-			siril_cat->cat_items[i].ra,
-			siril_cat->cat_items[i].dec);
-		if (siril_cat->cattype == CAT_EXOPLANETARCHIVE)
-			siril_log_message("%s - mag:%3.1f\n", siril_cat->cat_items[i].name, siril_cat->cat_items[i].mag);
+		if (args->display_log) { // when we reach this point, it has been previously checked that catalog holds a name field
+			if (siril_cat->cattype == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
+				siril_log_message("AUID:%s - V:%3.1f [%5.3f]- B:%3.1f [%5.3f] - RA:%g - DEC: %g\n",
+				siril_cat->cat_items[i].name,
+				siril_cat->cat_items[i].mag,
+				siril_cat->cat_items[i].e_mag,
+				siril_cat->cat_items[i].bmag,
+				siril_cat->cat_items[i].e_bmag,
+				siril_cat->cat_items[i].ra,
+				siril_cat->cat_items[i].dec);
+			else {
+				GString *msg = g_string_new("");
+				g_string_append_printf(msg, "%s%s", (siril_cat->cattype == CAT_PGC) ? "PGC " : "", siril_cat->cat_items[i].name);
+				if (has_field(siril_cat, TYPE)) // for IMCCE, classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
+					g_string_append_printf(msg, " (%s)", siril_cat->cat_items[i].type);
+				g_string_append_printf(msg, " , ");
+				// RA/DEC are the minimal fields to any catalog
+				gchar *ra = siril_world_cs_alpha_format_from_double(siril_cat->cat_items[i].ra, "%02d %02d %.1lf");
+				gchar *dec = siril_world_cs_delta_format_from_double(siril_cat->cat_items[i].dec, "%c%02d %02d %.1lf");
+				g_string_append_printf(msg, "RA: %s, DEC: %s", ra, dec);
+				g_free(ra);
+				g_free(dec);
+				if (has_field(siril_cat, MAG))
+					g_string_append_printf(msg, " , mag:%3.1f", siril_cat->cat_items[i].mag);
+				g_string_append_printf(msg, "\n");
+				gchar *printout = g_string_free(msg, FALSE);
+				siril_log_message(printout);
+				g_free(printout);
+			}
+		}
 		j++;
 	}
 	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
@@ -984,7 +1017,7 @@ gpointer conesearch_worker(gpointer p) {
 		retval = 1;
 		goto exit_conesearch;
 	}
-	if (!com.script)  { // only for GUI
+	if (args->has_GUI)  { // only for GUI
 		//re-allocating to the correct size as some may have been discarded by mag
 		cat_item *final_items = realloc(temp_cat->cat_items, j * sizeof(cat_item));
 		if (!final_items) {
@@ -997,12 +1030,13 @@ gpointer conesearch_worker(gpointer p) {
 	}
 	retval = 0;
 exit_conesearch:
-	siril_catalog_free(siril_cat);
+	gboolean go_idle = args->has_GUI;
+	free_conesearch(args);
 	if (retval && temp_cat) {
 		siril_catalog_free(temp_cat);
 		temp_cat = NULL;
 	}
-	if (!com.script) {
+	if (go_idle) {
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {
 		end_generic(NULL);
@@ -1082,6 +1116,22 @@ void free_sky_object_query(sky_object_query_args *args) {
 	g_free(args->name);
 	g_free(args->prefix);
 	siril_catalog_free_item(args->item);
+	free(args);
+}
+
+conesearch_args *init_conesearch() {
+	conesearch_args *args = calloc(1, sizeof(conesearch_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	return args;
+}
+
+void free_conesearch(conesearch_args *args) {
+	if (!args)
+		return;
+	siril_catalog_free(args->siril_cat);
 	free(args);
 }
 
