@@ -8777,7 +8777,7 @@ int process_conesearch(int nb) {
 			siril_cat->IAUcode = obscode;
 		else {
 			siril_cat->IAUcode = g_strdup("500");
-			siril_log_color_message(_("Did not specify an observatory code, using 500 by default\n"), "salmon");
+			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
 		}
 	}
 	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);

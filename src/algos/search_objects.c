@@ -65,6 +65,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			return args->retval;
 		}
 		objname = g_shell_unquote(token[2], NULL);
+		gchar *simbad_id = NULL;
 		gint rank = 3;
 		while (token[rank]) {
 			if (g_str_has_prefix(token[rank], "Coordinates(ICRS")) {
@@ -74,14 +75,19 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 				sscanf(fields[1], "%lf", &hours);
 				sscanf(fields[2], "%lf", &min);
 				sscanf(fields[3], "%lf", &seconds);
-				ra = 360.0*hours/24.0 + 360.0*min/(24.0*60.0) + 360.0*seconds/(24.0*60.0*60.0);
+				ra = 15. * hours + 0.25 * min + seconds * 4.166667e-3;
 				// DEC
 				sscanf(fields[5], "%lf", &degres);
 				sscanf(fields[6], "%lf", &min);
 				sscanf(fields[7], "%lf", &seconds);
 				if (degres < 0.0)
-					dec = degres - min/60.0 - seconds/3600.0;
-				else dec = degres + min/60.0 + seconds/3600.0;
+					dec = degres - min / 60.0 - seconds / 3600.0;
+				else dec = degres + min / 60.0 + seconds / 3600.0;
+				g_strfreev(fields);
+			}
+			else if (g_str_has_prefix(token[rank], "Object")){
+				gchar **fields = g_strsplit(token[rank] + 7, " --- ", -1);
+				simbad_id = g_strdup(g_strstrip(fields[0]));
 				g_strfreev(fields);
 			}
 			// Finally, retrieve the B and V magnitudes
@@ -114,11 +120,13 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		item->dec = dec;
 		item->pmra = pmra;
 		item->pmdec = pmdec;
-		item->name = g_strdup(objname);
+		item->name = g_strdup(simbad_id);
+		item->alias = g_strdup(objname);
 		args->item = item;
 		args->retval = 0;
 		check_for_duplicates = TRUE;
 		target_cat = USER_DSO_CAT_INDEX;
+		g_free(simbad_id);
 		break;
 	// This is for a Miriade emphemcc search (SSO)
 	case QUERY_SERVER_EPHEMCC:
@@ -202,13 +210,18 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	g_strfreev(token);
 
 	if (!args->retval && args->item) {
-		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(args->item->ra, args->item->dec);
-		gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02.2lfs");
-		gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02.2lf\"");
-		siril_log_message(_("Found %s at coordinates: %s, %s\n"), args->item->name, alpha, delta);
+		gchar *alpha = siril_world_cs_alpha_format_from_double(args->item->ra, " %02dh%02dm%02.2lfs");
+		gchar *delta = siril_world_cs_delta_format_from_double(args->item->dec, "%c%02d°%02d\'%02.2lf\"");
+		GString *msg = g_string_new("");
+		g_string_append_printf(msg, _("Found %s"), args->item->name);
+		if (args->item->alias)
+			g_string_append_printf(msg, _(" (aka %s)"), args->item->alias);
+		g_string_append_printf(msg, _(" at coordinates: %s, %s\n"), alpha, delta);
+		gchar *printout = g_string_free(msg, FALSE);
+		siril_log_message(printout);
+		g_free(printout);
 		g_free(alpha);
 		g_free(delta);
-		siril_world_cs_unref(world_cs);
 		if (target_cat != ANCAT_NONE) {
 			add_item_in_catalogue(args->item, target_cat, check_for_duplicates);
 			com.pref.gui.catalog[target_cat] = TRUE;	// and display it
@@ -440,7 +453,7 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
 		if (args->fit->sitelat == 0.0 && args->fit->sitelong == 0.0) {
-			siril_log_color_message(_("No topocentric data available. Set to barycentric, positions may be inaccurate\n"), "salmon");
+			siril_log_color_message(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"), "salmon");
 		} else {
 			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->sitelat,
 				args->fit->sitelong, args->fit->siteelev);
