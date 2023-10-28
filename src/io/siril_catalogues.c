@@ -1029,7 +1029,7 @@ gpointer conesearch_worker(gpointer p) {
 		temp_cat->nbitems = j;
 	}
 	retval = 0;
-exit_conesearch:
+exit_conesearch:;
 	gboolean go_idle = args->has_GUI;
 	free_conesearch(args);
 	if (retval && temp_cat) {
