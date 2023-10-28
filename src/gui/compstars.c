@@ -30,6 +30,7 @@
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *delta_vmag_entry = NULL;
 static GtkWidget *delta_bv_entry = NULL;
+static GtkWidget *emag_entry = NULL;
 static GtkWidget *target_entry = NULL;
 static GtkWidget *apass_radio = NULL;
 
@@ -77,6 +78,18 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(delta_bv_entry), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(delta_bv_entry), "margin-top", 0, NULL);
 
+	GtkWidget *labelemag = gtk_label_new(_("Allowed magnitude error:"));
+	gtk_widget_set_halign(labelemag, GTK_ALIGN_START);
+	g_object_set(G_OBJECT(labelemag), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(labelemag), "margin-top", 10, NULL);
+	g_object_set(G_OBJECT(labelemag), "margin-bottom", 0, NULL);
+
+	emag_entry = gtk_entry_new();
+	gtk_entry_set_text(GTK_ENTRY(emag_entry), "0.03");
+	gtk_widget_set_tooltip_text(emag_entry, _("Allowed catalogue magnitude error for comparison stars"));
+	g_object_set(G_OBJECT(emag_entry), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(emag_entry), "margin-top", 0, NULL);
+
 	/* catalogue choice */
 	GtkWidget *radio2, *radiobox;
 	radiobox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
@@ -98,6 +111,8 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), delta_vmag_entry);
 	gtk_container_add(GTK_CONTAINER(content_area), labelbv);
 	gtk_container_add(GTK_CONTAINER(content_area), delta_bv_entry);
+	gtk_container_add(GTK_CONTAINER(content_area), labelemag);
+	gtk_container_add(GTK_CONTAINER(content_area), emag_entry);
 	gtk_container_add(GTK_CONTAINER(content_area), radiobox);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
 }
@@ -142,6 +157,12 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("BV range not accepted (should be ]0, 0.7]"));
 		return;
 	}
+	text = gtk_entry_get_text(GTK_ENTRY(emag_entry));
+	double emag = g_ascii_strtod(text, &end);
+	if (text == end || emag <= 0.0 || emag > 0.1) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Magnitude error not accepted (should be ]0, 0.1["));
+		return;
+	}
 
 	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -153,7 +174,7 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
 	args->delta_Vmag = delta_Vmag;
 	args->delta_BV = delta_BV;
-	args->max_emag = 0.03; // TODO:add required GUI element
+	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
 
 	start_in_new_thread(compstars_worker, args);
