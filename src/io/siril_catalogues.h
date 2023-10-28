@@ -40,15 +40,15 @@
 // if 90 <= value <= 100: special use cases
 typedef enum {
 // TAP Queries from vizier
-	CAT_TYCHO2,
-	CAT_NOMAD,
-	CAT_GAIADR3,
-	CAT_PPMXL,
-	CAT_BSC,
-	CAT_APASS,
-	CAT_GCVS,
-	CAT_VSX,
-	CAT_SIMBAD,
+	CAT_TYCHO2, //00
+	CAT_NOMAD, //01
+	CAT_GAIADR3, //02
+	CAT_PPMXL, //03
+	CAT_BSC,  //04
+	CAT_APASS, //05
+	CAT_GCVS,  //06
+	CAT_VSX, //07
+	CAT_SIMBAD, //08
 	CAT_PGC = 20,
 // Other TAP Queries
 	CAT_EXOPLANETARCHIVE = 30,

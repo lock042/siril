@@ -113,6 +113,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmRA");
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Vmag");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("Name");
 			break;
 		case CAT_APASS:
 			tap->catcode = g_strdup("%22II/336/apass9%22");
@@ -138,7 +139,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RAJ2000");
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DEJ2000");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("max");
-			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("OID");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("Name");
 			break;
 		case CAT_SIMBAD:
 			tap->catcode = g_strdup("basic+JOIN+allfluxes+ON+oidref+=+oid");
@@ -149,6 +150,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("B");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmra");
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmdec");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("main_id");
 			break;
 		case CAT_PGC:
 			tap->catcode = g_strdup("%22VII/237/pgc%22");

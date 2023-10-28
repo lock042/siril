@@ -136,16 +136,17 @@ uint32_t siril_catalog_columns(object_catalog cat) {
 		case CAT_TYCHO2:
 		case CAT_NOMAD:
 		case CAT_GAIADR3:
-		case CAT_SIMBAD:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_PPMXL:
 		case CAT_BSC:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_APASS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_E_MAG) | (1 << CAT_FIELD_E_BMAG);
 		case CAT_GCVS:
 		case CAT_VSX:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
+		case CAT_SIMBAD:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME);
 		case CAT_PGC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DIAMETER);
 		case CAT_EXOPLANETARCHIVE:
@@ -281,6 +282,10 @@ gboolean is_star_catalogue(object_catalog Catalog) {
 
 gboolean display_names_for_catalogue(object_catalog Catalog) {
 	switch (Catalog) {
+		case CAT_VSX:
+		case CAT_GCVS:
+		case CAT_BSC:
+		case CAT_SIMBAD:
 		case CAT_PGC:
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
@@ -889,7 +894,8 @@ static gboolean end_conesearch(gpointer p) {
 		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(temp_cat)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-			refresh_annotation_to_temp();
+			// refresh_annotation_to_temp();
+			refresh_annotation_visibility();
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
