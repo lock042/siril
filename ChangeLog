@@ -14,6 +14,7 @@ xx/xx/xx
 * Add ROI processing for certain functions (!571, fixes #1098 and #1188)
 * Fixed crash in the new RGB compositing tool (#1205)
 * Fixed loss of DATE-OBS header in RGB compositing tool
+* Reduce verbosity of script reload logging (#1217)
 
 siril 1.2.1
 xx/xx/xx
