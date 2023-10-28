@@ -229,6 +229,8 @@ const char *catalog_to_str(object_catalog cat) {
 			return _("APASS");
 		case CAT_VSX:
 			return _("AAVSO Variable stars");
+		case CAT_GCVS:
+			return _("GCVS");
 		case CAT_SIMBAD:
 			return _("SIMBAD");
 		case CAT_PGC:
@@ -283,6 +285,7 @@ gboolean is_star_catalogue(object_catalog Catalog) {
 gboolean display_names_for_catalogue(object_catalog Catalog) {
 	switch (Catalog) {
 		case CAT_BSC:
+		case CAT_GCVS:
 		case CAT_PGC:
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
