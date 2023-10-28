@@ -9002,7 +9002,7 @@ int process_show(int nb) {
 	}
 
 	if (g_str_has_prefix(word[next_arg], "-list=")) {
-		const char *file = g_shell_unquote(word[next_arg] + 6, NULL);
+		const char *file = word[next_arg] + 6;
 		if (load_csv_targets_to_temp(file))
 			return CMD_ARG_ERROR;
 		goto display;
@@ -9055,6 +9055,8 @@ parse_coords:
 display:
 	/* display the new 'found_object' */
 	button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	com.pref.gui.catalog[USER_TEMP_CAT_INDEX] = TRUE;
+	refresh_annotation_visibility();
 	if (!gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, TRUE);
 	} else {
