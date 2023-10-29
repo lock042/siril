@@ -8679,7 +8679,7 @@ int process_pcc(int nb) {
 int process_conesearch(int nb) {
 	float limit_mag = -1.0f;
 	gboolean photometric = FALSE;
-	super_bool display_names = BOOL_NOT_SET;
+	super_bool display_tag = BOOL_NOT_SET;
 	super_bool display_log = BOOL_NOT_SET;
 	object_catalog cat = CAT_AUTO;
 	gchar *obscode = NULL;
@@ -8744,14 +8744,14 @@ int process_conesearch(int nb) {
 				siril_log_message(_("Wrong parameter values. Log must be set to on or off, aborting.\n"));
 				return CMD_ARG_ERROR;
 			}
-		} else if (g_str_has_prefix(word[arg_idx], "-names=")) {
-			char *arg = word[arg_idx] + 7;
+		} else if (g_str_has_prefix(word[arg_idx], "-tag=")) {
+			char *arg = word[arg_idx] + 5;
 			if (!(g_ascii_strcasecmp(arg, "on")))
-				display_names = BOOL_TRUE;
+				display_tag = BOOL_TRUE;
 			else if (!(g_ascii_strcasecmp(arg, "off")))
-				display_names = BOOL_FALSE;
+				display_tag = BOOL_FALSE;
 			else {
-				siril_log_message(_("Wrong parameter values. Log must be set to on or off, aborting.\n"));
+				siril_log_message(_("Wrong parameter values. Tag must be set to on or off, aborting.\n"));
 				return CMD_ARG_ERROR;
 			}
 		} else {
@@ -8786,7 +8786,7 @@ int process_conesearch(int nb) {
 	args->siril_cat = siril_cat;
 	args->has_GUI = !com.script;
 	args->display_log = (display_log == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_log;
-	args->display_names = (display_names == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_names;
+	args->display_tag = (display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_tag;
 	if (check_conesearch_args(args)) {// can't fail for now
 		free_conesearch(args);
 		return CMD_GENERIC_ERROR;

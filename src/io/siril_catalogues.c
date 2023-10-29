@@ -268,6 +268,8 @@ const char *catalog_to_str(object_catalog cat) {
 	}
 }
 
+// returns TRUE if the catalog is a star catalog
+// Used to set display diameters
 gboolean is_star_catalogue(object_catalog Catalog) {
 	switch (Catalog) {
 		case CAT_TYCHO2 ...	CAT_SIMBAD:
@@ -282,6 +284,9 @@ gboolean is_star_catalogue(object_catalog Catalog) {
 	}
 }
 
+// returns TRUE if the catalog should display name information
+// do not add unless the number of objects returned is limited
+// used to set default for conesearch command
 gboolean display_names_for_catalogue(object_catalog Catalog) {
 	switch (Catalog) {
 		case CAT_BSC:
@@ -916,9 +921,13 @@ int check_conesearch_args(conesearch_args *args) {
 		siril_log_color_message(_("Won't log list of objects for catalog %s which does not have name information\n"), "salmon", catalog_to_str(args->siril_cat->cattype));
 		args->display_log = FALSE;
 	}
-	if (args->display_names && !has_field(args->siril_cat, NAME)) {
-		siril_log_color_message(_("Won't show objects names for catalog %s which does not have name information\n"), "salmon", catalog_to_str(args->siril_cat->cattype));
-		args->display_names = FALSE;
+	if (args->display_tag && !args->has_GUI) {
+		siril_log_color_message(_("Won't show objects tags as there is no display, ignoring\n"), "salmon", catalog_to_str(args->siril_cat->cattype));
+		args->display_tag = FALSE;
+	}
+	if (args->display_tag && !has_field(args->siril_cat, NAME)) {
+		siril_log_color_message(_("Won't display objects tags for catalog %s which does not have name information\n"), "salmon", catalog_to_str(args->siril_cat->cattype));
+		args->display_tag = FALSE;
 	}
 	return 0;
 }
@@ -930,7 +939,7 @@ gpointer conesearch_worker(gpointer p) {
 	siril_catalogue *temp_cat = NULL;
 	int retval = -1;
 	double stardiam = 0.;
-	gboolean hide_display_name = FALSE;
+	gboolean hide_display_tag = FALSE;
 	if (!siril_cat) {
 		siril_debug_print("no query passed");
 		goto exit_conesearch;
@@ -961,8 +970,8 @@ gpointer conesearch_worker(gpointer p) {
 		temp_cat->projected = CAT_PROJ_WCS;
 		if (is_star_catalogue(siril_cat->cattype))
 			stardiam = 0.2; // in arcmin => 12"
-		if (!args->display_names && has_field(siril_cat, NAME))
-			hide_display_name = TRUE;
+		if (!args->display_tag && has_field(siril_cat, NAME))
+			hide_display_tag = TRUE;
 		temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
 	}
 	for (int i = 0; i < nb_stars; i++) {
@@ -972,7 +981,7 @@ gpointer conesearch_worker(gpointer p) {
 			siril_catalogue_copy_item(&siril_cat->cat_items[i], &temp_cat->cat_items[j]);
 			if (stardiam)
 				temp_cat->cat_items[j].diameter = stardiam;
-			if (hide_display_name) {
+			if (hide_display_tag) {
 				g_free(temp_cat->cat_items[j].name);
 				temp_cat->cat_items[j].name = NULL;
 			} else {

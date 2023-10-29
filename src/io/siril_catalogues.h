@@ -156,7 +156,7 @@ typedef struct {
 	fits *fit; // the image queried
 	siril_catalogue *siril_cat; // the catalogue queried
 	gboolean display_log; // if true, displays the list in the log
-	gboolean display_names; // if true, displays the names next to object in the annotations
+	gboolean display_tag; // if true, displays the names next to object in the annotations
 	//gboolean add_to_user; // if true, the objects are added to the user DSO catalogue (not SSO due to imprecision of obscode)
 	gboolean has_GUI; // true if we will need to refresh the disaply
 } conesearch_args;
