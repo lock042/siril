@@ -12,6 +12,8 @@ siril 1.4.0 xx xx, xx
 * Added git script repository integration (!560)
 * Add ROI processing for certain functions (!571, fixes #1098 and #1188)
 * Fixed crash in the new RGB compositing tool (#1205)
+* Fixed loss of DATE-OBS header in RGB compositing tool
+* Reduce verbosity of script reload logging (#1217)
 
 siril 1.2.1
 xx/xx/xx
@@ -22,6 +24,7 @@ xx/xx/xx
 * Fixed problems with Fourier Transform planning > Estimate (#1199)
 * Fixed data initialisation bugs in copyfits() and RGB compositing tool
 * Allowed for RA/DEC to be sorted in PSF windows (#1214)
+* Added SET-TEMP as valid FITS header to be saved (#1215)
 
 siril 1.2.0 September 15, 2023
 

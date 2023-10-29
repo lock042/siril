@@ -824,6 +824,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
 			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
+			copy_fits_metadata(seq->internal_fits[index], dest);
 			if (seq->internal_fits[index]->type == DATA_FLOAT) {
 				dest->fdata = seq->internal_fits[index]->fdata;
 				dest->fpdata[0] = seq->internal_fits[index]->fpdata[0];

@@ -564,6 +564,7 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 static int generic_save_internal(struct generic_seq_args *args, int in_index, fits *fit) {
 	clearfits_header(args->seq->internal_fits[in_index]);
 	copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
+	copy_fits_metadata(fit, args->seq->internal_fits[in_index]);
 	if (fit->type == DATA_USHORT) {
 		args->seq->internal_fits[in_index]->data = fit->data;
 		args->seq->internal_fits[in_index]->pdata[0] = fit->pdata[0];
