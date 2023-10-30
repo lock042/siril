@@ -41,7 +41,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	gchar **token, *objname = NULL, *objtype = NULL;
 	int nargs;
 	gboolean check_for_duplicates = FALSE;
-	annotations_cat target_cat = ANCAT_NONE;
+	object_catalog target_cat = CAT_UNDEF;
 	if (!buffer || buffer[0] == '\0')
 		return 1;
 
@@ -125,7 +125,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		args->item = item;
 		args->retval = 0;
 		check_for_duplicates = TRUE;
-		target_cat = USER_DSO_CAT_INDEX;
+		target_cat = CAT_AN_USER_DSO;
 		g_free(simbad_id);
 		break;
 	// This is for a Miriade emphemcc search (SSO)
@@ -199,7 +199,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		item->mag = mag;
 		args->item = item;
 		check_for_duplicates = TRUE;
-		target_cat = USER_SSO_CAT_INDEX;
+		target_cat = CAT_AN_USER_SSO;
 		args->retval = 0;
 		g_free(objname);
 		g_free(objtype);
@@ -210,8 +210,8 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	g_strfreev(token);
 
 	if (!args->retval && args->item) {
-		gchar *alpha = siril_world_cs_alpha_format_from_double(args->item->ra, " %02dh%02dm%02.2lfs");
-		gchar *delta = siril_world_cs_delta_format_from_double(args->item->dec, "%c%02d°%02d\'%02.2lf\"");
+		gchar *alpha = siril_world_cs_alpha_format_from_double(args->item->ra, " %02dh%02dm%04.1lfs");
+		gchar *delta = siril_world_cs_delta_format_from_double(args->item->dec, "%c%02d°%02d\'%04.1lf\"");
 		GString *msg = g_string_new("");
 		g_string_append_printf(msg, _("Found %s"), args->item->name);
 		if (args->item->alias)
@@ -222,9 +222,9 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		g_free(printout);
 		g_free(alpha);
 		g_free(delta);
-		if (target_cat != ANCAT_NONE) {
+		if (target_cat != CAT_UNDEF) {
 			add_item_in_catalogue(args->item, target_cat, check_for_duplicates);
-			com.pref.gui.catalog[target_cat] = TRUE;	// and display it
+			set_annotation_visibility(target_cat, TRUE);	// and display it
 		}
 		return 0;
 	}

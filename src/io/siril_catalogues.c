@@ -992,27 +992,25 @@ gpointer conesearch_worker(gpointer p) {
 			}
 		}
 		if (args->display_log) { // when we reach this point, it has been previously checked that catalog holds a name field
+			gchar *ra = siril_world_cs_alpha_format_from_double(siril_cat->cat_items[i].ra, "%02d %02d %04.1lf");
+			gchar *dec = siril_world_cs_delta_format_from_double(siril_cat->cat_items[i].dec, "%c%02d %02d %04.1lf");
 			if (siril_cat->cattype == CAT_AAVSO_CHART) // https://www.aavso.org/api-vsp
-				siril_log_message("AUID:%s - V:%3.1f [%5.3f]- B:%3.1f [%5.3f] - RA:%g - DEC: %g\n",
+				siril_log_message("AUID:%s - V:%3.1f [%5.3f] - B:%3.1f [%5.3f] - RA: %s, DEC: %s\n",
 				siril_cat->cat_items[i].name,
 				siril_cat->cat_items[i].mag,
 				siril_cat->cat_items[i].e_mag,
 				siril_cat->cat_items[i].bmag,
 				siril_cat->cat_items[i].e_bmag,
-				siril_cat->cat_items[i].ra,
-				siril_cat->cat_items[i].dec);
+				ra,
+				dec);
 			else {
 				GString *msg = g_string_new("");
 				g_string_append_printf(msg, "%s%s", (siril_cat->cattype == CAT_PGC) ? "PGC " : "", siril_cat->cat_items[i].name);
 				if (has_field(siril_cat, TYPE)) // for IMCCE, classes are defined at https://vo.imcce.fr/webservices/skybot/?documentation#field_1
 					g_string_append_printf(msg, " (%s)", siril_cat->cat_items[i].type);
-				g_string_append_printf(msg, " , ");
+				g_string_append_printf(msg, ", ");
 				// RA/DEC are the minimal fields to any catalog
-				gchar *ra = siril_world_cs_alpha_format_from_double(siril_cat->cat_items[i].ra, "%02d %02d %.1lf");
-				gchar *dec = siril_world_cs_delta_format_from_double(siril_cat->cat_items[i].dec, "%c%02d %02d %.1lf");
 				g_string_append_printf(msg, "RA: %s, DEC: %s", ra, dec);
-				g_free(ra);
-				g_free(dec);
 				if (has_field(siril_cat, MAG))
 					g_string_append_printf(msg, " , mag:%3.1f", siril_cat->cat_items[i].mag);
 				g_string_append_printf(msg, "\n");
@@ -1020,6 +1018,8 @@ gpointer conesearch_worker(gpointer p) {
 				siril_log_message(printout);
 				g_free(printout);
 			}
+			g_free(ra);
+			g_free(dec);
 		}
 		j++;
 	}

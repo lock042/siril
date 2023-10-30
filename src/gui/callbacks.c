@@ -2101,7 +2101,7 @@ void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	if (!confirm) {
 		return;
 	}
-	annotations_cat cat_index = (is_sso) ? USER_SSO_CAT_INDEX : USER_DSO_CAT_INDEX;
+	object_catalog cat_index = (is_sso) ? CAT_AN_USER_SSO : CAT_AN_USER_DSO;
 	gchar *filename = get_annotation_catalog_filename(cat_index, FALSE);
 	GFile *file = g_file_new_for_path(filename);
 

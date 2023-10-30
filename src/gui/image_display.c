@@ -1398,13 +1398,13 @@ static void draw_annotates(const draw_data_t* dd) {
 		double addoffset = 0.;
 
 		switch (catalog) {
-		case USER_DSO_CAT_INDEX:
+		case CAT_AN_USER_DSO:
 			cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, 0.9);
 			break;
-		case USER_SSO_CAT_INDEX:
+		case CAT_AN_USER_SSO:
 			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
 			break;
-		case USER_TEMP_CAT_INDEX:
+		case CAT_AN_USER_TEMP:
 			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9); // will need to be changed that anyway
 			revert = TRUE;
 			angle = ANGLE_BOT;

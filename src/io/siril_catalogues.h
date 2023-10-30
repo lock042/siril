@@ -26,6 +26,7 @@
 
 // number of columns that can be defined in a catalogue
 #define MAX_CAT_COLUMNS 18
+#define CAT_AN_INDEX_OFFSET 60
 
 // all catalogues that can be used
 // < 60: online
@@ -39,6 +40,7 @@
 // if 70 <= value < 90: local annotation catalogues (user-defined)
 // if 90 <= value <= 100: special use cases
 typedef enum {
+	CAT_UNDEF = -1,
 // TAP Queries from vizier
 	CAT_TYCHO2, //00
 	CAT_NOMAD, //01
@@ -56,7 +58,7 @@ typedef enum {
 	CAT_AAVSO_CHART = 40,
 // Non TAP Queries (others)
 	CAT_IMCCE = 50,
-// Local annotations - same as annotations_cat + 60
+// Local annotations - shift by -CAT_AN_INDEX_OFFSET to use in annotation_catalogues
 	CAT_AN_MESSIER = 60,
 	CAT_AN_NGC = 61,
 	CAT_AN_IC = 62,

@@ -37,11 +37,9 @@
 #include "annotation_catalogues.h"
 
 #define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec or 1s in hrs
-#define CAT_AN_INDEX_OFFSET 60
 
 static GSList *siril_annot_catalogue_list = NULL; // loaded data from all annotation catalogues
-
-static gboolean show_catalog(annotations_cat catalog);
+static gboolean get_annotation_visibility(object_catalog cat_index);
 
 static const gchar *cat[] = {
 	"messier.csv",
@@ -51,13 +49,17 @@ static const gchar *cat[] = {
 	"sh2.csv",
 	"stars.csv",
 	/* below this line, user catalogues are in the user directory, not the
-	 * siril install dir. See also USER_DSO_CAT_INDEX which gives the index
-	 * of this separation */
+	 * siril install dir.  */
 	"user-DSO-catalogue.csv",
 	"user-SSO-catalogue.csv"
 };
-// update USER_DSO_CAT_INDEX and USER_SSO_CAT_INDEX from the .h in case of change
 // make sure com.pref.gui.catalog matches this too
+
+static const gchar *get_cat_filename_by_index(object_catalog cat_index) {
+	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_USER_SSO)
+		return NULL;
+	return cat[cat_index - CAT_AN_INDEX_OFFSET];
+}
 
 struct _CatalogObjects {
 	gchar *code;	// displayed name
@@ -67,12 +69,12 @@ struct _CatalogObjects {
 	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
 			// negative for no accurate size
 	gchar *alias;
-	annotations_cat catalogue; // index from the list of catalogues above
+	object_catalog catalogue; // index from the list of catalogues above
 };
 
 static CatalogObjects* new_catalog_object(const gchar *name, double x,
 		double y, double radius, const gchar *alias,
-		annotations_cat catalogue) {
+		object_catalog catalogue) {
 	CatalogObjects *object = g_new(CatalogObjects, 1);
 
 	object->code = (name) ? g_strdup(name) : NULL;
@@ -83,10 +85,6 @@ static CatalogObjects* new_catalog_object(const gchar *name, double x,
 	object->alias = (alias) ? g_strdup(alias) : NULL;
 	object->catalogue = catalogue;
 	return object;
-}
-
-const char *cat_index_to_name(annotations_cat index) {
-	return catalog_to_str(index + CAT_AN_INDEX_OFFSET);
 }
 
 /* compare two objects, looking for duplicates based on the alias names against the name of the object to search */
@@ -148,28 +146,24 @@ static gboolean is_catalogue_loaded() {
 	return siril_annot_catalogue_list != NULL;
 }
 
-void free_catalogue_object(CatalogObjects *object) {
+static void free_catalogue_object(CatalogObjects *object) {
 	g_free(object->code);
 	g_free(object->alias);
 	g_free(object);
 }
 
-void free_annotation_catalogue(annotations_catalogue_t *object) {
-	siril_catalog_free(object->cat);
-}
-
-gchar *get_annotation_catalog_filename(annotations_cat cat_index, gboolean for_reading) {
-	if (cat_index < ANCAT_MESSIER || cat_index > USER_SSO_CAT_INDEX) {
+gchar *get_annotation_catalog_filename(object_catalog cat_index, gboolean for_reading) {
+	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_USER_SSO) {
 		siril_debug_print("Wrong catalog index\n");
 		return NULL;
 	}
 	gchar *filename = NULL;
-	if (cat_index < USER_DSO_CAT_INDEX)
-		filename = g_build_filename(siril_get_system_data_dir(), "catalogue", cat[cat_index], NULL);
+	if (cat_index < CAT_AN_USER_DSO)
+		filename = g_build_filename(siril_get_system_data_dir(), "catalogue", get_cat_filename_by_index(cat_index), NULL);
 	else
-		filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[cat_index], NULL);
+		filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", get_cat_filename_by_index(cat_index), NULL);
 	if (for_reading && !g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		siril_debug_print("Catalog file %s does not exist\n", cat[cat_index]);
+		siril_debug_print("Catalog file %s does not exist\n", get_cat_filename_by_index(cat_index));
 		g_free(filename);
 		filename = NULL;
 	}
@@ -178,22 +172,22 @@ gchar *get_annotation_catalog_filename(annotations_cat cat_index, gboolean for_r
 /*
  * Loads a csv catalogue using generic csv parser
  */
-static annotations_catalogue_t *load_catalog(annotations_cat cat_index, const gchar *filename) {
+static annotations_catalogue_t *load_catalog(object_catalog cat_index, const gchar *filename) {
 	gboolean islocal = !filename;
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cattype = cat_index + CAT_AN_INDEX_OFFSET;
+	siril_cat->cattype = cat_index;
 	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
 	if (islocal)
 		filename = get_annotation_catalog_filename(cat_index, TRUE);
 	if (!filename || siril_catalog_load_from_file(siril_cat, filename)) {// use the generic csv parser
-		siril_debug_print("Could not load the catalog %s\n", (islocal) ? cat[cat_index] : filename);
+		siril_debug_print("Could not load the catalog %s\n", (islocal) ? get_cat_filename_by_index(cat_index) : filename);
 		siril_catalog_free(siril_cat);
 		return NULL;
 	}
 	siril_debug_print("loaded %d objects from annotations catalogue %s\n", siril_cat->nbitems, filename);
 	annotations_catalogue_t *annot_cat = g_new(annotations_catalogue_t, 1);
 	annot_cat->cat = siril_cat;
-	annot_cat->show = show_catalog(cat_index);
+	annot_cat->show = get_annotation_visibility(cat_index);
 	return annot_cat;
 }
 
@@ -202,15 +196,15 @@ static void load_all_catalogues() {
 	siril_debug_print("reloading annotation catalogues\n");
 	int cat_size = G_N_ELEMENTS(cat);
 	for (int i = 0; i < cat_size; i++) {
-		annotations_catalogue_t *newcat = load_catalog(i, NULL);
+		annotations_catalogue_t *newcat = load_catalog(i + CAT_AN_INDEX_OFFSET, NULL);
 		if (newcat)
 			siril_annot_catalogue_list = g_slist_prepend(siril_annot_catalogue_list, newcat);
 	}
 	siril_annot_catalogue_list = g_slist_reverse(siril_annot_catalogue_list);
 }
 
-static GSList *find_catalogue_by_index(annotations_cat cat_index) {
-	if (cat_index < ANCAT_MESSIER || cat_index > USER_TEMP_CAT_INDEX) {
+static GSList *find_catalogue_by_index(object_catalog cat_index) {
+	if (cat_index < CAT_AN_MESSIER|| cat_index > CAT_AN_USER_TEMP) {
 		siril_debug_print("Wrong catalog index\n");
 		return NULL;
 	}
@@ -219,19 +213,28 @@ static GSList *find_catalogue_by_index(annotations_cat cat_index) {
 	GSList *cur = siril_annot_catalogue_list;
 	while (cur) {
 		annotations_catalogue_t *curcat = cur->data;
-		if (curcat->cat->cattype - CAT_AN_INDEX_OFFSET == cat_index)
+		if (curcat->cat->cattype == cat_index)
 			return cur;
 		cur = cur->next;
 	}
 	return NULL;
 }
 
+void set_annotation_visibility(object_catalog cat_index, gboolean visible) {
+	if (cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_USER_TEMP)
+		return;
+	com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET] = visible;
+}
+
+static gboolean get_annotation_visibility(object_catalog cat_index) {
+	return com.pref.gui.catalog[cat_index - CAT_AN_INDEX_OFFSET];
+}
+
 void refresh_annotation_visibility() {
 	GSList *cur = siril_annot_catalogue_list;
 	while (cur) {
 		annotations_catalogue_t *curcat = cur->data;
-		annotations_cat cat_index = curcat->cat->cattype - CAT_AN_INDEX_OFFSET;
-		curcat->show = show_catalog(cat_index);
+		curcat->show = get_annotation_visibility(curcat->cat->cattype);
 		cur = cur->next;
 	}
 }
@@ -263,7 +266,7 @@ int load_siril_cat_to_temp(siril_catalogue *siril_cat) {
 int load_csv_targets_to_temp(const gchar *filename) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
-	annotations_catalogue_t *annot_cat = load_catalog(USER_TEMP_CAT_INDEX, filename);
+	annotations_catalogue_t *annot_cat = load_catalog(CAT_AN_USER_TEMP, filename);
 	if (annot_cat) {
 		siril_annot_catalogue_list = g_slist_append(siril_annot_catalogue_list, annot_cat);
 		siril_debug_print("loaded %d objects from CSV temporary annotation %s\n", annot_cat->cat->nbitems, filename);
@@ -305,6 +308,7 @@ static GreekLetters convert_to_greek[] = {
 	{ NULL, NULL }
 };
 
+//TODO: may be much simpler to use g_string_replace
 static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
 	gchar *result;
 	int i, cnt = 0;
@@ -365,9 +369,9 @@ gchar *get_catalogue_object_code_pretty(CatalogObjects *object) {
 	return object->pretty_code;
 }
 
-static void write_in_user_catalogue(int cat_index) {;
+static void write_in_user_catalogue(object_catalog cat_index) {;
 	// only these two catalogs are writable
-	if (cat_index != USER_DSO_CAT_INDEX && cat_index != USER_SSO_CAT_INDEX)
+	if (cat_index != CAT_AN_USER_DSO && cat_index != CAT_AN_USER_DSO)
 		return;
 	GSList *cur = find_catalogue_by_index(cat_index);
 	if (!cur || !cur->data)
@@ -376,7 +380,7 @@ static void write_in_user_catalogue(int cat_index) {;
 	annotations_catalogue_t *annot_cat = cur->data; 
 	siril_catalogue *siril_cat = annot_cat->cat;
 	if (!siril_catalog_write_to_file(siril_cat, filename, NULL)) {
-		siril_log_color_message(_("Could not write the updated catalogue %s\n"), "red", cat[cat_index]);
+		siril_log_color_message(_("Could not write the updated catalogue %s\n"), "red", get_cat_filename_by_index(cat_index));
 	}
 }
 
@@ -401,7 +405,6 @@ GSList *find_objects_in_field(fits *fit) {
 		if (!curcat->show) // the catalog show member is set at read-out
 			continue;
 		siril_catalogue *siril_cat = curcat->cat;
-		annotations_cat cat_index = siril_cat->cattype - CAT_AN_INDEX_OFFSET;
 		gboolean is_star_cat = is_star_catalogue(siril_cat->cattype);
 		if (siril_cat->projected != CAT_PROJ_WCS) {
 			siril_catalog_project_with_WCS(siril_cat,fit, TRUE, TRUE); // sanity check will be done during the projection
@@ -424,7 +427,7 @@ GSList *find_objects_in_field(fits *fit) {
 					y,
 					(is_star_cat) ? starradius : .5 * siril_cat->cat_items[i].diameter,
 					siril_cat->cat_items[i].alias,
-					cat_index
+					siril_cat->cattype
 				);
 				if (!g_slist_find_custom(targets, cur, (GCompareFunc)object_compare))
 					targets = g_slist_prepend(targets, cur);
@@ -441,13 +444,13 @@ GSList *find_objects_in_field(fits *fit) {
 
 // compares (ra/dec) positions for all catalogues
 // except for sso where name, dateobs and observation sites are compared
-static gboolean is_same_item(cat_item *item1, cat_item *item2, annotations_cat cat) {
-	if (!item1 || !item2 || cat < ANCAT_MESSIER || cat > USER_TEMP_CAT_INDEX) {
+static gboolean is_same_item(cat_item *item1, cat_item *item2, object_catalog cat_index) {
+	if (!item1 || !item2 || cat_index < CAT_AN_MESSIER || cat_index > CAT_AN_USER_TEMP) {
 		siril_debug_print("problem when comparing two items\n");
 		return FALSE;
 	}
-	switch (cat) {
-		case USER_SSO_CAT_INDEX: // for SSO we need to check on more criteria than just the position
+	switch (cat_index) {
+		case CAT_AN_USER_SSO: // for SSO we need to check on more criteria than just the position
 			return (!strcasecmp(item1->name, item2->name) || // same name
 					!strcasecmp(item1->alias, item2->alias) || // same alias
 					!strcasecmp(item1->name, item2->alias) || // or a mix'n'match
@@ -466,7 +469,7 @@ static gboolean is_same_item(cat_item *item1, cat_item *item2, annotations_cat c
 
 // adds an item in one of the catalogues of the static list
 // and writes the updated file (for user catalogues only)
-void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean check_duplicates) {
+void add_item_in_catalogue(cat_item *item, object_catalog cat_index, gboolean check_duplicates) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
 	if (check_duplicates) {	// duplicate check based on coordinates within 1"
@@ -483,7 +486,7 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 								"under the name '%s', not adding it again\n"),
 								catalog_to_str(curcat->cat->cattype), curcat->cat->cat_items[i].name);
 					if (add_alias_to_item(&curcat->cat->cat_items[i], item->name)) {
-						if (!(cat_index == USER_DSO_CAT_INDEX || cat_index == USER_SSO_CAT_INDEX)) {
+						if (!(cat_index == CAT_AN_USER_DSO || cat_index == CAT_AN_USER_SSO)) {
 							siril_debug_print("alias %s added to %s in the runtime catalogue\n",
 							item->name, curcat->cat->cat_items[i].name);
 							/* we add it to the catalogue in memory, but it will be lost on
@@ -506,7 +509,7 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 	if (!cur || !cur->data) {// the catalog does not exist yet
 		annotations_catalogue_t *annot_cat = calloc(1, sizeof(annotations_catalogue_t));
 		siril_cat = calloc(1, sizeof(siril_catalogue));
-		siril_cat->cattype = cat_index + CAT_AN_INDEX_OFFSET;
+		siril_cat->cattype = cat_index;
 		siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
 		annot_cat->cat = siril_cat;
 		annot_cat->show = TRUE;
@@ -514,13 +517,13 @@ void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean c
 	} else {
 		siril_cat = ((annotations_catalogue_t *)cur->data)->cat;
 	}
-	if (siril_catalog_append_item(siril_cat, item) && (cat_index == USER_DSO_CAT_INDEX || cat_index == USER_SSO_CAT_INDEX))
+	if (siril_catalog_append_item(siril_cat, item) && (cat_index == CAT_AN_USER_DSO || cat_index == CAT_AN_USER_SSO))
 		write_in_user_catalogue(cat_index);
 }
 
 // search DSO by name in all annotation catalogues, but remember the result does not
 // contain magnitudes, only name and J2000 equatorial coordinates
-// if *cattype is non NULL, fills it with the catlogue type enum
+// if *cattype is non NULL, fills it with the catalogue type enum
 // The caller must free the result
 cat_item *search_in_annotations_by_name(const char *input, object_catalog *cattype) {
 	if (!is_catalogue_loaded())
@@ -620,7 +623,7 @@ cat_item *search_in_annotations_by_name(const char *input, object_catalog *catty
 cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
-	GSList *solar_an_cat = find_catalogue_by_index(USER_SSO_CAT_INDEX);
+	GSList *solar_an_cat = find_catalogue_by_index(CAT_AN_USER_SSO);
 	if (!solar_an_cat) {
 		siril_debug_print("no SSO catalogue\n");
 		return NULL;
@@ -635,20 +638,18 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 	ref_item->sitelon = args->fit->sitelong;
 	ref_item->siteelev = args->fit->siteelev;
 	for (int i = 0; i < solar_cat->nbitems; i++) {
-		if (is_same_item(ref_item, &solar_cat->cat_items[i], USER_SSO_CAT_INDEX)) {
+		if (is_same_item(ref_item, &solar_cat->cat_items[i], CAT_AN_USER_SSO)) {
 			siril_catalogue_copy_item(&solar_cat->cat_items[i], ref_item);
 			siril_log_message(_("Object %s record found in the local SSO catalog\n"), ref_item->name);
 			GDateTime *timerecord = g_date_time_add_seconds(args->fit->date_obs, (ref_item->dateobs - ref) * 3600. * 24.); // doing this to avoid writing a converter julian to fits date...
 			gchar *dt = date_time_to_FITS_date(timerecord);
-			SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ref_item->ra, ref_item->dec);
-			gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02.2lfs");
-			gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02.2lf\"");
+			gchar *alpha = siril_world_cs_alpha_format_from_double(ref_item->ra, " %02dh%02dm%04.1lfs");
+			gchar *delta = siril_world_cs_delta_format_from_double(ref_item->dec, "%c%02d°%02d\'%04.1lf\"");
 			siril_log_message(_("at coordinates: %s, %s (on DATE-OBS:%s)\n"), alpha, delta, dt);
 			g_free(alpha);
 			g_free(delta);
 			g_free(dt);
 			g_date_time_unref(timerecord);
-			siril_world_cs_unref(world_cs);
 			return ref_item;
 		}
 	}
@@ -661,7 +662,7 @@ gchar *get_catalogue_object_code(const CatalogObjects *object) {
 	return object->code;
 }
 
-annotations_cat get_catalogue_object_cat(const CatalogObjects *object) {
+object_catalog get_catalogue_object_cat(const CatalogObjects *object) {
 	return object->catalogue;
 }
 
@@ -687,20 +688,12 @@ void refresh_found_objects() {
 	}
 }
 
-static gboolean show_catalog(annotations_cat catalog) {
-	if (catalog >= G_N_ELEMENTS(com.pref.gui.catalog) || catalog < 0) {
-		siril_debug_print("BAD ANNOTATION CATALOGUE ENTRY DETECTED\n");
-		return FALSE;
-	}
-	return com.pref.gui.catalog[catalog];
-}
-
 static void remove_user_cat_from_found(gpointer data, gpointer user_data) {
-	object_catalog *cattype = (object_catalog *)user_data;
-	annotations_cat catalogue = *cattype - CAT_AN_INDEX_OFFSET;
+	object_catalog *cat_index = (object_catalog *)user_data;
 	CatalogObjects *obj = (CatalogObjects *) data;
-	if (obj->catalogue == catalogue)
-		com.found_object = g_slist_remove(com.found_object, data); // does this actually free the data?
+	if (obj->catalogue == *cat_index) {
+		com.found_object = g_slist_remove(com.found_object, data);
+	}
 	// this is a very inefficient way to remove objects from a list,
 	// but ok here because there are not many
 }
@@ -716,6 +709,7 @@ void purge_user_catalogue(object_catalog cattype) {
 		if (curcat->cat->cattype == cattype) {
 			siril_annot_catalogue_list = g_slist_remove_link(siril_annot_catalogue_list, cur);
 			siril_catalog_free(curcat->cat);
+			g_slist_free(cur);
 			printf("nb_elts_after: %d\n", g_slist_length(siril_annot_catalogue_list));
 			return;
 		}

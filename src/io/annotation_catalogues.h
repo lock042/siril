@@ -25,21 +25,6 @@
 
 typedef struct _CatalogObjects CatalogObjects;
 
-#define NB_AN_CATALOGUES 8
-
-typedef enum {
-	ANCAT_NONE = -1,
-	ANCAT_MESSIER = 0,
-	ANCAT_NGC = 1,
-	ANCAT_IC = 2,
-	ANCAT_LDN = 3,
-	ANCAT_SH2 = 4,
-	ANCAT_STARS = 5,
-	USER_DSO_CAT_INDEX = 6,
-	USER_SSO_CAT_INDEX = 7,
-	USER_TEMP_CAT_INDEX = 8
-} annotations_cat;
-
 typedef struct annotations_catalogue {
 	siril_catalogue *cat;
 	gboolean show;
@@ -47,17 +32,17 @@ typedef struct annotations_catalogue {
 
 GSList *find_objects_in_field(fits *fit);
 void cleanup_annotation_catalogues();
-gchar *get_annotation_catalog_filename(annotations_cat cat_index, gboolean for_reading);
-void add_item_in_catalogue(cat_item *item, annotations_cat cat_index, gboolean check_duplicates);
+gchar *get_annotation_catalog_filename(object_catalog cat_index, gboolean for_reading);
+void add_item_in_catalogue(cat_item *item, object_catalog cat_index, gboolean check_duplicates);
 cat_item *search_in_annotations_by_name(const char *input, object_catalog *cattype);
 cat_item *search_in_solar_annotations(sky_object_query_args *args);
-const char *cat_index_to_name(annotations_cat index);
+void set_annotation_visibility(object_catalog cat_index, gboolean visible);
 void refresh_annotation_visibility();
 void refresh_annotation_to_temp();
 
 gchar *get_catalogue_object_code(const CatalogObjects *object);
 gchar *get_catalogue_object_code_pretty(CatalogObjects *object);
-annotations_cat get_catalogue_object_cat(const CatalogObjects *object);
+object_catalog get_catalogue_object_cat(const CatalogObjects *object);
 gdouble get_catalogue_object_x(const CatalogObjects *object);
 gdouble get_catalogue_object_y(const CatalogObjects *object);
 gdouble get_catalogue_object_radius(const CatalogObjects *object);

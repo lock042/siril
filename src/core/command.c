@@ -9055,7 +9055,7 @@ parse_coords:
 display:
 	/* display the new 'found_object' */
 	button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	com.pref.gui.catalog[USER_TEMP_CAT_INDEX] = TRUE;
+	set_annotation_visibility(CAT_AN_USER_TEMP, TRUE);	// and display it
 	refresh_annotation_visibility();
 	if (!gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, TRUE);
