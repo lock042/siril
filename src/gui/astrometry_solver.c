@@ -125,7 +125,7 @@ static int get_server_from_combobox() {
 	return gtk_combo_box_get_active(GTK_COMBO_BOX(box));
 }
 
-static object_catalog get_astrometry_catalog(double fov, double mag, gboolean auto_cat) {
+static siril_cat_index get_astrometry_catalog(double fov, double mag, gboolean auto_cat) {
 	int ret;
 
 	if (auto_cat) {
@@ -676,7 +676,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		if (com.selection.w != 0 && com.selection.h != 0)
 			siril_log_message(_("Selection is not used with the astrometry.net solver\n"));
 
-		args->ref_stars->cattype = CAT_ASNET;
+		args->ref_stars->cat_index = CAT_ASNET;
 
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 			args->filename = g_strdup(com.uniq->filename);
@@ -692,7 +692,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	args->ref_stars->cattype = args->for_photometry_cc ?
+	args->ref_stars->cat_index = args->for_photometry_cc ?
 		get_photometry_catalog_from_GUI() :
 		get_astrometry_catalog(args->used_fov, args->ref_stars->limitmag, auto_cat);
 	gboolean has_local_cat = local_catalogues_available();
@@ -701,15 +701,15 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	if (auto_cat) {
 		if (has_local_cat) {
 			siril_debug_print("using local star catalogues\n");
-			args->ref_stars->cattype = CAT_LOCAL;
+			args->ref_stars->cat_index = CAT_LOCAL;
 		}
 	} else {
-		if (has_local_cat && (args->ref_stars->cattype == CAT_NOMAD || args->ref_stars->cattype == CAT_BSC || args->ref_stars->cattype == CAT_TYCHO2)) {
+		if (has_local_cat && (args->ref_stars->cat_index == CAT_NOMAD || args->ref_stars->cat_index == CAT_BSC || args->ref_stars->cat_index == CAT_TYCHO2)) {
 			siril_debug_print("using local star catalogues\n");
-			args->ref_stars->cattype = CAT_LOCAL;
+			args->ref_stars->cat_index = CAT_LOCAL;
 		}
 	}
-	args->ref_stars->columns = siril_catalog_columns(args->ref_stars->cattype);
+	args->ref_stars->columns = siril_catalog_columns(args->ref_stars->cat_index);
 	return 0;
 }
 

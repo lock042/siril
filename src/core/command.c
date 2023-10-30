@@ -8340,7 +8340,7 @@ int process_pcc(int nb) {
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
-	object_catalog cat = CAT_AUTO;
+	siril_cat_index cat = CAT_AUTO;
 	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve' or 'seqplatesolve'
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
@@ -8498,7 +8498,7 @@ int process_pcc(int nb) {
 
 		// catalog query parameters
 		args->ref_stars = calloc(1, sizeof(siril_catalogue));
-		args->ref_stars->cattype = cat;
+		args->ref_stars->cat_index = cat;
 		args->ref_stars->columns =  siril_catalog_columns(cat);
 		args->ref_stars->phot = FALSE;
 		if (target_coords) {
@@ -8652,7 +8652,7 @@ int process_pcc(int nb) {
 		args->manual = FALSE;
 		args->ref_stars = calloc(1, sizeof(siril_catalogue));
 		// preparing the catalogue query
-		args->ref_stars->cattype = cat;
+		args->ref_stars->cat_index = cat;
 		args->ref_stars->columns =  siril_catalog_columns(cat);
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
@@ -8681,7 +8681,7 @@ int process_conesearch(int nb) {
 	gboolean photometric = FALSE;
 	super_bool display_tag = BOOL_NOT_SET;
 	super_bool display_log = BOOL_NOT_SET;
-	object_catalog cat = CAT_AUTO;
+	siril_cat_index cat = CAT_AUTO;
 	gchar *obscode = NULL;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -8819,7 +8819,7 @@ int process_findcompstars(int nb) {
 	}
 	const char *target = word[1];
 	gboolean narrow = FALSE;
-	object_catalog used_cat = CAT_APASS;
+	siril_cat_index used_cat = CAT_APASS;
 	double delta_Vmag = 3.0, delta_BV = 0.5, emag = 0.03;
 	const char *nina_file = NULL;
 

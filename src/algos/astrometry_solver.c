@@ -411,12 +411,12 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; return 1; }
 static int get_catalog_stars(struct astrometry_data *args) {
-	if (args->ref_stars->cattype == CAT_ASNET)
+	if (args->ref_stars->cat_index == CAT_ASNET)
 		return 0;
 
 	if (!siril_catalog_conesearch(args->ref_stars))
 		return 1;
-	siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cattype));
+	siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cat_index));
 
 	CHECK_FOR_CANCELLATION_RET;
 	double ra0 = siril_world_cs_get_alpha(args->cat_center);
@@ -444,9 +444,9 @@ gpointer plate_solver(gpointer p) {
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
 	if (args->verbose) {
-		if (args->ref_stars->cattype == CAT_ASNET) {
+		if (args->ref_stars->cat_index == CAT_ASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
-		} else if (args->ref_stars->cattype == CAT_LOCAL) {
+		} else if (args->ref_stars->cat_index == CAT_LOCAL) {
 			siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f"
 						" degrees%s, using a limit magnitude of %.2f\n"),
 					args->used_fov / 60.0,
@@ -509,7 +509,7 @@ gpointer plate_solver(gpointer p) {
 
 #ifdef _WIN32
 		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
-		int nthreads = (!args->for_sequence || args->ref_stars->cattype == CAT_ASNET) ? com.max_thread : 1;
+		int nthreads = (!args->for_sequence || args->ref_stars->cat_index == CAT_ASNET) ? com.max_thread : 1;
 #else
 		// on UNIX, asnet is in parallel for sequences, we need to restrain to one per worker
 		int nthreads = (!args->for_sequence) ? com.max_thread : 1;
@@ -556,7 +556,7 @@ gpointer plate_solver(gpointer p) {
 	solution.size.y = args->fit->ry;
 	solution.pixel_size = args->pixel_size;
 
-	if (args->ref_stars->cattype == CAT_ASNET) {
+	if (args->ref_stars->cat_index == CAT_ASNET) {
 		if (!args->for_sequence) {
 			com.child_is_running = EXT_ASNET;
 			g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
@@ -596,7 +596,7 @@ gpointer plate_solver(gpointer p) {
 		// In both cases, we free the cat_items members before fetching
 		// and we project with the platesolve wcs
 		args->ref_stars->phot = TRUE;
-		if (args->ref_stars->cattype == CAT_LOCAL) {
+		if (args->ref_stars->cat_index == CAT_LOCAL) {
 			// we update the ref_stars structure to query again the local catalogues
 			args->ref_stars->center_ra = siril_world_cs_get_alpha(solution.image_center);
 			args->ref_stars->center_dec = siril_world_cs_get_delta(solution.image_center);
@@ -1307,12 +1307,12 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov
-	if (args->ref_stars->cattype == CAT_AUTO) {
+	if (args->ref_stars->cat_index == CAT_AUTO) {
 		if (args->ref_stars->limitmag <= 12.5)
-			args->ref_stars->cattype = CAT_TYCHO2;
+			args->ref_stars->cat_index = CAT_TYCHO2;
 		else if (args->ref_stars->limitmag <= 17.0)
-			args->ref_stars->cattype = CAT_NOMAD;
-		else args->ref_stars->cattype = CAT_GAIADR3;
+			args->ref_stars->cat_index = CAT_NOMAD;
+		else args->ref_stars->cat_index = CAT_GAIADR3;
 	}
 }
 
@@ -1329,7 +1329,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 			args->ref_stars->center_dec = siril_world_cs_get_delta(args->cat_center);
 		}
 	}
-	if (args->ref_stars->cattype != CAT_ASNET && !args->cat_center) {
+	if (args->ref_stars->cat_index != CAT_ASNET && !args->cat_center) {
 		siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
 		return 1;
 	}
@@ -1358,7 +1358,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
-	if (args->ref_stars->cattype == CAT_ASNET) {
+	if (args->ref_stars->cat_index == CAT_ASNET) {
 		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
@@ -1406,7 +1406,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->nb_filtered_images = seq->selnum;
 	seqargs->stop_on_error = FALSE;
 #ifdef _WIN32
-	seqargs->parallel = args->ref_stars->cattype != CAT_ASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
+	seqargs->parallel = args->ref_stars->cat_index != CAT_ASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
 #else
 	seqargs->parallel = TRUE;
 #endif
@@ -1423,7 +1423,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->user = args;
 
 	siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
-			catalog_to_str(args->ref_stars->cattype));
+			catalog_to_str(args->ref_stars->cat_index));
 	start_in_new_thread(generic_sequence_worker, seqargs);
 }
 

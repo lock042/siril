@@ -89,8 +89,8 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	 * the stars of the list. We can parse them to keep them within the light curve.
 	 */
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cattype = CAT_COMPSTARS;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cattype);
+	siril_cat->cat_index = CAT_COMPSTARS;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
 	siril_catalog_load_from_file(siril_cat, file_path);
 	
 	// parsing the file header to get metadata
@@ -252,7 +252,7 @@ int sort_compstars(struct compstars_arg *args) {
 
 	// preparing the output catalog
 	args->comp_stars = calloc(1, sizeof(siril_catalogue));
-	args->comp_stars->cattype = CAT_COMPSTARS;
+	args->comp_stars->cat_index = CAT_COMPSTARS;
 	args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS);
 	cat_item *comp_items = calloc(args->cat_stars->nbincluded + 1, sizeof(cat_item));
 	// and write the target star

@@ -32,23 +32,23 @@ typedef struct annotations_catalogue {
 
 GSList *find_objects_in_field(fits *fit);
 void cleanup_annotation_catalogues();
-gchar *get_annotation_catalog_filename(object_catalog cat_index, gboolean for_reading);
-void add_item_in_catalogue(cat_item *item, object_catalog cat_index, gboolean check_duplicates);
-cat_item *search_in_annotations_by_name(const char *input, object_catalog *cattype);
+gchar *get_annotation_catalog_filename(siril_cat_index cat_index, gboolean for_reading);
+void add_item_in_catalogue(cat_item *item, siril_cat_index cat_index, gboolean check_duplicates);
+cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_index);
 cat_item *search_in_solar_annotations(sky_object_query_args *args);
-void set_annotation_visibility(object_catalog cat_index, gboolean visible);
+void set_annotation_visibility(siril_cat_index cat_index, gboolean visible);
 void refresh_annotation_visibility();
 void refresh_annotation_to_temp();
 
 gchar *get_catalogue_object_code(const CatalogObjects *object);
 gchar *get_catalogue_object_code_pretty(CatalogObjects *object);
-object_catalog get_catalogue_object_cat(const CatalogObjects *object);
+siril_cat_index get_catalogue_object_cat(const CatalogObjects *object);
 gdouble get_catalogue_object_x(const CatalogObjects *object);
 gdouble get_catalogue_object_y(const CatalogObjects *object);
 gdouble get_catalogue_object_radius(const CatalogObjects *object);
 
 void refresh_found_objects();
-void purge_user_catalogue(object_catalog cattype);
+void purge_user_catalogue(siril_cat_index cat_index);
 gboolean is_inside(fits *fit, double ra, double dec);
 int load_csv_targets_to_temp(const gchar *filename);
 int load_siril_cat_to_temp(siril_catalogue *siril_cat);

@@ -90,7 +90,7 @@ gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
 double get_fov_arcmin(double resolution, int rx, int ry);
 
-const char *catalog_to_str(object_catalog cat);
+const char *catalog_to_str(siril_cat_index cat);
 
 /* from the GUI */
 gboolean end_process_catsearch(gpointer p);

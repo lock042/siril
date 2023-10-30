@@ -73,7 +73,7 @@ typedef enum {
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_ASNET = 100,	// solve-field local (astrometry.net)
-} object_catalog;
+} siril_cat_index;
 
 typedef enum {
 	CAT_FIELD_UNDEF = -1,
@@ -124,7 +124,7 @@ typedef struct {
 } cat_item;
 
 typedef struct {
-	object_catalog cattype;
+	siril_cat_index cat_index;
 	double center_ra;
 	double center_dec;
 	double radius; // fov radius (in degrees)
@@ -164,9 +164,9 @@ typedef struct {
 } conesearch_args;
 
 
-uint32_t siril_catalog_columns(object_catalog cat);
+uint32_t siril_catalog_columns(siril_cat_index cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
-const char *catalog_to_str(object_catalog cat);
+const char *catalog_to_str(siril_cat_index cat);
 const gchar **get_cat_colums_names();
 
 void siril_catalog_free_item(cat_item *item);
@@ -175,8 +175,8 @@ void siril_catalog_free(siril_catalogue *siril_cat);
 void siril_catalog_reset_projection(siril_catalogue *siril_cat);
 gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);
 void siril_catalogue_copy_item(cat_item *from, cat_item *to);
-gboolean is_star_catalogue(object_catalog Catalog);
-gboolean display_names_for_catalogue(object_catalog Catalog);
+gboolean is_star_catalogue(siril_cat_index Catalog);
+gboolean display_names_for_catalogue(siril_cat_index Catalog);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
@@ -185,7 +185,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars);
-siril_catalogue *siril_catalog_fill_from_fit(fits *fit, object_catalog cat, float limit_mag);
+siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, float limit_mag);
 gpointer conesearch_worker(gpointer p);
 
 double compute_coords_distance(double ra1, double dec1, double ra2, double dec2);

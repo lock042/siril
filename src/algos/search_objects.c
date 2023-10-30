@@ -41,7 +41,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 	gchar **token, *objname = NULL, *objtype = NULL;
 	int nargs;
 	gboolean check_for_duplicates = FALSE;
-	object_catalog target_cat = CAT_UNDEF;
+	siril_cat_index target_cat = CAT_UNDEF;
 	if (!buffer || buffer[0] == '\0')
 		return 1;
 
@@ -237,14 +237,14 @@ int cached_object_lookup(sky_object_query_args *args) {
 	args->retval = 1;
 	if (!solarsystem) {
 		// local search first, if useful
-		object_catalog cattype;
-		args->item = search_in_annotations_by_name(args->name, &cattype);
+		siril_cat_index cat_index;
+		args->item = search_in_annotations_by_name(args->name, &cat_index);
 		if (args->item) {
 			SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(args->item->ra, args->item->dec);
 			gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02.2lfs");
 			gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02.2lf\"");
 			siril_log_message(_("Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"),
-					args->name, args->item->name, catalog_to_str(cattype),
+					args->name, args->item->name, catalog_to_str(cat_index),
 					alpha, delta);
 			g_free(alpha);
 			g_free(delta);

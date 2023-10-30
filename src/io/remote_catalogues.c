@@ -61,9 +61,9 @@ static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
 // to be freed by the caller
 // When adding a new catalog that can be queried through TAP:
 // - the required query fields, catalogue code and server need to be added
-// - it needs to be added to the object_catalog enum
+// - it needs to be added to the siril_cat_index enum
 // Warning: For Vizier, the catcode needs to be enclosed between ", hence the %22 chars
-static cat_tap_query_fields *catalog_to_tap_fields(object_catalog cat) {
+static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 	cat_tap_query_fields *tap = calloc(1, sizeof(cat_tap_query_fields));
 	switch (cat) {
 		case CAT_TYCHO2:
@@ -338,13 +338,13 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 	GString *url;
 	gchar *fmtstr, *dt;
 	const gchar **cat_columns = get_cat_colums_names();
-	switch (siril_cat->cattype){
+	switch (siril_cat->cat_index){
 		/////////////////////////////////////////////////////////////
 		// TAP QUERY to csv - preferred way as it requires no parsing
 		/////////////////////////////////////////////////////////////
 		case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE:;
-			cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cattype);
-			uint32_t catcols = siril_catalog_columns(siril_cat->cattype);
+			cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index);
+			uint32_t catcols = siril_catalog_columns(siril_cat->cat_index);
 			url = g_string_new(fields->tap_server);
 			gboolean first = TRUE;
 			for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
@@ -525,11 +525,11 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat) {
 	gchar *filename = NULL;
 	gchar *dt = NULL, *fmtstr = NULL;
-	switch (siril_cat->cattype) {
+	switch (siril_cat->cat_index) {
 		case CAT_TYCHO2 ... CAT_AAVSO_CHART:
 			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s.csv", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt);
 			filename = g_strdup_printf(fmtstr,
-				(int)siril_cat->cattype,
+				(int)siril_cat->cat_index,
 				siril_cat->center_ra,
 				siril_cat->center_dec,
 				siril_cat->radius,
@@ -545,7 +545,7 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat) {
 			dt = date_time_to_date_time(siril_cat->dateobs);
 			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%%s_%%s.csv", catcodefmt, rafmt, decfmt, radiusfmt);
 			filename = g_strdup_printf(fmtstr,
-				(int)siril_cat->cattype,
+				(int)siril_cat->cat_index,
 				siril_cat->center_ra,
 				siril_cat->center_dec,
 				siril_cat->radius,
@@ -631,7 +631,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	g_free(str);
 
 	if (catalog_is_in_cache) {
-		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cattype));
+		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cat_index));
 		return filepath;
 	}
 	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
@@ -658,7 +658,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 
 	/* save (and parse if required)*/
 	if (buffer) {
-		switch (siril_cat->cattype) {
+		switch (siril_cat->cat_index) {
 			case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE: // TAP query, no parsing, we just write the whole buffer to the output stream
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 					g_warning("%s\n", error->message);
@@ -711,15 +711,15 @@ download_error:
    It sends a conesearch around given center, within given radius and for stars below limit_mag
    Internally, it uses download_catalog to search cache and download catalog as required
    The cache folder (named download_cache) stores all downloaded queries in the form 
-   of csv files, named as 'cat-cattype-ra-dec-radius[-mag].csv' or
-   'cat-cattype-ra-dec-radius-date-obscode.csv' for solar syatem queries (IMCCE)
+   of csv files, named as 'cat-cat_index-ra-dec-radius[-mag].csv' or
+   'cat-cat_index-ra-dec-radius-date-obscode.csv' for solar syatem queries (IMCCE)
    It fills the siril_catalogue given in input
    Returns the number of stars fetched
 */
 int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cattype >= CAT_AN_MESSIER) {
+	if (siril_cat->cat_index >= CAT_AN_MESSIER) {
 		siril_debug_print("Online cat query - Should not happen\n");
 		return 0;
 	}

@@ -533,7 +533,7 @@ gboolean local_catalogues_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cattype != CAT_LOCAL) {
+	if (siril_cat->cat_index != CAT_LOCAL) {
 		siril_debug_print("Local cat query - Should not happen\n");
 		return 0;
 	}
