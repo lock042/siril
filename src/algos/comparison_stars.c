@@ -91,7 +91,10 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
 	siril_cat->cat_index = CAT_COMPSTARS;
 	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
-	siril_catalog_load_from_file(siril_cat, file_path);
+	if (siril_catalog_load_from_file(siril_cat, file_path)) {
+		siril_catalog_free(siril_cat);
+		return 1;
+	}
 	
 	// parsing the file header to get metadata
 	if (siril_cat->header) { 
@@ -230,9 +233,10 @@ static gboolean is_same_star(cat_item *s1, cat_item *s2) {
 			(fabs(s1->dec - s2->dec) < 2.0 * ONE_ARCSEC);
 }
 
-static void fill_compstar_item(cat_item *item, double ra, double dec, gchar *name, const gchar *type) {
+static void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
 	item->ra = ra;
 	item->dec = dec;
+	item->mag = mag;
 	if (name)
 		item->name = g_strdup(name);
 	item->type = g_strdup(type);
@@ -256,7 +260,7 @@ int sort_compstars(struct compstars_arg *args) {
 	args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS);
 	cat_item *comp_items = calloc(args->cat_stars->nbincluded + 1, sizeof(cat_item));
 	// and write the target star
-	fill_compstar_item(&comp_items[0], args->target_star->ra, args->target_star->dec, args->target_star->name, "Target");
+	fill_compstar_item(&comp_items[0], args->target_star->ra, args->target_star->dec, args->target_star->mag, args->target_star->name, "Target");
 	int nb_phot_stars = 0;
 
 	// prepare the reference values
@@ -292,7 +296,7 @@ int sort_compstars(struct compstars_arg *args) {
 				first = FALSE;
 			}
 			gchar *name = (item->name) ? g_strdup((item->name)) : g_strdup_printf("%d", nb_phot_stars + 1);
-			fill_compstar_item(&comp_items[nb_phot_stars + 1], item->ra, item->dec, name, startype);
+			fill_compstar_item(&comp_items[nb_phot_stars + 1], item->ra, item->dec, item->mag, name, startype);
 			siril_log_message(_("Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf\n"),
 					nb_phot_stars + 1, item->mag, BVi,
 					item->mag - args->target_star->mag,

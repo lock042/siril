@@ -69,6 +69,7 @@ typedef enum {
 	CAT_AN_USER_SSO = 67,
 	CAT_AN_USER_TEMP = 68,
 // Special
+	CAT_SHOW = 96, // for the show command
 	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)

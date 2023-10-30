@@ -513,7 +513,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		double ra = parse_hms(rastr);	// in hours
 		json_reader_end_member(reader);
 		if (!isnan(ra) && !isnan(dec))
-			g_output_stream_printf(output_stream, &n, NULL, NULL, "%s,%g,%+g,%g,%g,%g,%g\n", name, ra, dec, mag, bmag, e_mag, e_bmag); //TODO get accuracy for ra/dec
+			g_output_stream_printf(output_stream, &n, NULL, NULL, "%s,%g,%+g,%g,%g,%g,%g\n", name, ra, dec, mag, bmag, e_mag, e_bmag);
 		json_reader_end_element(reader);
 	}
 	g_object_unref(reader);
@@ -728,6 +728,7 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 		return 0;
 	if (!siril_catalog_load_from_file(siril_cat, catfile))
 		return siril_cat->nbitems;
+	siril_catalog_free(siril_cat);
 	return 0;
 }
 

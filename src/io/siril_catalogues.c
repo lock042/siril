@@ -170,10 +170,11 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 		case CAT_AN_USER_SSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV) | (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_COMPSTARS:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
 		case CAT_LOCAL:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
+		case CAT_SHOW:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 		default:
 			return 0;
@@ -263,6 +264,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return "user-SSO";
 		case CAT_AN_USER_TEMP:
 			return "user-temp";
+		case CAT_SHOW:
+			return "input";
 		default:
 			return _("unknown");
 	}
@@ -436,6 +439,7 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 	g_free(siril_cat->IAUcode);
 	g_free(siril_cat->header);
 	free(siril_cat);
+	siril_cat = NULL;
 }
 
 void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
@@ -512,8 +516,11 @@ int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
 	else if (siril_cat->cat_index == CAT_LOCAL)
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
-	else
-		siril_debug_print("trying to conesearch an invalid catalog type");
+	else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
+		nbstars = siril_cat->nbitems;
+	} else {
+		siril_debug_print("trying to conesearch an invalid catalog type\n");
+	}
 	return nbstars;
 }
 
@@ -538,7 +545,6 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	if (!cat_items) {
 		PRINT_ALLOC_ERR;
 		g_object_unref(input_stream);
-		siril_catalog_free(siril_cat);
 		return 1;
 	}
 
@@ -960,7 +966,8 @@ gpointer conesearch_worker(gpointer p) {
 		goto exit_conesearch;
 	}
 	int nb_stars = siril_cat->nbitems;
-	sort_cat_items_by_mag(siril_cat);
+	if (siril_cat->cat_index != CAT_SHOW)
+		sort_cat_items_by_mag(siril_cat);
 	int j = 0;
 	// preparing the annotation temp catalog if has_GUI
 	if (args->has_GUI) {

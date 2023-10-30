@@ -8983,7 +8983,7 @@ int process_parse(int nb) {
 }
 
 int process_show(int nb) {
-	// show [-clear] { -list=file | [name] ra dec }
+	// show [-clear] { -list=file | [name] ra dec } [-log={on|off}] [-tag={on|off}]
 	SirilWorldCS *coords = NULL;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -9000,15 +9000,43 @@ int process_show(int nb) {
 			return CMD_OK;
 		}
 	}
+	siril_catalogue *siril_cat = NULL;
+	conesearch_args *args = NULL;
+	super_bool display_tag = BOOL_NOT_SET;
+	super_bool display_log = BOOL_NOT_SET;
+	siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cat_index = CAT_SHOW;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	args = init_conesearch();
+	args->siril_cat = siril_cat;
+	args->has_GUI = TRUE;
+	args->fit = &gfit;
 
+	//passing a list
 	if (g_str_has_prefix(word[next_arg], "-list=")) {
 		const char *file = word[next_arg] + 6;
-		if (load_csv_targets_to_temp(file))
-			return CMD_ARG_ERROR;
-		goto display;
+		if (siril_catalog_load_from_file(siril_cat, file)) {
+			goto show_exit_on_failure;
+		}
+		next_arg++;
+		while (next_arg < nb) {
+			if (!g_ascii_strcasecmp(word[next_arg], "-nolog")) {
+				display_log = BOOL_FALSE;
+			} else if (!g_ascii_strcasecmp(word[next_arg], "-notag")) {
+				display_tag = BOOL_FALSE;
+			} else {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+				goto show_exit_on_failure;
+			}
+			next_arg++;
+		}
+		args->display_log = (display_log == BOOL_NOT_SET) ? (gboolean)has_field(siril_cat, NAME) : (gboolean)display_log;
+		args->display_tag = (display_tag == BOOL_NOT_SET) ? (gboolean)has_field(siril_cat, NAME) : (gboolean)display_tag;
+		start_in_new_thread(conesearch_worker, args);
+		return CMD_OK;
 	}
 
-	GtkToggleToolButton *button = NULL;
+	// passing coords (and optionnaly name)
 parse_coords:
 	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
 			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
@@ -9017,7 +9045,7 @@ parse_coords:
 		if (!sep) {
 			if (nb <= next_arg) {
 				siril_log_message(_("Could not parse target coordinates\n"));
-				return CMD_ARG_ERROR;
+				goto show_exit_on_failure;
 			}
 			coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
 			next_arg += 2;
@@ -9029,7 +9057,7 @@ parse_coords:
 		}
 		if (!coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
-			return CMD_ARG_ERROR;
+			goto show_exit_on_failure;
 		}
 	}
 	else {
@@ -9039,37 +9067,31 @@ parse_coords:
 			goto parse_coords;
 		}
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
-		return CMD_ARG_ERROR;
-	}
-	if (item) {
-		siril_catalog_free_item(item);
-		item = NULL;
+		goto show_exit_on_failure;
 	}
 	item = calloc(1, sizeof(cat_item));
 	item->ra = siril_world_cs_get_alpha(coords);
 	item->dec = siril_world_cs_get_delta(coords);
-	if (name)
+	siril_world_cs_unref(coords);
+	if (name) {
 		item->name = g_strdup(name);
-	add_item_in_catalogue(item, CAT_AN_USER_TEMP, FALSE);
-
-display:
-	/* display the new 'found_object' */
-	button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	set_annotation_visibility(CAT_AN_USER_TEMP, TRUE);	// and display it
-	refresh_annotation_visibility();
-	if (!gtk_toggle_tool_button_get_active(button)) {
-		gtk_toggle_tool_button_set_active(button, TRUE);
+		siril_cat->columns |= (1 << CAT_FIELD_NAME);
+		args->display_log = TRUE;
+		args->display_tag = TRUE;
 	} else {
-		refresh_found_objects();
-		redraw(REDRAW_OVERLAY);
+		item->name = g_strdup("object");
+		args->display_log = FALSE;
+		args->display_tag = FALSE;
 	}
-	if (item) {
-		siril_catalog_free_item(item);
-		item = NULL;
-	}
+	siril_catalog_append_item(siril_cat, item);
+	start_in_new_thread(conesearch_worker, args);
+	return CMD_OK;
+
+show_exit_on_failure:
 	if (coords)
 		siril_world_cs_unref(coords);
-	return CMD_OK;
+	free_conesearch(args);
+	return CMD_ARG_ERROR;
 }
 
 int read_cut_pair(char *value, point *pair) {
