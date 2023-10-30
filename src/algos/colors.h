@@ -6,6 +6,8 @@ typedef enum {
 	EXTRACT_HSL,
 	EXTRACT_HSV,
 	EXTRACT_CIELAB,
+	EXTRACT_YUV,
+	EXTRACT_UNDEFINED // this must always be the last one
 } channel_extract_type;
 
 struct extract_channels_data {
@@ -45,6 +47,7 @@ int pos_to_neg(fits *fit);
 
 int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string);
 
+void fits_convert_ranges(fits *fit, gboolean export);
 gpointer extract_channels(gpointer p);
 
 void background_neutralize(fits* fit, rectangle black_selection);

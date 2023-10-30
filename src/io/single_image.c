@@ -29,6 +29,7 @@
 #include "algos/statistics.h"
 #include "algos/annotate.h"
 #include "algos/ccd-inspector.h"
+#include "algos/colors.h"
 #include "algos/background_extraction.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
@@ -218,6 +219,8 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
+		fits_convert_ranges(dest, FALSE); // Convert non-standard ranges associated with different color spaces
+
 	}
 	if (is_sequence) {
 		*is_sequence = single_sequence;

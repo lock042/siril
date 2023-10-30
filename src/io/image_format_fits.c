@@ -46,6 +46,7 @@
 #include "io/single_image.h"
 #include "image_format_fits.h"
 #include "algos/siril_wcs.h"
+#include "algos/colors.h"
 
 const char *fit_extension[] = {
 		".fit",
@@ -2325,6 +2326,8 @@ gchar *set_right_extension(const char *name) {
 /* creates, saves and closes the file associated to f, overwriting previous  */
 int savefits(const char *name, fits *f) {
 	int status;
+
+	fits_convert_ranges(f, TRUE); // Convert non-standard ranges associated with different color spaces
 
 	f->naxes[0] = f->rx;
 	f->naxes[1] = f->ry;

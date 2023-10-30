@@ -38,7 +38,12 @@
 #include "algos/statistics.h"
 #include "algos/extraction.h"
 
-static gchar *add_filter_str[] = { "R", "G", "B"};
+static gchar *add_filter_str_rgb[] = { "R", "G", "B"};
+static gchar *add_filter_str_hsl[] = { "HSL H", "HSL S", "HSL L"};
+static gchar *add_filter_str_hsv[] = { "HSV H", "HSV S", "HSV V"};
+static gchar *add_filter_str_lab[] = { "LAB L", "LAB A", "LAB B"};
+static gchar *add_filter_str_yuv[] = { "YUV Y", "YUV U", "YUV V"};
+static gchar **add_filter_str[] = { add_filter_str_rgb, add_filter_str_hsl, add_filter_str_hsv, add_filter_str_lab, add_filter_str_yuv, NULL };
 /*
  * A Fast HSL-to-RGB Transform
  * by Ken Fishkin
@@ -749,9 +754,10 @@ static gpointer extract_channels_ushort(gpointer p) {
 	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
 			args->str_type);
 	gettimeofday(&t_start, NULL);
-
+	int t = 0;
 	switch (args->type) {
 	case EXTRACT_RGB:
+		t = 0;
 		break;
 	case EXTRACT_HSL:
 #ifdef _OPENMP
@@ -767,6 +773,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(l * USHRT_MAX_DOUBLE);
 		}
+		t = 1;
 		break;
 	case EXTRACT_HSV:
 #ifdef _OPENMP
@@ -782,6 +789,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[GLAYER][i] = round_to_WORD(s * USHRT_MAX_DOUBLE);
 			buf[BLAYER][i] = round_to_WORD(v * USHRT_MAX_DOUBLE);
 		}
+		t = 2;
 		break;
 	case EXTRACT_CIELAB:
 #ifdef _OPENMP
@@ -800,12 +808,31 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[BLAYER][i] = round_to_WORD(
 					((b + 128) / 255.) * USHRT_MAX_DOUBLE);	// -128 < b < 127
 		}
-
+		t = 3;
+		break;
+	case EXTRACT_YUV:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0; i < n; i++) {
+			float y, u, v;
+			float red = (float) buf[RLAYER][i] / USHRT_MAX_SINGLE;
+			float green = (float) buf[GLAYER][i] / USHRT_MAX_SINGLE;
+			float blue = (float) buf[BLAYER][i] / USHRT_MAX_SINGLE;
+			rgb_to_yuvf(red, green, blue, &y, &u, &v);
+			buf[RLAYER][i] = round_to_WORD(y * USHRT_MAX_SINGLE); // 0 < y < 1.f
+			buf[GLAYER][i] = round_to_WORD(u * USHRT_MAX_SINGLE); // 0 < u < 1.f
+			buf[BLAYER][i] = round_to_WORD(v * USHRT_MAX_SINGLE); // 0 < v < 1.f
+		}
+		t = 4;
+		break;
+	default:
+		break;
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
-			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			update_filter_information(args->fit, add_filter_str[t][i], TRUE);
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
@@ -833,9 +860,11 @@ static gpointer extract_channels_float(gpointer p) {
 	siril_log_color_message(_("%s channel extraction: processing...\n"), "green",
 			args->str_type);
 	gettimeofday(&t_start, NULL);
-
+	gchar *fitfilter = g_strdup(args->fit->filter);
+	int t = 0;
 	switch (args->type) {
 	case EXTRACT_RGB:
+		t = 0;
 		break;
 	case EXTRACT_HSL:
 #ifdef _OPENMP
@@ -851,6 +880,7 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[GLAYER][i] = (float) s;
 			buf[BLAYER][i] = (float) l;
 		}
+		t = 1;
 		break;
 	case EXTRACT_HSV:
 #ifdef _OPENMP
@@ -866,6 +896,7 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[GLAYER][i] = (float) s;
 			buf[BLAYER][i] = (float) v;
 		}
+		t = 2;
 		break;
 	case EXTRACT_CIELAB:
 #ifdef _OPENMP
@@ -878,16 +909,34 @@ static gpointer extract_channels_float(gpointer p) {
 			double blue = (double) buf[BLAYER][i];
 			rgb_to_xyz(red, green, blue, &x, &y, &z);
 			xyz_to_LAB(x, y, z, &L, &a, &b);
-			buf[RLAYER][i] = (float) (L / 100.);		// 0 < L < 100
+			buf[RLAYER][i] = (float) (L / 100.);			// 0 < L < 100
 			buf[GLAYER][i] = (float) ((a + 128.) / 255.);	// -128 < a < 127
 			buf[BLAYER][i] = (float) ((b + 128.) / 255.);	// -128 < b < 127
 		}
-
+		t = 3;
+		break;
+	case EXTRACT_YUV:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0; i < n; i++) {
+			float y, u, v;
+			float red = buf[RLAYER][i];
+			float green = buf[GLAYER][i];
+			float blue = buf[BLAYER][i];
+			rgb_to_yuvf(red, green, blue, &y, &u, &v);
+			buf[RLAYER][i] = y; // 0.0 < y < 1.0
+			buf[GLAYER][i] = u + 0.5f; // -0.5 < u < 0.5
+			buf[BLAYER][i] = v + 0.5f; // -0.5 < v < 0.5
+		}
+		t = 4;
+		break;
+	default:
+		break;
 	}
-	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
 		if (args->channel[i]) {
-			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			update_filter_information(args->fit, add_filter_str[t][i], FALSE);
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
@@ -916,6 +965,134 @@ gpointer extract_channels(gpointer p) {
 	free(args);
 	siril_add_idle(end_generic, NULL);
 	return retval;
+}
+
+static void ushort_convert_ranges(fits *fit, gboolean export, channel_extract_type type) {
+	// TODO: finish this function
+}
+
+static void float_convert_ranges(fits *fit, gboolean export, channel_extract_type type) {
+	size_t n = fit->rx * fit->ry;
+	switch (type) {
+		case EXTRACT_CIELAB:
+			if (export) {
+				siril_log_message(_("Converting Siril floating-point range to CIELAB values\n"));
+				if (fit->naxes[2] == 3) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+					for (size_t i = 0; i < n; i++) {
+						fit->fpdata[RLAYER][i] *= 100.f; // 0 < L < 100
+						fit->fpdata[GLAYER][i] = fit->fpdata[GLAYER][i] * 255.f - 128.f;	// -128 < a < 127
+						fit->fpdata[BLAYER][i] = fit->fpdata[BLAYER][i] * 255.f - 128.f;	// -128 < b < 127
+					}
+				} else {
+					if (!strcmp(fit->filter, "LAB L")) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+						for (size_t i = 0; i < n; i++)
+							fit->fdata[i] *= 100.f; // 0 < L < 100
+					} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+						for (size_t i = 0; i < n; i++)
+						fit->fdata[i] = fit->fdata[i] * 255.f - 128.f;	// -128 < a or b < 127
+					}
+				}
+			} else {
+				siril_log_message(_("Converting CIELAB values to Siril floating-point range\n"));
+				if (fit->naxes[2] == 3) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+					for (size_t i = 0; i < n; i++) {
+						fit->fpdata[RLAYER][i] /= 100.f; // 0 < L < 100
+						fit->fpdata[GLAYER][i] = ((fit->fpdata[GLAYER][i] + 128.f) / 255.f);	// -128 < a < 127
+						fit->fpdata[BLAYER][i] = ((fit->fpdata[BLAYER][i] + 128.f) / 255.f);	// -128 < b < 127
+					}
+				} else {
+					if (!strcmp(fit->filter, "LAB L")) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+						for (size_t i = 0; i < n; i++)
+							fit->fdata[i] /= 100.f; // 0 < L < 100
+					} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+						for (size_t i = 0; i < n; i++)
+						fit->fdata[i] = (fit->fdata[i] + 128.f) / 255.f;	// -128 < a or b < 127
+					}
+				}
+			}
+			break;
+		case EXTRACT_YUV:
+			if (export) {
+				siril_log_message(_("Converting Siril floating-point range to YUV values\n"));
+				if (fit->naxes[2] == 3) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+					for (size_t i = 0; i < n; i++) {
+						fit->fpdata[GLAYER][i] -= 0.5f;	// -0.5 < u < 0.5
+						fit->fpdata[BLAYER][i] -= 0.5f;	// -0.5 < v < 0.5
+					}
+				} else {
+					if (strcmp(fit->filter, "YUV Y")) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+						for (size_t i = 0; i < n; i++) {
+							fit->fdata[i] -= 0.5f;	// -0.5 < u < 0.5
+						}
+					}
+				}
+			} else {
+				siril_log_message(_("Converting YUV values to Siril floating-point range\n"));
+				if (fit->naxes[2] == 3) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+					for (size_t i = 0; i < n; i++) {
+						fit->fpdata[GLAYER][i] += 0.5f;	// -0.5 < u < 0.5
+						fit->fpdata[BLAYER][i] += 0.5f;	// -0.5 < v < 0.5
+					}
+				} else {
+					if (strcmp(fit->filter, "YUV Y")) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+						for (size_t i = 0; i < n; i++) {
+							fit->fdata[i] += 0.5f;	// -0.5 < u < 0.5
+						}
+					}
+				}
+			}
+		default:
+			// Any types that don't need any conversion
+			break;
+	}
+}
+
+// A function to convert ranges in FITS,if required, if the FILTER header indicates
+// that conversion is required.
+void fits_convert_ranges(fits *fit, gboolean export) {
+	channel_extract_type type = EXTRACT_RGB;
+	while (add_filter_str[type]) {
+		if (!strncmp(fit->filter, add_filter_str[type][0], 3)) {
+			break;
+		}
+		type++;
+	}
+	if (type == EXTRACT_UNDEFINED) return;
+
+	if (fit->type == DATA_USHORT)
+		ushort_convert_ranges(fit, export, type);
+	else
+		float_convert_ranges(fit, export, type);
 }
 
 /****************** Color calibration ************************/
