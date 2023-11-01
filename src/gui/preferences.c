@@ -52,6 +52,12 @@ static gchar *st_exe = NULL;
 static gchar *st_weights = NULL;
 static starnet_version st_version = NIL;
 
+static gboolean scripts_updated = FALSE;
+
+void notify_script_update() {
+	scripts_updated = TRUE;
+}
+
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	const gchar *dir;
@@ -696,6 +702,7 @@ static void dump_ui_to_global_var() {
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
 	update_preferences_from_model();
+	scripts_updated = FALSE;
 #ifndef HAVE_LIBGIT2
 	hide_git_widgets();
 #else
@@ -738,9 +745,13 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 #ifdef HAVE_LIBGIT2
 		if (!com.pref.use_scripts_repository)
 			on_disable_gitscripts();
+		else
 #endif
+			refresh_script_menu(scripts_updated);	// To update the UI with scripts from the repo
+			// Note this line is part of the if/else with the #ifdef and always runs
+			// otherwise. This is intentional.
+		scripts_updated = FALSE;
 		initialize_FITS_name_entries();	// To update UI with new preferences
-		refresh_script_menu();	// To update the UI with scripts from the repo
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();

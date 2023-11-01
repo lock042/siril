@@ -561,7 +561,12 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp, &status);
 	if (status == KEY_NO_EXIST) {
-		fit->ccd_temp = -999;
+		fit->ccd_temp = -999.9;
+	}
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "SET-TEMP", &(fit->set_temp), NULL, &status);
+	if (status == KEY_NO_EXIST) {
+		fit->set_temp = -999.9;
 	}
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
@@ -669,6 +674,10 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 	gchar **token = g_strsplit(header, "\n", -1);
 	guint nargs = g_strv_length(token);
 
+	// we need to init these 2 fields
+	fit->ccd_temp = -999.9;
+	fit->set_temp = -999.9;
+
 	for (int i = 0; i < nargs; i++) {
 		int status = 0;
 		char card[FLEN_CARD] = { 0 };
@@ -725,6 +734,8 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->focal_length = g_ascii_strtod(value, NULL) * 1000.0;
 		} else if (siril_str_has_prefix(card, CCD_TEMP)) {
 			fit->ccd_temp = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SET-TEMP=")) {
+			fit->set_temp = g_ascii_strtod(value, NULL);
 		} else if (siril_str_has_prefix(card, EXPOSURE)) {
 			fit->exposure = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "STACKCNT=")) {
@@ -1610,9 +1621,14 @@ void save_fits_header(fits *fit) {
 				"Camera focal length", &status);
 
 	status = 0;
-	if (fit->ccd_temp != -999)
+	if (fit->ccd_temp > -999.0)
 		fits_update_key(fit->fptr, TDOUBLE, "CCD-TEMP", &(fit->ccd_temp),
 				"CCD temp in C", &status);
+
+	status = 0;
+	if (fit->set_temp > -999.0)
+		fits_update_key(fit->fptr, TDOUBLE, "SET-TEMP", &(fit->set_temp),
+				"Temperature setting in C", &status);
 
 	status = 0;
 	if (fit->filter[0] != '\0')
@@ -2587,7 +2603,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 
 			if ((oper & CP_INIT)) {
 				// clearing to->fdata allocated above
-				memset(to->fdata, 0, nbdata * depth * sizeof(WORD));
+				memset(to->fdata, 0, nbdata * depth * sizeof(float));
 			}
 		}
 		else {
@@ -2752,6 +2768,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->stackcnt = from->stackcnt;
 	to->aperture = from->aperture;
 	to->ccd_temp = from->ccd_temp;
+	to->set_temp = from->set_temp;
 	to->cvf = from->cvf;
 	to->key_gain = from->key_gain;
 	to->key_offset = from->key_offset;

@@ -54,8 +54,13 @@ void siril_get_documentation() {
 	if (!lang) {
 		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
 	}
-	/* Use the tag when documentation will be tagged */
-	gchar *url = g_build_path("/", GET_DOCUMENTATION_URL, "/", lang, "/latest", NULL);
+	const gchar *version = NULL;
+#ifdef SIRIL_UNSTABLE
+	version = "latest";
+#else
+	version = "stable";
+#endif
+	gchar *url = g_build_path (G_DIR_SEPARATOR_S, GET_DOCUMENTATION_URL, lang, version, NULL);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_log_message(_("Siril documentation URL: %s\n"), url);
 

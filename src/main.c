@@ -410,17 +410,18 @@ static void siril_macos_setenv(const char *progname) {
 		/* we define the relocated resources path */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", tmp, TRUE);
 
+		g_snprintf(tmp, sizeof(tmp), "%s/../Resources/bin", app_dir);
 		path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
-			+ strlen(app_dir) + 2;
+			+ strlen(tmp) + 2;
 		path = g_try_malloc(path_len);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		if (g_getenv("PATH"))
-			g_snprintf(path, path_len, "%s:%s", app_dir, g_getenv("PATH"));
+			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
 		else
-			g_snprintf(path, path_len, "%s", app_dir);
+			g_snprintf(path, path_len, "%s", tmp);
 		/* the relocated path is storred in this env. variable in order to be reused if needed */
 		g_free(app_dir);
 		g_setenv("PATH", path, TRUE);

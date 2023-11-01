@@ -1970,15 +1970,18 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 
 int readheif(const char* name, fits *fit, gboolean interactive){
 	struct heif_error err;
-
 #if LIBHEIF_HAVE_VERSION(1,13,0)
 	heif_init(NULL);
 #endif
+
 	struct heif_context *ctx = heif_context_alloc();
 	err = heif_context_read_from_file(ctx, name, NULL);
 	if (err.code) {
 		g_printf("%s\n", err.message);
 		heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+		heif_deinit();
+#endif
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -1987,6 +1990,9 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	if (num == 0) {
 		siril_log_color_message(_("Input file contains no readable images.\n"), "red");
 		heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+		heif_deinit();
+#endif
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -1998,6 +2004,9 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	if (err.code) {
 		g_printf("%s\n", err.message);
 		heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+		heif_deinit();
+#endif
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2017,6 +2026,9 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		} else {
 			if (!heif_dialog(ctx, &selected_image)) {
 				heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+				heif_deinit();
+#endif
 				return OPEN_IMAGE_CANCEL;
 			}
 		}
@@ -2028,6 +2040,9 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	if (err.code) {
 		g_printf("%s\n", err.message);
 		heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+		heif_deinit();
+#endif
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2078,6 +2093,9 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		g_printf("%s\n", err.message);
 		heif_image_handle_release(handle);
 		heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+		heif_deinit();
+#endif
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2092,6 +2110,15 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	unsigned int nchannels = has_alpha ? 4 : 3;
 
 	data = malloc(height * width * 3 * sizeof(WORD));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		heif_image_handle_release(handle);
+		heif_context_free(ctx);
+#if LIBHEIF_HAVE_VERSION(1,13,0)
+	heif_deinit();
+#endif
+		return OPEN_IMAGE_ERROR;
+	}
 
 	gboolean threaded = !get_thread_run();
 
