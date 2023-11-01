@@ -890,7 +890,8 @@ static void draw_stars(const draw_data_t* dd) {
 
 	/* quick photometry */
 	if (!com.script && gui.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-		double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
+		double size = (!com.pref.phot_set.force_radius && gui.qphot) ? 0.5 * gui.qphot->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+		siril_log_message(_("FWHM= %lf, Ratio= %lf, appRadius= %lf.\n"), gui.qphot->fwhmx, com.pref.phot_set.auto_aperture_factor, size);
 		if (size <= 0.0) size = com.pref.phot_set.aperture;
 
 		cairo_set_dash(cr, NULL, 0, 0);
@@ -924,7 +925,7 @@ static void draw_stars(const draw_data_t* dd) {
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
 				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
-					the_psf->fwhmx * 2.0 : com.pref.phot_set.aperture;
+					the_psf->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
 				cairo_set_dash(cr, NULL, 0, 0);
 				// make the aperture slightly brighter
 				cairo_set_source_rgba(cr, min(com.seq.photometry_colors[i][0] + 0.2, 1.0),
