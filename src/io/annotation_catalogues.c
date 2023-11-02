@@ -718,15 +718,24 @@ void purge_user_catalogue(siril_cat_index cat_index) {
 	printf("nb_elts_after: %d\n", g_slist_length(siril_annot_catalogue_list));
 }
 
-// to be called when we close an image
-void cleanup_annotation_catalogues() {
+// to be called when we close an image with flag set to TRUE
+void cleanup_annotation_catalogues(gboolean purge_temp) {
 	g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
 	com.found_object = NULL;
-	purge_user_catalogue(CAT_AN_USER_TEMP);
+	if (purge_temp)
+		purge_user_catalogue(CAT_AN_USER_TEMP);
 	GSList *cur = siril_annot_catalogue_list;
 	while (cur) {
 		annotations_catalogue_t *curcat = cur->data;
 		siril_catalog_reset_projection(curcat->cat);
 		cur = cur->next;
+	}
+}
+
+// to be called when the current image has been changed (geometry/undo/redo)
+void refresh_annotations(gboolean purge_temp) {
+	if (com.found_object) {
+		cleanup_annotation_catalogues(purge_temp);
+		refresh_found_objects();
 	}
 }

@@ -443,7 +443,7 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 }
 
 void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
-	if (!siril_cat)
+	if (!siril_cat || siril_cat->projected == CAT_PROJ_NONE)
 		return;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		siril_cat->cat_items[i].x = 0.;

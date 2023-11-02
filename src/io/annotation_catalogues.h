@@ -31,7 +31,6 @@ typedef struct annotations_catalogue {
 } annotations_catalogue_t;
 
 GSList *find_objects_in_field(fits *fit);
-void cleanup_annotation_catalogues();
 gchar *get_annotation_catalog_filename(siril_cat_index cat_index, gboolean for_reading);
 void add_item_in_catalogue(cat_item *item, siril_cat_index cat_index, gboolean check_duplicates);
 cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_index);
@@ -39,6 +38,8 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args);
 void set_annotation_visibility(siril_cat_index cat_index, gboolean visible);
 void refresh_annotation_visibility();
 void refresh_annotation_to_temp();
+void cleanup_annotation_catalogues(gboolean purge_temp);
+void refresh_annotations(gboolean purge_temp);
 
 gchar *get_catalogue_object_code(const CatalogObjects *object);
 gchar *get_catalogue_object_code_pretty(CatalogObjects *object);

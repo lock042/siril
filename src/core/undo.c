@@ -35,6 +35,7 @@
 #include "gui/siril_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/annotation_catalogues.h"
 #include "core/undo.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
@@ -319,6 +320,7 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
+			refresh_annotations(TRUE);
 			if (is_preview_active())
 				copy_gfit_to_backup();
 			redraw(REMAP_ALL);
@@ -336,6 +338,7 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
+			refresh_annotations(TRUE);
 			gboolean tmp_roi_active = gui.roi.active;
 			gui.roi.active = FALSE;
 			redraw(REMAP_ALL);
