@@ -203,6 +203,7 @@ static void write_nina_file(struct compstars_arg *args) {
 				args->target_star->name, args->delta_Vmag, args->delta_BV, args->max_emag,
 				catalog_to_str(args->cat));
 	}
+	replace_spaces_from_str(args->nina_file, '_');
 
 	siril_log_message(_("Creating csv output file %s\n"), args->nina_file);
 
@@ -287,7 +288,7 @@ int sort_compstars(struct compstars_arg *args) {
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
 				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
 				!is_same_star(args->target_star, item) &&
-				item->e_mag < args->max_emag && // Criteria #3: e_mag smaller than threshold, for catalogues that have the info
+				item->e_mag <= args->max_emag && // Criteria #3: e_mag smaller than threshold, for catalogues that have the info
 				((args->cat == CAT_APASS) ? (item->e_mag > 0.) : TRUE)) {
 			if (first) {
 				siril_log_message("d_mag and d_BV are discrepancies from Vmag and B-V of the target star\n");
@@ -356,6 +357,10 @@ static int get_catstars(struct compstars_arg *args) {
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, args->cat, max(args->target_star->mag + 6.0, 17.0));
 	siril_cat->radius = radius * 60.; // overwriting to account for narrow argument
 	siril_cat->phot = TRUE;
+	if (args->narrow_fov) { // centered bout the target star
+		siril_cat->center_ra = args->target_star->ra;
+		siril_cat->center_dec = args->target_star->dec;
+	}
 
 	// and retrieving its results
 	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars

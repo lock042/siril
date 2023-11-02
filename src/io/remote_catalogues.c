@@ -728,7 +728,6 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 		return 0;
 	if (!siril_catalog_load_from_file(siril_cat, catfile))
 		return siril_cat->nbitems;
-	siril_catalog_free(siril_cat);
 	return 0;
 }
 

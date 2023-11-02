@@ -8827,8 +8827,6 @@ int process_findcompstars(int nb) {
 	while (arg_idx < nb) {
 		if (!g_strcmp0(word[arg_idx], "-narrow"))
 			narrow = TRUE;
-		else if (!g_strcmp0(word[arg_idx], "-wide"))
-			narrow = FALSE;
 		else if (g_str_has_prefix(word[arg_idx], "-catalog=")) {
 			const char *cat = word[arg_idx] + 9;
 			if (!g_ascii_strcasecmp(cat, "nomad"))
@@ -9036,7 +9034,7 @@ int process_show(int nb) {
 		return CMD_OK;
 	}
 
-	// passing coords (and optionnaly name)
+	// passing coords (and optionally name)
 parse_coords:
 	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
 			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
