@@ -846,7 +846,8 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 
 		while (com.stars[i]) {
-			double size = com.stars[i]->fwhmx * 2.0;
+//			double size = com.stars[i]->fwhmx * 2.0;
+			double size = com.stars[i]->fwhmx * com.pref.phot_set.auto_aperture_factor * 0.5;
 			if (size <= 0.0) size = com.pref.phot_set.aperture;
 			if (i == gui.selected_star) {
 				// We draw horizontal and vertical lines to show the star
