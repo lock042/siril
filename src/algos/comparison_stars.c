@@ -288,7 +288,7 @@ int sort_compstars(struct compstars_arg *args) {
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
 				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
 				!is_same_star(args->target_star, item) &&
-				item->e_mag <= args->max_emag && // Criteria #3: e_mag smaller than threshold, for catalogues that have the info
+				((args->cat == CAT_APASS) ? item->e_mag <= args->max_emag :TRUE) && // Criteria #3: e_mag smaller than threshold, for catalogues that have the info
 				((args->cat == CAT_APASS) ? (item->e_mag > 0.) : TRUE)) {
 			if (first) {
 				siril_log_message("d_mag and d_BV are discrepancies from Vmag and B-V of the target star\n");

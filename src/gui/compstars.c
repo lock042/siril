@@ -33,6 +33,7 @@ static GtkWidget *delta_bv_entry = NULL;
 static GtkWidget *emag_entry = NULL;
 static GtkWidget *target_entry = NULL;
 static GtkWidget *apass_radio = NULL;
+static GtkWidget *check_narrow = NULL;
 
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data);
 
@@ -42,6 +43,7 @@ static void build_the_dialog() {
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
 	// the GtkDialog::response signal with the corresponding response ID
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_compstars_response), NULL);
 
@@ -54,6 +56,13 @@ static void build_the_dialog() {
 	gtk_widget_set_tooltip_text(target_entry, _("Enter the target star name to search in cataloges"));
 	g_object_set(G_OBJECT(target_entry), "margin", 15, NULL);
 
+	check_narrow = gtk_check_button_new_with_label(_("Narrow field of view"));
+	gtk_widget_set_tooltip_text(check_narrow, _("Tick this box to use a narrow field of view centered about the target star"));
+	gtk_widget_set_halign(check_narrow, GTK_ALIGN_START);
+	g_object_set(G_OBJECT(check_narrow), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(check_narrow), "margin-top", 5, NULL);
+	g_object_set(G_OBJECT(check_narrow), "margin-bottom", 0, NULL);
+
 	GtkWidget *labelvmag = gtk_label_new(_("Allowed visual magnitude range:"));
 	gtk_widget_set_halign(labelvmag, GTK_ALIGN_START);
 	g_object_set(G_OBJECT(labelvmag), "margin-left", 15, NULL);
@@ -64,6 +73,7 @@ static void build_the_dialog() {
 	gtk_entry_set_text(GTK_ENTRY(delta_vmag_entry), "3.0");
 	gtk_widget_set_tooltip_text(delta_vmag_entry, _("Allowed range of visual magnitude between the target star and the comparison stars"));
 	g_object_set(G_OBJECT(delta_vmag_entry), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(delta_vmag_entry), "margin-right", 15, NULL);
 	g_object_set(G_OBJECT(delta_vmag_entry), "margin-top", 0, NULL);
 
 	GtkWidget *labelbv = gtk_label_new(_("Allowed B-V index range:"));
@@ -76,6 +86,7 @@ static void build_the_dialog() {
 	gtk_entry_set_text(GTK_ENTRY(delta_bv_entry), "0.5");
 	gtk_widget_set_tooltip_text(delta_bv_entry, _("Allowed range of B-V index (color) between the target star and the comparison stars"));
 	g_object_set(G_OBJECT(delta_bv_entry), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(delta_bv_entry), "margin-right", 15, NULL);
 	g_object_set(G_OBJECT(delta_bv_entry), "margin-top", 0, NULL);
 
 	GtkWidget *labelemag = gtk_label_new(_("Allowed magnitude error:"));
@@ -88,6 +99,7 @@ static void build_the_dialog() {
 	gtk_entry_set_text(GTK_ENTRY(emag_entry), "0.03");
 	gtk_widget_set_tooltip_text(emag_entry, _("Allowed catalogue magnitude error for comparison stars"));
 	g_object_set(G_OBJECT(emag_entry), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(emag_entry), "margin-right", 15, NULL);
 	g_object_set(G_OBJECT(emag_entry), "margin-top", 0, NULL);
 
 	/* catalogue choice */
@@ -107,6 +119,7 @@ static void build_the_dialog() {
 	gtk_box_set_spacing(GTK_BOX(content_area), 15);
 	gtk_container_add(GTK_CONTAINER(content_area), label);
 	gtk_container_add(GTK_CONTAINER(content_area), target_entry);
+	gtk_container_add(GTK_CONTAINER(content_area), check_narrow);
 	gtk_container_add(GTK_CONTAINER(content_area), labelvmag);
 	gtk_container_add(GTK_CONTAINER(content_area), delta_vmag_entry);
 	gtk_container_add(GTK_CONTAINER(content_area), labelbv);
@@ -165,12 +178,13 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 	}
 
 	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
+	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 	args->fit = &gfit;
 	args->target_name = g_strdup(target_name);
-	args->narrow_fov = TRUE;
+	args->narrow_fov = narrow;
 	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
 	args->delta_Vmag = delta_Vmag;
 	args->delta_BV = delta_BV;
