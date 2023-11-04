@@ -204,8 +204,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		g_free(objname);
 		g_free(objtype);
 		g_strfreev(fields);
+		break;
 	default:
 		siril_debug_print("unknown query catalogue\n");
+		break;
 	}
 	g_strfreev(token);
 

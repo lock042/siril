@@ -87,44 +87,44 @@ static int get_column_index(gchar *field) {
 	return -1;
 }
 
-static gchar *get_field_to_str(cat_item item, cat_fields field) {
+static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 	switch (field) {
 		case CAT_FIELD_RA:
-			return (item.ra) ? g_strdup_printf("%.6f", item.ra) : "";
+			return (item->ra) ? g_strdup_printf("%.6f", item->ra) : "";
 		case CAT_FIELD_DEC:
-			return (item.dec) ? g_strdup_printf("%.6f", item.dec) : "";
+			return (item->dec) ? g_strdup_printf("%.6f", item->dec) : "";
 		case CAT_FIELD_PMRA:
-			return (item.pmra) ? g_strdup_printf("%g", item.pmra) : "";
+			return (item->pmra) ? g_strdup_printf("%g", item->pmra) : "";
 		case CAT_FIELD_PMDEC:
-			return (item.pmdec) ? g_strdup_printf("%g", item.pmdec) : "";
+			return (item->pmdec) ? g_strdup_printf("%g", item->pmdec) : "";
 		case CAT_FIELD_MAG:
-			return (item.mag) ? g_strdup_printf("%g", item.mag) : "";
+			return (item->mag) ? g_strdup_printf("%g", item->mag) : "";
 		case CAT_FIELD_BMAG:
-			return (item.bmag) ? g_strdup_printf("%g", item.bmag) : "";
+			return (item->bmag) ? g_strdup_printf("%g", item->bmag) : "";
 		case CAT_FIELD_E_MAG:
-			return (item.e_mag) ? g_strdup_printf("%g", item.e_mag) : "";
+			return (item->e_mag) ? g_strdup_printf("%g", item->e_mag) : "";
 		case CAT_FIELD_E_BMAG:
-			return (item.e_bmag) ? g_strdup_printf("%g", item.e_bmag) : "";
+			return (item->e_bmag) ? g_strdup_printf("%g", item->e_bmag) : "";
 		case CAT_FIELD_DIAMETER:
-			return (item.diameter) ? g_strdup_printf("%g", item.diameter) : "";
+			return (item->diameter) ? g_strdup_printf("%g", item->diameter) : "";
 		case CAT_FIELD_DATEOBS:
-			return (item.dateobs) ? g_strdup_printf("%.12f", item.dateobs) : "";
+			return (item->dateobs) ? g_strdup_printf("%.12f", item->dateobs) : "";
 		case CAT_FIELD_SITELAT:
-			return (item.sitelat) ? g_strdup_printf("%g", item.sitelat) : "";
+			return (item->sitelat) ? g_strdup_printf("%g", item->sitelat) : "";
 		case CAT_FIELD_SITELON:
-			return (item.sitelon) ? g_strdup_printf("%g", item.sitelon) : "";
+			return (item->sitelon) ? g_strdup_printf("%g", item->sitelon) : "";
 		case CAT_FIELD_SITEELEV:
-			return (item.siteelev) ? g_strdup_printf("%g", item.siteelev) : "";
+			return (item->siteelev) ? g_strdup_printf("%g", item->siteelev) : "";
 		case CAT_FIELD_VRA:
-			return (item.vra) ? g_strdup_printf("%g", item.vra) : "";
+			return (item->vra) ? g_strdup_printf("%g", item->vra) : "";
 		case CAT_FIELD_VDEC:
-			return (item.vdec) ? g_strdup_printf("%g", item.vdec) : "";
+			return (item->vdec) ? g_strdup_printf("%g", item->vdec) : "";
 		case CAT_FIELD_NAME:
-			return (item.name) ? g_strdup(item.name) : "";
+			return (item->name) ? g_strdup(item->name) : "";
 		case CAT_FIELD_ALIAS:
-			return (item.alias) ? g_strdup(item.alias) : "";
+			return (item->alias) ? g_strdup(item->alias) : "";
 		case CAT_FIELD_TYPE:
-			return (item.type) ? g_strdup(item.type) : "";
+			return (item->type) ? g_strdup(item->type) : "";
 		default:
 			return NULL;
 	}
@@ -588,10 +588,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 			}
 			g_strfreev(fields);
 			if (has_error) {
-				g_object_unref(data_input);
-				g_object_unref(input_stream);
-				g_free(line);
-				return 1;
+				goto siril_catalog_load_from_file_exit_on_error;
 			}
 			header_read = TRUE;
 			g_free(line);
@@ -601,22 +598,16 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 		int size = g_strv_length(vals);
 		if (size != nbcols) { // checking that current line has a number of columns consistent with the headers
 			siril_log_color_message(_("Malformed line found %s\n"), "red", line);
-			g_object_unref(data_input);
-			g_object_unref(input_stream);
-			g_free(line);
 			g_strfreev(vals);
-			return 1;
+			goto siril_catalog_load_from_file_exit_on_error;
 		}
 		if (nb_items >= nb_alloc) { // re-allocating if there is more to read
 			nb_alloc *= 2;
 			cat_item *new_array = realloc(cat_items, nb_alloc * sizeof(cat_item));
 			if (!new_array) {
 				PRINT_ALLOC_ERR;
-				g_object_unref(data_input);
-				g_object_unref(input_stream);
-				g_free(line);
 				g_strfreev(vals);
-				return 1;
+				goto siril_catalog_load_from_file_exit_on_error;
 			}
 			cat_items = new_array;
 		}
@@ -635,13 +626,11 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 			nb_items++;
 		}
 		g_free(line);
+		line = NULL;
 	}
-	g_object_unref(data_input);
-	g_object_unref(input_stream);
 	if (nb_items == 0) {
-		free(cat_items);
 		siril_log_color_message(_("Catalog %s was read but no items were found in the view cone, nothing to show\n"), "salmon", filename);
-		return 1;
+		goto siril_catalog_load_from_file_exit_on_error;
 	}
 	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
 	siril_cat->cat_items = final_array;
@@ -650,7 +639,22 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	if (header)
 		siril_cat->header = g_string_free(header, FALSE);
 	siril_debug_print("read %d%s items from catalogue\n", nb_items, siril_cat->phot ? " photometric" : "");
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
+
 	return 0;
+siril_catalog_load_from_file_exit_on_error:
+	free(cat_items);
+	siril_cat->cat_items = NULL;
+	siril_cat->nbitems = 0;
+	free(indexes);
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
+	g_free(line);
+	if (header)
+		g_string_free(header, TRUE);
+	return 1;
+
 }
 
 // Writes the catalogue to the given filepath
@@ -668,6 +672,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 			return FALSE;
 		}
 	}
+	g_free(root);
 
 	// Then we delete it if it exists
 	GError *error = NULL;
@@ -718,7 +723,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 	for (int j = 0; j < siril_cat->nbitems; j++) {
 		gchar **tokens = calloc(nbcols + 1, sizeof(gchar *));
 		for (int i = 0; i < nbcols; i++) {
-			tokens[i] = get_field_to_str(siril_cat->cat_items[j], index[i]);
+			tokens[i] = get_field_to_str(&siril_cat->cat_items[j], index[i]);
 		}
 		gchar *newline = g_strjoinv(",", tokens);
 		g_output_stream_printf(output_stream, &n, NULL, NULL, "\n%s", newline);
@@ -1095,6 +1100,7 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		if (n > siril_cat->nbincluded) {
 			siril_debug_print("problem when converting siril_cat to psf_stars, more than allocated");
+			break;
 		}
 		if (siril_cat->cat_items[i].included) {
 			results[n] = new_psf_star();

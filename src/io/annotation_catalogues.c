@@ -122,8 +122,10 @@ static gboolean add_alias_to_item(cat_item *item, gchar *name) {
 			gchar **token = g_strsplit(item->alias, "/", -1);
 			guint i = 0;
 			while (token[i]) {
-				if (!strcasecmp(token[i], name))
+				if (!strcasecmp(token[i], name)) {
+					g_strfreev(token);
 					return FALSE;
+				}
 				i++;
 			}
 			g_strfreev(token);
@@ -371,7 +373,7 @@ gchar *get_catalogue_object_code_pretty(CatalogObjects *object) {
 
 static void write_in_user_catalogue(siril_cat_index cat_index) {;
 	// only these two catalogs are writable
-	if (cat_index != CAT_AN_USER_DSO && cat_index != CAT_AN_USER_DSO)
+	if (cat_index != CAT_AN_USER_DSO && cat_index != CAT_AN_USER_SSO)
 		return;
 	GSList *cur = find_catalogue_by_index(cat_index);
 	if (!cur || !cur->data)
@@ -654,6 +656,7 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 		}
 	}
 	siril_catalog_free_item(ref_item);
+	free(ref_item);
 	return NULL;
 }
 

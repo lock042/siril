@@ -9082,12 +9082,12 @@ parse_coords:
 		args->display_tag = FALSE;
 	}
 	siril_catalog_append_item(siril_cat, item);
+	siril_catalog_free_item(item);
+	free(item);
 	start_in_new_thread(conesearch_worker, args);
 	return CMD_OK;
 
 show_exit_on_failure:
-	if (coords)
-		siril_world_cs_unref(coords);
 	free_conesearch(args);
 	return CMD_ARG_ERROR;
 }

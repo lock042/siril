@@ -495,7 +495,7 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 	if (siril_cat->projected == CAT_PROJ_NONE) {
 		siril_debug_print("Catalog has not been projected\n");
 	}
-	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG))
+	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || !has_field(siril_cat, BMAG))
 		return NULL;
 	pcc_star *results = malloc(siril_cat->nbincluded * sizeof(pcc_star));
 
@@ -503,6 +503,7 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		if (n > siril_cat->nbincluded) {
 			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated");
+			break;
 		}
 		if (siril_cat->cat_items[i].included) {
 			results[n].x = siril_cat->cat_items[i].x;

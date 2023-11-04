@@ -365,14 +365,17 @@ static int get_catstars(struct compstars_arg *args) {
 	// and retrieving its results
 	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
 		siril_log_color_message(_("No comparison stars retrieved from the catalog %s, aborting\n"), "red", catalog_to_str(args->cat));
+		siril_catalog_free(siril_cat);
 		return 1;
 	}
-	sort_cat_items_by_mag(siril_cat); // sort by magnitude for nicer display
 
 	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE, FALSE)) {
+		sort_cat_items_by_mag(siril_cat); // sort by magnitude for nicer display
 		args->cat_stars = siril_cat;
 	} else {
+		siril_catalog_free(siril_cat);
 		siril_log_color_message(_("No comparison stars found in the image, aborting\n"), "red");
+		return 1;
 	}
 	return (int)(args->cat_stars->nbincluded == 0);
 }

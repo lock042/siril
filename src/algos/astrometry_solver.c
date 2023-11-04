@@ -613,6 +613,8 @@ gpointer plate_solver(gpointer p) {
 		args->ret = nb_pcc_stars == 0;
 
 		if (args->ret) {
+			if (pcc_stars)
+				free(pcc_stars);
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
 			args->ret = ERROR_PHOTOMETRY;
 			goto clearup;

@@ -443,7 +443,7 @@ static void add_object_in_tree_view(const gchar *object) {
 	set_cursor_waiting(TRUE);
 	gboolean found = FALSE;
 
-	const cat_item *local_obj = search_in_annotations_by_name(object, NULL);
+	cat_item *local_obj = search_in_annotations_by_name(object, NULL);
 	if (local_obj) {	// always search for local first
 		add_plated_from_annotations(local_obj);
 		g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
@@ -475,6 +475,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			free_fetch_result(result);
 			found = TRUE;
 		}
+		free_sky_object_query(args);
 	}
 
 	if (found) {
@@ -485,6 +486,10 @@ static void add_object_in_tree_view(const gchar *object) {
 			gtk_tree_selection_select_iter(selection, &iter);
 			g_signal_emit_by_name(GTK_TREE_VIEW(GtkTreeViewIPS), "cursor-changed");
 		}
+	}
+	if (local_obj) {
+		siril_catalog_free_item(local_obj);
+		free(local_obj);
 	}
 	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_cursor_waiting(FALSE);

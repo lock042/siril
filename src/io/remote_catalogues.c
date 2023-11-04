@@ -362,6 +362,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 			if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG)) {
 				fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
 				g_string_append_printf(url, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
+				g_free(fmtstr);
 			}
 			free_cat_tap_query_fields(fields);
 			return g_string_free(url, FALSE);
@@ -698,7 +699,8 @@ download_error:
 		g_object_unref(output_stream);
 	if (file) {
 		if (remove_file)
-			g_unlink(g_file_peek_path(file));
+			if (g_unlink(g_file_peek_path(file)))
+				siril_debug_print(("Cannot delete catalogue file %s\n"), filepath);
 		g_object_unref(file);
 	}
 	if (filepath)
