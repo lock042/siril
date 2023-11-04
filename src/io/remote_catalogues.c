@@ -414,31 +414,70 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 		g_strfreev(err_lines);
 		return FALSE;
 	}
-	// writing the csv header
-	gsize n;
-	g_output_stream_printf(output_stream, &n, NULL, NULL, "ra,dec,mag,name,vra,vdec,type\n");
-	// Flag 0 is the code for no object found
-	// we have written the header and an empty table beneath, we're done
-	if (g_str_has_prefix(buffer, "# Flag: 0")) {
-		return TRUE;
-	}
+	// we fill a siril_catalogue struct to use the generic catalogue writer
+	// may be a bit slower than direct write to the output_stream but will ease maintenance
+	// anyway, those catalogs are usually small so little impact on performance is to be expected
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cat_index = CAT_IMCCE;
+	siril_cat->columns = siril_catalog_columns(CAT_IMCCE);
 	gchar **token = g_strsplit(buffer, "\n", -1);
 	int nb_lines = g_strv_length(token);
+	int nstars = nb_lines - 3;
+	if (g_str_has_prefix(buffer, "# Flag: 0") || !nstars) {
+		siril_debug_print("No items in the IMCCE catalog, will just write header\n");
+		nstars = 0;
+	}
+	cat_item *cat_items = NULL;
+	int n = 0;
 	for (int i = 3; i < nb_lines; i++) {
+		if (i == 3) {
+			cat_items = calloc(nstars, sizeof(cat_item));
+			if (!cat_items) {
+				PRINT_ALLOC_ERR;
+				siril_catalog_free(siril_cat);
+				return FALSE;
+			}
+		}
 		// format is '# Num | Name | RA(h) | DE(deg) | Class | Mv | Err(arcsec) | d(arcsec) | dRA(arcsec/h) | dDEC(arcsec/h) | Dg(ua) | Dh(ua)'
 		gchar **vals = g_strsplit(token[i], " | ", -1);
-		if (g_strv_length(vals) < 12) {
+		if (g_strv_length(vals) != 12) {
 			g_strfreev(vals);
 			continue;
 		}
 		double ra = parse_hms(vals[2]);	// in hours
 		double dec = parse_dms(vals[3]);
-		if (!isnan(ra) && !isnan(dec))
-			g_output_stream_printf(output_stream, &n, NULL, NULL, "%g,%+g,%s,%s,%s,%s,%s\n", ra, dec, vals[5], vals[1], vals[8], vals[9], vals[4]); //TODO get accuracy for ra/dec
+		if (!isnan(ra) && !isnan(dec)) {
+			cat_items[n].ra = ra;
+			cat_items[n].dec = dec;
+			cat_items[n].mag = (float)g_strtod(vals[5], NULL);
+			cat_items[n].name = g_strdup(vals[1]);
+			cat_items[n].vra = (float)g_strtod(vals[8], NULL);
+			cat_items[n].vdec = (float)g_strtod(vals[9], NULL);
+			cat_items[n].type = g_strdup(vals[4]);
+			n++;
+		}
 		g_strfreev(vals);
 	}
 	g_strfreev(token);
-	return TRUE;
+	if (nstars && n < nstars) {
+		if (!n) {
+			free(cat_items);
+			cat_items = NULL;
+		} else {
+			cat_item *new_array = realloc(cat_items, n * sizeof(cat_item));
+			if (!new_array) {
+				PRINT_ALLOC_ERR;
+				siril_catalog_free(siril_cat);
+				return FALSE;
+			}
+			cat_items = new_array;
+		}
+	}
+	siril_cat->cat_items = cat_items;
+	siril_cat->nbitems = n;
+	gboolean ret = siril_catalog_write_to_output_stream(siril_cat, output_stream);
+	siril_catalog_free(siril_cat);
+	return ret;
 }
 
 // AAVSO chart - json input read with json-glib parsed to csv
@@ -455,21 +494,28 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		g_clear_error(&error);
 		return FALSE;
 	}
-	gsize n;
+	// we fill a siril_catalogue struct to use the generic catalogue writer
+	// may be a bit slower than direct write to the output_stream but will ease maintenance
+	// anyway, those catalogs are usually small so little impact on performance is to be expected
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cat_index = CAT_AAVSO_CHART;
+	siril_cat->columns = siril_catalog_columns(CAT_AAVSO_CHART);
+
 	// parsing the AAVSO chart id in the comments section
 	JsonReader *reader = json_reader_new(json_parser_get_root(parser));
 	json_reader_read_member(reader, "chartid");
 	const gchar *id = json_reader_get_string_value(reader);
 	json_reader_end_member(reader);
-	g_output_stream_printf(output_stream, &n, NULL, NULL, "#ChartID:%s\n", id);
-
-	// writing the csv header
-	g_output_stream_printf(output_stream, &n, NULL, NULL, "name,ra,dec,mag,bmag,e_mag,e_bmag\n");
+	siril_cat->header = g_strdup_printf("#ChartID:%s", id);
 
 	json_reader_read_member(reader, "photometry");
 	int nstars = json_reader_count_elements(reader);
-
+	int n = 0;
+	cat_item *cat_items = NULL;
 	for (int i = 0; i < nstars; i++) {
+		if (i == 0) {
+			cat_items = calloc(nstars, sizeof(cat_item));
+		}
 		json_reader_read_element(reader, i);
 		// auid
 		json_reader_read_member(reader, "auid");
@@ -513,13 +559,39 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 		const gchar *rastr = json_reader_get_string_value(reader);
 		double ra = parse_hms(rastr);	// in hours
 		json_reader_end_member(reader);
-		if (!isnan(ra) && !isnan(dec))
-			g_output_stream_printf(output_stream, &n, NULL, NULL, "%s,%g,%+g,%g,%g,%g,%g\n", name, ra, dec, mag, bmag, e_mag, e_bmag);
+		if (!isnan(ra) && !isnan(dec)) {
+			cat_items[n].ra = ra;
+			cat_items[n].dec = dec;
+			cat_items[n].mag = mag;
+			cat_items[n].bmag = bmag;
+			cat_items[n].e_mag = e_mag;
+			cat_items[n].e_bmag = e_bmag;
+			cat_items[n].name = g_strdup(name);
+			n++;
+		}
 		json_reader_end_element(reader);
 	}
 	g_object_unref(reader);
 	g_object_unref(parser);
-	return TRUE;
+	if (nstars && n < nstars) {
+		if (!n) {
+			free(cat_items);
+			cat_items = NULL;
+		} else {
+			cat_item *new_array = realloc(cat_items, n * sizeof(cat_item));
+			if (!new_array) {
+				PRINT_ALLOC_ERR;
+				siril_catalog_free(siril_cat);
+				return FALSE;
+			}
+			cat_items = new_array;
+		}
+	}
+	siril_cat->cat_items = cat_items;
+	siril_cat->nbitems = n;
+	gboolean ret = siril_catalog_write_to_output_stream(siril_cat, output_stream);
+	siril_catalog_free(siril_cat);
+	return ret;
 #endif
 }
 

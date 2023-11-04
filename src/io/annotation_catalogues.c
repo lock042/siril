@@ -381,7 +381,7 @@ static void write_in_user_catalogue(siril_cat_index cat_index) {;
 	gchar *filename = get_annotation_catalog_filename(cat_index, FALSE);
 	annotations_catalogue_t *annot_cat = cur->data; 
 	siril_catalogue *siril_cat = annot_cat->cat;
-	if (!siril_catalog_write_to_file(siril_cat, filename, NULL)) {
+	if (!siril_catalog_write_to_file(siril_cat, filename)) {
 		siril_log_color_message(_("Could not write the updated catalogue %s\n"), "red", get_cat_filename_by_index(cat_index));
 	}
 }

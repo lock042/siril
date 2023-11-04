@@ -221,10 +221,9 @@ static void write_nina_file(struct compstars_arg *args) {
 	else
 		g_string_append_printf(header_lines, "# Siril: %d stars, dVmag %.2f, dBV %.2f, max e_mag %.2f",
 			args->nb_comp_stars, args->delta_Vmag, args->delta_BV, args->max_emag);
-	gchar *header = g_string_free(header_lines, FALSE);
-	if (!siril_catalog_write_to_file(args->comp_stars, args->nina_file, header))
+	args->comp_stars->header = g_string_free(header_lines, FALSE);
+	if (!siril_catalog_write_to_file(args->comp_stars, args->nina_file))
 		siril_log_color_message(_("Problem writing the comparison stars file\n"), "red");
-	g_free(header);
 }
 
 #define ONE_ARCSEC 0.000277778

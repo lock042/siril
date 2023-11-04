@@ -657,9 +657,58 @@ siril_catalog_load_from_file_exit_on_error:
 
 }
 
+// Writes the catalogue to the given output_stream
+gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutputStream *output_stream) {
+	gsize n;
+	if (siril_cat->header)
+		g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", siril_cat->header);
+	
+	// we write the line containing the columns names based on catalog spec
+	GString *columns = NULL;
+	int nbcols = 0;
+	int index[MAX_CAT_COLUMNS];
+	for (int i = 0; i < MAX_CAT_COLUMNS; i++) {
+		if (siril_cat->columns & (1 << i)) {
+			if (!columns)
+				columns = g_string_new(cat_columns[i]);
+			else
+				g_string_append_printf(columns, ",%s", cat_columns[i]);
+			index[nbcols++] = i;
+		}
+	}
+	GError *error = NULL;
+	gchar *columns_str = g_string_free(columns, FALSE);
+	if (columns_str) {
+		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "%s", columns_str)) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			g_free(columns_str);
+			return FALSE;
+		}
+		g_free(columns_str);
+	} else {
+		siril_debug_print("no columns to write");
+		return FALSE;
+	}
+	for (int j = 0; j < siril_cat->nbitems; j++) {
+		gchar **tokens = calloc(nbcols + 1, sizeof(gchar *));
+		for (int i = 0; i < nbcols; i++) {
+			tokens[i] = get_field_to_str(&siril_cat->cat_items[j], index[i]);
+		}
+		gchar *newline = g_strjoinv(",", tokens);
+		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "\n%s", newline)) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			g_free(newline);
+			return FALSE;
+		}
+		g_free(newline);
+	}
+	return TRUE;
+}
+
 // Writes the catalogue to the given filepath
-// Optionally writes the header if provided
-gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename, gchar *header) {
+gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename) {
 	if (!siril_cat || !filename)
 		return FALSE;
 
@@ -693,44 +742,10 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 		g_object_unref(file);
 		return FALSE;
 	}
-	gsize n;
-	if (header)
-		g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", header);
-	
-	// we write the line containing the columns names based on catalog spec
-	GString *columns = NULL;
-	int nbcols = 0;
-	int index[MAX_CAT_COLUMNS];
-	for (int i = 0; i < MAX_CAT_COLUMNS; i++) {
-		if (siril_cat->columns & (1 << i)) {
-			if (!columns)
-				columns = g_string_new(cat_columns[i]);
-			else
-				g_string_append_printf(columns, ",%s", cat_columns[i]);
-			index[nbcols++] = i;
-		}
-	}
-	gchar *columns_str = g_string_free(columns, FALSE);
-	if (columns_str) {
-		g_output_stream_printf(output_stream, &n, NULL, NULL, "%s", columns_str);
-	} else {
-		siril_debug_print("no columns to write");
-		g_object_unref(file);
-		g_object_unref(output_stream);
-		return FALSE;
-	}
-	g_free(columns_str);
-	for (int j = 0; j < siril_cat->nbitems; j++) {
-		gchar **tokens = calloc(nbcols + 1, sizeof(gchar *));
-		for (int i = 0; i < nbcols; i++) {
-			tokens[i] = get_field_to_str(&siril_cat->cat_items[j], index[i]);
-		}
-		gchar *newline = g_strjoinv(",", tokens);
-		g_output_stream_printf(output_stream, &n, NULL, NULL, "\n%s", newline);
-		g_free(newline);
-	}
+	gboolean success = siril_catalog_write_to_output_stream(siril_cat, output_stream);
+	g_object_unref(file);
 	g_object_unref(output_stream);
-	return TRUE;
+	return success;
 }
 
 // appends an item at the end of a siril_catalogue

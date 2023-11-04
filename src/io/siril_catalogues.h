@@ -181,7 +181,8 @@ gboolean display_names_for_catalogue(siril_cat_index Catalog);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
-gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename, gchar *header);
+gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutputStream *output_stream);
+gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename);
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity);
 int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
