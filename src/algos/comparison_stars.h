@@ -28,6 +28,11 @@ struct compstars_arg {
 	int retval;
 };
 
+typedef struct {
+	int index;
+	double dist;
+} compstar_dist;
+
 gpointer compstars_worker(gpointer arg);
 
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,

@@ -243,80 +243,99 @@ static void fill_compstar_item(cat_item *item, double ra, double dec, float mag,
 	item->included = TRUE;
 }
 
+// This function compares objects and return them sorted by distance
+static int compare_items_by_dist(const void* item1, const void* item2) {
+	compstar_dist *i1 = (compstar_dist*) item1;
+	compstar_dist *i2 = (compstar_dist*) item2;
+	if (i1->dist < i2->dist)
+		return -1;
+	if (i1->dist > i2->dist)
+		return 1;
+	return 0;
+}
+
 int sort_compstars(struct compstars_arg *args) {
 	if (!args->target_star || !args->cat_stars || args->cat_stars->nbitems <= 0) {
 		siril_log_color_message(_("Not enough stars available\n"), "salmon");
 		return 1;
 	}
 	siril_catalogue *siril_cat = args->cat_stars;
-	siril_log_message(_("Sort parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: %1.3lf\n"),
+	siril_log_message(_("Filtering parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: %1.3lf\n"),
 			args->delta_Vmag, args->delta_BV, args->max_emag);
 	siril_log_message(_("Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"),
 			args->target_star->mag, args->target_star->bmag - args->target_star->mag);
 
-	// preparing the output catalog
-	args->comp_stars = calloc(1, sizeof(siril_catalogue));
-	args->comp_stars->cat_index = CAT_COMPSTARS;
-	args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS);
-	cat_item *comp_items = calloc(args->cat_stars->nbincluded + 1, sizeof(cat_item));
-	// and write the target star
-	fill_compstar_item(&comp_items[0], args->target_star->ra, args->target_star->dec, args->target_star->mag, args->target_star->name, "Target");
+	// we will just measure distance to center, we will copy them later
+	compstar_dist *sorter = calloc(args->cat_stars->nbincluded, sizeof(compstar_dist));
 	int nb_phot_stars = 0;
 
 	// prepare the reference values
 	double BV0 = args->target_star->bmag - args->target_star->mag;	// B-V of the target star
 	double xmin, xmax, ymin, ymax; // borders boundaries
+
 	xmin = (double)gfit.rx * BORDER_RATIO;
 	xmax = (double)gfit.rx * (1. - BORDER_RATIO);
 	ymin = (double)gfit.ry * BORDER_RATIO;
 	ymax = (double)gfit.ry * (1. - BORDER_RATIO);
 
 	const gchar *startype = (args->cat == CAT_NOMAD || args->cat == CAT_APASS) ? "Comp1" : "Comp2";
-	gboolean first = TRUE;
 
 	for (int i = 0; i < args->cat_stars->nbitems; i++) {
 		cat_item *item = &siril_cat->cat_items[i];
-		if (!item->included) // included means inside the image after wcs projection
+		if (!item->included || is_same_star(args->target_star, item)) // included means inside the image after wcs projection
 			continue;
 		double d_mag = fabs(item->mag - args->target_star->mag);
 		double BVi = item->bmag - item->mag; // B-V index
-
 		// Criteria #0: the star has to be within the image and far from the borders
-		// (discards 10% of the width/height on both borders)
+		// (discards BORDER_RATIO of the width/height on both borders)
 		if ((item->x > xmin && item->x < xmax && item->y > ymin && item->y < ymax) &&
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
-				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
-				!is_same_star(args->target_star, item) &&
-				((args->cat == CAT_APASS) ? item->e_mag <= args->max_emag :TRUE) && // Criteria #3: e_mag smaller than threshold, for catalogues that have the info
-				((args->cat == CAT_APASS) ? (item->e_mag > 0.) : TRUE)) {
-			if (first) {
-				siril_log_message("d_mag and d_BV are discrepancies from Vmag and B-V of the target star\n");
-				siril_log_message(_("e_Vmag and e_Bmag are photometric errors supplied from %s\n"), catalog_to_str(args->cat));
-				siril_log_message("Index_nbr        V     B-V   d_mag    d_BV  e_Vmag e_Bmag\n");
-				first = FALSE;
-			}
-			gchar *name = (item->name) ? g_strdup((item->name)) : g_strdup_printf("%d", nb_phot_stars + 1);
-			fill_compstar_item(&comp_items[nb_phot_stars + 1], item->ra, item->dec, item->mag, name, startype);
-			siril_log_message(_("Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf\n"),
-					nb_phot_stars + 1, item->mag, BVi,
-					item->mag - args->target_star->mag,
-					BVi - BV0,
-					item->e_mag,
-					item->e_bmag);
-			g_free(name);
+				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors 
+				((args->cat == CAT_APASS) ? (item->e_mag > 0. && item->e_mag <= args->max_emag) : TRUE)) {// Criteria #3: e_mag smaller than threshold, for catalogues that have the info
+			sorter[nb_phot_stars] = (compstar_dist){i, compute_coords_distance(siril_cat->center_ra, siril_cat->center_dec, item->ra, item->dec)};
 			nb_phot_stars++;
 		}
 	}
-	// reallocating list to the required size
-	cat_item *result = realloc(comp_items, (nb_phot_stars + 1) * sizeof(cat_item));
-	if (!result) {
-		PRINT_ALLOC_ERR;
-		return 1;
+	if (nb_phot_stars > 0) {
+		// For now, we sort the stars by increasing radius from center
+		// if we later on want to add capability to sort by mag instead
+		// we will just add a flag in the args that does or not the sorting by rad
+		// as args->cat_stars is sorted by mag
+		qsort(sorter, nb_phot_stars, sizeof(compstar_dist), compare_items_by_dist);
+		siril_log_message(_("Stars sorted by increasing distance (in arcmin) wrt. image center\n"));
+		// preparing the output catalog
+		args->comp_stars = calloc(1, sizeof(siril_catalogue));
+		args->comp_stars->cat_index = CAT_COMPSTARS;
+		args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS);
+		// allocating final sorted list to the required size
+		cat_item *result = calloc(nb_phot_stars + 1, sizeof(cat_item));
+		// write the target star
+		fill_compstar_item(&result[0], args->target_star->ra, args->target_star->dec, args->target_star->mag, args->target_star->name, "Target");
+		// and write the stars sorted by radius
+		siril_log_message("d_mag and d_BV are discrepancies from Vmag and B-V of the target star\n");
+		siril_log_message(_("e_Vmag and e_Bmag are photometric errors supplied from %s\n"), catalog_to_str(args->cat));
+		siril_log_message("Index_nbr        V     B-V   d_mag    d_BV  e_Vmag e_Bmag   Dist\n");
+		for (int i = 0; i < nb_phot_stars; i++) {
+			cat_item *item = &siril_cat->cat_items[sorter[i].index];
+			gchar *name = (item->name) ? g_strdup((item->name)) : g_strdup_printf("%d", i + 1);
+			fill_compstar_item(&result[i + 1], item->ra, item->dec, item->mag, name, startype);
+			g_free(name);
+			siril_log_message(_("Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"),
+					i + 1, item->mag, item->bmag - item->mag,
+					item->mag - args->target_star->mag,
+					item->bmag - item->mag - BV0,
+					item->e_mag,
+					item->e_bmag,
+					sorter[i].dist * 60.);
+		}
+		args->comp_stars->cat_items = result;
+		args->comp_stars->nbitems = nb_phot_stars + 1;
+		args->comp_stars->nbincluded = nb_phot_stars + 1;
+		args->nb_comp_stars = nb_phot_stars;
 	}
-	args->comp_stars->cat_items = result;
-	args->comp_stars->nbitems = nb_phot_stars + 1;
-	args->comp_stars->nbincluded = nb_phot_stars + 1;
-	args->nb_comp_stars = nb_phot_stars;
+	// free the intermediate sorting list
+	free(sorter);
+	// and log results
 	siril_log_message(_("%d comparison stars after sort.\n"), nb_phot_stars);
 	if (nb_phot_stars && args->nina_file)
 		write_nina_file(args);
@@ -356,9 +375,10 @@ static int get_catstars(struct compstars_arg *args) {
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, args->cat, max(args->target_star->mag + 6.0, 17.0));
 	siril_cat->radius = radius * 60.; // overwriting to account for narrow argument
 	siril_cat->phot = TRUE;
-	if (args->narrow_fov) { // centered bout the target star
-		siril_cat->center_ra = args->target_star->ra;
-		siril_cat->center_dec = args->target_star->dec;
+	// check the target star is relatively well centered and warn if not
+	double dist = compute_coords_distance(siril_cat->center_ra, siril_cat->center_dec, args->target_star->ra, args->target_star->dec); // in degrees
+	if (dist > 0.2 * radius) {
+		siril_log_color_message("Target star is off the center of field of view by %.1f arcmin, photometry results may be impacted\n", "salmon", dist * 60.);
 	}
 
 	// and retrieving its results
@@ -369,7 +389,7 @@ static int get_catstars(struct compstars_arg *args) {
 	}
 
 	if (!siril_catalog_project_with_WCS(siril_cat, &gfit, FALSE, FALSE)) {
-		sort_cat_items_by_mag(siril_cat); // sort by magnitude for nicer display
+		sort_cat_items_by_mag(siril_cat); // sort by magnitude, will be later on filtered by rad
 		args->cat_stars = siril_cat;
 	} else {
 		siril_catalog_free(siril_cat);
@@ -382,6 +402,7 @@ static int get_catstars(struct compstars_arg *args) {
 // uses gfit
 gpointer compstars_worker(gpointer arg) {
 	int retval;
+	siril_log_color_message(_("Comparison stars: processing...\n"), "green");
 	struct compstars_arg *args = (struct compstars_arg *) arg;
 	sky_object_query_args *query_args = init_sky_object_query(); // for the reference star
 	query_args->fit = args->fit;
