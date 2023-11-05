@@ -393,7 +393,13 @@ void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gp
 	if (has_wcs(&gfit)) {
 		siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, CAT_IMCCE, -1.f);
 		siril_cat->IAUcode = g_strdup("500");
-		start_in_new_thread(conesearch_worker, siril_cat);
+		conesearch_args *args = init_conesearch();
+		args->fit = &gfit;
+		args->has_GUI = TRUE;
+		args->siril_cat = siril_cat;
+		args->display_log = TRUE;
+		args->display_tag = TRUE;
+		start_in_new_thread(conesearch_worker, args);
 	}
 }
 
