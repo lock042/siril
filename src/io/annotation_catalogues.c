@@ -706,19 +706,21 @@ void purge_user_catalogue(siril_cat_index cat_index) {
 	g_slist_foreach(com.found_object, remove_user_cat_from_found, &cat_index);
 	// we remove the catalog from the static list
 	GSList *cur = siril_annot_catalogue_list;
-	printf("nb_elts_before: %d\n", g_slist_length(siril_annot_catalogue_list));
+	printf("nb_elts_at_start: %d\n", g_slist_length(siril_annot_catalogue_list));
 	while (cur) {
 		annotations_catalogue_t *curcat = cur->data;
-		if (curcat->cat->cat_index == cat_index) {
+		if (curcat->cat->cat_index == cat_index) { // we remove all catalogues of same index (there may be multiple temp cats)
+			GSList *next = cur->next;
 			siril_annot_catalogue_list = g_slist_remove_link(siril_annot_catalogue_list, cur);
 			siril_catalog_free(curcat->cat);
 			g_slist_free(cur);
 			printf("nb_elts_after: %d\n", g_slist_length(siril_annot_catalogue_list));
-			return;
+			cur = next;
+		} else {
+			cur = cur->next;
 		}
-		cur = cur->next;
 	}
-	printf("nb_elts_after: %d\n", g_slist_length(siril_annot_catalogue_list));
+	printf("nb_elts_on_exit: %d\n", g_slist_length(siril_annot_catalogue_list));
 }
 
 // to be called when we close an image with flag set to TRUE

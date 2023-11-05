@@ -169,7 +169,7 @@ static gboolean end_compstars(gpointer p) {
 	// display the comp star list
 	clear_stars_list(args->has_GUI);
 	if (args->has_GUI && !args->retval) {
-		purge_user_catalogue(CAT_AN_USER_TEMP);
+		purge_user_catalogue(CAT_AN_USER_TEMP); // we always clear user_temp in case there are two successive calls to findcompstars
 		if (!load_siril_cat_to_temp(args->comp_stars)) {
 			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
 			refresh_found_objects();
