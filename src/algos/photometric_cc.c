@@ -501,7 +501,7 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 
 	int n = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (n > siril_cat->nbincluded) {
+		if (n >= siril_cat->nbincluded) {
 			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated");
 			break;
 		}

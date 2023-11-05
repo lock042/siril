@@ -660,8 +660,13 @@ siril_catalog_load_from_file_exit_on_error:
 // Writes the catalogue to the given output_stream
 gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutputStream *output_stream) {
 	gsize n;
-	if (siril_cat->header)
-		g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", siril_cat->header);
+	GError *error = NULL;
+	if (siril_cat->header && !g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", siril_cat->header)) {
+		g_warning("%s\n", error->message);
+		g_clear_error(&error);
+		return FALSE;
+	}
+	
 	
 	// we write the line containing the columns names based on catalog spec
 	GString *columns = NULL;
@@ -676,7 +681,6 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 			index[nbcols++] = i;
 		}
 	}
-	GError *error = NULL;
 	gchar *columns_str = g_string_free(columns, FALSE);
 	if (columns_str) {
 		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "%s", columns_str)) {
@@ -1109,11 +1113,11 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 	}
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG))
 		return NULL;
-	psf_star **results = new_fitted_stars(siril_cat->nbincluded);
+	psf_star **results = new_fitted_stars(siril_cat->nbincluded + 1);
 
 	int n = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (n > siril_cat->nbincluded) {
+		if (n >= siril_cat->nbincluded) {
 			siril_debug_print("problem when converting siril_cat to psf_stars, more than allocated");
 			break;
 		}
