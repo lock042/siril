@@ -20,6 +20,8 @@
 
 #include <math.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_sort.h>
+#include <gsl/gsl_statistics.h>
 #include <string.h>
 
 #include "core/siril.h"
@@ -407,6 +409,20 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	}
 	int nb_valid_images = j;
 	int julian0 = 0;
+
+	if (!com.pref.phot_set.force_radius) {		// Additionnal information on the error bars vdistribution if the auto-aperture option is used
+		double median_err, largest_err, smallest_err;
+		gsl_sort(err, 1, nb_valid_images);
+		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
+		largest_err = gsl_stats_max (err, 1, nb_valid_images);
+		smallest_err = gsl_stats_min (err, 1, nb_valid_images);
+		siril_log_color_message(_("Error bars--(%d images) median: %lf max: %lf min: %lf\n"), "blue",
+			nb_valid_images,
+			median_err,
+			largest_err,
+			smallest_err);
+	}
+
 	if (min_date != DBL_MAX)
 		julian0 = (int)min_date;
 
