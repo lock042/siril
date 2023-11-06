@@ -29,9 +29,9 @@
 #define IMCCE_QUERY "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?&-mime=text&-output=basic&-filter=0&-objFilter=111&-refsys=EQJ2000&-from=Siril"
 #define AAVSOCHART_QUERY "https://app.aavso.org/vsp/api/chart/?format=json"
 
-// only the first 9 columns are valid TAP queries
+// only the first MAX_TAP_QUERY_COLUMNS columns are valid TAP queries
 // fields after this are used in other catalogues
-#define MAX_TAP_QUERY_COLUMNS 10
+#define MAX_TAP_QUERY_COLUMNS 11
 
 // The structure used to declare the columns to be queried from the tables
 // for TAP queries only!
