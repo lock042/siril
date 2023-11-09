@@ -26,6 +26,7 @@
 #include "core/settings.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "stacking/stacking.h"
@@ -206,6 +207,27 @@ preferences pref_init = {
 		.multithreaded = TRUE,
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
+	},
+	.fits_save_icc = TRUE,
+	.icc = {
+		.rendering_intent = INTENT_RELATIVE_COLORIMETRIC,
+		.proofing_intent = INTENT_RELATIVE_COLORIMETRIC,
+		.export_intent = INTENT_RELATIVE_COLORIMETRIC,
+		.processing_intent = INTENT_PERCEPTUAL,
+		.working_gamut = TYPE_SRGB,
+		.icc_path_monitor = NULL,
+		.icc_path_soft_proof = NULL,
+		.custom_monitor_profile_active = FALSE,
+		.soft_proofing_profile_active = FALSE,
+		.custom_icc_trc = NULL,
+		.custom_icc_gray = NULL,
+		.export_8bit_method = EXPORT_SRGB,
+		.export_16bit_method = EXPORT_WORKING,
+		.default_to_srgb = TRUE,
+		.rendering_bpc = TRUE,
+		.autoconversion = ICC_NEVER_AUTOCONVERT,
+		.autoassignment = ICC_ASSIGN_ON_STRETCH,
+		.pedantic_linear = FALSE
 	}
 };
 
@@ -226,7 +248,7 @@ void free_preferences(preferences *pref) {
 	pref->asnet_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
-	g_slist_free_full(pref->gui.script_path, g_free);
+	g_slist_free_full(g_steal_pointer(&pref->gui.script_path), g_free);
 	pref->gui.script_path = NULL;
 	g_free(pref->fftw_conf.wisdom_file);
 	pref->fftw_conf.wisdom_file = NULL;
@@ -259,6 +281,7 @@ struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
 	{ "core", "force_16bit", STYPE_BOOL, N_("don't use 32 bits for pixel depth"), &com.pref.force_16bit },
+	{ "core", "fits_save_icc", STYPE_BOOL, N_("embed ICC profiles in FITS when saving"), &com.pref.fits_save_icc },
 	{ "core", "allow_heterogeneous_fitseq", STYPE_BOOL, N_("allow FITS cubes to have different sizes"), &com.pref.allow_heterogeneous_fitseq },
 	{ "core", "mem_mode", STYPE_INT, N_("memory mode (0 ratio, 1 amount)"), &com.pref.mem_mode, { .range_int = { 0, 1 } } },
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },
@@ -393,6 +416,23 @@ struct settings_access all_settings[] = {
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
 	{ "gui", "roi_warning", STYPE_BOOL, N_("Enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
+	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc.icc_path_monitor },
+	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc.icc_path_soft_proof },
+	{ "gui", "icc_custom_monitor_active", STYPE_BOOL, N_("custom monitor profile active"), &com.pref.icc.custom_monitor_profile_active },
+	{ "gui", "icc_soft_proofing_active", STYPE_BOOL, N_("output proofing profile active"), &com.pref.icc.soft_proofing_profile_active },
+	{ "gui", "custom RGB ICC profile", STYPE_STR, N_("path to custom RGB ICC profile"), &com.pref.icc.custom_icc_trc },
+	{ "gui", "custom gray ICC profile", STYPE_STR, N_("path to custom gray ICC profile"), &com.pref.icc.custom_icc_gray },
+	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.icc.rendering_intent },
+	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
+	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },
+	{ "gui", "default_to_srgb", STYPE_BOOL, N_("default to sRGB when exporting non color managed images"), &com.pref.icc.default_to_srgb },
+	{ "gui", "working_gamut", STYPE_INT, N_("color mangement working gamut"), &com.pref.icc.working_gamut },
+	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
+	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },
+	{ "gui", "icc_autoconversion", STYPE_INT, N_("autoconvert images with an ICC profile to the working color space"), &com.pref.icc.autoconversion },
+	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoassignment },
+	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },
+	{ "gui", "icc_pedantic_linear", STYPE_BOOL, N_("pedantically assign linear ICC profiles"), &com.pref.icc.pedantic_linear },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },

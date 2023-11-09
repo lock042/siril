@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/command.h"
 #include "core/siril_log.h"
@@ -1155,6 +1156,17 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
+
+	/* The data is no longer mono. It's almost certainly linear, but we will
+	 * not assign a color profile to it at this stage, it is likely one of
+	 * many subs to be sequence processed along with others and it is more
+	 * efficient to ignore color managemet until the final stacked image is
+	 * available, and the user can then assign a profile as they choose.
+	 */
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
 	return 0;
 }
 
@@ -1190,6 +1202,18 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
+
+	/* The data is no longer mono. It's almost certainly linear, but we will
+	 * not assign a color profile to it at this stage, it is likely one of
+	 * many subs to be sequence processed along with others and it is more
+	 * efficient to ignore color managemet until the final stacked image is
+	 * available, and the user can then assign a profile as they choose.
+	 */
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
+
 	return 0;
 }
 

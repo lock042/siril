@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
@@ -37,8 +38,9 @@
 static guint timer_id;
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;
-static fits preview_gfit_backup;
+static cmsHPROFILE preview_icc_backup = NULL;
 static fits preview_roi_backup;
+static fits preview_gfit_backup = { 0 };
 
 static gboolean update_preview(gpointer user_data) {
 	update_image *im = (update_image*) user_data;
@@ -53,9 +55,7 @@ static gboolean update_preview(gpointer user_data) {
 
 	waiting_for_thread(); // in case function is run in another thread
 	set_progress_bar_data(NULL, PROGRESS_DONE);
-	if (im->show_preview) {
-		notify_gfit_modified();
-	}
+	// Don't notify_gfit_modified() here, it must be done by the callers
 	return FALSE;
 }
 
@@ -64,6 +64,20 @@ static void free_struct(gpointer user_data) {
 
 	timer_id = 0;
 	free(im);
+}
+
+void copy_gfit_icc_to_backup() {
+	if (!gfit.icc_profile)
+		return;
+	if (preview_icc_backup)
+		cmsCloseProfile(preview_icc_backup);
+	preview_icc_backup = copyICCProfile(gfit.icc_profile);
+}
+
+static void copy_backup_icc_to_gfit() {
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = copyICCProfile(preview_icc_backup);
 }
 
 int backup_roi() {
@@ -87,6 +101,8 @@ void copy_gfit_to_backup() {
 		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
+	if (!com.script)
+		copy_gfit_icc_to_backup();
 	if (gui.roi.active && backup_roi()) {
 		siril_debug_print("Image copy error in ROI\n");
 		return;
@@ -102,6 +118,8 @@ int copy_backup_to_gfit() {
 		if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1)) {
 			siril_debug_print("Image copy error in previews\n");
 			retval = 1;
+		} else if (!com.script) {
+			copy_backup_icc_to_gfit();
 		}
 		if (gui.roi.active && restore_roi()) {
 			siril_debug_print("Image copy error in ROI\n");
