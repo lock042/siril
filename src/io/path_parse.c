@@ -309,7 +309,7 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 			printf("Wildcard in READ mode\n");
 		} else if (subs[1][0] == '%' && (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f"))) { // case %d or %f
 			gboolean isint = g_str_has_suffix(subs[1], "d");
-			double val = 0;
+			double val = 0.;
 			*status = nofail * read_key_from_header_text(headerkeys, key,&val, NULL);
 			display_path_parse_error(*status, key);
 			if (*status > 0) {

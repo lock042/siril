@@ -3,7 +3,11 @@ pixmaps = \
   astrometry_dark.svg \
 	b.svg \
 	chain.svg \
+	check_menu.svg \
+	CIE1931.svg \
 	cm.svg \
+	color_management.svg \
+	color_management_off.svg \
 	curve.svg \
 	cut.svg \
 	cut_dark.svg \

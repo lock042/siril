@@ -105,6 +105,7 @@ static GActionEntry any_processing_entries[] = {
 	{ "fix-banding-processing", fix_banding_activate },
 	{ "cosmetic-processing", cosmetic_activate },
 	{ "background-extr-processing", background_extr_activate },
+	{ "icc-tool", icc_activate },
 	{ "clear_roi", clear_roi }
 };
 
@@ -210,6 +211,7 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"starnet-processing",
 		"cosmetic-processing",
 		"background-extr-processing",
+		"icc-tool",
 		"clear_roi",
 		NULL,
 	};
