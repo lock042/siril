@@ -36,10 +36,12 @@
 #include "core/siril_date.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "gui/siril_preview.h"
 #include "algos/statistics.h"
 #include "algos/astrometry_solver.h"
 #include "io/sequence.h"
@@ -1825,6 +1827,209 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	return 0;
 }
 
+int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile) {
+	int status = 0;     // CFITSIO status variable
+	cmsUInt32Number profile_length;
+	cmsUInt8Number *profile = NULL;
+	status = cmsSaveProfileToMem(icc_profile, NULL, &profile_length);
+	if (profile_length > 0) {
+		profile = malloc(profile_length * sizeof(cmsUInt8Number));
+		cmsBool ret = cmsSaveProfileToMem(icc_profile, (void*) profile, &profile_length);
+		status = !ret;
+	}
+
+	// Move to the last HDU
+	int nhdus;
+	fits_get_num_hdus(fptr, &nhdus, &status);
+
+	if (nhdus && fits_movabs_hdu(fptr, nhdus, NULL, &status)) {
+		fits_report_error(stderr, status);
+		goto ERROR_MESSAGE_AND_RETURN;
+	}
+
+	// Create the image extension
+	long naxis = 1, naxes = profile_length;  // Image dimensions
+	long fpixel = 1;       // First pixel to write
+	if (fits_create_img(fptr, BYTE_IMG, naxis, &naxes, &status)) {
+		fits_report_error(stderr, status);
+		goto ERROR_MESSAGE_AND_RETURN;
+	}
+	int bitpix = 8, pcount = 0, gcount = 1;
+	// Populate the header with the field values
+	status = (fits_update_key(fptr, TSTRING, "XTENSION", "IMAGE", NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "BITPIX", &bitpix, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "NAXIS", &naxis, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "NAXIS1", &profile_length, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "PCOUNT", &pcount, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TINT, "GCOUNT", &gcount, NULL, &status));
+	if (!status) status = (fits_update_key(fptr, TSTRING, "EXTNAME", "ICCProfile", NULL, &status));
+	if (status) {
+		fits_report_error(stderr, status);
+		goto ERROR_MESSAGE_AND_RETURN;
+	}
+
+	// Write the ICC profile data to the image extension
+	if (fits_write_img(fptr, TBYTE, fpixel, profile_length, profile, &status)) {
+		fits_report_error(stderr, status);
+		goto ERROR_MESSAGE_AND_RETURN;
+	}
+
+	// Success! Clean up and return
+	g_free(profile);
+	siril_debug_print("ICC profile embedded in FITS file\n");
+	return 0;
+
+ERROR_MESSAGE_AND_RETURN:
+	free(profile);
+	siril_log_color_message(_("Warning: error encountered writing ICC profile to FITS.\n"), "salmon");
+	return status;
+}
+
+int write_icc_profile_to_fits(fits *fit) {
+	int retval = write_icc_profile_to_fptr(fit->fptr, fit->icc_profile);
+	return retval;
+}
+
+/* Look for a HDU containing an ICC profile; if one is found, open it */
+cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
+	cmsHPROFILE icc_profile;
+	int status = 0;
+	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+	int ihdu, nhdus, hdutype;
+	fits_get_num_hdus(fptr, &nhdus, &status);
+	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
+		fits_movabs_hdu(fptr,ihdu, &hdutype, &status);
+		fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status);
+		if (status) {
+			status = 0;
+			continue; /* next HDU */
+		}
+		if (!g_str_has_prefix(extname, "ICCProfile"))
+			continue; /* next HDU */
+		break; /* current HDU matches */
+	}
+	if (ihdu > nhdus) {
+		/* no matching HDU */
+		status = BAD_HDU_NUM;
+		return NULL;
+	}
+	int strsize = 1620;
+	int strlength = 0;
+	char *header = NULL;
+	if (!(header = malloc(strsize))) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	status = copy_header_from_hdu(fptr, &header, &strsize, &strlength);
+	if (status) {
+		free(header);
+		return NULL;
+	}
+	// Get the ICC Profile length
+	uint32_t profile_length, bitpix;
+	fits_read_key(fptr, TUINT, "NAXIS1", &profile_length, comment, &status);
+	fits_read_key(fptr, TUINT, "BITPIX", &bitpix, comment, &status);
+	if (bitpix != 8 || status != 0) {
+		free(header);
+		return NULL;
+	}
+	int zero = 0;
+	BYTE *profile = NULL;
+	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
+		PRINT_ALLOC_ERR;
+		free(header);
+		return NULL;
+	}
+	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
+	if (status) {
+		free(profile);
+		free(header);
+		return NULL;
+	}
+	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
+	if (icc_profile)
+		siril_debug_print("Embedded ICC profile read from FITS\n");
+	free(profile);
+	free(header);
+	return icc_profile;
+}
+
+int read_icc_profile_from_fits(fits *fit) {
+	int status = 0;
+	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+	int ihdu, nhdus, hdutype;
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
+	fits_get_num_hdus(fit->fptr, &nhdus, &status);
+	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
+		fits_movabs_hdu(fit->fptr,ihdu, &hdutype, &status);
+		fits_read_key(fit->fptr, TSTRING, "EXTNAME", &extname, comment, &status);
+		if (status) {
+			status = 0;
+			continue; /* next HDU */
+		}
+		if (!g_str_has_prefix(extname, "ICCProfile"))
+			continue; /* next HDU */
+		break; /* current HDU matches */
+	}
+	if (ihdu > nhdus) {
+		/* no matching HDU */
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		status = BAD_HDU_NUM;
+		return 1;
+	}
+	int strsize = 1620;
+	int strlength = 0;
+	char *header = NULL;
+	if (!(header = malloc(strsize))) {
+		PRINT_ALLOC_ERR;
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		return 1;
+	}
+	status = copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength);
+	if (status) {
+		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		return 1;
+	}
+	// Get the ICC Profile length
+	uint32_t profile_length, bitpix;
+	fits_read_key(fit->fptr, TUINT, "NAXIS1", &profile_length, comment, &status);
+	fits_read_key(fit->fptr, TUINT, "BITPIX", &bitpix, comment, &status);
+	if (bitpix != 8 || status != 0) {
+		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		return 1;
+	}
+	int zero = 0;
+	BYTE *profile = NULL;
+	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
+		PRINT_ALLOC_ERR;
+		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		return 1;
+	}
+	fits_read_img(fit->fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
+	if (status) {
+		free(profile);
+		free(header);
+		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		return 1;
+	}
+	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
+	if (fit->icc_profile) {
+		siril_debug_print("Embedded ICC profile read from FITS\n");
+		color_manage(fit, TRUE);
+	} else {
+		color_manage(fit, FALSE);
+	}
+	free(profile);
+	free(header);
+	status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+	return 0;
+}
+
 /* from bitpix, depending on BZERO, bitpix and orig_bitpix are set.
  *
  * since USHORT_IMG is a cfitsio trick and doesn't really exist in the
@@ -1900,6 +2105,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 				basename, fit->naxes[2], fit->rx, fit->ry, fit->type == DATA_USHORT ? 16 : 32) ;
 		g_free(basename);
 	}
+	check_profile_correct(fit);
 
 close_readfits:
 	status = 0;
@@ -1951,7 +2157,13 @@ void clearfits_header(fits *fit) {
 		free(fit->stats);
 		fit->stats = NULL;
 	}
+	color_manage(fit, FALSE);
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
 	free_wcs(fit, FALSE);
+	if (fit == &gfit && is_preview_active())
+		clear_backup();
 	memset(fit, 0, sizeof(fits));
 }
 
@@ -2093,6 +2305,16 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
 
+	/* Note: reading one channel of a multi-channel FITS poses a color management challenge:
+	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
+	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
+	 * We set the icc_profile to NULL and fit->color_mananged to FALSE to indicate that this
+	 * is raw data and no longer associated with a color managed image. Care must be taken
+	 * regarding subsequent reintegration of this data into a color managed workflow.
+	 */
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
+
 	status = 0;
 	fits_close_file(fit->fptr, &status);
 	fprintf(stdout, _("Loaded partial FITS file %s\n"), filename);
@@ -2136,6 +2358,8 @@ int read_fits_metadata(fits *fit) {
 		return -1;
 	}
 
+	read_icc_profile_from_fits(fit); // read color management data
+
 	read_fits_header(fit);	// stores useful header data in fit
 	fit->header = copy_header(fit);
 
@@ -2153,7 +2377,6 @@ static int read_fits_metadata_from_path_internal(const char *filename, fits *fit
 	}
 
 	read_fits_metadata(fit);
-
 	status = 0;
 	fits_close_file(fit->fptr, &status);
 
@@ -2255,7 +2478,7 @@ int siril_fits_compress(fits *f) {
 	 * dithered and instead the zero values are exactly preserved in the compressed image
 	 *
 	 * Here we need to use SUBTRACTIVE_DITHER in order to not have border artifacts at the
-	 * end of sracking with compressed images.
+	 * end of stacking with compressed images.
 	 */
 	if (fits_set_quantize_dither(f->fptr, SUBTRACTIVE_DITHER_2, &status)) {
 		report_fits_error(status);
@@ -2384,6 +2607,17 @@ int savefits(const char *name, fits *f) {
 	    f->fptr = NULL;
 		g_free(filename);
 		return 1;
+	}
+
+	if (com.pref.fits_save_icc && f->color_managed) {
+		/* Only write the ICC profile for color managed FITS. This avoids writing
+		 * ICC profiles to things like extracted channels where it doesn't really
+		 * make sense. */
+		if (f->icc_profile) {
+			write_icc_profile_to_fits(f);
+		} else {
+			siril_debug_print("Info: FITS has no assigned ICC profile, saving without one.\n");
+		}
 	}
 
 	status = 0;
@@ -2553,6 +2787,8 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->history = NULL;
 		to->date = NULL;
 		to->date_obs = NULL;
+		to->icc_profile = NULL;
+		to->color_managed = FALSE;
 #ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
 #endif
@@ -2650,6 +2886,58 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		}
 	}
 
+	if ((oper & CP_ALLOC) || (oper & CP_COPYA)) {
+		// copy color management data
+		to->color_managed = from->color_managed;
+		if (to->color_managed) {
+			to->icc_profile = copyICCProfile(from->icc_profile);
+		} else {
+			to->icc_profile = NULL;
+		}
+		color_manage(to, to->color_managed);
+	}
+
+	return 0;
+}
+
+/* Changes a FITS to [layers] channels. Data in the GLAYER and BLAYER
+ * is not zeroed so will initially be filled with junk, it is assumed that the
+ * calling function will subsequently populate the data in these channels.
+ */
+
+int fits_change_depth(fits *fit, int layers) {
+	if (layers == fit->naxes[2]) return 0;
+	g_assert (layers == 1 || layers == 3); // Can only change depth to mono or 3-channel
+
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
+	if (fit->naxes[2] == layers)
+		// Nothing to do! Just return.
+		return 0;
+	if (fit->type == DATA_USHORT) {
+		WORD *tmp;
+		if (!(tmp = realloc(fit->data, nbdata * layers * sizeof(WORD)))) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		fit->data = tmp;
+		fit->naxes[2] = layers;
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = layers == 3 ? fit->data + nbdata : fit->data;
+		fit->pdata[BLAYER] = layers == 3 ? fit->data + 2 * nbdata : fit->data;
+	}
+	else if (fit->type == DATA_FLOAT) {
+		float *tmp;
+		if (!(tmp = realloc(fit->fdata, nbdata * layers * sizeof(float)))) {
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		fit->fdata = tmp;
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = layers == 3 ? fit->fdata + nbdata : fit->fdata;
+		fit->fpdata[BLAYER] = layers == 3 ? fit->fdata + 2 * nbdata: fit->fdata;
+	}
+	fit->naxes[2] = layers;
+	fit->naxis = layers == 1 ? 2 : 3;
 	return 0;
 }
 
@@ -2666,6 +2954,15 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	to->history = NULL;
 	to->date = NULL;
 	to->date_obs = NULL;
+	/* Note: extracting one channel of a multi-channel FITS poses a color management challenge:
+	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
+	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
+	 * We therefore set a NULL icc_profile and color_managed = FALSE to indicate that this
+	 * extracted channel is considered non-color managed raw data. Care must be taken if
+	 * subsequently reintegrating it into a color managed workflow.
+	 */
+	color_manage(to, FALSE);
+	to->icc_profile = NULL;
 #ifdef HAVE_WCSLIB
 	to->wcslib = NULL;
 #endif
@@ -2733,6 +3030,13 @@ void keep_only_first_channel(fits *fit) {
 		fit->fpdata[1] = fit->fdata;
 		fit->fpdata[2] = fit->fdata;
 	}
+	/* Note: keeping one channel of a multi-channel FITS poses a color management challenge:
+	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
+	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
+	 * As above, we set icc_profile to NULL and color_managed to FALSE.
+	 */
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
 }
 
 /* copy non-mandatory keywords from 'from' to 'to' */
@@ -2779,6 +3083,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
+	// don't copy ICC profile, if that is needed it should be done separately
 #ifdef HAVE_WCSLIB
 	//wcssub()?
 #endif
@@ -2808,6 +3113,7 @@ int copy_fits_from_file(char *source, char *destination) {
 	return (status);
 }
 
+
 int save1fits16(const char *filename, fits *fit, int layer) {
 	if (layer != RLAYER) {
 		size_t nbdata = fit->naxes[0] * fit->naxes[1];
@@ -2815,7 +3121,13 @@ int save1fits16(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	return savefits(filename, fit);
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
+	color_manage(fit, FALSE);
+	int retval = savefits(filename, fit);
+	return retval;
 }
 
 int save1fits32(const char *filename, fits *fit, int layer) {
@@ -2825,7 +3137,13 @@ int save1fits32(const char *filename, fits *fit, int layer) {
 	}
 	fit->naxis = 2;
 	fit->naxes[2] = 1;
-	return savefits(filename, fit);
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
+	color_manage(fit, FALSE);
+	int retval = savefits(filename, fit);
+	return retval;
 }
 
 /* this method converts 24-bit RGB or BGR data (no padding) to 48-bit FITS data.
@@ -2979,6 +3297,8 @@ static void extract_region_from_fits_ushort(fits *from, int layer, fits *to,
 	to->pdata[2] = to->data;
 	to->bitpix = from->bitpix;
 	to->type = DATA_USHORT;
+	to->icc_profile = NULL;
+	color_manage(to, FALSE);
 }
 
 static void extract_region_from_fits_float(fits *from, int layer, fits *to,
@@ -3007,6 +3327,8 @@ static void extract_region_from_fits_float(fits *from, int layer, fits *to,
 	to->fpdata[2] = to->fdata;
 	to->bitpix = from->bitpix;
 	to->type = DATA_FLOAT;
+	to->icc_profile = NULL;
+	color_manage(to, FALSE);
 }
 
 void extract_region_from_fits(fits *from, int layer, fits *to,
@@ -3089,6 +3411,8 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 			(*fit)->fpdata[BLAYER] = (*fit)->fdata;
 		}
 	}
+	// Note: FITS created in this way will initially not be color managed. The
+	// user, or the calling function, must assign an ICC profile if required.
 	return 0;
 }
 
@@ -3096,7 +3420,6 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	fit->type = newtype;
 	invalidate_stats_from_fit(fit);
-
 	size_t nbdata = fit->naxes[0] * fit->naxes[1];
 	if (newtype == DATA_USHORT) {
 		fit->bitpix = USHORT_IMG;
@@ -3117,6 +3440,7 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 		fit->fpdata[0] = NULL;
 		fit->fpdata[1] = NULL;
 		fit->fpdata[2] = NULL;
+
 		siril_debug_print("Changed a fit data (WORD)\n");
 	} else if (newtype == DATA_FLOAT) {
 		fit->bitpix = FLOAT_IMG;

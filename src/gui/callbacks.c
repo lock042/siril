@@ -24,6 +24,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/undo.h"
 #include "core/command.h"
@@ -69,7 +70,7 @@
 #include "registration_preview.h"
 
 static GList *roi_callbacks = NULL;
-static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
+static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
@@ -456,6 +457,8 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 
 	gui.rendering_mode = get_display_mode_from_menu();
 	siril_debug_print("Display mode %d\n", gui.rendering_mode);
+	gboolean override_label = FALSE;
+
 	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type != DATA_FLOAT)
 		siril_log_message(_("Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"));
 	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap) {
@@ -466,13 +469,18 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 		if (gui.rendering_mode == STF_DISPLAY)
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 	}
-	gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
+	if (!override_label)
+		gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
-	redraw(REMAP_ALL);
-	redraw_previews();
+	gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
+
+	if (single_image_is_loaded() || sequence_is_loaded()) {
+		redraw(REMAP_ALL);
+		redraw_previews();
+	}
 }
 
 void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
@@ -720,7 +728,7 @@ display_mode get_display_mode_from_menu() {
 	return LINEAR_DISPLAY;
 }
 
-static void set_initial_display_mode(display_mode x) {
+void set_initial_display_mode(display_mode x) {
 	switch(x) {
 		case LINEAR_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("linear_item")), TRUE);
@@ -1543,7 +1551,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
-
 	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 
@@ -1661,6 +1668,14 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 /* a checkcut checkbox was toggled. Update the layer_info and others if chained. */
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gui.cut_over = gtk_toggle_button_get_active(togglebutton);
+	redraw(REMAP_ALL);
+	redraw_previews();
+}
+/* gamut check was toggled. */
+void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	if (gfit.color_managed && gui.icc.proofing_transform) {
+		gui.icc.proofing_transform = initialize_proofing_transform();
+	}
 	redraw(REMAP_ALL);
 	redraw_previews();
 }
@@ -1814,6 +1829,7 @@ void gtk_main_quit() {
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
 	kill_child_process(TRUE); // kill running child processes if any
+	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	exit(EXIT_SUCCESS);
 }
@@ -1836,23 +1852,29 @@ void siril_quit() {
  * one call to select new button, one call to unselect previous one */
 void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
+	WORD oldhi = gui.hi, oldlo = gui.lo;
 	if (gtk_toggle_button_get_active(togglebutton)) {
 		gui.sliders = MINMAX;
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
-		redraw(REMAP_ALL);
-		redraw_previews();
+		if (gui.hi != oldhi || gui.lo != oldlo) {
+			redraw(REMAP_ALL);
+			redraw_previews();
+		}
 	}
 }
 
 void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
+	WORD oldhi = gui.hi, oldlo = gui.lo;
 	if (gtk_toggle_button_get_active(togglebutton)) {
 		gui.sliders = MIPSLOHI;
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
-		redraw(REMAP_ALL);
-		redraw_previews();
+		if (gui.hi != oldhi || gui.lo != oldlo) {
+			redraw(REMAP_ALL);
+			redraw_previews();
+		}
 	}
 }
 
@@ -1862,8 +1884,7 @@ void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 		gui.sliders = USER;
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
-		redraw(REMAP_ALL);
-		redraw_previews();
+// No redraw needed here as the slider values don't actually change until the user changes the values
 	}
 }
 
@@ -1871,14 +1892,25 @@ void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 // functions in different files, so here is a good place to put it
 
 void setup_stretch_sliders() {
+	gboolean changed = FALSE;
 	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_user"));
-	gtk_toggle_button_set_active(button, TRUE);
-	gui.sliders = USER;
-	gui.hi = USHRT_MAX;
-	gui.lo = 0;
-	set_cutoff_sliders_values();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	if (!gtk_toggle_button_get_active(button)) {
+		gtk_toggle_button_set_active(button, TRUE);
+		gui.sliders = USER;
+	}
+	if (gui.hi != USHRT_MAX) {
+		gui.hi = USHRT_MAX;
+		changed = TRUE;
+	}
+	if (gui.lo != 0) {
+		gui.lo = 0;
+		changed = TRUE;
+	}
+	if (changed) {
+		set_cutoff_sliders_values();
+		redraw(REMAP_ALL);
+		redraw_previews();
+	}
 }
 
 void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {

@@ -42,6 +42,7 @@
 
 #include "git-version.h"
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/siril_actions.h"
 #include "core/initfile.h"
@@ -66,8 +67,8 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
+cominfo com = { 0 };	// the core data struct
+guiinfo gui = { 0 };	// the gui data struct
 fits gfit;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
@@ -249,7 +250,6 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	// After this point com.pref is populated
-
 	siril_language_parser_init();
 	if (com.pref.lang)
 		language_init(com.pref.lang);
@@ -277,6 +277,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2
 	if (com.pref.use_scripts_repository)

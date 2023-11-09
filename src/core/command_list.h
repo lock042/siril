@@ -78,6 +78,9 @@ static command commands[] = {
 
 	/* commands open filename and current image */
 	{"iadd", 1, "iadd filename", process_imoper, STR_IADD, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"icc_assign", 1, "icc_assign profile", process_icc_assign, STR_ICC_ASSIGN, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"icc_convert_to", 1, "icc_convert_to profile [intent]", process_icc_convert_to, STR_ICC_CONVERT_TO, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"icc_remove", 0, "icc_remove", process_icc_remove, STR_ICC_REMOVE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"idiv", 1, "idiv filename", process_imoper, STR_IDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},

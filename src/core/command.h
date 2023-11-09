@@ -94,6 +94,9 @@ int	process_histo(int nb);
 
 int	process_jsonmetadata(int nb);
 
+int process_icc_assign(int nb);
+int process_icc_convert_to(int nb);
+int process_icc_remove(int nb);
 int	process_imoper(int nb);
 int	process_inspector(int nb);
 

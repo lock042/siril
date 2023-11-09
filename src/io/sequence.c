@@ -43,6 +43,7 @@
 #include "core/initfile.h"
 #include "core/undo.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
 #include "gui/cut.h"
@@ -823,6 +824,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 #endif
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
+			// copyfits copies ICC profile so internal sequences do retain ICC profiles
 			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
 			copy_fits_metadata(seq->internal_fits[index], dest);
 			if (seq->internal_fits[index]->type == DATA_FLOAT) {
@@ -845,6 +847,9 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			index, dest->naxes[2], seq->nb_layers);
 		return 1;
 	}
+//	check_profile_correct(dest);
+	color_manage(dest, FALSE);
+
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
 	seq->imgparam[index].rx = dest->rx;

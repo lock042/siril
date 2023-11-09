@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -544,7 +545,8 @@ static gboolean end_stacking(gpointer p) {
 		memcpy(&gfit, &args->result, sizeof(fits));
 		if (has_wcsdata(&gfit))
 			load_WCS_from_memory(&gfit);
-
+		if (!com.script)
+			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
 		if (com.seq.upscale_at_stacking > 1.05)

@@ -28,6 +28,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -111,7 +112,7 @@ static GtkComboBoxText *box = NULL;
 static GtkGrid *grid_layers = NULL;
 
 static GtkButton *add_button = NULL;
-
+static cmsHPROFILE reference = NULL;
 /******* internal functions *******/
 static void remove_layer(int layer);
 static void add_the_layer_add_button();
@@ -464,12 +465,15 @@ void open_compositing_window() {
 	} else {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
+
 		close_sequence(FALSE);
 		close_single_image();
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
+			if (!reference)
+				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
-		} while (layers[i]) ;
+		} while (layers[i]);
 		update_result(1);
 		update_MenuItem();
 	}
@@ -545,7 +549,6 @@ static void check_gfit_is_ours() {
 
 	if (!update_needed)
 		return;
-
 	/* create the new result image if it's the first opened image */
 	close_single_image();
 	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_INIT | CP_EXPAND, -1)) {
@@ -553,7 +556,7 @@ static void check_gfit_is_ours() {
 		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
 		return;
 	}
-
+	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 	/* open the single image.
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
@@ -669,6 +672,26 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 				orig_rx[layer] = layers[layer]->the_fit.rx;
 				orig_ry[layer] = layers[layer]->the_fit.ry;
 				compute_compositor_mem_limits(&layers[layer]->the_fit);
+				if (reference) {
+					cmsCloseProfile(reference);
+					reference = NULL;
+				}
+				if (layers[layer]->the_fit.icc_profile)
+					reference = copyICCProfile(layers[layer]->the_fit.icc_profile);
+			}
+			if (number_of_images_loaded() > 1 && !profiles_identical(reference,
+							layers[layer]->the_fit.icc_profile)) {
+				if (reference) {
+					siril_log_color_message(_("ICC profile differs to that of the first image loaded. "
+								"Converting this image to match the first one loaded.\n"), "salmon");
+					siril_colorspace_transform(&layers[layer]->the_fit, reference);
+				} else {
+					siril_log_color_message(_("Input images have inconsistent ICC profiles. First image "
+								"had no ICC profile. All input layers will be treated as raw data.\n"), "salmon");
+					cmsCloseProfile(layers[layer]->the_fit.icc_profile);
+					layers[layer]->the_fit.icc_profile = NULL;
+					color_manage(&layers[layer]->the_fit, FALSE);
+				}
 			}
 			if (number_of_images_loaded() > 1 &&
 					(gfit.rx != layers[layer]->the_fit.rx ||
@@ -729,7 +752,6 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 		update_display_selection();	// update the dimensions of the selection when switching page
 		update_display_fwhm();
 	}
-
 
 	update_compositing_registration_interface();
 
@@ -1225,6 +1247,7 @@ static void luminance_and_colors_align_and_compose() {
 
 void on_compositing_cancel_clicked(GtkButton *button, gpointer user_data){
 	gui.comp_layer_centering = NULL;
+	reset_compositing_module();
 	siril_close_dialog("composition_dialog");
 }
 
@@ -1260,6 +1283,8 @@ static void clear_pixel(GdkRGBA *pixel) {
 
 /* recompute the layer composition and optionnally refresh the displayed result image */
 static void update_result(int and_refresh) {
+	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
+
 	check_gfit_is_ours();
 	if (luminance_mode && has_fit(0)) {
 		luminance_and_colors_align_and_compose();
@@ -1448,8 +1473,10 @@ void reset_compositing_module() {
 		layers[i] = NULL;
 		layers_count--;
 	}
-	// already done in on_layer_add
-	//gtk_container_remove(GTK_CONTAINER(grid_layers), GTK_WIDGET(add_button));
+
+	if (reference)
+		cmsCloseProfile(reference);
+	reference = NULL;
 
 	/* Reset GtkFileChooserButton Luminance */
 	GtkFileChooserButton *lum = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));

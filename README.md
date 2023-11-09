@@ -28,6 +28,7 @@ For compilation, these tools are needed in addition to the base development pack
 Then, mandatory build dependencies:
 - **glib-2.0** (>= 2.56.0) Glib Convenience Library
 - **GTK+ 3**, (>= 3.20) as GUI toolkit
+- **lcms2** for color space management
 - **cfitsio** for FITS image read and write
 - **fftw3** for Fourier transforms
 - **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
@@ -50,7 +51,7 @@ their support won't be included.
 - **libraw** for DSLR RAW files import
 - **libffms2** for films import (any format supported by ffmpeg)
 - **libtiff** (>= 4) for TIFF format support
-- **libXISF** (0.2.5) for XISF format support
+- **libXISF** (>=0.2.7) and **zstd** for XISF format support
 - **libjpeg** or compatible libraries like libjpeg-turbo for JPEG format support
 - **libheif** for HEIF format files import
 - **libpng** (>= 1.6) for PNG format support

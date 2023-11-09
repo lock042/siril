@@ -242,6 +242,7 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
+lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -387,7 +388,7 @@ endif
 
 libXISF_dep = no_dep
 if enable_libXISF
-  libXISF_dep = dependency('libxisf', required : true, version: '>= 0.2.5')
+  libXISF_dep = dependency('libxisf', required : true, version: '>= 0.2.7')
 endif
 
 libgit2_dep = no_dep
@@ -677,6 +678,7 @@ externals_dep = declare_dependency(
     gio_dep,
     gio_platform_dep,
     gtk_dep,
+    lcms_dep,
     libcurl_dep,
     libgit2_dep,
     gsl_dep,
