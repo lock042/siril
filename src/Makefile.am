@@ -20,6 +20,7 @@ AM_CPPFLAGS = \
 	$(FFMS2_CFLAGS) \
 	$(WCSLIB_CFLAGS) \
 	$(LIBCONFIG_CFLAGS) \
+	$(LCMS2_CFLAGS)  \
 	$(LIBGIT_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
@@ -80,6 +81,25 @@ siril_common_SOURCES = \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
 	algos/transform.c \
+	algos/lcms_acceleration/fast_16_tethra.c \
+	algos/lcms_acceleration/fast_8_curves.c \
+	algos/lcms_acceleration/fast_8_matsh.c \
+	algos/lcms_acceleration/fast_8_matsh_sse.c \
+	algos/lcms_acceleration/fast_8_tethra.c \
+	algos/lcms_acceleration/fast_float_15bits.c \
+	algos/lcms_acceleration/fast_float_15mats.c \
+	algos/lcms_acceleration/fast_float_cmyk.c \
+	algos/lcms_acceleration/fast_float_curves.c \
+	algos/lcms_acceleration/fast_float_internal.h \
+	algos/lcms_acceleration/fast_float_lab.c \
+	algos/lcms_acceleration/fast_float_matsh.c \
+	algos/lcms_acceleration/fast_float_separate.c \
+	algos/lcms_acceleration/fast_float_sup.c \
+	algos/lcms_acceleration/fast_float_tethra.c \
+	algos/lcms_acceleration/threaded_core.c \
+	algos/lcms_acceleration/threaded_main.c \
+	algos/lcms_acceleration/threaded_scheduler.c \
+	algos/lcms_acceleration/threaded_split.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
 	compositing/compositing.c \
@@ -382,6 +402,7 @@ siril_common_LDADD = \
 	$(LIBXISF_LIBS) \
 	$(FFTW_LIBS) \
 	$(CFITSIO_LIBS) \
+	$(LCMS2_LIBS) \
 	$(GSL_LIBS) \
 	$(JSON_GLIB_LIBS) \
 	$(FFMS2_LIBS) \

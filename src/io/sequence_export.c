@@ -23,6 +23,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "sequence.h"
 #include "ser.h"
 #include "stacking/stacking.h"
@@ -304,6 +305,9 @@ static gpointer export_sequence(gpointer ptr) {
 	size_t nbpix = 0;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
+//	gboolean first_profile_read = FALSE;
+//	cmsHPROFILE master_profile = NULL;
+
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
@@ -337,6 +341,30 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 
+/*		if (fit.icc_profile) {
+			if (!first_profile_read) {
+				master_profile = copyICCProfile(fit.icc_profile);
+				first_profile_read = TRUE;
+			} else {
+				cmsHPROFILE profile = copyICCProfile(fit.icc_profile);
+				if (!profiles_identical(master_profile, profile)) {
+					if (profile && master_profile) {
+						siril_log_color_message(_("An image of the sequence doesn't have the same ICC profile. Converting...\n"), "salmon");
+						convert_fit_colorspace(&fit, profile, master_profile);
+					} else {
+						siril_log_color_message(_("Mismatch of ICC profiles within the sequence. Can't decide what to do. Aborting..."), "red");
+						if (master_profile)
+							cmsCloseProfile(master_profile);
+						if (profile)
+							cmsCloseProfile(profile);
+						seqwriter_release_memory();
+						retval = -3;
+						goto free_and_reset_progress_bar;
+					}
+				}
+			}
+		}
+*/
 		/* destfit is allocated to the full size. Data will be copied from fit,
 		 * image buffers are duplicated. It will be cropped after the copy if
 		 * needed */
@@ -347,7 +375,7 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 			else {
 				if (memcmp(naxes, fit.naxes, sizeof naxes)) {
-					fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
+					siril_log_color_message(_("An image of the sequence doesn't have the same dimensions\n"), "red");
 					retval = -3;
 					clearfits(&fit);
 					seqwriter_release_memory();
@@ -398,7 +426,15 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
-		/* we copy the header */
+
+		if (destfit->icc_profile) {
+			cmsCloseProfile(destfit->icc_profile);
+		}
+		// Copy the ICC profile from fit if available
+		destfit->icc_profile = copyICCProfile(fit.icc_profile);
+		color_manage(destfit, fit.color_managed);
+
+		// we copy the header
 		copy_fits_metadata(&fit, destfit);
 
 		int shiftx, shifty;

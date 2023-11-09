@@ -26,6 +26,7 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "algos/annotate.h"
 #include "algos/ccd-inspector.h"
@@ -61,6 +62,10 @@
 void close_single_image() {
 	if (sequence_is_loaded() && com.seq.current >= 0)
 		return;
+	/* We need to clear display and soft proofing transforms and a few other
+	 * color management data */
+	reset_icc_transforms();
+
 	siril_debug_print("MODE: closing single image\n");
 	undo_flush();
 	/* we need to close all dialogs in order to avoid bugs
@@ -145,7 +150,10 @@ static void free_image_data_gui() {
 		view->view_width = -1;
 		view->view_height= -1;
 	}
-
+	if (gui.icc.proofing_transform) {
+		cmsDeleteTransform(gui.icc.proofing_transform);
+		gui.icc.proofing_transform = NULL;
+	}
 	clear_previews();
 	free_reference_image();
 }
@@ -235,6 +243,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 }
 
 static gboolean end_open_single_image(gpointer arg) {
+	com.icc.srgb_hint = FALSE;
 	open_single_image_from_gfit();
 	return FALSE;
 }
@@ -308,6 +317,7 @@ int open_single_image(const char* filename) {
 	}
 	if (!com.script)
 		reset_cut_gui_filedependent();
+	check_gfit_profile_identical_to_monitor();
 	return retval;
 }
 
