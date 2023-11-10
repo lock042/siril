@@ -295,7 +295,24 @@ siril_cli = executable('siril-cli', 'main-cli.c', win_res,
 ################################################################################
 # Install GUI files
 
-install_data(['gui/siril.css', 'gui/siril3.glade', 'gui/siril-shortcuts.ui'],
+install_data(['gui/siril.css',
+              'gui/uifiles/cosmetic_dialog.ui',
+              'gui/uifiles/binxy_dialog.ui',
+              'gui/uifiles/siril.ui',
+              'gui/uifiles/CLAHE_dialog.ui',
+              'gui/uifiles/cut_dialog.ui',
+              'gui/uifiles/cut_coords_dialog.ui',
+              'gui/uifiles/extract_wavelet_layers_dialog.ui',
+              'gui/uifiles/canon_fixbanding_dialog.ui',
+              'gui/uifiles/Median_dialog.ui',
+              'gui/uifiles/rgradient_dialog.ui',
+              'gui/uifiles/starnet_dialog.ui',
+              'gui/uifiles/wavelets_dialog.ui',
+              'gui/uifiles/asinh_dialog.ui',
+              'gui/uifiles/background_extraction_dialog.ui',
+              'gui/uifiles/savepopup.ui',
+              'gui/uifiles/satu_dialog.ui',
+              'gui/siril-shortcuts.ui'],
              install_dir : siril_datadir)
 
 
