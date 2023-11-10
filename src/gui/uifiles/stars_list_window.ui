@@ -27,5 +27,1022 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
+  <object class="GtkImage" id="image2">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Compute the image tilt. Tilt is shown as an overlay and overall tilt information is written to the Console tab. The tilt overlay can be cleared using the Remove button</property>
+    <property name="pixbuf">pixmaps/tilt_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_export">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Export list of stars to a file</property>
+    <property name="pixbuf">pixmaps/export_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_starfinder">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Detect stars in the current loaded image (not sequence image) and compute PSF</property>
+    <property name="pixbuf">pixmaps/starfinder_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_sum">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Average PSF parameters for selected stars</property>
+    <property name="pixbuf">pixmaps/sum_dark.svg</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_convergence">
+    <property name="lower">1</property>
+    <property name="upper">3</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_maxA">
+    <property name="lower">0.01</property>
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_maxr">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.25</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_minA">
+    <property name="upper">0.98999999999999999</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_radius">
+    <property name="lower">3</property>
+    <property name="upper">50</property>
+    <property name="value">5</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_roundness">
+    <property name="upper">0.94999999999999996</property>
+    <property name="value">0.5</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.25</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_threshold">
+    <property name="lower">0.01</property>
+    <property name="upper">15</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_min_beta">
+    <property name="upper">10</property>
+    <property name="value">1.5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkListStore" id="liststore_stars">
+    <columns>
+      <!-- column-name channel -->
+      <column type="gint"/>
+      <!-- column-name B -->
+      <column type="gdouble"/>
+      <!-- column-name A -->
+      <column type="gdouble"/>
+      <!-- column-name xpos -->
+      <column type="gdouble"/>
+      <!-- column-name ypos -->
+      <column type="gdouble"/>
+      <!-- column-name Ra -->
+      <column type="gdouble"/>
+      <!-- column-name Dec -->
+      <column type="gdouble"/>
+      <!-- column-name FWHMx -->
+      <column type="gdouble"/>
+      <!-- column-name FWHMy -->
+      <column type="gdouble"/>
+      <!-- column-name beta -->
+      <column type="gdouble"/>
+      <!-- column-name mag -->
+      <column type="gdouble"/>
+      <!-- column-name r -->
+      <column type="gdouble"/>
+      <!-- column-name angle -->
+      <column type="gdouble"/>
+      <!-- column-name rmse -->
+      <column type="gdouble"/>
+      <!-- column-name index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkDialog" id="stars_list_window">
+    <property name="width-request">800</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Dynamic PSF</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_stars_list_window_hide" swapped="no"/>
+    <signal name="show" handler="on_stars_list_window_show" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="dialog-vbox13">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox" id="dialog-action_area13">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_stars_list_ok">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="has-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_button_stars_list_ok_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="scrolledwindow5">
+            <property name="width-request">300</property>
+            <property name="height-request">400</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="vexpand">True</property>
+            <property name="shadow-type">in</property>
+            <child>
+              <object class="GtkTreeView" id="Stars_stored">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="has-tooltip">True</property>
+                <property name="hscroll-policy">natural</property>
+                <property name="vscroll-policy">natural</property>
+                <property name="model">liststore_stars</property>
+                <property name="reorderable">True</property>
+                <property name="search-column">0</property>
+                <property name="show-expanders">False</property>
+                <property name="enable-grid-lines">horizontal</property>
+                <signal name="key-release-event" handler="on_Stars_stored_key_release_event" swapped="no"/>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection" id="treeview-selection">
+                    <property name="mode">multiple</property>
+                    <signal name="changed" handler="on_treeview_selection_changed" swapped="no"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn13">
+                    <property name="spacing">2</property>
+                    <property name="sizing">fixed</property>
+                    <property name="title" translatable="yes">Ch.</property>
+                    <property name="alignment">0.5</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_ch"/>
+                      <attributes>
+                        <attribute name="text">0</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn11">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">B</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">1</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_B">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn12">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">A</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">2</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_A">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">x0</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">3</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_x0">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">y0</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">4</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_y0">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">4</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn30">
+                    <property name="spacing">2</property>
+                    <property name="title" translatable="yes">Ra</property>
+                    <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">5</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_ra"/>
+                      <attributes>
+                        <attribute name="text">13</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn31">
+                    <property name="spacing">2</property>
+                    <property name="title" translatable="yes">Dec</property>
+                    <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">6</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_dec"/>
+                      <attributes>
+                        <attribute name="text">14</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">FWHMx</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">7</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_fwhmx">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">5</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn10">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">FWHMy</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">8</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_fwhmy">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">6</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn_mag">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">Mag</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">9</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_mag">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">8</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn29">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">Beta</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">10</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_beta">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">7</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn14">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">r</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">11</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_r">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">9</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">Angle</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">12</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_angle">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">10</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn15">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">RMSE</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">13</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_rmse">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">11</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="visible">False</property>
+                    <property name="spacing">2</property>
+                    <property name="title" translatable="yes">index</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_index"/>
+                      <attributes>
+                        <attribute name="text">12</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="toggle_star_centered">
+            <property name="label" translatable="yes">Center selected star</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">If checked, a star selected from the list will be centered in the display. The current zoom level will not be altered. This does not apply to stars selected by clicking their PSF in the main display.</property>
+            <property name="halign">end</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFrame" id="frame35">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment" id="alignment39">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <!-- n-columns=5 n-rows=5 -->
+                  <object class="GtkGrid" id="grid35">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="row-spacing">10</property>
+                    <property name="column-spacing">10</property>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_radius">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Half-size in pixels of the search box. Only the brightest pixel will be used in this box to fit a star.</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_radius</property>
+                        <property name="numeric">True</property>
+                        <property name="value">10</property>
+                        <signal name="value-changed" handler="on_spin_sf_radius_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_threshold">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Threshold value above the noise for star detection.
+The median and standard deviation of the image are computed, then the threshold is: median + [threshold] x stdev.
+The default value for threshold is 1.00. Increasing this value will detect less dim stars, which should be done only when images have a lot of signal or low noise (high S/N).</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_threshold</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <property name="value">1</property>
+                        <signal name="value-changed" handler="on_spin_sf_threshold_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label148">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Radius: </property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label149">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Threshold: </property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label49">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Roundness threshold:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_round">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Threshold value of star roundnesses. Decrease this value if stars in the images show small trails, conversely, increase it if they are very round to avoid false positives.
+The default value is 0.5, suitable for stars twice as big in one direction as the other.</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_roundness</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <property name="value">0.5</property>
+                        <signal name="value-changed" handler="on_spin_sf_roundness_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="toggle_relax_checks">
+                        <property name="label" translatable="yes">Relax PSF checks</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">When checked, this button deactivates some checks done at star detection stage, to reject candidates initially detected based on some psf quality metrics. This can be used to force detecting oddly shaped stars (bad guiding, strong coma) but should be used as a last resort, if playing with all other detection parameters fails.</property>
+                        <property name="halign">start</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_toggle_relax_checks_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label8">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Convergence:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_convergence">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Convergence criterion for PSF fitting.
+Default value of 1 should work on most cases. However for images with strong coma, it may be necessary to increase this value to allow for more iteration steps.
+This should normally be the case only for stacked images. Increasing this value may signicantly impact star finding computation time.</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_convergence</property>
+                        <property name="numeric">True</property>
+                        <property name="value">1</property>
+                        <signal name="value-changed" handler="on_spin_sf_convergence_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Profile type:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combostarfinder_profile">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item translatable="yes">Gaussian</item>
+                          <item translatable="yes">Moffat</item>
+                        </items>
+                        <signal name="changed" handler="on_combostarfinder_profile_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="beta_control_label">
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Minimum beta:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spin_minbeta">
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Minimum value for Moffat beta parameter. This can be used to avoid galaxies being modelled as stars with excessively low beta.</property>
+                        <property name="halign">start</property>
+                        <property name="text">1,50</property>
+                        <property name="adjustment">adj_min_beta</property>
+                        <property name="digits">2</property>
+                        <property name="value">1.5</property>
+                        <signal name="value-changed" handler="on_spin_sf_minbeta_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="reset_findstar_button">
+                        <property name="width-request">128</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Resets all parameters to defaults.</property>
+                        <property name="halign">start</property>
+                        <signal name="clicked" handler="on_reset_findstar_button_clicked" swapped="no"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">view-refresh</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">4</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_maxA">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Maximum star amplitude threshold (stars with larger amplitudes will not be detected).</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_maxA</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <property name="value">1</property>
+                        <signal name="value-changed" handler="on_spin_sf_maxA_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">4</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_minA">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Mininum star amplitude threshold (stars with smaller amplitudes will not be detected).</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_minA</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spin_sf_minA_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="psf_amplitude_range_check_button">
+                        <property name="label" translatable="yes">Amplitude range</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Enable amplitude range (only stars with an amplitude in this range will be kept from the detection).
+Note: excluding saturated stars from the list will probably make registration or astrometry fail.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_psf_amplitude_range_check_button_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="psf_roundness_range_check_button">
+                        <property name="label" translatable="yes">Roundness range</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Enable roundness upper bound.
+Use only to display optical distorsions or double stars, not for registration or astrometry, this will break them.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_psf_roundness_range_check_button_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_maxr">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Maximum roundness, use only to display optical distorsions or double stars, not for registration or astrometry, this will break them.</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_maxr</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spin_sf_maxr_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel" id="label147">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Star Detection</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox" id="box37">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkStatusbar" id="statusbar_PSF">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">2</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolbar" id="toolbar1">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="toolbar-style">icons</property>
+                <property name="show-arrow">False</property>
+                <property name="icon_size">5</property>
+                <child>
+                  <object class="GtkToolButton" id="process_starfinder_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Detect stars in the current loaded image (not sequence image) and compute PSF</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">image_starfinder</property>
+                    <signal name="clicked" handler="on_process_starfinder_button_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="tilt_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Estimate sensor tilt</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">image2</property>
+                    <signal name="clicked" handler="on_tilt_button_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="sum_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Average PSF parameters for selected stars</property>
+                    <property name="is-important">True</property>
+                    <property name="icon-widget">image_sum</property>
+                    <signal name="clicked" handler="on_sum_button_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="separateur">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="export_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Export PSF parameters in an ASCII file</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">image_export</property>
+                    <signal name="clicked" handler="on_export_button_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="separateur2">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="add_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Add star to list from selection</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">list-add</property>
+                    <signal name="clicked" handler="on_add_button_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="remove_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Remove selected star from the list</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">list-remove</property>
+                    <signal name="clicked" handler="on_remove_button_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="remove_all_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Remove all stars from the list and clears the tilt overlay, if displayed</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">edit-clear</property>
+                    <signal name="clicked" handler="on_remove_all_button_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="0">button_stars_list_ok</action-widget>
+    </action-widgets>
+  </object>
 
 </interface>
