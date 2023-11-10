@@ -3,6 +3,7 @@
 
 const char* ui_files[] = {
 	"filefilters.ui",
+	"menus.ui",
 	"cosmetic_dialog.ui",
 	"binxy_dialog.ui",
 	"CLAHE_dialog.ui",

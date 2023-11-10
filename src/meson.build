@@ -297,6 +297,7 @@ siril_cli = executable('siril-cli', 'main-cli.c', win_res,
 
 install_data(['gui/siril.css',
               'gui/uifiles/filefilters.ui',
+              'gui/uifiles/menus.ui',
               'gui/uifiles/cosmetic_dialog.ui',
               'gui/uifiles/binxy_dialog.ui',
               'gui/uifiles/siril.ui',
