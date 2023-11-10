@@ -25,6 +25,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/icc_profile.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
@@ -66,6 +67,8 @@ static int _payne_colourstretchmodel = COL_INDEP;
 static ght_compute_params compute_params;
 
 static fits* fit = &gfit;
+
+static gboolean auto_display_compensation = FALSE;
 
 static double invxpos = -1.0;
 // colors of layers histograms		R	G	B	RGB
@@ -157,6 +160,7 @@ static void histo_startup() {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
 	}
+	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();
 	for (int i = 0; i < fit->naxes[2]; i++)
@@ -239,6 +243,8 @@ static void fit_to_hsl() {
 
 static void histo_recompute() {
 	set_cursor("progress");
+	gboolean auto_comp = auto_display_compensation;
+	auto_display_compensation = FALSE;
 	copy_backup_to_gfit();
 
 	if (invocation == HISTO_STRETCH) {
@@ -252,6 +258,45 @@ static void histo_recompute() {
 			hsl_to_gfit(huebuf, satbuf_working, lumbuf);
 		} else {
 			apply_linked_ght_to_fits(fit, fit, &params_ght, TRUE);
+		}
+	}
+	if (auto_comp) {
+		int depth = fit->naxes[2];
+		if (depth == 1) {
+			fits_change_depth(fit, 3);
+			if (fit->type == DATA_FLOAT) {
+				memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
+				memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
+			} else {
+				memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
+				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
+			}
+		}
+		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(gui.icc.monitor);
+		siril_colorspace_transform(fit, temp);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(temp);
+		cmsCloseProfile(temp);
+		if (depth == 1) {
+			size_t npixels = fit->rx * fit->ry;
+			if (fit->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0 ; i < npixels; i++) {
+					fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i])/3.f;
+				}
+			} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0 ; i < npixels; i++) {
+					fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i])/3.f;
+				}
+			}
+			fits_change_depth(fit, 1);
 		}
 	}
 	notify_gfit_modified();
@@ -1003,6 +1048,7 @@ void histo_change_between_roi_and_image() {
 		setup_hsl();
 	}
 	update_histo_mtf();
+	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1176,16 +1222,15 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 	} else {
 		// the apply button resets everything after recomputing with the current values
+		fit = &gfit;
 		if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview"))) || gui.roi.active) {
-			fit = &gfit;
 			copy_backup_to_gfit();
 			if (_payne_colourstretchmodel == COL_SAT) {
 				clear_hsl();
 				setup_hsl();
 			}
+			histo_recompute();
 		}
-		histo_recompute();
-		fit = gui.roi.active ? &gui.roi.fit : &gfit;
 		populate_roi();
 		// partial cleanup
 		if (invocation == HISTO_STRETCH) {
@@ -1279,6 +1324,8 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = histo_update_preview;
 		param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+		if (fit->color_managed && !profiles_identical(fit->icc_profile, gui.icc.monitor))
+			auto_display_compensation = TRUE;
 		notify_update((gpointer) param);
 	} else {
 		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
@@ -1382,6 +1429,7 @@ void toggle_histogram_window_visibility(int _invocation) {
 	for (int i=0;i<3;i++) {
 		do_channel[i] = TRUE;
 	}
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);
@@ -1390,6 +1438,7 @@ void toggle_histogram_window_visibility(int _invocation) {
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("histogram_dialog");
 	} else {
+		copy_gfit_to_backup();
 		//Ensure the colour stretch model is initialised at startup
 		_payne_colourstretchmodel = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")));
 		if (invocation == HISTO_STRETCH) {

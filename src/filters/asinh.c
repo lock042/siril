@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
 #include "io/single_image.h"
@@ -48,6 +49,7 @@ static int asinh_update_preview() {
 }
 
 void asinh_change_between_roi_and_image() {
+	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
@@ -64,14 +66,17 @@ static void asinh_startup() {
 static void asinh_close(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
-		siril_preview_hide();
+		if (asinh_stretch_value != 0.0f || asinh_black_value != 0.0f) {
+			siril_preview_hide();
+		} else {
+			clear_backup();
+		}
 	} else {
 		invalidate_stats_from_fit(&gfit);
 		undo_save_state(get_preview_gfit_backup(),
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				asinh_stretch_value, asinh_black_value);
 	}
-	backup_roi();
 	roi_supported(FALSE);
 	remove_roi_callback(asinh_change_between_roi_and_image);
 	clear_backup();
@@ -227,6 +232,8 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+
 	asinh_startup();
 	asinh_stretch_value = 0.0f;
 	asinh_black_value = 0.0f;
@@ -239,11 +246,7 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_spin_button_set_increments(spin_black_p, 0.001, 0.01);
 	set_notify_block(FALSE);
 
-	/* default parameters transform image, we need to update preview */
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
-	notify_update((gpointer) param);
+	/* default parameters do not transform image, no need to update preview */
 }
 
 void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
@@ -266,6 +269,8 @@ void on_asinh_dialog_close(GtkDialog *dialog, gpointer user_data) {
 }
 
 void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
+	double prev_stretch = asinh_stretch_value;
+	double prev_bp = asinh_black_value;
 	GtkSpinButton *spin_stretch = GTK_SPIN_BUTTON(lookup_widget("spin_asinh"));
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
@@ -280,12 +285,13 @@ void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
-
-	/* default parameters transform image, we need to update preview */
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
-	notify_update((gpointer) param);
+	// Update the preview if the parameters have changed
+	if (prev_stretch != 0.0 || prev_bp != 0.0) {
+		update_image *param = malloc(sizeof(update_image));
+		param->update_preview_fn = asinh_update_preview;
+		param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
+		notify_update((gpointer) param);
+	}
 }
 
 /*** adjusters **/

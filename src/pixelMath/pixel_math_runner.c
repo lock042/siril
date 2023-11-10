@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/initfile.h"
@@ -328,7 +329,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		invalidate_gfit_histogram();
 
 		memcpy(&gfit, args->fit, sizeof(fits));
-
+		icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		open_single_image_from_gfit();
@@ -754,7 +755,6 @@ failure: // failure before the eval loop
 		if (!failed) {
 			clearfits(&gfit);
 			memcpy(&gfit, args->fit, sizeof(fits));
-
 			com.seq.current = UNRELATED_IMAGE;
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
@@ -879,6 +879,7 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
 		return 1;
 	}
+
 	if (readfits(var, &var_fit[index], NULL, TRUE)) {
 		*w = *h = *c = -1;
 		return 1;
@@ -903,6 +904,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	int height = -1;
 	int channel = -1;
 
+	gboolean icc_warning_given = FALSE;
 	gboolean single_rgb = is_pm_use_rgb_button_checked();
 	gboolean rescale = is_pm_rescale_checked();
 	float min = get_min_rescale_value();
@@ -911,6 +913,27 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
 		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) return -1;
+
+		// Check ICC profiles are defined and the same
+		if (nb_rows > 0) {
+			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
+				if (!icc_warning_given) {
+					siril_log_color_message(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"), "salmon");
+					icc_warning_given = TRUE;
+				}
+				if (var_fit[0].icc_profile)
+					siril_log_color_message(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), "salmon", nb_rows + 1);
+				else
+					siril_log_color_message(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"), "salmon");
+				// This also takes care of the stuation where a file doesn't have an
+				// ICC profile - in that case it is assigned a profile to match.
+				// Ultimately it is much better to use images that all have the same
+				// color profile - when they don't we're reduced to guesswork about the
+				// user's intention.
+				siril_colorspace_transform(&var_fit[nb_rows], var_fit[0].icc_profile);
+			}
+		}
+		// Check channels are compatible
 		if (channel == - 1) {
 			width = var_fit[nb_rows].rx;
 			height = var_fit[nb_rows].ry;

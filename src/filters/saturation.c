@@ -46,6 +46,7 @@ static gboolean satu_show_preview;
 static int satu_update_preview();
 
 void satu_change_between_roi_and_image() {
+	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = satu_update_preview;
@@ -64,7 +65,11 @@ static void satu_startup() {
 static void satu_close(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
-		siril_preview_hide();
+		if (satu_amount != 0.0) {
+			siril_preview_hide();
+		} else {
+			clear_backup();
+		}
 	} else {
 		undo_save_state(get_preview_gfit_backup(),
 				_("Saturation enhancement (amount=%4.2lf)"), satu_amount);
@@ -72,7 +77,6 @@ static void satu_close(gboolean revert) {
 	roi_supported(FALSE);
 	remove_roi_callback(satu_change_between_roi_and_image);
 	clear_backup();
-	notify_gfit_modified();
 }
 
 static void apply_satu_changes() {
@@ -354,6 +358,7 @@ void on_combo_saturation_changed(GtkComboBox* box, gpointer user_data) {
 
 void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
+	double prev_satu = satu_amount;
 	satu_amount = 0.0;
 	background_factor = 1.0;
 
@@ -361,12 +366,14 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), satu_amount);
 	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), background_factor);
 	set_notify_block(FALSE);
-
-	copy_backup_to_gfit();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	// Update preview only if required
+	if (prev_satu != 0.0) {
+		copy_backup_to_gfit();
+		adjust_cutoff_from_updated_gfit();
+		redraw(REMAP_ALL);
+		redraw_previews();
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void apply_satu_cancel() {

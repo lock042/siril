@@ -32,6 +32,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
@@ -910,6 +911,12 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		fit_replace_buffer(fit, newbuf, DATA_FLOAT);
 	}
 
+	// ser is not color managed. We set the ICC profile to NULL and color_managed
+	// to FALSE: once the sequence is stacked, color management can be done on the
+	// stack.
+	color_manage(fit, FALSE);
+	fit->icc_profile = NULL;
+
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
 	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
@@ -1138,7 +1145,6 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		siril_log_message(_("This type of Bayer pattern is not handled yet.\n"));
 		return SER_GENERIC_ERROR;
 	}
-
 	return SER_OK;
 }
 
@@ -1146,6 +1152,9 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area) {
 	if (new_fit_image(&fit, area->w, area->h, 1, DATA_USHORT))
 		return SER_GENERIC_ERROR;
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
+
 	fit->top_down = TRUE;
 	if (ser_file->ts) {
 		GDateTime *timestamp = ser_timestamp_to_date_time(ser_file->ts[frame_no]);

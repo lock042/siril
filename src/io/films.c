@@ -33,6 +33,7 @@
 #include "gui/progress_and_log.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
+#include "core/icc_profile.h"
 
 static int pixfmt_gray, pixfmt_rgb, pixfmt_gray16, pixfmt_rgb48;
 
@@ -356,6 +357,12 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 		return FILM_ERROR;
 	}
 	fits_flip_top_to_bottom(fit);
+
+/* Film sequences are not color managed. Any sequence operations that rely on
+ * colorspace conversion (usually xRGB to xyz) will use a sensible default profile.
+ */
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
 
 	return FILM_SUCCESS;
 }

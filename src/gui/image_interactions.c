@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/command.h"
 #include "gui/cut.h"
 #include "core/processing.h"
@@ -178,7 +179,8 @@ void new_selection_zone() {
 	siril_debug_print("selection: %d,%d,\t%dx%d\n", com.selection.x,
 			com.selection.y, com.selection.w, com.selection.h);
 	for (i = 0; i < _nb_selection_callbacks; ++i) {
-		_registered_selection_callbacks[i]();
+		if (_registered_selection_callbacks[i])
+			_registered_selection_callbacks[i]();
 	}
 	redraw(REDRAW_OVERLAY);
 }
@@ -188,6 +190,8 @@ void delete_selected_area() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	if (!com.script)
 		new_selection_zone();
+	if (gui.roi.active && com.pref.gui.roi_mode == ROI_AUTO)
+		on_clear_roi();
 }
 
 void reset_display_offset() {
@@ -1031,6 +1035,9 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 
 	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return FALSE;
+
+	if (gui.icc.iso12646)
+		disable_iso12646_conditions(FALSE, TRUE);
 
 	if (event->state & get_primary()) {
 		point delta;

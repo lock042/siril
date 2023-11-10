@@ -135,6 +135,7 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 

@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/icc_profile.h"
 #include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
@@ -181,6 +182,8 @@ void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 
 	if (!is_visible) {
 		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+		if (gui.icc.iso12646)
+			disable_iso12646_conditions(TRUE, FALSE);
 	} else {
 		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 	}
@@ -234,6 +237,8 @@ void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		gui.zoom_value = ZOOM_FIT;
+		if (gui.icc.iso12646)
+			disable_iso12646_conditions(FALSE, TRUE);
 		reset_display_offset();
 		redraw(REDRAW_IMAGE);
 	} else {
@@ -254,11 +259,15 @@ void zoom_fit_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void zoom_in_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_IN);
+	if (gui.icc.iso12646)
+		disable_iso12646_conditions(FALSE, TRUE);
 }
 
 void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_OUT);
+	if (gui.icc.iso12646)
+		disable_iso12646_conditions(FALSE, TRUE);
 }
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -770,6 +779,10 @@ void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 		return;
 	}
 	rgb_align(0);
+}
+
+void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("icc_dialog");
 }
 
 void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

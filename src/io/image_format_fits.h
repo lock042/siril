@@ -14,7 +14,10 @@ typedef struct {
 	char *value;
 } header_record;
 GSList *read_header_keyvals_strings(fitsfile *fptr);
-
+cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr);
+int read_icc_profile_from_fits(fits *fit);
+int write_icc_profile_to_fits(fits *fit);
+int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile);
 data_type get_data_type(int bitpix);
 void fit_get_photometry_data(fits *fit);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
@@ -52,6 +55,7 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type);
 int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data_type type, void *data);
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype);
+int fits_change_depth(fits *fit, int layers);
 int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);

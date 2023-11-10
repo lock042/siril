@@ -9,6 +9,8 @@ typedef enum {
 	REMAP_ALL       // the image data changed, remap and render all
 } remap_type;
 
+void check_gfit_profile_identical_to_monitor();
+
 void allocate_hd_remap_indices();
 void hd_remap_indices_cleanup();
 

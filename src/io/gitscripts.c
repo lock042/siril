@@ -6,6 +6,7 @@
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/preferences.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "gui/script_menu.h"
@@ -211,12 +212,16 @@ static int lg2_fetch(git_repository *repo)
 	/* Figure out whether it's a named remote or a URL */
 	siril_debug_print("Fetching %s for repo %p\n", remote_name, repo);
 
-	if (git_remote_lookup(&remote, repo, remote_name))
-		if (git_remote_create_anonymous(&remote, repo, remote_name))
+	if (git_remote_lookup(&remote, repo, remote_name)) {
+		if (git_remote_create_anonymous(&remote, repo, remote_name)) {
+			siril_log_message(_("Unable to create anonymous remote for the repository. Check your connectivity and try again.\n"));
 			goto on_error;
+		}
+	}
 
 	if (git_remote_fetch(remote, NULL, &fetch_opts, "fetch") < 0)
-		goto on_error;
+		siril_log_message(_("Error fetching remote. This may be a temporary error, check your connectivity and try again.\n"));
+
 on_error:
 	git_remote_free(remote);
 	return -1;
@@ -261,6 +266,8 @@ static gboolean script_version_check(const gchar* filename) {
 		if (ver) {
 			ver += 9;
 			version_number requires;
+			if (fullRequiresVersion)
+				g_strfreev(fullRequiresVersion);
 			fullRequiresVersion = g_strsplit_set(ver, ".-", -1);
 			requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
 			requires.minor_version = g_ascii_strtoull(fullRequiresVersion[1], NULL, 10);
@@ -512,12 +519,18 @@ int auto_update_gitscripts(gboolean sync) {
 	const char *remote_url = git_remote_url(remote);
 	if (remote_url != NULL) {
 		siril_debug_print("Remote URL: %s\n", remote_url);
+	} else {
+		siril_log_color_message(_("Error: cannot identify local repository's configured remote.\n"), "red");
+		return 1;
 	}
 	if (strcmp(remote_url, REPOSITORY_URL)) {
-		siril_log_color_message(_("Error: local siril-scripts repository folder is not "
+		gchar *msg = g_strdup_printf(_("Error: local siril-scripts repository folder is not "
 				"configured with %s as its remote. You should remove the folder %s "
 				"and restart Siril to re-clone the correct repository.\n"),
-				"red", REPOSITORY_URL, local_path);
+				REPOSITORY_URL, local_path);
+		siril_log_color_message(msg, "red");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
+		g_free(msg);
 		// Make scripts unavailable, as the contents of a random git repository could be complete rubbish
 		gui.script_repo_available = FALSE;
 		goto cleanup;
@@ -702,7 +715,15 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 			GtkLabel* script_label = (GtkLabel*) lookup_widget("script_label");
 			gtk_label_set_text(script_label, scriptname);
 			gtk_text_buffer_set_text(script_textbuffer, contents, (gint) length);
+			g_free(contents);
+			g_error_free(error);
 			siril_open_dialog("script_contents_dialog");
+		} else {
+			gchar* msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
+			siril_log_color_message(msg, "red");
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
+			g_free(msg);
+			g_error_free(error);
 		}
 	}
 }
@@ -797,6 +818,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 			}
 			com.pref.selected_scripts = g_list_first(iterator);
 	}
+	notify_script_update();
 }
 
 void on_disable_gitscripts() {
@@ -810,7 +832,7 @@ void on_disable_gitscripts() {
 	if (com.pref.selected_scripts)
 		g_list_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
-	refresh_script_menu();
+	refresh_script_menu(TRUE);
 }
 
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {

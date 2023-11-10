@@ -268,7 +268,14 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
 	}
 	/* Use the tag when documentation will be tagged */
-	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, "latest", DECONVOLUTION_TIPS_URL);
+	const gchar *version = NULL;
+#ifdef SIRIL_UNSTABLE
+	version = "latest";
+#else
+	version = "stable";
+#endif
+
+	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, version, DECONVOLUTION_TIPS_URL);
 	siril_log_message(_("Deconvolution usage hints and tips URL: %s\n"), url);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
@@ -565,6 +572,7 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void deconv_roi_callback() {
+	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(lookup_widget("bdeconv_roi_preview"), gui.roi.active);
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 }
@@ -1214,10 +1222,15 @@ gpointer deconvolve(gpointer p) {
 	next_psf_is_previous = (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) ? TRUE : FALSE;
 
 	float *yuvdata = NULL;
+	int threads = 1;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
 		int npixels = the_fit->rx * the_fit->ry;
 		yuvdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
+#ifdef _OPENMP
+		threads = sequence_is_running ? 1 : com.max_thread;
+#pragma omp parallel for simd num_threads(threads) schedule(static)
+#endif
 		for (int i = 0 ; i < npixels ; i++) {
 			rgb_to_yuvf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
 		}
@@ -1273,6 +1286,9 @@ gpointer deconvolve(gpointer p) {
 		int npixels = the_fit->rx * the_fit->ry;
 		args.nchans = 3;
 		args.fdata = malloc(npixels * args.nchans * sizeof(float));
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(threads) schedule(static)
+#endif
 		for (int i = 0 ; i < npixels ; i++) {
 			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
 		}

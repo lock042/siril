@@ -25,7 +25,7 @@
  */
 
 #include "core/siril.h"
-
+#include "core/icc_profile.h"
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "core/siril_log.h"
@@ -64,6 +64,15 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 
 		if (type != IMAGE_HDU) continue;
 
+		// Skip image HDUs named as ICC profiles or thumbnails
+		char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+		int status2 = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status2);
+		if (g_str_has_prefix(extname, "ICCProfile")
+			|| g_str_has_prefix(extname, "Thumbnail")) {
+			continue; /* next HDU */
+		}
+
 		long naxes[3] = { 0L };
 		int naxis;
 		int bitpix;
@@ -82,6 +91,10 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 			} else {
 				printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
 				if (naxes[2] != ref_naxes[2]) {
+					char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+					fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status);
+					if (!g_str_has_prefix(extname, "ICCProfile"))
+						continue;
 					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
 					status = 1;
 					break;
@@ -118,7 +131,6 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	}
 	return status;
 }
-
 
 // test if a file is a multi-extension FITS, a.k.a FITS cube or FITS sequence
 int fitseq_is_fitseq(const char *filename, int *frames) {
@@ -242,6 +254,8 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	if (read_fits_with_convert(dest, fitseq->filename, force_float)) {
 		return -1;
 	}
+	dest->icc_profile = NULL;
+	color_manage(dest, FALSE);
 
 	return 0;
 }
@@ -283,6 +297,8 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
+	dest->icc_profile = NULL;
+	color_manage(dest, FALSE);
 	return status;
 }
 
