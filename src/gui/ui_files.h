@@ -22,6 +22,7 @@ const char* ui_files[] = {
 	"bdeconv_dialog.ui",
 	"crop_dialog.ui",
 	"cut_spectroscopy_dialog.ui",
+	"colorchooserdialog.ui",
 	"denoise_dialog.ui",
 	"extract_channel_dialog.ui",
 	"file_information_dialog.ui",
@@ -31,11 +32,14 @@ const char* ui_files[] = {
 	"linearmatch_dialog.ui",
 	"icc_dialog.ui",
 	"icc_gamut_dialog.ui",
+	"seqlist_dialog.ui",
 	"IPS_dialog.ui",
 	"StatWindow.ui",
 	"stars_list_window.ui",
+	"livestacking_player.ui",
 	"merge_cfa_dialog.ui",
 	"histogram_dialog.ui",
+	"pixelmath.ui",
 	"resample_dialog.ui",
 	"rotation_dialog.ui",
 	"script_contents_dialog.ui",
@@ -44,6 +48,7 @@ const char* ui_files[] = {
 	"settings_window.ui",
 	"siril.ui",
 	"data_dialog.ui",
+	"aberration_inspector.ui",
 
 // Add entries here as required
 	"" // Must be terminated by a NULL string
