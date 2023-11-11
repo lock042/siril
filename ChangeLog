@@ -16,6 +16,7 @@ xx/xx/xx
 * Fixed loss of DATE-OBS header in RGB compositing tool
 * Reduce verbosity of script reload logging (#1217)
 * Add color management support using lcms2 (!542, fixes #1010, #1207)
+* Split up the monolithic glade UI file (!550)
 
 siril 1.2.1
 xx/xx/xx
