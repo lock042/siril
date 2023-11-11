@@ -1183,7 +1183,7 @@ user Catalog</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
                                             <property name="tooltip-text" translatable="yes">Purge the SOLAR SYSTEM user catalog by deleting the file. The operation cannot be undone</property>
-                                            <signal name="clicked" handler="on_purge_SSO_user_catalogue_clicked" swapped="no"/>
+                                            <signal name="clicked" handler="on_purge_user_catalogue_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1200,7 +1200,7 @@ user Catalog</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">True</property>
                                             <property name="tooltip-text" translatable="yes">Purge the DEEP SKY user catalog by deleting the file. The operation cannot be undone</property>
-                                            <signal name="clicked" handler="on_purge_DSO_user_catalogue_clicked" swapped="no"/>
+                                            <signal name="clicked" handler="on_purge_user_catalogue_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>

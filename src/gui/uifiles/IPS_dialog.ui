@@ -773,7 +773,8 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
 * NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
 * Gaia Data Release 3 was released on 13 June 2022. The five-parameter astrometric solution, positions on the sky (α, δ), parallaxes, and proper motions, are given for around 1.46 billion sources, with a limiting magnitude of G = 21.
 * PPMXL is a catalog of positions, proper motions, 2MASS- and optical photometry of 900 million stars and galaxies.
-* The Bright Star Catalogue is a star catalogue that lists all stars of stellar magnitude 6.5 or brighter, which is roughly every star visible to the naked eye from Earth. The catalog contains 9,110 objects.</property>
+* The Bright Star Catalogue is a star catalogue that lists all stars of stellar magnitude 6.5 or brighter, which is roughly every star visible to the naked eye from Earth. The catalog contains 9,110 objects.
+* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.</property>
                         <property name="active">1</property>
                         <items>
                           <item>TYCHO2</item>
@@ -781,6 +782,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                           <item>Gaia DR3</item>
                           <item>PPMXL</item>
                           <item>Bright stars</item>
+                          <item>APASS</item>
                         </items>
                         <signal name="changed" handler="on_comboastro_catalog_changed" swapped="no"/>
                       </object>
