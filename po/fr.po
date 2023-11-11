@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-09 21:45+0100\n"
-"PO-Revision-Date: 2023-11-11 13:49+0000\n"
+"PO-Revision-Date: 2023-11-12 07:33+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -1120,9 +1120,8 @@ msgid "<b>Compression</b>"
 msgstr "<b>Compression</b>"
 
 #: src/gui/siril3.glade:5123
-#, fuzzy
 msgid "<b>ICC Profile</b>"
-msgstr "<b>Type de profil</b>"
+msgstr "<b>Profile ICC</b>"
 
 #: src/gui/siril3.glade:5152
 msgid "<b>Embedded Data</b>"
@@ -3163,15 +3162,16 @@ msgid "Color Management"
 msgstr "Gestion des couleurs"
 
 #: src/gui/siril3.glade:12427
-#, fuzzy
 msgid "Export"
-msgstr "Exporter en CSV"
+msgstr "Exporter"
 
 #: src/gui/siril3.glade:12431
 msgid ""
 "Export the profile currently assigned to the image to the working directory. "
 "It will be saved with the filename {imagename}.icc"
 msgstr ""
+"Exporter le profil actuellement attribué à l'image dans le répertoire de "
+"travail. Il sera sauvegardé sous le nom de fichier {nom de l'image}.icc"
 
 #: src/gui/siril3.glade:12442 src/gui/siril3.glade:21964
 msgid "Remove"
@@ -3179,12 +3179,11 @@ msgstr "Enlever"
 
 #: src/gui/siril3.glade:12446
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr ""
+msgstr "Supprimer le profil ICC de l'image et arrêter la gestion des couleurs"
 
 #: src/gui/siril3.glade:12457 src/core/icc_profile.c:1254
-#, fuzzy
 msgid "Assign"
-msgstr "Non assigné"
+msgstr "Assigner"
 
 #: src/gui/siril3.glade:12461
 msgid ""
@@ -3192,6 +3191,9 @@ msgid ""
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
 msgstr ""
+"Affecter le profil ICC sélectionné à l'image actuelle sans effectuer de "
+"transformation de l'espace colorimétrique. Ceci est utile si l'image a un "
+"profil ICC incorrect."
 
 #: src/gui/siril3.glade:12475 src/gui/siril3.glade:22116
 #: src/core/icc_profile.c:1256
@@ -3203,32 +3205,32 @@ msgid ""
 "Converts the image to a different color space. This can be useful for "
 "exporting an image to sRGB for WWW use, for example."
 msgstr ""
+"Convertit l'image dans un espace colorimétrique différent. Cela peut être "
+"utile pour exporter une image en sRGB pour une utilisation web, par exemple."
 
 #: src/gui/siril3.glade:12525
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr ""
+msgstr "<b><i>Profil ICC actuel</i></b>"
 
 #: src/gui/siril3.glade:12575
-#, fuzzy
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b>Type de profil</b>"
+msgstr "<b><i>Profile ICC cible</i></b>"
 
 #: src/gui/siril3.glade:12600 src/gui/siril3.glade:12654
 msgid "Manufacturer"
-msgstr ""
+msgstr "Fabricant"
 
 #: src/gui/siril3.glade:12613 src/gui/siril3.glade:12667
-#, fuzzy
 msgid "Copyright"
-msgstr "Copyright TIFF"
+msgstr "Copyright"
 
 #: src/gui/siril3.glade:12678
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/gui/siril3.glade:12706
 msgid "Built-in profile"
-msgstr ""
+msgstr "Profil intégré"
 
 #: src/gui/siril3.glade:12717
 msgid ""
@@ -3236,55 +3238,53 @@ msgid ""
 "of an image, not its type, so you cannot convert a RGB image to a Gray "
 "profile or vice versa."
 msgstr ""
+"Sélectionnez un profil ICC intégré. Cet outil permet uniquement de convertir "
+"le profil d'une image, et non son type. Vous ne pouvez donc pas convertir "
+"une image RVB en un profil gris ou vice versa."
 
 #: src/gui/siril3.glade:12720
-#, fuzzy
 msgid "None selected"
-msgstr "sélectionnées"
+msgstr "Aucun sélectionné"
 
 #: src/gui/siril3.glade:12721
-#, fuzzy
 msgid "sRGB (linear TRC)"
-msgstr "Alignement RGB (DFT)"
+msgstr "sRGB (TRC linéaire)"
 
 #: src/gui/siril3.glade:12722
 msgid "sRGB (standard sRGB TRC)"
-msgstr ""
+msgstr "sRGB (TRC sRGB standard)"
 
 #: src/gui/siril3.glade:12723
 msgid "Rec2020 (linear TRC)"
-msgstr ""
+msgstr "Rec2020 (TRC linéaire)"
 
 #: src/gui/siril3.glade:12724
 msgid "Rec2020 (standard Rec709 TRC)"
-msgstr ""
+msgstr "Rec2020 (TRC Rec709 standard linéaire)"
 
 #: src/gui/siril3.glade:12725
 msgid "Gray (linear TRC)"
-msgstr ""
+msgstr "Gris (TRC linéaire)"
 
 #: src/gui/siril3.glade:12726
 msgid "Gray (sRGB TRC)"
-msgstr ""
+msgstr "Gris (TRC sRGB)"
 
 #: src/gui/siril3.glade:12727
 msgid "Gray (Rec709 TRC)"
-msgstr ""
+msgstr "Gris (TRC Rec709)"
 
 #: src/gui/siril3.glade:12740
-#, fuzzy
 msgid "Load profile from file"
-msgstr "Charger PSF à partir du fichier"
+msgstr "Charger le profil à partir du fichier"
 
 #: src/gui/siril3.glade:12770
-#, fuzzy
 msgid "<b>Color Management Operations</b>"
-msgstr "<b>Gestion de la mémoire</b>"
+msgstr "<b>Opérations de gestion des couleurs</b>"
 
 #: src/gui/siril3.glade:12802 src/gui/siril3.glade:32939
-#, fuzzy
 msgid "Gamut visualisation"
-msgstr "Pour visualisation seulement"
+msgstr "Visualisation du gamut"
 
 #: src/gui/siril3.glade:12846
 msgid ""
@@ -3303,6 +3303,25 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
+"Cette image montre une comparaison des différents gamuts de travail "
+"disponibles dans Siril (Note : P3 n'est pas disponible dans Siril : il est "
+"montré à titre de référence, et vous pouvez fournir un profil ICC P3 si vous "
+"le souhaitez).\n"
+"L'espace xy de CIE1931 représente toutes les couleurs visibles par l'œil "
+"humain.\n"
+"sRGB est un standard pour la publication sur le web et correspond au gamut "
+"de la plupart des moniteurs.\n"
+"D'autres espaces colorimétriques offrent des gamuts plus larges couvrant une "
+"plus grande partie de l'espace CIE1931. Rec2020 possède le gamut le plus "
+"large qui n'inclut pas les couleurs imaginaires ; ProPhoto RGB possède un "
+"gamut encore plus large, en particulier dans la région vert/bleu, mais "
+"inclut certaines couleurs imaginaires.\n"
+"Les photographies imprimées peuvent offrir des couleurs plus riches et plus "
+"profondes si elles sont produites à partir d'un espace colorimétrique doté "
+"d'une gamme plus étendue. Des moniteurs spécialisés sont également "
+"disponibles avec des gamuts plus larges que sRGB, et vous voudrez "
+"probablement utiliser un gamut au moins aussi large que celui que votre "
+"moniteur peut afficher."
 
 #: src/gui/siril3.glade:12863
 msgid ""
@@ -3310,6 +3329,9 @@ msgid ""
 "w/index.php?curid=116654642\">https://commons.wikimedia.org/w/index.php?"
 "curid=116654642</a>"
 msgstr ""
+"Par Myndex - Travail personnel, CC BY-SA 4.0, <a href=\"https://commons."
+"wikimedia.org/w/index.php?curid=116654642\">https://commons.wikimedia.org/w/"
+"index.php?curid=116654642</a>"
 
 #: src/gui/siril3.glade:12890
 msgid ""
@@ -4323,9 +4345,8 @@ msgid "Information..."
 msgstr "Informations..."
 
 #: src/gui/siril3.glade:16156
-#, fuzzy
 msgid "Color Management..."
-msgstr "Saturation des couleurs..."
+msgstr "Gestion des couleurs..."
 
 #: src/gui/siril3.glade:16170 src/gui/siril3.glade:16461
 msgid "FITS Header..."
@@ -5338,7 +5359,7 @@ msgstr "Couches des ondelettes..."
 
 #: src/gui/siril3.glade:20172
 msgid "gamut"
-msgstr ""
+msgstr "gamut"
 
 #: src/gui/siril3.glade:20176
 msgid ""
@@ -5346,6 +5367,9 @@ msgid ""
 "output proofing profile is set, this will be used, otherwise the image will "
 "be proofed against the monitor profile."
 msgstr ""
+"Afficher en magenta les pixels qui sont hors gamut dans le profil "
+"d'épreuvage. Si un profil d'épreuvage de sortie est défini, il sera utilisé, "
+"sinon l'image sera épreuvée par rapport au profil de l'écran."
 
 #: src/gui/siril3.glade:20188
 msgid "cut"
@@ -7698,9 +7722,8 @@ msgid "Sequence:"
 msgstr "Séquence :"
 
 #: src/gui/siril3.glade:27540
-#, fuzzy
 msgid "Image validation tools"
-msgstr "Calibration des images"
+msgstr "Outils de validation d'images"
 
 #: src/gui/siril3.glade:27614
 msgid "High value"
@@ -8304,9 +8327,8 @@ msgstr ""
 "Cela dépend du logiciel d'acquisition utilisé pour créer le FITS."
 
 #: src/gui/siril3.glade:30178
-#, fuzzy
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "Incorporer le profil ICC sRVB dans l'image"
+msgstr "Intégrer des profils ICC dans les fichiers FITS enregistrés"
 
 #: src/gui/siril3.glade:30182
 msgid ""
@@ -8314,6 +8336,10 @@ msgid ""
 "you need interoperability with a program that fails to handle FITS with "
 "embedded ICC profiles (none are currently known)."
 msgstr ""
+"Intégrer les profils ICC dans les fichiers FITS. Cette option doit "
+"généralement être laissée activée, à moins que vous n'ayez besoin d'une "
+"interopérabilité avec un programme qui ne gère pas les fichiers FITS "
+"contenant des profils ICC intégrés (aucun n'est actuellement connu)."
 
 #: src/gui/siril3.glade:30201
 msgid "<b>FITS Header</b>"
@@ -9162,6 +9188,8 @@ msgstr "Région d'intérêt (ROI)"
 #: src/gui/siril3.glade:32894
 msgid "This section contains options relating to working color spaces"
 msgstr ""
+"Cette section contient des options relatives aux espaces colorimétriques de "
+"travail"
 
 #: src/gui/siril3.glade:32910
 msgid ""
@@ -9169,11 +9197,14 @@ msgid ""
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
 msgstr ""
+"Cette option permet de sélectionner la famille de profils RVB qui sera "
+"utilisée dans la majeure partie du flux de travail. Pour plus d'informations "
+"sur les gamuts à sélectionner, voir la section Gestion des couleurs de la "
+"documentation."
 
 #: src/gui/siril3.glade:32912
-#, fuzzy
 msgid "Preferred Color Space:"
-msgstr "Éspace des couleurs :"
+msgstr "Espace couleur préféré :"
 
 #: src/gui/siril3.glade:32923
 msgid ""
@@ -9182,58 +9213,68 @@ msgid ""
 "This preference is used by the auto conversion / assignment options and can "
 "also be used by the file export options."
 msgstr ""
+"Cette option définit la famille d'espaces colorimétriques que vous préférez "
+"utiliser comme espaces colorimétriques de travail : elle comprend un profil "
+"de couleur RVB et un profil de couleur gris correspondant. Cette préférence "
+"est utilisée par les options de conversion/assignation automatique et peut "
+"également être utilisée par les options d'exportation de fichiers."
 
 #: src/gui/siril3.glade:32926 src/gui/siril3.glade:33276
 #: src/gui/siril3.glade:33356
 msgid "sRGB"
-msgstr ""
+msgstr "sRGB"
 
 #: src/gui/siril3.glade:32927
 msgid "Rec2020"
-msgstr ""
+msgstr "Rec2020"
 
 #: src/gui/siril3.glade:32928
-#, fuzzy
 msgid "From files"
-msgstr "Profil"
+msgstr "À partir des fichiers"
 
 #: src/gui/siril3.glade:32943
 msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
 msgstr ""
+"Montrer l'espace xy de la CIE1931 et une représentation des différents "
+"gamuts de couleurs dans cet espace."
 
 #: src/gui/siril3.glade:32955
 msgid ""
 "Use these opions together with the \"From files\" option for Preferred Color "
 "Spaces above."
 msgstr ""
+"Utilisez ces options en même temps que l'option \"À partir de fichiers\" "
+"pour les espaces colorimétriques préférés ci-dessus."
 
 #: src/gui/siril3.glade:32958
 msgid "External color profiles:"
-msgstr ""
+msgstr "Profils colorimétriques externes :"
 
 #: src/gui/siril3.glade:32970
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
 msgstr ""
+"Il doit s'agir d'un profil ICC dans votre gamut préféré avec la courbe de "
+"réponse tonale non linéaire native de l'espace couleur."
 
 #: src/gui/siril3.glade:32972
-#, fuzzy
 msgid "RGB ICC profile"
-msgstr "Profile ICC"
+msgstr "Profile ICC RVB"
 
 #: src/gui/siril3.glade:32983
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
 msgstr ""
+"Il doit s'agir d'un profil ICC gris dont la courbe de réponse aux tons "
+"correspond à celle du profil TRC non linéaire que vous avez défini ci-dessus."
 
 #: src/gui/siril3.glade:32985
-#, fuzzy
 msgid "Gray ICC profile"
-msgstr "Profile ICC"
+msgstr "Profile ICC du gris"
 
 #: src/gui/siril3.glade:32997
 msgid ""
@@ -9241,6 +9282,9 @@ msgid ""
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
 "etc.)"
 msgstr ""
+"Utilisez cette option en même temps que l'option \"À partir de fichiers\" ci-"
+"dessus. Il doit s'agir d'un profil ICC RVB dans votre gamut de couleurs "
+"préféré (par exemple ProPhoto, ClayRGB, ACEScg, etc.)"
 
 #: src/gui/siril3.glade:33012
 msgid ""
@@ -9248,6 +9292,10 @@ msgid ""
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
 "RGB profile you set above."
 msgstr ""
+"Utilisez cette option en même temps que l'option \"À partir de fichiers\" ci-"
+"dessus. Il doit s'agir d'un profil ICC de gris (mono) dont la courbe de "
+"réponse des tons correspond à celle du profil RVB que vous avez défini ci-"
+"dessus."
 
 #: src/gui/siril3.glade:33030
 msgid "Working Color Spaces"
@@ -9255,13 +9303,16 @@ msgstr "Espaces de travail des couleurs"
 
 #: src/gui/siril3.glade:33063
 msgid "Custom monitor profile:"
-msgstr ""
+msgstr "Profil d'écran personnalisé :"
 
 #: src/gui/siril3.glade:33075
 msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
 msgstr ""
+"Pour utiliser un profil ICC d'écran personnalisé, définissez-le ici. Si "
+"aucun profil personnalisé n'est défini, sRGB avec le point blanc D65 et "
+"gamma = 2.2 sera utilisé."
 
 #: src/gui/siril3.glade:33089
 msgid ""
@@ -9269,54 +9320,60 @@ msgid ""
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
 "the soft proofing target."
 msgstr ""
+"Spécifier un profil de périphérique de sortie à des fins d'épreuvage à "
+"l'écran. Si ce profil n'est pas défini ou est inactif, le profil du moniteur "
+"(ou sRGB par défaut) sera utilisé comme cible d'épreuvage à l'écran."
 
 #: src/gui/siril3.glade:33104
 msgid "Output device proofing profile:"
-msgstr ""
+msgstr "Profil d'épreuvage des périphériques de sortie :"
 
 #: src/gui/siril3.glade:33117
 msgid "Rendering intent:"
-msgstr ""
+msgstr "Intention de rendu :"
 
 #: src/gui/siril3.glade:33130
 msgid "Clear the profile and revert to the default"
-msgstr ""
+msgstr "Effacer le profil et revenir à la valeur par défaut"
 
 #: src/gui/siril3.glade:33144
 msgid "Clear the profile: soft proofing will be unavailable"
-msgstr ""
+msgstr "Effacer le profil : l'épreuvage à l'écran ne sera pas disponible"
 
 #: src/gui/siril3.glade:33156
 msgid "Select the display intent. The default is perceptual rendering."
 msgstr ""
+"Sélectionnez l'intention d'affichage. La valeur par défaut est le rendu "
+"perceptuel."
 
 #: src/gui/siril3.glade:33159 src/gui/siril3.glade:33306
 msgid "Perceptual"
-msgstr ""
+msgstr "Perception"
 
 #: src/gui/siril3.glade:33160 src/gui/siril3.glade:33307
 msgid "Relative Colorimetric"
-msgstr ""
+msgstr "Colorimétrie relative"
 
 #: src/gui/siril3.glade:33161 src/gui/siril3.glade:33308
-#, fuzzy
 msgid "Saturation"
-msgstr "Saturation : "
+msgstr "Saturation"
 
 #: src/gui/siril3.glade:33162 src/gui/siril3.glade:33309
 msgid "Absolute Colorimetric"
-msgstr ""
+msgstr "Colorimétrie absolue"
 
 #: src/gui/siril3.glade:33173 src/gui/siril3.glade:33188
-#, fuzzy
 msgid "active"
-msgstr "relative"
+msgstr "actif"
 
 #: src/gui/siril3.glade:33177
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
 msgstr ""
+"Utiliser ou non le profil de moniteur personnalisé. Cette option prend effet "
+"lorsque l'on clique sur Appliquer. Le paramètre est ignoré si aucun profil "
+"de moniteur personnalisé n'est défini."
 
 #: src/gui/siril3.glade:33192
 msgid ""
@@ -9324,17 +9381,21 @@ msgid ""
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
 "profile is set."
 msgstr ""
+"Utiliser ou non le profil d'épreuvage personnalisé. Cette option prend effet "
+"lorsque l'on clique sur Appliquer. Le paramètre est ignoré si aucun profil "
+"de moniteur personnalisé n'est défini."
 
 #: src/gui/siril3.glade:33203
-#, fuzzy
 msgid "Black point compensation"
-msgstr "Pas de correction du point noir"
+msgstr "Compensation du point noir"
 
 #: src/gui/siril3.glade:33207
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
 msgstr ""
+"Activer le BPC pour le rendu. Cela n'est normalement pas nécessaire, mais "
+"peut être utile si une image a un profil source malformé."
 
 #: src/gui/siril3.glade:33225
 msgid "Custom Profiles"
@@ -9348,10 +9409,15 @@ msgid ""
 "These options do not affect the profiles saved in FITS files, which is "
 "configured in FITS Options"
 msgstr ""
+"Cette section contient des paramètres affectant la manière dont les espaces "
+"colorimétriques sont appliqués aux fichiers enregistrés\n"
+"\n"
+"Ces options n'affectent pas les profils enregistrés dans les fichiers FITS, "
+"qui sont configurés dans les options FITS"
 
 #: src/gui/siril3.glade:33261
 msgid "Export high bit depth images using:"
-msgstr ""
+msgstr "Exporter des images à haute profondeur de bits en utilisant :"
 
 #: src/gui/siril3.glade:33272
 msgid ""
@@ -9360,27 +9426,35 @@ msgid ""
 "Note: if the format does not support ICC profile embedding, images will "
 "always be exported as sRGB."
 msgstr ""
+"Sélectionne l'espace colorimétrique vers lequel exporter les images d'une "
+"profondeur de bits >8bpp. Le profil de couleur ICC sera incorporé dans le "
+"fichier.\n"
+"Remarque : si le format ne prend pas en charge l'intégration du profil ICC, "
+"les images seront toujours exportées en sRGB."
 
 #: src/gui/siril3.glade:33277 src/gui/siril3.glade:33357
 msgid "Working gamut"
-msgstr ""
+msgstr "Gamut de travail"
 
 #: src/gui/siril3.glade:33278 src/gui/siril3.glade:33358
-#, fuzzy
 msgid "Image's current ICC profile"
-msgstr "Enregistrer le graphique suivant dans un fichier png"
+msgstr "Profil ICC actuel de l'image"
 
 #: src/gui/siril3.glade:33292
 msgid "Conversion and export intent:"
-msgstr ""
+msgstr "Conversion et intention d'exportation :"
 
 #: src/gui/siril3.glade:33303
 msgid "Select the color management intent for conversion / export"
 msgstr ""
+"Sélectionner l'intention de gestion des couleurs pour la conversion / "
+"l'exportation"
 
 #: src/gui/siril3.glade:33320
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr ""
+"Traiter les fichiers non gérés en couleur comme sRGB pour l'exportation vers "
+"les formats pris en charge"
 
 #: src/gui/siril3.glade:33324
 msgid ""
@@ -9390,10 +9464,16 @@ msgid ""
 "reproduction when opening the exported files in other applications.\n"
 "If this option is unchecked, no ICC profile will be embedded."
 msgstr ""
+"Pour les fichiers sans profil de couleur attribué, lors de l'exportation "
+"vers TIFF / PNG / JPG, incorpore un profil ICC sRGB (ou Gris avec sRGB TRC). "
+"Cela ne permet pas d'obtenir un véritable flux de travail avec gestion des "
+"couleurs et ne garantit pas une reproduction cohérente des couleurs lors de "
+"l'ouverture des fichiers exportés dans d'autres applications.\n"
+"Si cette option n'est pas cochée, aucun profil ICC ne sera intégré."
 
 #: src/gui/siril3.glade:33341
 msgid "Export 8-bit images using:"
-msgstr ""
+msgstr "Exporter des images 8 bits en utilisant :"
 
 #: src/gui/siril3.glade:33352
 msgid ""
@@ -9402,6 +9482,11 @@ msgid ""
 "Note: if the format does not support ICC profile embedding, images will "
 "always be exported as sRGB."
 msgstr ""
+"Sélectionne l'espace colorimétrique vers lequel exporter les images 8 bits, "
+"si le format prend en charge les profils ICC. Le profil de couleur ICC sera "
+"intégré dans le fichier.\n"
+"Remarque : si le format ne prend pas en charge l'intégration du profil ICC, "
+"les images seront toujours exportées en sRGB."
 
 #: src/gui/siril3.glade:33375
 msgid "File Import / Export Options"
@@ -9409,52 +9494,51 @@ msgstr "Options d'importation/exportation de fichiers"
 
 #: src/gui/siril3.glade:33409
 msgid "Auto assign working color space:"
-msgstr ""
+msgstr "Attribution automatique de l'espace colorimétrique de travail :"
 
 #: src/gui/siril3.glade:33422
 msgid "Convert other color profiles to the working profile?"
-msgstr ""
+msgstr "Convertir d'autres profils de couleur en profil de travail ?"
 
 #: src/gui/siril3.glade:33433
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
 msgstr ""
+"Cette option définit le comportement à adopter lorsqu'une image est chargée "
+"et qu'elle contient déjà un profil ICC."
 
 #: src/gui/siril3.glade:33436 src/gui/siril3.glade:33490
 msgid "Never"
-msgstr ""
+msgstr "Jamais"
 
 #: src/gui/siril3.glade:33437
 msgid "Ask every time"
-msgstr ""
+msgstr "Demander à chaque fois"
 
 #: src/gui/siril3.glade:33438
 msgid "Always"
-msgstr ""
+msgstr "Toujours"
 
 #: src/gui/siril3.glade:33448
-#, fuzzy
 msgid "On load"
-msgstr "non chargée"
+msgstr "Au chargement"
 
 #: src/gui/siril3.glade:33462
-#, fuzzy
 msgid "On stacking"
-msgstr "Empilement par somme"
+msgstr "À l'empilement"
 
 #: src/gui/siril3.glade:33476
 msgid "On stretching"
-msgstr ""
+msgstr "Lors de l'étirement"
 
 #: src/gui/siril3.glade:33505
-#, fuzzy
 msgid "Output of RGB composition / PixelMath"
-msgstr "Ouvrir la boîte de dialogue de composition RVB"
+msgstr "En sortie de composition RVB / PixelMath"
 
 #: src/gui/siril3.glade:33519
 msgid "Pedantically assign linear ICC profiles"
-msgstr ""
+msgstr "Attribuer de manière rigoureuse des profils ICC linéaires"
 
 #: src/gui/siril3.glade:33523
 msgid ""
@@ -9465,14 +9549,21 @@ msgid ""
 "assign a linear ICC profile. This is technically correct but generally "
 "unnecessary."
 msgstr ""
+"Lors de l'attribution d'un profil ICC à :\n"
+"* une image chargée qui ne présente pas d'étirements dans le mot clé "
+"HISTORY\n"
+"* une image nouvellement composée\n"
+"* une image nouvellement empilée\n"
+"assigner un profil ICC linéaire. C'est techniquement correct, mais "
+"généralement inutile."
 
 #: src/gui/siril3.glade:33544
 msgid "Auto Conversion / Assignment Options"
-msgstr ""
+msgstr "Conversion automatique / Options d'affectation"
 
 #: src/gui/siril3.glade:33573
 msgid "Export built-in profiles"
-msgstr ""
+msgstr "Exporter les profils intégrés"
 
 #: src/gui/siril3.glade:33577
 msgid ""
@@ -9481,11 +9572,14 @@ msgid ""
 "Siril binary, this export function serves to comply with the \"share-alike\" "
 "provision of the licence."
 msgstr ""
+"Exporter les profils intégrés dans le répertoire de travail. Les profils "
+"d'Elle Stone sont distribués sous licence CC BY-SA-3.0. Comme ils sont "
+"intégrés dans le binaire Siril, cette fonction d'exportation permet de "
+"respecter la disposition \"share-alike\" de la licence."
 
 #: src/gui/siril3.glade:33594
-#, fuzzy
 msgid "<b>Built-in Profiles</b>"
-msgstr "<b>Type de profil</b>"
+msgstr "<b>Profils embarqués</b>"
 
 #: src/gui/siril3.glade:33657
 msgid ""
@@ -10715,31 +10809,34 @@ msgstr "Extraction du canal %s : en cours...\n"
 #: src/algos/colors.c:733 src/algos/colors.c:870
 #, c-format
 msgid "%s: extract RGB channel"
-msgstr ""
+msgstr "%s : extraction du canal RVB"
 
 #: src/algos/colors.c:736 src/algos/colors.c:873
 #, c-format
 msgid "%s: extract HSL channel"
-msgstr ""
+msgstr "%s : extraction du canal TSL"
 
 #: src/algos/colors.c:753 src/algos/colors.c:889
 #, c-format
 msgid "%s: extract HSV channel"
-msgstr ""
+msgstr "%s : extraction du canal TSV"
 
 #: src/algos/colors.c:770 src/algos/colors.c:905
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract LAB channel"
-msgstr "Par canal CFA"
+msgstr "%s : extraction du canal LAB"
 
 #: src/algos/colors.c:775 src/algos/colors.c:910
 msgid "Image is not color managed. Assuming sRGB.\n"
 msgstr ""
+"L'image n'est pas gérée au niveau des couleurs. On suppose qu'il s'agit de "
+"sRGB.\n"
 
 #: src/algos/colors.c:794 src/algos/colors.c:932
 #, c-format
 msgid "Channel extraction from 3-channel image with ICC profile:"
 msgstr ""
+"Extraction de canaux à partir d'une image à trois canaux avec le profil ICC :"
 
 #: src/algos/colors.c:840
 msgid "Siril cannot extract channels. Make sure your image is in RGB mode.\n"
@@ -11009,9 +11106,8 @@ msgstr ""
 "Bayer !\n"
 
 #: src/algos/extraction.c:109 src/algos/extraction.c:159
-#, fuzzy
 msgid "Ha channel"
-msgstr "canal"
+msgstr "Canal Ha"
 
 #: src/algos/extraction.c:182
 msgid "XTRANS pattern not supported for this feature.\n"
@@ -11024,9 +11120,9 @@ msgstr ""
 "Bayer !\n"
 
 #: src/algos/extraction.c:294 src/algos/extraction.c:339
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract Green channel\n"
-msgstr "Vert"
+msgstr "%s : extraction du canal vert\n"
 
 #: src/algos/extraction.c:491
 #, c-format
@@ -11045,24 +11141,20 @@ msgstr ""
 
 #. Update history
 #: src/algos/extraction.c:611 src/algos/extraction.c:663
-#, fuzzy
 msgid "CFA0 Bayer channel\n"
-msgstr "Par canal CFA"
+msgstr "Canal CFA0 de Bayer\n"
 
 #: src/algos/extraction.c:612 src/algos/extraction.c:664
-#, fuzzy
 msgid "CFA1 Bayer channel\n"
-msgstr "Par canal CFA"
+msgstr "Canal CFA1 de Bayer\n"
 
 #: src/algos/extraction.c:613 src/algos/extraction.c:665
-#, fuzzy
 msgid "CFA2 Bayer channel\n"
-msgstr "Par canal CFA"
+msgstr "Canal CFA2 de Bayer\n"
 
 #: src/algos/extraction.c:614 src/algos/extraction.c:666
-#, fuzzy
 msgid "CFA3 Bayer channel\n"
-msgstr "Par canal CFA"
+msgstr "Canal CFA3 de Bayer\n"
 
 #: src/algos/extraction.c:807 src/algos/extraction.c:1035
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -11075,14 +11167,12 @@ msgstr ""
 "Bayer !\n"
 
 #: src/algos/extraction.c:1013 src/algos/extraction.c:1240
-#, fuzzy
 msgid "Ha channel\n"
-msgstr "canal"
+msgstr "Canal Ha\n"
 
 #: src/algos/extraction.c:1018 src/algos/extraction.c:1245
-#, fuzzy
 msgid "OIII channel\n"
-msgstr "canal"
+msgstr "Canal OIII\n"
 
 #: src/algos/fix_xtrans_af.c:188
 #, c-format
@@ -11840,7 +11930,6 @@ msgid "Error: image could not be loaded"
 msgstr "Erreur : l'image n'a pas pu être chargée"
 
 #: src/compositing/compositing.c:645
-#, fuzzy
 msgid ""
 "The maximum number of images of this size has been reached based on "
 "available memory limits."
@@ -11868,12 +11957,17 @@ msgid ""
 "ICC profile differs to that of the first image loaded. Converting this image "
 "to match the first one loaded.\n"
 msgstr ""
+"Le profil ICC diffère de celui de la première image chargée. Convertir cette "
+"image pour qu'elle corresponde à la première image chargée.\n"
 
 #: src/compositing/compositing.c:689
 msgid ""
 "Input images have inconsistent ICC profiles. First image had no ICC profile. "
 "All input layers will be treated as raw data.\n"
 msgstr ""
+"Les images d'entrée ont des profils ICC incohérents. La première image "
+"n'avait pas de profil ICC. Toutes les couches d'entrée seront traitées comme "
+"des données brutes.\n"
 
 #: src/compositing/compositing.c:701
 msgid "The first loaded image should have the greatest sizes for now\n"
@@ -14289,18 +14383,16 @@ msgid "Error: sequence has variable sized images.\n"
 msgstr "Erreur : la séquence contient des images de taille variable.\n"
 
 #: src/core/command.c:9314
-#, fuzzy
 msgid "Error opening target ICC profile.\n"
-msgstr "Erreur lors de l'ouverture du fichier %s\n"
+msgstr "Erreur d'ouverture du profil ICC cible.\n"
 
 #: src/core/command.c:9318
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
 #: src/core/command.c:9321 src/core/command.c:9384
-#, fuzzy
 msgid "Error opening ICC profile.\n"
-msgstr "Erreur lors de l'ouverture du fichier"
+msgstr "Erreur d'ouverture du profil ICC.\n"
 
 #: src/core/command.c:9337
 msgid ""
@@ -14315,9 +14407,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:9382
-#, fuzzy
 msgid "Color space conversion complete.\n"
-msgstr "Estimation du noyau terminée.\n"
+msgstr "La conversion de l'espace de couleur est terminée.\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -18087,14 +18178,14 @@ msgstr ""
 
 # #################################################
 #: src/core/icc_profile.c:198 src/core/icc_profile.c:1889
-#, fuzzy, c-format
+#, c-format
 msgid "Exported ICC profile to %s\n"
-msgstr "Type de fichiers supportés : %s\n"
+msgstr "Exportation du profil ICC vers %s\n"
 
 #: src/core/icc_profile.c:200 src/core/icc_profile.c:1891
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to export ICC profile to %s\n"
-msgstr "Échec de l'enregistrement du fichier JSON %s : %s\n"
+msgstr "Échec de l'exportation du profil ICC vers %s\n"
 
 #. Also we use this function to export the ICC sRGB perceptual display profile,
 #. but use a confirmation dialog to confirm the ICC's terms of use.
@@ -18154,9 +18245,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:495
-#, fuzzy
 msgid "Color management active.\n"
-msgstr "Suppression des artefacts active.\n"
+msgstr "Gestion des couleurs active.\n"
 
 #: src/core/icc_profile.c:498
 msgid "JPEG ICC profiles supported.\n"
@@ -18187,9 +18277,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1025 src/core/icc_profile.c:1032
-#, fuzzy
 msgid "No ICC profile"
-msgstr "Profile ICC"
+msgstr "Pas de Profile ICC"
 
 #: src/core/icc_profile.c:1068
 msgid ""
@@ -18202,14 +18291,13 @@ msgid "Image is not color managed. Will not write an ICC profile."
 msgstr ""
 
 #: src/core/icc_profile.c:1118
-#, fuzzy
 msgid "ICC profile removed"
-msgstr "Profile ICC"
+msgstr "Profile ICC supprimé"
 
 #: src/core/icc_profile.c:1138 src/core/icc_profile.c:1229
-#, fuzzy, c-format
+#, c-format
 msgid "Assigned ICC profile: %s"
-msgstr "Profile ICC"
+msgstr "Profil ICC attribué : %s"
 
 #: src/core/icc_profile.c:1144
 msgid ""
@@ -18224,14 +18312,13 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1180
-#, fuzzy, c-format
+#, c-format
 msgid "Converted to ICC profile: %s"
-msgstr "Convertir en 16 bits"
+msgstr "Converti en profil ICC : %s"
 
 #: src/core/icc_profile.c:1185
-#, fuzzy
 msgid "Failed to create colorspace transform."
-msgstr "Échec de la création du répertoire de configuration %s\n"
+msgstr "Échec de la création de la transformation de l'espace colorimétrique."
 
 #: src/core/icc_profile.c:1208
 msgid ""
@@ -18251,9 +18338,8 @@ msgid "Do you want to convert this image to the working color space?"
 msgstr ""
 
 #: src/core/icc_profile.c:1353
-#, fuzzy
 msgid "Error loading profile"
-msgstr "Erreur lors du chargement du fichier !\n"
+msgstr "Erreur lors du chargement du profil"
 
 #: src/core/icc_profile.c:1354
 msgid ""
@@ -18268,9 +18354,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1372
-#, fuzzy
 msgid "Updating working profiles.\n"
-msgstr "attente des fichiers d'entrée"
+msgstr "Mise à jour des profils de travail.\n"
 
 #: src/core/icc_profile.c:1490
 msgid "Monitor ICC profile set to sRGB\n"
@@ -18278,14 +18363,14 @@ msgstr ""
 
 #: src/core/icc_profile.c:1492 src/core/icc_profile.c:1559
 #: src/core/icc_profile.c:1568
-#, fuzzy
 msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
-msgstr "Erreur : l'image n'a pas pu être chargée"
+msgstr "Erreur fatale : le profil ICC standard sRGB n'a pas pu être chargé.\n"
 
 #: src/core/icc_profile.c:1541
-#, fuzzy
 msgid "Error: no filename specfied for custom monitor profile.\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr ""
+"Erreur : aucun nom de fichier n'a été spécifié pour le profil de moniteur "
+"personnalisé.\n"
 
 #: src/core/icc_profile.c:1547
 #, c-format
@@ -18293,18 +18378,19 @@ msgid "Monitor profile loaded from %s\n"
 msgstr ""
 
 #: src/core/icc_profile.c:1553
-#, fuzzy, c-format
+#, c-format
 msgid "Monitor profile could not be loaded from %s\n"
-msgstr "Les préférences n'ont pas pu être chargées à partir de %s : %s\n"
+msgstr "Le profil du moniteur n'a pas pu être chargé à partir de %s\n"
 
 #: src/core/icc_profile.c:1557 src/core/icc_profile.c:1566
 msgid "Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"
 msgstr ""
 
 #: src/core/icc_profile.c:1590
-#, fuzzy
 msgid "Error: no filename specfied for output device proofing profile.\n"
-msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
+msgstr ""
+"Erreur : aucun nom de fichier n'est spécifié pour le profil d'épreuvage du "
+"périphérique de sortie.\n"
 
 #: src/core/icc_profile.c:1596
 #, c-format
@@ -18312,9 +18398,11 @@ msgid "Output device proofing profile loaded from %s\n"
 msgstr ""
 
 #: src/core/icc_profile.c:1603
-#, fuzzy, c-format
+#, c-format
 msgid "Output device proofing profile could not be loaded from %s\n"
-msgstr "Les préférences n'ont pas pu être chargées à partir de %s : %s\n"
+msgstr ""
+"Le profil d'épreuvage du périphérique de sortie n'a pas pu être chargé à "
+"partir de %s\n"
 
 #: src/core/icc_profile.c:1605
 msgid ""
@@ -18330,14 +18418,12 @@ msgstr ""
 
 #. We save the undo state as dealing with gfit
 #: src/core/icc_profile.c:1675
-#, fuzzy
 msgid "Color profile assignment"
-msgstr "Image cible"
+msgstr "Attribution d'un profil de couleur"
 
 #: src/core/icc_profile.c:1692 src/core/icc_profile.c:1739
-#, fuzzy
 msgid "Color space not supported"
-msgstr "Format non pris en charge."
+msgstr "L'espace couleur n'est pas pris en charge"
 
 #: src/core/icc_profile.c:1692 src/core/icc_profile.c:1739
 msgid ""
@@ -18346,9 +18432,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1696
-#, fuzzy
 msgid "Transform not supported"
-msgstr "Format non pris en charge."
+msgstr "La transformation n'est pas prise en charge"
 
 #: src/core/icc_profile.c:1696
 msgid ""
@@ -18376,23 +18461,20 @@ msgid "Color profile conversion"
 msgstr ""
 
 #: src/core/icc_profile.c:1821 src/core/icc_profile.c:1826
-#, fuzzy
 msgid "Could not load file"
-msgstr "Impossible d'ouvrir le fichier : %s"
+msgstr "Impossible de charger le fichier"
 
 #: src/core/icc_profile.c:1821
-#, fuzzy
 msgid "Error getting filename from widget."
-msgstr "Erreur dans l'alignement des canaux."
+msgstr "Erreur lors de l'obtention du nom de fichier du widget."
 
 #: src/core/icc_profile.c:1826
 msgid "Error loading selected file or it does not contain a valid ICC profile."
 msgstr ""
 
 #: src/core/icc_profile.c:1833
-#, fuzzy
 msgid "Profile error"
-msgstr "Profil"
+msgstr "Erreur de profil"
 
 #: src/core/icc_profile.c:1833
 msgid ""
@@ -19007,9 +19089,8 @@ msgid "don't use 32 bits for pixel depth"
 msgstr "n'utilise pas 32 bits pour la profondeur de pixel"
 
 #: src/core/settings.c:284
-#, fuzzy
 msgid "embed ICC profiles in FITS when saving"
-msgstr "Incorporer le profil ICC sRVB dans l'image"
+msgstr "intégrer les profils ICC dans le FITS lors de l'enregistrement"
 
 #: src/core/settings.c:285
 msgid "allow FITS cubes to have different sizes"
@@ -21981,9 +22062,8 @@ msgid "Reset Preferences"
 msgstr "Réinitialiser les Préférences"
 
 #: src/gui/preferences.c:902
-#, fuzzy
 msgid "External ICC Profiles"
-msgstr "Profile ICC"
+msgstr "Profils ICC externes"
 
 #: src/gui/preferences.c:902
 msgid ""
@@ -23188,9 +23268,9 @@ msgid "Error: unable to open local scripts repository.\n"
 msgstr "Erreur : Impossible d'ouvrir le dépôt local de scripts.\n"
 
 #: src/io/gitscripts.c:722
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading script contents: %s\n"
-msgstr "Chargement du script %s\n"
+msgstr "Erreur de chargement du contenu du script : %s\n"
 
 #: src/io/gitscripts.c:749
 msgid "Error getting the list of unmerged changes"
@@ -23465,10 +23545,8 @@ msgid "Siril cannot create JPG file.\n"
 msgstr "Siril ne peut pas créer le fichier JPG.\n"
 
 #: src/io/image_formats_libraries.c:1370
-#, fuzzy
 msgid "Error: failed to write ICC profile to JPG\n"
-msgstr ""
-"Erreur : échec de l'écriture de la sortie dans le catalogue utilisateur.\n"
+msgstr "Erreur : échec de l'écriture du profil ICC sur JPG\n"
 
 #: src/io/image_formats_libraries.c:1390
 #, c-format
@@ -24242,10 +24320,8 @@ msgid "Export: could not read frame, aborting\n"
 msgstr "Exportation : impossible de lire les images, abandon\n"
 
 #: src/io/sequence_export.c:378
-#, fuzzy
 msgid "An image of the sequence doesn't have the same dimensions\n"
-msgstr ""
-"Empilement : des images de la séquence n'ont pas les mêmes dimensions\n"
+msgstr "Une image de la séquence n'a pas les mêmes dimensions\n"
 
 #: src/io/sequence_export.c:591
 msgid "Sequence export failed. Check the log."
