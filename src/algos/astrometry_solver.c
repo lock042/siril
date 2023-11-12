@@ -43,13 +43,14 @@
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/photometry.h"
 #include "algos/photometric_cc.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
 #include "opencv/opencv.h"
 #include "registration/registration.h"
@@ -137,40 +138,18 @@ double compute_mag_limit_from_fov(double fov_degrees) {
 	double m = autoLimitMagnitudeFactor * pow(fov_degrees, -0.179);
 	// for astrometry, it can be useful to go down to mag 20, for
 	// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
-	return round(100.0 * min(20.0, max(7.0, m))) / 100;
+	return round(100.0 * min(20.0, max(7.0, m))) / 100.;
 }
 
 static void compute_limit_mag(struct astrometry_data *args) {
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
-		args->limit_mag = args->magnitude_arg;
+		args->ref_stars->limitmag = args->magnitude_arg;
 	else {
-		args->limit_mag = compute_mag_limit_from_fov(args->used_fov / 60.0);
+		args->ref_stars->limitmag = compute_mag_limit_from_fov(args->used_fov / 60.0);
 		if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
-			args->limit_mag += args->magnitude_arg;
+			args->ref_stars->limitmag += args->magnitude_arg;
 	}
-	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
-}
-
-static gchar *project_catalog(GFile *catalogue_name, SirilWorldCS *catalog_center) {
-	GError *error = NULL;
-	gchar *foutput = NULL;
-	/* --------- Project coords of Vizier catalog and save it into catalog.proj ------- */
-
-	GFile *fproj = g_file_new_build_filename(g_get_tmp_dir(), "catalog.proj", NULL);
-
-	/* We want to remove the file if already exisit */
-	if (!g_file_delete(fproj, NULL, &error)
-			&& !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND)) {
-		// deletion failed for some reason other than the file not existing:
-		// so report the error
-		g_warning("Failed to delete %s: %s", g_file_peek_path(fproj),
-				error->message);
-	}
-
-	convert_catalog_coords(catalogue_name, catalog_center, fproj);
-	foutput = g_file_get_path(fproj);
-	g_object_unref(fproj);
-	return foutput;
+	siril_debug_print("using limit magnitude %f\n", args->ref_stars->limitmag);
 }
 
 gboolean has_any_keywords() {
@@ -432,60 +411,23 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; return 1; }
 static int get_catalog_stars(struct astrometry_data *args) {
-	if (args->onlineCatalog == CAT_ASNET)
+	if (args->ref_stars->cat_index == CAT_ASNET)
 		return 0;
 
-	/* obtaining a star catalogue */
-	if (!args->catalog_file && !args->use_local_cat) {
-		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
-				args->used_fov * 0.5, args->limit_mag);
-		if (!args->catalog_file) {
-			args->message = g_strdup(_("Could not download the online star catalogue."));
-			return 1;
-		}
-	}
+	if (siril_catalog_conesearch(args->ref_stars) <= 0)
+		return 1;
+	siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cat_index));
+
 	CHECK_FOR_CANCELLATION_RET;
-
-	args->cstars = new_fitted_stars(MAX_STARS);
-	if (!args->cstars) {
-		PRINT_ALLOC_ERR;
-		return 1;
+	double ra0 = siril_world_cs_get_alpha(args->cat_center);
+	double dec0 = siril_world_cs_get_delta(args->cat_center);
+	GDateTime *dateobs = NULL;
+	if (args->fit && args->fit->date_obs)
+		dateobs = args->fit->date_obs;
+	if (!siril_catalog_project_at_center(args->ref_stars, ra0, dec0, TRUE, dateobs)) {
+		args->cstars = convert_siril_cat_to_psf_stars(args->ref_stars, &args->n_cat);
+		args->n_cat = args->ref_stars->nbitems;
 	}
-
-	/* project and open the file */
-	gchar *catalogStars;	// file name of the projected catalog
-	if (args->use_local_cat) {
-		catalogStars = get_and_project_local_catalog(args->cat_center,
-				args->used_fov / 120.0, args->limit_mag, FALSE);
-	} else {
-		catalogStars = project_catalog(args->catalog_file, args->cat_center);
-		if (!catalogStars) {
-			args->message = g_strdup(_("Cannot project the star catalog."));
-			return 1;
-		}
-	}
-	CHECK_FOR_CANCELLATION_RET;
-	GFile *catalog = g_file_new_for_path(catalogStars);
-	GError *error = NULL;
-	GInputStream *input_stream = (GInputStream*) g_file_read(catalog, NULL, &error);
-	if (!input_stream) {
-		if (error != NULL) {
-			args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), error->message);
-			g_clear_error(&error);
-		}
-		args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), "generic error");
-		return 1;
-	}
-
-	args->n_cat = read_projected_catalog(input_stream, args->cstars, args->onlineCatalog);
-	if (args->n_cat <= 0) {
-		args->message = g_strdup(_("No stars have been retrieved from the online catalog. "
-					"This may mean that the servers are down. Note that you can install local catalogs."));
-		return 1;
-	}
-	g_object_unref(input_stream);
-	g_object_unref(catalog);
-	g_free(catalogStars);
 	return 0;
 }
 
@@ -502,18 +444,18 @@ gpointer plate_solver(gpointer p) {
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
 	if (args->verbose) {
-		if (args->onlineCatalog == CAT_ASNET) {
-			siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
-		} else if (args->use_local_cat) {
+		if (args->ref_stars->cat_index == CAT_ASNET) {
+			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
+		} else if (args->ref_stars->cat_index == CAT_LOCAL) {
 			siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f"
 						" degrees%s, using a limit magnitude of %.2f\n"),
 					args->used_fov / 60.0,
-					args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
 		} else {
 			siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
 						" degrees%s, using a limit magnitude of %.2f\n"),
 					args->used_fov / 60.0,
-					args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+					args->uncentered ? _(" (uncentered)") : "", args->ref_stars->limitmag);
 		}
 	}
 
@@ -567,7 +509,7 @@ gpointer plate_solver(gpointer p) {
 
 #ifdef _WIN32
 		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
-		int nthreads = (!args->for_sequence || args->onlineCatalog == CAT_ASNET) ? com.max_thread : 1;
+		int nthreads = (!args->for_sequence || args->ref_stars->cat_index == CAT_ASNET) ? com.max_thread : 1;
 #else
 		// on UNIX, asnet is in parallel for sequences, we need to restrain to one per worker
 		int nthreads = (!args->for_sequence) ? com.max_thread : 1;
@@ -614,7 +556,7 @@ gpointer plate_solver(gpointer p) {
 	solution.size.y = args->fit->ry;
 	solution.pixel_size = args->pixel_size;
 
-	if (args->onlineCatalog == CAT_ASNET) {
+	if (args->ref_stars->cat_index == CAT_ASNET) {
 		if (!args->for_sequence) {
 			com.child_is_running = EXT_ASNET;
 			g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
@@ -648,23 +590,31 @@ gpointer plate_solver(gpointer p) {
 		args->ret = ERROR_PLATESOLVE;
 		goto clearup;
 #endif
-		if (args->use_local_cat) {
-			double tra = siril_world_cs_get_alpha(solution.image_center);
-			double tdec = siril_world_cs_get_delta(solution.image_center);
+		// We relaunch the conesearch with phot flag set to TRUE
+		// For local catalogue, we fetch a whole new set at updated center and res
+		// For online catalogue, we re-read the same catalogue from cache with the new phot flag
+		// In both cases, we free the cat_items members before fetching
+		// and we project with the platesolve wcs
+		args->ref_stars->phot = TRUE;
+		if (args->ref_stars->cat_index == CAT_LOCAL) {
+			// we update the ref_stars structure to query again the local catalogues
+			args->ref_stars->center_ra = siril_world_cs_get_alpha(solution.image_center);
+			args->ref_stars->center_dec = siril_world_cs_get_delta(solution.image_center);
 			double res = get_resolution(solution.focal_length, args->pixel_size);
-			double radius = get_radius_deg(res, args->fit->rx, args->fit->ry);
+			args->ref_stars->radius = get_radius_deg(res, args->fit->rx, args->fit->ry) * 60.;
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
 			if (args->verbose)
-				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
-			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars, FALSE)) {
-				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-				args->ret = ERROR_PHOTOMETRY;
-			}
-		} else {
-			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit, TRUE,
-					&pcc_stars, &nb_pcc_stars);
+				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->ref_stars->limitmag);
 		}
+		siril_catalog_free_items(args->ref_stars);
+		siril_catalog_conesearch(args->ref_stars);
+		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
+		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
+		args->ret = nb_pcc_stars == 0;
+
 		if (args->ret) {
+			if (pcc_stars)
+				free(pcc_stars);
 			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
 			args->ret = ERROR_PHOTOMETRY;
 			goto clearup;
@@ -719,8 +669,6 @@ clearup:
 	if (!args->for_sequence) {
 		if (args->cstars)
 			free_fitted_stars(args->cstars);
-		if (args->catalog_file)
-			g_object_unref(args->catalog_file);
 	}
 	g_free(args->filename);
 
@@ -736,7 +684,7 @@ clearup:
 	if (!args->for_sequence) {
 		com.child_is_running = EXT_NONE;
 		if (g_unlink("stop"))
-			siril_debug_print("g_unlink() failed");
+			siril_debug_print("g_unlink() failed\n");
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
@@ -1351,6 +1299,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			siril_log_message(_("Selection is not used in manual star selection mode\n"));
 		// TODO: we could actually check if stars are in the selection
 	}
+	args->ref_stars->radius = args->used_fov * 0.5;
 
 	if (croparea.w == args->fit->rx && croparea.h == args->fit->ry)
 		memset(&croparea, 0, sizeof(rectangle));
@@ -1360,12 +1309,12 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov
-	if (args->onlineCatalog == CAT_AUTO) {
-		if (args->limit_mag <= 12.5)
-			args->onlineCatalog = CAT_TYCHO2;
-		else if (args->limit_mag <= 17.0)
-			args->onlineCatalog = CAT_NOMAD;
-		else args->onlineCatalog = CAT_GAIADR3;
+	if (args->ref_stars->cat_index == CAT_AUTO) {
+		if (args->ref_stars->limitmag <= 12.5)
+			args->ref_stars->cat_index = CAT_TYCHO2;
+		else if (args->ref_stars->limitmag <= 17.0)
+			args->ref_stars->cat_index = CAT_NOMAD;
+		else args->ref_stars->cat_index = CAT_GAIADR3;
 	}
 }
 
@@ -1375,9 +1324,14 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	// load ref metadata in fit
 	if (seq_read_frame_metadata(arg->seq, sequence_find_refimage(arg->seq), &fit))
 		return 1;
-	if (!args->cat_center)
+	if (!args->cat_center) {
 		args->cat_center = get_eqs_from_header(&fit);
-	if (args->onlineCatalog != CAT_ASNET && !args->cat_center) {
+		if (args->cat_center) {
+			args->ref_stars->center_ra = siril_world_cs_get_alpha(args->cat_center);
+			args->ref_stars->center_dec = siril_world_cs_get_delta(args->cat_center);
+		}
+	}
+	if (args->ref_stars->cat_index != CAT_ASNET && !args->cat_center) {
 		siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
 		return 1;
 	}
@@ -1406,7 +1360,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
-	if (args->onlineCatalog == CAT_ASNET) {
+	if (args->ref_stars->cat_index == CAT_ASNET) {
 		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
@@ -1441,8 +1395,6 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->cstars)
 		free_fitted_stars(aargs->cstars);
-	if (aargs->catalog_file)
-		g_object_unref(aargs->catalog_file);
 	free (aargs);
 	com.child_is_running = EXT_NONE;
 	if (g_unlink("stop"))
@@ -1456,7 +1408,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->nb_filtered_images = seq->selnum;
 	seqargs->stop_on_error = FALSE;
 #ifdef _WIN32
-	seqargs->parallel = args->onlineCatalog != CAT_ASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
+	seqargs->parallel = args->ref_stars->cat_index != CAT_ASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
 #else
 	seqargs->parallel = TRUE;
 #endif
@@ -1473,7 +1425,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->user = args;
 
 	siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
-			catalog_to_str(args->onlineCatalog));
+			catalog_to_str(args->ref_stars->cat_index));
 	start_in_new_thread(generic_sequence_worker, seqargs);
 }
 

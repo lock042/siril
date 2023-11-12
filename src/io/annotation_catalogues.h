@@ -17,44 +17,41 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_ALGOS_ANNOTATE_H_
-#define SRC_ALGOS_ANNOTATE_H_
+#ifndef SRC_IO_ANNOTATION_CATALOGUES_H_
+#define SRC_IO_ANNOTATION_CATALOGUES_H_
 
 #include "core/siril_world_cs.h"
+#include "io/siril_catalogues.h"
 
 typedef struct _CatalogObjects CatalogObjects;
 
-typedef enum {
-	ANCAT_NONE = -1,
-	ANCAT_MESSIER = 0,
-	ANCAT_NGC = 1,
-	ANCAT_IC = 2,
-	ANCAT_LDN = 3,
-	ANCAT_SH2 = 4,
-	ANCAT_STARS = 5,
-	USER_DSO_CAT_INDEX = 6,
-	USER_SSO_CAT_INDEX = 7,
-	USER_TEMP_CAT_INDEX = 8
-} annotations_cat;
+typedef struct annotations_catalogue {
+	siril_catalogue *cat;
+	gboolean show;
+} annotations_catalogue_t;
 
 GSList *find_objects_in_field(fits *fit);
-void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean check_duplicates, annotations_cat cat);
-const CatalogObjects *search_in_annotations_by_name(const char *target);
-const char *cat_index_to_name(annotations_cat index);
+gchar *get_annotation_catalog_filename(siril_cat_index cat_index, gboolean for_reading);
+void add_item_in_catalogue(cat_item *item, siril_cat_index cat_index, gboolean check_duplicates);
+cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_index);
+cat_item *search_in_solar_annotations(sky_object_query_args *args);
+void set_annotation_visibility(siril_cat_index cat_index, gboolean visible);
+void refresh_annotation_visibility();
+void refresh_annotation_to_temp();
+void cleanup_annotation_catalogues(gboolean purge_temp);
+void refresh_annotations(gboolean purge_temp);
 
 gchar *get_catalogue_object_code(const CatalogObjects *object);
 gchar *get_catalogue_object_code_pretty(CatalogObjects *object);
-annotations_cat get_catalogue_object_cat(const CatalogObjects *object);
-gchar *get_catalogue_object_name(const CatalogObjects *object);
-gdouble get_catalogue_object_ra(const CatalogObjects *object);
-gdouble get_catalogue_object_dec(const CatalogObjects *object);
+siril_cat_index get_catalogue_object_cat(const CatalogObjects *object);
+gdouble get_catalogue_object_x(const CatalogObjects *object);
+gdouble get_catalogue_object_y(const CatalogObjects *object);
 gdouble get_catalogue_object_radius(const CatalogObjects *object);
 
 void refresh_found_objects();
-void free_catalogue_object(CatalogObjects *object);
-void purge_temp_user_catalogue();
+void purge_user_catalogue(siril_cat_index cat_index);
 gboolean is_inside(fits *fit, double ra, double dec);
-gboolean is_inside2(fits *fit, double ra, double dec, double *x, double *y);
 int load_csv_targets_to_temp(const gchar *filename);
+int load_siril_cat_to_temp(siril_catalogue *siril_cat);
 
-#endif /* SRC_ALGOS_ANNOTATE_H_ */
+#endif /* SRC_IO_ANNOTATION_CATALOGUES_H_ */

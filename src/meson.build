@@ -17,7 +17,6 @@ configure_file(output : 'config.h',
 # Generate Siril static library with all sources
 
 src_files = [
-  'algos/annotate.c',
   'algos/anscombe.c',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
@@ -139,6 +138,7 @@ src_files = [
   'filters/deconvolution/utils.hpp',
   'filters/deconvolution/vec2.hpp',
 
+  'io/annotation_catalogues.c',
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
@@ -169,6 +169,7 @@ src_files = [
   'io/seqwriter.c',
   'io/ser.c',
   'io/single_image.c',
+  'io/siril_catalogues.c',
   'io/siril_plot.c',
   'io/SirilXISFReader.cpp',
 

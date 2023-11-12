@@ -163,7 +163,8 @@ GDateTime *FITS_date_to_date_time(char *date) {
 		return NULL;
 
 	if (sscanf(date, "%04d-%02d-%02dT%02d:%02d:%lf", &year, &month, &day, &hour, &min, &sec) != 6) {
-		return NULL;
+		if (sscanf(date, "%04d-%02d-%02dT%02d-%02d-%lf", &year, &month, &day, &hour, &min, &sec) != 6)
+			return NULL;
 	}
 	GTimeZone *tz = g_time_zone_new_utc();
 	GDateTime *new_date = g_date_time_new(tz, year, month, day, hour, min, sec);
@@ -226,7 +227,7 @@ gchar *date_time_to_date(GDateTime *datetime) {
  * @return a newly allocated string formatted as year-month-day_hour-minutes-seconds in numbers.
  */
 gchar *date_time_to_date_time(GDateTime *datetime) {
-	gchar *format = "%Y-%m-%d_%H-%M-%S";
+	gchar *format = "%Y-%m-%dT%H-%M-%S";
 	return g_date_time_format(datetime, format);
 }
 
@@ -239,4 +240,8 @@ GDateTime *julian_sec_to_date(uint32_t jsecs, uint32_t us) {
 	g_date_time_unref(JD245);
 	g_date_time_unref(date1);
 	return date;
+}
+
+double timediff_in_s(GDateTime *dt1, GDateTime *dt2) {
+	return (double)g_date_time_difference(dt2, dt1) * 1.e-6;
 }

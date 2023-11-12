@@ -29,7 +29,7 @@
 #include "core/siril_log.h"
 #include "core/initfile.h"
 #include "compositing/align_rgb.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
@@ -60,6 +60,7 @@
 #include "gui/remixer.h"
 #include "livestacking/livestacking.h"
 #include "registration/registration.h"
+#include "io/siril_catalogues.h"
 
 #include "siril_actions.h"
 
@@ -398,8 +399,17 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (has_wcs(&gfit))
-		process_sso();
+	if (has_wcs(&gfit)) {
+		siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, CAT_IMCCE, -1.f);
+		siril_cat->IAUcode = g_strdup("500");
+		conesearch_args *args = init_conesearch();
+		args->fit = &gfit;
+		args->has_GUI = TRUE;
+		args->siril_cat = siril_cat;
+		args->display_log = TRUE;
+		args->display_tag = TRUE;
+		start_in_new_thread(conesearch_worker, args);
+	}
 }
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
@@ -410,7 +420,8 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 	} else {
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
-		purge_temp_user_catalogue();
+		purge_user_catalogue(CAT_AN_USER_TEMP);
+		refresh_annotation_visibility();
 	}
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);

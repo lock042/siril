@@ -366,7 +366,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 }
 
 // TODO: For now, to fix this bug https://gitlab.com/free-astro/siril/-/issues/604 we need to use GIO for Windows
-#if defined HAVE_LIBCURL && !defined _WIN32
+#if defined HAVE_LIBCURL
 
 struct _update_data {
 	gchar *url;

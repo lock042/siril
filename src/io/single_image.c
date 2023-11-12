@@ -28,7 +28,7 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "algos/statistics.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/ccd-inspector.h"
 #include "algos/background_extraction.h"
 #include "algos/astrometry_solver.h"
@@ -105,8 +105,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
-	g_slist_free(com.found_object);
-	com.found_object = NULL;
+	cleanup_annotation_catalogues(TRUE);
 	reset_display_offset();
 	reset_zoom_default();
 	free(gui.qphot);

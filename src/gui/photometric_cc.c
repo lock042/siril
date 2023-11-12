@@ -60,11 +60,9 @@ static void start_photometric_cc() {
 	struct astrometry_data *args = NULL;
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
 	pcc_args->catalog = get_photometry_catalog_from_GUI();
-	pcc_args->use_local_cat = FALSE;
 	if (local_catalogues_available()) {
 		if (pcc_args->catalog == CAT_NOMAD) {
 			siril_debug_print("using local star catalogues\n");
-			pcc_args->use_local_cat = TRUE;
 		}
 		else siril_log_message(_("Using remote APASS instead of local NOMAD catalogue\n"));
 	}
@@ -73,7 +71,6 @@ static void start_photometric_cc() {
 		args->fit = &gfit;
 
 		args->for_photometry_cc = TRUE;
-		args->use_local_cat = pcc_args->use_local_cat;
 
 		args->pcc = pcc_args;
 		args->pcc->fit = &gfit;

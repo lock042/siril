@@ -434,42 +434,36 @@ gpointer photometric_cc_standalone(gpointer p) {
 		mag += args->magnitude_arg;
 
 	int retval = 0;
-	if (args->use_local_cat) {
+	if (args->catalog == CAT_LOCAL) {
 		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
-		if (get_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars, TRUE)) {
-			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-			retval = 1;
-		}
 	} else {
-		const gchar *cat = NULL;
 		switch (args->catalog) {
 			case CAT_APASS:
-				cat = "APASS";
 				mag = min(mag, 17.0);	// in APASS, B is available for V < 17
 				break;
 			case CAT_NOMAD:
-				cat = "NOMAD";
 				mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
 				break;
 			default:
 				siril_log_color_message(_("No valid catalog found.\n"), "red");
 				return GINT_TO_POINTER(1);
 		}
-		siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), radius * 2.0, mag);
-
-		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-		GFile *catalog_file = download_catalog(args->catalog, center, radius * 60.0, mag);
-		siril_world_cs_unref(center);
-		if (!catalog_file) {
-			siril_log_message(_("Could not download the online star catalog.\n"));
-			siril_add_idle(end_generic, NULL);
-			return GINT_TO_POINTER(1);
-		}
-		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
-
-		/* project using WCS */
-		retval = project_catalog_with_WCS(catalog_file, args->fit, TRUE, &stars, &nb_stars);
+		siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog),radius * 2.0,  mag);
 	}
+	// preparing the catalogue query
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(args->fit, args->catalog, mag);
+	siril_cat->phot = TRUE;
+	
+	/* Fetching the catalog*/
+	if (siril_catalog_conesearch(siril_cat) <= 0) {
+		retval = 1;
+	} else {
+		/* project using WCS */
+		siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, FALSE);
+		stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
+		retval = nb_stars == 0;
+	}
+	siril_catalog_free(siril_cat);
 
 	if (!retval) {
 		if (!com.script) {
@@ -492,3 +486,38 @@ gpointer photometric_cc_standalone(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+// TODO: remove pcc_star?
+// This interface enables for now to use new catalogues and pcc_star where required
+pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars) {
+	*nbstars = 0;
+	if (!siril_cat || !siril_cat->nbincluded)
+		return NULL;
+	if (siril_cat->projected == CAT_PROJ_NONE) {
+		siril_debug_print("Catalog has not been projected\n");
+	}
+	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || !has_field(siril_cat, BMAG))
+		return NULL;
+	pcc_star *results = malloc(siril_cat->nbincluded * sizeof(pcc_star));
+
+	int n = 0;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		if (n >= siril_cat->nbincluded) {
+			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated");
+			break;
+		}
+		if (siril_cat->cat_items[i].included) {
+			results[n].x = siril_cat->cat_items[i].x;
+			results[n].y = siril_cat->cat_items[i].y;
+			results[n].mag = siril_cat->cat_items[i].mag;
+			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
+			n++;
+		}
+	}
+	if (n != siril_cat->nbincluded) {
+		siril_debug_print("problem when converting siril_cat to pcc_stars, number differs from catalogue info");
+		free(results);
+		return NULL;
+	}
+	*nbstars = n;
+	return results;
+}
