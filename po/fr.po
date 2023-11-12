@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-12 08:35+0100\n"
-"PO-Revision-Date: 2023-11-12 07:33+0000\n"
+"PO-Revision-Date: 2023-11-13 10:38+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3721,7 +3721,6 @@ msgid "Online Star Catalogue: "
 msgstr "Catalogue d'étoiles en ligne : "
 
 #: src/gui/siril3.glade:13960
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -3744,7 +3743,7 @@ msgid ""
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th "
 "magnitude to about 17th magnitude for over 37 million stars."
 msgstr ""
-"Choisissez le catalogue qui sera comparé à l'image.\n"
+"Choisissez le catalogue en ligne qui sera comparé à l'image.\n"
 "* Le catalogue TYCHO-2 contient les positions, les mouvements propres et les "
 "données photométriques de 2 539 913 étoiles les plus brillantes de la Voie "
 "Lactée.\n"
@@ -3760,10 +3759,15 @@ msgstr ""
 "* Le catalogue PPMXL est un catalogue contenant des données de position, de "
 "mouvement propre, 2MASS et de photométrie de 900 millions d'étoiles et "
 "galaxies.\n"
-"* Le catalogue Bright stars est un catalogue d'étoiles qui répertorie toutes "
+"* Le catalogue Bright Star est un catalogue d'étoiles qui répertorie toutes "
 "les étoiles de magnitude stellaire égale ou supérieure à 6,5, ce qui "
 "correspond à peu près à toutes les étoiles visibles à l'œil nu depuis la "
-"Terre. Le catalogue contient 9 110 objets."
+"Terre. Le catalogue contient 9 110 objets.\n"
+"* APASS, le Photometric All Sky Survey de l'AAVSO, effectue un relevé "
+"photométrique sur l'ensemble du ciel. Ce relevé est effectué dans huit "
+"filtres : Johnson B et V, plus Sloan u', g′, r′, i′, z_s et Z. Il est "
+"valable de la 7ème magnitude à la 17ème magnitude pour plus de 37 millions "
+"d'étoiles."
 
 #: src/gui/siril3.glade:13989
 msgid ""
@@ -10407,17 +10411,16 @@ msgid "Cancelled"
 msgstr "Annulé"
 
 #: src/algos/astrometry_solver.c:419
-#, fuzzy, c-format
+#, c-format
 msgid "Fetched %d stars from %s catalogue\n"
-msgstr "Impossible de faire correspondre les étoiles du catalogue"
+msgstr "Recherche de %d étoiles dans le catalogue %s\n"
 
 #: src/algos/astrometry_solver.c:448
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
-"La résolution astrométrique provenant d'un catalogue local pour un champ de "
-"vision de %.2f degrés\n"
+"Résoudre l'image avec astrometry.net pour un champ de vision de %.2f degrés\n"
 
 #: src/algos/astrometry_solver.c:450
 #, c-format
@@ -10792,9 +10795,9 @@ msgstr ""
 "de continuer avec la courbe de lumière\n"
 
 #: src/algos/comparison_stars.c:143
-#, fuzzy, c-format
+#, c-format
 msgid "star %s [%s] added as a reference star\n"
-msgstr "L'étoile %s est ajoutée comme étoile de référence\n"
+msgstr "étoile %s [%s] ajoutée comme étoile de référence\n"
 
 #: src/algos/comparison_stars.c:145
 #, c-format
@@ -10814,40 +10817,45 @@ msgid "Creating csv output file %s\n"
 msgstr "Création du fichier de sortie csv %s\n"
 
 #: src/algos/comparison_stars.c:226
-#, fuzzy
 msgid "Problem writing the comparison stars file\n"
-msgstr "Créer une liste d'étoiles de comparaison"
+msgstr "Problème d'écriture du fichier des étoiles de comparaison\n"
 
 #: src/algos/comparison_stars.c:259
 msgid "Not enough stars available\n"
 msgstr "Pas assez d'étoiles disponibles\n"
 
 #: src/algos/comparison_stars.c:263
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Filtering parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: "
 "%1.3lf\n"
-msgstr "Tri des paramètres : delta_Vmag : %1.2lf, delta_BV : %1.2lf\n"
+msgstr ""
+"Paramètres de filtrage : delta_Vmag : %1.2lf, delta_BV : %1.2lf, max e_Vmag :"
+" %1.3lf\n"
 
 #: src/algos/comparison_stars.c:265
-#, fuzzy, c-format
+#, c-format
 msgid "Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"
-msgstr "Étoile cible : Vmag=%2.2lf, Bmag=%2.2lf\n"
+msgstr "Étoile cible : Vmag=%2.2lf, B-V =%2.2lf\n"
 
 #: src/algos/comparison_stars.c:305
 msgid "Stars sorted by increasing distance (in arcmin) wrt. image center\n"
 msgstr ""
+"Étoiles triées par distance croissante (en arcmin) par rapport au centre de "
+"l'image\n"
 
 #: src/algos/comparison_stars.c:316
-#, fuzzy, c-format
+#, c-format
 msgid "e_Vmag and e_Bmag are photometric errors supplied from %s\n"
-msgstr "e_Vmag et e_Bmag sont des erreurs intrinsèques fournies par %s\n"
+msgstr "e_Vmag et e_Bmag sont des erreurs photométriques fournies par %s\n"
 
 #: src/algos/comparison_stars.c:323
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"
-msgstr "%s  %d : %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
+msgstr ""
+"Étoile de comparaison %3d : %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, "
+"%4.3lf, %5.2lf\n"
 
 #. and log results
 #: src/algos/comparison_stars.c:339
@@ -10875,17 +10883,15 @@ msgstr ""
 #: src/algos/comparison_stars.c:386
 #, c-format
 msgid "No comparison stars retrieved from the catalog %s, aborting\n"
-msgstr ""
+msgstr "Aucune étoile de comparaison n'a été trouvée dans le catalogue %s.\n"
 
 #: src/algos/comparison_stars.c:396
-#, fuzzy
 msgid "No comparison stars found in the image, aborting\n"
-msgstr "Impossible de trouver des étoiles dans la première image, abandon.\n"
+msgstr "Aucune étoile de comparaison n'a été trouvée dans l'image.\n"
 
 #: src/algos/comparison_stars.c:405
-#, fuzzy
 msgid "Comparison stars: processing...\n"
-msgstr "Miroir horizontal : en cours...\n"
+msgstr "Étoiles de comparaison : traitement...\n"
 
 #: src/algos/comparison_stars.c:417
 msgid "Target star photometric information not available.\n"
@@ -19558,6 +19564,8 @@ msgstr ""
 #: src/core/settings.c:432
 msgid "autoconvert images with an ICC profile to the working color space"
 msgstr ""
+"autoconvertir les images avec un profil ICC dans l'espace colorimétrique de "
+"travail"
 
 #: src/core/settings.c:433
 msgid "encodes ICC profile auto-assignment options"
