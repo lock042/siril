@@ -382,7 +382,7 @@ static int get_catstars(struct compstars_arg *args) {
 	}
 
 	// and retrieving its results
-	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
+	if (siril_catalog_conesearch(siril_cat) <= 0) {// returns the nb of stars
 		siril_log_color_message(_("No comparison stars retrieved from the catalog %s, aborting\n"), "red", catalog_to_str(args->cat));
 		siril_catalog_free(siril_cat);
 		return 1;

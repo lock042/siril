@@ -9013,8 +9013,13 @@ int process_show(int nb) {
 	//passing a list
 	if (g_str_has_prefix(word[next_arg], "-list=")) {
 		const char *file = word[next_arg] + 6;
-		if (siril_catalog_load_from_file(siril_cat, file)) {
+		int check = siril_catalog_load_from_file(siril_cat, file);
+		if (check > 0) {
 			goto show_exit_on_failure;
+		}
+		if (check == -1) { // the file was read but empty
+			free_conesearch(args);
+			return CMD_OK;
 		}
 		next_arg++;
 		while (next_arg < nb) {

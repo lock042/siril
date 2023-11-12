@@ -414,7 +414,7 @@ static int get_catalog_stars(struct astrometry_data *args) {
 	if (args->ref_stars->cat_index == CAT_ASNET)
 		return 0;
 
-	if (!siril_catalog_conesearch(args->ref_stars))
+	if (siril_catalog_conesearch(args->ref_stars) <= 0)
 		return 1;
 	siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cat_index));
 

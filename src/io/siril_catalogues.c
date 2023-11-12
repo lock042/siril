@@ -504,6 +504,10 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
  * - Comparison star list creation needs equatorial coordinates and B-V
  *   magnitudes, projection is also used but only to check if a star is inside
  *   the image and far from its borders. The required object is psf_star.
+ *
+ *   It returns 0 on failure
+ *   -1 on an empty (but successful) query
+ *   nb of stars otherwise
  */
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
@@ -531,13 +535,14 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	GError *error = NULL;
 	GFile *catalog_file = g_file_new_for_path(filename);
 	GInputStream *input_stream = (GInputStream*) g_file_read(catalog_file, NULL, &error);
+	int retval = 1;
 	if (!input_stream) {
 		if (error != NULL) {
 			siril_log_message(_("Could not open the catalog (%s)\n"), error->message);
 			g_clear_error(&error);
 		} else
 			siril_log_message(_("Could not open the catalog (%s)\n"), "generic error");
-		return 1;
+		return retval;
 	}
 
 	int nb_alloc = 1200, nb_items = 0;
@@ -545,7 +550,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	if (!cat_items) {
 		PRINT_ALLOC_ERR;
 		g_object_unref(input_stream);
-		return 1;
+		return retval;
 	}
 
 	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
@@ -630,6 +635,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	}
 	if (nb_items == 0) {
 		siril_log_color_message(_("Catalog %s was read but no items were found in the view cone, nothing to show\n"), "salmon", filename);
+		retval = -1;
 		goto siril_catalog_load_from_file_exit_on_error;
 	}
 	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
@@ -653,7 +659,7 @@ siril_catalog_load_from_file_exit_on_error:
 	g_free(line);
 	if (header)
 		g_string_free(header, TRUE);
-	return 1;
+	return retval;
 
 }
 
@@ -967,7 +973,7 @@ gpointer conesearch_worker(gpointer p) {
 	conesearch_args *args = (conesearch_args *)p;
 	siril_catalogue *siril_cat = args->siril_cat;
 	siril_catalogue *temp_cat = NULL;
-	int retval = -1;
+	int retval = 1;
 	double stardiam = 0.;
 	gboolean hide_display_tag = FALSE;
 	if (!siril_cat) {
@@ -976,11 +982,16 @@ gpointer conesearch_worker(gpointer p) {
 	}
 
 	// launching the query
-	if (!siril_catalog_conesearch(siril_cat)) {// returns the nb of stars
+	int check = siril_catalog_conesearch(siril_cat);
+	if (!check) {// conesearch has failed
 		goto exit_conesearch;
 	}
 	if (siril_cat->cat_index != CAT_LOCAL)
 		siril_log_message(_("The %s catalog has been successfully downloaded\n"), catalog_to_str(siril_cat->cat_index));
+	if (check == -1) { // conesearch was succesful but field was empty
+		retval = -1;
+		goto exit_conesearch;
+	}
 
 	/* project using WCS */
 	// we need to project now to identify (and count) objects in the image
@@ -1057,7 +1068,7 @@ gpointer conesearch_worker(gpointer p) {
 	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
 			siril_cat->phot ? " with valid photometry data" : "", siril_cat->limitmag);
 	if (!j) {
-		retval = 1;
+		retval = -1;
 		goto exit_conesearch;
 	}
 	if (args->has_GUI)  { // only for GUI
@@ -1084,6 +1095,8 @@ exit_conesearch:;
 	} else {
 		end_generic(NULL);
 	}
+	if (retval == -1) // success but empty field
+		retval = 0;
 	return GINT_TO_POINTER(retval);
 }
 

@@ -788,7 +788,7 @@ download_error:
    of csv files, named as 'cat-cat_index-ra-dec-radius[-mag].csv' or
    'cat-cat_index-ra-dec-radius-date-obscode.csv' for solar syatem queries (IMCCE)
    It fills the siril_catalogue given in input
-   Returns the number of stars fetched
+   Returns the number of stars fetched, -1 if successful but empty, 0 otherwise
 */
 int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
@@ -800,8 +800,11 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	gchar *catfile = download_catalog(siril_cat);
 	if (!catfile)
 		return 0;
-	if (!siril_catalog_load_from_file(siril_cat, catfile))
+	int retval = siril_catalog_load_from_file(siril_cat, catfile);
+	if (!retval)
 		return siril_cat->nbitems;
+	if (retval == -1)
+		return -1; // empty but not failed
 	return 0;
 }
 

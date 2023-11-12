@@ -455,7 +455,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	siril_cat->phot = TRUE;
 	
 	/* Fetching the catalog*/
-	if (!siril_catalog_conesearch(siril_cat)) {
+	if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	} else {
 		/* project using WCS */

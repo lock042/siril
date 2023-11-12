@@ -528,7 +528,7 @@ gboolean local_catalogues_available() {
    It sends a conesearch around given center, within given radius and for stars below limit_mag
    Internally, it uses get_raw_stars_from_local_catalogues which returns a list of deepStarData stars
    It fills the siril_catalogue given in input
-   Returns the number of stars fetched
+   Returns the number of stars fetched, -1 if none found, 0 if error
 */
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
@@ -555,5 +555,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->cat_items[i].included = TRUE;
 	}
 	free(stars);
+	if (!siril_cat->nbitems)
+		return -1;
 	return siril_cat->nbitems;
 }
