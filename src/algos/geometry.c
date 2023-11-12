@@ -278,6 +278,7 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 
 	free_wcs(fit, TRUE); // we keep RA/DEC to initialize platesolve
 	load_WCS_from_memory(fit);
+	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -326,6 +327,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
 	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
 	load_WCS_from_memory(image);
+	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -375,6 +377,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
+		refresh_annotations(FALSE);
 	}
 #endif
 	return 0;
@@ -429,6 +432,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
+		refresh_annotations(FALSE);
 	}
 #endif
 	return 0;
@@ -524,6 +528,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 		H.h12 = (double)fit->ry - 1.;
 		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
+		refresh_annotations(FALSE);
 	}
 #endif
 }
@@ -554,6 +559,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		H.h02 = (double)fit->rx - 1.;
 		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
+		refresh_annotations(FALSE);
 	}
 #endif
 }
@@ -655,6 +661,7 @@ int crop(fits *fit, rectangle *bounds) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
+		refresh_annotations(FALSE);
 	}
 #endif
 	return 0;

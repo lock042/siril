@@ -27,8 +27,6 @@ AM_CPPFLAGS = \
 siril_common_SOURCES = \
 	core/siril.h \
 	core/proto.h \
-	algos/annotate.c \
-	algos/annotate.h \
 	algos/anscombe.c \
 	algos/anscombe.h \
 	algos/astrometry_solver.c \
@@ -300,6 +298,8 @@ siril_common_SOURCES = \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \
+	io/annotation_catalogues.c \
+	io/annotation_catalogues.h \
 	io/Astro-TIFF.c \
 	io/Astro-TIFF.h \
 	io/kstars/binfile.h \
@@ -336,6 +336,8 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	io/siril_catalogues.c \
+	io/siril_catalogues.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
 	livestacking/livestacking.c \

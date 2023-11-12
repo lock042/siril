@@ -36,6 +36,7 @@
 #include "gui/siril_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/annotation_catalogues.h"
 #include "core/undo.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
@@ -331,6 +332,7 @@ int undo_display_data(int dir) {
 			if (gui.icc.proofing_transform)
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
+			refresh_annotations(TRUE);
 			if (is_preview_active())
 				copy_gfit_to_backup();
 			close_tab(); // These 2 lines account for possible change from mono to RGB
@@ -350,6 +352,7 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
+			refresh_annotations(TRUE);
 			gboolean tmp_roi_active = gui.roi.active;
 			gui.roi.active = FALSE;
 			if (gui.icc.proofing_transform)

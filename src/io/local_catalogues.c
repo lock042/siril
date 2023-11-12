@@ -113,11 +113,15 @@ typedef struct {
 	char unused;
 } shallowStarData;
 
+struct top_header {
+	char description[124];
+	int16_t endian_id;
+	uint8_t version_no;
+};
+
 static struct catalogue_file *catalogue_read_header(FILE *f);
-//static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
-static int update_coords_with_proper_motion(double *ra, double *dec, double dRA, double dDec, double jmillenia);
 
 static void bswap_stardata(deepStarData *stardata) {
     stardata->RA = bswap_32(stardata->RA);
@@ -156,152 +160,6 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 	free(cat);
 	return 0;
 }
-
-static int get_projected_stars_from_local_catalogue(const char *path, double ra, double dec, double radius, gboolean use_proper_motion, fits *fit, float max_mag, pcc_star **stars, int *nb_stars, gboolean photo_only) {
-	deepStarData *trixel_stars;
-	uint32_t trixel_nb_stars;
-	if (read_trixels_from_catalogue(path, ra, dec, radius, &trixel_stars, &trixel_nb_stars))
-		return 1;
-
-	// project to image
-	*stars = malloc(sizeof(pcc_star) * trixel_nb_stars);
-	if (!*stars) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	double jmillenia;
-	if (use_proper_motion) {
-		GDateTime *dt = g_date_time_new_now_utc();
-		gdouble jd = date_time_to_Julian(dt);
-		g_date_time_unref(dt);
-		double J2000 = 2451545.0;
-		jmillenia = (jd - J2000) / 365250.;
-	}
-	int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
-
-	int j = 0;
-	for (int i = 0; i < trixel_nb_stars; i++) {
-		// filter out stars with no valid photometry
-		if (photo_only && (trixel_stars[i].B >= 30000 || trixel_stars[i].V >= 30000))
-			continue;
-		if (trixel_stars[i].V >= mag_threshold)
-			continue;
-		// catalogue has RA in hours, hence the x15
-		double star_ra = trixel_stars[i].RA * .000015;
-		double star_dec = trixel_stars[i].Dec * .00001;
-		double Bmag = trixel_stars[i].B * 0.001;
-		double Vmag = trixel_stars[i].V * 0.001;
-		if (use_proper_motion) {
-			update_coords_with_proper_motion(&star_ra, &star_dec,
-					/* pass dRA and dDec per millenia */
-					trixel_stars[i].dRA * 0.001, trixel_stars[i].dDec * 0.001,
-					jmillenia);
-		}
-
-		double fx, fy;
-		if (wcs2pix(fit, star_ra, star_dec, &fx, &fy))
-			continue;
-
-		(*stars)[j].x = fx;
-		(*stars)[j].y = fy;
-		(*stars)[j].mag = Vmag;
-		(*stars)[j].BV = Bmag - Vmag;
-		j++;
-		//siril_debug_print("star at %f,\t%f,\tV=%.2f B=%.2f\timage coords (%.1f, %.1f)\tpm (%hd, %hd) mas/yr\n", star_ra, star_dec, Vmag, Bmag, (*stars)[j].x, (*stars)[j].y, trixel_stars[i].dRA, trixel_stars[i].dDec);
-	}
-	*nb_stars = j;
-	free(trixel_stars);
-
-	return 0;
-}
-
-/* ra and dec in degrees, dRA and dDec in mas/millenia, jmillenia in thousand years
- * ra and dec are input and output
- * return 1 if coords were updated, 0 else */
-static int update_coords_with_proper_motion(double *ra, double *dec, double dRA, double dDec, double jmillenia) {
-	double pmms = dRA * dRA + dDec * dDec;
-	if (pmms * jmillenia * jmillenia < .01)
-		return 0;
-	siril_debug_print("PM passed the threshold\n");
-	double ra_rad = *ra * DEGTORAD, dec_rad = *dec * DEGTORAD;
-	double cosRa = cos(ra_rad), sinRa = sin(ra_rad);
-	double cosDec = cos(dec_rad), sinDec = sin(dec_rad);
-	double scale = jmillenia * (M_PI / (180.0 * 3600.0));
-
-	// Note: Below assumes that dRA is already pre-scaled by cos(delta), as it is for Hipparcos
-	double net_pmRA = dRA * scale, net_pmDec = dDec * scale;
-	// net_pm are now in radian
-
-	double x0 = cosDec * cosRa, y0 = cosDec * sinRa, z0 = sinDec;
-	double dX = - net_pmRA * sinRa - net_pmDec * sinDec * cosRa;
-	double dY = net_pmRA * cosRa - net_pmDec * sinDec * sinRa;
-	double dZ = net_pmDec * cosDec;
-	double x = x0 + dX, y = y0 + dY, z = z0 + dZ;
-
-	double alpha = atan2(y, x) * RADTODEG;
-	double delta = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
-	alpha = alpha - 360.0 * floor(alpha / 360.0);
-
-	if (fabs(*ra - alpha) > .0000277 || fabs(*dec - delta) > .0000277)
-		siril_debug_print("star moved from more than a tenth of arcsec on an axis (%f, %f)\n", *ra, *dec);
-	*ra = alpha;
-	*dec = delta;
-	return 1;
-}
-
-/* get stars with coordinates projected on image (pcc_star), only those that
- * have B-V photometric information, up to the max_mag magnitude.
- * fit must have WCS inforation */
-int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars, gboolean photo_only) {
-	if (!has_wcs(fit))
-		return 1;
-	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
-	pcc_star **catalogue_stars = malloc(nb_catalogues * sizeof(pcc_star *));
-	int *catalogue_nb_stars = malloc(nb_catalogues * sizeof(int));
-	int total_nb_stars = 0, retval = 0, catalogue = 0;
-
-	for (; catalogue < nb_catalogues; catalogue++) {
-		retval = get_projected_stars_from_local_catalogue(com.pref.catalogue_paths[catalogue],
-				ra, dec, radius,
-				// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
-				/* catalogue != 2 */ FALSE, fit, max_mag,
-				catalogue_stars + catalogue, catalogue_nb_stars + catalogue, photo_only);
-		if (retval)
-			break;
-		total_nb_stars += catalogue_nb_stars[catalogue];
-		siril_debug_print("%d stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
-	}
-
-	if (!retval) {
-		// aggregate
-		*stars = malloc(total_nb_stars * sizeof(pcc_star));
-		if (!*stars) {
-			PRINT_ALLOC_ERR;
-			retval = 1;
-		} else {
-			uint32_t offset = 0;
-			*nb_stars = total_nb_stars;
-			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
-				memcpy(*stars + offset, catalogue_stars[catalogue],
-						catalogue_nb_stars[catalogue] * sizeof(pcc_star));
-				offset += catalogue_nb_stars[catalogue];
-				free(catalogue_stars[catalogue]);
-			}
-		}
-	}
-
-	free(catalogue_nb_stars);
-	free(catalogue_stars);
-	return retval;
-}
-
-
-struct top_header {
-	char description[124];
-	int16_t endian_id;
-	uint8_t version_no;
-};
 
 static struct catalogue_file *catalogue_read_header(FILE *f) {
 	struct top_header top;
@@ -437,17 +295,6 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	return cat;
 }
 
-/*static int read_trixel_of_target(double ra, double dec, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
-	int trixelID = get_htm_index_for_coords(ra, dec, cat->HTM_Level);
-
-	if (trixelID > cat->ntrixels) {
-		siril_debug_print("invalid trixel number %u for %u available\n", trixelID, cat->ntrixels);
-		return 1;
-	}
-
-	return read_trixel(trixelID, cat, stars, nb_stars);
-}*/
-
 /* radius is in degrees */
 static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
 	int *trixels;
@@ -571,53 +418,17 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	return 0;
 }
 
-void initialize_local_catalogues_paths() {
-	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
-	int maxpath = get_pathmax();
-	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
-		if (com.pref.catalogue_paths[catalogue] &&
-				com.pref.catalogue_paths[catalogue][0] != '\0')
-			continue;
-		char path[maxpath];
-		strncpy(path, default_catalogues_paths[catalogue], maxpath - 1);
-		expand_home_in_filename(path, maxpath);
-		com.pref.catalogue_paths[catalogue] = g_strdup(path);
-	}
-}
-
-gboolean local_catalogues_available() {
-	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
-	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
-		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
-			return FALSE;
-	}
-	return TRUE;
-}
-
-// Haversine formula on unit sphere
-// https://en.wikipedia.org/wiki/Haversine_formula
-// dec is phi, ra is lambda
-// in degrees
-static double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
-	double dec1_r = dec1 * DEGTORAD, dec2_r = dec2 * DEGTORAD;
-	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
-	double ddec_2 = 0.5 * (dec2_r - dec1_r);
-	double sin_ddec = sin(ddec_2), sin_dra = sin(dra_2);
-	double h = sin_ddec * sin_ddec + cos(dec1_r) * cos(dec2_r) * sin_dra * sin_dra;
-	if (h > 1.)
-		return 180.0;   // h = 1, asin(1) is pi/2
-	return 2.0 * asin(sqrt(h)) * RADTODEG;
-}
-
-/* similar to get_stars_from_local_catalogues except it doesn't project the
- * stars and filters them based on the radius instead of image bounds */
+/* Fetches the stars from local catalogs in the form of deepStarData stars
+   Filters out stars w/o photometric data if photometric is TRUE
+*/
 static int get_raw_stars_from_local_catalogues(double target_ra, double target_dec, double radius,
-		float max_mag, gboolean photometric, deepStarData_dist **stars, uint32_t *nb_stars) {
+		float max_mag, gboolean photometric, deepStarData **stars, uint32_t *nb_stars) {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
 	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
 	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
 	uint32_t total_nb_stars = 0;
 	int retval = 0, catalogue = 0;
+	radius /= 60.; // converting to degrees
 
 	siril_debug_print("looking for stars in local catalogues for target %f, %f, radius %f, magnitude %.2f, photometric: %d\n", target_ra, target_dec, radius, max_mag, photometric);
 	for (; catalogue < nb_catalogues; catalogue++) {
@@ -628,7 +439,6 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 			continue;
 		}
 
-		// Tycho-2 proper motions seem to be garbage, disabling PM computation for it
 		retval = read_trixels_from_catalogue(com.pref.catalogue_paths[catalogue],
 				target_ra, target_dec, radius,
 				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
@@ -640,7 +450,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 
 	if (catalogue == nb_catalogues) {
 		// aggregate and filter
-		*stars = malloc(total_nb_stars * sizeof(deepStarData_dist));
+		*stars = malloc(total_nb_stars * sizeof(deepStarData));
 		if (!*stars) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -673,9 +483,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 					double dist = compute_coords_distance(ra, dec, target_ra, target_dec);
 					if (dist > radius)
 						continue;
-					// a bit of fun, storing the distance in the struct
-					deepStarData_dist *sdd = (deepStarData_dist*)&cat_stars[i];
-					sdd->distance = (float)(dist * 60.0);
+					deepStarData *sdd = &cat_stars[i];
 					(*stars)[j] = *sdd;
 					j++;
 				}
@@ -683,7 +491,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 			}
 
 			*nb_stars = j;
-			*stars = realloc(*stars, j * sizeof(deepStarData_dist));
+			*stars = realloc(*stars, j * sizeof(deepStarData));
 		}
 	}
 
@@ -692,122 +500,62 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	return retval;
 }
 
-/* project a list of stars for plate solving
- * see registration/matching/project_coords.c proc_star_file() for original
- * code, based on a downloaded text file catalog */
-static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, double center_ra, double center_dec, GFile *file_out, int doASEC) {
-	double xx, yy, xi, eta;
 
-	GError *error = NULL;
-	GOutputStream *output_stream = (GOutputStream *)g_file_append_to(file_out, G_FILE_CREATE_NONE, NULL, &error);
-	if (!output_stream) {
-		if (error != NULL) {
-			siril_log_color_message(_("Can't open temporary file %s for output. [%s]\n"),
-					"red", g_file_peek_path(file_out), error->message);
-			g_clear_error(&error);
-			return 1;
-		}
+void initialize_local_catalogues_paths() {
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	int maxpath = get_pathmax();
+	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+		if (com.pref.catalogue_paths[catalogue] &&
+				com.pref.catalogue_paths[catalogue][0] != '\0')
+			continue;
+		char path[maxpath];
+		strncpy(path, default_catalogues_paths[catalogue], maxpath - 1);
+		expand_home_in_filename(path, maxpath);
+		com.pref.catalogue_paths[catalogue] = g_strdup(path);
 	}
-
-	for (uint32_t i = 0; i < nb_stars; i++) {
-		double ra = stars[i].RA * .000015;
-		double dec = stars[i].Dec * .00001;
-		double Bmag = stars[i].B * 0.001;
-		double Vmag = stars[i].V * 0.001;
-		double delta_ra;
-		if (ra < 10 && center_ra > 350) {
-			delta_ra = (ra + 360) - center_ra;
-		} else if (ra > 350 && center_ra < 10) {
-			delta_ra = (ra - 360) - center_ra;
-		} else {
-			delta_ra = ra - center_ra;
-		}
-		delta_ra *= DEGTORAD;
-
-		/*
-		 * let's transform from (delta_RA, delta_Dec) to (xi, eta),
-		 */
-		double dec_rad = dec * DEGTORAD;
-		double cent_dec_rad = center_dec * DEGTORAD;
-		xx = cos(dec_rad) * sin(delta_ra);
-		yy = sin(cent_dec_rad) * sin(dec_rad)
-				+ cos(cent_dec_rad) * cos(dec_rad) * cos(delta_ra);
-		xi = (xx / yy);
-
-		xx = cos(cent_dec_rad) * sin(dec_rad)
-				- sin(cent_dec_rad) * cos(dec_rad) * cos(delta_ra);
-		eta = (xx / yy);
-
-		/* if desired, convert xi and eta from radians to arcsec */
-		if (doASEC > 0) {
-			xi *= RADtoASEC;
-			eta *= RADtoASEC;
-		}
-
-		gchar line[1000];
-		if (doASEC)
-			sprintf(line, "%f %12.5f %12.5f %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
-		else 	sprintf(line, "%f %13.6e %13.6e %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
-
-		if (g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL) == FALSE) {
-			siril_log_color_message(_("Error writing output...\n"), "red");
-			g_output_stream_close(output_stream, NULL, NULL);
-			return 1;
-		}
-	}
-	g_output_stream_close(output_stream, NULL, NULL);
-	return 0;
 }
 
-/* project a list of stars into /tmp/catalog.proj for plate solving (function managing the file)
- * copied from project_catalog() in algos/astrometry_solver.c
- * radius is in degrees */
-gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius, double max_mag,
-		gboolean for_photometry) {
-	GError *error = NULL;
-	gchar *foutput = NULL;
-	double center_ra = siril_world_cs_get_alpha(catalog_center);
-	double center_dec = siril_world_cs_get_delta(catalog_center);
-
-	siril_debug_print("using local catalogues for plate solving\n");
-	GFile *fproj = g_file_new_build_filename(g_get_tmp_dir(), "catalog.proj", NULL);
-	/* We want to remove the file if already exisit */
-	if (!g_file_delete(fproj, NULL, &error)
-			&& !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND)) {
-		// deletion failed for some reason other than the file not existing:
-		// so report the error
-		g_warning("Failed to delete %s: %s", g_file_peek_path(fproj),
-				error->message);
+gboolean local_catalogues_available() {
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
+			return FALSE;
 	}
+	return TRUE;
+}
 
-	deepStarData_dist *stars = NULL;
+/* This function is the main interface to collect a local catalogue
+   It sends a conesearch around given center, within given radius and for stars below limit_mag
+   Internally, it uses get_raw_stars_from_local_catalogues which returns a list of deepStarData stars
+   It fills the siril_catalogue given in input
+   Returns the number of stars fetched, -1 if none found, 0 if error
+*/
+int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
+	if (!siril_cat)
+		return 0;
+	if (siril_cat->cat_index != CAT_LOCAL) {
+		siril_debug_print("Local cat query - Should not happen\n");
+		return 0;
+	}
+	deepStarData *stars = NULL;
 	uint32_t nb_stars;
-	if (get_raw_stars_from_local_catalogues(center_ra, center_dec, radius, max_mag,
-				for_photometry, &stars, &nb_stars))
-		return NULL;
-	if (project_local_catalog(stars, nb_stars, center_ra, center_dec, fproj, 1)) {
-		free(stars);
-		return NULL;
+	if (get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
+				siril_cat->phot, &stars, &nb_stars))
+		return 0;
+	siril_cat->nbitems = (int)nb_stars;
+	siril_cat->nbincluded = (int)nb_stars;
+	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		siril_cat->cat_items[i].ra = (double)stars[i].RA * .000015;
+		siril_cat->cat_items[i].dec = (double)stars[i].Dec * .00001;
+		siril_cat->cat_items[i].pmra = (double)stars[i].dRA;
+		siril_cat->cat_items[i].pmdec = (double)stars[i].dDec;
+		siril_cat->cat_items[i].mag = (float)stars[i].V * .001;
+		siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
+		siril_cat->cat_items[i].included = TRUE;
 	}
 	free(stars);
-	foutput = g_file_get_path(fproj);
-	g_object_unref(fproj);
-	siril_debug_print("Got %u stars from local catalogues.\n", nb_stars);
-
-	return foutput;
+	if (!siril_cat->nbitems)
+		return -1;
+	return siril_cat->nbitems;
 }
-
-#if 0
-void filter_deepStars_for_photometry(deepStarData_dist *stars, uint32_t nb_stars) {
-	uint32_t j = 0;
-	for (uint32_t i = 0; i < nb_stars; i++) {
-		if (stars[i].B >= 30000 || stars[i].V >= 30000)
-			continue;
-		if (i == j)
-			continue;
-		stars[j] = stars[i];
-		j++;
-	}
-	// realloc?
-}
-#endif

@@ -34,7 +34,7 @@
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -61,6 +61,9 @@
 /* is gfit.icc_profile identical to the monitor profile, if so we can avoid the
  * transform */
 static cmsBool identical = FALSE;
+
+#define ANGLE_TOP 315. * DEGTORAD
+#define ANGLE_BOT 45. * DEGTORAD
 
 /* remap index data, an index for each layer */
 static float last_pente;
@@ -1047,7 +1050,7 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
 			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
 			cairo_scale(cr, r, 1);
-			cairo_arc(cr, 0., 0., size, 0.,2 * M_PI);
+			cairo_arc(cr, 0., 0., size, 0., 2 * M_PI);
 			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
 			/* to keep  for debugging boxes adjustements */
@@ -1537,12 +1540,12 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 #endif
 }
 
-static gdouble x_circle(gdouble x, gdouble radius) {
-	return x + radius * cos(315 * M_PI / 180);
+static gdouble x_circle(gdouble x, gdouble radius, gdouble angle) {
+	return x + radius * cos(angle);
 }
 
-static gdouble y_circle(gdouble y, gdouble radius) {
-	return y + radius * sin(315 * M_PI / 180);
+static gdouble y_circle(gdouble y, gdouble radius, gdouble angle) {
+	return y + radius * sin(angle);
 }
 
 static void draw_annotates(const draw_data_t* dd) {
@@ -1561,20 +1564,25 @@ static void draw_annotates(const draw_data_t* dd) {
 	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
 		gdouble radius = get_catalogue_object_radius(object);
-		gdouble ra = get_catalogue_object_ra(object);
-		gdouble dec = get_catalogue_object_dec(object);
+		gdouble x = get_catalogue_object_x(object);
+		gdouble y = get_catalogue_object_y(object);
 		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
+		gboolean revert = FALSE;
+		double angle = ANGLE_TOP;
+		double addoffset = 0.;
 
 		switch (catalog) {
-		case USER_DSO_CAT_INDEX:
+		case CAT_AN_USER_DSO:
 			cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, 0.9);
 			break;
-		case USER_SSO_CAT_INDEX:
+		case CAT_AN_USER_SSO:
 			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
 			break;
-		case USER_TEMP_CAT_INDEX:
-			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
+		case CAT_AN_USER_TEMP:
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9); // will need to be changed that anyway
+			revert = TRUE;
+			angle = ANGLE_BOT;
 			break;
 		default:
 		case 0:
@@ -1589,60 +1597,49 @@ static void draw_annotates(const draw_data_t* dd) {
 		radius = radius / resolution / 60.0;
 		// radius now in pixels
 
-		double fx, fy;
-		if (!wcs2pix(&gfit, ra, dec, &fx, &fy)) {
-			double x, y;
-			fits_to_display(fx, fy, &x, &y, gfit.ry);
-			point offset = {10, -10};
-			if (radius < 0) {
-				// objects we don't have an accurate location (LdN, Sh2)
-			} else if (radius > 5) {
-				cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x_circle(x, radius), y_circle(y, radius));
-				offset.x = x_circle(x, radius * 1.3) - x;
-				offset.y = y_circle(y, radius * 1.3) - y;
-				cairo_line_to(cr, offset.x + x, offset.y + y);
-			} else {
-				/* it is punctual */
-				cairo_move_to(cr, x, y - 20);
-				cairo_line_to(cr, x, y - 10);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x, y + 20);
-				cairo_line_to(cr, x, y + 10);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x - 20, y);
-				cairo_line_to(cr, x - 10, y);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x + 20, y);
-				cairo_line_to(cr, x + 10, y);
-				cairo_stroke(cr);
-			}
+		point offset = {5., revert ? 5. : -5.};
+		if (radius < 0) {
+			// objects we don't have an accurate location (LdN, Sh2)
+		} else if (radius > 5) {
+			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
+			cairo_stroke(cr);
 			if (code) {
-				gchar *name = code, *name2;
-				name2 = strstr(code, "\\n");
-				if (name2) {
-					name = g_strndup(code, name2-code);
-					name2+=2;
-				}
-
-				gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
-				cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-				cairo_set_font_size(cr, size / dd->zoom);
-				cairo_move_to(cr, x + offset.x, y + offset.y);
-				cairo_show_text(cr, name);
+				cairo_move_to(cr, x_circle(x, radius, angle), y_circle(y, radius, angle));
+				offset.x = x_circle(x, radius * 1.3, angle) - x;
+				offset.y = y_circle(y, radius * 1.3, angle) - y;
+				cairo_line_to(cr, offset.x + x, offset.y + y);
 				cairo_stroke(cr);
-				if (name2) {
-					// subtitle, draw it below
-					cairo_move_to(cr, x + offset.x + 5 / dd->zoom, y + offset.y + (size + 4) / dd->zoom);
-					size = 16 * (com.pref.gui.font_scale / 100.0);
-					cairo_set_font_size(cr, size / dd->zoom);
-					cairo_show_text(cr, name2);
-					cairo_stroke(cr);
-					g_free(name);
-				}
 			}
+		} else {
+			/* it is punctual */
+			cairo_move_to(cr, x, y - 15);
+			cairo_line_to(cr, x, y - 5);
+			cairo_stroke(cr);
+			cairo_move_to(cr, x, y + 15);
+			cairo_line_to(cr, x, y + 5);
+			cairo_stroke(cr);
+			cairo_move_to(cr, x - 15, y);
+			cairo_line_to(cr, x - 5, y);
+			cairo_stroke(cr);
+			cairo_move_to(cr, x + 15, y);
+			cairo_line_to(cr, x + 5, y);
+			cairo_stroke(cr);
 		}
+		if (code) {
+			gchar *name = code;
+			gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
+			cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, size / dd->zoom);
+			if (revert) {
+				cairo_text_extents_t te;
+				cairo_text_extents(cr, name, &te); // getting the dimensions of the textbox
+				addoffset = te.height;
+			}
+			cairo_move_to(cr, x + offset.x, y + offset.y + addoffset);
+			cairo_show_text(cr, name);
+			cairo_stroke(cr);
+		}
+
 	}
 }
 
