@@ -105,7 +105,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
 		return;
 	}
-	purge_temp_user_catalogue();
+	purge_user_catalogue(CAT_AN_USER_TEMP);
 	int layer = -1;
 	if (com.seq.regparam) {
 		for (int i = 0; i < com.seq.nb_layers; i++) {

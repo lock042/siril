@@ -191,7 +191,7 @@ struct gui_config {
 	int position_compass;	// compass position, can be moved
 	gboolean catalog[9];	// 6 system catalogs and 2 user catalogs for annotations and 1
 				// short-lived catalogue for "who's in the field" annotations
-				// see also cat in annotate.c
+				// see also cat in annotation_catalogues.c
 
 	gint selection_guides;	// number of elements of the grid guides
 				// (2 for a simple cross, 3 for the 3 thirds rule, etc.)

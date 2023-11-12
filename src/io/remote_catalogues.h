@@ -1,48 +1,49 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
 #ifndef _REMOTE_CATALOGUES_H
 #define _REMOTE_CATALOGUES_H
 
-#include <glib.h>
-#include <gio/gio.h>
-#include "core/siril_world_cs.h"
-#include "algos/PSF.h"
+#include "io/siril_catalogues.h"
 
-//#define SIMBADPHOTO "http://simbad.cds.unistra.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT B, V, R ,I , J from allfluxes JOIN ident USING(oidref) WHERE id ='"
-#define SKYBOT "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?"
-#define VIZIER_QUERY "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source="
+// new queries
+#define VIZIER_TAP_QUERY "http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
+#define EXOPLANETARCHIVE_TAP_QUERY "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?format=csv&query=select+"
+#define SIMBAD_TAP_QUERY "https://simbad.u-strasbg.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
+#define IMCCE_QUERY "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?&-mime=text&-output=basic&-filter=0&-objFilter=111&-refsys=EQJ2000&-from=Siril"
+#define AAVSOCHART_QUERY "https://app.aavso.org/vsp/api/chart/?format=json"
 
+// only the first MAX_TAP_QUERY_COLUMNS columns are valid TAP queries
+// fields after this are used in other catalogues
+#define MAX_TAP_QUERY_COLUMNS 11
 
-#define AAVSO_QUERY "https://app.aavso.org/vsp/api/chart/?"
-
-typedef enum {
-	CAT_TYCHO2,
-	CAT_NOMAD,
-	CAT_GAIADR3,
-	CAT_PPMXL,
-	CAT_BRIGHT_STARS,
-	CAT_APASS,
-	CAT_AAVSO,
-	CAT_AUTO = 98,
-	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
-	CAT_ASNET = 100,	// solve-field local (astrometry.net)
-} online_catalog;	// TODO: rename?
-
-const char *catalog_to_str(online_catalog cat);
-
-GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
+// The structure used to declare the columns to be queried from the tables
+// for TAP queries only!
+typedef struct {
+	gchar *catcode;
+	gchar *tap_columns[MAX_TAP_QUERY_COLUMNS];
+	gchar *tap_server;
+} cat_tap_query_fields;
 
 gchar *fetch_url(const gchar *url);
 void free_fetch_result(gchar *result);
 
-int read_projected_catalog(GInputStream *stream, psf_star **cstars, online_catalog cat);
-
-gpointer search_in_online_conesearch(gpointer p);
-gpointer catsearch_worker(gpointer p);
-
-// temp
-//struct compstars_arg;
-int load_catalog(GFile *catalog_file, gboolean phot, psf_star **ret_stars, int *ret_nb_stars);
-//int read_photo_catalog_buffer(const char *buffer, struct compstars_arg *args);
-//int read_photo_aavso_buffer(const char *buffer, struct compstars_arg *args);
+int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat);
 
 #endif

@@ -1,23 +1,23 @@
 ################################################################################
-# Meson file for data/*.txt
+# Meson file for data/*.csv
 ################################################################################
 
 
 ################################################################################
 # Install
 
-install_data(['messier.txt'
-              ,'ngc.txt'
-              ,'ic.txt'
-              ,'ldn.txt'
-              ,'sh2.txt'
-              ,'stars.txt'
+install_data(['messier.csv'
+              ,'ngc.csv'
+              ,'ic.csv'
+              ,'ldn.csv'
+              ,'sh2.csv'
+              ,'stars.csv'
               ],
-             rename : ['catalogue/messier.txt'
-                      ,'catalogue/ngc.txt'
-                      ,'catalogue/ic.txt'
-                      ,'catalogue/ldn.txt'
-                      ,'catalogue/sh2.txt'
-                      ,'catalogue/stars.txt'
+             rename : ['catalogue/messier.csv'
+                      ,'catalogue/ngc.csv'
+                      ,'catalogue/ic.csv'
+                      ,'catalogue/ldn.csv'
+                      ,'catalogue/sh2.csv'
+                      ,'catalogue/stars.csv'
                       ],
              install_dir : siril_datadir)
