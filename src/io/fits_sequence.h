@@ -3,6 +3,7 @@
 
 #include <fitsio.h>
 #include <glib.h>
+#include <lcms2.h>
 #include "core/siril.h"
 #include "io/seqwriter.h"
 

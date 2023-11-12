@@ -1,0 +1,765 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   width="100%"
+   height="100%"
+   viewBox="0 0 494.6 525.8"
+   id="svg266"
+   sodipodi:docname="CIE1931.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview268"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="1.4416128"
+     inkscape:cx="217.11794"
+     inkscape:cy="261.51266"
+     inkscape:window-width="1920"
+     inkscape:window-height="1007"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg266" />
+  <title
+     id="title2">CIE 1931 xyY Gamut Comparison</title>
+  <defs
+     id="defs119">
+    <path
+       id="locus"
+       d="M 150,473 C 147,473 145,471 142,469 C 135,462 129,455 124,446 C 121,441 118,436 116,431 C 113,424 110,416 107,408 C 103,396 99,385 95,373 C 86,339 77,298 72,264 C 66,226 61,179 62,141 C 63,118 65,81 80,60 C 84,54 91,50 98,49 C 105,48 112,51 118,53 C 140,60 160,76 178,90 C 236,135 287,191 339,243 C 360,264 380,284 401,305 C 409,313 417,321 426,329 C 428,332 430,334 433,337 C 434,337 434,338 435,339 C 435,339 436,340 436,340" />
+    <!-- Gamuts updated Aug 25 2021 by Andrew Somers, these are using an xy space where 100 = 1.0 do note that these needs to be scaled and translated to match the above locus: translate(60,476) scale(0.5125) -->
+    <path
+       id="gamutPP"
+       d="M 36.6,-0.1  L 159.6,-840.4 L 734.7,-265.3 Z" />
+    <path
+       id="gamutS"
+       d="M 150,-60  L 300,-600 L 640,-330" />
+    <path
+       id="gamutA"
+       d="M 150,-60  L 210,-710 L 640,-330" />
+    <path
+       id="gamutSSH"
+       d="M 150,-60 L 640,-330" />
+    <path
+       id="gamutASH"
+       d="M 150,-60 L 640,-330" />
+    <path
+       id="gamutR2"
+       d="M 131,-46  L 170,-797 L 708,-292 Z" />
+    <path
+       id="gamutP3"
+       d="M 150,-60  L 265,-690 L 680,-320 Z" />
+    <!-- Unused, full triangle for sRGB and Adobe
+  <path id="gamutA" d="M 150,-60  L 210,-710 L 640,-330 Z"/>
+  <path id="gamutS" d="M 150,-60  L 300,-600 L 640,-330 Z"/>
+  <path id="gamutK" d="M 212,-128 L 170,-230 L 234,-546 L 445,-508 L 614,-321 L 460,-235 Z"/> 
+  -->
+    <path
+       id="gamutPPl"
+       d="M 190,-810 L 243,-830"
+       stroke-linecap="round" />
+    <path
+       id="gamutSl"
+       d="M 530,-420 L 615,-462"
+       stroke-linecap="round" />
+    <path
+       id="gamutAl"
+       d="M 540,-674 L 363,-580"
+       stroke-linecap="round" />
+    <path
+       id="gamutR2l"
+       d="M 280,-700 L 430,-755 Z"
+       stroke-linecap="round" />
+    <path
+       id="gamutP3l"
+       d="M 580,-580 L 460,-520 Z"
+       stroke-linecap="round" />
+    <path
+       id="gamutSall"
+       d="M 150,-60  L 300,-600 L 640,-330 Z" />
+    <g
+       id="outlines">
+      <use
+         xlink:href="#gamutPP"
+         id="use18" />
+      <use
+         xlink:href="#gamutPPl"
+         id="use20" />
+      <use
+         xlink:href="#gamutA"
+         id="use22" />
+      <use
+         xlink:href="#gamutAl"
+         id="use24" />
+    </g>
+    <g
+       id="outlinesB">
+      <use
+         xlink:href="#gamutSall"
+         stroke="#3202f2"
+         stroke-width="8"
+         mask="url(#clipHmask)"
+         id="use27" />
+      <use
+         xlink:href="#gamutS"
+         stroke-width="8"
+         id="use29" />
+      <use
+         xlink:href="#gamutSl"
+         stroke-width="8"
+         id="use31" />
+      <use
+         xlink:href="#gamutR2"
+         id="use33" />
+      <use
+         xlink:href="#gamutR2l"
+         id="use35" />
+      <use
+         xlink:href="#gamutP3"
+         id="use37" />
+      <use
+         xlink:href="#gamutP3l"
+         id="use39" />
+    </g>
+    <mask
+       id="clipSmask">
+      <path
+         fill="#ffffff"
+         d="M 20,0 L 20,-900 L 900,-900 L 900,0 Z"
+         id="path42" />
+      <use
+         xlink:href="#gamutSall"
+         fill="#888888"
+         id="use44" />
+    </mask>
+    <mask
+       id="clipHOmask">
+      <path
+         fill="#ffffff"
+         d="M 20,0 L 20,-900 L 900,-900 L 900,0 Z"
+         id="path47" />
+      <use
+         xlink:href="#gamutSall"
+         fill="#000000"
+         id="use49" />
+    </mask>
+    <mask
+       id="clipHmask">
+      <path
+         fill="#000000"
+         d="M 20,0 L 20,-900 L 900,-900 L 900,0 Z"
+         id="path52" />
+      <use
+         xlink:href="#gamutSall"
+         fill="#ffffff"
+         id="use54" />
+    </mask>
+    <g
+       id="outlinesDK">
+      <use
+         xlink:href="#gamutSSH"
+         stroke="#00f0ff"
+         id="use57" />
+    </g>
+    <g
+       id="lines">
+      <use
+         xlink:href="#gamutPP"
+         stroke="#e20066"
+         stroke-width="4"
+         stroke-dasharray="14,10"
+         id="use60" />
+      <use
+         xlink:href="#gamutPPl"
+         stroke="#e20066"
+         stroke-width="4"
+         stroke-dasharray="14,10"
+         id="use62" />
+      <use
+         xlink:href="#gamutSSH"
+         stroke="#00f0ff"
+         stroke-width="7"
+         id="use64" />
+      <use
+         xlink:href="#gamutSSH"
+         stroke="#ffcc55"
+         stroke-width="1"
+         stroke-opacity="1"
+         id="use66" />
+      <use
+         xlink:href="#gamutA"
+         stroke="#0055aa"
+         stroke-width="5"
+         id="use68" />
+      <use
+         xlink:href="#gamutAl"
+         stroke="#0055aa"
+         stroke-width="5"
+         id="use70" />
+    </g>
+    <g
+       id="linesB">
+      <use
+         xlink:href="#gamutR2"
+         stroke="#ff77ff"
+         stroke-width="5"
+         id="use73" />
+      <use
+         xlink:href="#gamutR2l"
+         stroke="#ff77ff"
+         stroke-width="5"
+         id="use75" />
+      <use
+         xlink:href="#gamutP3"
+         stroke="#aaff00"
+         stroke-width="5"
+         id="use77" />
+      <use
+         xlink:href="#gamutP3l"
+         stroke="#aaff00"
+         stroke-width="5"
+         id="use79" />
+    </g>
+    <g
+       id="linesC">
+      <use
+         xlink:href="#gamutSSH"
+         stroke="#ffcc55"
+         stroke-width="7"
+         stroke-dasharray="32,32"
+         mask="url(#clipHOmask)"
+         id="use82" />
+      <use
+         xlink:href="#gamutSSH"
+         stroke="#ffcc55"
+         stroke-width="7"
+         stroke-dasharray="32,32"
+         stroke-dashoffset="32"
+         mask="url(#clipHmask)"
+         id="use84" />
+      <use
+         xlink:href="#gamutS"
+         stroke="#ffcc55"
+         stroke-width="5"
+         id="use86" />
+      <use
+         xlink:href="#gamutSl"
+         stroke="#ffcc55"
+         stroke-width="5"
+         id="use88" />
+    </g>
+    <g
+       id="labels">
+      <path
+         d="M 480,-105  L 780,-105 L 780,-30 L 480,-30 Z"
+         stroke="#3300aa"
+         stroke-width="4"
+         stroke-linejoin="round"
+         fill="#ddeeff"
+         id="path91" />
+      <text
+         x="540"
+         y="-72"
+         text-anchor="start"
+         fill="#3300aa"
+         id="text93">CIE 1931 xy</text>
+      <text
+         x="495"
+         y="-40"
+         text-anchor="start"
+         fill="#3300aa"
+         font-size="24"
+         id="text95">GAMUT COMPARISON</text>
+      <text
+         x="540"
+         y="-10"
+         text-anchor="start"
+         fill="#3300aa"
+         font-size="15"
+         id="text97">Myndex Research (CC)</text>
+      <text
+         x="250"
+         y="-825"
+         text-anchor="start"
+         fill="#e20066"
+         id="text99">ProPhoto RGB</text>
+      <text
+         x="545"
+         y="-665"
+         text-anchor="start"
+         fill="#0055aa"
+         id="text101">Adobe RGB</text>
+      <text
+         x="618"
+         y="-480"
+         text-anchor="start"
+         fill="#b64a00"
+         id="text103">Rec709</text>
+      <text
+         x="630"
+         y="-440"
+         text-anchor="start"
+         fill="#b64a00"
+         id="text105">sRGB</text>
+      <text
+         x="292"
+         y="-290"
+         text-anchor="start"
+         fill="#220099"
+         font-size="24"
+         font-weight="bold"
+         id="text107">D65 white point</text>
+      <text
+         x="288"
+         y="-370"
+         text-anchor="start"
+         fill="#234567"
+         font-size="18"
+         font-weight="normal"
+         id="text109">~6300 white point</text>
+    </g>
+    <g
+       id="labelsFocus">
+      <text
+         x="440"
+         y="-745"
+         text-anchor="start"
+         fill="#990099"
+         stroke="none"
+         id="text112">Rec2020</text>
+      <text
+         x="595"
+         y="-570"
+         text-anchor="start"
+         fill="#aaff00"
+         stroke-width="7"
+         id="text114">P3</text>
+      <text
+         x="595"
+         y="-570"
+         text-anchor="start"
+         fill="#aaff00"
+         stroke="none"
+         id="text116">P3</text>
+    </g>
+  </defs>
+  <rect
+     style="fill:#ffffff;stroke:#e5e5e5;fill-opacity:1"
+     id="rect426"
+     width="494.7562"
+     height="526.95868"
+     x="0.12030373"
+     y="0.37962463" />
+  <path
+     stroke="black"
+     stroke-width="1"
+     stroke-linecap="square"
+     fill="none"
+     d="M 60,15 v 461 h 410 M 60,476 v 4 M 86,476 v 4 M 111,476 v 4 M 137,476 v 4 M 162,476 v 4 M 188,476 v 4 M 214,476 v 4 M 239,476 v 4 M 265,476 v 4 M 290,476 v 4 M 316,476 v 4 M 342,476 v 4 M 367,476 v 4 M 393,476 v 4 M 418,476 v 4 M 444,476 v 4 M 470,476 v 4 M 60,476 h -4 M 60,450 h -4 M 60,425 h -4 M 60,399 h -4 M 60,373 h -4 M 60,348 h -4 M 60,322 h -4 M 60,297 h -4 M 60,271 h -4 M 60,245 h -4 M 60,220 h -4 M 60,194 h -4 M 60,169 h -4 M 60,143 h -4 M 60,117 h -4 M 60,92 h -4 M 60,66 h -4 M 60,41 h -4 M 60,15 h -4"
+     id="path121" />
+  <path
+     stroke="black"
+     stroke-width="2"
+     stroke-linecap="square"
+     fill="none"
+     d="M 60,15 v 461 h 410"
+     id="path123" />
+  <use
+     xlink:href="#locus"
+     id="locusBG"
+     opacity="1"
+     fill="#114411" />
+  <clipPath
+     id="cliplocus">
+    <use
+       xlink:href="#locus"
+       id="use126" />
+  </clipPath>
+  <g
+     clip-path="url(#cliplocus)"
+     id="locusColor">
+    <image
+       opacity="0.5"
+       width="27"
+       height="28"
+       xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAcCAIAAAAfs1O6AAAAAXNSR0IArs4c6QAAA7tJREFUeF591cuKHFUYwPH/d+rUpaenZ5JMLkaMuBAJQly5EeJCtz6M+AC+khvxIbIw4AVMAsEQJ5kkM+mpnumu7rqdz65zOHQxgvCnqCqoX38f1XQL+gsALTRQwwYquIRzOIHH3/HkM/gQbsF1uKbMlKljryfvyDpsS9JgtrVIi0UNgCQwzsYywMS7KVhIdci6oaTDxCSIkACgEbpSGkV/raShwPVe9FCIJn48muB1346LM4aLUBwwcF40DdKAP5r4cETHXBSTEZ/5AdMe25F4a8SNZ8T+t6uikoXCgHE0qaEOxyjuUB0vl43FFPJtSu5I4/s1NSZyxBODBiimV7ic8MqjmPVerDEbZAOjYzgJECgIoODAoxEhDlgohSNvd5ysI9dAqMWgCTpeOUOj5Z0jHuYcTpRtRUdaY9eYakgqqAaXyrceMuNliSv7im0Zk5t8co2vpnw67Ska0jVmNcQSWQ2xrdqhCT9+DwZklwiAOGge4h6Qf0xx1x3caPYmyxO7wFx6bumttW/jq2EziD9E0SAmnCOAIt3XmPtbUfM7XX6wKrJylsyPWSAXEMTqKmpxFkAUHDpGFeoPSI6or7v9WV1kl2JKlUXC+Z8sy0Gpfa2vC4UXAqh6IkEckgwZ8wC9w+wmzfV2NblMkrKVsqHsKYXF31THnov1Xuyx9BaIa/pIMT2afm7y2/RHrp1VF+l5I/OVzNect5z3LISLnNVz2gDtilsDeBS8C+I+Qm+i19omnztzNpWzKfN93teUHaWjhDJl/gTHOEtnxyAICio4ua1y4HRSrZN3Be9yTgvOJsy3bsu840x5Ba9n0EdPwVm6BAiKvyP0hla+rc2Bo2jVLFveWN5kbN3TCWcbThtetTwXmELnC2jvxdaAh0KdUAuV3Ktkr8XWjguj7ywnGW+35RwX/NGA8VzrC2IXxSbxInQ7jnO5sSKvMRWUom8TfW35J5VHGW4K5r9fnCj2diCAXmiFmoFbyL0TZhuyFeYSPYVjw++WNwXsg0ACqa8NXRENQMtAr+FCOOX+a/ZW2BI5hWeiT42SCYXSCRpQXwM20MTFDWuGKmEJC+E9vOTWS4pn2F/V/AxPcSRKqmThNxeK/8myFoANrIQS3sJfHL6geEwBFgUUo7tNs/hFAST+URroIPFbV16s4IIw4Bc/cQsOIQcTn1QS9QsKveIEBUaoQBK3rhi6JAzIb3wJRzCFDDUAKEIYE+tLNc7rS8MxZFkCccAXfPOIuzCDHLVxRkXUbxdQoSdOSlwiZv4FiZsWgB+yll0AAAAASUVORK5CYII="
+       transform="translate(60,50) scale(14,15.2)"
+       id="image129" />
+  </g>
+  <path
+     opacity="0.35"
+     stroke="#0044dd"
+     stroke-dasharray="2,2"
+     stroke-width="1"
+     fill="none"
+     d="M 85.5,475.5 v -460.8 M 111.5,475.5 v -460.8 M 136.5,475.5 v -435.2 M 162.5,475.5 v -409.6 M 188.5,475.5 v -384 M 213.5,475.5 v -358.4 M 239.5,475.5 v -332.8 M 264.5,475.5 v -307.2 M 290.5,475.5 v -281.6 M 316.5,475.5 v -256 M 341.5,475.5 v -230.4 M 367.5,475.5 v -204.8 M 392.5,475.5 v -179.2 M 418.5,475.5 v -153.6 M 444.5,475.5 v -128 M 469.5,475.5 v -102.4 M 60.5,450.5 h 409.6 M 60.5,424.5 h 409.6 M 60.5,399.5 h 409.6 M 60.5,373.5 h 409.6 M 60.5,347.5 h 384 M 60.5,322.5 h 358.4 M 60.5,296.5 h 332.8 M 60.5,271.5 h 307.2 M 60.5,245.5 h 281.6 M 60.5,219.5 h 256 M 60.5,194.5 h 230.4 M 60.5,168.5 h 204.8 M 60.5,143.5 h 179.2 M 60.5,117.5 h 153.6 M 60.5,91.5 h 128 M 60.5,66.5 h 102.4 M 60.5,40.5 h 76.8 M 60.5,15.5 h 51.2 M 111.5,15.5 L 469.5,373.5"
+     id="path132" />
+  <clipPath
+     id="sRGBcolor">
+    <use
+       xlink:href="#gamutSall"
+       id="use134" />
+  </clipPath>
+  <g
+     transform="translate(60,476) scale(0.5125)"
+     clip-path="url(#sRGBcolor)"
+     id="g139">
+    <image
+       opacity="1"
+       width="400"
+       height="415"
+       xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAcCAIAAAAfs1O6AAAAAXNSR0IArs4c6QAAA7tJREFUeF591cuKHFUYwPH/d+rUpaenZ5JMLkaMuBAJQly5EeJCtz6M+AC+khvxIbIw4AVMAsEQJ5kkM+mpnumu7rqdz65zOHQxgvCnqCqoX38f1XQL+gsALTRQwwYquIRzOIHH3/HkM/gQbsF1uKbMlKljryfvyDpsS9JgtrVIi0UNgCQwzsYywMS7KVhIdci6oaTDxCSIkACgEbpSGkV/raShwPVe9FCIJn48muB1346LM4aLUBwwcF40DdKAP5r4cETHXBSTEZ/5AdMe25F4a8SNZ8T+t6uikoXCgHE0qaEOxyjuUB0vl43FFPJtSu5I4/s1NSZyxBODBiimV7ic8MqjmPVerDEbZAOjYzgJECgIoODAoxEhDlgohSNvd5ysI9dAqMWgCTpeOUOj5Z0jHuYcTpRtRUdaY9eYakgqqAaXyrceMuNliSv7im0Zk5t8co2vpnw67Ska0jVmNcQSWQ2xrdqhCT9+DwZklwiAOGge4h6Qf0xx1x3caPYmyxO7wFx6bumttW/jq2EziD9E0SAmnCOAIt3XmPtbUfM7XX6wKrJylsyPWSAXEMTqKmpxFkAUHDpGFeoPSI6or7v9WV1kl2JKlUXC+Z8sy0Gpfa2vC4UXAqh6IkEckgwZ8wC9w+wmzfV2NblMkrKVsqHsKYXF31THnov1Xuyx9BaIa/pIMT2afm7y2/RHrp1VF+l5I/OVzNect5z3LISLnNVz2gDtilsDeBS8C+I+Qm+i19omnztzNpWzKfN93teUHaWjhDJl/gTHOEtnxyAICio4ua1y4HRSrZN3Be9yTgvOJsy3bsu840x5Ba9n0EdPwVm6BAiKvyP0hla+rc2Bo2jVLFveWN5kbN3TCWcbThtetTwXmELnC2jvxdaAh0KdUAuV3Ktkr8XWjguj7ywnGW+35RwX/NGA8VzrC2IXxSbxInQ7jnO5sSKvMRWUom8TfW35J5VHGW4K5r9fnCj2diCAXmiFmoFbyL0TZhuyFeYSPYVjw++WNwXsg0ACqa8NXRENQMtAr+FCOOX+a/ZW2BI5hWeiT42SCYXSCRpQXwM20MTFDWuGKmEJC+E9vOTWS4pn2F/V/AxPcSRKqmThNxeK/8myFoANrIQS3sJfHL6geEwBFgUUo7tNs/hFAST+URroIPFbV16s4IIw4Bc/cQsOIQcTn1QS9QsKveIEBUaoQBK3rhi6JAzIb3wJRzCFDDUAKEIYE+tLNc7rS8MxZFkCccAXfPOIuzCDHLVxRkXUbxdQoSdOSlwiZv4FiZsWgB+yll0AAAAASUVORK5CYII="
+       transform="translate(120,-550) scale(1.36,1.23) skewX(-5) skewY(-20)"
+       id="image137" />
+  </g>
+  <use
+     stroke="#6622cc"
+     stroke-width="2"
+     fill="none"
+     xlink:href="#locus"
+     id="use141" />
+  <g
+     transform="translate(60,476) scale(0.5125)"
+     stroke-width="4"
+     stroke-linejoin="round"
+     stroke="#ffffff"
+     id="g168">
+    <filter
+       id="blur"
+       x="-0.77"
+       y="-0.77"
+       width="2.54"
+       height="2.54">
+      <feGaussianBlur
+         stdDeviation="77"
+         id="feGaussianBlur143" />
+    </filter>
+    <circle
+       class="line"
+       cx="312.7"
+       cy="-329"
+       r="120"
+       stroke="none"
+       fill="#ffffff"
+       filter="url(#blur)"
+       opacity="1"
+       id="circle146" />
+    <circle
+       class="line"
+       cx="312.7"
+       cy="-329"
+       r="6"
+       stroke="#333333"
+       fill="#ffffff"
+       id="circle148" />
+    <circle
+       class="line"
+       cx="314"
+       cy="-351"
+       r="4"
+       stroke="#aaaaaa"
+       fill="#ffffff"
+       id="circle150" />
+    <use
+       xlink:href="#outlines"
+       fill="none"
+       stroke-opacity="0.15"
+       stroke-width="10"
+       id="use152" />
+    <use
+       xlink:href="#outlines"
+       fill="none"
+       stroke-opacity="0.35"
+       stroke-width="8"
+       id="use154" />
+    <use
+       xlink:href="#outlines"
+       fill="none"
+       stroke-opacity="0.5"
+       stroke-width="7"
+       stroke="#bbddff"
+       id="use156" />
+    <use
+       xlink:href="#lines"
+       fill="none"
+       stroke-opacity="0.35"
+       id="use158" />
+    <use
+       xlink:href="#outlinesB"
+       fill="none"
+       stroke-opacity="1"
+       stroke-width="9"
+       stroke="#220055"
+       id="use160" />
+    <use
+       xlink:href="#outlinesDK"
+       fill="none"
+       stroke-opacity="0.75"
+       stroke-width="7"
+       id="use162" />
+    <use
+       xlink:href="#linesC"
+       fill="none"
+       stroke-opacity="1"
+       id="use164" />
+    <use
+       xlink:href="#linesB"
+       fill="none"
+       stroke-opacity="1"
+       id="use166" />
+  </g>
+  <!-- circle for 6000Kmand other thingd
+  <use xlink:href="#gamutSall" transform="translate(110,-120) scale(0.66)" fill="#ffffff" filter="url(#blur)" opacity="0"  />
+  <circle class="line" cx="321.68" cy="-337.67" r="4" stroke="#aaaaaa" fill="#ffffff"/>
+  <circle class="line" cx="0" cy="-350" r="6" stroke="#333333" fill="#ffffff"/>
+
+<feBlend mode="lighten" in2="locusBG" in="locusColor"/>
+        <path stroke="red" stroke-width="2" fill="none" d="M 0,0 v 60"/>
+        <path stroke="red" stroke-width="2" fill="none" d="M 0,0 h -60"/>
+        <path stroke="red" stroke-width="2" fill="none" d="M 0,-800 h -60"/>
+        <path stroke="red" stroke-width="2" fill="none" d="M 800,0 v 60"/>
+        -->
+  <use
+     stroke="#6622cc"
+     stroke-width="1"
+     fill="none"
+     stroke-opacity="0.5"
+     xlink:href="#locus"
+     id="use170" />
+  <path
+     d="M 148.4,473.3 l -0.4,6 M 148.1,473.3 l -1.3,5.9 M 147.8,473.2 l -4.5,8.9 M 147.2,472.8 l -3.4,4.9 M 146.5,472.3 l -3.8,4.7 M 145.5,471.4 l -4,4.5 M 144.2,470.2 l -6.7,7.4 M 142.5,468.7 l -4,4.5 M 140.2,466.7 l -4,4.5 M 137.3,464.2 l -4.1,4.4 M 133.7,460.6 l -7.4,6.8 M 129.4,455.4 l -4.8,3.5 M 123.5,446.2 l -5.2,3 M 116.1,431.3 l -5.5,2.5 M 106.7,407.9 l -9.4,3.4 M 95.2,373 l -5.8,1.7 M 83.2,324.8 l -5.9,1.3 M 72,264.5 l -5.9,0.9 M 64.2,200.1 l -10,0.8 M 62,140.5 l -6,-0.2 M 67.1,91.7 l -5.8,-1.5 M 79.9,60 l -4.6,-3.9 M 98,48.9 l -1.8,-9.8 M 118.5,52.8 l 1.9,-5.7 M 139.2,63.2 l 3,-5.2 M 158.8,75.6 l 3.4,-4.9 M 177.6,89.6 l 6.2,-7.9 M 196.1,104.9 l 3.9,-4.5 M 214.4,121.3 l 4,-4.4 M 232.7,138.5 l 4.1,-4.4 M 251,156.1 l 7,-7.2 M 269.3,173.9 l 4.2,-4.3 M 287.4,191.8 l 4.2,-4.3 M 305.1,209.5 l 4.2,-4.3 M 322.4,226.7 l 7.1,-7.1 M 338.9,243.1 l 4.2,-4.3 M 354.5,258.6 l 4.2,-4.3 M 368.7,272.8 l 4.2,-4.2 M 381,285.1 l 7.1,-7.1 M 391.9,295.9 l 4.2,-4.3 M 400.9,304.8 l 4.2,-4.3 M 408.2,312.1 l 4.2,-4.2 M 414.1,317.9 l 7.1,-7.1 M 418.7,322.6 l 4.2,-4.3 M 422.5,326.3 l 4.2,-4.3 M 425.6,329.4 l 4.2,-4.2 M 428.1,332 l 7.1,-7.1 M 430.2,334 l 4.2,-4.3 M 431.7,335.5 l 4.2,-4.2 M 432.9,336.7 l 4.2,-4.2 M 433.7,337.5 l 7.1,-7.1 M 434.3,338.1 l 4.2,-4.2 M 434.8,338.6 l 4.2,-4.2 M 435.2,339 l 4.2,-4.2 M 435.5,339.3 l 7.1,-7.1 M 435.8,339.6 l 4.2,-4.2 M 436,339.8 l 4.2,-4.2 M 436.1,339.9 l 4.2,-4.2"
+     stroke="#6622cc"
+     stroke-width="1"
+     id="path172" />
+  <g
+     transform="translate(60,476) scale(0.5125)"
+     font-family="sans-serif"
+     font-weight="500"
+     font-size="32"
+     letter-spacing="0.5"
+     stroke-width="3"
+     stroke-linejoin="round"
+     stroke="#ffffff"
+     fill="none"
+     id="g182">
+    <use
+       xlink:href="#lines"
+       stroke-opacity="0.125"
+       id="use174" />
+    <use
+       xlink:href="#labels"
+       stroke-opacity="0.25"
+       stroke-width="4"
+       id="use176" />
+    <use
+       xlink:href="#labels"
+       stroke-opacity="0.5"
+       stroke-width="2"
+       id="use178" />
+    <use
+       xlink:href="#labels"
+       stroke="none"
+       id="use180" />
+  </g>
+  <g
+     transform="translate(60,476) scale(0.5125)"
+     font-family="sans-serif"
+     font-weight="600"
+     font-size="48"
+     letter-spacing="4"
+     stroke-width="1"
+     stroke-linejoin="round"
+     stroke="#3300aa"
+     fill="none"
+     id="g190">
+    <use
+       xlink:href="#labelsFocus"
+       stroke-opacity="0.25"
+       stroke-width="6"
+       id="use184" />
+    <use
+       xlink:href="#labelsFocus"
+       stroke-opacity="0.5"
+       stroke-width="4"
+       id="use186" />
+    <use
+       xlink:href="#labelsFocus"
+       stroke="none"
+       id="use188" />
+  </g>
+  <g
+     font-family="Times, serif"
+     font-size="10"
+     id="g264">
+    <g
+       fill="#6622cc"
+       text-anchor="start"
+       id="g214">
+      <text
+         x="124.9"
+         y="470.7"
+         text-anchor="end"
+         stroke-width="2"
+         stroke="#ffffff"
+         id="text192">460nm</text>
+      <text
+         x="95.5"
+         y="414"
+         text-anchor="end"
+         stroke-width="3"
+         stroke="#ffffff"
+         id="text194">480nm</text>
+      <text
+         x="124.9"
+         y="470.7"
+         text-anchor="end"
+         id="text196">460nm</text>
+      <text
+         x="95.5"
+         y="414"
+         text-anchor="end"
+         id="text198">480nm</text>
+      <text
+         x="52.2"
+         y="204.1"
+         text-anchor="end"
+         id="text200">500nm</text>
+      <text
+         x="95.9"
+         y="37.1"
+         text-anchor="middle"
+         id="text202">520nm</text>
+      <text
+         x="185"
+         y="80.1"
+         id="text204">540nm</text>
+      <text
+         x="259.4"
+         y="147.5"
+         id="text206">560nm</text>
+      <text
+         x="330.9"
+         y="218.2"
+         id="text208">580nm</text>
+      <text
+         x="389.5"
+         y="276.6"
+         id="text210">600nm</text>
+      <text
+         x="422.5"
+         y="309.4"
+         id="text212">620nm</text>
+    </g>
+    <g
+       fill="black"
+       id="g262">
+      <g
+         text-anchor="middle"
+         id="g236">
+        <text
+           x="240"
+           y="505"
+           font-size="30"
+           font-style="italic"
+           id="text216">x</text>
+        <text
+           x="60"
+           y="495.8"
+           id="text218">0.0</text>
+        <text
+           x="111.2"
+           y="495.8"
+           id="text220">0.1</text>
+        <text
+           x="162.4"
+           y="495.8"
+           id="text222">0.2</text>
+        <text
+           x="213.6"
+           y="495.8"
+           id="text224">0.3</text>
+        <text
+           x="264.8"
+           y="495.8"
+           id="text226">0.4</text>
+        <text
+           x="316"
+           y="495.8"
+           id="text228">0.5</text>
+        <text
+           x="367.2"
+           y="495.8"
+           id="text230">0.6</text>
+        <text
+           x="418.4"
+           y="495.8"
+           id="text232">0.7</text>
+        <text
+           x="469.6"
+           y="495.8"
+           id="text234">0.8</text>
+      </g>
+      <g
+         text-anchor="end"
+         id="g260">
+        <text
+           x="40"
+           y="251.4"
+           font-size="30"
+           font-style="italic"
+           id="text238">y</text>
+        <text
+           x="52"
+           y="478.8"
+           id="text240">0.0</text>
+        <text
+           x="52"
+           y="428.6"
+           id="text242">0.1</text>
+        <text
+           x="52"
+           y="376.4"
+           id="text244">0.2</text>
+        <text
+           x="52"
+           y="325.2"
+           id="text246">0.3</text>
+        <text
+           x="52"
+           y="274"
+           id="text248">0.4</text>
+        <text
+           x="52"
+           y="222.8"
+           id="text250">0.5</text>
+        <text
+           x="52"
+           y="171.6"
+           id="text252">0.6</text>
+        <text
+           x="52"
+           y="120.4"
+           id="text254">0.7</text>
+        <text
+           x="52"
+           y="68.2"
+           id="text256">0.8</text>
+        <text
+           x="52"
+           y="19"
+           id="text258">0.9</text>
+      </g>
+    </g>
+  </g>
+</svg>

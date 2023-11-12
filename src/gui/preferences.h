@@ -20,6 +20,7 @@
 #ifndef SRC_GUI_PREFERENCES_H_
 #define SRC_GUI_PREFERENCES_H_
 
+void notify_script_update();
 void update_libraw_and_debayer_interface();
 void update_photometry_interface();
 void initialize_path_directory(const gchar *path);

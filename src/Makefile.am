@@ -20,14 +20,13 @@ AM_CPPFLAGS = \
 	$(FFMS2_CFLAGS) \
 	$(WCSLIB_CFLAGS) \
 	$(LIBCONFIG_CFLAGS) \
+	$(LCMS2_CFLAGS)  \
 	$(LIBGIT_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
 siril_common_SOURCES = \
 	core/siril.h \
 	core/proto.h \
-	algos/annotate.c \
-	algos/annotate.h \
 	algos/anscombe.c \
 	algos/anscombe.h \
 	algos/astrometry_solver.c \
@@ -80,6 +79,25 @@ siril_common_SOURCES = \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
 	algos/transform.c \
+	algos/lcms_acceleration/fast_16_tethra.c \
+	algos/lcms_acceleration/fast_8_curves.c \
+	algos/lcms_acceleration/fast_8_matsh.c \
+	algos/lcms_acceleration/fast_8_matsh_sse.c \
+	algos/lcms_acceleration/fast_8_tethra.c \
+	algos/lcms_acceleration/fast_float_15bits.c \
+	algos/lcms_acceleration/fast_float_15mats.c \
+	algos/lcms_acceleration/fast_float_cmyk.c \
+	algos/lcms_acceleration/fast_float_curves.c \
+	algos/lcms_acceleration/fast_float_internal.h \
+	algos/lcms_acceleration/fast_float_lab.c \
+	algos/lcms_acceleration/fast_float_matsh.c \
+	algos/lcms_acceleration/fast_float_separate.c \
+	algos/lcms_acceleration/fast_float_sup.c \
+	algos/lcms_acceleration/fast_float_tethra.c \
+	algos/lcms_acceleration/threaded_core.c \
+	algos/lcms_acceleration/threaded_main.c \
+	algos/lcms_acceleration/threaded_scheduler.c \
+	algos/lcms_acceleration/threaded_split.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
 	compositing/compositing.c \
@@ -282,6 +300,8 @@ siril_common_SOURCES = \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \
+	io/annotation_catalogues.c \
+	io/annotation_catalogues.h \
 	io/Astro-TIFF.c \
 	io/Astro-TIFF.h \
 	io/kstars/binfile.h \
@@ -318,6 +338,8 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	io/siril_catalogues.c \
+	io/siril_catalogues.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
 	livestacking/livestacking.c \
@@ -384,6 +406,7 @@ siril_common_LDADD = \
 	$(LIBXISF_LIBS) \
 	$(FFTW_LIBS) \
 	$(CFITSIO_LIBS) \
+	$(LCMS2_LIBS) \
 	$(GSL_LIBS) \
 	$(JSON_GLIB_LIBS) \
 	$(FFMS2_LIBS) \
@@ -432,9 +455,56 @@ siril_LDADD = $(siril_common_LDADD)
 siril_cli_LDADD = $(siril_common_LDADD)
 
 pkgdata_DATA = \
-	gui/siril3.glade \
-	gui/bilateral.ui \
 	gui/siril-shortcuts.ui \
+	gui/uifiles/filefilters.ui \
+	gui/uifiles/menus.ui \
+	gui/uifiles/cosmetic_dialog.ui \
+	gui/uifiles/binxy_dialog.ui \
+	gui/uifiles/siril.ui \
+	gui/uifiles/CLAHE_dialog.ui \
+	gui/uifiles/cut_dialog.ui \
+	gui/uifiles/cut_coords_dialog.ui \
+	gui/uifiles/extract_wavelet_layers_dialog.ui \
+	gui/uifiles/canon_fixbanding_dialog.ui \
+	gui/uifiles/Median_dialog.ui \
+	gui/uifiles/rgradient_dialog.ui \
+	gui/uifiles/starnet_dialog.ui \
+	gui/uifiles/wavelets_dialog.ui \
+	gui/uifiles/asinh_dialog.ui \
+	gui/uifiles/background_extraction_dialog.ui \
+	gui/uifiles/savepopup.ui \
+	gui/uifiles/satu_dialog.ui \
+	gui/uifiles/SCNR_dialog.ui \
+	gui/uifiles/bdeconv_dialog.ui \
+	gui/uifiles/crop_dialog.ui \
+	gui/uifiles/cut_spectroscopy_dialog.ui \
+	gui/uifiles/colorchooserdialog.ui \
+	gui/uifiles/denoise_dialog.ui \
+	gui/uifiles/extract_channel_dialog.ui \
+	gui/uifiles/file_information_dialog.ui \
+	gui/uifiles/composition_dialog.ui \
+	gui/uifiles/dialog_FFT.ui \
+	gui/uifiles/dialog_star_remix.ui \
+	gui/uifiles/linearmatch_dialog.ui \
+	gui/uifiles/icc_dialog.ui \
+	gui/uifiles/icc_gamut_dialog.ui \
+	gui/uifiles/seqlist_dialog.ui \
+	gui/uifiles/IPS_dialog.ui \
+	gui/uifiles/StatWindow.ui \
+	gui/uifiles/stars_list_window.ui \
+	gui/uifiles/livestacking_player.ui \
+	gui/uifiles/merge_cfa_dialog.ui \
+	gui/uifiles/histogram_dialog.ui \
+	gui/uifiles/bilateral.ui \
+	gui/uifiles/pixelmath.ui \
+	gui/uifiles/resample_dialog.ui \
+	gui/uifiles/rotation_dialog.ui \
+	gui/uifiles/script_contents_dialog.ui \
+	ui/uifiles/split_cfa_dialog.ui \
+	gui/uifiles/data_dialog.ui \
+	gui/uifiles/color_calibration.ui \
+	gui/uifiles/settings_window.ui \
+	gui/uifiles/aberration_inspector.ui \
 	gui/siril.css
 
 if PLATFORM_WIN32

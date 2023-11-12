@@ -6,6 +6,7 @@
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/preferences.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "gui/script_menu.h"
@@ -817,6 +818,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 			}
 			com.pref.selected_scripts = g_list_first(iterator);
 	}
+	notify_script_update();
 }
 
 void on_disable_gitscripts() {
@@ -830,7 +832,7 @@ void on_disable_gitscripts() {
 	if (com.pref.selected_scripts)
 		g_list_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
-	refresh_script_menu();
+	refresh_script_menu(TRUE);
 }
 
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {

@@ -43,6 +43,7 @@
 #include "core/initfile.h"
 #include "core/undo.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
 #include "gui/cut.h"
@@ -609,9 +610,11 @@ int set_seq(const char *name){
  * TODO: cut that method in two, with an internal func taking a filename and a fits
  */
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
+	gboolean do_refresh_annotations = com.found_object != NULL;
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
 	on_clear_roi(); // Always clear a ROI when changing images
+	cleanup_annotation_catalogues(FALSE);
 	clear_stars_list(TRUE);
 	invalidate_gfit_histogram();
 	undo_flush();
@@ -637,6 +640,8 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			set_cutoff_sliders_values();	// update values for contrast sliders for this image
 			set_display_mode();		// display the display mode in the combo box
 		}
+		if (do_refresh_annotations)
+			refresh_found_objects();
 		redraw(REMAP_ALL);
 		if (seq->is_variable)
 			clear_previews();
@@ -819,7 +824,9 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 #endif
 		case SEQ_INTERNAL:
 			assert(seq->internal_fits);
+			// copyfits copies ICC profile so internal sequences do retain ICC profiles
 			copyfits(seq->internal_fits[index], dest, CP_FORMAT, -1);
+			copy_fits_metadata(seq->internal_fits[index], dest);
 			if (seq->internal_fits[index]->type == DATA_FLOAT) {
 				dest->fdata = seq->internal_fits[index]->fdata;
 				dest->fpdata[0] = seq->internal_fits[index]->fpdata[0];
@@ -840,6 +847,9 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			index, dest->naxes[2], seq->nb_layers);
 		return 1;
 	}
+//	check_profile_correct(dest);
+	color_manage(dest, FALSE);
+
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
 	seq->imgparam[index].rx = dest->rx;

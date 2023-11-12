@@ -284,7 +284,6 @@ typedef struct {
 	     ngoodpix;	// number of non-zero pixels
 	double mean, median, sigma, avgDev, mad, sqrtbwmv,
 	       location, scale, min, max, normValue, bgnoise;
-
 	atomic_int* _nb_refs;	// reference counting for data management
 } imstats;
 
@@ -443,7 +442,7 @@ struct ffit {
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
-	double focal_length, iso_speed, exposure, aperture, ccd_temp;
+	double focal_length, iso_speed, exposure, aperture, ccd_temp, set_temp;
 	double livetime;		// sum of exposures (s)
 	guint stackcnt;			// number of stacked frame
 	double cvf;			// Conversion factor (e-/adu)
@@ -474,6 +473,10 @@ struct ffit {
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
 
 	GSList *history;	// Former HISTORY comments of FITS file
+
+	/* ICC Color Management data */
+	gboolean color_managed; // Whether color management applies to this FITS
+	cmsHPROFILE icc_profile; // ICC color management profile
 };
 
 typedef struct {
@@ -524,10 +527,11 @@ typedef struct cut_struct {
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
-	int rx, ry;
+	int rx, ry, nchans;
 	data_type type;
 	wcs_info wcsdata;
 	double focal_length;
+	cmsHPROFILE icc_profile;
 };
 
 /* the structure storing information for each layer to be composed
@@ -590,6 +594,20 @@ typedef struct draw_data {
 	guint window_width, window_height;	// drawing area size
 } draw_data_t;
 
+struct gui_icc {
+	cmsHPROFILE monitor;
+	cmsHPROFILE soft_proof;
+	cmsHTRANSFORM proofing_transform;
+	cmsUInt32Number proofing_flags;
+	gboolean same_primaries;
+	gboolean profile_changed;
+	guint sh_r;
+	guint sh_g;
+	guint sh_b;
+	guint sh_rgb;
+	gboolean iso12646;
+};
+
 /* The global data structure of siril gui */
 struct guiinf {
 	GtkBuilder *builder;		// the builder of the glade interface
@@ -629,10 +647,11 @@ struct guiinf {
 	sliders_mode sliders;		// lo/hi, minmax, user
 	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY or default_rendering_mode if set in preferences
 	gboolean unlink_channels;	// only for autostretch
-	BYTE remap_index[3][USHRT_MAX];	// abstracted here so it can be used for previews and is easier to change the bit depth
+	BYTE remap_index[3][USHRT_MAX + 1];	// abstracted here so it can be used for previews and is easier to change the bit depth
 	BYTE *hd_remap_index[3];	// HD remap indexes for the high precision LUTs.
 	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
 	gboolean use_hd_remap;		// use high definition LUT for auto-stretch
+	struct gui_icc icc;
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
@@ -663,6 +682,23 @@ struct guiinf {
 	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
 
 	roi_t roi; // Region of interest struct
+};
+
+struct common_icc {
+	cmsHPROFILE mono_linear;
+	cmsHPROFILE working_standard;
+	cmsHPROFILE mono_standard;
+	cmsHPROFILE srgb_profile;
+	cmsHPROFILE srgb_out;
+	cmsHPROFILE working_out;
+	cmsHPROFILE mono_out;
+	cmsContext context_single;
+	cmsContext context_threaded;
+	/* This sets BPC for rendering. It is in com. because it
+	 * is also used as the processing intent for non-rendering
+	 * color transforms. */
+	cmsUInt32Number rendering_flags;
+	gboolean srgb_hint; // Hint that FITS has been stretched, for use with file/open
 };
 
 /* The global data structure of siril core */
@@ -715,6 +751,7 @@ struct cominf {
 	float* kernel;			// float* to hold kernel for new deconvolution process
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
+	struct common_icc icc;		// Holds common ICC color profile data
 #ifdef _WIN32
 	void* childhandle;		// For Windows, handle of a child process
 #else

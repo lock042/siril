@@ -129,6 +129,9 @@ esac
 dnl check GTK
 PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
 
+dnl check lcms2
+PKG_CHECK_MODULES(LCMS2, lcms2 >= 2.14)
+
 dnl check cairo
 PKG_CHECK_MODULES(CAIRO, cairo)
 
@@ -247,7 +250,7 @@ PKG_CHECK_MODULES(LIBHEIF, [libheif],
 
 dnl check heif lib
 PKG_CHECK_MODULES(LIBXISF, [libxisf],
-		  [AC_DEFINE([HAVE_LIBXISF], [1], [Using XISF images >= 0.2.5])],
+		  [AC_DEFINE([HAVE_LIBXISF], [1], [Using XISF images >= 0.2.7])],
 		  AC_MSG_WARN([libxisf not found. Not using XISF importer and exporter.]))
 
 dnl check ffms2

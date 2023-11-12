@@ -32,6 +32,7 @@ static command commands[] = {
 	{"clear", 0, "clear", process_clear, STR_CLEAR, FALSE, REQ_CMD_NONE},
 	{"clearstar", 0, "clearstar", process_clearstar, STR_CLEARSTAR, FALSE, REQ_CMD_NONE},
 	{"close", 0, "close", process_close, STR_CLOSE, TRUE, REQ_CMD_NONE},
+	{"conesearch", 0, "conesearch [limit_magnitude] [-cat=] [-phot] [-obscode=] [-tag={on|off}] [-log={on|off}]", process_conesearch, STR_CONESEARCH, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"convert", 1, "convert basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERT, TRUE, REQ_CMD_NO_THREAD},
 	{"convertraw", 1, "convertraw basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERTRAW, TRUE, REQ_CMD_NO_THREAD},
 	{"cosme", 1, "cosme [filename].lst", process_cosme, STR_COSME, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -60,7 +61,7 @@ static command commands[] = {
 	{"find_cosme", 2, "find_cosme cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"find_cosme_cfa", 2, "find_cosme_cfa cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA | REQ_CMD_NO_THREAD},
 	{"find_hot", 3, "find_hot filename cold_sigma hot_sigma", process_findhot, STR_FIND_HOT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"findcompstars", 1, "findcompstars star_name [-narrow|-wide] [-catalog={nomad|apass|}] [-dvmag=3] [-dbv=0.5] [-out=nina_file.csv]", process_findcompstars, STR_FINDCOMPSTARS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"findcompstars", 1, "findcompstars star_name [-narrow|-wide] [-catalog={nomad|apass}] [-dvmag=3] [-dbv=0.5] [-emag=0.03] [-out=nina_file.csv]", process_findcompstars, STR_FINDCOMPSTARS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"findstar", 0, "findstar [-out=] [-layer=] [-maxstars=]", process_findstar, STR_FINDSTAR, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"fix_xtrans", 0, "fix_xtrans", process_fix_xtrans, STR_FIXXTRANS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_FOR_MONO},
 	{"fixbanding", 2, "fixbanding amount sigma [-vertical]", process_fixbanding, STR_FIXBANDING, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
@@ -80,6 +81,9 @@ static command commands[] = {
 
 	/* commands open filename and current image */
 	{"iadd", 1, "iadd filename", process_imoper, STR_IADD, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"icc_assign", 1, "icc_assign profile", process_icc_assign, STR_ICC_ASSIGN, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"icc_convert_to", 1, "icc_convert_to profile [intent]", process_icc_convert_to, STR_ICC_CONVERT_TO, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"icc_remove", 0, "icc_remove", process_icc_remove, STR_ICC_REMOVE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"idiv", 1, "idiv filename", process_imoper, STR_IDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
@@ -118,7 +122,6 @@ static command commands[] = {
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
-	{"nomad", 0, "nomad [limit_magnitude] [-catalog=] [-photo]", process_nomad, STR_NOMAD, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -209,8 +212,7 @@ static command commands[] = {
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE, REQ_CMD_NONE},
 	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE, REQ_CMD_NONE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE, REQ_CMD_NONE},
-	{"show", 1, "show [-clear] [{ -list=file.csv | [name] RA Dec }]", process_show, STR_SHOW, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"solsys", 0, "solsys [-mag=20.0]", process_sso, STR_SSO, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"show", 1, "show [-clear] [{ -list=file.csv | [name] RA Dec }] [-nolog] [-notag]", process_show, STR_SHOW, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 	{"stack", 1, "stack seqfilename\n"

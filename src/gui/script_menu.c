@@ -182,7 +182,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	g_object_unref(file);
 }
 
-int initialize_script_menu() {
+int initialize_script_menu(gboolean verbose) {
 	GSList *list, *script_paths, *s;
 #ifdef HAVE_LIBGIT2
 	GList *ss;
@@ -205,7 +205,8 @@ int initialize_script_menu() {
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
 				gtk_widget_show(separator);
 			}
-			siril_log_color_message(_("Searching scripts in: \"%s\"...\n"), "green", s->data);
+			if (verbose)
+				siril_log_color_message(_("Searching scripts in: \"%s\"...\n"), "green", s->data);
 
 			for (GSList *l = list; l; l = l->next) {
 				nb_item++;
@@ -218,7 +219,8 @@ int initialize_script_menu() {
 						NULL);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
 						G_CALLBACK(on_script_execution), (gchar * ) full_path);
-				siril_log_message(_("Loading script: %s\n"), l->data);
+				if (verbose)
+					siril_log_message(_("Loading script: %s\n"), l->data);
 				gtk_widget_show(menu_item);
 			}
 			g_slist_free_full(list, g_free);
@@ -251,11 +253,13 @@ int initialize_script_menu() {
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
 						G_CALLBACK(on_script_execution), (gchar * ) ss->data);
-				siril_log_message(_("Loading script: %s\n"), basename_no_ext);
+				if (verbose)
+					siril_log_message(_("Loading script: %s\n"), basename_no_ext);
 				free(basename_no_ext);
 				gtk_widget_show(menu_item);
 				new_list = g_list_prepend(new_list, ss->data);
 			} else {
+				// Print this whether verbose or not, as it is likely to be unexpected
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
 			}
 		}
@@ -274,11 +278,11 @@ int initialize_script_menu() {
 	return 0;
 }
 
-int refresh_script_menu() {
+int refresh_script_menu(gboolean verbose) {
 	if (menuscript) {
 		gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), NULL);
 	}
-	initialize_script_menu();
+	initialize_script_menu(verbose);
 	return 0;
 }
 
@@ -292,7 +296,7 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 	} else {
 		g_slist_free_full(com.pref.gui.script_path, g_free);
 		com.pref.gui.script_path = list;
-		retval = initialize_script_menu();
+		retval = initialize_script_menu(TRUE);
 	}
 	if (error) {
 		*error = err;

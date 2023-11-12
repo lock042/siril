@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.40.0
+
+Copyright (C) The free-astro development team, 2019-2023
+
+This file is part of Siril.
+
+Siril is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Siril is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Siril.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<interface>
+  <requires lib="gtk+" version="3.22"/>
+  <!-- interface-local-resource-path ../.. -->
+  <!-- interface-css-provider-path siril.css -->
+  <!-- interface-license-type gplv3 -->
+  <!-- interface-name Siril -->
+  <!-- interface-description Tool for astronomy image processing -->
+  <!-- interface-copyright The free-astro development team, 2023 -->
+  <object class="GtkAdjustment" id="adj_black_point_asinh">
+    <property name="upper">0.20</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_asinh">
+    <property name="upper">1000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkDialog" id="asinh_dialog">
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Asinh Transformation</property>
+    <property name="resizable">False</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="close" handler="on_asinh_dialog_close" swapped="no"/>
+    <signal name="delete-event" handler="on_asinh_cancel_clicked" swapped="no"/>
+    <signal name="show" handler="on_asinh_dialog_show" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="dialog_box">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="asinh_undo">
+                <property name="label" translatable="yes">Reset</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_asinh_undo_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="asinh_cancel">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_asinh_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="asinh_Apply">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_asinh_ok_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label176">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Stretch factor</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_asinh">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="progress-fraction">0.01</property>
+                <property name="progress-pulse-step">0.01</property>
+                <property name="adjustment">adjustment_asinh</property>
+                <property name="digits">1</property>
+                <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_spin_asinh_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_asinh">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">The parameter stretch factor allows to adjust the non-linearity factor.</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_asinh</property>
+            <property name="round-digits">1</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label177">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Black Point</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="black_point_spin_asinh">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">8</property>
+                <property name="adjustment">adj_black_point_asinh</property>
+                <property name="digits">5</property>
+                <property name="numeric">True</property>
+                <signal name="value-changed" handler="on_black_point_spin_asinh_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="black_point_asinh">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Constant value that is subtracted from the image.</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adj_black_point_asinh</property>
+            <property name="round-digits">5</property>
+            <property name="digits">5</property>
+            <property name="draw-value">False</property>
+            <property name="value-pos">bottom</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="checkbutton_RGBspace">
+            <property name="label" translatable="yes">Human-weighted luminance</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">For colour images, use human eye luminous efficiency weights to compute the luminance used to compute the stretch for each pixel.</property>
+            <property name="halign">end</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_asinh_RGBspace_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="asinh_preview">
+            <property name="label" translatable="yes">Preview</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="halign">start</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_asinh_preview_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="0">asinh_Apply</action-widget>
+    </action-widgets>
+  </object>
+
+</interface>

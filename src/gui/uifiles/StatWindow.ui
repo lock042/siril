@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.40.0
+
+Copyright (C) The free-astro development team, 2019-2023
+
+This file is part of Siril.
+
+Siril is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Siril is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Siril.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<interface>
+  <requires lib="gtk+" version="3.22"/>
+  <!-- interface-local-resource-path ../.. -->
+  <!-- interface-css-provider-path siril.css -->
+  <!-- interface-license-type gplv3 -->
+  <!-- interface-name Siril -->
+  <!-- interface-description Tool for astronomy image processing -->
+  <!-- interface-copyright The free-astro development team, 2023 -->
+  <object class="GtkListStore" id="liststoreStat">
+    <columns>
+      <!-- column-name Name -->
+      <column type="gchararray"/>
+      <!-- column-name Red -->
+      <column type="gchararray"/>
+      <!-- column-name Green -->
+      <column type="gchararray"/>
+      <!-- column-name Blue -->
+      <column type="gchararray"/>
+      <!-- column-name Color -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkDialog" id="StatWindow">
+    <property name="width-request">450</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Statistics</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="dialog-vbox30">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox" id="dialog-action_area32">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="statButtonRun">
+                <property name="label" translatable="yes">Execute</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Run statistic calculation</property>
+                <property name="always-show-image">True</property>
+                <signal name="clicked" handler="on_statButtonRun_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="statButtonClose">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="has-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Close the window</property>
+                <signal name="clicked" handler="on_statButtonClose_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkCheckButton" id="statCheckButton">
+                <property name="label" translatable="yes">Normalized Real [0, 1]</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cfastatsCheckButton">
+                <property name="label" translatable="yes">Per CFA channel</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Compute statistics on pixels that have the same filter as the corresponding channel, for CFA (non-demosaiced) images.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="statNameLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes">Name</property>
+            <property name="ellipsize">start</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="statSelecLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes">No Selection</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="scrolledwindow2">
+            <property name="height-request">250</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="shadow-type">in</property>
+            <child>
+              <object class="GtkTreeView" id="statTreeView">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="model">liststoreStat</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection" id="treeview-selection9"/>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn19">
+                    <property name="resizable">True</property>
+                    <property name="fixed-width">100</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext8"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">0</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn20">
+                    <property name="resizable">True</property>
+                    <property name="fixed-width">100</property>
+                    <property name="title" translatable="yes">Red</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext9"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn21">
+                    <property name="resizable">True</property>
+                    <property name="fixed-width">100</property>
+                    <property name="title" translatable="yes">Green</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext10"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn22">
+                    <property name="resizable">True</property>
+                    <property name="fixed-width">100</property>
+                    <property name="title" translatable="yes">Blue</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext11"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

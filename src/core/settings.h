@@ -2,6 +2,7 @@
 #define _SIRIL_SETTING_H
 
 #include <glib.h>
+#include <lcms2.h>
 
 /********************* S E T T I N G S *********************
  * Settings are variables used at runtime but kept across several lunches of
@@ -190,7 +191,7 @@ struct gui_config {
 	int position_compass;	// compass position, can be moved
 	gboolean catalog[9];	// 6 system catalogs and 2 user catalogs for annotations and 1
 				// short-lived catalogue for "who's in the field" annotations
-				// see also cat in annotate.c
+				// see also cat in annotation_catalogues.c
 
 	gint selection_guides;	// number of elements of the grid guides
 				// (2 for a simple cross, 3 for the 3 thirds rule, etc.)
@@ -247,6 +248,53 @@ typedef struct fftw_params {
 	int fft_cutoff;
 } fftw_params;
 
+typedef enum {
+	TYPE_SRGB,
+	TYPE_REC2020,
+	TYPE_CUSTOM
+} working_gamut_type;
+
+typedef enum {
+	EXPORT_SRGB,
+	EXPORT_WORKING,
+	EXPORT_IMAGE_ICC
+} export_icc_type;
+
+typedef enum {
+	ICC_ASSIGN_NEVER = 0,
+	ICC_ASSIGN_ON_LOAD = 1,
+	ICC_ASSIGN_ON_STACK = 2,
+	ICC_ASSIGN_ON_STRETCH = 4,
+	ICC_ASSIGN_ON_COMPOSITION = 8
+} icc_assign_type;
+
+typedef enum {
+	ICC_NEVER_AUTOCONVERT,
+	ICC_ASK_TO_CONVERT,
+	ICC_ALWAYS_AUTOCONVERT
+} icc_autoconvert_type;
+
+typedef struct icc_params {
+	cmsUInt32Number rendering_intent;
+	cmsUInt32Number proofing_intent;
+	cmsUInt32Number export_intent;
+	cmsUInt32Number processing_intent;
+	working_gamut_type working_gamut;
+	gchar *icc_path_monitor;
+	gchar *icc_path_soft_proof;
+	gboolean custom_monitor_profile_active;
+	gboolean soft_proofing_profile_active;
+	gchar* custom_icc_trc;
+	gchar* custom_icc_gray;
+	export_icc_type export_8bit_method;
+	export_icc_type export_16bit_method;
+	gboolean default_to_srgb;
+	gboolean rendering_bpc;
+	gboolean proofing_bpc;
+	icc_autoconvert_type autoconversion;
+	icc_assign_type autoassignment;
+	gboolean pedantic_linear;
+} icc_params;
 
 /**
  * This is the preference structure.
@@ -260,6 +308,7 @@ struct pref_struct {
 	gchar *ext;		// FITS extension used in SIRIL
 	gboolean force_16bit;	// don't use 32 bits for pixel depth
 	gboolean allow_heterogeneous_fitseq; // allow images in FITS cubes to have different sizes
+	gboolean fits_save_icc;		// save ICC profiles in FITS
 
 	enum { RATIO, AMOUNT } mem_mode; // mode of memory management
 	double memory_ratio;		// ratio of available memory to use for stacking (and others)
@@ -299,6 +348,7 @@ struct pref_struct {
 	struct stack_config stack;
 	struct comp_config comp;
 	fftw_params fftw_conf;
+	icc_params icc;
 	GList *selected_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup

@@ -27,6 +27,7 @@ typedef struct update_preview_struct {
 	int (*update_preview_fn)(void);
 } update_image;
 
+void copy_gfit_icc_to_backup();
 int backup_roi();
 int restore_roi();
 void copy_gfit_to_backup();

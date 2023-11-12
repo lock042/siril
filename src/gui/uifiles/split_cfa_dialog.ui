@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.40.0
+
+Copyright (C) The free-astro development team, 2019-2023
+
+This file is part of Siril.
+
+Siril is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Siril is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Siril.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<interface>
+  <requires lib="gtk+" version="3.22"/>
+  <!-- interface-local-resource-path ../.. -->
+  <!-- interface-css-provider-path siril.css -->
+  <!-- interface-license-type gplv3 -->
+  <!-- interface-name Siril -->
+  <!-- interface-description Tool for astronomy image processing -->
+  <!-- interface-copyright The free-astro development team, 2023 -->
+  <object class="GtkDialog" id="split_cfa_dialog">
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Split CFA</property>
+    <property name="resizable">False</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="split_cfa_close">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Close current window</property>
+                <signal name="clicked" handler="on_split_cfa_close_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="split_cfa_apply">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Apply Split CFA</property>
+                <signal name="clicked" handler="on_split_cfa_apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=3 n-rows=3 -->
+          <object class="GtkGrid" id="grid3">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="row-spacing">10</property>
+            <property name="column-spacing">6</property>
+            <child>
+              <object class="GtkEntry" id="entrySplitCFA">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the split cfa process.</property>
+                <property name="hexpand">True</property>
+                <property name="max-length">10</property>
+                <property name="width-chars">10</property>
+                <property name="max-width-chars">10</property>
+                <property name="text">CFA_</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label10">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Output prefix:</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="checkSplitCFASeq">
+                <property name="label" translatable="yes">Apply to sequence</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
+                <property name="halign">start</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Method: </property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="combo_split_cfa_method">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Select the method you want to apply.</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Split CFA Channels</item>
+                  <item translatable="yes">Extract Ha</item>
+                  <item translatable="yes">Extract Ha/OIII</item>
+                  <item translatable="yes">Extract Green</item>
+                </items>
+                <signal name="changed" handler="on_combo_split_cfa_method_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="labelhaoiiiscaling">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Ha/OIII Resampling</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="combo_haoiii_scaling">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">How to handle the output of Extract Ha/OIII. No resampling produces full resolution OIII image and a half resolution Ha image; upsample Ha upsamples the Ha image by a factor of 2 to match the OIII image; downsample OIII downsamples the OIII image by a factor of 2 to match the Ha image.</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">No resampling</item>
+                  <item translatable="yes">Upsample Ha</item>
+                  <item translatable="yes">Downsample OIII</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+
+</interface>

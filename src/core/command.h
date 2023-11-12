@@ -59,6 +59,7 @@ int	process_clahe(int nb);
 int	process_clear(int nb);
 int	process_clearstar(int nb);
 int	process_close(int nb);
+int	process_conesearch(int nb);
 int	process_convert(int nb);
 int	process_cosme(int nb);
 
@@ -96,6 +97,9 @@ int	process_hsvcomp(int nb);
 
 int	process_jsonmetadata(int nb);
 
+int process_icc_assign(int nb);
+int process_icc_convert_to(int nb);
+int process_icc_remove(int nb);
 int	process_imoper(int nb);
 int	process_inspector(int nb);
 
@@ -116,8 +120,6 @@ int	process_mtf(int nb);
 
 int	process_neg(int nb);
 int	process_new(int nb);
-int	process_nomad(int nb);
-int	process_sso();
 int	process_nozero(int nb);
 
 int	process_offset(int nb);

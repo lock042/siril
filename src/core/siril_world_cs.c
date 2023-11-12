@@ -199,14 +199,8 @@ static void dec2dms(double dec, int *sign, int *d, int *m, double *s) {
 	*s = rem;
 }
 
-/* Warning: for format with decimal seconds, %lf is required, not %f (this is actually a bug) */
-gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) {
-	g_return_val_if_fail(world_cs != NULL, NULL);
+gchar *siril_world_cs_delta_format_from_double(gdouble dec, const gchar *format) {
 	g_return_val_if_fail(format != NULL, NULL);
-	g_return_val_if_fail(g_utf8_validate (format, -1, NULL), NULL);
-
-	gdouble dec = world_cs->delta;
-
 	int degree, min, sign;
 	double sec;
 	dec2dms(dec, &sign, &degree, &min, &sec);
@@ -229,12 +223,17 @@ gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) 
 }
 
 /* Warning: for format with decimal seconds, %lf is required, not %f (this is actually a bug) */
-gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) {
+gchar *siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) {
 	g_return_val_if_fail(world_cs != NULL, NULL);
 	g_return_val_if_fail(format != NULL, NULL);
 	g_return_val_if_fail(g_utf8_validate (format, -1, NULL), NULL);
 
-	gdouble ra = world_cs->alpha;
+	return siril_world_cs_delta_format_from_double(world_cs->delta, format);
+}
+
+/* Warning: for format with decimal seconds, %lf is required, not %f (this is actually a bug) */
+gchar *siril_world_cs_alpha_format_from_double(gdouble ra, const gchar *format) {
+	g_return_val_if_fail(format != NULL, NULL);
 
 	int hour, min;
 	double sec;
@@ -255,6 +254,16 @@ gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) 
 	}
 	if (hour >= 24) hour = 0;
 	return g_strdup_printf(format, hour, min,  new_sec);
+}
+
+
+/* Warning: for format with decimal seconds, %lf is required, not %f (this is actually a bug) */
+gchar *siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) {
+	g_return_val_if_fail(world_cs != NULL, NULL);
+	g_return_val_if_fail(format != NULL, NULL);
+	g_return_val_if_fail(g_utf8_validate (format, -1, NULL), NULL);
+
+	return siril_world_cs_alpha_format_from_double(world_cs->alpha, format);
 }
 
 void siril_world_cs_get_ra_hour_min_sec(SirilWorldCS *world_cs, int *hour, int *min, double *sec) {
