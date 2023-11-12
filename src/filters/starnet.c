@@ -34,6 +34,7 @@
 #endif
 
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/arithm.h"
 #include "core/undo.h"
@@ -467,7 +468,11 @@ gpointer do_starnet(gpointer p) {
 	starmaskfit = g_strdup(temp);
 	g_free(temp);
 
-//	printf("%s\n%s\n%s\n%s\n", starlesstif, starlessfit, starmasktif, starmaskfit);
+	/* Copy the ICC profile because starnet is not color managed: the output will
+	 * be the same color space as the imput but will have no ICC profile embedded
+	 * so we have to replace the original */
+	cmsHPROFILE original_profile = copyICCProfile(current_fit->icc_profile);
+
 	// ok, let's start
 	if (verbose)
 		set_progress_bar_data(_("Starting StarNet"), PROGRESS_NONE);
@@ -640,6 +645,10 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 
+	if (workingfit.icc_profile) {
+		cmsCloseProfile(workingfit.icc_profile);
+		workingfit.icc_profile = copyICCProfile(original_profile);
+	}
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
 	retval |= (g_remove(starmasktif) && (version & TORCH));
@@ -718,6 +727,14 @@ gpointer do_starnet(gpointer p) {
 			goto CLEANUP;
 		}
 		update_filter_information(&fit, "StarMask", TRUE);
+
+		// Replace ICC profile here too
+		if (fit.icc_profile) {
+			cmsCloseProfile(fit.icc_profile);
+			fit.icc_profile = copyICCProfile(original_profile);
+		}
+		if (original_profile)
+			cmsCloseProfile(original_profile);
 
 		// Save fit as starmask fits
 		if (get_thread_run()) {

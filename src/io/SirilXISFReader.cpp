@@ -54,6 +54,18 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 
 		const LibXISF::Image &image = xisfReader.getImage(0);
 
+		// Retrieve the ICC profile, if there is one
+		const LibXISF::ByteArray profile = image.iccProfile();
+		xdata->icc_length = profile.size();
+		if (xdata->icc_length > 0) {
+			xdata->icc_buffer = (uint8_t*) malloc(xdata->icc_length * sizeof(uint8_t));
+			if (!xdata->icc_buffer)
+				return -1;
+			memcpy(xdata->icc_buffer, profile.data(), xdata->icc_length);
+		}
+		else
+			xdata->icc_buffer = nullptr;
+
 		switch (image.sampleFormat()) {
 		case LibXISF::Image::UInt8:
 			xdata->sampleFormat = BYTE_IMG;

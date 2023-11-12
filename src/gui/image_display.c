@@ -26,6 +26,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
+#include "core/icc_profile.h"
 #include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/ccd-inspector.h"
@@ -33,7 +34,7 @@
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -56,6 +57,13 @@
 #endif
 
 #include "image_display.h"
+
+/* is gfit.icc_profile identical to the monitor profile, if so we can avoid the
+ * transform */
+static cmsBool identical = FALSE;
+
+#define ANGLE_TOP 315. * DEGTORAD
+#define ANGLE_BOT 45. * DEGTORAD
 
 /* remap index data, an index for each layer */
 static float last_pente;
@@ -109,6 +117,12 @@ static int allocate_full_surface(struct image_view *view) {
 	return 0;
 }
 
+void check_gfit_profile_identical_to_monitor() {
+	if (!com.headless && gfit.icc_profile && gfit.color_managed)
+		identical = profiles_identical(gfit.icc_profile, gui.icc.monitor);
+	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
+}
+
 static void remaprgb(void) {
 	guint32 *dst;
 	const guint32 *bufr, *bufg, *bufb;
@@ -142,7 +156,7 @@ static void remaprgb(void) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
-	// flush to ensure all writing to the image was done and redraw the surface
+// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
 	invalidate_image_render_cache(RGB_VPORT);
@@ -178,16 +192,16 @@ static int make_hd_index_for_current_display(int vport);
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
+// remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
+
 static void remap(int vport) {
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
-	guint y;
 	BYTE *dst, *index, rainbow_index[UCHAR_MAX + 1][3];
 	WORD *src;
 	float *fsrc;
 	gboolean inverted;
-
-	siril_debug_print("remap %d\n", vport);
+	siril_debug_print("HISTEQ / STF remap %d\n", vport);
 	if (vport == RGB_VPORT) {
 		remaprgb();
 		return;
@@ -206,36 +220,32 @@ static void remap(int vport) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	}
 	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *state = g_action_get_state(action_neg);
-
-	inverted = g_variant_get_boolean(state);
-	g_variant_unref(state);
+	GVariant *neg_state = g_action_get_state(action_neg);
+	inverted = g_variant_get_boolean(neg_state);
+	g_variant_unref(neg_state);
+	neg_state = NULL;
 
 	if (gui.rendering_mode == HISTEQ_DISPLAY) {
 		double hist_sum, nb_pixels;
 		size_t i, hist_nb_bins;
 		gsl_histogram *histo;
-
 		compute_histo_for_gfit();
 		histo = com.layers_hist[vport];
 		hist_nb_bins = gsl_histogram_bins(histo);
 		nb_pixels = (double)(gfit.rx * gfit.ry);
-
 		// build the remap_index
 		index = gui.remap_index[0];
 		index[0] = 0;
 		hist_sum = gsl_histogram_get(histo, 0);
 		for (i = 1; i < hist_nb_bins; i++) {
 			hist_sum += gsl_histogram_get(histo, i);
-			index[i] = round_to_BYTE(
-					(hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
+			index[i] = round_to_BYTE((hist_sum / nb_pixels) * UCHAR_MAX_DOUBLE);
 		}
 
 		last_mode = gui.rendering_mode;
 		histo = com.layers_hist[vport];
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
-		// for all other modes and ushort data, the index can be reused
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
 				find_unlinked_midtones_balance_default(&gfit, stf);
@@ -255,9 +265,10 @@ static void remap(int vport) {
 	dst = view->buf;
 
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	state = g_action_get_state(action_color);
-	color_map color = g_variant_get_boolean(state);
-	g_variant_unref(state);
+	GVariant *rainbow_state = g_action_get_state(action_color);
+	color_map color = g_variant_get_boolean(rainbow_state);
+	g_variant_unref(rainbow_state);
+	rainbow_state = NULL;
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
@@ -270,42 +281,26 @@ static void remap(int vport) {
 	else
 		index = gui.remap_index[target_index];
 
-	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || (gui.rendering_mode == STF_DISPLAY && !(gui.use_hd_remap && gfit.type == DATA_FLOAT)));
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
-	for (y = 0; y < gfit.ry; y++) {
-		guint x;
+	for (guint y = 0; y < gfit.ry; y++) {
 		guint src_i = y * gfit.rx;
 		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
-		for (x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
-			guint src_index = y * gfit.rx + x;
+		for (guint x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 			BYTE dst_pixel_value = 0;
 			if (gfit.type == DATA_USHORT) {
 				if (hd_mode) {
-					dst_pixel_value = index[src[src_index] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
-				}
-				else if (special_mode) // special case, no lo & hi
-					dst_pixel_value = index[src[src_index]];
-				else if (gui.cut_over && src[src_index] > gui.hi)	// cut
-					dst_pixel_value = 0;
-				else {
-					dst_pixel_value = index[src[src_index] - gui.lo < 0 ? 0 : src[src_index] - gui.lo];
+					dst_pixel_value = index[src[src_i] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
+				} else {
+					dst_pixel_value = index[src[src_i]];
 				}
 			} else if (gfit.type == DATA_FLOAT) {
 				if (hd_mode)
-					dst_pixel_value = index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)];
-				else if (special_mode) // special case, no lo & hi
-					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
-				else if (gui.cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > gui.hi)	// cut
-					dst_pixel_value = 0;
-				else {
-					dst_pixel_value = index[
-						roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo < 0 ? 0 :
-							roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) - gui.lo];
-				}
+					dst_pixel_value = index[float_to_max_range(fsrc[src_i], gui.hd_remap_max)];
+				else
+					dst_pixel_value = index[roundf_to_WORD(fsrc[src_i] * USHRT_MAX_SINGLE)];
 			}
-
 			dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
 
 			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
@@ -320,13 +315,190 @@ static void remap(int vport) {
 			}
 		}
 	}
-
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
 	invalidate_image_render_cache(vport);
-
 	test_and_allocate_reference_image(vport);
+}
+
+static void remap_all_vports() {
+	gboolean inverted;
+	static GtkApplicationWindow *app_win = NULL;
+	if (app_win == NULL) {
+		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	}
+	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
+	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+	GVariant *state_neg = g_action_get_state(action_neg);
+	inverted = g_variant_get_boolean(state_neg);
+	g_variant_unref(state_neg);
+	state_neg = NULL;
+	// We are now dealing with a 3-channel image
+
+	// Check if we need a rainbow color map
+	BYTE rainbow_index[UCHAR_MAX + 1][3];
+	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
+	GVariant* rainbow_state = g_action_get_state(action_color);
+	color_map color = g_variant_get_boolean(rainbow_state);
+	g_variant_unref(rainbow_state);
+	rainbow_state = NULL;
+	if (color == RAINBOW_COLOR)
+		make_index_for_rainbow(rainbow_index);
+
+	// This function maps fit data with a linear LUT between lo and hi levels
+	// to the buffer to be displayed; display only is modified
+	guint y;
+	BYTE *dst[3], *index[3];
+	WORD *src[3];
+	float *fsrc[3];
+
+	if (gfit.type == DATA_UNSUPPORTED) {
+		siril_debug_print("data is not loaded yet\n");
+		return;
+	}
+
+	if (gfit.color_managed) {
+		// Set the transform in case it is missing
+		if (!gui.icc.proofing_transform) {
+			gui.icc.proofing_transform = initialize_proofing_transform();
+			gui.icc.profile_changed = TRUE;
+		}
+		if (gui.icc.profile_changed) {
+			gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+//			gui.icc.same_primaries = FALSE;
+			check_gfit_profile_identical_to_monitor();
+			// Calling color_manage() like this updates the color management button tooltip
+			color_manage(&gfit, gfit.color_managed);
+			if (is_preview_active())
+				copy_gfit_icc_to_backup();
+		}
+	}
+
+	make_index_for_current_display(0);
+	index[0] = gui.remap_index[0];
+	if (gfit.color_managed) {
+		for (int i = 1 ; i < 3 ; i++) {
+			make_index_for_current_display(i);
+			index[i] = gui.remap_index[i];
+		}
+	}
+
+	gui.icc.profile_changed = FALSE;
+	set_viewer_mode_widgets_sensitive(TRUE);
+
+	last_mode = gui.rendering_mode;
+
+	for (int i = 0 ; i < 3 ; i++) {
+		src[i] = gfit.pdata[i];
+		fsrc[i] = gfit.fpdata[i];
+		if (allocate_full_surface(view[i]))
+			return;
+		dst[i] = view[i]->buf;
+	}
+
+	int norm = (int) get_normalized_value(&gfit);
+	{
+		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
+#endif
+		for (y = 0; y < gfit.ry; y++) {
+			guint x;
+			guint src_i = y * gfit.rx;
+
+			// Set up a buffer so that the color space transform can be carried out on
+			//a whole row at a time using OpenMP to parallelize rows and the single
+			// threaded lcms2 context to give SIMD parallelisation within the rows
+			WORD *pixelbuf = malloc(gfit.rx * 3 * sizeof(WORD));
+			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
+			BYTE *pixelbuf_byte = malloc(gfit.rx * 3);
+			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit.rx) , (pixelbuf_byte + 2 * gfit.rx) };
+			if (gfit.type == DATA_FLOAT) {
+				for (int c = 0 ; c < 3 ; c++) {
+					WORD *line = linebuf[c];
+					float *source = fsrc[c];
+#pragma omp simd
+					for (x = 0 ; x < gfit.rx ; x++)
+						line[x] = roundf_to_WORD(source[src_i + x] * USHRT_MAX_SINGLE);
+				}
+			} else if (norm == UCHAR_MAX) {
+				for (int c = 0 ; c < 3 ; c++) {
+					WORD *line = linebuf[c];
+					WORD *source = src[c];
+#pragma omp simd
+					for (x = 0 ; x < gfit.rx ; x++)
+						line[x] = source[src_i + x] << 8;
+				}
+			} else {
+				for (int c = 0 ; c < 3 ; c++)
+// No omp simd here as memcpy should already be highly optimized
+					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
+			}
+/*			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
+				cmsDoTransformLineStride(gui.icc.proofing_transform,
+								pixelbuf, pixelbuf, gfit.rx, 1, gfit.rx * 6, gfit.rx * 6, gfit.rx * 2, gfit.rx * 2);
+			}*/
+			if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
+				for (int c = 0 ; c < 3 ; c++) {
+					WORD *line = linebuf[c];
+#pragma omp simd
+					for (x = 0 ; x < gfit.rx ; x++)
+						line[x] = line[x] >> 8;
+				}
+			}
+			for (int c = 0 ; c < 3 ; c++) {
+				const int cc = gfit.color_managed ? c : 0;
+#pragma omp simd
+				for (x = 0; x < gfit.rx; ++x) {
+					WORD val = linebuf[c][x];
+					if (gui.cut_over && val > gui.hi) {	// cut
+						linebuf_byte[c][x] = 0;
+					} else {
+						linebuf_byte[c][x] = index[cc][val - gui.lo < 0 ? 0 : val - gui.lo];
+					}
+					if (inverted)
+						linebuf_byte[c][x] = UCHAR_MAX - linebuf_byte[c][x];
+				}
+			}
+			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
+				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, gfit.rx, 1, gfit.rx * 3, gfit.rx * 3, gfit.rx, gfit.rx);
+			}
+			switch (color) {
+				case NORMAL_COLOR:
+#pragma omp simd collapse(2)
+					for (int c = 0 ; c < 3 ; c++) {
+						for (x = 0 ; x < gfit.rx ; x++) {
+							// Siril's FITS are stored bottom to top, so mapping needs to revert data order
+							guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
+							BYTE dst_pixel_value = linebuf_byte[c][x];
+							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+						}
+					}
+					break;
+				case RAINBOW_COLOR:
+#pragma omp simd collapse(2)
+					for (int c = 0 ; c < 3 ; c++) {
+						for (x = 0 ; x < gfit.rx ; x++) {
+							// Siril's FITS are stored bottom to top, so mapping needs to revert data order
+							guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
+							BYTE dst_pixel_value = linebuf_byte[c][x];
+							*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
+						}
+					}
+					break;
+			}
+			free(pixelbuf);
+			free(pixelbuf_byte);
+		}
+	}
+	// flush to ensure all writing to the image was done and redraw the surface
+	for (int vport = 0 ; vport < 3 ; vport++) {
+		cairo_surface_flush(view[vport]->full_surface);
+		cairo_surface_mark_dirty(view[vport]->full_surface);
+		invalidate_image_render_cache(vport);
+		test_and_allocate_reference_image(vport);
+	}
 }
 
 static int make_hd_index_for_current_display(int vport) {
@@ -394,17 +566,20 @@ static int make_index_for_current_display(int vport) {
 		default:
 			return 1;
 	}
+	if(!(slope == last_pente && gui.rendering_mode == last_mode))
+		gui.icc.profile_changed = TRUE;
+
 	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
-			slope == last_pente && gui.rendering_mode == last_mode) {
+			slope == last_pente && gui.rendering_mode == last_mode && !gui.icc.profile_changed) {
 		siril_debug_print("Re-using previous gui.remap_index\n");
 		return 0;
 	}
 
 	/************* Building the remap_index **************/
-	siril_debug_print("Rebuilding gui.remap_index\n");
+	siril_debug_print("Rebuilding gui.remap_index %d\n", vport);
+	// target_index only used for STF mode
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
-	index = gui.remap_index[target_index];
-
+	index = gui.remap_index[vport];
 	for (i = 0; i <= USHRT_MAX; i++) {
 		switch (gui.rendering_mode) {
 			case LOG_DISPLAY:
@@ -444,9 +619,12 @@ static int make_index_for_current_display(int vport) {
 	}
 	if (i != USHRT_MAX + 1) {
 		/* no more computation needed, just fill with max value */
-		for (++i; i <= USHRT_MAX; i++)
+		for (++i; i <= USHRT_MAX; i++) {
 			index[i] = UCHAR_MAX;
+		}
 	}
+	if (gui.icc.same_primaries && gui.rendering_mode != STF_DISPLAY)
+		display_index_transform(index, vport);
 
 	last_pente = slope;
 	last_mode = gui.rendering_mode;
@@ -872,7 +1050,7 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
 			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
 			cairo_scale(cr, r, 1);
-			cairo_arc(cr, 0., 0., size, 0.,2 * M_PI);
+			cairo_arc(cr, 0., 0., size, 0., 2 * M_PI);
 			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
 			/* to keep  for debugging boxes adjustements */
@@ -1362,12 +1540,12 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 #endif
 }
 
-static gdouble x_circle(gdouble x, gdouble radius) {
-	return x + radius * cos(315 * M_PI / 180);
+static gdouble x_circle(gdouble x, gdouble radius, gdouble angle) {
+	return x + radius * cos(angle);
 }
 
-static gdouble y_circle(gdouble y, gdouble radius) {
-	return y + radius * sin(315 * M_PI / 180);
+static gdouble y_circle(gdouble y, gdouble radius, gdouble angle) {
+	return y + radius * sin(angle);
 }
 
 static void draw_annotates(const draw_data_t* dd) {
@@ -1386,20 +1564,25 @@ static void draw_annotates(const draw_data_t* dd) {
 	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
 		gdouble radius = get_catalogue_object_radius(object);
-		gdouble ra = get_catalogue_object_ra(object);
-		gdouble dec = get_catalogue_object_dec(object);
+		gdouble x = get_catalogue_object_x(object);
+		gdouble y = get_catalogue_object_y(object);
 		gchar *code = get_catalogue_object_code_pretty(object);
 		guint catalog = get_catalogue_object_cat(object);
+		gboolean revert = FALSE;
+		double angle = ANGLE_TOP;
+		double addoffset = 0.;
 
 		switch (catalog) {
-		case USER_DSO_CAT_INDEX:
+		case CAT_AN_USER_DSO:
 			cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, 0.9);
 			break;
-		case USER_SSO_CAT_INDEX:
+		case CAT_AN_USER_SSO:
 			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
 			break;
-		case USER_TEMP_CAT_INDEX:
-			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
+		case CAT_AN_USER_TEMP:
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9); // will need to be changed that anyway
+			revert = TRUE;
+			angle = ANGLE_BOT;
 			break;
 		default:
 		case 0:
@@ -1414,60 +1597,49 @@ static void draw_annotates(const draw_data_t* dd) {
 		radius = radius / resolution / 60.0;
 		// radius now in pixels
 
-		double fx, fy;
-		if (!wcs2pix(&gfit, ra, dec, &fx, &fy)) {
-			double x, y;
-			fits_to_display(fx, fy, &x, &y, gfit.ry);
-			point offset = {10, -10};
-			if (radius < 0) {
-				// objects we don't have an accurate location (LdN, Sh2)
-			} else if (radius > 5) {
-				cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x_circle(x, radius), y_circle(y, radius));
-				offset.x = x_circle(x, radius * 1.3) - x;
-				offset.y = y_circle(y, radius * 1.3) - y;
-				cairo_line_to(cr, offset.x + x, offset.y + y);
-			} else {
-				/* it is punctual */
-				cairo_move_to(cr, x, y - 20);
-				cairo_line_to(cr, x, y - 10);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x, y + 20);
-				cairo_line_to(cr, x, y + 10);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x - 20, y);
-				cairo_line_to(cr, x - 10, y);
-				cairo_stroke(cr);
-				cairo_move_to(cr, x + 20, y);
-				cairo_line_to(cr, x + 10, y);
-				cairo_stroke(cr);
-			}
+		point offset = {5., revert ? 5. : -5.};
+		if (radius < 0) {
+			// objects we don't have an accurate location (LdN, Sh2)
+		} else if (radius > 5) {
+			cairo_arc(cr, x, y, radius, 0., 2. * M_PI);
+			cairo_stroke(cr);
 			if (code) {
-				gchar *name = code, *name2;
-				name2 = strstr(code, "\\n");
-				if (name2) {
-					name = g_strndup(code, name2-code);
-					name2+=2;
-				}
-
-				gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
-				cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-				cairo_set_font_size(cr, size / dd->zoom);
-				cairo_move_to(cr, x + offset.x, y + offset.y);
-				cairo_show_text(cr, name);
+				cairo_move_to(cr, x_circle(x, radius, angle), y_circle(y, radius, angle));
+				offset.x = x_circle(x, radius * 1.3, angle) - x;
+				offset.y = y_circle(y, radius * 1.3, angle) - y;
+				cairo_line_to(cr, offset.x + x, offset.y + y);
 				cairo_stroke(cr);
-				if (name2) {
-					// subtitle, draw it below
-					cairo_move_to(cr, x + offset.x + 5 / dd->zoom, y + offset.y + (size + 4) / dd->zoom);
-					size = 16 * (com.pref.gui.font_scale / 100.0);
-					cairo_set_font_size(cr, size / dd->zoom);
-					cairo_show_text(cr, name2);
-					cairo_stroke(cr);
-					g_free(name);
-				}
 			}
+		} else {
+			/* it is punctual */
+			cairo_move_to(cr, x, y - 15);
+			cairo_line_to(cr, x, y - 5);
+			cairo_stroke(cr);
+			cairo_move_to(cr, x, y + 15);
+			cairo_line_to(cr, x, y + 5);
+			cairo_stroke(cr);
+			cairo_move_to(cr, x - 15, y);
+			cairo_line_to(cr, x - 5, y);
+			cairo_stroke(cr);
+			cairo_move_to(cr, x + 15, y);
+			cairo_line_to(cr, x + 5, y);
+			cairo_stroke(cr);
 		}
+		if (code) {
+			gchar *name = code;
+			gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
+			cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, size / dd->zoom);
+			if (revert) {
+				cairo_text_extents_t te;
+				cairo_text_extents(cr, name, &te); // getting the dimensions of the textbox
+				addoffset = te.height;
+			}
+			cairo_move_to(cr, x + offset.x, y + offset.y + addoffset);
+			cairo_show_text(cr, name);
+			cairo_stroke(cr);
+		}
+
 	}
 }
 
@@ -1754,8 +1926,12 @@ void redraw(remap_type doremap) {
 			break;
 		case REMAP_ALL:
 			stf_computed = FALSE;
-			for (int i = 0; i < gfit.naxes[2]; i++) {
-				remap(i);
+			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
+				for (int i = 0; i < gfit.naxes[2]; i++) {
+					remap(i);
+				}
+			} else {
+				remap_all_vports();
 			}
 			if (gfit.naxis == 3)
 				remaprgb();

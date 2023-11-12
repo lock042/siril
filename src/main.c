@@ -42,6 +42,7 @@
 
 #include "git-version.h"
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/siril_actions.h"
 #include "core/initfile.h"
@@ -59,6 +60,7 @@
 #include "io/gitscripts.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -66,8 +68,8 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
+cominfo com = { 0 };	// the core data struct
+guiinfo gui = { 0 };	// the gui data struct
 fits gfit;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
@@ -125,26 +127,39 @@ static GActionEntry app_entries[] = {
 };
 
 
-void load_glade_file() {
+void load_ui_files() {
 	GError *err = NULL;
-	gchar* gladefile;
+	gchar* uifile;
 	gboolean retval;
 
-	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
-
-	/* try to load the glade file, from the sources defined above */
-	gui.builder = gtk_builder_new();
-	// TODO: the following gtk_builder_add_from_file call is the source
-	// of libfontconfig memory leaks.
-	retval = gtk_builder_add_from_file(gui.builder, gladefile, &err);
-	if (!retval) {
+	/* try to load the first UI file, from the sources defined above */
+	uifile = g_build_filename(siril_get_system_data_dir(), ui_files[0], NULL);
+	gui.builder = gtk_builder_new_from_file(uifile);
+	if (!gui.builder) {
 		g_error(_("%s was not found or contains errors, "
-					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
-		g_clear_error(&err);
+					"cannot render GUI.\n Exiting.\n"), uifile);
 		exit(EXIT_FAILURE);
 	}
-	g_print(_("Successfully loaded '%s'\n"), gladefile);
-	g_free(gladefile);
+	siril_debug_print("Successfully loaded '%s'\n", uifile);
+
+	uint32_t i = 1;
+	while (*ui_files[i]) {
+		uifile = g_build_filename(siril_get_system_data_dir(), ui_files[i], NULL);
+
+		/* try to load each successive UI file, from the sources defined above */
+		// TODO: the following gtk_builder_add_from_file call is the source
+		// of libfontconfig memory leaks.
+		retval = gtk_builder_add_from_file(gui.builder, uifile, &err);
+		if (!retval) {
+			g_error(_("%s was not found or contains errors, "
+						"cannot render GUI:\n%s\n Exiting.\n"), uifile, err->message);
+			g_clear_error(&err);
+			exit(EXIT_FAILURE);
+		}
+		siril_debug_print("Successfully loaded '%s'\n", uifile);
+		g_free(uifile);
+		i++;
+	}
 }
 
 #if defined (HAVE_FFTW3F_THREADS) && (_OPENMP)
@@ -249,7 +264,6 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	// After this point com.pref is populated
-
 	siril_language_parser_init();
 	if (com.pref.lang)
 		language_init(com.pref.lang);
@@ -277,6 +291,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2
 	if (com.pref.use_scripts_repository)
@@ -322,8 +337,8 @@ static void siril_app_activate(GApplication *application) {
 		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */
 		load_css_style_sheet();
-		/* Load glade file */
-		load_glade_file();
+		/* Load UI files */
+		load_ui_files();
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */

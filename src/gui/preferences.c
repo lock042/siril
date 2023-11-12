@@ -20,13 +20,14 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/siril_language.h"
 #include "core/settings.h"
 #include "core/siril_log.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
@@ -37,6 +38,8 @@
 #include "gui/PSF_list.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
+#include "io/single_image.h"
+#include "io/sequence.h"
 #include "stacking/stacking.h"
 #include "io/gitscripts.h"
 
@@ -51,6 +54,8 @@ static gchar *sw_dir = NULL;
 static gchar *st_exe = NULL;
 static gchar *st_weights = NULL;
 static starnet_version st_version = NIL;
+static gboolean update_custom_gamut = FALSE;
+void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 static gboolean scripts_updated = FALSE;
 
@@ -188,6 +193,8 @@ static void update_analysis_preferences() {
 }
 
 static void update_scripts_preferences() {
+	if (com.pref.gui.script_path)
+		g_slist_free_full(g_steal_pointer(&com.pref.gui.script_path), g_free);
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
 	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
@@ -215,6 +222,43 @@ static void update_user_interface_preferences() {
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
 	update_roi_config();
+	gchar *newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.icc.icc_path_monitor);
+		com.pref.icc.icc_path_monitor = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.icc.icc_path_soft_proof);
+		com.pref.icc.icc_path_soft_proof = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("custom_gray_icc_matching_trc")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.icc.custom_icc_gray);
+		com.pref.icc.custom_icc_gray = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("custom_icc_standard_trc")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.icc.custom_icc_trc);
+		com.pref.icc.custom_icc_trc = newpath;
+	}
+	com.pref.icc.rendering_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")));
+	com.pref.icc.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
+	com.pref.icc.default_to_srgb = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")));
+	com.pref.icc.working_gamut = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("working_gamut")));
+	com.pref.icc.export_8bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
+	com.pref.icc.export_16bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
+	com.pref.icc.custom_monitor_profile_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_monitor_profile_active")));
+	com.pref.icc.soft_proofing_profile_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_proofing_profile_active")));
+	com.pref.icc.rendering_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")));
+	com.pref.icc.pedantic_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_pedantic_linear")));
+	com.icc.rendering_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC));
+	gui.icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
+	com.pref.icc.autoassignment = 	((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_load"))) * ICC_ASSIGN_ON_LOAD) +
+									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stack"))) * ICC_ASSIGN_ON_STACK) +
+									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stretch"))) * ICC_ASSIGN_ON_STRETCH) +
+									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_composition"))) * ICC_ASSIGN_ON_COMPOSITION));
+	com.pref.icc.autoconversion = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_icc_autoconversion")));
 }
 
 static void update_FITS_options_preferences() {
@@ -230,6 +274,7 @@ static void update_FITS_options_preferences() {
 	com.pref.ext = g_strdup(ext);
 
 	com.pref.force_16bit = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combobox_type"))) == 0;
+	com.pref.fits_save_icc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_fits_save_icc")));
 
 	com.pref.allow_heterogeneous_fitseq = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbox_heterogeneous_fitseq")));
 }
@@ -537,6 +582,7 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")), pref->comp.fits_hcompress_scale);
 	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")), pref->ext == NULL ? ".fit" : pref->ext);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type")), pref->force_16bit ? 0 : 1);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_fits_save_icc")), pref->fits_save_icc);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbox_heterogeneous_fitseq")), pref->allow_heterogeneous_fitseq);
 
 	/* tab 3 */
@@ -645,6 +691,50 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
+	GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile"));
+	if (pref->icc.icc_path_monitor && (g_file_test(pref->icc.icc_path_monitor, G_FILE_TEST_EXISTS))) {
+		gtk_file_chooser_set_filename(button, pref->icc.icc_path_monitor);
+	} else {
+		gtk_file_chooser_unselect_all(button);
+	}
+	button = GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile"));
+	if (pref->icc.icc_path_soft_proof && (g_file_test(pref->icc.icc_path_soft_proof, G_FILE_TEST_EXISTS))) {
+		gtk_file_chooser_set_filename(button, pref->icc.icc_path_soft_proof);
+	} else {
+		gtk_file_chooser_unselect_all(button);
+	}
+	button = GTK_FILE_CHOOSER(lookup_widget("custom_icc_standard_trc"));
+	if (pref->icc.custom_icc_trc && (g_file_test(pref->icc.custom_icc_trc, G_FILE_TEST_EXISTS))) {
+		gtk_file_chooser_set_filename(button, pref->icc.custom_icc_trc);
+	} else {
+		gtk_file_chooser_unselect_all(button);
+	}
+	button = GTK_FILE_CHOOSER(lookup_widget("custom_gray_icc_matching_trc"));
+	if (pref->icc.custom_icc_gray && (g_file_test(pref->icc.custom_icc_gray, G_FILE_TEST_EXISTS))) {
+		gtk_file_chooser_set_filename(button, pref->icc.custom_icc_gray);
+	} else {
+		gtk_file_chooser_unselect_all(button);
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")), pref->icc.rendering_intent);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")), pref->icc.export_intent);
+	initialize_icc_preferences_widgets();
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_monitor_profile_active")), pref->icc.custom_monitor_profile_active);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_proofing_profile_active")), pref->icc.soft_proofing_profile_active);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")), pref->icc.default_to_srgb);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")), pref->icc.rendering_bpc);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_pedantic_linear")), pref->icc.pedantic_linear);
+	icc_assign_type autoassign = pref->icc.autoassignment;
+	gboolean val = autoassign & ICC_ASSIGN_ON_LOAD;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_load")), val);
+	val = autoassign & ICC_ASSIGN_ON_STACK;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stack")), val);
+	val = autoassign & ICC_ASSIGN_ON_STRETCH;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stretch")), val);
+	val = autoassign & ICC_ASSIGN_ON_COMPOSITION;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_composition")), val);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_never")), !pref->icc.autoassignment);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_icc_autoconversion")), pref->icc.autoconversion);
 
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
@@ -675,6 +765,20 @@ void update_preferences_from_model() {
 #endif
 }
 
+static void set_icc_filechooser_directories() {
+	GtkFileChooser* fc2 = (GtkFileChooser*) lookup_widget("custom_icc_standard_trc");
+	GtkFileChooser* fc3 = (GtkFileChooser*) lookup_widget("custom_gray_icc_matching_trc");
+	GtkFileChooser* fc4 = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
+	GtkFileChooser* fc5 = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
+
+	gtk_file_chooser_set_current_folder(fc2, default_system_icc_path());
+	gtk_file_chooser_set_current_folder(fc3, default_system_icc_path());
+	gtk_file_chooser_set_current_folder(fc4, default_system_icc_path());
+	gtk_file_chooser_set_current_folder(fc5, default_system_icc_path());
+	GtkComboBox* combo = (GtkComboBox*) lookup_widget("working_gamut");
+	on_working_gamut_changed(combo, NULL);
+}
+
 static void dump_ui_to_global_var() {
 	siril_debug_print("updating settings from preferences GUI\n");
 	/* tab 1 */
@@ -701,6 +805,7 @@ static void dump_ui_to_global_var() {
 
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
+	set_icc_filechooser_directories();
 	update_preferences_from_model();
 	scripts_updated = FALSE;
 #ifndef HAVE_LIBGIT2
@@ -757,12 +862,22 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			refresh_found_objects();
 		save_main_window_state();
 		writeinitfile();
-
+		validate_custom_profiles(); // Validate and load custom ICC profiles
+		if (update_custom_gamut) {
+			update_profiles_after_gamut_change();
+			update_custom_gamut = FALSE;
+		}
+		refresh_icc_transforms();
+		if (single_image_is_loaded() || sequence_is_loaded()) {
+			color_manage(&gfit, gfit.color_managed);
+			notify_gfit_modified();
+		}
 		siril_close_dialog("settings_window");
 	}
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	update_custom_gamut = FALSE;
 	siril_close_dialog("settings_window");
 }
 
@@ -773,6 +888,29 @@ void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	if (confirm) {
 		initialize_default_settings();
 		update_preferences_from_model();
+		update_custom_gamut = FALSE;
+	}
+}
+
+void on_settings_window_hide(GtkWidget *widget, gpointer user_data) {
+	update_custom_gamut = FALSE;
+}
+
+void on_external_preferred_profile_set(GtkFileChooser *chooser, gpointer user_data) {
+	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("working_gamut"));
+	if (gtk_combo_box_get_active(combo) != 2)
+		siril_message_dialog(GTK_MESSAGE_INFO, _("External ICC Profiles"), _("In order to "
+		"use ICC profiles loaded from files as your preferred color space you must set "
+		"the Preferred Color Space drop-down to \"From files\"."));
+}
+
+void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data) {
+	update_custom_gamut = TRUE;
+}
+
+void on_combo_rendering_intent_changed(GtkComboBox *combo, gpointer user_data) {
+	if (gtk_combo_box_get_active(combo) == INTENT_ABSOLUTE_COLORIMETRIC) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")), FALSE);
 	}
 }
 

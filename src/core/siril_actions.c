@@ -22,13 +22,14 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/icc_profile.h"
 #include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
 #include "core/initfile.h"
 #include "compositing/align_rgb.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
@@ -59,6 +60,7 @@
 #include "gui/remixer.h"
 #include "livestacking/livestacking.h"
 #include "registration/registration.h"
+#include "io/siril_catalogues.h"
 
 #include "siril_actions.h"
 
@@ -181,6 +183,8 @@ void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 
 	if (!is_visible) {
 		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+		if (gui.icc.iso12646)
+			disable_iso12646_conditions(TRUE, FALSE);
 	} else {
 		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 	}
@@ -234,6 +238,8 @@ void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		gui.zoom_value = ZOOM_FIT;
+		if (gui.icc.iso12646)
+			disable_iso12646_conditions(FALSE, TRUE);
 		reset_display_offset();
 		redraw(REDRAW_IMAGE);
 	} else {
@@ -254,11 +260,15 @@ void zoom_fit_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void zoom_in_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_IN);
+	if (gui.icc.iso12646)
+		disable_iso12646_conditions(FALSE, TRUE);
 }
 
 void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_OUT);
+	if (gui.icc.iso12646)
+		disable_iso12646_conditions(FALSE, TRUE);
 }
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -389,8 +399,17 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (has_wcs(&gfit))
-		process_sso();
+	if (has_wcs(&gfit)) {
+		siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, CAT_IMCCE, -1.f);
+		siril_cat->IAUcode = g_strdup("500");
+		conesearch_args *args = init_conesearch();
+		args->fit = &gfit;
+		args->has_GUI = TRUE;
+		args->siril_cat = siril_cat;
+		args->display_log = TRUE;
+		args->display_tag = TRUE;
+		start_in_new_thread(conesearch_worker, args);
+	}
 }
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
@@ -401,7 +420,8 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 	} else {
 		g_slist_free(com.found_object);
 		com.found_object = NULL;
-		purge_temp_user_catalogue();
+		purge_user_catalogue(CAT_AN_USER_TEMP);
+		refresh_annotation_visibility();
 	}
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);
@@ -677,6 +697,10 @@ void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 		return;
 	}
 	rgb_align(0);
+}
+
+void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("icc_dialog");
 }
 
 void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

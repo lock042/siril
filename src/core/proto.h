@@ -45,7 +45,7 @@ int readpic(const char *name, fits *fit);
 #ifdef HAVE_LIBTIFF
 gboolean get_tiff_compression();
 int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose);
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright);
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		const char *description, const char *copyright,
 		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose);
@@ -165,6 +165,7 @@ void replace_spaces_from_str(gchar *s, char c);
 gchar *build_string_from_words(char **words);
 void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
+gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_format, ...);
 
 int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
 int display_to_fits(double dx, double dy, double *fx, double *fy, int ry);

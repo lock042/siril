@@ -279,36 +279,62 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 #endif
 }
 
-// ra in degrees
-// Intended to discard stars too close to the borders
-// May be could be merged with wcs2pix
-int wcs2pix_off(fits *fit, double ra, double dec, double *x, double *y, double offset_ratio) {
-	if (x) *x = -1.0;
-	if (y) *y = -1.0;
-#ifndef HAVE_WCSLIB
-	return 1;
-#else
-	int status, stat[NWCSFIX];
-	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
-	world[0] = ra;
-	world[1] = dec;
-
-	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
-
-	if (!status) {
-		double xx = pixcrd[0];
-		double yy = pixcrd[1];
-		// return values even if outside
-		// required for celestial grid display
-		if (x) *x = xx;
-		if (y) *y = yy;
-		if (xx < offset_ratio * (double)fit->rx || yy < offset_ratio * (double)fit->ry || xx > (1.0 - offset_ratio) * (double)fit->rx || yy > (1.0 - offset_ratio) * (double)fit->ry)
-			//siril_debug_print("outside image but valid return\n");
-			status = 10;
+// TODO: see commented function at the end of siril_catalogues.c
+#if 0
+// same as wcs2pix except it takes a world array as input
+// world is an array with [ra1, dec1, ra2, dec2...ran, decn], i.e 2n elements (row major)
+// it returns an allocated array of statuses (instead of a single status), which must be freed
+int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
+	if (x) {
+		for (int i = 0; i < n; i++)
+			x[i] = -1.0;
 	}
+	if (y) {
+		for (int i = 0; i < n; i++)
+			y[i] = -1.0;
+	}
+#ifndef HAVE_WCSLIB
+	return NULL;
+#else
+	// can't pass NULL to the values we don't want to retrieve (intcrd, phi, theta)
+	double *intcrd = malloc((2 * n) * sizeof(double));
+	double *pixcrd = malloc((2 * n) * sizeof(double));
+	double *phi = malloc(n * sizeof(double));
+	double *theta = malloc(n * sizeof(double));
+	int c = 0;
+	int *status = calloc(n , sizeof(int));
+	int globstatus = wcss2p(fit->wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
+	c = 0;
+	if (globstatus == WCSERR_SUCCESS || WCSERR_BAD_WORLD) {// we accept BAD_WORLD has it does not mean all of the conversions failed
+		for (int i = 0; i < n; i++) {
+			if (!status[i]) {
+				double xx = pixcrd[c++];
+				double yy = pixcrd[c++];
+				// return values even if outside (required for celestial grid display)
+				if (x) x[i] = xx;
+				if (y) y[i] = yy;
+				if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
+					//siril_debug_print("outside image but valid return\n");
+					// wcss2p returns values between 0 and 9, picking a new one
+					status[i] = 10;
+				}
+			} else {
+				c += 2;
+			}
+		}
+	} else {
+		free(status);
+		status = NULL;
+	}
+	free(intcrd);
+	free(pixcrd);
+	free(phi);
+	free(theta);
 	return status;
 #endif
 }
+#endif
+
 
 /* get image center celestial coordinates */
 void center2wcs(fits *fit, double *r, double *d) {
