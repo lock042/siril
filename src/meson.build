@@ -259,7 +259,7 @@ src_files = [
 # Define the resource file
 siril_resources = gnome.compile_resources(
   'siril_resource', 'siril_resource.xml',
-  source_dir : '..',
+  source_dir : [ '..', '.' ],
   c_name : 'siril_resource')
 
 siril_lib = static_library('siril',
