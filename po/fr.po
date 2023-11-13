@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-13 15:16+0100\n"
-"PO-Revision-Date: 2023-11-13 14:38+0000\n"
+"PO-Revision-Date: 2023-11-13 21:58+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -19792,7 +19792,7 @@ msgstr "mode d'affichage de l'histogramme par défaut"
 
 #: src/core/settings.c:417
 msgid "ROI selection mode"
-msgstr "Mode de sélection de la ROI"
+msgstr "Mode de sélection des ROI"
 
 #: src/core/settings.c:418
 msgid "Enable ROI dialog warning"
