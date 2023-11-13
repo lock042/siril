@@ -1729,7 +1729,7 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	if (!gfit.color_managed || !gfit.icc_profile) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The  current image has no color profile. You need to assign one first."));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
 		return;
 	}
 
