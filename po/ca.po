@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-13 11:38+0100\n"
+"POT-Creation-Date: 2023-11-13 15:16+0100\n"
 "PO-Revision-Date: 2023-08-25 11:40+0000\n"
 "Last-Translator: Joan Vinyals Ylla Català <joan.vinyals.ylla.catala@gmail."
 "com>\n"
@@ -13242,7 +13242,7 @@ msgid ""
 "catalog. The object is first searched in the annotation catalogs, if not "
 "found a request is made to SIMBAD.\n"
 "The object can be a solar system object, in which case a prefix, 'a:' for "
-"asteroid, 'p:' for planet, 'c:' for comet, 'dp:  for dwarf planet or 's:' "
+"asteroid, 'p:' for planet, 'c:' for comet, 'dp:' for dwarf planet or 's:' "
 "for natural satellite, is required before the object name. The search is "
 "done for the date, time and observing location found in the image header, "
 "using the <a href=\"https://ssp.imcce.fr/webservices/miriade/howto/ephemcc/"
@@ -13549,9 +13549,9 @@ msgid ""
 "- the difference in visual magnitude from the variable star, in the range "
 "[0, 6] with a default of 3, changed with <b>-dvmag=</b>\n"
 "- the difference in color with the variable star, in the range [0.0, 0.7] of "
-"their B-V indices with a default of 0.5, changed with <b>-dbv=</b>.\n"
+"their B-V indices with a default of 0.5, changed with <b>-dbv=</b>\n"
 "- the maximum allowed error on Vmag in the range [0.0, 0.1] with a default "
-"of 0.03, changed with <b>-emag=</b>\n"
+"of 0.03, changed with <b>-emag=</b>.\n"
 "\n"
 "The list can optionally be saved as a CSV file compatible with the NINA "
 "comparison stars list, specifying the file name with <b>-out=</b>. If the "
@@ -15841,7 +15841,7 @@ msgid "No color profile set"
 msgstr ""
 
 #: src/core/icc_profile.c:1732
-msgid "The  current image has no color profile. You need to assign one first."
+msgid "The current image has no color profile. You need to assign one first."
 msgstr ""
 
 #. Do the transform
@@ -21482,7 +21482,7 @@ msgstr ""
 
 #: src/io/siril_catalogues.c:741
 #, fuzzy, c-format
-msgid "File % cannot be deleted (%s), aborting\n"
+msgid "File %s cannot be deleted (%s), aborting\n"
 msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
 
 #: src/io/siril_catalogues.c:846
