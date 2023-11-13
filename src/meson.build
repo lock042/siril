@@ -264,7 +264,7 @@ siril_resources = gnome.compile_resources(
   c_name : 'siril_resource')
 
 siril_lib = static_library('siril',
-                           src_files, siril_resources,
+                           siril_resources[0], src_files,
                            dependencies: externals_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
@@ -279,7 +279,7 @@ siril_dep = declare_dependency(link_with: siril_lib,
 ################################################################################
 # Build gui executable
 
-siril_gui = executable('siril', 'main.c', win_res,
+siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
                        link_args : siril_link_arg,
