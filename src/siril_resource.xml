@@ -90,7 +90,6 @@
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/neg.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/photometry_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/photometry.svg</file>
-    <file compressed="true" preprocess="xml-stripblanks">pixmaps/preview.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-acw_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-acw.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-cw_dark.svg</file>
