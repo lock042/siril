@@ -1,5 +1,0 @@
-#!/bin/sh
-
-glib-compile-resources --internal --target src/core/siril_resource.c --generate-source siril_resource.xml
-
-glib-compile-resources --internal --target src/core/siril_resource.h --generate-header siril_resource.xml
