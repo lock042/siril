@@ -40,6 +40,7 @@
 #include <windows.h>
 #endif
 
+#include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"
@@ -60,7 +61,6 @@
 #include "io/gitscripts.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
-#include "core/siril_resource.h"
 #include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"

@@ -69,7 +69,6 @@ src_files = [
   'compositing/compositing.c',
   'compositing/filters.c',
 
-  'core/siril_resource.c',
   'core/arithm.c',
   'core/atomic.cpp',
   'core/command.c',
@@ -257,8 +256,14 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
+# Define the resource file
+siril_resources = gnome.compile_resources(
+  'siril_resource', 'siril_resource.xml',
+  source_dir : '..',
+  c_name : 'siril_resource')
+
 siril_lib = static_library('siril',
-                           src_files,
+                           src_files, siril_resources,
                            dependencies: externals_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
@@ -269,21 +274,7 @@ siril_dep = declare_dependency(link_with: siril_lib,
                                include_directories: siril_inc_dir)
 
 # Custom target for glib-compile-resources
-# Define the resource file
-resource_file = '../siril_resource.xml'
 
-# Define the target for glib-compile-resources
-resources_source = 'resources.c'
-resources_header = 'resources.h'
-glib_resources = custom_target('glib-resources',
-                 input: resource_file,
-                 output: [resources_source],
-                 command: [
-                 'glib-compile-resources',
-                 '--generate-source', '@INPUT@',
-                 '--target', '@OUTPUT@',
-                 ]
-)
 ################################################################################
 # Build gui executable
 

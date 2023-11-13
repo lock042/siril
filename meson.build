@@ -709,7 +709,7 @@ externals_dep = declare_dependency(
 subdir('platform-specific')
 subdir('build')
 subdir('src')
-subdir('pixmaps')
+subdir('src/pixmaps')
 subdir('data')
 subdir('po')
 subdir('scripts')
