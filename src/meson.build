@@ -257,6 +257,7 @@ src_files = [
 ]
 
 # Define the resource file
+gnome = import('gnome')
 siril_resources = gnome.compile_resources(
   'siril_resource', 'siril_resource.xml',
   source_dir : [ '..', '.' ],
