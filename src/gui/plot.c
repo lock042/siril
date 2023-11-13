@@ -771,7 +771,9 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		double cmag = 0.0, cerr = 0.0;
 
 		x[j] = plot->data[j].x;			// relative date
-		real_x[j] = x[j] + (double)julian0;	// absolute date
+		real_x[j] = x[j];
+		if (force_Julian)
+			real_x[j] +=(double)julian0;	// absolute date
 		vmag[j] = plot->data[j].y;		// magnitude
 		err[j] = get_error_for_time(plot, x[j]);// error of the magnitude
 
@@ -823,7 +825,8 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	}
 
 	/* Exporting data in a dat file */
-	if ((gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, "JD_UT V-C err"))) {
+	const char *header = (force_Julian) ? "JD_UT V-C err" : "Frame V-C err";
+	if ((gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, header))) {
 		if (com.script)
 			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
 		else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));

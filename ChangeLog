@@ -7,6 +7,7 @@ xx/xx/xx
 * Fixed Anscombe VST noise reduction option for mono images
 * Fixed colored artefacts in RGB deconvolution (#1201)
 * Fixed data initialisation bugs in copyfits() and RGB compositing tool
+* Fixed exported x-column for lightcurves when Julian date is not selected (#1220)
 * Allowed for RA/DEC to be sorted in PSF windows (#1214)
 * Added SET-TEMP as valid FITS header to be saved (#1215)
 
