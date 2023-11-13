@@ -59,7 +59,7 @@ RUN git clone https://github.com/LibRaw/LibRaw.git \
     && cmake --build . -- -j$(nproc) \
     && cmake --install . \
     && cd ../.. \
-    && rm -rf libjxl \
+    && rm -rf libjxl
 RUN git clone https://github.com/mm2/Little-CMS \
     && cd Little-CMS \
     && git checkout lcms2.14 \
