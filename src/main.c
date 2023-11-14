@@ -331,14 +331,6 @@ static void siril_app_activate(GApplication *application) {
 	if (!com.headless) {
 		/* Load GResource */
 		com.resource = siril_resource_get_resource();
-		char** resource_strings = g_resource_enumerate_children(com.resource, "/org/siril/ui/pixmaps", G_RESOURCE_LOOKUP_FLAGS_NONE, NULL);
-		int index = 0;
-		siril_debug_print("Found resources:\n");
-		while (resource_strings[index]) {
-			siril_debug_print("%s\n", resource_strings[index]);
-			index++;
-		}
-		g_strfreev(resource_strings);
 		/* Load preferred theme */
 		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */
