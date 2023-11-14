@@ -6,16 +6,16 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-13 15:16+0100\n"
-"PO-Revision-Date: 2023-11-07 10:12+0000\n"
+"PO-Revision-Date: 2023-11-18 00:32+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/uifiles/menus.ui:44 src/gui/uifiles/menus.ui:177
@@ -68,9 +68,8 @@ msgid "Information..."
 msgstr "Информация…"
 
 #: src/gui/uifiles/menus.ui:275
-#, fuzzy
 msgid "Color Management..."
-msgstr "Насыщенность…"
+msgstr "Управление цветом…"
 
 #: src/gui/uifiles/menus.ui:289 src/gui/uifiles/menus.ui:580
 msgid "FITS Header..."
@@ -604,7 +603,7 @@ msgstr "Частотные слои…"
 
 #: src/gui/uifiles/menus.ui:1781
 msgid "gamut"
-msgstr ""
+msgstr "цветовой охват"
 
 #: src/gui/uifiles/menus.ui:1785
 msgid ""
@@ -4229,9 +4228,8 @@ msgid "<b>Compression</b>"
 msgstr "<b>Сжатие</b>"
 
 #: src/gui/uifiles/savepopup.ui:345
-#, fuzzy
 msgid "<b>ICC Profile</b>"
-msgstr "<b>Тип профиля</b>"
+msgstr "<b>Профиль ICC</b>"
 
 #: src/gui/uifiles/savepopup.ui:374
 msgid "<b>Embedded Data</b>"
@@ -6245,14 +6243,12 @@ msgstr "Верхняя граница"
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3474
 #: src/gui/uifiles/settings_window.ui:4208 src/core/icc_profile.c:1254
 #: src/core/icc_profile.c:1256
-#, fuzzy
 msgid "Color Management"
-msgstr "<b>Управление памятью</b>"
+msgstr "Управление цветом"
 
 #: src/gui/uifiles/icc_dialog.ui:64
-#, fuzzy
 msgid "Export"
-msgstr "Экспорт в CSV"
+msgstr "Экспорт"
 
 #: src/gui/uifiles/icc_dialog.ui:68
 msgid ""
@@ -6265,9 +6261,8 @@ msgid "Remove the ICC profile from the image and stop color managing it"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:94 src/core/icc_profile.c:1254
-#, fuzzy
 msgid "Assign"
-msgstr "Не назначено"
+msgstr "Назначить"
 
 #: src/gui/uifiles/icc_dialog.ui:98
 msgid ""
@@ -6287,18 +6282,16 @@ msgid "<b><i>Current ICC profile</i></b>"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:212
-#, fuzzy
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b>Тип профиля</b>"
+msgstr "<b>Целевой профиль ICC</b>"
 
 #: src/gui/uifiles/icc_dialog.ui:237 src/gui/uifiles/icc_dialog.ui:291
 msgid "Manufacturer"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:250 src/gui/uifiles/icc_dialog.ui:304
-#, fuzzy
 msgid "Copyright"
-msgstr "Авторские права в TIFF"
+msgstr "Авторские права"
 
 #: src/gui/uifiles/icc_dialog.ui:315
 msgid "\n"
@@ -6316,9 +6309,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:357
-#, fuzzy
 msgid "None selected"
-msgstr "выбранные"
+msgstr "Не выбрано"
 
 #: src/gui/uifiles/icc_dialog.ui:358
 #, fuzzy
@@ -6350,20 +6342,17 @@ msgid "Gray (Rec709 TRC)"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:377
-#, fuzzy
 msgid "Load profile from file"
-msgstr "Загрузить PSF из файла"
+msgstr "Загрузить профиль из файла"
 
 #: src/gui/uifiles/icc_dialog.ui:407
-#, fuzzy
 msgid "<b>Color Management Operations</b>"
-msgstr "<b>Управление памятью</b>"
+msgstr "<b>Операции управления цветом</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
 #: src/gui/uifiles/settings_window.ui:3535
-#, fuzzy
 msgid "Gamut visualisation"
-msgstr "Только для визуализации"
+msgstr "Визуализация цветового охвата"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:76
 msgid ""
@@ -6736,7 +6725,6 @@ msgid "Online Star Catalogue: "
 msgstr "Удалённый каталог звёзд: "
 
 #: src/gui/uifiles/IPS_dialog.ui:771
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -6774,9 +6762,13 @@ msgstr ""
 "* Каталог PPMXL содержит положения, собственные движения, данные ближней "
 "инфракрасной (2MASS) и оптической фотометрии порядка 900 миллионов звёзд и "
 "галактик.\n"
-"* Каталог ярких звёзд содержит все звёзд со звёздной величиной от 6.5, что "
-"примерно соответствует звёздам, видимым невооружённым глазом. Каталог "
-"включает 9 110 объектов."
+"* Каталог ярких звёзд содержит все звёзды со звёздной величиной от 6.5, что "
+"примерно соответствует звёздам, видимым невооружённым глазом с Земли. "
+"Каталог включает 9 110 объектов.\n"
+"* APASS, фотометрический обзор всего неба Американской ассоциации "
+"наблюдателей переменных звёзд (AAVSO). Обзор выполнен в восьми фильтрах: "
+"Johnson B и V, Sloan u', g′, r′, i′, z_s и Z. Он действителен для более чем "
+"37 миллионов звёзд примерно от 7-й до 17-й звёздной величины."
 
 #: src/gui/uifiles/IPS_dialog.ui:800
 msgid ""
@@ -8335,9 +8327,8 @@ msgstr ""
 "Это зависит от программного обеспечения, использованного для создания FITS."
 
 #: src/gui/uifiles/settings_window.ui:774
-#, fuzzy
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "Встроить профиль sRGB ICC в изображение"
+msgstr "Встроить профили ICC в сохранённые файлы FITS"
 
 #: src/gui/uifiles/settings_window.ui:778
 msgid ""
@@ -9190,9 +9181,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3508
-#, fuzzy
 msgid "Preferred Color Space:"
-msgstr "Цветовое пространство:"
+msgstr "Предпочитаемое цветовое пространство:"
 
 #: src/gui/uifiles/settings_window.ui:3519
 msgid ""
@@ -9213,9 +9203,8 @@ msgid "Rec2020"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3524
-#, fuzzy
 msgid "From files"
-msgstr "Профиль"
+msgstr "Из файлов"
 
 #: src/gui/uifiles/settings_window.ui:3539
 msgid ""
@@ -9240,9 +9229,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3568
-#, fuzzy
 msgid "RGB ICC profile"
-msgstr "ICC-профиль"
+msgstr "RGB ICC-профиль"
 
 #: src/gui/uifiles/settings_window.ui:3579
 msgid ""
@@ -9251,9 +9239,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3581
-#, fuzzy
 msgid "Gray ICC profile"
-msgstr "ICC-профиль"
+msgstr "Ч/Б ICC-профиль"
 
 #: src/gui/uifiles/settings_window.ui:3593
 msgid ""
@@ -9270,9 +9257,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3626
-#, fuzzy
 msgid "Working Color Spaces"
-msgstr "Цветовое пространство:"
+msgstr "Рабочие цветовые пространства"
 
 #: src/gui/uifiles/settings_window.ui:3659
 msgid "Custom monitor profile:"
@@ -9323,9 +9309,8 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3757
 #: src/gui/uifiles/settings_window.ui:3904
-#, fuzzy
 msgid "Saturation"
-msgstr "Насыщенность: "
+msgstr "Насыщенность"
 
 #: src/gui/uifiles/settings_window.ui:3758
 #: src/gui/uifiles/settings_window.ui:3905
@@ -9334,9 +9319,8 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3769
 #: src/gui/uifiles/settings_window.ui:3784
-#, fuzzy
 msgid "active"
-msgstr "относительный"
+msgstr "активный"
 
 #: src/gui/uifiles/settings_window.ui:3773
 msgid ""
@@ -9352,9 +9336,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3799
-#, fuzzy
 msgid "Black point compensation"
-msgstr "Без коррекции точки черного"
+msgstr "Коррекция точки чёрного"
 
 #: src/gui/uifiles/settings_window.ui:3803
 msgid ""
@@ -9363,9 +9346,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3821
-#, fuzzy
 msgid "Custom Profiles"
-msgstr "Профиль"
+msgstr "Пользовательские профили"
 
 #: src/gui/uifiles/settings_window.ui:3838
 msgid ""
@@ -9395,9 +9377,8 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3874
 #: src/gui/uifiles/settings_window.ui:3954
-#, fuzzy
 msgid "Image's current ICC profile"
-msgstr "Сохранить текущий график в файл png"
+msgstr "Текущий ICC-профиль изображения"
 
 #: src/gui/uifiles/settings_window.ui:3888
 msgid "Conversion and export intent:"
@@ -9464,23 +9445,20 @@ msgid "Always"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4044
-#, fuzzy
 msgid "On load"
-msgstr "не загружено"
+msgstr "При загрузке"
 
 #: src/gui/uifiles/settings_window.ui:4058
-#, fuzzy
 msgid "On stacking"
-msgstr "Сумма"
+msgstr "При укладке"
 
 #: src/gui/uifiles/settings_window.ui:4072
 msgid "On stretching"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4101
-#, fuzzy
 msgid "Output of RGB composition / PixelMath"
-msgstr "Диалог инструмента совмещения в RGB"
+msgstr "Вывод совмещения в RGB / Математических операций"
 
 #: src/gui/uifiles/settings_window.ui:4115
 msgid "Pedantically assign linear ICC profiles"
@@ -9513,9 +9491,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4190
-#, fuzzy
 msgid "<b>Built-in Profiles</b>"
-msgstr "<b>Тип профиля</b>"
+msgstr "<b>Встроенные профили</b>"
 
 #: src/gui/uifiles/settings_window.ui:4253
 msgid ""
@@ -10264,14 +10241,13 @@ msgstr ""
 "командной строки."
 
 #: src/main.c:139
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI.\n"
 " Exiting.\n"
 msgstr ""
 "%s не найден или содержит ошибки, не удалось отобразить графический "
-"интерфейс:\n"
-"%s\n"
+"интерфейс.\n"
 " Выход.\n"
 
 #: src/main.c:154
@@ -10344,16 +10320,17 @@ msgid "Cancelled"
 msgstr "Отменено"
 
 #: src/algos/astrometry_solver.c:419
-#, fuzzy, c-format
+#, c-format
 msgid "Fetched %d stars from %s catalogue\n"
-msgstr "Не удалось сопоставить звёзды из каталога"
+msgstr "Получено %d звёзд из %s каталога\n"
 
 #: src/algos/astrometry_solver.c:448
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
-"Поиск астрономического решения по локальным каталогам для поля зрения %.2f°\n"
+"Поиск астрономического решения с помощью astrometry.net для поля зрения %.2f°"
+"\n"
 
 #: src/algos/astrometry_solver.c:450
 #, c-format
@@ -10658,9 +10635,9 @@ msgid "%s: extract HSV channel"
 msgstr ""
 
 #: src/algos/colors.c:770 src/algos/colors.c:905
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract LAB channel"
-msgstr "На канал CFA"
+msgstr "%s: извлечь канал LAB"
 
 #: src/algos/colors.c:775 src/algos/colors.c:910
 msgid "Image is not color managed. Assuming sRGB.\n"
@@ -10714,9 +10691,9 @@ msgstr ""
 "световой кривой\n"
 
 #: src/algos/comparison_stars.c:143
-#, fuzzy, c-format
+#, c-format
 msgid "star %s [%s] added as a reference star\n"
-msgstr "Звезда %s добавлена как опорная\n"
+msgstr "звезда %s [%s] добавлена как опорная\n"
 
 #: src/algos/comparison_stars.c:145
 #, c-format
@@ -10736,40 +10713,43 @@ msgid "Creating csv output file %s\n"
 msgstr "Создание исходящего файла csv %s\n"
 
 #: src/algos/comparison_stars.c:226
-#, fuzzy
 msgid "Problem writing the comparison stars file\n"
-msgstr "Создать список звёзд сравнения"
+msgstr "Проблема с записью файла звёзд сравнения\n"
 
 #: src/algos/comparison_stars.c:259
 msgid "Not enough stars available\n"
 msgstr "Недостаточно звёзд\n"
 
 #: src/algos/comparison_stars.c:263
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Filtering parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: "
 "%1.3lf\n"
-msgstr "Параметры сортировки: Δ блеска V: %1.2lf, Δ BV: %1.2lf\n"
+msgstr ""
+"Параметры фильтрации: delta_Vmag: %1.2lf, delta_BV: %1.2lf, макс e_Vmag: %1."
+"3lf\n"
 
 #: src/algos/comparison_stars.c:265
-#, fuzzy, c-format
+#, c-format
 msgid "Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"
-msgstr "Целевая звезда: блеск V=%2.2lf, блеск B=%2.2lf\n"
+msgstr "Целевая звезда: Vmag = %2.2lf, B-V = %+2.2lf\n"
 
 #: src/algos/comparison_stars.c:305
 msgid "Stars sorted by increasing distance (in arcmin) wrt. image center\n"
 msgstr ""
 
 #: src/algos/comparison_stars.c:316
-#, fuzzy, c-format
+#, c-format
 msgid "e_Vmag and e_Bmag are photometric errors supplied from %s\n"
-msgstr "e_Vmax и e_Bmag это внутренние ошибки, передаваемые из %s\n"
+msgstr "e_Vmax и e_Bmag это фотометрические ошибки, передаваемые из %s\n"
 
 #: src/algos/comparison_stars.c:323
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"
-msgstr "%s  %d: %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
+msgstr ""
+"Звезда сравнения %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5."
+"2lf\n"
 
 #. and log results
 #: src/algos/comparison_stars.c:339
@@ -10799,14 +10779,12 @@ msgid "No comparison stars retrieved from the catalog %s, aborting\n"
 msgstr ""
 
 #: src/algos/comparison_stars.c:396
-#, fuzzy
 msgid "No comparison stars found in the image, aborting\n"
-msgstr "Не удалось найти звёзды на первом изображении, прерывание.\n"
+msgstr "На изображении не удалось найти звёзды сравнения, прерывание.\n"
 
 #: src/algos/comparison_stars.c:405
-#, fuzzy
 msgid "Comparison stars: processing...\n"
-msgstr "Отражение по горизонтали: выполняется…\n"
+msgstr "Звёзды сравнения: выполняется…\n"
 
 #: src/algos/comparison_stars.c:417
 msgid "Target star photometric information not available.\n"
@@ -10931,9 +10909,8 @@ msgstr ""
 "Байера!\n"
 
 #: src/algos/extraction.c:109 src/algos/extraction.c:159
-#, fuzzy
 msgid "Ha channel"
-msgstr "канал"
+msgstr "канал Ha"
 
 #: src/algos/extraction.c:182
 msgid "XTRANS pattern not supported for this feature.\n"
@@ -10946,9 +10923,9 @@ msgstr ""
 "Байера!\n"
 
 #: src/algos/extraction.c:294 src/algos/extraction.c:339
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract Green channel\n"
-msgstr "Зелёный канал"
+msgstr "%s: извлечь зелёный канал\n"
 
 #: src/algos/extraction.c:491
 #, c-format
@@ -10967,24 +10944,20 @@ msgstr ""
 
 #. Update history
 #: src/algos/extraction.c:611 src/algos/extraction.c:663
-#, fuzzy
 msgid "CFA0 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA0\n"
 
 #: src/algos/extraction.c:612 src/algos/extraction.c:664
-#, fuzzy
 msgid "CFA1 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA1\n"
 
 #: src/algos/extraction.c:613 src/algos/extraction.c:665
-#, fuzzy
 msgid "CFA2 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA2\n"
 
 #: src/algos/extraction.c:614 src/algos/extraction.c:666
-#, fuzzy
 msgid "CFA3 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA3\n"
 
 #: src/algos/extraction.c:807 src/algos/extraction.c:1035
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -10997,14 +10970,12 @@ msgstr ""
 "фильтра Байера!\n"
 
 #: src/algos/extraction.c:1013 src/algos/extraction.c:1240
-#, fuzzy
 msgid "Ha channel\n"
-msgstr "канал"
+msgstr "канал Ha\n"
 
 #: src/algos/extraction.c:1018 src/algos/extraction.c:1245
-#, fuzzy
 msgid "OIII channel\n"
-msgstr "канал"
+msgstr "канал OIII\n"
 
 #: src/algos/fix_xtrans_af.c:188
 #, c-format
@@ -11340,13 +11311,13 @@ msgid "No valid catalog found.\n"
 msgstr "Надёжный каталог не найден.\n"
 
 #: src/algos/photometric_cc.c:451
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
 msgstr ""
-"Извлечение звёзд из локальных каталогов для фотометрической калибровки цвета "
-"(радиус %.2f°, ограничение блеска %.2f)\n"
+"Извлечение звёзд из удалённого каталога %s для фотометрической калибровки "
+"цвета (радиус %.2f°, ограничение блеска %.2f)\n"
 
 #: src/algos/PSF.c:965
 msgid "Excellent"
@@ -11482,9 +11453,9 @@ msgid "Unsupported object type in response: %s\n"
 msgstr "Неподдерживаемый тип объекта в ответе: %s\n"
 
 #: src/algos/search_objects.c:179
-#, fuzzy, c-format
+#, c-format
 msgid "Could not parse the server response: %s\n"
-msgstr "Не удалось сохранить настройки в %s: %s\n"
+msgstr "Не удалось разобрать ответ сервера: %s\n"
 
 #: src/algos/search_objects.c:218
 #, c-format
@@ -11497,14 +11468,14 @@ msgid " (aka %s)"
 msgstr ""
 
 #: src/algos/search_objects.c:221
-#, fuzzy, c-format
+#, c-format
 msgid " at coordinates: %s, %s\n"
-msgstr "Найден %s в координатах: %s, %s\n"
+msgstr " в координатах: %s, %s\n"
 
 #: src/algos/search_objects.c:248
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
-msgstr "Объект %s найден в каталоге %s, α = %f, δ = %f\n"
+msgstr "Объект %s (точное совпадение: %s) найден в каталоге %s, %s, %s\n"
 
 #: src/algos/search_objects.c:271
 #, c-format
@@ -11551,11 +11522,12 @@ msgid "Searching for solar system object %s on observation date %s\n"
 msgstr "Поиск объекта Солнечной с-мы %s на дату %s\n"
 
 #: src/algos/search_objects.c:458
-#, fuzzy
 msgid ""
 "No topocentric data available. Set to geocentric, positions may be "
 "inaccurate\n"
-msgstr "Топоцентрические данные недоступны. Установлены геоцентрические\n"
+msgstr ""
+"Топоцентрические данные недоступны. Установлены геоцентрические, положения "
+"могут быть неточными\n"
 
 #: src/algos/search_objects.c:460
 #, c-format
@@ -11747,7 +11719,6 @@ msgid "Error: image could not be loaded"
 msgstr "Ошибка: изображение не может быть загружено"
 
 #: src/compositing/compositing.c:645
-#, fuzzy
 msgid ""
 "The maximum number of images of this size has been reached based on "
 "available memory limits."
@@ -12870,8 +12841,8 @@ msgstr "Неверное значение. Размер пикселя долж�
 #, fuzzy
 msgid "Wrong parameter values. Relax must be set to on or off, aborting.\n"
 msgstr ""
-"Неверное значение. Параметр \"Авто\" должен быть \"Вкл.\" или \"Выкл.\", "
-"прерывание.\n"
+"Неверные значения параметра. Параметр \"Ослабить\" должен быть \"Вкл.\" или "
+"\"Выкл.\", прерывание.\n"
 
 #: src/core/command.c:3483
 msgid ""
@@ -14061,10 +14032,10 @@ msgstr ""
 "при помощи astrometry.net\n"
 
 #: src/core/command.c:8721
-#, fuzzy
 msgid ""
 "This option only works on images that have observation date information\n"
-msgstr "Команда работает только на изображениях с данным о дате наблюдения\n"
+msgstr ""
+"Команда работает только на изображениях, имеющих данные о дате наблюдения\n"
 
 #: src/core/command.c:8731
 msgid "The observatory should be coded as a 3-letter word\n"
@@ -14153,18 +14124,16 @@ msgid "Error: sequence has variable sized images.\n"
 msgstr "Ошибка: последовательность содержит изображения разного размера.\n"
 
 #: src/core/command.c:9357
-#, fuzzy
 msgid "Error opening target ICC profile.\n"
-msgstr "Ошибка при открытии файла %s\n"
+msgstr "Ошибка открытия целевого профиля ICC.\n"
 
 #: src/core/command.c:9361
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
 #: src/core/command.c:9364 src/core/command.c:9427
-#, fuzzy
 msgid "Error opening ICC profile.\n"
-msgstr "Ошибка при открытии файла"
+msgstr "Ошибка при открытии профиля ICC.\n"
 
 #: src/core/command.c:9380
 msgid ""
@@ -14179,9 +14148,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:9425
-#, fuzzy
 msgid "Color space conversion complete.\n"
-msgstr "Оценка ядра завершена.\n"
+msgstr "Преобразование цветового пространства завершено.\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -14452,7 +14420,6 @@ msgstr ""
 "в которой исполняется программа"
 
 #: src/core/command_def.h:19
-#, fuzzy
 msgid ""
 "Searches an object by <b>name</b> and adds it to the user annotation "
 "catalog. The object is first searched in the annotation catalogs, if not "
@@ -14469,9 +14436,11 @@ msgstr ""
 "аннотированных каталогах. Если объект не найден, выполняется запрос "
 "удалённого сервера SIMBAD.\n"
 "Объектом может быть тело Солнечной системы. В этом случае необходим префикс "
-"'a:' для астероида, 'p:' для планеты и 'c:' для кометы. Поиск выполняется "
-"для даты и местоположению Земли, указанным в заголовке файла, с помощью "
-"сервиса Miriade от Института небесной механики и вычисления эфемерид (IMCCE)"
+"'a:' для астероида, 'p:' для планеты, 'c:' для кометы, 'dp:' для карликовой "
+"планеты или 's:' для естественного спутника. Поиск выполняется для даты и "
+"местоположению Земли, указанным в заголовке файла, с помощью сервиса <a href="
+"\"https://ssp.imcce.fr/webservices/miriade/howto/ephemcc/#howto-sso\""
+">Miriade</a> от Института небесной механики и вычисления эфемерид (IMCCE)"
 
 #: src/core/command_def.h:20
 msgid ""
@@ -20588,11 +20557,11 @@ msgstr ""
 
 #: src/gui/callbacks.c:2129
 msgid "SOLAR SYSTEM"
-msgstr ""
+msgstr "СОЛНЕЧНАЯ СИСТЕМА"
 
 #: src/gui/callbacks.c:2129
 msgid "DEEP SKY"
-msgstr ""
+msgstr "ГЛУБОКИЙ КОСМОС"
 
 #: src/gui/callbacks.c:2131
 msgid "Catalog deletion"
@@ -24199,9 +24168,8 @@ msgid "GCVS"
 msgstr ""
 
 #: src/io/siril_catalogues.c:238
-#, fuzzy
 msgid "PGC"
-msgstr "PPG"
+msgstr "PGC"
 
 #: src/io/siril_catalogues.c:240
 msgid "Exoplanet archive"
