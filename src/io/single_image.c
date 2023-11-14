@@ -64,7 +64,6 @@ void close_single_image() {
 		return;
 	/* We need to clear display and soft proofing transforms and a few other
 	 * color management data */
-	reset_icc_transforms();
 
 	siril_debug_print("MODE: closing single image\n");
 	undo_flush();
@@ -149,10 +148,6 @@ static void free_image_data_gui() {
 		view->view_width = -1;
 		view->view_height= -1;
 	}
-	if (gui.icc.proofing_transform) {
-		cmsDeleteTransform(gui.icc.proofing_transform);
-		gui.icc.proofing_transform = NULL;
-	}
 	clear_previews();
 	free_reference_image();
 }
@@ -162,6 +157,8 @@ void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
+	reset_icc_transforms();
+	disable_iso12646_conditions(TRUE, TRUE);
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 

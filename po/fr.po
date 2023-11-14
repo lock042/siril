@@ -7,11 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-13 11:38+0100\n"
-"PO-Revision-Date: 2023-11-13 10:38+0000\n"
+"POT-Creation-Date: 2023-11-13 15:16+0100\n"
+"PO-Revision-Date: 2023-11-13 21:58+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10472,15 +10472,14 @@ msgstr ""
 "la ligne de commande."
 
 #: src/main.c:139
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI.\n"
 " Exiting.\n"
 msgstr ""
-"%s est introuvable ou contient des erreurs, impossible d'afficher "
-"l'interface graphique : \n"
-"%s\n"
-"Sortie.\n"
+"%s n'a pas été trouvé ou contient des erreurs, ne peut pas afficher "
+"l'interface graphique.\n"
+" Sortie.\n"
 
 #: src/main.c:154
 #, c-format
@@ -10979,7 +10978,7 @@ msgstr ""
 #: src/algos/comparison_stars.c:265
 #, c-format
 msgid "Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"
-msgstr "Étoile cible : Vmag=%2.2lf, B-V =%2.2lf\n"
+msgstr "Étoile cible : Vmag = %2.2lf, B-V = %+2.2lf\n"
 
 #: src/algos/comparison_stars.c:305
 msgid "Stars sorted by increasing distance (in arcmin) wrt. image center\n"
@@ -11572,12 +11571,12 @@ msgid "No valid catalog found.\n"
 msgstr "Aucune catalogue valide trouvé.\n"
 
 #: src/algos/photometric_cc.c:451
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
 msgstr ""
-"Obtenir des étoiles des catalogues locaux pour PCC, avec un rayon de %.2f "
+"Obtenir des étoiles du catalogue en ligne %s pour PCC, avec un rayon de %.2f "
 "degrés et une magnitude limite de %.2f\n"
 
 #: src/algos/PSF.c:965
@@ -11698,16 +11697,16 @@ msgstr "Transformation inconnue\n"
 
 #: src/algos/search_objects.c:59
 msgid "SIMBAD server returned:\n"
-msgstr ""
+msgstr "Retour du serveur SIMBAD :\n"
 
 #: src/algos/search_objects.c:62 src/algos/search_objects.c:137
-#, fuzzy, c-format
+#, c-format
 msgid "%s\n"
-msgstr "%"
+msgstr "%s\n"
 
 #: src/algos/search_objects.c:134 src/io/remote_catalogues.c:407
 msgid "IMCCE server returned:\n"
-msgstr ""
+msgstr "Retour du serveur IMCCE :\n"
 
 # #################################################
 #: src/algos/search_objects.c:155
@@ -11716,34 +11715,36 @@ msgid "Unsupported object type in response: %s\n"
 msgstr "Type d'objet non supporté dans la réponse : %s\n"
 
 #: src/algos/search_objects.c:179
-#, fuzzy, c-format
+#, c-format
 msgid "Could not parse the server response: %s\n"
-msgstr "Impossible de sauvegarder les préférences dans %s : %s\n"
+msgstr "Impossible d'analyser la réponse du serveur : %s\n"
 
 #: src/algos/search_objects.c:218
 #, c-format
 msgid "Found %s"
-msgstr ""
+msgstr "A trouvé %s"
 
 #: src/algos/search_objects.c:220
 #, c-format
 msgid " (aka %s)"
-msgstr ""
+msgstr " (alias %s)"
 
 #: src/algos/search_objects.c:221
-#, fuzzy, c-format
+#, c-format
 msgid " at coordinates: %s, %s\n"
-msgstr "Trouvé %s aux coordonnées %s %s\n"
+msgstr " aux coordonnées : %s, %s\n"
 
 #: src/algos/search_objects.c:248
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
-msgstr "L'objet %s a été trouvé dans le catalogue %s, RA = %f, Dec = %f\n"
+msgstr ""
+"L'objet %s (correspondance exacte : %s) a été trouvé dans le catalogue %s "
+"à : %s, %s\n"
 
 #: src/algos/search_objects.c:271
 #, c-format
 msgid "Object %s record was found but is not within the bounds of the image\n"
-msgstr ""
+msgstr "L'objet %s a été trouvé, mais n'est pas dans les limites de l'image.\n"
 
 #: src/algos/search_objects.c:277
 #, c-format
@@ -11790,11 +11791,12 @@ msgstr ""
 "Recherche de l'objet du système solaire %s à la date d'observation %s\n"
 
 #: src/algos/search_objects.c:458
-#, fuzzy
 msgid ""
 "No topocentric data available. Set to geocentric, positions may be "
 "inaccurate\n"
-msgstr "Aucune donnée topocentrique disponible. Définir en géocentrique\n"
+msgstr ""
+"Aucune donnée topocentrique n'est disponible. Réglées sur géocentrique, les "
+"positions peuvent être imprécises.\n"
 
 #: src/algos/search_objects.c:460
 #, c-format
@@ -13144,11 +13146,10 @@ msgstr ""
 "à 0, abandon.\n"
 
 #: src/core/command.c:3476
-#, fuzzy
 msgid "Wrong parameter values. Relax must be set to on or off, aborting.\n"
 msgstr ""
-"Valeurs de paramètres incorrectes. Auto doit être réglé sur on ou off, ce "
-"qui entraîne l'abandon.\n"
+"Valeurs de paramètres erronées. Le paramètre relax doit être égal à on ou "
+"off, ce qui entraîne l'abandon de l'opération.\n"
 
 #: src/core/command.c:3483
 msgid ""
@@ -14384,36 +14385,35 @@ msgstr ""
 "d'astrométrie.net\n"
 
 #: src/core/command.c:8721
-#, fuzzy
 msgid ""
 "This option only works on images that have observation date information\n"
 msgstr ""
-"Cette commande ne fonctionne que sur les images qui ont des informations sur "
-"la date d'observation.\n"
+"Cette option ne fonctionne que pour les images comportant des informations "
+"sur la date d'observation.\n"
 
 #: src/core/command.c:8731
 msgid "The observatory should be coded as a 3-letter word\n"
-msgstr ""
+msgstr "L'observatoire doit être codé sous la forme d'un mot de 3 lettres\n"
 
 #: src/core/command.c:8744
-#, fuzzy
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr ""
-"Valeurs de paramètres incorrectes. Auto doit être réglé sur on ou off, ce "
-"qui entraîne l'abandon.\n"
+"Valeurs de paramètres erronées. Le paramètre log doit être égal à on ou off, "
+"ce qui entraîne l'annulation de l'opération.\n"
 
 #: src/core/command.c:8754
-#, fuzzy
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr ""
-"Valeurs de paramètres incorrectes. Auto doit être réglé sur on ou off, ce "
-"qui entraîne l'abandon.\n"
+"Valeurs de paramètres incorrectes. Le paramètre auto doit être réglé sur on "
+"ou off, ce qui entraîne l'abandon.\n"
 
 #: src/core/command.c:8780
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr ""
+"N'a pas spécifié de code d'observatoire, utilise le géocentrique par défaut, "
+"les positions peuvent ne pas être exactes.\n"
 
 #: src/core/command.c:8876 src/core/command.c:8920
 #, c-format
@@ -14485,7 +14485,7 @@ msgstr "Erreur d'ouverture du profil ICC cible.\n"
 
 #: src/core/command.c:9361
 msgid "Color profile assignment complete.\n"
-msgstr ""
+msgstr "Attribution du profil de couleur terminée.\n"
 
 #: src/core/command.c:9364 src/core/command.c:9427
 msgid "Error opening ICC profile.\n"
@@ -14496,12 +14496,16 @@ msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr ""
+"L'image n'a pas de profil de couleur attribué pour la conversion. Attribuez "
+"d'abord un profil.\n"
 
 #: src/core/command.c:9394
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
+"L'intention spécifiée n'est pas reconnue. Spécifier l'une des options "
+"suivantes : \"perceptual\", \"relative\", \"saturation\" ou \"absolute\"\n"
 
 #: src/core/command.c:9425
 msgid "Color space conversion complete.\n"
@@ -14772,13 +14776,12 @@ msgstr ""
 "l'exécution"
 
 #: src/core/command_def.h:19
-#, fuzzy
 msgid ""
 "Searches an object by <b>name</b> and adds it to the user annotation "
 "catalog. The object is first searched in the annotation catalogs, if not "
 "found a request is made to SIMBAD.\n"
 "The object can be a solar system object, in which case a prefix, 'a:' for "
-"asteroid, 'p:' for planet, 'c:' for comet, 'dp:  for dwarf planet or 's:' "
+"asteroid, 'p:' for planet, 'c:' for comet, 'dp:' for dwarf planet or 's:' "
 "for natural satellite, is required before the object name. The search is "
 "done for the date, time and observing location found in the image header, "
 "using the <a href=\"https://ssp.imcce.fr/webservices/miriade/howto/ephemcc/"
@@ -14788,9 +14791,12 @@ msgstr ""
 "l'utilisateur. L'objet est d'abord recherché dans les catalogues "
 "d'annotations, s'il n'est pas trouvé, une demande est faite à SIMBAD.\n"
 "L'objet peut être un objet du système solaire, dans ce cas le préfixe 'a:' "
-"pour astéroïde, 'p:' pour planète ou 'c:' pour comète est nécessaire, et la "
-"recherche est effectuée pour la date et la position de la Terre trouvées "
-"dans l'en-tête de l'image, en utilisant le service Miriade de l'IMCCE"
+"pour astéroïde, 'p:' pour planète, 'c:' pour comète, 'dp:' pour planète "
+"naine ou 's:' pour satellite naturel est nécessaire avant le nom de l'objet. "
+"La recherche est effectuée pour la date, l'heure et le lieu d'observation "
+"trouvés dans l'en-tête de l'image, en utilisant le <a href=\"https://ssp."
+"imcce.fr/webservices/miriade/howto/ephemcc/#howto-sso\">service Miriade de "
+"l'IMCCE</a>"
 
 #: src/core/command_def.h:20
 msgid ""
@@ -14877,6 +14883,33 @@ msgid ""
 "with the options <b>-tag=on|off</b> to display names alongside markers and "
 "<b>-log=on|off</b> to list the objects in the console log"
 msgstr ""
+"Affiche les étoiles du catalogue local par défaut pour l'image résolue "
+"chargée, jusqu'à la magnitude limite <b>limit_magnitude</b> fournie (13 par "
+"défaut pour la plupart des catalogues, sauf 14,5 pour aavso_chart, 20 pour "
+"solsys et omis pour pgc).\n"
+"Un autre catalogue en ligne peut être spécifié avec <b>-cat=</b>, en prenant "
+"les valeurs\n"
+"- pour les étoiles : tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, "
+"simbad, aavso_chart\n"
+"- pour les exoplanètes : exo\n"
+"- pour le ciel profond : pgc\n"
+"- pour les objets du système solaire : solsys (le <a href=\"https://vo.imcce."
+"fr/webservices/data/displayIAUObsCodes.php\">code d'observatoire IAU</a> le "
+"plus proche peut être passé avec l'argument <b>-obscode=</b> pour une "
+"meilleure précision de position)\n"
+"\n"
+"Pour les catalogues d'étoiles contenant des données photométriques, les "
+"étoiles sans informations B-V seront conservées ; ils peuvent être exclus en "
+"passant <b>-photo</b>\n"
+"\n"
+"Certains catalogues (bsc, gcvs, pgc, exo, aavso_chart et solsys) afficheront "
+"également, par défaut, les noms à côté des marqueurs à l'écran (interface "
+"graphique uniquement) et les listeront dans le journal. Pour d'autres ayant "
+"un plus grand nombre d'objets, à savoir vsx et simbad, l'information peut "
+"également être affichée, mais, comme elle peut encombrer l'affichage, elle "
+"n'est pas activée par défaut. Ce comportement peut être activé/désactivé "
+"avec les options <b>-tag=on|off</b> pour afficher les noms à côté des "
+"marqueurs et <b>-log=on|off</b> pour lister les objets dans la console"
 
 #: src/core/command_def.h:27
 msgid ""
@@ -15249,7 +15282,6 @@ msgstr ""
 "l'appliquer à une séquence"
 
 #: src/core/command_def.h:52
-#, fuzzy
 msgid ""
 "Automatically finds comparison stars in the field of the plate solved loaded "
 "image, for photometric analysis of a star's light curve according to\n"
@@ -15261,9 +15293,9 @@ msgid ""
 "- the difference in visual magnitude from the variable star, in the range "
 "[0, 6] with a default of 3, changed with <b>-dvmag=</b>\n"
 "- the difference in color with the variable star, in the range [0.0, 0.7] of "
-"their B-V indices with a default of 0.5, changed with <b>-dbv=</b>.\n"
+"their B-V indices with a default of 0.5, changed with <b>-dbv=</b>\n"
 "- the maximum allowed error on Vmag in the range [0.0, 0.1] with a default "
-"of 0.03, changed with <b>-emag=</b>\n"
+"of 0.03, changed with <b>-emag=</b>.\n"
 "\n"
 "The list can optionally be saved as a CSV file compatible with the NINA "
 "comparison stars list, specifying the file name with <b>-out=</b>. If the "
@@ -15272,17 +15304,20 @@ msgid ""
 "\n"
 "See also LIGHT_CURVE"
 msgstr ""
-"Trouve automatiquement les étoiles de comparaison dans le champ pour "
-"l'analyse photométrique de la courbe de lumière d'une étoile selon\n"
+"Recherche automatiquement des étoiles de comparaison dans le champ de "
+"l'image chargée résolue par la plaque, pour l'analyse photométrique de la "
+"courbe de lumière d'une étoile selon\n"
 "- le nom fourni de l'étoile\n"
-"- le champ de vision de l'image, réduit à un diamètre de sa hauteur si <b>-"
-"narrow</b> est passé, en évitant les étoiles dans les coins\n"
-"- le catalogue choisi (APASS par défaut), peut être modifié avec <b>-"
-"catalog={NOMAD|APASS}</b>\n"
+"- le champ de vision de l'image, réduit à un diamètre de sa hauteur si "
+"<b>-narrow</b> est passé, en évitant les étoiles dans les coins\n"
+"- le catalogue choisi (APASS par défaut), peut être modifié avec "
+"<b>-catalog={NOMAD|APASS}</b>\n"
 "- la différence de magnitude visuelle par rapport à l'étoile variable, dans "
 "la plage [0, 6] avec un défaut de 3, changer avec <b>-dvmag=</b>\n"
-"- la différence de couleur avec l'étoile variable, dans l'intervalle [0.0, "
-"0.7] de leurs indices B-V avec un défaut de 0.5, change avec <b>-dbv=</b>.\n"
+"- la différence de couleur avec l'étoile variable, dans l'intervalle [0.0, 0."
+"7] de leurs indices B-V avec un défaut de 0.5, change avec <b>-dbv=</b>\n"
+"- l'erreur maximale autorisée sur Vmag dans la plage [0.0, 0.1] avec une "
+"valeur par défaut de 0.03, modifiée avec <b>-emag=</b>.\n"
 "\n"
 "La liste peut éventuellement être enregistrée sous forme de fichier CSV "
 "compatible avec la liste d'étoiles de comparaison NINA, en spécifiant le nom "
@@ -15514,6 +15549,14 @@ msgid ""
 "file may be provided. If a built-in profile is specified with a monochrome "
 "image loaded, the Gray profile with the corresponding TRC will be used"
 msgstr ""
+"Attribue le profil ICC spécifié dans l'argument à l'image actuelle.\n"
+"L'un des arguments spéciaux suivants peut être fourni pour utiliser les "
+"profils intégrés respectifs : <b>sRGB</b>, <b>sRGBlinear</b>, <b>Rec2020</"
+"b>, <b>Rec2020linear</b>, <b>working</b> pour définir le profil de couleur "
+"monochrome ou RVB de travail, (pour les images mono uniquement) <b>linear</"
+"b>, ou le chemin d'accès à un fichier de profil ICC peut être fourni. Si un "
+"profil intégré est spécifié avec une image monochrome chargée, le profil de "
+"Gris avec le TRC correspondant sera utilisé"
 
 #: src/core/command_def.h:70
 msgid ""
@@ -15531,6 +15574,20 @@ msgid ""
 "colorimetric), <b>saturation</b> or <b>absolute</b> (for absolute "
 "colorimetric)"
 msgstr ""
+"Convertit l'image actuelle vers le profil ICC spécifié.\n"
+"L'un des arguments spéciaux suivants peut être fourni pour utiliser les "
+"profils intégrés respectifs : <b>sRGB</b>, <b>sRGBlinear</b>, <b>Rec2020</"
+"b>, <b>Rec2020linear</b>, <b>graysrgb</b>, <b>grayrec2020</b>, "
+"<b>graylinear</b> ou <b>working</b> pour définir le profil de couleur mono "
+"ou RVB de travail, (pour les images mono uniquement) <b>linear</b>, ou le "
+"chemin d'accès à un fichier de profil ICC peut être fourni. Si un profil "
+"intégré est spécifié avec une image monochrome chargée, le profil de Gris "
+"avec le TRC correspondant sera utilisé.\n"
+"\n"
+"Un deuxième argument peut être fourni pour spécifier l'intention de "
+"transformation de la couleur : il doit s'agir de l'un des valeurs "
+"<b>perceptual</b>, <b>relative</b> (pour colorimétrique relative), "
+"<b>saturation</b> ou <b>absolute</b> (pour une colorimétrie absolue)"
 
 #: src/core/command_def.h:71
 msgid "Removes the ICC profile from the current image, if it has one"
@@ -17635,7 +17692,6 @@ msgstr ""
 "pas le numéro dans le nom du fichier, commençant à 1"
 
 #: src/core/command_def.h:178
-#, fuzzy
 msgid ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
@@ -17648,13 +17704,17 @@ msgid ""
 "\n"
 "This is only available from the GUI of Siril"
 msgstr ""
-"Affiche un point sur l'image résolue et chargée à l'aide du catalogue "
+"Affiche un point sur l'image résolue chargée à l'aide du catalogue "
 "d'annotations utilisateur temporaire, en fonction de ses coordonnées "
 "équatoriales. L'option <b>-clear</b> efface d'abord ce catalogue et peut "
-"être utilisée seule. Plusieurs points peuvent être passés à l'aide d'un "
-"fichier CSV avec l'option <b>-file=</b> contenant un nom (ne peut pas "
-"commencer par un chiffre), RA et Dec. Ceci n'est disponible que depuis "
-"l'interface graphique de Siril"
+"être utilisée seule.\n"
+"Plusieurs points peuvent être passés à l'aide d'un fichier CSV avec l'option "
+"<b>-list=</b> contenant au moins les colonnes ra et dec. Si le fichier "
+"transmis contient également un nom de colonne, les noms seront utilisés "
+"comme balises dans l'image et répertoriés dans la console, à moins qu'ils ne "
+"soient désactivés avec les options <b>-notag</b> et <b>-nolog</b>. .\n"
+"\n"
+"Ceci n'est disponible qu'à partir de l'interface graphique de Siril"
 
 #: src/core/command_def.h:179
 msgid ""
@@ -18283,6 +18343,10 @@ msgid ""
 "Monitor profile: %s\n"
 "Soft proofing profile: %s"
 msgstr ""
+"L'image est gérée en couleur\n"
+"Profil de l'image : %s\n"
+"Profil du moniteur : %s\n"
+"Profil d'épreuvage à l'écran : %s"
 
 #: src/core/icc_profile.c:166
 msgid ""
@@ -18291,6 +18355,10 @@ msgid ""
 "Left click: Color management dialog\n"
 "Right click: toggle ISO12646 color assessment mode"
 msgstr ""
+"L'image est gérée en couleur\n"
+"\n"
+"Cliquez sur le bouton gauche : boîte de dialogue de gestion des couleurs\n"
+"Clic droit : basculer le mode d'évaluation des couleurs ISO12646"
 
 #: src/core/icc_profile.c:168
 msgid ""
@@ -18299,6 +18367,10 @@ msgid ""
 "Left click: Color management dialog\n"
 "Right click: toggle ISO12646 color assessment mode"
 msgstr ""
+"L'image n'est pas gérée en couleur\n"
+"\n"
+"Cliquez sur le bouton gauche : boîte de dialogue de gestion des couleurs\n"
+"Clic droit : basculer le mode d'évaluation des couleurs ISO12646"
 
 # #################################################
 #: src/core/icc_profile.c:198 src/core/icc_profile.c:1889
@@ -18315,7 +18387,7 @@ msgstr "Échec de l'exportation du profil ICC vers %s\n"
 #. but use a confirmation dialog to confirm the ICC's terms of use.
 #: src/core/icc_profile.c:255
 msgid "Terms of Use"
-msgstr ""
+msgstr "Conditions d'utilisation"
 
 #: src/core/icc_profile.c:255
 msgid ""
@@ -18331,6 +18403,19 @@ msgid ""
 "permission. ICC makes no representations about the suitability of this "
 "software for any purpose."
 msgstr ""
+"Pour exporter une copie du profil de moniteur sRGB avec les tables "
+"d'intention perceptuelle, veuillez accepter les conditions d'utilisation de "
+"l'ICC :\n"
+"\n"
+"À quiconque reconnaît que le fichier \"sRGB_v4_ICC_preference.icc\" est "
+"fourni \"TEL QUEL\" SANS GARANTIE EXPRESSE OU IMPLICITE, l'autorisation "
+"d'utiliser, de copier et de distribuer ce fichier à quelque fin que ce soit "
+"est accordée par la présente sans frais, à condition que le fichier ne soit "
+"pas modifié, y compris l'étiquette d'avis de droit d'auteur de l'ICC, et que "
+"le nom de l'ICC ne soit pas utilisé dans la publicité relative à la "
+"distribution du logiciel sans autorisation écrite spécifique préalable. La "
+"CCI ne fait aucune déclaration quant à l'adéquation de ce logiciel à quelque "
+"fin que ce soit."
 
 #: src/core/icc_profile.c:264 src/io/gitscripts.c:764
 msgid "Accept"
@@ -18339,34 +18424,46 @@ msgstr "Accepter"
 #: src/core/icc_profile.c:363
 msgid "Error opening custom monitor profile. Monitor profile set to sRGB.\n"
 msgstr ""
+"Erreur lors de l'ouverture du profil de moniteur personnalisé. Le profil du "
+"moniteur est réglé sur sRGB.\n"
 
 #: src/core/icc_profile.c:370
 msgid ""
 "Warning: custom monitor profile set but could not be loaded. Display will "
 "use a sRGB profile with the standard sRGB TRC.\n"
 msgstr ""
+"Attention : le profil de moniteur personnalisé a été défini mais n'a pas pu "
+"être chargé. L'écran utilisera un profil sRGB avec le TRC sRGB standard.\n"
 
 #: src/core/icc_profile.c:391
 msgid ""
 "Warning: soft proofing profile set but could not be loaded. Soft proofing "
 "will be unavailable.\n"
 msgstr ""
+"Attention : le profil d'épreuvage en douceur a été défini mais n'a pas pu "
+"être chargé. L'épreuvage à l'écran ne sera pas disponible.\n"
 
 #: src/core/icc_profile.c:431
 msgid "Error opening nonlinear working profile. Profile set to sRGB.\n"
 msgstr ""
+"Erreur d'ouverture du profil de travail non linéaire. Le profil est réglé "
+"sur sRGB.\n"
 
 #: src/core/icc_profile.c:446
 msgid ""
 "Error opening matched grayscale working profile. Profile set to Gray with "
 "srGB tone response curve.\n"
 msgstr ""
+"Erreur lors de l'ouverture du profil de travail en niveaux de gris. Le "
+"profil est défini sur Gris avec la courbe de réponse des tons srGB.\n"
 
 #: src/core/icc_profile.c:490
 msgid ""
 "Error: standard color management profiles could not be loaded. Cannot "
 "continue. Please report this error.\n"
 msgstr ""
+"Erreur : les profils standards de gestion des couleurs n'ont pas pu être "
+"chargés. Impossible de continuer. Veuillez signaler cette erreur.\n"
 
 #: src/core/icc_profile.c:495
 msgid "Color management active.\n"
@@ -18374,24 +18471,30 @@ msgstr "Gestion des couleurs active.\n"
 
 #: src/core/icc_profile.c:498
 msgid "JPEG ICC profiles supported.\n"
-msgstr ""
+msgstr "Profils ICC JPEG pris en charge.\n"
 
 #: src/core/icc_profile.c:500
 msgid ""
 "JPEG ICC profiles unsupported: libjpeg-turbo 2.0.0 or higher is required.\n"
 msgstr ""
+"Profils ICC JPEG non pris en charge : libjpeg-turbo 2.0.0 ou supérieur est "
+"nécessaire.\n"
 
 #: src/core/icc_profile.c:886
 msgid ""
 "FITS did not contain an ICC profile but is declared to be stretched. "
 "Assigning a sRGB color profile.\n"
 msgstr ""
+"Le fichier FITS ne contenait pas de profil ICC mais est déclaré étiré. "
+"Attribution d'un profil de couleur sRGB.\n"
 
 #: src/core/icc_profile.c:892
 msgid ""
 "FITS did not contain an ICC profile. It appears to have been stretched using "
 "an older version of Siril. Assigning a sRGB color profile.\n"
 msgstr ""
+"Le fichier FITS ne contenait pas de profil ICC mais est déclaré étiré. "
+"Attribution d'un profil de couleur sRGB.\n"
 
 #: src/core/icc_profile.c:909
 msgid ""
@@ -18399,6 +18502,10 @@ msgid ""
 "count. Color management is disabled for this image. To re-enable it, an ICC "
 "profile must be assigned using the Color Management menu item.\n"
 msgstr ""
+"Attention : le nombre de canaux du profil ICC intégré ne correspond pas au "
+"nombre de canaux de l'image. La gestion des couleurs est désactivée pour "
+"cette image. Pour la réactiver, un profil ICC doit être attribué à l'aide du "
+"menu Gestion des couleurs.\n"
 
 #: src/core/icc_profile.c:1025 src/core/icc_profile.c:1032
 msgid "No ICC profile"
@@ -18409,10 +18516,12 @@ msgid ""
 "To write an ICC profile, assign a profile to the image using the Color "
 "Management dialog."
 msgstr ""
+"Pour écrire un profil ICC, affectez un profil à l'image à l'aide de la boîte "
+"de dialogue Gestion des couleurs."
 
 #: src/core/icc_profile.c:1069
 msgid "Image is not color managed. Will not write an ICC profile."
-msgstr ""
+msgstr "L'image n'est pas gérée en couleur. Profil ICC non écrit."
 
 #: src/core/icc_profile.c:1118
 msgid "ICC profile removed"
@@ -18428,12 +18537,17 @@ msgid ""
 "Image number of channels does not match color profile number of channels. "
 "Cannot assign this profile to this image."
 msgstr ""
+"Le nombre de canaux de l'image ne correspond pas au nombre de canaux du "
+"profil couleur. Impossible d'attribuer ce profil à cette image."
 
 #: src/core/icc_profile.c:1154
 msgid ""
 "Siril only supports representing the image in Gray or RGB color spaces. You "
 "cannot assign or convert to non-RGB color profiles"
 msgstr ""
+"Siril ne prend en charge que la représentation de l'image dans les espaces "
+"colorimétriques gris ou RVB. Il n'est pas possible d'assigner ou de "
+"convertir des profils de couleurs non RVB"
 
 #: src/core/icc_profile.c:1180
 #, c-format
@@ -18450,16 +18564,22 @@ msgid ""
 "auto-assign an ICC profile. You must manually assign one at an appropriate "
 "time.\n"
 msgstr ""
+"Cette image est un canal extrait d'une image à 3 canaux. L'attribution "
+"automatique d'un profil ICC n'est pas judicieuse. Vous devez en assigner un "
+"manuellement au moment opportun.\n"
 
 #: src/core/icc_profile.c:1254
 msgid ""
 "The current image is not color managed. Do you want to assign the working "
 "color space?"
 msgstr ""
+"L'image actuelle n'est pas gérée en couleur. Souhaitez-vous attribuer "
+"l'espace colorimétrique de travail ?"
 
 #: src/core/icc_profile.c:1256
 msgid "Do you want to convert this image to the working color space?"
 msgstr ""
+"Voulez-vous convertir cette image dans l'espace colorimétrique de travail ?"
 
 #: src/core/icc_profile.c:1353
 msgid "Error loading profile"
@@ -18470,12 +18590,17 @@ msgid ""
 "The selected profile could not be loaded or did not contain a valid ICC "
 "profile. Defaulting to sRGB."
 msgstr ""
+"Le profil sélectionné n'a pas pu être chargé ou ne contient pas de profil "
+"ICC valide. La valeur par défaut est sRGB."
 
 #: src/core/icc_profile.c:1359
 msgid ""
 "Error: the preferred colorspace profiles are not all set, or some are not "
 "valid. You need to set both a RGB and a Gray profile. Defaulting to sRGB.\n"
 msgstr ""
+"Erreur : les profils d'espace colorimétrique préférés ne sont pas tous "
+"définis, ou certains ne sont pas valides. Vous devez définir un profil RVB "
+"et un profil de Gris. La valeur par défaut est sRGB.\n"
 
 #: src/core/icc_profile.c:1372
 msgid "Updating working profiles.\n"
@@ -18483,7 +18608,7 @@ msgstr "Mise à jour des profils de travail.\n"
 
 #: src/core/icc_profile.c:1490
 msgid "Monitor ICC profile set to sRGB\n"
-msgstr ""
+msgstr "Profil ICC du moniteur réglé sur sRGB\n"
 
 #: src/core/icc_profile.c:1492 src/core/icc_profile.c:1559
 #: src/core/icc_profile.c:1568
@@ -18499,7 +18624,7 @@ msgstr ""
 #: src/core/icc_profile.c:1547
 #, c-format
 msgid "Monitor profile loaded from %s\n"
-msgstr ""
+msgstr "Profil du moniteur chargé à partir de %s\n"
 
 #: src/core/icc_profile.c:1553
 #, c-format
@@ -18508,7 +18633,7 @@ msgstr "Le profil du moniteur n'a pas pu être chargé à partir de %s\n"
 
 #: src/core/icc_profile.c:1557 src/core/icc_profile.c:1566
 msgid "Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"
-msgstr ""
+msgstr "Profil ICC du moniteur réglé sur sRGB (point blanc D65, gamma = 2.2)\n"
 
 #: src/core/icc_profile.c:1590
 msgid "Error: no filename specfied for output device proofing profile.\n"
@@ -18520,6 +18645,7 @@ msgstr ""
 #, c-format
 msgid "Output device proofing profile loaded from %s\n"
 msgstr ""
+"Le profil d'épreuvage du périphérique de sortie a été chargé à partir de %s\n"
 
 #: src/core/icc_profile.c:1603
 #, c-format
@@ -18533,12 +18659,16 @@ msgid ""
 "Soft proofing is not available while no soft proofing ICC profile is "
 "loaded.\n"
 msgstr ""
+"L'épreuvage à l'écran n'est pas disponible si aucun profil ICC d'épreuvage à "
+"l'écran n'est chargé.\n"
 
 #: src/core/icc_profile.c:1608
 msgid ""
 "Output device proofing profile deactivated. Soft proofing will proof to the "
 "monitor profile.\n"
 msgstr ""
+"Profil d'épreuvage du périphérique de sortie désactivé. L'épreuvage à "
+"l'écran se fera selon le profil du moniteur.\n"
 
 #. We save the undo state as dealing with gfit
 #: src/core/icc_profile.c:1675
@@ -18554,6 +18684,9 @@ msgid ""
 "Siril only supports representing the image in Gray or RGB color spaces at "
 "present. You cannot assign or convert to non-RGB color profiles"
 msgstr ""
+"Siril ne prend en charge que la représentation de l'image dans les espaces "
+"de couleur de Gris ou RVB pour le moment. Il n'est pas possible d'attribuer "
+"ou de convertir des profils de couleur non RVB"
 
 #: src/core/icc_profile.c:1696
 msgid "Transform not supported"
@@ -18564,25 +18697,29 @@ msgid ""
 "Image cannot be assigned a color profile with a different number of channels "
 "to its current color profile"
 msgstr ""
+"Il n'est pas possible d'attribuer à l'image un profil de couleur avec un "
+"nombre de canaux différent de celui du profil de couleur actuel"
 
 #. We save the undo state as dealing with gfit
 #: src/core/icc_profile.c:1716
 msgid "Color profile removal"
-msgstr ""
+msgstr "Suppression du profil de couleur"
 
 #: src/core/icc_profile.c:1732
 msgid "No color profile set"
-msgstr ""
+msgstr "Pas de profil de couleur défini"
 
 #: src/core/icc_profile.c:1732
-msgid "The  current image has no color profile. You need to assign one first."
+msgid "The current image has no color profile. You need to assign one first."
 msgstr ""
+"L'image actuelle n'a pas de profil de couleur. Vous devez d'abord lui en "
+"attribuer un."
 
 #. Do the transform
 #. We save the undo state if dealing with gfit
 #: src/core/icc_profile.c:1745
 msgid "Color profile conversion"
-msgstr ""
+msgstr "Conversion des profils de couleur"
 
 #: src/core/icc_profile.c:1821 src/core/icc_profile.c:1826
 msgid "Could not load file"
@@ -18595,6 +18732,8 @@ msgstr "Erreur lors de l'obtention du nom de fichier du widget."
 #: src/core/icc_profile.c:1826
 msgid "Error loading selected file or it does not contain a valid ICC profile."
 msgstr ""
+"Erreur de chargement du fichier sélectionné ou celui-ci ne contient pas de "
+"profil ICC valide."
 
 #: src/core/icc_profile.c:1833
 msgid "Profile error"
@@ -18606,11 +18745,18 @@ msgid ""
 "spaces (e.g. CIE La*b*, XYZ, HSL) as image working spaces is not supported, "
 "though these color spaces may be used internally for some operations."
 msgstr ""
+"Erreur : le profil ne décrit pas un espace couleur RVB. L'utilisation "
+"d'espaces colorimétriques non RVB (par exemple CIE La*b*, XYZ, HSL) comme "
+"espaces de travail pour les images n'est pas prise en charge, bien que ces "
+"espaces colorimétriques puissent être utilisés en interne pour certaines "
+"opérations."
 
 #: src/core/icc_profile.c:1876
 msgid ""
 "Error: no ICC profile associated with the current image. Cannot export.\n"
 msgstr ""
+"Erreur : aucun profil ICC n'est associé à l'image actuelle. Impossible "
+"d'exporter.\n"
 
 #: src/core/initfile.c:55 src/core/initfile.c:66 src/core/initfile.c:86
 #, c-format
@@ -19646,7 +19792,7 @@ msgstr "mode d'affichage de l'histogramme par défaut"
 
 #: src/core/settings.c:417
 msgid "ROI selection mode"
-msgstr "Mode de sélection de la ROI"
+msgstr "Mode de sélection des ROI"
 
 #: src/core/settings.c:418
 msgid "Enable ROI dialog warning"
@@ -19654,55 +19800,58 @@ msgstr "Activer l'avertissement du dialogue de la ROI"
 
 #: src/core/settings.c:419
 msgid "path to custom monitor ICC profile"
-msgstr ""
+msgstr "chemin d'accès au profil ICC du moniteur personnalisé"
 
 #: src/core/settings.c:420
 msgid "path to soft proofing ICC profile"
-msgstr ""
+msgstr "chemin vers l'épreuvage en douceur Profil de la CCI"
 
 #: src/core/settings.c:421
 msgid "custom monitor profile active"
-msgstr ""
+msgstr "profil de moniteur personnalisé actif"
 
 #: src/core/settings.c:422
 msgid "output proofing profile active"
-msgstr ""
+msgstr "profil d'épreuvage de sortie actif"
 
 #: src/core/settings.c:423
 msgid "path to custom RGB ICC profile"
-msgstr ""
+msgstr "chemin d'accès au profil ICC RVB personnalisé"
 
 #: src/core/settings.c:424
 msgid "path to custom gray ICC profile"
-msgstr ""
+msgstr "chemin d'accès au profil ICC gris personnalisé"
 
 #: src/core/settings.c:425
 msgid "color management rendering intent"
-msgstr ""
+msgstr "intention de rendu de la gestion des couleurs"
 
 #: src/core/settings.c:426
 msgid "color management soft proofing intent"
-msgstr ""
+msgstr "intention de l'épreuvage de la gestion des couleurs"
 
 #: src/core/settings.c:427
 msgid "color mangement export intent"
-msgstr ""
+msgstr "intention d'exportation de la gestion des couleurs"
 
 #: src/core/settings.c:428
 msgid "default to sRGB when exporting non color managed images"
 msgstr ""
+"la valeur par défaut est sRGB lors de l'exportation d'images non gérées "
+"colorimétriquement"
 
 #: src/core/settings.c:429
 msgid "color mangement working gamut"
-msgstr ""
+msgstr "gamut de travail de la gestion des couleurs"
 
 #: src/core/settings.c:430
 msgid "color mangement export profile for 8bit files"
-msgstr ""
+msgstr "profil d'exportation de la gestion des couleurs pour les fichiers 8bit"
 
 #: src/core/settings.c:431
 msgid "color mangement export profile for 16bit files"
 msgstr ""
+"profil d'exportation de la gestion des couleurs pour les fichiers 16bit"
 
 #: src/core/settings.c:432
 msgid "autoconvert images with an ICC profile to the working color space"
@@ -19712,15 +19861,15 @@ msgstr ""
 
 #: src/core/settings.c:433
 msgid "encodes ICC profile auto-assignment options"
-msgstr ""
+msgstr "encode les options d'attribution automatique des profils ICC"
 
 #: src/core/settings.c:434
 msgid "enable rendering BPC"
-msgstr ""
+msgstr "active le rendu BPC"
 
 #: src/core/settings.c:435
 msgid "pedantically assign linear ICC profiles"
-msgstr ""
+msgstr "attribue de manière rigoureuse des profils ICC linéaires"
 
 #: src/core/settings.c:437
 msgid "index of the compass position over grid"
@@ -19751,14 +19900,12 @@ msgid "show stars in annotations"
 msgstr "afficher les étoiles dans les annotations"
 
 #: src/core/settings.c:444
-#, fuzzy
 msgid "show user DSO objects in annotations"
-msgstr "afficher les objets de l'utilisateur dans les annotations"
+msgstr "affiche les objets DSO du catalogue utilisateur dans les annotations"
 
 #: src/core/settings.c:445
-#, fuzzy
 msgid "show user SSO objects in annotations"
-msgstr "afficher les objets de l'utilisateur dans les annotations"
+msgstr "affiche les objets SSO du catalogue utilisateur dans les annotations"
 
 #: src/core/settings.c:447
 msgid "list of pixel math presets"
@@ -20036,7 +20183,7 @@ msgstr[1] "canaux"
 
 #: src/core/utils.c:1561 src/core/utils.c:1564
 msgid "(invalid UTF-8 string)"
-msgstr ""
+msgstr "(chaîne UTF-8 non valide)"
 
 #: src/filters/asinh.c:77
 #, c-format
@@ -20968,22 +21115,22 @@ msgid "The requested data of the sequence has been cleaned."
 msgstr "Les données demandées de la séquence ont été nettoyées."
 
 #: src/gui/callbacks.c:2127
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
 msgstr ""
-"Vous êtes sur le point de purger le catalogue CIEL PROFOND. Cela signifie "
-"que le fichier contenant les objets ajoutés manuellement sera supprimé. "
-"Cette opération ne peut pas être annulée."
+"Vous êtes sur le point de purger votre catalogue utilisateur %s. Cela "
+"signifie que le fichier contenant les objets ajoutés manuellement sera "
+"supprimé. Cette opération ne peut pas être annulée."
 
 #: src/gui/callbacks.c:2129
 msgid "SOLAR SYSTEM"
-msgstr ""
+msgstr "SYSTÈME SOLAIRE"
 
 #: src/gui/callbacks.c:2129
 msgid "DEEP SKY"
-msgstr ""
+msgstr "CIEL PROFOND"
 
 #: src/gui/callbacks.c:2131
 msgid "Catalog deletion"
@@ -21019,12 +21166,14 @@ msgstr "Entrez le nom de l'étoile cible à rechercher dans les catalogues"
 
 #: src/gui/compstars.c:59
 msgid "Narrow field of view"
-msgstr ""
+msgstr "Champ de vision étroit"
 
 #: src/gui/compstars.c:60
 msgid ""
 "Tick this box to use a narrow field of view centered about the target star"
 msgstr ""
+"Cochez cette case pour utiliser un champ de vision étroit centré sur "
+"l'étoile cible"
 
 #: src/gui/compstars.c:66
 msgid "Allowed visual magnitude range:"
@@ -21051,15 +21200,13 @@ msgstr ""
 "étoiles de comparaison"
 
 #: src/gui/compstars.c:92
-#, fuzzy
 msgid "Allowed magnitude error:"
-msgstr "Plage d'amplitude visuelle autorisée :"
+msgstr "Erreur d'amplitude autorisée :"
 
 #: src/gui/compstars.c:100
-#, fuzzy
 msgid "Allowed catalogue magnitude error for comparison stars"
 msgstr ""
-"Plage autorisée de magnitude visuelle entre l'étoile cible et les étoiles de "
+"Erreur de magnitude autorisée dans le catalogue pour les étoiles de "
 "comparaison"
 
 #: src/gui/compstars.c:109
@@ -21091,9 +21238,8 @@ msgid "BV range not accepted (should be ]0, 0.7]"
 msgstr "La plage BV n'est pas acceptée (devrait être ]0, 0.7])"
 
 #: src/gui/compstars.c:176
-#, fuzzy
 msgid "Magnitude error not accepted (should be ]0, 0.1["
-msgstr "La plage BV n'est pas acceptée (devrait être ]0, 0.7])"
+msgstr "Erreur de magnitude non acceptée (devrait être ]0, 0.1["
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
@@ -22246,6 +22392,9 @@ msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
 msgstr ""
+"Pour utiliser les profils ICC chargés à partir de fichiers comme espace "
+"colorimétrique préféré, vous devez régler le menu déroulant Espace "
+"colorimétrique préféré sur \"À partir de fichiers\"."
 
 #: src/gui/progress_and_log.c:227
 #, c-format
@@ -22425,28 +22574,38 @@ msgid ""
 "Color profiles did not match: left-hand image has been converted to right-"
 "hand image color profile.\n"
 msgstr ""
+"Les profils de couleur ne correspondent pas : l'image de gauche a été "
+"convertie dans le profil de couleur de l'image de droite.\n"
 
 #: src/gui/remixer.c:1155
 msgid ""
 "Color profiles did not match: right-hand image has been assigned the left-"
 "hand image color profile.\n"
 msgstr ""
+"Les profils de couleur ne correspondent pas : le profil de couleur de "
+"l'image de droite a été attribué à celui de l'image de gauche.\n"
 
 #: src/gui/remixer.c:1189
 msgid "Setting the output image ICC profile to the working color space.\n"
 msgstr ""
+"Réglage du profil ICC de l'image de sortie sur l'espace colorimétrique de "
+"travail.\n"
 
 #: src/gui/remixer.c:1244 src/gui/remixer.c:1252
 msgid ""
 "Color profiles did not match: right-hand image has been converted to left-"
 "hand image color profile.\n"
 msgstr ""
+"Les profils de couleur ne correspondent pas : l'image de droite a été "
+"convertie dans le profil de couleur de l'image de gauche.\n"
 
 #: src/gui/remixer.c:1247
 msgid ""
 "Color profiles did not match: left-hand image has been assigned the right-"
 "hand image color profile.\n"
 msgstr ""
+"Les profils de couleur ne correspondent pas : l'image de gauche a été "
+"convertie dans le profil de couleur de l'image de droite.\n"
 
 #: src/gui/remixer.c:1320 src/gui/remixer.c:1368
 msgid "There is no starless image loaded"
@@ -23048,9 +23207,9 @@ msgstr ""
 "continuer ?"
 
 #: src/io/annotation_catalogues.c:393
-#, fuzzy, c-format
+#, c-format
 msgid "Could not write the updated catalogue %s\n"
-msgstr "Impossible de créer le tube nommé %s\n"
+msgstr "Impossible d'écrire le catalogue mis à jour %s\n"
 
 #: src/io/annotation_catalogues.c:495
 #, c-format
@@ -23062,14 +23221,15 @@ msgstr ""
 "l'ajouter à nouveau\n"
 
 #: src/io/annotation_catalogues.c:653
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s record found in the local SSO catalog\n"
-msgstr "L'objet %s a été trouvé dans le catalogue %s, RA = %f, Dec = %f\n"
+msgstr ""
+"L'enregistrement de l'objet %s a été trouvé dans le catalogue SSO local.\n"
 
 #: src/io/annotation_catalogues.c:658
-#, fuzzy, c-format
+#, c-format
 msgid "at coordinates: %s, %s (on DATE-OBS:%s)\n"
-msgstr "Trouvé %s aux coordonnées %s %s\n"
+msgstr "aux coordonnées : %s, %s (à DATE-OBS:%s)\n"
 
 #: src/io/conversion.c:160
 msgid "BMP images, "
@@ -23391,12 +23551,16 @@ msgid ""
 "Unable to create anonymous remote for the repository. Check your "
 "connectivity and try again.\n"
 msgstr ""
+"Impossible de créer une connexion à distance anonyme pour le dépôt. Vérifiez "
+"votre connectivité et réessayez.\n"
 
 #: src/io/gitscripts.c:223
 msgid ""
 "Error fetching remote. This may be a temporary error, check your "
 "connectivity and try again.\n"
 msgstr ""
+"Erreur dans l'extraction des données à distance. Il peut s'agir d'une erreur "
+"temporaire, vérifiez votre connectivité et réessayez.\n"
 
 #: src/io/gitscripts.c:336
 #, c-format
@@ -23439,6 +23603,7 @@ msgstr "Échec de la recherche de l'adresse distante.\n"
 #: src/io/gitscripts.c:523
 msgid "Error: cannot identify local repository's configured remote.\n"
 msgstr ""
+"Erreur : impossible d'identifier le dépôt local configuré à distance.\n"
 
 #: src/io/gitscripts.c:527
 #, c-format
@@ -23453,7 +23618,7 @@ msgstr ""
 
 #: src/io/gitscripts.c:532
 msgid "Repository Error"
-msgstr ""
+msgstr "Erreur du dépôt"
 
 #: src/io/gitscripts.c:548 src/io/gitscripts.c:558
 msgid ""
@@ -23730,15 +23895,19 @@ msgstr "Désolé mais Siril ne peut pas ouvrir le fichier : %s.\n"
 
 #: src/io/image_formats_libraries.c:1158
 msgid "Read ICC profile from JPEG.\n"
-msgstr ""
+msgstr "Lire le profil ICC du JPEG.\n"
 
 #: src/io/image_formats_libraries.c:1161
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
 msgstr ""
+"Impossible de lire un profil ICC à partir de ce JPEG, en supposant qu'il "
+"s'agisse d'un profil sRGB.\n"
 
 #: src/io/image_formats_libraries.c:1164
 msgid "JPEG ICC profile support unavailable, assuming sRGB.\n"
 msgstr ""
+"La prise en charge du profil ICC JPEG n'est pas disponible, en supposant "
+"qu'il s'agit de sRGB.\n"
 
 #: src/io/image_formats_libraries.c:1197
 #, c-format
@@ -23873,6 +24042,8 @@ msgstr "Erreur fitsio lors de la lecture des données, fichier : %s.\n"
 #: src/io/image_format_fits.c:1884
 msgid "Warning: error encountered writing ICC profile to FITS.\n"
 msgstr ""
+"Attention : une erreur s'est produite lors de l'écriture du profil ICC dans "
+"le fichier FITS.\n"
 
 #: src/io/image_format_fits.c:2070
 #, c-format
@@ -24084,9 +24255,9 @@ msgid "Server unreachable or unresponsive. (%s)\n"
 msgstr "Serveur inaccessible ou ne répondant pas. (%s)\n"
 
 #: src/io/remote_catalogues.c:492
-#, fuzzy, c-format
+#, c-format
 msgid "Could not parse AAVSO chart buffer: %s\n"
-msgstr "Impossible d'ouvrir le fichier : %s\n"
+msgstr "Impossible d'analyser la mémoire tampon de la carte AAVSO : %s\n"
 
 #: src/io/remote_catalogues.c:670
 #, c-format
@@ -24094,20 +24265,22 @@ msgid ""
 "A corrupted version of %s was found in cache but cannot be deleted, "
 "aborting\n"
 msgstr ""
+"Une version corrompue de %s a été trouvée dans le cache, mais ne peut pas "
+"être supprimée, ce qui interrompt le processus.\n"
 
 #: src/io/remote_catalogues.c:707
-#, fuzzy, c-format
+#, c-format
 msgid "Using already downloaded catalogue %s\n"
-msgstr "Utilisation d'un catalogue d'étoiles déjà téléchargé\n"
+msgstr "Utilisation du catalogue déjà téléchargé %s\n"
 
 #: src/io/remote_catalogues.c:728
 msgid "Contacting server\n"
-msgstr ""
+msgstr "Contacte le serveur\n"
 
 #: src/io/remote_catalogues.c:766 src/io/siril_catalogues.c:750
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create catalogue file %s (%s)\n"
-msgstr "Impossible de créer le fichier catalogue %s pour l'astrométrie (%s)\n"
+msgstr "Impossible de créer le fichier de catalogue %s (%s)\n"
 
 #: src/io/seqfile.c:129
 msgid ""
@@ -24662,30 +24835,28 @@ msgid "bright stars"
 msgstr "étoiles brillantes"
 
 #: src/io/siril_catalogues.c:232
-#, fuzzy
 msgid "AAVSO Variable stars"
-msgstr "Graphique de l'étoile variable"
+msgstr "AAVSO Étoiles variables"
 
 #: src/io/siril_catalogues.c:234
 msgid "GCVS"
-msgstr ""
+msgstr "GCVS"
 
 #: src/io/siril_catalogues.c:238
-#, fuzzy
 msgid "PGC"
-msgstr "PPG"
+msgstr "PGC"
 
 #: src/io/siril_catalogues.c:240
 msgid "Exoplanet archive"
-msgstr ""
+msgstr "Archives des exoplanètes"
 
 #: src/io/siril_catalogues.c:242
 msgid "IMCCE solar system"
-msgstr ""
+msgstr "Système solaire IMCCE"
 
 #: src/io/siril_catalogues.c:244
 msgid "AAVSO VSP Chart"
-msgstr ""
+msgstr "Carte AAVSO VSP"
 
 #: src/io/siril_catalogues.c:246
 msgid "local Tycho-2+NOMAD"
@@ -24701,21 +24872,23 @@ msgid ""
 "Did not find the minimal set of columns necessary for the catalog %s, "
 "aborting\n"
 msgstr ""
+"N'a pas trouvé l'ensemble minimal de colonnes nécessaires pour le catalogue "
+"%s, interrompu\n"
 
 #: src/io/siril_catalogues.c:541 src/io/siril_catalogues.c:544
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open the catalog (%s)\n"
-msgstr "Impossible de télécharger le catalogue d'étoiles (%s)."
+msgstr "Impossible d'ouvrir le catalogue (%s)\n"
 
 #: src/io/siril_catalogues.c:585
 msgid "No columns found in the catalogue\n"
-msgstr ""
+msgstr "Aucune colonne trouvée dans le catalogue\n"
 
 #. checking that current line has a number of columns consistent with the headers
 #: src/io/siril_catalogues.c:605
-#, fuzzy, c-format
+#, c-format
 msgid "Malformed line found %s\n"
-msgstr "Ligne malformée : %s\n"
+msgstr "Ligne malformée trouvée %s\n"
 
 #: src/io/siril_catalogues.c:637
 #, c-format
@@ -24723,27 +24896,37 @@ msgid ""
 "Catalog %s was read but no items were found in the view cone, nothing to "
 "show\n"
 msgstr ""
+"Le catalogue %s a été lu mais aucun élément n'a été trouvé dans le cône de "
+"vue, rien à montrer.\n"
 
 #: src/io/siril_catalogues.c:741
-#, fuzzy, c-format
-msgid "File % cannot be deleted (%s), aborting\n"
-msgstr "Impossible de créer %s, abandon\n"
+#, c-format
+msgid "File %s cannot be deleted (%s), aborting\n"
+msgstr "Le fichier %s ne peut pas être supprimé (%s), abandon\n"
 
 #: src/io/siril_catalogues.c:846
 msgid "Cannot correct for velocities, will use ra/dec as is\n"
 msgstr ""
+"Il n'est pas possible de corriger les vitesses, les ra/dec seront utilisés "
+"tels quels.\n"
 
 #: src/io/siril_catalogues.c:847
 msgid "To tag solar system objects, please refer to conesearch command\n"
 msgstr ""
+"Pour étiqueter les objets du système solaire, veuillez vous référer à la "
+"commande conesearch\n"
 
 #: src/io/siril_catalogues.c:891
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr ""
+"pas d'information sur DATE-OBS, ne peut pas rendre compte des mouvements "
+"propres des étoiles\n"
 
 #: src/io/siril_catalogues.c:894
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr ""
+"Ce catalogue ne contient pas d'informations sur le mouvement propre, il ne "
+"sera pas calculé.\n"
 
 #: src/io/siril_catalogues.c:957
 #, c-format
@@ -24751,10 +24934,14 @@ msgid ""
 "Won't log list of objects for catalog %s which does not have name "
 "information\n"
 msgstr ""
+"L'enregistrement de la liste des objets pour le catalogue %s qui ne contient "
+"pas d'informations sur le nom n'est pas possible.\n"
 
 #: src/io/siril_catalogues.c:961
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr ""
+"N'affiche pas les étiquettes d'objets car il n'y a pas d'affichage, ignorant "
+"ainsi\n"
 
 #: src/io/siril_catalogues.c:965
 #, c-format
@@ -24762,17 +24949,18 @@ msgid ""
 "Won't display objects tags for catalog %s which does not have name "
 "information\n"
 msgstr ""
+"N'affiche pas les étiquettes d'objets pour le catalogue %s qui n'a pas "
+"d'informations sur le nom.\n"
 
 #: src/io/siril_catalogues.c:990
-#, fuzzy, c-format
+#, c-format
 msgid "The %s catalog has been successfully downloaded\n"
-msgstr "Le catalogue %s a été téléchargé avec succès.\n"
+msgstr "Le catalogue %s a été téléchargé avec succès\n"
 
 #. the projection was successful but no item was found in the frame
 #: src/io/siril_catalogues.c:1000
-#, fuzzy
 msgid "No item found in the image\n"
-msgstr "Aucune étoile détectée dans l'image.\n"
+msgstr "Aucun élément n'a été trouvé dans l'image\n"
 
 #: src/io/siril_plot.c:700
 #, c-format
@@ -25300,6 +25488,8 @@ msgid ""
 "ICC profiles are inconsistent. The output color profile will be based on the "
 "first layer to be loaded.\n"
 msgstr ""
+"Les profils ICC sont incohérents. Le profil de couleur de sortie sera basé "
+"sur la première couche chargée.\n"
 
 #: src/pixelMath/pixel_math_runner.c:925
 #, c-format
@@ -25307,12 +25497,16 @@ msgid ""
 "ICC profile of layer %d does not match the first image. Converting it to "
 "match.\n"
 msgstr ""
+"Le profil ICC du calque %d ne correspond pas à la première image. Le "
+"convertir pour qu'il corresponde.\n"
 
 #: src/pixelMath/pixel_math_runner.c:927
 msgid ""
 "The first layer loaded had no color profile. All input layers will be "
 "treated as raw data.\n"
 msgstr ""
+"La première couche chargée n'avait pas de profil de couleur. Toutes les "
+"couches chargées seront traitées comme des données brutes.\n"
 
 #: src/pixelMath/pixel_math_runner.c:944
 msgid "Incompatible parameters"

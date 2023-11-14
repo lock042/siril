@@ -346,9 +346,9 @@ void reset_icc_transforms() {
 			cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
 		}
-		gui.icc.same_primaries = FALSE;
-		gui.icc.profile_changed = TRUE;
 	}
+	gui.icc.same_primaries = FALSE;
+	gui.icc.profile_changed = TRUE;
 }
 
 void validate_custom_profiles() {
@@ -1729,7 +1729,7 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	if (!gfit.color_managed || !gfit.icc_profile) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The  current image has no color profile. You need to assign one first."));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
 		return;
 	}
 
@@ -1897,6 +1897,7 @@ void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {
 }
 
 static gboolean colorspace_comparison_image_set = FALSE;
+
 void on_icc_gamut_visualisation_clicked() {
 	GtkWidget *win = lookup_widget("icc_gamut_dialog");
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
@@ -1994,7 +1995,7 @@ gboolean on_iso12646_panel_hide_completed(GtkWidget *widget, gpointer data) {
 	return FALSE;
 }
 
-static gboolean panel_state = FALSE;
+static gboolean panel_state = TRUE;
 static double prior_zoom = -1;
 static point prior_offset = { 0.0 , 0.0 };
 static sliders_mode prior_sliders = MINMAX;
@@ -2049,10 +2050,11 @@ void enable_iso12646_conditions() {
 	if (panel_state)
 		gtk_widget_set_visible(widget, FALSE);
 	// Set the sliders to min/max
-	gboolean remap = (gui.lo == 0 && gui.hi == 65535) || mode_changed;
+	gboolean is_8bit = gfit.orig_bitpix == BYTE_IMG;
+	gboolean remap = ((gui.lo == 0 && gui.hi == 65535) || (is_8bit && (gui.lo == 0 && gui.hi == 255))) || mode_changed;
 	gui.sliders = USER;
 	gui.lo = 0;
-	gui.hi = 65535;
+	gui.hi = is_8bit ? 255 : 65535;
 	gui.rendering_mode = LINEAR_DISPLAY;
 	set_display_mode();
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_user")), TRUE);
