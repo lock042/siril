@@ -1701,8 +1701,8 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 	int i = gtk_combo_box_get_active(box);
 
 	if (i >= 0 && i < G_N_ELEMENTS(reg_frame_registration)) {
-		name = g_build_filename(siril_get_system_data_dir(), "pixmaps", reg_frame_registration[i], NULL);
-		gtk_image_set_from_file(image, name);
+		name = g_strdup_printf("/org/siril/ui/pixmaps/%s", reg_frame_registration[i]);
+		gtk_image_set_from_resource(image, name);
 
 		g_free(name);
 	}

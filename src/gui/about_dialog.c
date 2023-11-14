@@ -64,9 +64,7 @@ void siril_show_about_dialog() {
 
 	parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	/* Create pixbuf from siril.svg file */
-	gchar *image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "siril.svg", NULL);
-	icon = gdk_pixbuf_new_from_file_at_size(image, 256, 256, NULL);
-	g_free(image);
+	icon = gdk_pixbuf_new_from_resource_at_scale("/org/siril/ui/pixmaps/siril.svg", 256, 256, FALSE, NULL);
 
 	gtk_show_about_dialog(parent,
 			"program-name", PACKAGE,
