@@ -829,6 +829,14 @@ static gboolean merge_cfa_idle(gpointer arg) {
 	return FALSE;
 }
 
+static char *normalize_rebayerfilename(char *filename_buffer, const char*input, long int maxpath)
+{
+	strncpy(filename_buffer, input, maxpath);
+	filename_buffer[maxpath-1] = '\0';
+	expand_home_in_filename(filename_buffer, maxpath);
+	return filename_buffer;
+}
+
 int process_rebayer(int nb){
 	long maxpath = get_pathmax();
 	char filename[maxpath];
@@ -843,28 +851,6 @@ int process_rebayer(int nb){
 		return CMD_WRONG_N_ARG;
 	}
 
-	set_cursor_waiting(TRUE);
-
-	strncpy(filename, word[1], 250);
-	filename[250] = '\0';
-	expand_home_in_filename(filename, maxpath);
-	int retval = readfits(filename, &cfa0, NULL, FALSE);
-	strncpy(filename, word[2], 250);
-	filename[250] = '\0';
-	expand_home_in_filename(filename, maxpath);
-	retval += readfits(filename, &cfa1, NULL, FALSE);
-	strncpy(filename, word[3], 250);
-	filename[250] = '\0';
-	expand_home_in_filename(filename, maxpath);
-	retval += readfits(filename, &cfa2, NULL, FALSE);
-	strncpy(filename, word[4], 250);
-	filename[250] = '\0';
-	expand_home_in_filename(filename, maxpath);
-	retval += readfits(filename, &cfa3, NULL, FALSE);
-	if (retval) {
-		siril_log_color_message(_("Error loading files!\n"), "red");
-		return CMD_FILE_NOT_FOUND;
-	}
 	if (!strcmp(word[5], "RGGB")) {
 		pattern = BAYER_FILTER_RGGB;
 		siril_log_message(_("Reconstructing RGGB Bayer matrix.\n"));
@@ -882,10 +868,23 @@ int process_rebayer(int nb){
 		return CMD_ARG_ERROR;
 	}
 
+	set_cursor_waiting(TRUE);
+	int retval = readfits(normalize_rebayerfilename(filename, word[1], maxpath), &cfa0, NULL, FALSE);
+	retval += readfits(normalize_rebayerfilename(filename, word[2], maxpath), &cfa1, NULL, FALSE);
+	retval += readfits(normalize_rebayerfilename(filename, word[3], maxpath), &cfa2, NULL, FALSE);
+	retval += readfits(normalize_rebayerfilename(filename, word[4], maxpath), &cfa3, NULL, FALSE);
+	if (retval) {
+		siril_log_color_message(_("Error loading files!\n"), "red");
+		set_cursor_waiting(FALSE);
+		return CMD_FILE_NOT_FOUND;
+	}
+
 	out = merge_cfa(&cfa0, &cfa1, &cfa2, &cfa3, pattern);
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 	close_single_image();
 	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	clearfits(out);
+	free(out);
 
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
@@ -897,7 +896,7 @@ int process_rebayer(int nb){
 		siril_add_idle(merge_cfa_idle, NULL);
 	}
 	set_cursor_waiting(FALSE);
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_imoper(int nb){
