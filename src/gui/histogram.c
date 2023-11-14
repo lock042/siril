@@ -1351,9 +1351,9 @@ void setup_ght_dialog() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			GtkWidget *w;
 			if (com.pref.gui.combo_theme == 0) {
-				w = gtk_image_new_from_file("/org/siril/ui/pixmaps/eyedropper_dark.svg");
+				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 			} else {
-				w = gtk_image_new_from_file("/org/siril/ui/pixmaps/eyedropper.svg");
+				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
 			}
 			gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_button")), w);
 			gtk_widget_show(w);

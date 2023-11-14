@@ -1902,7 +1902,7 @@ void on_icc_gamut_visualisation_clicked() {
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
 	if (!colorspace_comparison_image_set) {
 		GError *error = NULL;
-		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_resource("org/siril/ui/pixmaps/CIE1931.svg", &error);
+		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_resource("/org/siril/ui/pixmaps/CIE1931.svg", &error);
 		if (error) {
 			siril_debug_print("Error: %s\n", error->message);
 			g_error_free(error);
