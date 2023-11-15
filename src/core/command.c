@@ -7710,12 +7710,27 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			}
 			args->ppprefix = strdup(value);
 		} else if (!strcmp(word[i], "-opt")) {
+			siril_log_color_message(_("The \"-opt\" option is deprecated: \"-opt_temp\" should be used instead.\n"), "red");
 			if (bitpix == BYTE_IMG) {
 				siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
 				retvalue = CMD_INVALID_IMAGE;
 				break;
 			}
 			args->use_dark_optim = TRUE;
+		} else if (!strcmp(word[i], "-opt_temp")) {
+			if (bitpix == BYTE_IMG) {
+				siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
+				retvalue = CMD_INVALID_IMAGE;
+				break;
+			}
+			args->use_dark_optim = TRUE;
+		} else if (!strcmp(word[i], "-opt_time")) {
+			if (bitpix == BYTE_IMG) {
+				siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
+				retvalue = CMD_INVALID_IMAGE;
+				break;
+			}
+			args->use_dark_timescale = TRUE;
 		} else if (!strcmp(word[i], "-fix_xtrans")) {
 			args->fix_xtrans = TRUE;
 		} else if (!strcmp(word[i], "-all")) {

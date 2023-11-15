@@ -18,6 +18,7 @@ siril 1.4.0 xx xx, xx
 * Added fully color managed workflow using ICC profiles (!542, fixes #1010, #1207)
 * Refactored catalogue management, making it consistent accross all catalogues (#1154::0 and !579)
 * Added command conesearch (replaces nomad and solsys), including support for new catalogues (vsx, gcvs, exo, aavso_chart) (!579, #1171)
+* Added dark scaling to match exposure time as proposed by Paweł Szewczyk (!589)
 
 siril 1.2.1
 xx/xx/xx
