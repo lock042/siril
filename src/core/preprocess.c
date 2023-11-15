@@ -123,39 +123,6 @@ static float goldenSectionSearch(fits *raw, fits *dark, float a, float b,
 	return ((b + a) * 0.5f);
 }
 
-/* Apply dark, but scaled with exposure time */
-static int darkTimeScale(fits *raw, struct preprocessing_data *args) {
-	float k0;
-	float lo = 0.f, up = 2.f;
-	int ret = 0;
-	fits *dark = args->dark;
-	fits dark_tmp = { 0 };
-
-	if (raw->exposure == dark->exposure)
-		return imoper(raw, dark, OPER_SUB, args->allow_32bit_output);
-
-	if (memcmp(raw->naxes, dark->naxes, sizeof raw->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions\n"), "red");
-		return 1;
-	}
-
-	// TODO: avoid duplicating with soper+imoper together
-	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
-		return 1;
-
-	/* linear scale with time */
-	k0 = raw->exposure / dark->exposure;
-	siril_log_message(_("Dark scale: k0=%.3f\n"), k0);
-
-	/* Multiply coefficient to master-dark */
-	ret = soper(&dark_tmp, k0, OPER_MUL, args->allow_32bit_output);
-	if (!ret)
-		ret = imoper(raw, &dark_tmp, OPER_SUB, args->allow_32bit_output);
-
-	clearfits(&dark_tmp);
-	return ret;
-}
-
 
 static int preprocess(fits *raw, struct preprocessing_data *args) {
 	int ret = 0;
@@ -194,8 +161,8 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 	return ret;
 }
 
-static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_index, GSList *hist) {
-	float k0;
+static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_index, GSList *hist, gboolean temperature, gboolean darktime) {
+	float k0 = 1.f, k1 =1.f;
 	float lo = 0.f, up = 2.f;
 	int ret = 0;
 	fits *dark = args->dark;
@@ -206,28 +173,41 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 		return 1;
 	}
 
+	if (darktime) {
+		/* linear scale with time */
+		k1 = raw->exposure / dark->exposure;
+		siril_log_message(_("Dark scale: k1=%.3f\n"), k1);
+		if (k1 > 1.f)
+			siril_log_color_message(_("Warning: master dark is shorter than lights. It is "
+					"recommended that the master dark be at least as long as the lights.\n"), "salmon");
+	}
+
 	// TODO: avoid duplicating with soper+imoper together
 	// https://gitlab.com/free-astro/siril/-/issues/671
 	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
 		return 1;
 
 	/* Minimization of background noise to find better k */
-	k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
-	if (k0 < 0.f) {
-		siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
-		ret = -1;
-	} else {
-		/* Multiply coefficient to master-dark */
-		ret = soper(&dark_tmp, k0, OPER_MUL, args->allow_32bit_output);
-		if (!ret)
-			ret = imoper(raw, &dark_tmp, OPER_SUB, args->allow_32bit_output);
-		if (!ret) {
-			siril_log_message(_("Dark optimization of image %d: k0=%.3f\n"), in_index, k0);
-			if (hist)
-				hist = g_slist_append(hist, g_strdup_printf("Calibrated with an optimized master dark (factor: %.3f)", k0));
+	if (temperature) {
+		k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
+		if (k0 < 0.f) {
+			siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
+			ret = -1;
 		}
-		else siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
 	}
+
+	/* Multiply master-dark by both coefficients */
+	k0 *= k1;
+	ret = soper(&dark_tmp, k0, OPER_MUL, args->allow_32bit_output);
+	if (!ret)
+		ret = imoper(raw, &dark_tmp, OPER_SUB, args->allow_32bit_output);
+	if (!ret) {
+		siril_log_message(_("Dark optimization of image %d: k0=%.3f\n"), in_index, k0);
+		if (hist)
+			hist = g_slist_append(hist, g_strdup_printf("Calibrated with an optimized master dark (factor: %.3f)", k0));
+	}
+	else siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
+
 	clearfits(&dark_tmp);
 	return ret;
 }
@@ -428,8 +408,8 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 	struct preprocessing_data *prepro = args->user;
 	GSList *history = g_slist_copy_deep(prepro->history, (GCopyFunc)g_strdup, NULL);
 
-	if (prepro->use_dark_optim && prepro->use_dark) {
-		if (darkOptimization(fit, prepro, in_index, history)) {
+	if ((prepro->use_dark_optim || prepro->use_dark_timescale) && prepro->use_dark) {
+		if (darkOptimization(fit, prepro, in_index, history, prepro->use_dark_optim, prepro->use_dark_timescale)) {
 			g_slist_free_full(history, g_free);
 			return 1;
 		}
@@ -809,13 +789,15 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				has_error = TRUE;
 			}
 			g_free(expression);
-			
+
 		}
 
 		if (args->use_dark) {
 			// dark optimization
 			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkDarkOptimize"));
 			args->use_dark_optim = gtk_toggle_button_get_active(tbutton);
+			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("check_dark_scale"));
+			args->use_dark_timescale = gtk_toggle_button_get_active(tbutton);
 			const char *error = NULL;
 			if ((gfit.orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
 				error = _("Dark optimization: This process cannot be applied to 8b images");
