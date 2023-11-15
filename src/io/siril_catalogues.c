@@ -738,7 +738,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 	GFile *file = g_file_new_for_path(filename);
 	if (g_file_test(filename, G_FILE_TEST_EXISTS)) { // file already exists, we removed it
 		if (!g_file_delete(file, NULL, &error)) {
-			siril_log_color_message(_("File % cannot be deleted (%s), aborting\n"), "red", filename, (error) ? error->message : "unknown error");
+			siril_log_color_message(_("File %s cannot be deleted (%s), aborting\n"), "red", filename, (error) ? error->message : "unknown error");
 			g_object_unref(file);
 			return FALSE;
 		}
