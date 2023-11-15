@@ -123,7 +123,6 @@ static float goldenSectionSearch(fits *raw, fits *dark, float a, float b,
 	return ((b + a) * 0.5f);
 }
 
-
 static int preprocess(fits *raw, struct preprocessing_data *args) {
 	int ret = 0;
 
@@ -162,7 +161,7 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 }
 
 static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_index, GSList *hist, gboolean temperature, gboolean darktime) {
-	float k0 = 1.f, k1 =1.f;
+	float k0 = 1.f, k1 = 1.f;
 	float lo = 0.f, up = 2.f;
 	int ret = 0;
 	fits *dark = args->dark;
@@ -202,7 +201,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 	if (!ret)
 		ret = imoper(raw, &dark_tmp, OPER_SUB, args->allow_32bit_output);
 	if (!ret) {
-		siril_log_message(_("Dark optimization of image %d: k0=%.3f\n"), in_index, k0);
+		siril_log_message(_("Dark optimization of image %d: factor =%.3f\n"), in_index, k0);
 		if (hist)
 			hist = g_slist_append(hist, g_strdup_printf("Calibrated with an optimized master dark (factor: %.3f)", k0));
 	}

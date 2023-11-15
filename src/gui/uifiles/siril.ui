@@ -2412,7 +2412,7 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                         <property name="sensitive">False</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Dark subtraction can be optionally optimized so that the noise of the resulting picture (light frame minus dark frame) is minimized by applying a coefficient to the dark frame. This option is useful when dark frames have not been taken at the same temperature as the light frames.
+                                                        <property name="tooltip-text" translatable="yes">Dark subtraction can be optionally optimized so that the noise of the resulting picture (light frame minus dark frame) is minimized by applying a coefficient to the dark frame. This option is useful when dark frames have not been taken at the same temperature as the light frames. Note that best results will be obtained with a master dark that is as long as, or longer than, the light frames.
 
 WARNING: Do not apply dark temperature optimization on master-dark if master-bias has not been subtracted previously.</property>
                                                         <property name="halign">start</property>
