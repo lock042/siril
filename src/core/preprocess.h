@@ -11,6 +11,7 @@ struct preprocessing_data {
 	fits *bias, *dark, *flat;
 	float bias_level;	// the synthetic bias level [0, 1]
 	gboolean use_dark_optim;
+	gboolean scale_dark;
 	gboolean autolevel;	// auto-evaluate flat normalization
 	float normalisation;	// the flat normalization level
 	gboolean equalize_cfa;	// convert the master flat to gray

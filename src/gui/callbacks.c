@@ -774,6 +774,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 	static GtkWidget *prepro_button = NULL, *cosme_grid = NULL, *dark_optim = NULL;
        	static GtkWidget *equalize = NULL, *auto_eval = NULL, *flat_norm = NULL;
        	static GtkWidget *debayer = NULL, *fix_xtrans = NULL;
+       	static GtkWidget *scaledark = NULL;
 	static GtkComboBox *output_type = NULL;
 	if (udark == NULL) {
 		udark = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
@@ -789,6 +790,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 		flat_norm = lookup_widget("entry_flat_norm");
 		debayer = lookup_widget("checkButton_pp_dem");
 		fix_xtrans = lookup_widget("fix_xtrans_af");
+		scaledark = lookup_widget("check_dark_scale");
 	}
 
 	gtk_widget_set_sensitive(prepro_button,
@@ -812,6 +814,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 	if (com.seq.type < 0 || com.seq.type > SEQ_FITSEQ)
 		type = SEQ_REGULAR;
 	gtk_combo_box_set_active(output_type, type);
+	gtk_widget_set_sensitive(scaledark, gtk_toggle_button_get_active(udark));
 }
 
 void clear_sampling_setting_box() {

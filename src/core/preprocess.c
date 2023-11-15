@@ -123,6 +123,40 @@ static float goldenSectionSearch(fits *raw, fits *dark, float a, float b,
 	return ((b + a) * 0.5f);
 }
 
+/* Apply dark, but scaled with exposure time */
+static int darkTimeScale(fits *raw, struct preprocessing_data *args) {
+	float k0;
+	float lo = 0.f, up = 2.f;
+	int ret = 0;
+	fits *dark = args->dark;
+	fits dark_tmp = { 0 };
+
+	if (raw->exposure == dark->exposure)
+		return imoper(raw, dark, OPER_SUB, args->allow_32bit_output);
+
+	if (memcmp(raw->naxes, dark->naxes, sizeof raw->naxes)) {
+		siril_log_color_message(_("Images must have same dimensions\n"), "red");
+		return 1;
+	}
+
+	// TODO: avoid duplicating with soper+imoper together
+	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
+		return 1;
+
+	/* linear scale with time */
+	k0 = raw->exposure / dark->exposure;
+	siril_log_message(_("Dark scale: k0=%.3f\n"), k0);
+
+	/* Multiply coefficient to master-dark */
+	ret = soper(&dark_tmp, k0, OPER_MUL, args->allow_32bit_output);
+	if (!ret)
+		ret = imoper(raw, &dark_tmp, OPER_SUB, args->allow_32bit_output);
+
+	clearfits(&dark_tmp);
+	return ret;
+}
+
+
 static int preprocess(fits *raw, struct preprocessing_data *args) {
 	int ret = 0;
 
@@ -794,6 +828,9 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				args->use_dark_optim = FALSE;
 				has_error = TRUE;
 			}
+
+			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("check_dark_scale"));
+			args->scale_dark = gtk_toggle_button_get_active(tbutton);
 
 			// cosmetic correction
 			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
