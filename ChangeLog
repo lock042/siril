@@ -8,6 +8,7 @@ xx/xx/xx
 * Fixed colored artefacts in RGB deconvolution (#1201)
 * Fixed data initialisation bugs in copyfits() and RGB compositing tool
 * Fixed exported x-column for lightcurves when Julian date is not selected (#1220)
+* Fixed sampling tolerance for astrometry which was incorrectly read (#1231)
 * Allowed for RA/DEC to be sorted in PSF windows (#1214)
 * Added SET-TEMP as valid FITS header to be saved (#1215)
 * Added configurable color for background extraction sample and standard annotations (#1230)
