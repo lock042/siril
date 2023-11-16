@@ -3247,6 +3247,8 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
@@ -3314,6 +3316,8 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
@@ -3376,6 +3380,8 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
