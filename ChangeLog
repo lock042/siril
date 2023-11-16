@@ -10,6 +10,7 @@ xx/xx/xx
 * Fixed exported x-column for lightcurves when Julian date is not selected (#1220)
 * Allowed for RA/DEC to be sorted in PSF windows (#1214)
 * Added SET-TEMP as valid FITS header to be saved (#1215)
+* Added configurable color for background extraction sample and standard annotations (#1230)
 
 siril 1.2.0
 09/15/23
