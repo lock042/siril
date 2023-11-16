@@ -3256,7 +3256,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Default screen transfer function</property>
+                                            <property name="label" translatable="yes">Default screen transfer function:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3325,7 +3325,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Default display mode</property>
+                                            <property name="label" translatable="yes">Default display mode:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3389,7 +3389,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Type of selection</property>
+                                            <property name="label" translatable="yes">Type of selection:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3481,7 +3481,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Sandard annotation:</property>
+                                            <property name="label" translatable="yes">Sandard annotations:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3493,7 +3493,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Deep Sky Object (user) annotation:</property>
+                                            <property name="label" translatable="yes">Deep Sky Object (user) annotations:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3505,7 +3505,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Solar System Object (user) annotation:</property>
+                                            <property name="label" translatable="yes">Solar System Object (user) annotations:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3517,7 +3517,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Temporary Object (user) annotation:</property>
+                                            <property name="label" translatable="yes">Temporary Object (user) annotations:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
