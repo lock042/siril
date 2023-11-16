@@ -259,6 +259,29 @@ static void update_user_interface_preferences() {
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stretch"))) * ICC_ASSIGN_ON_STRETCH) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_composition"))) * ICC_ASSIGN_ON_COMPOSITION));
 	com.pref.icc.autoconversion = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_icc_autoconversion")));
+
+	/* Configure colors */
+	GdkRGBA color;
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
+	g_free(com.pref.gui.config_colors.color_bkg_samples);
+	com.pref.gui.config_colors.color_bkg_samples = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_std_annotations);
+	com.pref.gui.config_colors.color_std_annotations = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_dso_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_dso_annotations);
+	com.pref.gui.config_colors.color_dso_annotations = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_sso_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_sso_annotations);
+	com.pref.gui.config_colors.color_sso_annotations = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_tmp_annotations);
+	com.pref.gui.config_colors.color_tmp_annotations = gdk_rgba_to_string(&color);
 }
 
 static void update_FITS_options_preferences() {
@@ -563,7 +586,7 @@ static gboolean from_prefs_init = FALSE;
 void update_preferences_from_model() {
 	siril_debug_print("updating preferences GUI from settings data\n");
 	preferences *pref = &com.pref;
-	/* tab 1 */
+	/* tab FITS/SER Debayer */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")), pref->debayer.use_bayer_header);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_pattern")), pref->debayer.bayer_pattern);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")), pref->debayer.bayer_inter);
@@ -572,7 +595,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")), pref->debayer.top_down);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xtranspass_spin")), pref->debayer.xtrans_passes);
 
-	/* tab 2*/
+	/* tab FITS Options */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_aladin")), pref->rgb_aladin);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_binned_update")), pref->binning_update);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio")), !pref->comp.fits_enabled);
@@ -585,7 +608,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_fits_save_icc")), pref->fits_save_icc);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbox_heterogeneous_fitseq")), pref->allow_heterogeneous_fitseq);
 
-	/* tab 3 */
+	/* tab Astrometry */
 	fill_astrometry_catalogue(pref->gui.catalog);
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("compass_combobox")), pref->gui.position_compass);
@@ -616,7 +639,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")), pref->astrometry.update_default_scale);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")), pref->astrometry.show_asnet_output);
 
-	/* tab 4 */
+	/* tab Pre-processing */
 	if (pref->prepro.bias_lib) {
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("biaslib_entry")),pref->prepro.bias_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias")), pref->prepro.use_bias_lib);
@@ -658,7 +681,7 @@ void update_preferences_from_model() {
 	g_snprintf(tmp, sizeof(tmp), "%d", pref->prepro.xtrans_sample.h);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_h")), tmp);
 
-	/* tab 5 */
+	/* tab Photometry */
 	from_prefs_init = TRUE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), pref->phot_set.inner);
@@ -669,18 +692,11 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), pref->phot_set.minval);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);
 
-	/* tab 6 */
+	/* tab Analysis Tools */
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")), pref->analysis.mosaic_panel);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinwindow")), pref->analysis.mosaic_window);
 
-	/* tab 7 */
-	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
-
-	/* tab 8 */
+	/* tab User Interface */
 	siril_language_fill_combo(pref->lang);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_theme")), pref->gui.combo_theme);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_fontsize")), pref->gui.font_scale);
@@ -691,6 +707,25 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
+
+	GdkRGBA color;
+	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
+
+	gdk_rgba_parse(&color, pref->gui.config_colors.color_std_annotations);
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
+
+	gdk_rgba_parse(&color, pref->gui.config_colors.color_dso_annotations);
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_dso_annot")), &color);
+
+	gdk_rgba_parse(&color, pref->gui.config_colors.color_sso_annotations);
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_sso_annot")), &color);
+
+	gdk_rgba_parse(&color, pref->gui.config_colors.color_tmp_annotations);
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
+
+
+	/* tab Color Management */
 	GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile"));
 	if (pref->icc.icc_path_monitor && (g_file_test(pref->icc.icc_path_monitor, G_FILE_TEST_EXISTS))) {
 		gtk_file_chooser_set_filename(button, pref->icc.icc_path_monitor);
@@ -718,7 +753,9 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_rendering_intent")), pref->icc.rendering_intent);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")), pref->icc.export_intent);
 	initialize_icc_preferences_widgets();
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_monitor_profile_active")), pref->icc.custom_monitor_profile_active);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_proofing_profile_active")), pref->icc.soft_proofing_profile_active);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")), pref->icc.default_to_srgb);
@@ -736,7 +773,14 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_never")), !pref->icc.autoassignment);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_icc_autoconversion")), pref->icc.autoconversion);
 
-	/* tab 9 */
+	/* tab Scripts */
+	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
+
+	/* tab Performances */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->mem_mode == AMOUNT);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->memory_ratio);
@@ -747,7 +791,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")), pref->fftw_conf.multithreaded);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")), pref->fftw_conf.fft_cutoff);
 
-	/* tab 10 */
+	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);
 	initialize_starnet_executable(pref->starnet_exe);
 	initialize_starnet_weights(pref->starnet_weights);
@@ -779,27 +823,27 @@ static void set_icc_filechooser_directories() {
 	on_working_gamut_changed(combo, NULL);
 }
 
-static void dump_ui_to_global_var() {
+static void dump_ui_to_global_var() { // TODO: where is tab Color management???
 	siril_debug_print("updating settings from preferences GUI\n");
-	/* tab 1 */
+	/* tab FITS/SER Debayer */
 	update_debayer_preferences();
-	/* tab 2 */
+	/* tab FITS Options */
 	update_FITS_options_preferences();
-	/* tab 3 */
+	/* tab Astrometry */
 	update_astrometry_preferences();
-	/* tab 4 */
+	/* tab Pre-processing */
 	update_prepro_preferences();
-	/* tab 5 */
+	/* tab Analysis Tools */
 	update_analysis_preferences();
-	/* tab 6 */
+	/* tab Photometry */
 	update_photometry_preferences();
-	/* tab 7 */
+	/* tab Scripts */
 	update_scripts_preferences();
-	/* tab 8 */
+	/* tab User Interface */
 	update_user_interface_preferences();
-	/* tab 9 */
+	/* tab Performances */
 	update_performances_preferences();
-	/* tab 10 */
+	/* tab Miscellaneous */
 	update_misc_preferences();
 }
 
