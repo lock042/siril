@@ -1380,6 +1380,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the namedstars.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_namedstars</property>
                                         <property name="title">namedstars.dat</property>
                                       </object>
                                       <packing>
