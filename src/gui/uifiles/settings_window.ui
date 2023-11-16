@@ -3592,7 +3592,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="can-focus">False</property>
                                         <property name="margin-top">10</property>
                                         <property name="margin-bottom">10</property>
-                                        <property name="label" translatable="yes">Colors</property>
+                                        <property name="label" translatable="yes">Overlay Colors</property>
                                         <attributes>
                                           <attribute name="weight" value="bold"/>
                                         </attributes>
