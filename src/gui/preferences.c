@@ -222,6 +222,31 @@ static void update_user_interface_preferences() {
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
 	update_roi_config();
+	/* Configure colors */
+	GdkRGBA color;
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
+	g_free(com.pref.gui.config_colors.color_bkg_samples);
+	com.pref.gui.config_colors.color_bkg_samples = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_std_annotations);
+	com.pref.gui.config_colors.color_std_annotations = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_dso_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_dso_annotations);
+	com.pref.gui.config_colors.color_dso_annotations = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_sso_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_sso_annotations);
+	com.pref.gui.config_colors.color_sso_annotations = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_tmp_annotations);
+	com.pref.gui.config_colors.color_tmp_annotations = gdk_rgba_to_string(&color);
+}
+
+static void update_color_management_preferences() {
 	gchar *newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.icc.icc_path_monitor);
@@ -259,29 +284,6 @@ static void update_user_interface_preferences() {
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stretch"))) * ICC_ASSIGN_ON_STRETCH) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_composition"))) * ICC_ASSIGN_ON_COMPOSITION));
 	com.pref.icc.autoconversion = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_icc_autoconversion")));
-
-	/* Configure colors */
-	GdkRGBA color;
-
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
-	g_free(com.pref.gui.config_colors.color_bkg_samples);
-	com.pref.gui.config_colors.color_bkg_samples = gdk_rgba_to_string(&color);
-
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
-	g_free(com.pref.gui.config_colors.color_std_annotations);
-	com.pref.gui.config_colors.color_std_annotations = gdk_rgba_to_string(&color);
-
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_dso_annot")), &color);
-	g_free(com.pref.gui.config_colors.color_dso_annotations);
-	com.pref.gui.config_colors.color_dso_annotations = gdk_rgba_to_string(&color);
-
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_sso_annot")), &color);
-	g_free(com.pref.gui.config_colors.color_sso_annotations);
-	com.pref.gui.config_colors.color_sso_annotations = gdk_rgba_to_string(&color);
-
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
-	g_free(com.pref.gui.config_colors.color_tmp_annotations);
-	com.pref.gui.config_colors.color_tmp_annotations = gdk_rgba_to_string(&color);
 }
 
 static void update_FITS_options_preferences() {
@@ -724,7 +726,6 @@ void update_preferences_from_model() {
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_tmp_annotations);
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
 
-
 	/* tab Color Management */
 	GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile"));
 	if (pref->icc.icc_path_monitor && (g_file_test(pref->icc.icc_path_monitor, G_FILE_TEST_EXISTS))) {
@@ -823,7 +824,7 @@ static void set_icc_filechooser_directories() {
 	on_working_gamut_changed(combo, NULL);
 }
 
-static void dump_ui_to_global_var() { // TODO: where is tab Color management???
+static void dump_ui_to_global_var() {
 	siril_debug_print("updating settings from preferences GUI\n");
 	/* tab FITS/SER Debayer */
 	update_debayer_preferences();
@@ -841,6 +842,8 @@ static void dump_ui_to_global_var() { // TODO: where is tab Color management???
 	update_scripts_preferences();
 	/* tab User Interface */
 	update_user_interface_preferences();
+	/* tab Color Management */
+	update_color_management_preferences();
 	/* tab Performances */
 	update_performances_preferences();
 	/* tab Miscellaneous */
