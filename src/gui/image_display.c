@@ -1191,7 +1191,7 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 			point position = background_sample_get_position(sample);
 			cairo_set_line_width(dd->cr, 1.5 / dd->zoom);
 			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_bkg_samples);
-		    cairo_set_source_rgba(dd->cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
+			cairo_set_source_rgba(dd->cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			cairo_rectangle(dd->cr, position.x - radius - 1, position.y - radius,
 					radius * 2, radius * 2);
 			cairo_stroke(dd->cr);
@@ -1578,15 +1578,15 @@ static void draw_annotates(const draw_data_t* dd) {
 		switch (catalog) {
 		case CAT_AN_USER_DSO:
 			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_dso_annotations);
-		    cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			break;
 		case CAT_AN_USER_SSO:
 			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_sso_annotations);
-		    cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			break;
 		case CAT_AN_USER_TEMP:
 			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_tmp_annotations);
-		    cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			revert = TRUE;
 			angle = ANGLE_BOT;
 			break;
