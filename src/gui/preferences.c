@@ -201,6 +201,17 @@ static void update_user_interface_preferences() {
 	com.pref.gui.thumbnail_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"))) == 1 ? 256 : 128;
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
+	
+	/* Configure colors */
+	GdkRGBA color;
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
+	g_free(com.pref.gui.config_colors.color_bkg_samples);
+	com.pref.gui.config_colors.color_bkg_samples = gdk_rgba_to_string(&color);
+
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
+	g_free(com.pref.gui.config_colors.color_std_annotations);
+	com.pref.gui.config_colors.color_std_annotations = gdk_rgba_to_string(&color);
 }
 
 static void update_FITS_options_preferences() {
@@ -637,6 +648,14 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
+	
+	
+	GdkRGBA color;
+	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
+
+	gdk_rgba_parse(&color, pref->gui.config_colors.color_std_annotations);
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
 
 
 	/* tab 9 */

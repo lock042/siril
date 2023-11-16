@@ -161,6 +161,11 @@ struct comp_config {
 	double fits_hcompress_scale;	// scale factor for Hcompress compression
 };
 
+typedef struct configurable_colors_param {
+	gchar* color_bkg_samples;
+	gchar* color_std_annotations;
+} configurable_colors;
+
 struct gui_config {
 	gchar *first_start;		// use to display information at first use
 	gboolean silent_quit;
@@ -198,6 +203,7 @@ struct gui_config {
 	GSList *pm_presets; // list of pixel math presets
 	int default_rendering_mode; // Default view STF to use at startup
 	int display_histogram_mode; // Default histogram view to use at startup
+	configurable_colors config_colors; // This used to configure some colors in Siril
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
