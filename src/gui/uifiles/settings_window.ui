@@ -1392,6 +1392,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the unnamedstars.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_unnamedstars</property>
                                         <property name="title">unnamedstars.dat</property>
                                       </object>
                                       <packing>
@@ -1404,6 +1405,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the deepstars.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_deepstars</property>
                                         <property name="title">deepstars.dat</property>
                                       </object>
                                       <packing>
@@ -1432,6 +1434,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_USNO-NOMAD-1e8</property>
                                         <property name="title">USNO-NOMAD-1e8.dat</property>
                                       </object>
                                       <packing>
@@ -3759,6 +3762,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Use this together with the "From files" option above. This should be a RGB ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg etc.)</property>
+                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_external_preferred_profile_set" swapped="no"/>
                                       </object>
@@ -3773,6 +3777,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Use this together with the "From files" option above. This should be a Gray (mono) ICC profile with a tone response curve that matches that of the RGB profile you set above.</property>
+                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_external_preferred_profile_set" swapped="no"/>
                                       </object>
@@ -3835,6 +3840,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">To use a custom monitor ICC profile, set it here. If no custom profile is set, sRGB with D65 white point and gamma = 2.2 will be used.</property>
+                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_pref_custom_monitor_profile_file_set" swapped="no"/>
                                       </object>
@@ -3848,6 +3854,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify an output device profile for soft proofing purposes. If this is not set or is inactive, the monitor profile (or sRGB by default) will be used as the soft proofing target.</property>
+                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_pref_soft_proofing_profile_file_set" swapped="no"/>
                                       </object>
@@ -5324,6 +5331,7 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
 For old StarNet++ v1 installations that used separate executables to process mono and RGB files, the executables &lt;b&gt;must&lt;/b&gt; retain their original names &lt;b&gt;mono_starnet++&lt;/b&gt; and &lt;b&gt;rgb_starnet++&lt;/b&gt; (with &lt;b&gt;.exe&lt;/b&gt; if using Windows), and they must both be in the same directory. You can select either executable: Siril will automatically find the other one if it exists.</property>
                                 <property name="valign">center</property>
                                 <property name="create-folders">False</property>
+                                <property name="filter">all_files</property>
                                 <property name="preview-widget-active">False</property>
                                 <property name="show-hidden">True</property>
                                 <property name="use-preview-label">False</property>
@@ -5358,6 +5366,7 @@ For old StarNet++ v1 installations that used separate executables to process mon
                                 <property name="tooltip-markup" translatable="yes">Select StarNet weights file. This &lt;b&gt;only&lt;/b&gt; works with the new Torch-based StarNet versions. It is optional: if left blank, the weights file &lt;b&gt;must&lt;/b&gt; be in the same directory as the StarNet executable.</property>
                                 <property name="valign">center</property>
                                 <property name="create-folders">False</property>
+                                <property name="filter">all_files</property>
                                 <property name="preview-widget-active">False</property>
                                 <property name="show-hidden">True</property>
                                 <property name="use-preview-label">False</property>
