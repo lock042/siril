@@ -60,7 +60,7 @@ RUN git clone --branch v0.2.7 --single-branch https://gitea.nouspiro.space/nou/l
     && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. \
     && make install \
     && cd ../.. \
-    && rm -rf libXISF \
+    && rm -rf libXISF
 RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && unzip opencv.zip && cd opencv-4.5.3 \
     && mkdir -p build && cd build \
