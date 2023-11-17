@@ -158,7 +158,7 @@ void free_image_data() {
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
 	reset_icc_transforms();
-	disable_iso12646_conditions(TRUE, TRUE);
+	disable_iso12646_conditions(TRUE, TRUE, FALSE);
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 

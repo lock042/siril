@@ -168,6 +168,14 @@ typedef enum {
 	ROI_AUTO
 } roi_mode_t;
 
+typedef struct configurable_colors_param {
+	gchar* color_bkg_samples;
+	gchar* color_std_annotations;
+	gchar* color_dso_annotations;
+	gchar* color_sso_annotations;
+	gchar* color_tmp_annotations;
+} configurable_colors;
+
 struct gui_config {
 	gchar *first_start;		// use to display information at first use
 	gboolean silent_quit;
@@ -207,6 +215,7 @@ struct gui_config {
 	int display_histogram_mode; // Default histogram view to use at startup
 	roi_mode_t roi_mode; // Whether to set the ROI manually or auto from selection
 	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
+	configurable_colors config_colors; // This used to configure some colors in Siril
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
