@@ -33,7 +33,6 @@ RUN sed -i 's/oldstable\/updates/oldstable-security\/updates/' /etc/apt/sources.
         wget \
         libtool \
         libcurl4-gnutls-dev \
-        wcslib-dev \
         python3 \
         python3-pip \
         libjson-glib-dev \
@@ -62,7 +61,7 @@ RUN git clone --branch v0.2.7 --single-branch https://gitea.nouspiro.space/nou/l
     && make install \
     && cd ../.. \
     && rm -rf libXISF \
-    && wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
+RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && unzip opencv.zip && cd opencv-4.5.3 \
     && mkdir -p build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr \
@@ -94,3 +93,10 @@ RUN git clone --branch v0.2.7 --single-branch https://gitea.nouspiro.space/nou/l
     && rm -rf opencv-4.5.3 opencv.zip \
     && python3 -m pip install meson \
     && python3 -m pip install ninja!=1.11.1
+RUN wget -O wcslib.tar.bz2 ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib-8.2.tar.bz2 \
+    && tar -xf wcslib.tar.bz2 && rm wcslib.tar.bz2
+    && cd wcslib-8.2 \
+    && ./configure LIBS="-pthread -lm" --without-pgplot --disable-fortran CFLAGS="$CFLAGS -g0 -O3" --prefix /usr \
+    && make install \
+    && cd .. \
+    && rm -rf wcslib-8.2
