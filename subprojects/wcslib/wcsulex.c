@@ -1,6 +1,6 @@
-#line 2 "wcsulex.c"
+#line 1 "wcsulex.c"
 
-#line 4 "wcsulex.c"
+#line 3 "wcsulex.c"
 
 #define _POSIX_C_SOURCE 1
 #define  YY_INT_ALIGNED short int
@@ -7150,8 +7150,8 @@ static const yy_state_type yy_NUL_trans[375] =
 #define YY_RESTORE_YY_MORE_OFFSET
 #line 1 "wcsulex.l"
 /*============================================================================
-  WCSLIB 7.6 - an implementation of the FITS WCS standard.
-  Copyright (C) 1995-2021, Mark Calabretta
+  WCSLIB 8.2 - an implementation of the FITS WCS standard.
+  Copyright (C) 1995-2023, Mark Calabretta
 
   This file is part of WCSLIB.
 
@@ -7170,7 +7170,7 @@ static const yy_state_type yy_NUL_trans[375] =
 
   Author: Mark Calabretta, Australia Telescope National Facility, CSIRO.
   http://www.atnf.csiro.au/people/Mark.Calabretta
-  $Id: wcsulex.l,v 7.6 2021/04/13 12:57:01 mcalabre Exp $
+  $Id: wcsulex.l,v 8.2 2023/11/16 10:00:29 mcalabre Exp $
 *=============================================================================
 *
 * wcsulex.l is a Flex description file containing the definition of a
@@ -7225,8 +7225,8 @@ struct wcsulex_extra {
 // Internal helper functions.
 static YY_DECL;
 
+#line 7228 "wcsulex.c"
 #line 7229 "wcsulex.c"
-#line 7230 "wcsulex.c"
 
 #define INITIAL 0
 #define PAREN 1
@@ -7525,7 +7525,7 @@ YY_DECL
 	fprintf(stderr, "\n%s ->\n", unitstr);
 #endif
 
-#line 7529 "wcsulex.c"
+#line 7528 "wcsulex.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -8782,7 +8782,7 @@ YY_RULE_SETUP
 #line 1005 "wcsulex.l"
 ECHO;
 	YY_BREAK
-#line 8786 "wcsulex.c"
+#line 8785 "wcsulex.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -9962,8 +9962,6 @@ int wcsulexe(
   struct wcserr **err)
 
 {
-  static const char *function = "wcsulexe";
-
   // Function prototypes.
   int yylex_init_extra(YY_EXTRA_TYPE extra, yyscan_t *yyscanner);
   int yylex_destroy(yyscan_t yyscanner);
