@@ -849,6 +849,7 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 				siril_log_color_message(_("To tag solar system objects, please refer to conesearch command\n"), "salmon");
 				use_velocity = FALSE;
 			}
+		}
 	}
 	world = malloc(2 * siril_cat->nbitems * sizeof(double));
 	x = malloc(siril_cat->nbitems * sizeof(double));
