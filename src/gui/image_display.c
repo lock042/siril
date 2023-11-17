@@ -1181,13 +1181,15 @@ static void draw_stars(const draw_data_t* dd) {
 
 static void draw_brg_boxes(const draw_data_t* dd) {
 	GSList *list;
+	GdkRGBA gdk_color;
 	for (list = com.grad_samples; list; list = list->next) {
 		background_sample *sample = (background_sample *)list->data;
 		if (sample && background_sample_is_valid(sample)) {
 			int radius = (int) (background_sample_get_size(sample) / 2);
 			point position = background_sample_get_position(sample);
 			cairo_set_line_width(dd->cr, 1.5 / dd->zoom);
-			cairo_set_source_rgba(dd->cr, 1.0,  0.2, 0.3, 1.0);
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_bkg_samples);
+			cairo_set_source_rgba(dd->cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			cairo_rectangle(dd->cr, position.x - radius - 1, position.y - radius,
 					radius * 2, radius * 2);
 			cairo_stroke(dd->cr);
@@ -1569,25 +1571,30 @@ static void draw_annotates(const draw_data_t* dd) {
 		gboolean revert = FALSE;
 		double angle = ANGLE_TOP;
 		double addoffset = 0.;
+		GdkRGBA gdk_color;
 
 		switch (catalog) {
 		case CAT_AN_USER_DSO:
-			cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, 0.9);
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_dso_annotations);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			break;
 		case CAT_AN_USER_SSO:
-			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_sso_annotations);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			break;
 		case CAT_AN_USER_TEMP:
-			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9); // will need to be changed that anyway
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_tmp_annotations);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			revert = TRUE;
 			angle = ANGLE_BOT;
 			break;
 		default:
 		case 0:
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_std_annotations);
 			if (dd->neg_view) {
-				cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
+				cairo_set_source_rgba(cr, 1.0 - gdk_color.red, 1.0 - gdk_color.green, 1.0 - gdk_color.blue, gdk_color.alpha);
 			} else {
-				cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
+				cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			}
 			break;
 		}

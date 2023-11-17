@@ -1846,7 +1846,7 @@ gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event
 		// Right mouse button press
         if (gui.icc.iso12646) {
 			siril_debug_print("Disabling approximate ISO12646 viewing conditions\n");
-			disable_iso12646_conditions(TRUE, TRUE);
+			disable_iso12646_conditions(TRUE, TRUE, TRUE);
 		} else {
 			siril_debug_print("Enabling approximate ISO12646 viewing conditions\n");
 			enable_iso12646_conditions();
@@ -2063,7 +2063,7 @@ void enable_iso12646_conditions() {
 	g_idle_add((GSourceFunc)on_iso12646_panel_hide_completed, &remap);
 }
 
-void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel) {
+void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gboolean revert_rendering_mode) {
 	GtkWidget *parent_widget = lookup_widget("vbox_rgb");
 	if (gui.icc.sh_rgb)
 		g_signal_handler_disconnect(G_OBJECT(parent_widget), gui.icc.sh_rgb);
@@ -2115,8 +2115,10 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel) {
 	else if (gui.sliders == MIPSLOHI)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_hilo")), TRUE);
 	set_cutoff_sliders_values();
-	gui.rendering_mode = prior_rendering_mode;
-	set_display_mode();
+	if (revert_rendering_mode) {
+		gui.rendering_mode = prior_rendering_mode;
+		set_display_mode();
+	}
 	if (mode_changed)
 		redraw(REMAP_ALL);
 	gtk_widget_queue_draw(lookup_widget("control_window"));
