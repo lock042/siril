@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-12 08:08+0100\n"
-"PO-Revision-Date: 2023-10-18 08:52+0000\n"
+"PO-Revision-Date: 2023-11-18 00:32+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -17155,7 +17155,7 @@ msgstr "répertoire de swap"
 
 #: src/core/settings.c:267
 msgid "update pixel size of binned images"
-msgstr "mise à jour de la taille des pixels des images binées"
+msgstr "mettre à jour la taille des pixels des images aux pixels groupés"
 
 #: src/core/settings.c:268
 msgid "WCS formalism used in FITS header"
