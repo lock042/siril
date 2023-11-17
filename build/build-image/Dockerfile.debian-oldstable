@@ -94,7 +94,7 @@ RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && python3 -m pip install meson \
     && python3 -m pip install ninja!=1.11.1
 RUN wget -O wcslib.tar.bz2 ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib-8.2.tar.bz2 \
-    && tar -xf wcslib.tar.bz2 && rm wcslib.tar.bz2
+    && tar -xf wcslib.tar.bz2 && rm wcslib.tar.bz2 \
     && cd wcslib-8.2 \
     && ./configure LIBS="-pthread -lm" --without-pgplot --disable-fortran CFLAGS="$CFLAGS -g0 -O3" --prefix /usr \
     && make install \
