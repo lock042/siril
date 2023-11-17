@@ -24,26 +24,18 @@ AM_CPPFLAGS = \
 	$(LIBGIT_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
-siril_resource.c: siril_resource.xml
+
+siril_resource.c: siril_resource.h
 	$(AM_V_GEN)
 	glib-compile-resources \
-	--sourcedir=$(sourcedir) \
 	--sourcedir=$(top_builddir) \
-	--target=core/$@ \
+	--sourcedir=$(sourcedir) \
+	--target=$@ \
 	--generate-source \
 	--c-name siril_resource \
 	$(srcdir)/siril_resource.xml
 
-siril_resource.h: siril_resource.xml
-	$(AM_V_GEN)
-	glib-compile-resources \
-	--sourcedir=$(sourcedir) \
-	--sourcedir=$(top_builddir) \
-	--target=core/$@ \
-	--generate-header \
-	--c-name siril_resource \
-	$(srcdir)/siril_resource.xml
-
+siril_common_SOURCES: siril_resource.h
 siril_common_SOURCES = \
 	siril_resource.c \
 	siril_resource.h

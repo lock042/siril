@@ -39,11 +39,13 @@ endif
 
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = config.rpath \
-             git-version.h
+             git-version.h \
+             siril_resource.h
 AUTOMAKE_OPTIONS = foreign
 
 generated_sources = \
-	git-version.h
+	git-version.h \
+	siril_resource.h
 
 # Build git-version.h before anything in the subdirs as this is needed
 # in the about and debug dialog (app/) and in the debug tool (tools/).
@@ -74,4 +76,14 @@ git-version.h: update-git-version-header
 	  echo "  git HEAD changed: $@ regenerated"; \
 	fi
 
-.PHONY: update-git-version-header
+siril_resource.h: update-siril-resource-header
+	$(AM_V_GEN)
+	glib-compile-resources \
+	--sourcedir=$(top_builddir) \
+	--sourcedir=src \
+	--target=src/$@ \
+	--generate-header \
+	--c-name siril_resource \
+	$(srcdir)/src/siril_resource.xml
+
+.PHONY: update-git-version-header update-siril-resource-header
