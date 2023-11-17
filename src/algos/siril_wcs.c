@@ -279,8 +279,6 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 #endif
 }
 
-// TODO: see commented function at the end of siril_catalogues.c
-#if 0
 // same as wcs2pix except it takes a world array as input
 // world is an array with [ra1, dec1, ra2, dec2...ran, decn], i.e 2n elements (row major)
 // it returns an allocated array of statuses (instead of a single status), which must be freed
@@ -304,8 +302,7 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 	int c = 0;
 	int *status = calloc(n , sizeof(int));
 	int globstatus = wcss2p(fit->wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
-	c = 0;
-	if (globstatus == WCSERR_SUCCESS || WCSERR_BAD_WORLD) {// we accept BAD_WORLD has it does not mean all of the conversions failed
+	if (globstatus == WCSERR_SUCCESS || WCSERR_BAD_WORLD) {// we accept BAD_WORLD as it does not mean all of the conversions failed
 		for (int i = 0; i < n; i++) {
 			if (!status[i]) {
 				double xx = pixcrd[c++];
@@ -333,7 +330,6 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 	return status;
 #endif
 }
-#endif
 
 
 /* get image center celestial coordinates */
