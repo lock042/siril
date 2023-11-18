@@ -149,7 +149,12 @@ preferences pref_init = {
 		.reg_clamping = TRUE,
 		.pm_presets = NULL,
 		.roi_mode = ROI_MANUAL,
-		.enable_roi_warning = TRUE
+		.enable_roi_warning = TRUE,
+		.config_colors.color_bkg_samples = NULL,
+		.config_colors.color_std_annotations = NULL,
+		.config_colors.color_dso_annotations = NULL,
+		.config_colors.color_sso_annotations = NULL,
+		.config_colors.color_tmp_annotations = NULL
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -263,6 +268,14 @@ void set_wisdom_file() {
 		com.pref.fftw_conf.wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
 }
 
+static void initialize_configurable_colors() {
+	com.pref.gui.config_colors.color_bkg_samples = g_strdup("rgba(255, 51, 26, 1.0)");
+	com.pref.gui.config_colors.color_std_annotations = g_strdup("rgba(128, 255, 77, 0.9)");
+	com.pref.gui.config_colors.color_dso_annotations = g_strdup("rgba(255, 128, 0, 0.9)");
+	com.pref.gui.config_colors.color_sso_annotations = g_strdup("rgba(255, 255, 0, 0.9)");
+	com.pref.gui.config_colors.color_tmp_annotations = g_strdup("rgba(255, 0, 0, 0.9)");
+}
+
 /* static + dynamic settings initialization */
 void initialize_default_settings() {
 	com.pref = pref_init;
@@ -270,6 +283,7 @@ void initialize_default_settings() {
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
+	initialize_configurable_colors();
 }
 
 void update_gain_from_gfit() {
@@ -415,13 +429,18 @@ struct settings_access all_settings[] = {
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
-	{ "gui", "roi_warning", STYPE_BOOL, N_("Enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
+	{ "gui", "roi_warning", STYPE_BOOL, N_("enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
+	{ "gui", "color_bkg_samples", STYPE_STR, N_("configure background samples color"), &com.pref.gui.config_colors.color_bkg_samples },
+	{ "gui", "color_std_annotations", STYPE_STR, N_("configure standard annotation color"), &com.pref.gui.config_colors.color_std_annotations },
+	{ "gui", "color_dso_annotations", STYPE_STR, N_("configure dso annotation color"), &com.pref.gui.config_colors.color_dso_annotations },
+	{ "gui", "color_sso_annotations", STYPE_STR, N_("configure sso annotation color"), &com.pref.gui.config_colors.color_sso_annotations },
+	{ "gui", "color_tmp_annotations", STYPE_STR, N_("configure tmp annotation color"), &com.pref.gui.config_colors.color_tmp_annotations },
 	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc.icc_path_monitor },
 	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc.icc_path_soft_proof },
 	{ "gui", "icc_custom_monitor_active", STYPE_BOOL, N_("custom monitor profile active"), &com.pref.icc.custom_monitor_profile_active },
 	{ "gui", "icc_soft_proofing_active", STYPE_BOOL, N_("output proofing profile active"), &com.pref.icc.soft_proofing_profile_active },
-	{ "gui", "custom RGB ICC profile", STYPE_STR, N_("path to custom RGB ICC profile"), &com.pref.icc.custom_icc_trc },
-	{ "gui", "custom gray ICC profile", STYPE_STR, N_("path to custom gray ICC profile"), &com.pref.icc.custom_icc_gray },
+	{ "gui", "custom_RGB_ICC_profile", STYPE_STR, N_("path to custom RGB ICC profile"), &com.pref.icc.custom_icc_trc },
+	{ "gui", "custom_gray_ICC_profile", STYPE_STR, N_("path to custom gray ICC profile"), &com.pref.icc.custom_icc_gray },
 	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.icc.rendering_intent },
 	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
 	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },

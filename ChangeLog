@@ -21,6 +21,7 @@ xx/xx/xx
 * Added command conesearch (replaces nomad and solsys), including support for new catalogues (vsx, gcvs, exo, aavso_chart) (!579, #1171)
 * Added bilateral filter tool (!576)
 * Added support for multiple UI files (!576)
+* Added more configurable colors for some overlays (#1230)
 
 siril 1.2.1
 xx/xx/xx
@@ -30,8 +31,11 @@ xx/xx/xx
 * Fixed Noise Reduction Anscombe VST bug with mono images (#1200)
 * Fixed problems with Fourier Transform planning > Estimate (#1199)
 * Fixed data initialisation bugs in copyfits() and RGB compositing tool
+* Fixed exported x-column for lightcurves when Julian date is not selected (#1220)
+* Fixed sampling tolerance for astrometry which was incorrectly read (#1231)
 * Allowed for RA/DEC to be sorted in PSF windows (#1214)
 * Added SET-TEMP as valid FITS header to be saved (#1215)
+* Added configurable color for background extraction sample and standard annotations (#1230)
 
 siril 1.2.0
 09/15/23

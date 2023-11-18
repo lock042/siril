@@ -500,7 +500,7 @@ pkgdata_DATA = \
 	gui/uifiles/resample_dialog.ui \
 	gui/uifiles/rotation_dialog.ui \
 	gui/uifiles/script_contents_dialog.ui \
-	ui/uifiles/split_cfa_dialog.ui \
+	gui/uifiles/split_cfa_dialog.ui \
 	gui/uifiles/data_dialog.ui \
 	gui/uifiles/color_calibration.ui \
 	gui/uifiles/settings_window.ui \

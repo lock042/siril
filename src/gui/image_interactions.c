@@ -1037,7 +1037,7 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 		return FALSE;
 
 	if (gui.icc.iso12646)
-		disable_iso12646_conditions(FALSE, TRUE);
+		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 
 	if (event->state & get_primary()) {
 		point delta;

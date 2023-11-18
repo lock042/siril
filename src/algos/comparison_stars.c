@@ -125,7 +125,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		cat_item *item = &siril_cat->cat_items[i];
-		if (!strcasecmp(item->type, "target")) {
+		if (!g_ascii_strcasecmp(item->type, "target")) {
 			args->target_descr = g_strdup(item->name);
 			if (!get_photo_area_from_ra_dec(first, item->ra, item->dec, &areas[0])) {
 				target_acquired = TRUE;
@@ -135,7 +135,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_log_color_message(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"), "red");
 				break;
 			}
-		} else if ((use_comp1 && !strcasecmp(item->type, "comp1")) || (use_comp2 && !strcasecmp(item->type, "comp2"))) {
+		} else if ((use_comp1 && !g_ascii_strcasecmp(item->type, "comp1")) || (use_comp2 && !g_ascii_strcasecmp(item->type, "comp2"))) {
 			int index = target_acquired ? stars_count : stars_count + 1;
 			if (!get_photo_area_from_ra_dec(first, item->ra, item->dec, &areas[index])) {
 				if (area_is_unique(&areas[index], areas, index)) {

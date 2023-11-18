@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,69 +27,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkAdjustment" id="xbayeroff_adj">
-    <property name="upper">1</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
-  </object>
-  <object class="GtkAdjustment" id="xtranspass_adj">
-    <property name="lower">1</property>
-    <property name="upper">4</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
-  </object>
-  <object class="GtkAdjustment" id="ybayeroff_adj">
-    <property name="upper">1</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_comp_fits_hcompress_scale">
-    <property name="upper">256</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">4</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_comp_fits_quantization">
-    <property name="upper">256</property>
-    <property name="value">8</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">4</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_comp_fits_tilex">
-    <property name="upper">2048</property>
-    <property name="value">100</property>
-    <property name="step-increment">50</property>
-    <property name="page-increment">100</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_comp_fits_tiley">
-    <property name="upper">2048</property>
-    <property name="value">100</property>
-    <property name="step-increment">50</property>
-    <property name="page-increment">100</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_sampling_tolerance">
-    <property name="upper">50</property>
-    <property name="value">15</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_asnet_max_sec">
-    <property name="upper">100000</property>
-    <property name="value">30</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_asnet_radius">
-    <property name="lower">0.01</property>
-    <property name="upper">180</property>
-    <property name="value">10</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_asnet_spi_order">
-    <property name="upper">6</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="adjFlux">
     <property name="lower">3</property>
     <property name="upper">1000</property>
@@ -115,18 +52,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adjmaxpxval">
-    <property name="upper">65535</property>
-    <property name="value">65535</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">300</property>
-  </object>
-  <object class="GtkAdjustment" id="adjminpxval">
-    <property name="lower">-65535</property>
-    <property name="upper">65535</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">100</property>
-  </object>
   <object class="GtkAdjustment" id="adj_ab_inspector_panel">
     <property name="lower">127</property>
     <property name="upper">1024</property>
@@ -140,6 +65,53 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="value">381</property>
     <property name="step-increment">10</property>
     <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_asnet_max_sec">
+    <property name="upper">100000</property>
+    <property name="value">30</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_asnet_radius">
+    <property name="lower">0.01</property>
+    <property name="upper">180</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_asnet_spi_order">
+    <property name="upper">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_comp_fits_hcompress_scale">
+    <property name="upper">256</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">4</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_comp_fits_quantization">
+    <property name="upper">256</property>
+    <property name="value">8</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">4</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_comp_fits_tilex">
+    <property name="upper">2048</property>
+    <property name="value">100</property>
+    <property name="step-increment">50</property>
+    <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_comp_fits_tiley">
+    <property name="upper">2048</property>
+    <property name="value">100</property>
+    <property name="step-increment">50</property>
+    <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_fftw_tme">
+    <property name="upper">9999999</property>
+    <property name="value">30</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_fontsize">
     <property name="lower">70</property>
@@ -162,25 +134,37 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.05</property>
     <property name="page-increment">1</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment_hdstf_bitdepth">
-    <property name="lower">17</property>
-    <property name="upper">24</property>
-    <property name="value">20</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_fftw_tme">
-    <property name="upper">9999999</property>
-    <property name="value">30</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="adj_min_rl_fft">
     <property name="lower">3</property>
     <property name="upper">999</property>
     <property name="value">11</property>
     <property name="step-increment">2</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="upper">50</property>
+    <property name="value">15</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjmaxpxval">
+    <property name="upper">65535</property>
+    <property name="value">65535</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">300</property>
+  </object>
+  <object class="GtkAdjustment" id="adjminpxval">
+    <property name="lower">-65535</property>
+    <property name="upper">65535</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_hdstf_bitdepth">
+    <property name="lower">17</property>
+    <property name="upper">24</property>
+    <property name="value">20</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
   </object>
   <object class="GtkListStore" id="liststore_astrometry">
     <columns>
@@ -203,6 +187,22 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <!-- column-name bgcolor -->
       <column type="gchararray"/>
     </columns>
+  </object>
+  <object class="GtkAdjustment" id="xbayeroff_adj">
+    <property name="upper">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="xtranspass_adj">
+    <property name="lower">1</property>
+    <property name="upper">4</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="ybayeroff_adj">
+    <property name="upper">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
   </object>
   <object class="GtkDialog" id="settings_window">
     <property name="width-request">800</property>
@@ -3251,6 +3251,8 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
@@ -3258,7 +3260,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Default screen transfer function</property>
+                                            <property name="label" translatable="yes">Default screen transfer function:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3318,6 +3320,8 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
@@ -3325,7 +3329,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Default display mode</property>
+                                            <property name="label" translatable="yes">Default display mode:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3380,6 +3384,8 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
                                         <property name="row-homogeneous">True</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
@@ -3387,7 +3393,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="halign">start</property>
-                                            <property name="label" translatable="yes">Type of selection</property>
+                                            <property name="label" translatable="yes">Type of selection:</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">0</property>
@@ -3431,6 +3437,172 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">6</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFrame" id="frame4">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label-xalign">0</property>
+                                    <property name="shadow-type">none</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=5 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkColorButton" id="color_button_bkg">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="halign">start</property>
+                                            <property name="alpha">65535</property>
+                                            <property name="rgba">rgb(255,51,26)</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Background extraction samples:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Standard annotations:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Deep Sky Object (user) annotations:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Solar System Object (user) annotations:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Temporary Object (user) annotations:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkColorButton" id="color_button_std_annot">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="halign">start</property>
+                                            <property name="alpha">58981</property>
+                                            <property name="rgba">rgb(128,255,77)</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkColorButton" id="color_button_dso_annot">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="halign">start</property>
+                                            <property name="alpha">58981</property>
+                                            <property name="rgba">rgb(255,128,0)</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkColorButton" id="color_button_sso_annot">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="halign">start</property>
+                                            <property name="alpha">58981</property>
+                                            <property name="rgba">rgb(255,255,0)</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkColorButton" id="color_button_tmp_annot">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="halign">start</property>
+                                            <property name="alpha">58981</property>
+                                            <property name="rgba">rgb(255,0,0)</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">4</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="label">
+                                      <object class="GtkLabel" id="label1">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-top">10</property>
+                                        <property name="margin-bottom">10</property>
+                                        <property name="label" translatable="yes">Overlay Colors</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">7</property>
                                   </packing>
                                 </child>
                               </object>
@@ -5372,5 +5544,4 @@ Torch-based StarNet versions only.</property>
       <action-widget response="0">apply_settings_button</action-widget>
     </action-widgets>
   </object>
-
 </interface>

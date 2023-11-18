@@ -87,6 +87,14 @@ static CatalogObjects* new_catalog_object(const gchar *name, double x,
 	return object;
 }
 
+static int compare_names(gchar *s1, gchar *s2) {
+	if (!s1)
+		return 1;
+	if (!s2)
+		return -1;
+	return g_ascii_strcasecmp(s1, s2);
+}
+
 /* compare two objects, looking for duplicates based on the alias names against the name of the object to search */
 static gint object_compare(gconstpointer *a, gconstpointer *b) {
 	const CatalogObjects *s1 = (const CatalogObjects *) a;
@@ -112,17 +120,17 @@ static gint object_compare(gconstpointer *a, gconstpointer *b) {
 
 // returns true if it was added
 static gboolean add_alias_to_item(cat_item *item, gchar *name) {
-	if (item->name && !strcasecmp(item->name, name))
+	if (!compare_names(item->name, name))
 		return FALSE;
 	if (item->alias && item->alias[0] != '\0') {
 		if (!strchr(item->alias, '/')) {
-			if (!strcasecmp(item->alias, name))
+			if (!compare_names(item->alias, name))
 				return FALSE;
 		} else {
 			gchar **token = g_strsplit(item->alias, "/", -1);
 			guint i = 0;
 			while (token[i]) {
-				if (!strcasecmp(token[i], name)) {
+				if (!compare_names(token[i], name)) {
 					g_strfreev(token);
 					return FALSE;
 				}
@@ -453,10 +461,10 @@ static gboolean is_same_item(cat_item *item1, cat_item *item2, siril_cat_index c
 	}
 	switch (cat_index) {
 		case CAT_AN_USER_SSO: // for SSO we need to check on more criteria than just the position
-			return (!strcasecmp(item1->name, item2->name) || // same name
-					!strcasecmp(item1->alias, item2->alias) || // same alias
-					!strcasecmp(item1->name, item2->alias) || // or a mix'n'match
-					!strcasecmp(item1->alias, item2->name))
+			return (!compare_names(item1->name, item2->name) || // same name
+					!compare_names(item1->alias, item2->alias) || // same alias
+					!compare_names(item1->name, item2->alias) || // or a mix'n'match
+					!compare_names(item1->alias, item2->name))
 					// same night (time diff < 18hrs), we can then use vra/vdec to compute position throughout the night
 					&& fabs(item1->dateobs - item2->dateobs) < 0.75
 					// same observation site
@@ -559,7 +567,7 @@ cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_
 		siril_catalogue *siril_cat = curcat->cat;
 		for (int i = 0; i < siril_cat->nbitems; i++) {
 			cat_item *item = &siril_cat->cat_items[i];
-			if (item->name && !strcasecmp(item->name, target)) {
+			if (!compare_names(item->name, target)) {
 				found = item;
 				bingo = TRUE;
 				if (cat_index)
@@ -568,7 +576,7 @@ cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_
 			}
 			if (item->alias) {
 				if (!strchr(item->alias, '/')) {
-					if (!strcasecmp(item->alias, target)) {
+					if (!compare_names(item->alias, target)) {
 						found = item;
 						bingo = TRUE;
 						if (cat_index)
@@ -579,7 +587,7 @@ cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_
 					gchar **token = g_strsplit(item->alias, "/", -1);
 					guint i = 0;
 					while (token[i]) {
-						if (!strcasecmp(token[i], target)) {
+						if (!compare_names(token[i], target)) {
 							found = item;
 							bingo = TRUE;
 							if (cat_index)
