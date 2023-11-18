@@ -2789,9 +2789,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->date_obs = NULL;
 		to->icc_profile = NULL;
 		to->color_managed = FALSE;
-#ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
-#endif
 	}
 
 	if ((oper & CP_ALLOC)) {
@@ -2963,9 +2961,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	 */
 	color_manage(to, FALSE);
 	to->icc_profile = NULL;
-#ifdef HAVE_WCSLIB
 	to->wcslib = NULL;
-#endif
 
 	if (from->type == DATA_USHORT)
 		if (to_float) {
@@ -3084,9 +3080,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
 	// don't copy ICC profile, if that is needed it should be done separately
-#ifdef HAVE_WCSLIB
 	//wcssub()?
-#endif
 	// copy from->history?
 }
 

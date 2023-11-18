@@ -456,9 +456,6 @@ void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
 
 // returns a siril_catalogue structure with center
 siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, float limit_mag) {
-#ifndef HAVE_WCSLIB
-	return NULL;
-#endif
 	if (!fit) {
 		return NULL;
 	}
@@ -812,9 +809,6 @@ static gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 // corrects for object velocity if the flag is true and if necessary data is included
 // in the catalogue (vra and vdec fields)
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity) {
-#ifndef HAVE_WCSLIB
-	return 1
-#endif
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC)) {
 		siril_debug_print("catalogue %s does not have the necessary columns\n", catalog_to_str(siril_cat->cat_index));
 		return 1;

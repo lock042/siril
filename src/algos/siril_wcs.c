@@ -28,16 +28,11 @@
 #include "algos/astrometry_solver.h"
 #include "io/image_format_fits.h"
 
-#ifdef HAVE_WCSLIB
 #include <wcslib.h>
 #include <wcsfix.h>
-#endif
 
 #include "siril_wcs.h"
 
-#ifdef HAVE_WCSLIB
-static GMutex wcs_mutex;
-#endif
 
 // Use this flag to print wcslib related verbose - not for production
 #define DEBUG_WCS 1
@@ -46,10 +41,7 @@ static GMutex wcs_mutex;
 #define NAXIS 2
 
 gboolean has_wcs(fits *fit) {
-#ifdef HAVE_WCSLIB
 	return fit->wcslib != NULL;
-#endif
-	return FALSE;
 }
 
 // deal with cases where wcsdata is not NULL but members are set to 0
@@ -61,13 +53,11 @@ gboolean has_wcsdata(fits *fit) {
 
 
 void free_wcs(fits *fit, gboolean keep_RADEC) {
-#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		if (!wcsfree(fit->wcslib))
 			free(fit->wcslib);
 		fit->wcslib = NULL;
 	}
-#endif
 	if (keep_RADEC) {
 		memset(&fit->wcsdata.cdelt, 0, sizeof(fit->wcsdata.cdelt));
 		memset(&fit->wcsdata.crpix, 0, sizeof(fit->wcsdata.crpix));
@@ -81,7 +71,6 @@ void free_wcs(fits *fit, gboolean keep_RADEC) {
 }
 
 gboolean load_WCS_from_memory(fits *fit) {
-#ifdef HAVE_WCSLIB
 	int status;
 	if (!fit->wcslib) {
 		fit->wcslib = calloc(1, sizeof(struct wcsprm));
@@ -139,14 +128,10 @@ gboolean load_WCS_from_memory(fits *fit) {
 		return FALSE;
 	}
 	return TRUE;
-#else
-	return FALSE;
-#endif
 }
 
 
 gboolean load_WCS_from_file(fits* fit) {
-#ifdef HAVE_WCSLIB
 	int status = 0, wcs_status = 0;
 	char *header;
 	struct wcsprm *data = NULL;
@@ -173,10 +158,8 @@ gboolean load_WCS_from_file(fits* fit) {
 		return FALSE;
 	}
 
-	/** There is a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
-	 * We need to lock it.
-	 * TODO: check wcslib version ?*/
-	g_mutex_lock(&wcs_mutex);
+	/** There was a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
+	 * We now force to have 7.12 at least */
 	wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
 
 	if (wcs_status == 0) {
@@ -221,7 +204,6 @@ gboolean load_WCS_from_file(fits* fit) {
 		}
 	}
 	wcsvfree(&nwcs, &data);
-	g_mutex_unlock(&wcs_mutex);
 	free(header);
 
 	if (!fit->wcslib) {
@@ -232,12 +214,8 @@ gboolean load_WCS_from_file(fits* fit) {
 	}
 
 	return TRUE;
-#else
-	return FALSE;
-#endif
 }
 
-#ifdef HAVE_WCSLIB
 void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
 	*r = 0.0;
 	*d = 0.0;
@@ -254,24 +232,18 @@ void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
 	*r = world[0];
 	*d = world[1];
 }
-#endif
 
 void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 	*r = 0.0;
 	*d = 0.0;
-#ifdef HAVE_WCSLIB
 	if (fit->wcslib)
 		pix2wcs2(fit->wcslib, x, y, r, d);
-#endif
 }
 
 // ra in degrees
 int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (x) *x = -1.0;
 	if (y) *y = -1.0;
-#ifndef HAVE_WCSLIB
-	return 1;
-#else
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 	world[0] = ra;
@@ -292,7 +264,6 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 		}
 	}
 	return status;
-#endif
 }
 
 // same as wcs2pix except it takes a world array as input
@@ -307,9 +278,6 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 		for (int i = 0; i < n; i++)
 			y[i] = -1.0;
 	}
-#ifndef HAVE_WCSLIB
-	return NULL;
-#else
 	// can't pass NULL to the values we don't want to retrieve (intcrd, phi, theta)
 	double *intcrd = malloc((2 * n) * sizeof(double));
 	double *pixcrd = malloc((2 * n) * sizeof(double));
@@ -344,7 +312,6 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 	free(phi);
 	free(theta);
 	return status;
-#endif
 }
 
 
@@ -352,7 +319,6 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 void center2wcs(fits *fit, double *r, double *d) {
 	*r = -1.0;
 	*d = -1.0;
-#ifdef HAVE_WCSLIB
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
@@ -365,13 +331,11 @@ void center2wcs(fits *fit, double *r, double *d) {
 
 	*r = world[0];
 	*d = world[1];
-#endif
 }
 
 /* get resolution in degree/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
-#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		double cd[NAXIS][NAXIS], pc[NAXIS][NAXIS];
 		double cdelt[NAXIS];
@@ -393,7 +357,6 @@ double get_wcs_image_resolution(fits *fit) {
 		double res_y = sqrt(cd[0][1] * cd[0][1] + cd[1][1] * cd[1][1]);
 		resolution = (res_x + res_y) * 0.5;
 	}
-#endif
 	if (resolution <= 0.0) {
 		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
 			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600.0;

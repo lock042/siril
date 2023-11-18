@@ -450,9 +450,7 @@ struct ffit {
 
 	/* Plate Solving data */
 	wcs_info wcsdata;		// data from the header
-#ifdef HAVE_WCSLIB
 	struct wcsprm *wcslib;		// struct of the lib
-#endif
 
 	/* data used in the Fourier space */
 	dft_info dft;

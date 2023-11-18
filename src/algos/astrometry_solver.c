@@ -585,11 +585,9 @@ gpointer plate_solver(gpointer p) {
 	if (args->for_photometry_cc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
-#ifndef HAVE_WCSLIB
 		siril_log_color_message(_("This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"), "red");
 		args->ret = ERROR_PLATESOLVE;
 		goto clearup;
-#endif
 		// We relaunch the conesearch with phot flag set to TRUE
 		// For local catalogue, we fetch a whole new set at updated center and res
 		// For online catalogue, we re-read the same catalogue from cache with the new phot flag
@@ -1192,10 +1190,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	memcpy(&args->fit->wcsdata, &result.wcsdata, sizeof(wcs_info));
 	memset(&result.wcsdata, 0, sizeof(wcs_info));
-#ifdef HAVE_WCSLIB
 	args->fit->wcslib = result.wcslib;
 	result.wcslib = NULL;
-#endif
 	clearfits(&result);
 	if (!com.pref.astrometry.keep_wcs_files)
 		g_unlink(wcs_filename);

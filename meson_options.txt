@@ -90,9 +90,3 @@ option('criterion',
  value : false,
  description: 'build with criterion support'
 )
-
-option('wcslib',
- type : 'boolean',
- value : true,
- description: 'build with WCSLIB support'
-)
