@@ -284,7 +284,7 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 	double *phi = malloc(n * sizeof(double));
 	double *theta = malloc(n * sizeof(double));
 	int c = 0;
-	int *status = calloc(n , sizeof(int));
+	int *status = calloc((unsigned)n , sizeof(int));
 	int globstatus = wcss2p(fit->wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
 	if (globstatus == WCSERR_SUCCESS || WCSERR_BAD_WORLD) {// we accept BAD_WORLD as it does not mean all of the conversions failed
 		for (int i = 0; i < n; i++) {
