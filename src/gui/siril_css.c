@@ -56,7 +56,7 @@ void load_css_style_sheet () {
 
 		siril_debug_print("Successfully loaded /org/siril/ui/siril.css\n");
 		g_free(first_line);
-		g_free(css_buffer);
+		g_bytes_unref(css_buffer);
 		g_free(updated_css);
 		g_object_unref(css_provider);
 	} else {

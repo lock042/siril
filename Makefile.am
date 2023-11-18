@@ -76,7 +76,7 @@ git-version.h: update-git-version-header
 	  echo "  git HEAD changed: $@ regenerated"; \
 	fi
 
-siril_resource.h: update-siril-resource-header
+siril_resource.h: src/siril_resource.xml
 	$(AM_V_GEN)
 	glib-compile-resources \
 	--sourcedir=$(top_builddir) \
@@ -86,4 +86,4 @@ siril_resource.h: update-siril-resource-header
 	--c-name siril_resource \
 	$(srcdir)/src/siril_resource.xml
 
-.PHONY: update-git-version-header update-siril-resource-header
+.PHONY: update-git-version-header siril_resource.h
