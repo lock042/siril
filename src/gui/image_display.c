@@ -686,9 +686,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 
 	/* Create pixbuf from siril.svg file */
 	if (siril_pix == NULL) {
-		gchar *image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "siril.svg", NULL);
-		siril_pix = gdk_pixbuf_new_from_file_at_size(image, 256, 256, NULL);
-		g_free(image);
+		siril_pix = gdk_pixbuf_new_from_resource_at_scale("/org/siril/ui/pixmaps/siril.svg", 256, 256, FALSE, NULL);
 	}
 
 	GdkPixbuf *pixbuf = gdk_pixbuf_scale_simple(siril_pix, pix_size, pix_size, GDK_INTERP_BILINEAR);

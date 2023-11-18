@@ -40,6 +40,7 @@
 #include <windows.h>
 #endif
 
+#include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"
@@ -126,38 +127,33 @@ static GActionEntry app_entries[] = {
 	{ "about", about_action_activate }
 };
 
-
 void load_ui_files() {
 	GError *err = NULL;
-	gchar* uifile;
 	gboolean retval;
 
 	/* try to load the first UI file, from the sources defined above */
-	uifile = g_build_filename(siril_get_system_data_dir(), ui_files[0], NULL);
-	gui.builder = gtk_builder_new_from_file(uifile);
+	gui.builder = gtk_builder_new_from_resource(ui_files[0]);
 	if (!gui.builder) {
 		g_error(_("%s was not found or contains errors, "
-					"cannot render GUI.\n Exiting.\n"), uifile);
+					"cannot render GUI.\n Exiting.\n"), ui_files[0]);
 		exit(EXIT_FAILURE);
 	}
-	siril_debug_print("Successfully loaded '%s'\n", uifile);
+	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
 
 	uint32_t i = 1;
 	while (*ui_files[i]) {
-		uifile = g_build_filename(siril_get_system_data_dir(), ui_files[i], NULL);
 
 		/* try to load each successive UI file, from the sources defined above */
 		// TODO: the following gtk_builder_add_from_file call is the source
 		// of libfontconfig memory leaks.
-		retval = gtk_builder_add_from_file(gui.builder, uifile, &err);
+		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "
-						"cannot render GUI:\n%s\n Exiting.\n"), uifile, err->message);
+						"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
 			g_clear_error(&err);
 			exit(EXIT_FAILURE);
 		}
-		siril_debug_print("Successfully loaded '%s'\n", uifile);
-		g_free(uifile);
+		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
 		i++;
 	}
 }
@@ -333,6 +329,8 @@ static void siril_app_activate(GApplication *application) {
 		}
 	}
 	if (!com.headless) {
+		/* Load GResource */
+		com.resource = siril_resource_get_resource();
 		/* Load preferred theme */
 		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */

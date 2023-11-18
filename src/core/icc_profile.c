@@ -1902,15 +1902,13 @@ void on_icc_gamut_visualisation_clicked() {
 	GtkWidget *win = lookup_widget("icc_gamut_dialog");
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
 	if (!colorspace_comparison_image_set) {
-		gchar *image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "CIE1931.svg", NULL);
 		GError *error = NULL;
-		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(image, &error);
+		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_resource("/org/siril/ui/pixmaps/CIE1931.svg", &error);
 		if (error) {
 			siril_debug_print("Error: %s\n", error->message);
 			g_error_free(error);
 		}
 		gtk_image_set_from_pixbuf(GTK_IMAGE(lookup_widget("colorspace_comparison")), pixbuf);
-		g_free(image);
 		colorspace_comparison_image_set = TRUE;
 	}
 	/* Here this is wanted that we do not use siril_open_dialog */
