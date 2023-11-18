@@ -39,6 +39,9 @@
 static GMutex wcs_mutex;
 #endif
 
+// Use this flag to print wcslib related verbose - not for production
+#define DEBUG_WCS 1
+
 /* we force naxis to 2 */
 #define NAXIS 2
 
@@ -195,6 +198,19 @@ gboolean load_WCS_from_file(fits* fit) {
 				fit->wcslib->flag = -1;
 				status = wcssub(1, prm, &nsub, axes, fit->wcslib);
 				if (status == 0) {
+#if DEBUG_WCS
+					if (fit->wcslib->lin.dispre) {
+						struct disprm *dis = fit->wcslib->lin.dispre;
+						disset(dis);
+						for (int j = 0; j < dis->ndp; j++) {
+							printf("%s %d", dis->dp[j].field, dis->dp[j].j);
+							if (!dis->dp[j].type) //int
+								printf(" %d\n", dis->dp[j].value.i);
+							else //float
+								printf(" %g\n", dis->dp[j].value.f);
+						}
+					}
+#endif
 					break;
 				} else {
 					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);

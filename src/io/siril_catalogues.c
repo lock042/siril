@@ -557,7 +557,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	gchar *line;
 	gboolean header_read = FALSE, has_error = FALSE;
 	int *indexes = NULL;
-	int nbcols;
+	int nbcols = 0;
 	GString *header = NULL;
 	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
 		if (line[0] == '\0') {
