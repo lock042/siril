@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-13 15:16+0100\n"
-"PO-Revision-Date: 2023-11-07 10:12+0000\n"
+"POT-Creation-Date: 2023-11-18 13:09+0100\n"
+"PO-Revision-Date: 2023-11-18 00:32+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
 "application/ru/>\n"
@@ -42,7 +42,7 @@ msgstr "Скачать сценарии"
 msgid "Keyboard Shortcuts"
 msgstr "Клавиатурные комбинации"
 
-#: src/gui/uifiles/menus.ui:151 src/gui/about_dialog.c:73
+#: src/gui/uifiles/menus.ui:151 src/gui/about_dialog.c:71
 msgid "About Siril"
 msgstr "О программе"
 
@@ -68,9 +68,8 @@ msgid "Information..."
 msgstr "Информация…"
 
 #: src/gui/uifiles/menus.ui:275
-#, fuzzy
 msgid "Color Management..."
-msgstr "Насыщенность…"
+msgstr "Управление цветом…"
 
 #: src/gui/uifiles/menus.ui:289 src/gui/uifiles/menus.ui:580
 msgid "FITS Header..."
@@ -83,25 +82,25 @@ msgstr "Динамическая PSF..."
 #: src/gui/uifiles/menus.ui:325 src/gui/uifiles/siril.ui:7169
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
 #: src/gui/uifiles/wavelets_dialog.ui:183
-#: src/gui/uifiles/settings_window.ui:3274
-#: src/gui/uifiles/settings_window.ui:3341
+#: src/gui/uifiles/settings_window.ui:3276
+#: src/gui/uifiles/settings_window.ui:3345
 msgid "Linear"
 msgstr "Линейный"
 
-#: src/gui/uifiles/menus.ui:336 src/gui/uifiles/settings_window.ui:3275
-#: src/gui/uifiles/settings_window.ui:3342
+#: src/gui/uifiles/menus.ui:336 src/gui/uifiles/settings_window.ui:3277
+#: src/gui/uifiles/settings_window.ui:3346
 msgid "Logarithm"
 msgstr "Логарифмический"
 
-#: src/gui/uifiles/menus.ui:347 src/gui/uifiles/settings_window.ui:3276
+#: src/gui/uifiles/menus.ui:347 src/gui/uifiles/settings_window.ui:3278
 msgid "Square root"
 msgstr "Квадрат. корень"
 
-#: src/gui/uifiles/menus.ui:358 src/gui/uifiles/settings_window.ui:3277
+#: src/gui/uifiles/menus.ui:358 src/gui/uifiles/settings_window.ui:3279
 msgid "Squared"
 msgstr "Квадратичный"
 
-#: src/gui/uifiles/menus.ui:369 src/gui/uifiles/settings_window.ui:3278
+#: src/gui/uifiles/menus.ui:369 src/gui/uifiles/settings_window.ui:3280
 msgid "Asinh"
 msgstr "Asinh"
 
@@ -113,7 +112,7 @@ msgstr "Авторастягивание"
 msgid "High definition"
 msgstr "Расширенное"
 
-#: src/gui/uifiles/menus.ui:401 src/gui/uifiles/settings_window.ui:3280
+#: src/gui/uifiles/menus.ui:401 src/gui/uifiles/settings_window.ui:3282
 msgid "Histogram"
 msgstr "Гистограмма"
 
@@ -604,7 +603,7 @@ msgstr "Частотные слои…"
 
 #: src/gui/uifiles/menus.ui:1781
 msgid "gamut"
-msgstr ""
+msgstr "цветовой охват"
 
 #: src/gui/uifiles/menus.ui:1785
 msgid ""
@@ -892,7 +891,7 @@ msgid "Blue"
 msgstr "Синий"
 
 #: src/gui/uifiles/siril.ui:1141 src/gui/uifiles/extract_channel_dialog.ui:189
-#: src/core/command.c:5369 src/core/command.c:5373
+#: src/core/command.c:5368 src/core/command.c:5372
 msgid "RGB"
 msgstr "RGB"
 
@@ -934,9 +933,9 @@ msgstr "Удалить все файлы из списка"
 #: src/gui/uifiles/file_information_dialog.ui:171
 #: src/gui/uifiles/composition_dialog.ui:96
 #: src/gui/uifiles/settings_window.ui:1745
-#: src/gui/uifiles/settings_window.ui:3722
-#: src/gui/uifiles/settings_window.ui:3736
-#: src/gui/uifiles/settings_window.ui:5215
+#: src/gui/uifiles/settings_window.ui:3894
+#: src/gui/uifiles/settings_window.ui:3908
+#: src/gui/uifiles/settings_window.ui:5387
 msgid "Clear"
 msgstr "Очистить"
 
@@ -1477,7 +1476,7 @@ msgstr ""
 "Во сколько раз должно отличаться стандартное отклонение значения пикселя, "
 "чтобы считать пиксель дефектным."
 
-#: src/gui/uifiles/siril.ui:2652 src/gui/uifiles/settings_window.ui:4831
+#: src/gui/uifiles/siril.ui:2652 src/gui/uifiles/settings_window.ui:5003
 msgid "Estimate"
 msgstr "Оценка"
 
@@ -3259,8 +3258,8 @@ msgstr ""
 "Меню сценариев. Появляется только если пути к сценариям правильно указаны в "
 "настройках."
 
-#: src/gui/uifiles/siril.ui:7733 src/gui/uifiles/settings_window.ui:4222
-#: src/gui/uifiles/settings_window.ui:4543
+#: src/gui/uifiles/siril.ui:7733 src/gui/uifiles/settings_window.ui:4394
+#: src/gui/uifiles/settings_window.ui:4715
 msgid "Scripts"
 msgstr "Сценарии"
 
@@ -4229,9 +4228,8 @@ msgid "<b>Compression</b>"
 msgstr "<b>Сжатие</b>"
 
 #: src/gui/uifiles/savepopup.ui:345
-#, fuzzy
 msgid "<b>ICC Profile</b>"
-msgstr "<b>Тип профиля</b>"
+msgstr "<b>Профиль ICC</b>"
 
 #: src/gui/uifiles/savepopup.ui:374
 msgid "<b>Embedded Data</b>"
@@ -5389,11 +5387,11 @@ msgid "Select the color space corresponding to the three extracted images"
 msgstr ""
 "Выберите цветовое пространство, соответствующее трём извлечённым изображениям"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5360
+#: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5359
 msgid "HSL"
 msgstr "HSL"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5363
+#: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5362
 msgid "HSV"
 msgstr "HSV"
 
@@ -5787,7 +5785,7 @@ msgstr "Логарифмическая гистограмма"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:127 src/gui/remixer.c:691
-#: src/gui/remixer.c:1431
+#: src/gui/remixer.c:1425
 msgid "Advanced"
 msgstr "Больше"
 
@@ -6242,17 +6240,15 @@ msgstr ""
 msgid "Reject high"
 msgstr "Верхняя граница"
 
-#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3474
-#: src/gui/uifiles/settings_window.ui:4208 src/core/icc_profile.c:1254
+#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3646
+#: src/gui/uifiles/settings_window.ui:4380 src/core/icc_profile.c:1254
 #: src/core/icc_profile.c:1256
-#, fuzzy
 msgid "Color Management"
-msgstr "<b>Управление памятью</b>"
+msgstr "Управление цветом"
 
 #: src/gui/uifiles/icc_dialog.ui:64
-#, fuzzy
 msgid "Export"
-msgstr "Экспорт в CSV"
+msgstr "Экспорт"
 
 #: src/gui/uifiles/icc_dialog.ui:68
 msgid ""
@@ -6265,9 +6261,8 @@ msgid "Remove the ICC profile from the image and stop color managing it"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:94 src/core/icc_profile.c:1254
-#, fuzzy
 msgid "Assign"
-msgstr "Не назначено"
+msgstr "Назначить"
 
 #: src/gui/uifiles/icc_dialog.ui:98
 msgid ""
@@ -6287,18 +6282,16 @@ msgid "<b><i>Current ICC profile</i></b>"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:212
-#, fuzzy
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b>Тип профиля</b>"
+msgstr "<b>Целевой профиль ICC</b>"
 
 #: src/gui/uifiles/icc_dialog.ui:237 src/gui/uifiles/icc_dialog.ui:291
 msgid "Manufacturer"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:250 src/gui/uifiles/icc_dialog.ui:304
-#, fuzzy
 msgid "Copyright"
-msgstr "Авторские права в TIFF"
+msgstr "Авторские права"
 
 #: src/gui/uifiles/icc_dialog.ui:315
 msgid "\n"
@@ -6316,9 +6309,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:357
-#, fuzzy
 msgid "None selected"
-msgstr "выбранные"
+msgstr "Не выбрано"
 
 #: src/gui/uifiles/icc_dialog.ui:358
 #, fuzzy
@@ -6350,20 +6342,17 @@ msgid "Gray (Rec709 TRC)"
 msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:377
-#, fuzzy
 msgid "Load profile from file"
-msgstr "Загрузить PSF из файла"
+msgstr "Загрузить профиль из файла"
 
 #: src/gui/uifiles/icc_dialog.ui:407
-#, fuzzy
 msgid "<b>Color Management Operations</b>"
-msgstr "<b>Управление памятью</b>"
+msgstr "<b>Операции управления цветом</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
-#: src/gui/uifiles/settings_window.ui:3535
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3707
 msgid "Gamut visualisation"
-msgstr "Только для визуализации"
+msgstr "Визуализация цветового охвата"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:76
 msgid ""
@@ -6420,7 +6409,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:149
-#: src/gui/uifiles/settings_window.ui:4502
+#: src/gui/uifiles/settings_window.ui:4674
 msgid "Sel"
 msgstr "Выбор"
 
@@ -6736,7 +6725,6 @@ msgid "Online Star Catalogue: "
 msgstr "Удалённый каталог звёзд: "
 
 #: src/gui/uifiles/IPS_dialog.ui:771
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -6774,9 +6762,13 @@ msgstr ""
 "* Каталог PPMXL содержит положения, собственные движения, данные ближней "
 "инфракрасной (2MASS) и оптической фотометрии порядка 900 миллионов звёзд и "
 "галактик.\n"
-"* Каталог ярких звёзд содержит все звёзд со звёздной величиной от 6.5, что "
-"примерно соответствует звёздам, видимым невооружённым глазом. Каталог "
-"включает 9 110 объектов."
+"* Каталог ярких звёзд содержит все звёзды со звёздной величиной от 6.5, что "
+"примерно соответствует звёздам, видимым невооружённым глазом с Земли. "
+"Каталог включает 9 110 объектов.\n"
+"* APASS, фотометрический обзор всего неба Американской ассоциации "
+"наблюдателей переменных звёзд (AAVSO). Обзор выполнен в восьми фильтрах: "
+"Johnson B и V, Sloan u', g′, r′, i′, z_s и Z. Он действителен для более чем "
+"37 миллионов звёзд примерно от 7-й до 17-й звёздной величины."
 
 #: src/gui/uifiles/IPS_dialog.ui:800
 msgid ""
@@ -7478,7 +7470,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "Последовательности"
 
-#: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1337
+#: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1331
 msgid "Histogram Transformation"
 msgstr "Преобразование гистограммы"
 
@@ -8335,9 +8327,8 @@ msgstr ""
 "Это зависит от программного обеспечения, использованного для создания FITS."
 
 #: src/gui/uifiles/settings_window.ui:774
-#, fuzzy
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "Встроить профиль sRGB ICC в изображение"
+msgstr "Встроить профили ICC в сохранённые файлы FITS"
 
 #: src/gui/uifiles/settings_window.ui:778
 msgid ""
@@ -9036,7 +9027,7 @@ msgid "<b>Aberration Inspector</b>"
 msgstr "<b>Аберрации</b>"
 
 #: src/gui/uifiles/settings_window.ui:2959
-#: src/gui/uifiles/settings_window.ui:3450
+#: src/gui/uifiles/settings_window.ui:3622
 msgid "User Interface"
 msgstr "Интерфейс"
 
@@ -9128,31 +9119,34 @@ msgstr "Обычные (256×256)"
 msgid "Image Thumbnails"
 msgstr "Миниатюры изображений"
 
-#: src/gui/uifiles/settings_window.ui:3261
-msgid "Default screen transfer function"
+#: src/gui/uifiles/settings_window.ui:3263
+#, fuzzy
+msgid "Default screen transfer function:"
 msgstr "Режим показа по умолчанию"
 
-#: src/gui/uifiles/settings_window.ui:3279
+#: src/gui/uifiles/settings_window.ui:3281
 msgid "Autostretch"
 msgstr "Авторастягивание"
 
-#: src/gui/uifiles/settings_window.ui:3296
+#: src/gui/uifiles/settings_window.ui:3298
 msgid "Image Display"
 msgstr "Экран"
 
-#: src/gui/uifiles/settings_window.ui:3328
-msgid "Default display mode"
+#: src/gui/uifiles/settings_window.ui:3332
+#, fuzzy
+msgid "Default display mode:"
 msgstr "Режим показа"
 
-#: src/gui/uifiles/settings_window.ui:3358
+#: src/gui/uifiles/settings_window.ui:3362
 msgid "Histogram Display"
 msgstr "Гистограмма"
 
-#: src/gui/uifiles/settings_window.ui:3390
-msgid "Type of selection"
+#: src/gui/uifiles/settings_window.ui:3396
+#, fuzzy
+msgid "Type of selection:"
 msgstr "Тип выделения"
 
-#: src/gui/uifiles/settings_window.ui:3401
+#: src/gui/uifiles/settings_window.ui:3407
 msgid ""
 "Sets the method of selecting a ROI.\n"
 "<b>Manual</b> requires the ROI to be selected and cleared manually using the "
@@ -9166,35 +9160,63 @@ msgstr ""
 "<b>Автоматически</b> - область интереса автоматически синхронизируется с "
 "текущим выделением и очищается вместе с ним."
 
-#: src/gui/uifiles/settings_window.ui:3406
+#: src/gui/uifiles/settings_window.ui:3412
 msgid "Manual"
 msgstr "Вручную"
 
-#: src/gui/uifiles/settings_window.ui:3407
+#: src/gui/uifiles/settings_window.ui:3413
 msgid "Automatic from selection"
 msgstr "Автоматически из выделения"
 
-#: src/gui/uifiles/settings_window.ui:3423
+#: src/gui/uifiles/settings_window.ui:3429
 msgid "Region of Interest"
 msgstr "Область интереса"
 
-#: src/gui/uifiles/settings_window.ui:3490
+#: src/gui/uifiles/settings_window.ui:3476
+#, fuzzy
+msgid "Background extraction samples:"
+msgstr "Извлечение фона"
+
+#: src/gui/uifiles/settings_window.ui:3488
+#, fuzzy
+msgid "Standard annotations:"
+msgstr "показать звёзды в аннотациях"
+
+#: src/gui/uifiles/settings_window.ui:3500
+#, fuzzy
+msgid "Deep Sky Object (user) annotations:"
+msgstr "показывать объекты каталога SH2 в аннотациях"
+
+#: src/gui/uifiles/settings_window.ui:3512
+#, fuzzy
+msgid "Solar System Object (user) annotations:"
+msgstr "Поиск объектов Солнечной системы на дату %s\n"
+
+#: src/gui/uifiles/settings_window.ui:3524
+#, fuzzy
+msgid "Temporary Object (user) annotations:"
+msgstr "показать пользовательские объекты в аннотациях"
+
+#: src/gui/uifiles/settings_window.ui:3595
+msgid "Overlay Colors"
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:3662
 msgid "This section contains options relating to working color spaces"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3506
+#: src/gui/uifiles/settings_window.ui:3678
 msgid ""
 "This selects the family of RGB profiles that will be used throughout most of "
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3508
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3680
 msgid "Preferred Color Space:"
-msgstr "Цветовое пространство:"
+msgstr "Предпочитаемое цветовое пространство:"
 
-#: src/gui/uifiles/settings_window.ui:3519
+#: src/gui/uifiles/settings_window.ui:3691
 msgid ""
 "This sets your preferred family of color spaces for use as working color "
 "spaces: it comprises a RGB color profile and a matching Gray color profile. "
@@ -9202,172 +9224,164 @@ msgid ""
 "also be used by the file export options."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3522
-#: src/gui/uifiles/settings_window.ui:3872
-#: src/gui/uifiles/settings_window.ui:3952
+#: src/gui/uifiles/settings_window.ui:3694
+#: src/gui/uifiles/settings_window.ui:4044
+#: src/gui/uifiles/settings_window.ui:4124
 msgid "sRGB"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3523
+#: src/gui/uifiles/settings_window.ui:3695
 msgid "Rec2020"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3524
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3696
 msgid "From files"
-msgstr "Профиль"
+msgstr "Из файлов"
 
-#: src/gui/uifiles/settings_window.ui:3539
+#: src/gui/uifiles/settings_window.ui:3711
 msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3551
+#: src/gui/uifiles/settings_window.ui:3723
 msgid ""
 "Use these opions together with the \"From files\" option for Preferred Color "
 "Spaces above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3554
+#: src/gui/uifiles/settings_window.ui:3726
 msgid "External color profiles:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3566
+#: src/gui/uifiles/settings_window.ui:3738
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3568
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3740
 msgid "RGB ICC profile"
-msgstr "ICC-профиль"
+msgstr "RGB ICC-профиль"
 
-#: src/gui/uifiles/settings_window.ui:3579
+#: src/gui/uifiles/settings_window.ui:3751
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3581
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3753
 msgid "Gray ICC profile"
-msgstr "ICC-профиль"
+msgstr "Ч/Б ICC-профиль"
 
-#: src/gui/uifiles/settings_window.ui:3593
+#: src/gui/uifiles/settings_window.ui:3765
 msgid ""
 "Use this together with the \"From files\" option above. This should be a RGB "
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
 "etc.)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3608
+#: src/gui/uifiles/settings_window.ui:3780
 msgid ""
 "Use this together with the \"From files\" option above. This should be a "
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
 "RGB profile you set above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3626
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3798
 msgid "Working Color Spaces"
-msgstr "Цветовое пространство:"
+msgstr "Рабочие цветовые пространства"
 
-#: src/gui/uifiles/settings_window.ui:3659
+#: src/gui/uifiles/settings_window.ui:3831
 msgid "Custom monitor profile:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3671
+#: src/gui/uifiles/settings_window.ui:3843
 msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3685
+#: src/gui/uifiles/settings_window.ui:3857
 msgid ""
 "Specify an output device profile for soft proofing purposes. If this is not "
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
 "the soft proofing target."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3700
+#: src/gui/uifiles/settings_window.ui:3872
 msgid "Output device proofing profile:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3713
+#: src/gui/uifiles/settings_window.ui:3885
 msgid "Rendering intent:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3726
+#: src/gui/uifiles/settings_window.ui:3898
 msgid "Clear the profile and revert to the default"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3740
+#: src/gui/uifiles/settings_window.ui:3912
 msgid "Clear the profile: soft proofing will be unavailable"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3752
+#: src/gui/uifiles/settings_window.ui:3924
 msgid "Select the display intent. The default is perceptual rendering."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3755
-#: src/gui/uifiles/settings_window.ui:3902
+#: src/gui/uifiles/settings_window.ui:3927
+#: src/gui/uifiles/settings_window.ui:4074
 msgid "Perceptual"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3756
-#: src/gui/uifiles/settings_window.ui:3903
+#: src/gui/uifiles/settings_window.ui:3928
+#: src/gui/uifiles/settings_window.ui:4075
 msgid "Relative Colorimetric"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3757
-#: src/gui/uifiles/settings_window.ui:3904
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3929
+#: src/gui/uifiles/settings_window.ui:4076
 msgid "Saturation"
-msgstr "Насыщенность: "
+msgstr "Насыщенность"
 
-#: src/gui/uifiles/settings_window.ui:3758
-#: src/gui/uifiles/settings_window.ui:3905
+#: src/gui/uifiles/settings_window.ui:3930
+#: src/gui/uifiles/settings_window.ui:4077
 msgid "Absolute Colorimetric"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3769
-#: src/gui/uifiles/settings_window.ui:3784
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3941
+#: src/gui/uifiles/settings_window.ui:3956
 msgid "active"
-msgstr "относительный"
+msgstr "активный"
 
-#: src/gui/uifiles/settings_window.ui:3773
+#: src/gui/uifiles/settings_window.ui:3945
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3788
+#: src/gui/uifiles/settings_window.ui:3960
 msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
 "profile is set."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3799
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3971
 msgid "Black point compensation"
-msgstr "Без коррекции точки черного"
+msgstr "Коррекция точки чёрного"
 
-#: src/gui/uifiles/settings_window.ui:3803
+#: src/gui/uifiles/settings_window.ui:3975
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3821
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:3993
 msgid "Custom Profiles"
-msgstr "Профиль"
+msgstr "Пользовательские профили"
 
-#: src/gui/uifiles/settings_window.ui:3838
+#: src/gui/uifiles/settings_window.ui:4010
 msgid ""
 "This section contains settings affecting how color spaces are applied to "
 "saved files\n"
@@ -9376,11 +9390,11 @@ msgid ""
 "configured in FITS Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3857
+#: src/gui/uifiles/settings_window.ui:4029
 msgid "Export high bit depth images using:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3868
+#: src/gui/uifiles/settings_window.ui:4040
 msgid ""
 "Selects which color space to export >8bpp bit depth images to. The ICC color "
 "profile will be embedded in the file.\n"
@@ -9388,30 +9402,29 @@ msgid ""
 "always be exported as sRGB."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3873
-#: src/gui/uifiles/settings_window.ui:3953
+#: src/gui/uifiles/settings_window.ui:4045
+#: src/gui/uifiles/settings_window.ui:4125
 msgid "Working gamut"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3874
-#: src/gui/uifiles/settings_window.ui:3954
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:4046
+#: src/gui/uifiles/settings_window.ui:4126
 msgid "Image's current ICC profile"
-msgstr "Сохранить текущий график в файл png"
+msgstr "Текущий ICC-профиль изображения"
 
-#: src/gui/uifiles/settings_window.ui:3888
+#: src/gui/uifiles/settings_window.ui:4060
 msgid "Conversion and export intent:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3899
+#: src/gui/uifiles/settings_window.ui:4071
 msgid "Select the color management intent for conversion / export"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3916
+#: src/gui/uifiles/settings_window.ui:4088
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3920
+#: src/gui/uifiles/settings_window.ui:4092
 msgid ""
 "For files with no assigned color profile, when exporting to TIFF / PNG / "
 "JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a "
@@ -9420,11 +9433,11 @@ msgid ""
 "If this option is unchecked, no ICC profile will be embedded."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3937
+#: src/gui/uifiles/settings_window.ui:4109
 msgid "Export 8-bit images using:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3948
+#: src/gui/uifiles/settings_window.ui:4120
 msgid ""
 "Selects which color space to export 8-bit images to, if the format supports "
 "ICC profiles. The ICC color profile will be embedded in the file.\n"
@@ -9432,61 +9445,58 @@ msgid ""
 "always be exported as sRGB."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3971
+#: src/gui/uifiles/settings_window.ui:4143
 msgid "File Import / Export Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4005
+#: src/gui/uifiles/settings_window.ui:4177
 msgid "Auto assign working color space:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4018
+#: src/gui/uifiles/settings_window.ui:4190
 msgid "Convert other color profiles to the working profile?"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4029
+#: src/gui/uifiles/settings_window.ui:4201
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4032
-#: src/gui/uifiles/settings_window.ui:4086
+#: src/gui/uifiles/settings_window.ui:4204
+#: src/gui/uifiles/settings_window.ui:4258
 msgid "Never"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4033
+#: src/gui/uifiles/settings_window.ui:4205
 msgid "Ask every time"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4034
+#: src/gui/uifiles/settings_window.ui:4206
 msgid "Always"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4044
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:4216
 msgid "On load"
-msgstr "не загружено"
+msgstr "При загрузке"
 
-#: src/gui/uifiles/settings_window.ui:4058
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:4230
 msgid "On stacking"
-msgstr "Сумма"
+msgstr "При укладке"
 
-#: src/gui/uifiles/settings_window.ui:4072
+#: src/gui/uifiles/settings_window.ui:4244
 msgid "On stretching"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4101
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:4273
 msgid "Output of RGB composition / PixelMath"
-msgstr "Диалог инструмента совмещения в RGB"
+msgstr "Вывод совмещения в RGB / Математических операций"
 
-#: src/gui/uifiles/settings_window.ui:4115
+#: src/gui/uifiles/settings_window.ui:4287
 msgid "Pedantically assign linear ICC profiles"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4119
+#: src/gui/uifiles/settings_window.ui:4291
 msgid ""
 "When assigning an ICC image to:\n"
 "* a loaded image that doesn't show stretches in HISTORY\n"
@@ -9496,15 +9506,15 @@ msgid ""
 "unnecessary."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4140
+#: src/gui/uifiles/settings_window.ui:4312
 msgid "Auto Conversion / Assignment Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4169
+#: src/gui/uifiles/settings_window.ui:4341
 msgid "Export built-in profiles"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4173
+#: src/gui/uifiles/settings_window.ui:4345
 msgid ""
 "Export the built-in profiles to the working directory. Elle Stone's profiles "
 "are distributed with the CC BY-SA-3.0 licence. As they are built into the "
@@ -9512,12 +9522,11 @@ msgid ""
 "provision of the licence."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4190
-#, fuzzy
+#: src/gui/uifiles/settings_window.ui:4362
 msgid "<b>Built-in Profiles</b>"
-msgstr "<b>Тип профиля</b>"
+msgstr "<b>Встроенные профили</b>"
 
-#: src/gui/uifiles/settings_window.ui:4253
+#: src/gui/uifiles/settings_window.ui:4425
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
@@ -9529,23 +9538,23 @@ msgstr ""
 "неограниченно. Следует иметь в виду, что чем больше путей проверяется, тем "
 "дольше запуск программы."
 
-#: src/gui/uifiles/settings_window.ui:4266
+#: src/gui/uifiles/settings_window.ui:4438
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>Каталоги хранения сценариев</b>"
 
-#: src/gui/uifiles/settings_window.ui:4283
+#: src/gui/uifiles/settings_window.ui:4455
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr "Пересматривает директории со сценариями и обновляет меню сценариев."
 
-#: src/gui/uifiles/settings_window.ui:4314
+#: src/gui/uifiles/settings_window.ui:4486
 msgid "Show warning before script execution"
 msgstr "Показывать предупреждение перед выполнением сценария"
 
-#: src/gui/uifiles/settings_window.ui:4330
+#: src/gui/uifiles/settings_window.ui:4502
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr "Команда \"requires\" обязательна в сценариях"
 
-#: src/gui/uifiles/settings_window.ui:4334
+#: src/gui/uifiles/settings_window.ui:4506
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -9561,16 +9570,16 @@ msgstr ""
 "<span foreground=\"red\"><b>ПРЕДУПРЕЖДЕНИЕ: снимайте этот флажок только если "
 "вы знаете, что делаете!</b></span>"
 
-#: src/gui/uifiles/settings_window.ui:4355
-#: src/gui/uifiles/settings_window.ui:5091
+#: src/gui/uifiles/settings_window.ui:4527
+#: src/gui/uifiles/settings_window.ui:5263
 msgid "Warning Dialogs"
 msgstr "Окна с предупреждениями"
 
-#: src/gui/uifiles/settings_window.ui:4383
+#: src/gui/uifiles/settings_window.ui:4555
 msgid "Enable use of the siril-scripts online repository"
 msgstr "Включить использование удалённого репозитория сценариев siril-scripts"
 
-#: src/gui/uifiles/settings_window.ui:4387
+#: src/gui/uifiles/settings_window.ui:4559
 msgid ""
 "Siril will fetch and update scripts from the official siril-scripts "
 "repository. These will be available offline and specific scripts can be "
@@ -9590,19 +9599,19 @@ msgstr ""
 "как только их список будет получен. Выключение репозитория произойдёт только "
 "после нажатия кнопки \"Применить\"."
 
-#: src/gui/uifiles/settings_window.ui:4408
+#: src/gui/uifiles/settings_window.ui:4580
 msgid "Automatic updates"
 msgstr "Автоматическое обновление"
 
-#: src/gui/uifiles/settings_window.ui:4412
+#: src/gui/uifiles/settings_window.ui:4584
 msgid "Automatically update the repository at startup."
 msgstr "Автоматически обновлять репозиторий при запуске."
 
-#: src/gui/uifiles/settings_window.ui:4423
+#: src/gui/uifiles/settings_window.ui:4595
 msgid "Manual update"
 msgstr "Обновить"
 
-#: src/gui/uifiles/settings_window.ui:4428
+#: src/gui/uifiles/settings_window.ui:4600
 msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
@@ -9612,7 +9621,7 @@ msgstr ""
 "будут показаны сообщения о фиксации и вам будет предложено подтвердить "
 "применение изменений."
 
-#: src/gui/uifiles/settings_window.ui:4455
+#: src/gui/uifiles/settings_window.ui:4627
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to view the script description and code."
@@ -9620,28 +9629,28 @@ msgstr ""
 "Список доступных сценариев. Выбранные сценарии будут доступные через меню "
 "\"Сценарии\". Двойное нажатие на строку отобразит описание и код сценария."
 
-#: src/gui/uifiles/settings_window.ui:4470
+#: src/gui/uifiles/settings_window.ui:4642
 msgid "Category"
 msgstr "Категория"
 
-#: src/gui/uifiles/settings_window.ui:4486
+#: src/gui/uifiles/settings_window.ui:4658
 msgid "Script"
 msgstr "Сценарий"
 
-#: src/gui/uifiles/settings_window.ui:4529
+#: src/gui/uifiles/settings_window.ui:4701
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Репозиторий сценариев Siril</b>"
 
-#: src/gui/uifiles/settings_window.ui:4557
-#: src/gui/uifiles/settings_window.ui:4920
+#: src/gui/uifiles/settings_window.ui:4729
+#: src/gui/uifiles/settings_window.ui:5092
 msgid "Performances"
 msgstr "Производительность"
 
-#: src/gui/uifiles/settings_window.ui:4588
+#: src/gui/uifiles/settings_window.ui:4760
 msgid "Ratio of available"
 msgstr "Доля доступной памяти"
 
-#: src/gui/uifiles/settings_window.ui:4592
+#: src/gui/uifiles/settings_window.ui:4764
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -9660,11 +9669,11 @@ msgstr ""
 "Если у вас не настроена директория подкачки на каком-либо разделе, значение "
 "1 или выше, скорее всего, приведет к сбою siril или операционной системы."
 
-#: src/gui/uifiles/settings_window.ui:4608
+#: src/gui/uifiles/settings_window.ui:4780
 msgid "Fixed amount (GB)"
 msgstr "Фикс. объём (Гбайт)"
 
-#: src/gui/uifiles/settings_window.ui:4612
+#: src/gui/uifiles/settings_window.ui:4784
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -9676,7 +9685,7 @@ msgstr ""
 "Указание объёма памяти бо́льшего, чем доступен вашей системе может привести к "
 "падению siril или операционной системы."
 
-#: src/gui/uifiles/settings_window.ui:4628
+#: src/gui/uifiles/settings_window.ui:4800
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -9691,15 +9700,15 @@ msgstr ""
 "укладки, больше 1 потребует использования памяти на диске, что очень "
 "медленно и это не рекомендуется"
 
-#: src/gui/uifiles/settings_window.ui:4673
+#: src/gui/uifiles/settings_window.ui:4845
 msgid "<b>Memory management</b>"
 msgstr "<b>Управление памятью</b>"
 
-#: src/gui/uifiles/settings_window.ui:4706
+#: src/gui/uifiles/settings_window.ui:4878
 msgid "Default bit depth for HD AutoStretch"
 msgstr "Разрядность по умолчанию для расширенного авторастягивания"
 
-#: src/gui/uifiles/settings_window.ui:4722
+#: src/gui/uifiles/settings_window.ui:4894
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -9715,23 +9724,23 @@ msgstr ""
 "гистограммы. Разрядность по умолчанию будет применена следующем переключении "
 "режима просмотра, и может быть применена сейчас с помощью кнопки справа."
 
-#: src/gui/uifiles/settings_window.ui:4739
+#: src/gui/uifiles/settings_window.ui:4911
 msgid "Apply bit depth"
 msgstr "Установить разрядность"
 
-#: src/gui/uifiles/settings_window.ui:4743
+#: src/gui/uifiles/settings_window.ui:4915
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "Установить выбранную разрядность расширенного авторастягивания"
 
-#: src/gui/uifiles/settings_window.ui:4766
+#: src/gui/uifiles/settings_window.ui:4938
 msgid "HD AutoStretch"
 msgstr "Расширенное авторастягивание"
 
-#: src/gui/uifiles/settings_window.ui:4796
+#: src/gui/uifiles/settings_window.ui:4968
 msgid "Multithreaded FFTW"
 msgstr "Мультипотоковое FFTW"
 
-#: src/gui/uifiles/settings_window.ui:4800
+#: src/gui/uifiles/settings_window.ui:4972
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -9742,11 +9751,11 @@ msgstr ""
 "первоначального планирования при первой работе FFTW с изображением данного "
 "размера."
 
-#: src/gui/uifiles/settings_window.ui:4815 src/core/settings.c:314
+#: src/gui/uifiles/settings_window.ui:4987 src/core/settings.c:328
 msgid "FFTW planning strategy"
 msgstr "Стратегия планирования FFTW"
 
-#: src/gui/uifiles/settings_window.ui:4826
+#: src/gui/uifiles/settings_window.ui:4998
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -9783,23 +9792,23 @@ msgstr ""
 "поскольку накладные расходы других стратегий не окупаются для одного "
 "преобразования Фурье."
 
-#: src/gui/uifiles/settings_window.ui:4832
+#: src/gui/uifiles/settings_window.ui:5004
 msgid "Measure"
 msgstr "Измерить"
 
-#: src/gui/uifiles/settings_window.ui:4833
+#: src/gui/uifiles/settings_window.ui:5005
 msgid "Patient"
 msgstr "Полная"
 
-#: src/gui/uifiles/settings_window.ui:4834
+#: src/gui/uifiles/settings_window.ui:5006
 msgid "Exhaustive"
 msgstr "Исчерпывающая"
 
-#: src/gui/uifiles/settings_window.ui:4847
+#: src/gui/uifiles/settings_window.ui:5019
 msgid "FFTW planning time limit (seconds)"
 msgstr "Ограничение по времени планирования FFTW (в секундах)"
 
-#: src/gui/uifiles/settings_window.ui:4858
+#: src/gui/uifiles/settings_window.ui:5030
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -9813,11 +9822,11 @@ msgstr ""
 "значение 0, всегда будет выполнен минимальный уровень планирования "
 "\"Оценка\"."
 
-#: src/gui/uifiles/settings_window.ui:4873
+#: src/gui/uifiles/settings_window.ui:5045
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "Минимальный размер PSF для использования свёрток FFT"
 
-#: src/gui/uifiles/settings_window.ui:4884
+#: src/gui/uifiles/settings_window.ui:5056
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -9836,16 +9845,16 @@ msgstr ""
 "и, следовательно, может быть настроена. Этот параметр задает минимальный "
 "размер, для которого будут использоваться преобразования Фурье."
 
-#: src/gui/uifiles/settings_window.ui:4906
+#: src/gui/uifiles/settings_window.ui:5078
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Настройки FFTW</b>"
 
-#: src/gui/uifiles/settings_window.ui:4934
-#: src/gui/uifiles/settings_window.ui:5351
+#: src/gui/uifiles/settings_window.ui:5106
+#: src/gui/uifiles/settings_window.ui:5523
 msgid "Miscellaneous"
 msgstr "Разное"
 
-#: src/gui/uifiles/settings_window.ui:4962
+#: src/gui/uifiles/settings_window.ui:5134
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -9853,39 +9862,39 @@ msgstr ""
 "Выберите существующую директорию. Убедитесь, что имеете права на запись в "
 "эту директорию и в ней достаточно места."
 
-#: src/gui/uifiles/settings_window.ui:4965
+#: src/gui/uifiles/settings_window.ui:5137
 msgid "Select Swap Directory"
 msgstr "Выберите директорию подкачки"
 
-#: src/gui/uifiles/settings_window.ui:4978
+#: src/gui/uifiles/settings_window.ui:5150
 msgid "available mem"
 msgstr "доступно памяти"
 
-#: src/gui/uifiles/settings_window.ui:4990
+#: src/gui/uifiles/settings_window.ui:5162
 msgid "Restore to Default"
 msgstr "Исходные параметры"
 
-#: src/gui/uifiles/settings_window.ui:4994
+#: src/gui/uifiles/settings_window.ui:5166
 msgid "Restore the default swap storage directory"
 msgstr "Восстановить директорию подкачки по умолчанию"
 
-#: src/gui/uifiles/settings_window.ui:5013
+#: src/gui/uifiles/settings_window.ui:5185
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Директория подкачки</b>"
 
-#: src/gui/uifiles/settings_window.ui:5040
+#: src/gui/uifiles/settings_window.ui:5212
 msgid "Don't ask before quitting"
 msgstr "Не спрашивать перед выходом"
 
-#: src/gui/uifiles/settings_window.ui:5055
+#: src/gui/uifiles/settings_window.ui:5227
 msgid "Don't ask before saving when display is not linear"
 msgstr "Не спрашивать перед сохранением когда отображение нелинейное"
 
-#: src/gui/uifiles/settings_window.ui:5070
+#: src/gui/uifiles/settings_window.ui:5242
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "Не объяснять обработку ROI в связанных диалогах"
 
-#: src/gui/uifiles/settings_window.ui:5074
+#: src/gui/uifiles/settings_window.ui:5246
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
@@ -9893,15 +9902,15 @@ msgstr ""
 "Отключить информационный диалог, объясняющий обработку ROI при открытии "
 "соответствующего диалога"
 
-#: src/gui/uifiles/settings_window.ui:5113
+#: src/gui/uifiles/settings_window.ui:5285
 msgid "Play introduction"
 msgstr "Посмотреть вступление"
 
-#: src/gui/uifiles/settings_window.ui:5127
+#: src/gui/uifiles/settings_window.ui:5299
 msgid "Introduction Tips"
 msgstr "Ознакомительные подсказки"
 
-#: src/gui/uifiles/settings_window.ui:5158
+#: src/gui/uifiles/settings_window.ui:5330
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -9921,15 +9930,15 @@ msgstr ""
 "директории. Вы можете выбрать любой из них, Siril автоматически найдёт "
 "второй, если он существует."
 
-#: src/gui/uifiles/settings_window.ui:5167
+#: src/gui/uifiles/settings_window.ui:5339
 msgid "Select StarNet executable"
 msgstr "Выберите исполняемый файл StarNet"
 
-#: src/gui/uifiles/settings_window.ui:5181
+#: src/gui/uifiles/settings_window.ui:5353
 msgid "Must point to a valid StarNet executable."
 msgstr "Должен указывать на верный исполняемый файл Starnet."
 
-#: src/gui/uifiles/settings_window.ui:5195
+#: src/gui/uifiles/settings_window.ui:5367
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -9940,11 +9949,11 @@ msgstr ""
 "оставить пустой, файл с весами <b>должен</b> находиться в директории с "
 "исполняемым файлом StarNet."
 
-#: src/gui/uifiles/settings_window.ui:5202
+#: src/gui/uifiles/settings_window.ui:5374
 msgid "Select StarNet weights file"
 msgstr "Выберите файл с весами для StarNet"
 
-#: src/gui/uifiles/settings_window.ui:5219
+#: src/gui/uifiles/settings_window.ui:5391
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -9952,7 +9961,7 @@ msgstr ""
 "Очищает расположение весов нейросети. После очистки, файл с весами "
 "<b>должен</b> располагаться в директории с исполняемым файлом StarNet."
 
-#: src/gui/uifiles/settings_window.ui:5234
+#: src/gui/uifiles/settings_window.ui:5406
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -9960,23 +9969,23 @@ msgstr ""
 "Может указывать на файл весами нейросети StarNet.\n"
 "Только для версий StarNet, основанных на библиотеке Torch."
 
-#: src/gui/uifiles/settings_window.ui:5261
+#: src/gui/uifiles/settings_window.ui:5433
 msgid "Software Location"
 msgstr "Расположение программ"
 
-#: src/gui/uifiles/settings_window.ui:5284
+#: src/gui/uifiles/settings_window.ui:5456
 msgid "Copyright when saving image as TIFF"
 msgstr "Авторские права при сохранении в TIFF"
 
-#: src/gui/uifiles/settings_window.ui:5296
+#: src/gui/uifiles/settings_window.ui:5468
 msgid "Copyright TIFF"
 msgstr "Авторские права в TIFF"
 
-#: src/gui/uifiles/settings_window.ui:5318
+#: src/gui/uifiles/settings_window.ui:5490
 msgid "Check update at startup"
 msgstr "Проверка обновлений при запуске"
 
-#: src/gui/uifiles/settings_window.ui:5334
+#: src/gui/uifiles/settings_window.ui:5506
 msgid "Update"
 msgstr "Обновления"
 
@@ -10180,11 +10189,11 @@ msgctxt "shortcut window"
 msgid "Quit the application"
 msgstr "Выйти из приложения"
 
-#: src/main-cli.c:104 src/main.c:108
+#: src/main-cli.c:104 src/main.c:109
 msgid "changing the current working directory as the argument"
 msgstr "изменение текущей рабочей директории в качестве аргумента"
 
-#: src/main-cli.c:105 src/main.c:109
+#: src/main-cli.c:105 src/main.c:110
 msgid ""
 "run the siril commands script in console mode. If argument is equal to \"-"
 "\", then siril will read stdin input"
@@ -10192,57 +10201,57 @@ msgstr ""
 "запустить сценарий с командами siril в режиме командной строки. Если "
 "аргумент равен \"-\", тогда siril будет читать стандартный ввод"
 
-#: src/main-cli.c:106 src/main.c:110
+#: src/main-cli.c:106 src/main.c:111
 msgid ""
 "load configuration from file name instead of the default configuration file"
 msgstr ""
 "загрузить конфигурацию из файла вместо использования файла конфигурации по "
 "умолчанию"
 
-#: src/main-cli.c:107 src/main.c:111
+#: src/main-cli.c:107 src/main.c:112
 msgid "run in console mode with command and log stream through named pipes"
 msgstr ""
 "запущен в консольном режиме с командным и исходящим потоками через "
 "именованные каналы"
 
-#: src/main-cli.c:108 src/main.c:112
+#: src/main-cli.c:108 src/main.c:113
 msgid "specify the path for the read pipe, the one receiving commands"
 msgstr ""
 "указывает путь к именованному каналу для чтения, через который поступают "
 "команды"
 
-#: src/main-cli.c:109 src/main.c:113
+#: src/main-cli.c:109 src/main.c:114
 msgid "specify the path for the write pipe, the one outputing messages"
 msgstr ""
 "указывает путь к именованному каналу для вывода, через который выводятся "
 "сообщения"
 
-#: src/main-cli.c:110 src/main.c:114
+#: src/main-cli.c:110 src/main.c:115
 msgid ""
 "print all supported image file formats (depending on installed libraries)"
 msgstr ""
 "выводит список всех поддерживаемых форматов файлов (зависит от установленных "
 "библиотек)"
 
-#: src/main-cli.c:111 src/main.c:115
+#: src/main-cli.c:111 src/main.c:116
 msgid "print the application’s version"
 msgstr "вывести версию приложения"
 
-#: src/main-cli.c:112 src/main.c:116
+#: src/main-cli.c:112 src/main.c:117
 msgid "print the copyright"
 msgstr "вывести данные об авторских правах"
 
-#: src/main-cli.c:154 src/main.c:252
+#: src/main-cli.c:154 src/main.c:248
 #, c-format
 msgid "Welcome to %s v%s\n"
 msgstr "Приветствуем в %s v%s\n"
 
-#: src/main-cli.c:164 src/main.c:262
+#: src/main-cli.c:164 src/main.c:258
 #, c-format
 msgid "Could not load or create settings file, exiting.\n"
 msgstr "Не удалось загрузить или создать файл с настройками, выход.\n"
 
-#: src/main-cli.c:209 src/main.c:317
+#: src/main-cli.c:209 src/main.c:313
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr ""
@@ -10250,31 +10259,30 @@ msgstr ""
 "путь?)\n"
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:340 src/main.c:519
+#: src/main-cli.c:340 src/main.c:517
 msgid "Siril - A free astronomical image processing software."
 msgstr ""
 "Siril - свободное программное обеспечение для обработки астрономических "
 "изображений."
 
-#: src/main-cli.c:347 src/main.c:537
+#: src/main-cli.c:347 src/main.c:535
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr ""
 "Выполните \"%s --help\", чтобы получить список всех возможных опций "
 "командной строки."
 
-#: src/main.c:139
-#, fuzzy, c-format
+#: src/main.c:137
+#, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI.\n"
 " Exiting.\n"
 msgstr ""
 "%s не найден или содержит ошибки, не удалось отобразить графический "
-"интерфейс:\n"
-"%s\n"
+"интерфейс.\n"
 " Выход.\n"
 
-#: src/main.c:154
+#: src/main.c:151
 #, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI:\n"
@@ -10286,12 +10294,12 @@ msgstr ""
 "%s\n"
 " Выход.\n"
 
-#: src/main.c:205
+#: src/main.c:201
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
 msgstr "Включается мультипотоковая поддержка FFTW...\n"
 
-#: src/main.c:300
+#: src/main.c:296
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "scripts...\n"
@@ -10299,7 +10307,7 @@ msgstr ""
 "Удалённый репозиторий сценариев выключен. Сценарии не будут получены или "
 "обновлены...\n"
 
-#: src/main.c:377 src/core/command.c:7147 src/core/command_line_processor.c:628
+#: src/main.c:375 src/core/command.c:7146 src/core/command_line_processor.c:628
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -10344,16 +10352,17 @@ msgid "Cancelled"
 msgstr "Отменено"
 
 #: src/algos/astrometry_solver.c:419
-#, fuzzy, c-format
+#, c-format
 msgid "Fetched %d stars from %s catalogue\n"
-msgstr "Не удалось сопоставить звёзды из каталога"
+msgstr "Получено %d звёзд из %s каталога\n"
 
 #: src/algos/astrometry_solver.c:448
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
-"Поиск астрономического решения по локальным каталогам для поля зрения %.2f°\n"
+"Поиск астрономического решения с помощью astrometry.net для поля зрения "
+"%.2f°\n"
 
 #: src/algos/astrometry_solver.c:450
 #, c-format
@@ -10530,7 +10539,7 @@ msgstr "Предупреждение: используется текущее в
 msgid "Selection is not used in manual star selection mode\n"
 msgstr "Выделение не используется при ручном выборе звёзд\n"
 
-#: src/algos/astrometry_solver.c:1335 src/core/command.c:8531
+#: src/algos/astrometry_solver.c:1335 src/core/command.c:8530
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
@@ -10538,13 +10547,13 @@ msgstr ""
 "Не удалось выполнить астрономическое решение, поскольку не были переданы "
 "координаты цели, а заголовок изображение не содержит координат\n"
 
-#: src/algos/astrometry_solver.c:1343 src/core/command.c:8578
+#: src/algos/astrometry_solver.c:1343 src/core/command.c:8577
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
 "Размер пикселя не найден в изображении или в настройках, не удалось "
 "продолжить\n"
 
-#: src/algos/astrometry_solver.c:1353 src/core/command.c:8602
+#: src/algos/astrometry_solver.c:1353 src/core/command.c:8601
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
 "Фокусное расстояние не найдено в изображении или в настройках, не удалось "
@@ -10658,9 +10667,9 @@ msgid "%s: extract HSV channel"
 msgstr ""
 
 #: src/algos/colors.c:770 src/algos/colors.c:905
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract LAB channel"
-msgstr "На канал CFA"
+msgstr "%s: извлечь канал LAB"
 
 #: src/algos/colors.c:775 src/algos/colors.c:910
 msgid "Image is not color managed. Assuming sRGB.\n"
@@ -10683,7 +10692,7 @@ msgstr ""
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:205 src/filters/saturation.c:264
-#: src/gui/histogram.c:1719 src/gui/remixer.c:1327 src/gui/remixer.c:1375
+#: src/gui/histogram.c:1709 src/gui/remixer.c:1321 src/gui/remixer.c:1369
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "Ошибка: не удалось вычислить статистику.\n"
@@ -10714,9 +10723,9 @@ msgstr ""
 "световой кривой\n"
 
 #: src/algos/comparison_stars.c:143
-#, fuzzy, c-format
+#, c-format
 msgid "star %s [%s] added as a reference star\n"
-msgstr "Звезда %s добавлена как опорная\n"
+msgstr "звезда %s [%s] добавлена как опорная\n"
 
 #: src/algos/comparison_stars.c:145
 #, c-format
@@ -10736,40 +10745,43 @@ msgid "Creating csv output file %s\n"
 msgstr "Создание исходящего файла csv %s\n"
 
 #: src/algos/comparison_stars.c:226
-#, fuzzy
 msgid "Problem writing the comparison stars file\n"
-msgstr "Создать список звёзд сравнения"
+msgstr "Проблема с записью файла звёзд сравнения\n"
 
 #: src/algos/comparison_stars.c:259
 msgid "Not enough stars available\n"
 msgstr "Недостаточно звёзд\n"
 
 #: src/algos/comparison_stars.c:263
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Filtering parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: "
 "%1.3lf\n"
-msgstr "Параметры сортировки: Δ блеска V: %1.2lf, Δ BV: %1.2lf\n"
+msgstr ""
+"Параметры фильтрации: delta_Vmag: %1.2lf, delta_BV: %1.2lf, макс e_Vmag: "
+"%1.3lf\n"
 
 #: src/algos/comparison_stars.c:265
-#, fuzzy, c-format
+#, c-format
 msgid "Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"
-msgstr "Целевая звезда: блеск V=%2.2lf, блеск B=%2.2lf\n"
+msgstr "Целевая звезда: Vmag = %2.2lf, B-V = %+2.2lf\n"
 
 #: src/algos/comparison_stars.c:305
 msgid "Stars sorted by increasing distance (in arcmin) wrt. image center\n"
 msgstr ""
 
 #: src/algos/comparison_stars.c:316
-#, fuzzy, c-format
+#, c-format
 msgid "e_Vmag and e_Bmag are photometric errors supplied from %s\n"
-msgstr "e_Vmax и e_Bmag это внутренние ошибки, передаваемые из %s\n"
+msgstr "e_Vmax и e_Bmag это фотометрические ошибки, передаваемые из %s\n"
 
 #: src/algos/comparison_stars.c:323
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"
-msgstr "%s  %d: %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
+msgstr ""
+"Звезда сравнения %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, "
+"%5.2lf\n"
 
 #. and log results
 #: src/algos/comparison_stars.c:339
@@ -10785,8 +10797,8 @@ msgstr "Отсутствует исходящий файл csv для созда
 msgid "No variable star selected\n"
 msgstr "Переменная звезда не выбрана\n"
 
-#: src/algos/comparison_stars.c:353 src/core/command.c:8687
-#: src/core/command.c:8800 src/core/command.c:8817 src/core/command.c:8987
+#: src/algos/comparison_stars.c:353 src/core/command.c:8686
+#: src/core/command.c:8799 src/core/command.c:8816 src/core/command.c:8986
 #: src/gui/plot.c:1241
 msgid "This command only works on plate solved images\n"
 msgstr "Команда работает только на изображениях с астрономическим решением\n"
@@ -10799,14 +10811,12 @@ msgid "No comparison stars retrieved from the catalog %s, aborting\n"
 msgstr ""
 
 #: src/algos/comparison_stars.c:396
-#, fuzzy
 msgid "No comparison stars found in the image, aborting\n"
-msgstr "Не удалось найти звёзды на первом изображении, прерывание.\n"
+msgstr "На изображении не удалось найти звёзды сравнения, прерывание.\n"
 
 #: src/algos/comparison_stars.c:405
-#, fuzzy
 msgid "Comparison stars: processing...\n"
-msgstr "Отражение по горизонтали: выполняется…\n"
+msgstr "Звёзды сравнения: выполняется…\n"
 
 #: src/algos/comparison_stars.c:417
 msgid "Target star photometric information not available.\n"
@@ -10931,9 +10941,8 @@ msgstr ""
 "Байера!\n"
 
 #: src/algos/extraction.c:109 src/algos/extraction.c:159
-#, fuzzy
 msgid "Ha channel"
-msgstr "канал"
+msgstr "канал Ha"
 
 #: src/algos/extraction.c:182
 msgid "XTRANS pattern not supported for this feature.\n"
@@ -10946,9 +10955,9 @@ msgstr ""
 "Байера!\n"
 
 #: src/algos/extraction.c:294 src/algos/extraction.c:339
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract Green channel\n"
-msgstr "Зелёный канал"
+msgstr "%s: извлечь зелёный канал\n"
 
 #: src/algos/extraction.c:491
 #, c-format
@@ -10967,24 +10976,20 @@ msgstr ""
 
 #. Update history
 #: src/algos/extraction.c:611 src/algos/extraction.c:663
-#, fuzzy
 msgid "CFA0 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA0\n"
 
 #: src/algos/extraction.c:612 src/algos/extraction.c:664
-#, fuzzy
 msgid "CFA1 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA1\n"
 
 #: src/algos/extraction.c:613 src/algos/extraction.c:665
-#, fuzzy
 msgid "CFA2 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA2\n"
 
 #: src/algos/extraction.c:614 src/algos/extraction.c:666
-#, fuzzy
 msgid "CFA3 Bayer channel\n"
-msgstr "На канал CFA"
+msgstr "Канал CFA3\n"
 
 #: src/algos/extraction.c:807 src/algos/extraction.c:1035
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -10997,14 +11002,12 @@ msgstr ""
 "фильтра Байера!\n"
 
 #: src/algos/extraction.c:1013 src/algos/extraction.c:1240
-#, fuzzy
 msgid "Ha channel\n"
-msgstr "канал"
+msgstr "канал Ha\n"
 
 #: src/algos/extraction.c:1018 src/algos/extraction.c:1245
-#, fuzzy
 msgid "OIII channel\n"
-msgstr "канал"
+msgstr "канал OIII\n"
 
 #: src/algos/fix_xtrans_af.c:188
 #, c-format
@@ -11340,13 +11343,13 @@ msgid "No valid catalog found.\n"
 msgstr "Надёжный каталог не найден.\n"
 
 #: src/algos/photometric_cc.c:451
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
 msgstr ""
-"Извлечение звёзд из локальных каталогов для фотометрической калибровки цвета "
-"(радиус %.2f°, ограничение блеска %.2f)\n"
+"Извлечение звёзд из удалённого каталога %s для фотометрической калибровки "
+"цвета (радиус %.2f°, ограничение блеска %.2f)\n"
 
 #: src/algos/PSF.c:965
 msgid "Excellent"
@@ -11482,9 +11485,9 @@ msgid "Unsupported object type in response: %s\n"
 msgstr "Неподдерживаемый тип объекта в ответе: %s\n"
 
 #: src/algos/search_objects.c:179
-#, fuzzy, c-format
+#, c-format
 msgid "Could not parse the server response: %s\n"
-msgstr "Не удалось сохранить настройки в %s: %s\n"
+msgstr "Не удалось разобрать ответ сервера: %s\n"
 
 #: src/algos/search_objects.c:218
 #, c-format
@@ -11497,14 +11500,14 @@ msgid " (aka %s)"
 msgstr ""
 
 #: src/algos/search_objects.c:221
-#, fuzzy, c-format
+#, c-format
 msgid " at coordinates: %s, %s\n"
-msgstr "Найден %s в координатах: %s, %s\n"
+msgstr " в координатах: %s, %s\n"
 
 #: src/algos/search_objects.c:248
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
-msgstr "Объект %s найден в каталоге %s, α = %f, δ = %f\n"
+msgstr "Объект %s (точное совпадение: %s) найден в каталоге %s, %s, %s\n"
 
 #: src/algos/search_objects.c:271
 #, c-format
@@ -11551,11 +11554,12 @@ msgid "Searching for solar system object %s on observation date %s\n"
 msgstr "Поиск объекта Солнечной с-мы %s на дату %s\n"
 
 #: src/algos/search_objects.c:458
-#, fuzzy
 msgid ""
 "No topocentric data available. Set to geocentric, positions may be "
 "inaccurate\n"
-msgstr "Топоцентрические данные недоступны. Установлены геоцентрические\n"
+msgstr ""
+"Топоцентрические данные недоступны. Установлены геоцентрические, положения "
+"могут быть неточными\n"
 
 #: src/algos/search_objects.c:460
 #, c-format
@@ -11741,13 +11745,12 @@ msgstr "Несохранённый результат сложения"
 msgid "Compositing result image"
 msgstr "Сложение результирующего изображения"
 
-#: src/compositing/compositing.c:645 src/gui/remixer.c:1126
-#: src/gui/remixer.c:1218
+#: src/compositing/compositing.c:645 src/gui/remixer.c:1120
+#: src/gui/remixer.c:1212
 msgid "Error: image could not be loaded"
 msgstr "Ошибка: изображение не может быть загружено"
 
 #: src/compositing/compositing.c:645
-#, fuzzy
 msgid ""
 "The maximum number of images of this size has been reached based on "
 "available memory limits."
@@ -11903,8 +11906,8 @@ msgstr "Все изображения успешно перезагружены.
 #: src/filters/fft.c:625 src/gui/compstars.c:147 src/gui/compstars.c:156
 #: src/gui/compstars.c:164 src/gui/compstars.c:170 src/gui/compstars.c:176
 #: src/gui/nina_light_curve.c:105 src/gui/nina_light_curve.c:143
-#: src/gui/open_dialog.c:395 src/gui/preferences.c:450
-#: src/gui/preferences.c:469 src/gui/preferences.c:507 src/gui/PSF_list.c:305
+#: src/gui/open_dialog.c:395 src/gui/preferences.c:475
+#: src/gui/preferences.c:494 src/gui/preferences.c:532 src/gui/PSF_list.c:305
 #: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:401
 #: src/io/gitscripts.c:724 src/io/gitscripts.c:749
 msgid "Error"
@@ -12043,28 +12046,28 @@ msgid "=FITS header for currently loaded image=\n"
 msgstr "= Заголовок FITS текущего изображения =\n"
 
 #: src/core/command.c:229 src/core/command.c:606 src/core/command.c:690
-#: src/core/command.c:779 src/core/command.c:1162 src/core/command.c:1214
-#: src/core/command.c:1365 src/core/command.c:1384 src/core/command.c:1478
-#: src/core/command.c:1608 src/core/command.c:2903 src/core/command.c:2953
-#: src/core/command.c:3061 src/core/command.c:3237 src/core/command.c:3522
-#: src/core/command.c:4530 src/core/command.c:4999 src/core/command.c:5060
-#: src/core/command.c:5166 src/core/command.c:5680 src/core/command.c:5759
-#: src/core/command.c:5807 src/core/command.c:5856 src/core/command.c:6023
-#: src/core/command.c:6033 src/core/command.c:6069 src/core/command.c:6292
-#: src/core/command.c:6433 src/core/command.c:6675 src/core/command.c:7003
-#: src/core/command.c:7795
+#: src/core/command.c:779 src/core/command.c:1161 src/core/command.c:1213
+#: src/core/command.c:1364 src/core/command.c:1383 src/core/command.c:1477
+#: src/core/command.c:1607 src/core/command.c:2902 src/core/command.c:2952
+#: src/core/command.c:3060 src/core/command.c:3236 src/core/command.c:3521
+#: src/core/command.c:4529 src/core/command.c:4998 src/core/command.c:5059
+#: src/core/command.c:5165 src/core/command.c:5679 src/core/command.c:5758
+#: src/core/command.c:5806 src/core/command.c:5855 src/core/command.c:6022
+#: src/core/command.c:6032 src/core/command.c:6068 src/core/command.c:6291
+#: src/core/command.c:6432 src/core/command.c:6674 src/core/command.c:7002
+#: src/core/command.c:7794
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr "Неизвестный параметр %s, прерывание.\n"
 
-#: src/core/command.c:262 src/core/command.c:722 src/core/command.c:951
-#: src/core/command.c:1005 src/core/command.c:1666 src/core/command.c:1671
-#: src/core/command.c:2203 src/core/command.c:2716 src/core/command.c:2723
-#: src/core/command.c:2733 src/core/command.c:2741 src/core/command.c:2749
-#: src/core/command.c:2824 src/core/command.c:3912 src/core/command.c:4650
-#: src/core/command.c:4655 src/core/command.c:7874 src/core/command.c:8463
-#: src/core/command.c:8761 src/core/command.c:8963 src/core/command.c:9031
-#: src/core/command.c:9072
+#: src/core/command.c:262 src/core/command.c:722 src/core/command.c:950
+#: src/core/command.c:1004 src/core/command.c:1665 src/core/command.c:1670
+#: src/core/command.c:2202 src/core/command.c:2715 src/core/command.c:2722
+#: src/core/command.c:2732 src/core/command.c:2740 src/core/command.c:2748
+#: src/core/command.c:2823 src/core/command.c:3911 src/core/command.c:4649
+#: src/core/command.c:4654 src/core/command.c:7873 src/core/command.c:8462
+#: src/core/command.c:8760 src/core/command.c:8962 src/core/command.c:9030
+#: src/core/command.c:9071
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "Неверный аргумент %s, прерывание.\n"
@@ -12190,8 +12193,8 @@ msgstr ""
 "Ошибка в параметре шага: должен быть положительным чётным целым числом, "
 "максимум 512, прерывание.\n"
 
-#: src/core/command.c:611 src/core/command.c:697 src/core/command.c:3243
-#: src/core/command.c:3307
+#: src/core/command.c:611 src/core/command.c:697 src/core/command.c:3242
+#: src/core/command.c:3306
 msgid "Error parsing arguments, aborting.\n"
 msgstr "Ошибка при разборе аргументов, прерывание.\n"
 
@@ -12202,95 +12205,95 @@ msgstr ""
 "команда starnet недоступна, т.к. Siril скомпилирован без библиотеки "
 "libtiff.\n"
 
-#: src/core/command.c:655 src/core/command.c:1021 src/core/command.c:1958
+#: src/core/command.c:655 src/core/command.c:1020 src/core/command.c:1957
 msgid "Error: cannot open sequence\n"
 msgstr "Ошибка: не удалось открыть последовательность\n"
 
-#: src/core/command.c:842
+#: src/core/command.c:850
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
 msgstr ""
 "Ошибка, требуются по крайней мере 4 аргумента, для указания 4 файлов!\n"
 
-#: src/core/command.c:865
-msgid "Error loading files!\n"
-msgstr "Ошибка при загрузке файлов!\n"
-
-#: src/core/command.c:870
+#: src/core/command.c:856
 msgid "Reconstructing RGGB Bayer matrix.\n"
 msgstr "Восстановление шаблона Байера RGGB.\n"
 
-#: src/core/command.c:873
+#: src/core/command.c:859
 msgid "Reconstructing BGGR Bayer matrix.\n"
 msgstr "Восстановление шаблона Байера BGGR.\n"
 
-#: src/core/command.c:876
+#: src/core/command.c:862
 msgid "Reconstructing GBRG Bayer matrix.\n"
 msgstr "Восстановление шаблона Байера GBRG.\n"
 
-#: src/core/command.c:879
+#: src/core/command.c:865
 msgid "Reconstructing GRBG Bayer matrix.\n"
 msgstr "Восстановление шаблона Байера GRBG.\n"
 
-#: src/core/command.c:881 src/core/command.c:5719
+#: src/core/command.c:867 src/core/command.c:5718
 msgid "Invalid Bayer matrix specified!\n"
 msgstr "Указан неверный шаблон Байера!\n"
 
-#: src/core/command.c:892
+#: src/core/command.c:877
+msgid "Error loading files!\n"
+msgstr "Ошибка при загрузке файлов!\n"
+
+#: src/core/command.c:891
 msgid "Unsaved Bayer pattern merge"
 msgstr "Несохранённое слияние шаблона Байера"
 
-#: src/core/command.c:893
+#: src/core/command.c:892
 msgid "Bayer pattern merge"
 msgstr "Слияние шаблона Байера"
 
-#: src/core/command.c:923
+#: src/core/command.c:922
 msgid "Could not understand the requested operator\n"
 msgstr "Запрошенный оператор непонятен\n"
 
-#: src/core/command.c:969
+#: src/core/command.c:968
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
 msgstr "Невозможно умножить на коэффициент меньший или равный 0.\n"
 
-#: src/core/command.c:997
+#: src/core/command.c:996
 #, c-format
 msgid "Entropy: %.3f\n"
 msgstr "Энтропия: %.3f\n"
 
-#: src/core/command.c:1027
+#: src/core/command.c:1026
 msgid "Reference image is undefined, the following would be used:\n"
 msgstr "Опорное изображение не определено, будет использовано следующее:\n"
 
-#: src/core/command.c:1035
+#: src/core/command.c:1034
 #, c-format
 msgid "Image %d: '%s'\n"
 msgstr "Изображение %d: '%s'\n"
 
-#: src/core/command.c:1037
+#: src/core/command.c:1036
 #, c-format
 msgid "Image %d\n"
 msgstr "Изображение %d\n"
 
-#: src/core/command.c:1040
+#: src/core/command.c:1039
 msgid ""
 "Warning: this image is excluded from the sequence main processing list\n"
 msgstr ""
 "Предупреждение: это изображение исключено из основного списка обработки "
 "последовательности\n"
 
-#: src/core/command.c:1064
+#: src/core/command.c:1063
 msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr "Ошибка: PSF не будет очищена, пока выполняется последовательность.\n"
 
-#: src/core/command.c:1069
+#: src/core/command.c:1068
 msgid "Deconvolution kernel cleared.\n"
 msgstr "Ядро реконструкции очищено.\n"
 
-#: src/core/command.c:1073
+#: src/core/command.c:1072
 msgid "Save PSF to file:\n"
 msgstr "Сохранить PSF в файл:\n"
 
-#: src/core/command.c:1078 src/core/command.c:1155 src/core/command.c:1207
-#: src/core/command.c:1358
+#: src/core/command.c:1077 src/core/command.c:1154 src/core/command.c:1206
+#: src/core/command.c:1357
 msgid ""
 "Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \"."
 "tif\"\n"
@@ -12298,7 +12301,7 @@ msgstr ""
 "Ошибка: файл должен иметь расширение \".fit\", \".fits\", \".fts\" или \"."
 "tif\"\n"
 
-#: src/core/command.c:1090 src/core/command.c:1173
+#: src/core/command.c:1089 src/core/command.c:1172
 #, c-format
 msgid ""
 "Error: image or sequence must be loaded to carry out %s PSF estimation, "
@@ -12307,31 +12310,31 @@ msgstr ""
 "Ошибка: изображение или последовательность должна быть загружена, чтобы "
 "выполнить оценку PSF %s, прерывание...\n"
 
-#: src/core/command.c:1095
+#: src/core/command.c:1094
 msgid "Blind kernel estimation:\n"
 msgstr "Оценка ядра вслепую:\n"
 
-#: src/core/command.c:1101
+#: src/core/command.c:1100
 msgid "ℓ0 descent prior method\n"
 msgstr "ℓ0 предшествующий метод спуска\n"
 
-#: src/core/command.c:1105
+#: src/core/command.c:1104
 msgid "spectral irregularity method\n"
 msgstr "метод неравномерности спектра\n"
 
-#: src/core/command.c:1109
+#: src/core/command.c:1108
 msgid "multiscale estimation\n"
 msgstr "многоступенчатая оценка\n"
 
-#: src/core/command.c:1117 src/core/command.c:1129 src/core/command.c:1252
-#: src/core/command.c:1262 src/core/command.c:1272 src/core/command.c:1282
-#: src/core/command.c:1292 src/core/command.c:1302 src/core/command.c:1312
-#: src/core/command.c:1322 src/core/command.c:1332
+#: src/core/command.c:1116 src/core/command.c:1128 src/core/command.c:1251
+#: src/core/command.c:1261 src/core/command.c:1271 src/core/command.c:1281
+#: src/core/command.c:1291 src/core/command.c:1301 src/core/command.c:1311
+#: src/core/command.c:1321 src/core/command.c:1331
 #, c-format
 msgid "Error in %s parameter: must be in %s, aborting.\n"
 msgstr "Ошибка в параметре %s: должен быть в %s, прерывание.\n"
 
-#: src/core/command.c:1139 src/core/command.c:1191 src/core/command.c:1342
+#: src/core/command.c:1138 src/core/command.c:1190 src/core/command.c:1341
 msgid ""
 "Error in ks parameter: must be odd and between 3 and minimum of (image "
 "height, image width), aborting.\n"
@@ -12339,59 +12342,59 @@ msgstr ""
 "Ошибка в параметре ks: должен быть нечётным между 3 и минимумом (высота "
 "изображения, ширина изображения), прерывание.\n"
 
-#: src/core/command.c:1151 src/core/command.c:1203 src/core/command.c:1354
+#: src/core/command.c:1150 src/core/command.c:1202 src/core/command.c:1353
 msgid "Error: no filename specified, aborting.\n"
 msgstr "Ошибка: не указано имя файла, прерывание.\n"
 
-#: src/core/command.c:1183
+#: src/core/command.c:1182
 msgid "symmetric kernel\n"
 msgstr "симметричное ядро\n"
 
-#: src/core/command.c:1225
+#: src/core/command.c:1224
 msgid "Manual PSF generation:\n"
 msgstr "Создание PSF вручную:\n"
 
-#: src/core/command.c:1232
+#: src/core/command.c:1231
 msgid "Gaussian PSF\n"
 msgstr "PSF по Гауссу\n"
 
-#: src/core/command.c:1236
+#: src/core/command.c:1235
 msgid "Moffat PSF\n"
 msgstr "PSF по Моффату\n"
 
-#: src/core/command.c:1240
+#: src/core/command.c:1239
 msgid "Disc PSF\n"
 msgstr "PSF по диску\n"
 
-#: src/core/command.c:1244
+#: src/core/command.c:1243
 msgid "Airy disc PSF\n"
 msgstr "PSF по диску Эйри\n"
 
-#: src/core/command.c:1372
+#: src/core/command.c:1371
 msgid "Load PSF from file:\n"
 msgstr "Загрузить PSF из файла:\n"
 
-#: src/core/command.c:1375 src/core/command.c:1410 src/core/command.c:1532
+#: src/core/command.c:1374 src/core/command.c:1409 src/core/command.c:1531
 msgid "Error loading PSF.\n"
 msgstr "Ошибка при загрузке PSF.\n"
 
-#: src/core/command.c:1421 src/core/command.c:1543
+#: src/core/command.c:1420 src/core/command.c:1542
 msgid "Error in alpha parameter: must be between 0 and 1e5, aborting.\n"
 msgstr "Ошибка параметра α: должен быть между 0 и 1e5, прерывание.\n"
 
-#: src/core/command.c:1434 src/core/command.c:1558
+#: src/core/command.c:1433 src/core/command.c:1557
 msgid "Error in iterations parameter: must be between 1 and 1e5, aborting.\n"
 msgstr "Ошибка кол-ва повторов: должно быть между 0 и 1e5, прерывание.\n"
 
-#: src/core/command.c:1447 src/core/command.c:1573
+#: src/core/command.c:1446 src/core/command.c:1572
 msgid "Error in stop parameter: must be between 0 and 1, aborting.\n"
 msgstr "Ошибка в параметре остановки: должен быть между 0 и 1, прерывание.\n"
 
-#: src/core/command.c:1461 src/core/command.c:1589
+#: src/core/command.c:1460 src/core/command.c:1588
 msgid "Error in step size parameter: must be between 0 and 1, aborting.\n"
 msgstr "Ошибка в размере шага: должен быть между 0 и 1, прерывание.\n"
 
-#: src/core/command.c:1693
+#: src/core/command.c:1692
 msgid ""
 "It is impossible to crop the image when a filter with preview session is "
 "active. Please consider to close the filter dialog first.\n"
@@ -12400,191 +12403,191 @@ msgstr ""
 "предварительного просмотра. Пожалуйста, подумайте о том, чтобы сначала "
 "закрыть диалоговое окно фильтра.\n"
 
-#: src/core/command.c:1707 src/core/command.c:4141
+#: src/core/command.c:1706 src/core/command.c:4140
 msgid "Crop: x and y must be positive values.\n"
 msgstr "Кадрирование: x и y должны быть положительными.\n"
 
-#: src/core/command.c:1713 src/core/command.c:4147
+#: src/core/command.c:1712 src/core/command.c:4146
 msgid "Crop: width and height must be greater than 0.\n"
 msgstr "Кадрирование: ширина и высота должны быть больше 0.\n"
 
-#: src/core/command.c:1717 src/core/command.c:4163
+#: src/core/command.c:1716 src/core/command.c:4162
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
 msgstr ""
 "Кадрирование: ширина и высота должны быть меньше %d и %d, соответственно.\n"
 
-#: src/core/command.c:1722 src/core/command.c:4153
+#: src/core/command.c:1721 src/core/command.c:4152
 msgid "Crop: select a region or provide x, y, width, height\n"
 msgstr ""
 "Кадрирование: выберите область или введите координаты x и y, ширину и "
 "высоту\n"
 
-#: src/core/command.c:1730 src/gui/menu_gray_geometry.c:272
+#: src/core/command.c:1729 src/gui/menu_gray_geometry.c:272
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "Кадрирование (x=%d, y=%d, ш=%d, в=%d)"
 
-#: src/core/command.c:1774 src/core/command.c:4458 src/core/command.c:4471
-#: src/core/command.c:4873 src/core/command.c:4891 src/core/command.c:4902
-#: src/core/command.c:8141
+#: src/core/command.c:1773 src/core/command.c:4457 src/core/command.c:4470
+#: src/core/command.c:4872 src/core/command.c:4890 src/core/command.c:4901
+#: src/core/command.c:8140
 msgid "Wrong parameters.\n"
 msgstr "Неверные параметры.\n"
 
-#: src/core/command.c:1830 src/core/command.c:2891 src/core/command.c:2898
-#: src/core/command.c:2925 src/core/command.c:3029 src/core/command.c:3107
-#: src/core/command.c:4084 src/core/command.c:4183 src/core/command.c:4486
-#: src/core/command.c:4518 src/core/command.c:4781 src/core/command.c:5049
-#: src/core/command.c:5124 src/core/command.c:5252 src/core/command.c:5530
-#: src/core/command.c:5629 src/core/command.c:5669 src/core/command.c:5738
-#: src/core/command.c:5749 src/core/command.c:5797 src/core/command.c:5846
-#: src/core/command.c:5890 src/core/command.c:6220 src/core/command.c:6275
-#: src/core/command.c:6416 src/core/command.c:6560 src/core/command.c:6605
-#: src/core/command.c:6613 src/core/command.c:6629 src/core/command.c:6644
-#: src/core/command.c:6770 src/core/command.c:6788 src/core/command.c:6807
-#: src/core/command.c:6826 src/core/command.c:6845 src/core/command.c:6863
-#: src/core/command.c:6918 src/core/command.c:6928 src/core/command.c:6961
-#: src/core/command.c:7116 src/core/command.c:7708 src/core/command.c:7737
+#: src/core/command.c:1829 src/core/command.c:2890 src/core/command.c:2897
+#: src/core/command.c:2924 src/core/command.c:3028 src/core/command.c:3106
+#: src/core/command.c:4083 src/core/command.c:4182 src/core/command.c:4485
+#: src/core/command.c:4517 src/core/command.c:4780 src/core/command.c:5048
+#: src/core/command.c:5123 src/core/command.c:5251 src/core/command.c:5529
+#: src/core/command.c:5628 src/core/command.c:5668 src/core/command.c:5737
+#: src/core/command.c:5748 src/core/command.c:5796 src/core/command.c:5845
+#: src/core/command.c:5889 src/core/command.c:6219 src/core/command.c:6274
+#: src/core/command.c:6415 src/core/command.c:6559 src/core/command.c:6604
+#: src/core/command.c:6612 src/core/command.c:6628 src/core/command.c:6643
+#: src/core/command.c:6769 src/core/command.c:6787 src/core/command.c:6806
+#: src/core/command.c:6825 src/core/command.c:6844 src/core/command.c:6862
+#: src/core/command.c:6917 src/core/command.c:6927 src/core/command.c:6960
+#: src/core/command.c:7115 src/core/command.c:7707 src/core/command.c:7736
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr "Отсутствующий аргумент %s, прерывание.\n"
 
-#: src/core/command.c:1890
+#: src/core/command.c:1889
 msgid "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
 msgstr "Ошибка: BP должна быть указана между 0.0 и 1.0 с помощью -BP=\n"
 
-#: src/core/command.c:1894
+#: src/core/command.c:1893
 msgid "Error: BP must be >= 0.0 and <= 1.0.\n"
 msgstr "Ошибка: BP должна быть >= 0.0 и <= 1.0.\n"
 
-#: src/core/command.c:1904
+#: src/core/command.c:1903
 msgid "Error: D must be specified between 0.0 and 1.0 using -D=\n"
 msgstr "Ошибка: D должна быть указана между 0.0 и 1.0 с помощью -D=\n"
 
-#: src/core/command.c:1910
+#: src/core/command.c:1909
 msgid "Error: B must be >= 0.0 and <= 15.0.\n"
 msgstr "Ошибка: B должна быть >= 0.0 и <= 15.0.\n"
 
-#: src/core/command.c:1917
+#: src/core/command.c:1916
 msgid "Error: D must be > 0.0 and <= 10.0.\n"
 msgstr "Ошибка: D должна быть >= 0.0 и <= 10.0.\n"
 
-#: src/core/command.c:1921
+#: src/core/command.c:1920
 msgid "Error: SP must be >= 0.0 and <= 1.0.\n"
 msgstr "Ошибка: SP должна быть >= 0.0 и <= 1.0.\n"
 
-#: src/core/command.c:1925
+#: src/core/command.c:1924
 msgid "Error: LP must be >= 0.0 and <= SP.\n"
 msgstr "Ошибка: LP должна быть >= 0.0 и <= SP.\n"
 
-#: src/core/command.c:1929
+#: src/core/command.c:1928
 msgid "Error: HP must be >= SP and <= 1.0.\n"
 msgstr "Ошибка: HP должна быть >= SP и <= 1.0.\n"
 
-#: src/core/command.c:1934
+#: src/core/command.c:1933
 msgid ""
 "Error: saturation stretch requires that all channels must be selected.\n"
 msgstr "Ошибка: для растягивания насыщенности необходимо выбрать все каналы.\n"
 
-#: src/core/command.c:1990
+#: src/core/command.c:1989
 msgid "Error: cannot apply saturation stretch to mono images.\n"
 msgstr ""
 "Ошибка: нельзя применить растягивание насыщенности к монохромным "
 "изображениям.\n"
 
-#: src/core/command.c:2036
+#: src/core/command.c:2035
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr ""
 "Ошибка: нельзя применить растягивание насыщенности к монохромному "
 "изображению.\n"
 
-#: src/core/command.c:2108 src/core/command.c:8094 src/filters/wavelets.c:255
+#: src/core/command.c:2107 src/core/command.c:8093 src/filters/wavelets.c:255
 #: src/filters/wavelets.c:325
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
 msgstr ""
 "Вейвлеты: максимальное количество слоёв для изображения такого размера — %d\n"
 
-#: src/core/command.c:2114 src/filters/wavelets.c:264
+#: src/core/command.c:2113 src/filters/wavelets.c:264
 #, c-format
 msgid "Wavelet: type must be %d or %d\n"
 msgstr "Вейвлеты: тип должен быть %d или %d\n"
 
-#: src/core/command.c:2159
+#: src/core/command.c:2158
 msgid "Low value must be in the [0, 1] range.\n"
 msgstr "Нижнее значение должно быть в диапазоне [0, 1].\n"
 
-#: src/core/command.c:2164
+#: src/core/command.c:2163
 msgid "High value must be in the [0, 1] range.\n"
 msgstr "Верхнее значение должно быть в диапазоне [0, 1].\n"
 
-#: src/core/command.c:2194
+#: src/core/command.c:2193
 msgid "Stretch must be greater than or equal to 1\n"
 msgstr "Растягивание должно быть больше или равно 1\n"
 
-#: src/core/command.c:2224
+#: src/core/command.c:2223
 msgid "Clip limit must be > 0.\n"
 msgstr "Предел обрезки должен быть > 0.\n"
 
-#: src/core/command.c:2231
+#: src/core/command.c:2230
 msgid "Tile size must be > 0.\n"
 msgstr "Размер мозаики должен быть > 0.\n"
 
-#: src/core/command.c:2275
+#: src/core/command.c:2274
 msgid "Cannot list files, set working directory first.\n"
 msgstr ""
 "Нельзя отобразить список файлов, сначала установите рабочую директорию.\n"
 
-#: src/core/command.c:2281 src/core/command.c:2291 src/core/command.c:2352
+#: src/core/command.c:2280 src/core/command.c:2290 src/core/command.c:2351
 msgid "Siril cannot open the directory.\n"
 msgstr "Siril не может открыть директорию.\n"
 
-#: src/core/command.c:2313
+#: src/core/command.c:2312
 #, c-format
 msgid "Link: %s\n"
 msgstr "Ссылка: %s\n"
 
-#: src/core/command.c:2317 src/core/command.c:2367
+#: src/core/command.c:2316 src/core/command.c:2366
 #, c-format
 msgid "Directory: %s\n"
 msgstr "Директория: %s\n"
 
-#: src/core/command.c:2327 src/core/command.c:2334 src/core/command.c:2375
-#: src/core/command.c:2381
+#: src/core/command.c:2326 src/core/command.c:2333 src/core/command.c:2374
+#: src/core/command.c:2380
 #, c-format
 msgid "Sequence: %s\n"
 msgstr "Последовательность: %s\n"
 
-#: src/core/command.c:2330 src/core/command.c:2332 src/core/command.c:2377
-#: src/core/command.c:2379
+#: src/core/command.c:2329 src/core/command.c:2331 src/core/command.c:2376
+#: src/core/command.c:2378
 #, c-format
 msgid "Image: %s\n"
 msgstr "Изображение: %s\n"
 
-#: src/core/command.c:2390 src/core/command.c:8005
+#: src/core/command.c:2389 src/core/command.c:8004
 msgid "********* END OF THE LIST *********\n"
 msgstr "********** КОНЕЦ СПИСКА **********\n"
 
-#: src/core/command.c:2399
+#: src/core/command.c:2398
 msgid "Merge: no working directory set.\n"
 msgstr "Слияние: рабочая директория не указана.\n"
 
-#: src/core/command.c:2404 src/core/command.c:6255 src/core/command.c:6382
+#: src/core/command.c:2403 src/core/command.c:6254 src/core/command.c:6381
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
 msgstr "Указанное итоговое имя %s содержит недопустимые символы, прерывание\n"
 
-#: src/core/command.c:2424
+#: src/core/command.c:2423
 #, c-format
 msgid "Could not open sequence `%s' for merging\n"
 msgstr "Не удалось открыть последовательность %s для слияния\n"
 
-#: src/core/command.c:2431
+#: src/core/command.c:2430
 #, c-format
 msgid "Sequence `%s' is invalid, could not merge\n"
 msgstr "Последовательность `%s' неверна, слияние невозможно\n"
 
-#: src/core/command.c:2442
+#: src/core/command.c:2441
 #, c-format
 msgid ""
 "All sequences must be the same format for merging. Sequence `%s' is "
@@ -12593,36 +12596,36 @@ msgstr ""
 "Для слияния последовательности должны иметь один формат. Последовательность "
 "`%s' отличается\n"
 
-#: src/core/command.c:2489 src/core/command.c:2528
+#: src/core/command.c:2488 src/core/command.c:2527
 #, c-format
 msgid "Failed to create the output SER file `%s'\n"
 msgstr "Не удалось создать файл SER `%s'\n"
 
-#: src/core/command.c:2500 src/core/command.c:2541
+#: src/core/command.c:2499 src/core/command.c:2540
 #, c-format
 msgid "Failed to read frame %d from input sequence `%s'\n"
 msgstr "Не удалось прочитать кадр %d из последовательности `%s'\n"
 
-#: src/core/command.c:2508 src/core/command.c:2549
+#: src/core/command.c:2507 src/core/command.c:2548
 #, c-format
 msgid "Failed to write frame %d in merged sequence\n"
 msgstr "Не удалось записать кадр %d в слитую последовательность\n"
 
-#: src/core/command.c:2518 src/core/command.c:2559
+#: src/core/command.c:2517 src/core/command.c:2558
 msgid "Error while finalizing the merged sequence\n"
 msgstr "Ошибка при окончательной обработке слитой последовательности\n"
 
-#: src/core/command.c:2564
+#: src/core/command.c:2563
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
 msgstr ""
 "Siril не может создать такой тип последовательности, остановка слияния\n"
 
-#: src/core/command.c:2584 src/core/command.c:7592 src/io/single_image.c:210
+#: src/core/command.c:2583 src/core/command.c:7591 src/io/single_image.c:207
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr "Ошибка при открытии %s: файл не найден или не поддерживается.\n"
 
-#: src/core/command.c:2589
+#: src/core/command.c:2588
 msgid ""
 "This command is only supported with FITS and TIFF, able to contain "
 "orientation information\n"
@@ -12630,7 +12633,7 @@ msgstr ""
 "Эта команда поддерживается только для FITS и TIFF, которые могут хранить "
 "информацию об ориентации\n"
 
-#: src/core/command.c:2594
+#: src/core/command.c:2593
 msgid ""
 "This command is only supported with single FITS images, for the first HDU, "
 "not a FITS cube.\n"
@@ -12638,93 +12641,93 @@ msgstr ""
 "Эта команда поддерживается только для отдельных изображений FITS, для "
 "первого HDU, не для куба FITS.\n"
 
-#: src/core/command.c:2601 src/core/command.c:2615 src/core/command.c:4672
-#: src/core/command.c:8942 src/pixelMath/pixel_math_runner.c:1121
+#: src/core/command.c:2600 src/core/command.c:2614 src/core/command.c:4671
+#: src/core/command.c:8941 src/pixelMath/pixel_math_runner.c:1121
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "Не удалось открыть файл: %s\n"
 
-#: src/core/command.c:2607 src/core/command.c:2636
+#: src/core/command.c:2606 src/core/command.c:2635
 msgid "Image data is already bottom-up\n"
 msgstr "Данные изображения уже в ориентации снизу вверх\n"
 
-#: src/core/command.c:2613 src/core/command.c:2639
+#: src/core/command.c:2612 src/core/command.c:2638
 msgid "Mirroring image to convert to bottom-up data\n"
 msgstr ""
 "Отражение изображения для преобразования данных к ориентации снизу вверх\n"
 
-#: src/core/command.c:2625
+#: src/core/command.c:2624
 #, c-format
 msgid "Could not save mirrored image: %s\n"
 msgstr "Не удалось сохранить отражённое изображение: %s\n"
 
-#: src/core/command.c:2663 src/core/command.c:3867 src/core/command.c:3874
-#: src/core/command.c:3879 src/core/command.c:5134 src/core/command.c:5143
-#: src/core/command.c:5152 src/core/command.c:5592 src/core/command.c:6268
-#: src/core/command.c:6409 src/core/command.c:6992 src/core/command.c:8393
-#: src/core/command.c:8404 src/core/command.c:8416 src/core/command.c:8440
-#: src/core/command.c:8725 src/core/command.c:8837 src/core/command.c:8846
-#: src/core/command.c:8855 src/core/command.c:8864 src/core/command.c:8871
+#: src/core/command.c:2662 src/core/command.c:3866 src/core/command.c:3873
+#: src/core/command.c:3878 src/core/command.c:5133 src/core/command.c:5142
+#: src/core/command.c:5151 src/core/command.c:5591 src/core/command.c:6267
+#: src/core/command.c:6408 src/core/command.c:6991 src/core/command.c:8392
+#: src/core/command.c:8403 src/core/command.c:8415 src/core/command.c:8439
+#: src/core/command.c:8724 src/core/command.c:8836 src/core/command.c:8845
+#: src/core/command.c:8854 src/core/command.c:8863 src/core/command.c:8870
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Неверный аргумент %s, прерывание.\n"
 
-#: src/core/command.c:2778
+#: src/core/command.c:2777
 #, c-format
 msgid "Symmetry point SP=%f\n"
 msgstr "Точка симметрии SP=%f\n"
 
-#: src/core/command.c:2793
+#: src/core/command.c:2792
 #, c-format
 msgid "Symmetry point for channel %d: SP=%f\n"
 msgstr "Точка симметрии канала %d: SP=%f\n"
 
-#: src/core/command.c:2834
+#: src/core/command.c:2833
 msgid "The target background value must be in the [0, 1] range\n"
 msgstr "Целевое значение фона должно быть в диапазоне [0, 1]\n"
 
-#: src/core/command.c:2839
+#: src/core/command.c:2838
 #, c-format
 msgid "Computing %s auto-stretch with values %f and %f\n"
 msgstr "Расчёт %s авторастягивания со значениями %f и %f\n"
 
-#: src/core/command.c:2840
+#: src/core/command.c:2839
 msgid "linked"
 msgstr "связано"
 
-#: src/core/command.c:2840
+#: src/core/command.c:2839
 msgid "unlinked"
 msgstr "несвязано"
 
-#: src/core/command.c:2867
+#: src/core/command.c:2866
 msgid "Factor must be a number greater than 0.\n"
 msgstr "Коэффициентом должно быть число больше 0.\n"
 
-#: src/core/command.c:2909
+#: src/core/command.c:2908
 #, c-format
 msgid "Scale %lf not allowed. Should be between 0.0 and 5.0.\n"
 msgstr "Масштаб %lf не допускается; масштаб должен быть между 0.0 и 5.0.\n"
 
-#: src/core/command.c:2913
+#: src/core/command.c:2912
 msgid "Scale is 1.0. Not doing anything.\n"
 msgstr "Масштаб 1.0. Ничего не делаем.\n"
 
-#: src/core/command.c:2948 src/core/command.c:3052 src/core/command.c:6584
-#: src/core/command.c:6671 src/core/command.c:6955
+#: src/core/command.c:2947 src/core/command.c:3051 src/core/command.c:6583
+#: src/core/command.c:6670 src/core/command.c:6954
 #, c-format
 msgid "Unknown transformation type %s, aborting.\n"
 msgstr "Неизвестное преобразование %s, прерывание.\n"
 
-#: src/core/command.c:2957
+#: src/core/command.c:2956
 #, c-format
 msgid "Resampling to %d x %d pixels with %s interpolation\n"
 msgstr "Изменение размера к %d × %d пикселей с интерполяцией %s\n"
 
-#: src/core/command.c:2976 src/core/siril.c:278 src/filters/rgradient.c:240
+#: src/core/command.c:2975 src/core/siril.c:278 src/filters/rgradient.c:240
 msgid "This process cannot be applied to 8b images\n"
 msgstr "Эту операцию нельзя применить к 8-разрядным изображениям\n"
 
-#: src/core/command.c:2992
+#: src/core/command.c:2991
 msgid ""
 "The coordinates cannot be greater than the size of the image. Please change "
 "their values and retry.\n"
@@ -12732,7 +12735,7 @@ msgstr ""
 "Координаты не могут быть больше, чем размер изображения. Пожалуйста, "
 "измените их значения и попробуйте снова.\n"
 
-#: src/core/command.c:3009
+#: src/core/command.c:3008
 msgid ""
 "Rotation will apply only to current selection, the resulting image will be "
 "cropped.\n"
@@ -12740,26 +12743,26 @@ msgstr ""
 "Вращение будет применено только к текущему выделению, результирующее "
 "изображение будет кадрировано.\n"
 
-#: src/core/command.c:3020
+#: src/core/command.c:3019
 #, c-format
 msgid "Angle %lf not allowed. Should be between 0.0 and 360.0.\n"
 msgstr "Угол %lf не допускается; угол должен быть между 0.0 и 360.0.\n"
 
-#: src/core/command.c:3058
+#: src/core/command.c:3057
 msgid "-nocrop option is not valid if a selection is active. Ignoring\n"
 msgstr ""
 "Параметр -nocrop не принимается во внимание, если выделение активно. "
 "Игнорируем\n"
 
-#: src/core/command.c:3068
+#: src/core/command.c:3067
 msgid "Angle is 0.0 or 360.0 degrees. Doing nothing...\n"
 msgstr "Угол 0.0 или 360.0°. Ничего не делаем...\n"
 
-#: src/core/command.c:3143 src/core/command.c:3369
+#: src/core/command.c:3142 src/core/command.c:3368
 msgid "Wrong magnitude value.\n"
 msgstr "Неверное значение блеска.\n"
 
-#: src/core/command.c:3154 src/core/command.c:3756 src/core/command.c:3937
+#: src/core/command.c:3153 src/core/command.c:3755 src/core/command.c:3936
 #: src/core/siril_actions.c:696
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
@@ -12768,32 +12771,32 @@ msgstr ""
 "Текущее выделение слишком велико. Для определения PSF сделайте выделение "
 "вокруг одной звезды.\n"
 
-#: src/core/command.c:3158 src/core/command.c:3760 src/core/command.c:3941
+#: src/core/command.c:3157 src/core/command.c:3759 src/core/command.c:3940
 #: src/io/sequence.c:1916
 msgid "Select an area first\n"
 msgstr "Сначала выберите область\n"
 
-#: src/core/command.c:3170 src/core/command.c:3789
+#: src/core/command.c:3169 src/core/command.c:3788
 #, c-format
 msgid "PSF minimisation failed with error %d\n"
 msgstr "Минимизация PSF не удалась. Ошибка %d\n"
 
-#: src/core/command.c:3175
+#: src/core/command.c:3174
 #, c-format
 msgid ""
 "Relative magnitude: %.3lf, True reduced magnitude: %.3lf, Offset: %.3lf\n"
 msgstr "Относительный блеск: %.3lf, Истинный блеск: %.3lf, Смещение: %.3lf\n"
 
-#: src/core/command.c:3252 src/core/command.c:3259 src/core/command.c:3268
+#: src/core/command.c:3251 src/core/command.c:3258 src/core/command.c:3267
 msgid "Inner radius value must be less than outer. Please change the value."
 msgstr ""
 "Внутренний радиус должен быть меньше внешнего. Пожалуйста, измените значение."
 
-#: src/core/command.c:3286 src/core/command.c:3293 src/core/command.c:3301
+#: src/core/command.c:3285 src/core/command.c:3292 src/core/command.c:3300
 msgid "minimum value must be smaller than the maximum\n"
 msgstr "минимальное значение должно быть меньше максимального\n"
 
-#: src/core/command.c:3311
+#: src/core/command.c:3310
 #, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera "
@@ -12802,24 +12805,24 @@ msgstr ""
 "Радиус кольца локального фона: %.1f до %.1f, апертура: %.1f (%s), усиление "
 "преобразования камеры: %f e-/ADU, значения использованных пикселей ]%f, %f[\n"
 
-#: src/core/command.c:3315
+#: src/core/command.c:3314
 msgid "forced"
 msgstr "принудительно"
 
-#: src/core/command.c:3315
+#: src/core/command.c:3314
 msgid "unused, dynamic"
 msgstr "неиспользуемый, динамический"
 
-#: src/core/command.c:3335
+#: src/core/command.c:3334
 #, c-format
 msgid "The reference image must be set between 1 and %d\n"
 msgstr "Опорное изображение должно быть между 1 и %d\n"
 
-#: src/core/command.c:3377
+#: src/core/command.c:3376
 msgid "Run a PSF for the sequence first (see seqpsf)\n"
 msgstr "Сначала выполните PSF для последовательности (см. seqpsf)\n"
 
-#: src/core/command.c:3381
+#: src/core/command.c:3380
 #, c-format
 msgid ""
 "Reference magnitude has been set for star %d to %f and will be computed for "
@@ -12828,20 +12831,20 @@ msgstr ""
 "Опорный блеск установлен для звезды от %d до %f и будет вычисляться для "
 "каждого изображения\n"
 
-#: src/core/command.c:3391
+#: src/core/command.c:3390
 #, c-format
 msgid "FITS extension unknown: %s\n"
 msgstr "Неизвестное расширение FITS: %s\n"
 
-#: src/core/command.c:3429
+#: src/core/command.c:3428
 msgid "Wrong parameter values. Radius must be between 3 and 50, aborting.\n"
 msgstr "Неверный параметр. Радиус должен быть между 3 и 50, прерывание.\n"
 
-#: src/core/command.c:3436
+#: src/core/command.c:3435
 msgid "Wrong parameter values. Sigma must be greater than 0.05, aborting\n"
 msgstr "Неверное значение. σ должна быть более 0.05, прерывание\n"
 
-#: src/core/command.c:3443
+#: src/core/command.c:3442
 #, c-format
 msgid ""
 "Wrong parameter values. Minimum beta must be greater than or equal to 0.0 "
@@ -12850,107 +12853,107 @@ msgstr ""
 "Неверное значение. Минимальное значение β должно быть больше или равно 0.0 и "
 "меньше чем %.0f, прерывание\n"
 
-#: src/core/command.c:3454
+#: src/core/command.c:3453
 msgid ""
 "Wrong parameter values. Roundness must be between 0 and 0.95, aborting.\n"
 msgstr ""
 "Неверное значение. Округлость должна быть между 0 и 0.95, прерывание.\n"
 
-#: src/core/command.c:3461
+#: src/core/command.c:3460
 msgid ""
 "Wrong parameter values. Focal length must be greater than 0, aborting.\n"
 msgstr ""
 "Неверное значение. Фокусное расстояние должно быть более 0, прерывание.\n"
 
-#: src/core/command.c:3468
+#: src/core/command.c:3467
 msgid "Wrong parameter values. Pixel size must be greater than 0, aborting.\n"
 msgstr "Неверное значение. Размер пикселя должен быть более 0, прерывание.\n"
 
-#: src/core/command.c:3476
+#: src/core/command.c:3475
 #, fuzzy
 msgid "Wrong parameter values. Relax must be set to on or off, aborting.\n"
 msgstr ""
-"Неверное значение. Параметр \"Авто\" должен быть \"Вкл.\" или \"Выкл.\", "
-"прерывание.\n"
+"Неверные значения параметра. Параметр \"Ослабить\" должен быть \"Вкл.\" или "
+"\"Выкл.\", прерывание.\n"
 
-#: src/core/command.c:3483
+#: src/core/command.c:3482
 msgid ""
 "Wrong parameter values. Convergence must be between 1 and 3, aborting.\n"
 msgstr "Неверное значение. Сходимость должна быть между 1 и 3, прерывание.\n"
 
-#: src/core/command.c:3490 src/core/command.c:3497 src/core/command.c:3504
+#: src/core/command.c:3489 src/core/command.c:3496 src/core/command.c:3503
 #, c-format
 msgid "Wrong parameter value %s.\n"
 msgstr "Неверное значение %s.\n"
 
-#: src/core/command.c:3508
+#: src/core/command.c:3507
 msgid "Resetting findstar parameters to default values.\n"
 msgstr "Сброс параметров findstar к исходным.\n"
 
-#: src/core/command.c:3529
+#: src/core/command.c:3528
 #, c-format
 msgid "sigma = %3.2f\n"
 msgstr "σ = %3.2f\n"
 
-#: src/core/command.c:3532
+#: src/core/command.c:3531
 #, c-format
 msgid "roundness range = [%f, %f]\n"
 msgstr "диапазон округлости = [%f, %f]\n"
 
-#: src/core/command.c:3534
+#: src/core/command.c:3533
 #, c-format
 msgid "roundness = %3.2f\n"
 msgstr "округлость = %3.2f\n"
 
-#: src/core/command.c:3539
+#: src/core/command.c:3538
 #, c-format
 msgid "radius = %d\n"
 msgstr "радиус = %d\n"
 
-#: src/core/command.c:3542
+#: src/core/command.c:3541
 #, c-format
 msgid "amplitude range = [%f, %f]\n"
 msgstr "диапазон амплитуды = [%f, %f]\n"
 
-#: src/core/command.c:3544
+#: src/core/command.c:3543
 msgid "amplitude range unlimited\n"
 msgstr "диапазон амплитуды = [%f, %f]\n"
 
-#: src/core/command.c:3549
+#: src/core/command.c:3548
 #, c-format
 msgid "convergence = %d\n"
 msgstr "сходимость = %d\n"
 
-#: src/core/command.c:3551
+#: src/core/command.c:3550
 #, c-format
 msgid "focal = %3.1f\n"
 msgstr "фокусное расстояние = %3.1f\n"
 
-#: src/core/command.c:3553
+#: src/core/command.c:3552
 #, c-format
 msgid "pixelsize = %3.2f\n"
 msgstr "размер пикселя = %3.2f\n"
 
-#: src/core/command.c:3555
+#: src/core/command.c:3554
 #, c-format
 msgid "relax = %s\n"
 msgstr "ослабление = %s\n"
 
-#: src/core/command.c:3557
+#: src/core/command.c:3556
 #, c-format
 msgid "profile = %s\n"
 msgstr "профиль = %s\n"
 
-#: src/core/command.c:3560
+#: src/core/command.c:3559
 #, c-format
 msgid "minimum beta = %3.2f\n"
 msgstr "минимальная β: %3.2f\n"
 
-#: src/core/command.c:3569
+#: src/core/command.c:3568
 msgid "Reference magnitude unset for sequence\n"
 msgstr "Значение блеска опорной последовательности очищено\n"
 
-#: src/core/command.c:3591
+#: src/core/command.c:3590
 msgid ""
 "You need to add at least one image as variable. Use $ tokens to surround the "
 "file names .\n"
@@ -12958,19 +12961,19 @@ msgstr ""
 "Необходимо добавить как минимум одно изображение как переменную. Используйте "
 "символы $, чтобы окружить имена файлов.\n"
 
-#: src/core/command.c:3594
+#: src/core/command.c:3593
 msgid "There is an unmatched $. Please check the expression.\n"
 msgstr "Несовпадающий символ $. Пожалуйста, проверьте выражение.\n"
 
-#: src/core/command.c:3605 src/core/command.c:3610
+#: src/core/command.c:3604 src/core/command.c:3609
 msgid "Rescale can only be done in the [0, 1] range.\n"
 msgstr "Масштабирование может быть выполнено в диапазоне [0, 1].\n"
 
-#: src/core/command.c:3679
+#: src/core/command.c:3678
 msgid "Image must have same dimension\n"
 msgstr "Изображение должно иметь те же размеры\n"
 
-#: src/core/command.c:3765
+#: src/core/command.c:3764
 msgid ""
 "Please display the channel on which you want to compute the PSF or use -"
 "channel argument\n"
@@ -12978,22 +12981,22 @@ msgstr ""
 "Пожалуйста, отобразите канал, для которого вы хотите вычислить PSF или "
 "используйте аргумент -channel\n"
 
-#: src/core/command.c:3774
+#: src/core/command.c:3773
 msgid "Please provide the channel number starting from 0 for red\n"
 msgstr "Укажите номер канала, начиная с 0 для красного канала\n"
 
-#: src/core/command.c:3849 src/core/command.c:3889 src/core/command.c:3904
+#: src/core/command.c:3848 src/core/command.c:3888 src/core/command.c:3903
 msgid "The given coordinates are not in the image, aborting\n"
 msgstr "Координаты за приделами изображения, прерывание\n"
 
-#: src/core/command.c:3854
+#: src/core/command.c:3853
 msgid ""
 "Selection was not completely inside the first image of the sequence, "
 "aborting.\n"
 msgstr ""
 "Не всё выделение внутри первого изображения последовательности, прерывание.\n"
 
-#: src/core/command.c:3884
+#: src/core/command.c:3883
 msgid ""
 "The reference image of the sequence does not have the WCS information "
 "required for star selection by equatorial coordinates\n"
@@ -13001,16 +13004,16 @@ msgstr ""
 "Опорное изображение в последовательности не содержит информации WCS, "
 "необходимой для выбора звезды по экваториальным координатам\n"
 
-#: src/core/command.c:3907
+#: src/core/command.c:3906
 #, c-format
 msgid "Coordinates of the star: %.1f, %.1f\n"
 msgstr "Координаты звезды: %.1f, %.1f\n"
 
-#: src/core/command.c:3922
+#: src/core/command.c:3921
 msgid "Arguments are not optional when called from a script\n"
 msgstr "Аргументы не являются опциональными, когда вызываются из сценария\n"
 
-#: src/core/command.c:3926
+#: src/core/command.c:3925
 msgid ""
 "Arguments are optional only if a sequence is already loaded and selection "
 "around a star made\n"
@@ -13018,26 +13021,26 @@ msgstr ""
 "Аргументы являются необязательными только если последовательность уже "
 "загружена и вокруг звезды сделано выделение\n"
 
-#: src/core/command.c:3965 src/core/command.c:4021
+#: src/core/command.c:3964 src/core/command.c:4020
 #, c-format
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 "Нельзя вычислить PSF канала %d для этой последовательности из %d каналов\n"
 
-#: src/core/command.c:3993
+#: src/core/command.c:3992
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "Запуск PSF для последовательности, слой %d\n"
 
-#: src/core/command.c:4035
+#: src/core/command.c:4034
 msgid "Missing argument to command\n"
 msgstr "Отсутствующий аргумент для команды\n"
 
-#: src/core/command.c:4050
+#: src/core/command.c:4049
 msgid "Could not find stars in the first image, aborting.\n"
 msgstr "Не удалось найти звёзды на первом изображении, прерывание.\n"
 
-#: src/core/command.c:4060
+#: src/core/command.c:4059
 #, c-format
 msgid ""
 "Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
@@ -13045,7 +13048,7 @@ msgstr ""
 "Установка внутреннего и внешнего радиусов кольца фотометрии в %.1f и %.1f "
 "(FWHM %f)\n"
 
-#: src/core/command.c:4068 src/gui/nina_light_curve.c:131
+#: src/core/command.c:4067 src/gui/nina_light_curve.c:131
 #, c-format
 msgid ""
 "Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
@@ -13053,7 +13056,7 @@ msgstr ""
 "Используются раннее сконфигурированные внутренний (%.1f) и внешний (%.1f) "
 "кольцевые радиусы для фотометрии\n"
 
-#: src/core/command.c:4090
+#: src/core/command.c:4089
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
@@ -13063,82 +13066,82 @@ msgstr ""
 "для выбора звезды по экваториальным координатам, найдите астрономическое "
 "решение для опорного или первого изображения\n"
 
-#: src/core/command.c:4211
+#: src/core/command.c:4210
 #, c-format
 msgid "Background value (channel: #%d): %d (%.3e)\n"
 msgstr "Значение фона (канал: №%d): %d (%.3e)\n"
 
-#: src/core/command.c:4267
+#: src/core/command.c:4266
 #, c-format
 msgid "The file %s has been created for the %s layer.\n"
 msgstr "Файл %s был создан для слоя %s.\n"
 
-#: src/core/command.c:4278
+#: src/core/command.c:4277
 msgid "Clearing tilt information\n"
 msgstr "Очистка данных о наклоне сенсора\n"
 
-#: src/core/command.c:4299 src/core/command.c:4304 src/core/command.c:4325
-#: src/core/command.c:4341 src/core/command.c:4364
+#: src/core/command.c:4298 src/core/command.c:4303 src/core/command.c:4324
+#: src/core/command.c:4340 src/core/command.c:4363
 #, c-format
 msgid "Replacement value is out of range (0 - %d)\n"
 msgstr "Значение замены за приделами диапазона (0 - %d)\n"
 
-#: src/core/command.c:4308
+#: src/core/command.c:4307
 msgid "lo must be strictly smaller than hi\n"
 msgstr "lo должно быть строго меньше hi\n"
 
-#: src/core/command.c:4379
+#: src/core/command.c:4378
 msgid "Level value is incorrect\n"
 msgstr "Неверное значение уровня\n"
 
-#: src/core/command.c:4384
+#: src/core/command.c:4383
 msgid "Coeff value is incorrect\n"
 msgstr "Неверное значение коэффициента\n"
 
-#: src/core/command.c:4389
+#: src/core/command.c:4388
 msgid "Sigma value is incorrect\n"
 msgstr "Неверное значение σ\n"
 
-#: src/core/command.c:4405
+#: src/core/command.c:4404
 msgid "Number of layers MUST be 1 or 3\n"
 msgstr "Кол-во слоёв ДОЛЖНО быть 1 или 3\n"
 
-#: src/core/command.c:4409
+#: src/core/command.c:4408
 msgid "Width and Height must be positive values.\n"
 msgstr "Ширина и высота должны быть положительными.\n"
 
-#: src/core/command.c:4422
+#: src/core/command.c:4421
 msgid "new empty image"
 msgstr "новое пустое изображение"
 
-#: src/core/command.c:4432
+#: src/core/command.c:4431
 #, c-format
 msgid "Values must be positive and less than %d.\n"
 msgstr "Значения должны быть положительными и меньше чем %d.\n"
 
-#: src/core/command.c:4444 src/core/command.c:4886
+#: src/core/command.c:4443 src/core/command.c:4885
 #, c-format
 msgid "Value must be positive and less than %d.\n"
 msgstr "Значение должно быть положительным и меньше чем %d.\n"
 
-#: src/core/command.c:4463
+#: src/core/command.c:4462
 msgid "Fill2: select a region or provide x, y, width, height\n"
 msgstr ""
 "Fill2: выберите область или введите координаты x и y, ширину и высоту\n"
 
-#: src/core/command.c:4492 src/core/command.c:6281 src/core/command.c:6422
-#: src/core/command.c:7250 src/io/path_parse.c:543
+#: src/core/command.c:4491 src/core/command.c:6280 src/core/command.c:6421
+#: src/core/command.c:7249 src/io/path_parse.c:543
 #: src/io/remote_catalogues.c:657 src/io/siril_catalogues.c:729
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr "Не удалось создать каталог для вывода: %s\n"
 
 #. handling mono case
-#: src/core/command.c:4502 src/core/command.c:6588 src/core/command.c:6984
+#: src/core/command.c:4501 src/core/command.c:6587 src/core/command.c:6983
 msgid "This sequence is mono, ignoring layer number.\n"
 msgstr "Это последовательность монохромная, игнорируем номер слоя.\n"
 
-#: src/core/command.c:4509 src/core/command.c:6596
+#: src/core/command.c:4508 src/core/command.c:6595
 #, c-format
 msgid ""
 "Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
@@ -13147,13 +13150,13 @@ msgstr ""
 "зелёный слой.\n"
 
 #. limiting values to avoid too long computation or too low number of candidates
-#: src/core/command.c:4525 src/core/command.c:6636
+#: src/core/command.c:4524 src/core/command.c:6635
 #, c-format
 msgid "Max number of stars %s not allowed. Should be between %d and %d.\n"
 msgstr ""
 "Максимальное кол-во звёзд %s недопустимо. Оно должно быть между %d и %d.\n"
 
-#: src/core/command.c:4572
+#: src/core/command.c:4571
 msgid ""
 "Warning: an undebayered CFA image is loaded. Star detection may produce "
 "results for this image but will not perform optimally and star parameters "
@@ -13163,11 +13166,11 @@ msgstr ""
 "звёзд может дать результат для этого изображения, но не будет работать "
 "оптимально, а параметры звёзд могут быть неточными.\n"
 
-#: src/core/command.c:4620
+#: src/core/command.c:4619
 msgid "Option -out= is not available for sequences, ignoring\n"
 msgstr "Опция -out= недоступна для последовательностей, игнорирование\n"
 
-#: src/core/command.c:4632
+#: src/core/command.c:4631
 msgid ""
 "Warning: sequence contains undebayered CFA images. Star detection may "
 "produce results for this sequence but will not perform optimally and star "
@@ -13177,38 +13180,38 @@ msgstr ""
 "CFA. Определение звёзд может дать результат для этого изображения, но не "
 "будет работать оптимально, а параметры звёзд могут быть неточными.\n"
 
-#: src/core/command.c:4640
+#: src/core/command.c:4639
 msgid "find_hot must be applied on an one-channel master-dark frame"
 msgstr "find_hot необходимо применять к одноканальному темновому мастер-кадру"
 
-#: src/core/command.c:4660
+#: src/core/command.c:4659
 #, c-format
 msgid "%ld cold and %ld hot pixels\n"
 msgstr "%ld холодных и %ld горячих пикселей\n"
 
-#: src/core/command.c:4722 src/core/command.c:4759
+#: src/core/command.c:4721 src/core/command.c:4758
 #, c-format
 msgid "File [%s] does not exist.\n"
 msgstr "Файл [%s] не существует.\n"
 
-#: src/core/command.c:4737
+#: src/core/command.c:4736
 msgid "There were some errors, please check your input file.\n"
 msgstr "Был отмечен ряд ошибок, проверьте, пожалуйста, входящий файл.\n"
 
-#: src/core/command.c:4805
+#: src/core/command.c:4804
 msgid "The size of the kernel MUST be odd and in the range [3, 15].\n"
 msgstr "Размер ядра ДОЛЖЕН быть нечётным и находиться в диапазоне [3, 15].\n"
 
-#: src/core/command.c:4810
+#: src/core/command.c:4809
 msgid "Modulation value MUST be between 0 and 1\n"
 msgstr "Значение модуляции ДОЛЖНО быть между 0 и1\n"
 
-#: src/core/command.c:4828
+#: src/core/command.c:4827
 #, c-format
 msgid "Center of gravity coordinates are (%.3lf, %.3lf)\n"
 msgstr "Координаты центра тяжести (%.3lf, %.3lf)\n"
 
-#: src/core/command.c:4927
+#: src/core/command.c:4926
 msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
@@ -13216,81 +13219,81 @@ msgstr ""
 "Способ может быть 0 (средний нейтральный), 1 (максимальный нейтральный), 3 "
 "(максимальная маска) или 3 (аддитивная маска)\n"
 
-#: src/core/command.c:4938
+#: src/core/command.c:4937
 msgid "Amount can only be [0, 1]\n"
 msgstr "Количество может быть [0, 1]\n"
 
-#: src/core/command.c:4978 src/core/command.c:5023
+#: src/core/command.c:4977 src/core/command.c:5022
 msgid "Amount value must be in the [0, 4] range.\n"
 msgstr "Количество должно быть в диапазоне [0, 4].\n"
 
-#: src/core/command.c:4984 src/core/command.c:5031
+#: src/core/command.c:4983 src/core/command.c:5030
 msgid "1/sigma value must be in the [0, 5] range.\n"
 msgstr "Значение 1/σ должно быть в диапазоне [0, 5].\n"
 
-#: src/core/command.c:5108
+#: src/core/command.c:5107
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
 msgstr "Порядок степени полинома должен быть в диапазоне [1, 4].\n"
 
-#: src/core/command.c:5118
+#: src/core/command.c:5117
 msgid "There can be only one prefix argument"
 msgstr "Допустим лишь один аргумент prefix"
 
-#: src/core/command.c:5157
+#: src/core/command.c:5156
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr ""
 "параметр сглаживания не используется с полиномиальной моделью, игнорируем.\n"
 
-#: src/core/command.c:5224
+#: src/core/command.c:5223
 msgid "Sigma low must be positive.\n"
 msgstr "Минимальное значение σ должно быть положительным.\n"
 
-#: src/core/command.c:5230
+#: src/core/command.c:5229
 msgid "Sigma high must be positive.\n"
 msgstr "Максимальное значение σ должно быть положительным.\n"
 
-#: src/core/command.c:5282
+#: src/core/command.c:5281
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr "Второй аргумент должен быть между 1 и количеством изображений.\n"
 
-#: src/core/command.c:5288
+#: src/core/command.c:5287
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr "Третий аргумент должен быть больше или равен аргументу \"from\".\n"
 
-#: src/core/command.c:5294
+#: src/core/command.c:5293
 msgid "The third argument is larger than the number of images.\n"
 msgstr "Третий аргумент больше, чем количество изображений.\n"
 
-#: src/core/command.c:5295
+#: src/core/command.c:5294
 #, c-format
 msgid "Re-adjusting to %d.\n"
 msgstr "Перенастройка %d.\n"
 
-#: src/core/command.c:5319 src/gui/sequence_list.c:636
+#: src/core/command.c:5318 src/gui/sequence_list.c:636
 #, c-format
 msgid "Selection update finished, %d images are selected in the sequence\n"
 msgstr "Выделение обновлено, в последовательности выбрано %d изображений\n"
 
-#: src/core/command.c:5348 src/gui/colors.c:394
+#: src/core/command.c:5347 src/gui/colors.c:394
 msgid "Could not copy the input image, aborting.\n"
 msgstr "Не удалось скопировать входящее изображение, прекращаем\n"
 
-#: src/core/command.c:5366
+#: src/core/command.c:5365
 msgid "CieLAB"
 msgstr "CieLAB"
 
-#: src/core/command.c:5725
+#: src/core/command.c:5724
 #, c-format
 msgid "Reconstructing %s Bayer matrix.\n"
 msgstr "Восстановление шаблона Байера %s.\n"
 
-#: src/core/command.c:5932
+#: src/core/command.c:5931
 #, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "Не удалось вычислить статистику для канала %d (всё ноль?).\n"
 
-#: src/core/command.c:5953 src/core/command.c:5958
+#: src/core/command.c:5952 src/core/command.c:5957
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -13299,7 +13302,7 @@ msgstr ""
 "Слой %s: среднее: %0.1f, медиана: %0.1f, σ: %0.1f, мин.: %0.1f, макс.: "
 "%0.1f, шум фона: %0.1f\n"
 
-#: src/core/command.c:5970 src/core/command.c:5977
+#: src/core/command.c:5969 src/core/command.c:5976
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -13309,64 +13312,64 @@ msgstr ""
 "%0.1f, шум фона: %0.1f, абсол. откл.: %0.1f, MAD: %0.1f, кв. кор.(BWMV): "
 "%0.1f\n"
 
-#: src/core/command.c:6063
+#: src/core/command.c:6062
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
 msgstr ""
 "Ни одного изображения, видимо, не было загружено, перезагрузка из '%s'\n"
 
-#: src/core/command.c:6166
+#: src/core/command.c:6165
 #, c-format
 msgid "Failed to save the JSON file %s: %s\n"
 msgstr "Не удалось сохранить файл JSON %s: %s\n"
 
-#: src/core/command.c:6169
+#: src/core/command.c:6168
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
 msgstr "Метаданные сохранены в файле JSON '%s'\n"
 
-#: src/core/command.c:6182 src/io/remote_catalogues.c:486
+#: src/core/command.c:6181 src/io/remote_catalogues.c:486
 msgid ""
 "json-glib was not found at build time, cannot proceed. Install and rebuild.\n"
 msgstr ""
 "json-glib не был найден во время сборки, не удалось продолжить. Установите и "
 "повторите сборку.\n"
 
-#: src/core/command.c:6201
+#: src/core/command.c:6200
 #, c-format
 msgid "Image %d, %s = %s\n"
 msgstr "Изображение %d, %s = %s\n"
 
-#: src/core/command.c:6210
+#: src/core/command.c:6209
 msgid "This command can only run for FITS images\n"
 msgstr "Эта команда может быть запущена только для изображений FITS\n"
 
-#: src/core/command.c:6229
+#: src/core/command.c:6228
 #, c-format
 msgid "Failed to create output file: %s\n"
 msgstr "Не удалось создать итоговый файл: %s\n"
 
-#: src/core/command.c:6235
+#: src/core/command.c:6234
 msgid "Failed to write to output file\n"
 msgstr "Не удалось записать в итоговый файл\n"
 
-#: src/core/command.c:6251 src/core/command.c:6378
+#: src/core/command.c:6250 src/core/command.c:6377
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
 msgstr ""
 "Первый аргумент это имя конвертированной последовательности и не должен "
 "начинаться с -\n"
 
-#: src/core/command.c:6301
+#: src/core/command.c:6300
 #, c-format
 msgid "Link: error opening working directory %s.\n"
 msgstr "Ссылка: ошибка при открытии рабочей директории %s.\n"
 
-#: src/core/command.c:6324
+#: src/core/command.c:6323
 msgid "No FITS files were found for link\n"
 msgstr "Не найдено FITS файлов для ссылки\n"
 
-#: src/core/command.c:6335 src/core/command.c:6485
+#: src/core/command.c:6334 src/core/command.c:6484
 msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
@@ -13374,7 +13377,7 @@ msgstr ""
 "Необходимо передать дополнительный аргумент -fitseq для конвертации "
 "последовательности в формат fitseq.\n"
 
-#: src/core/command.c:6341
+#: src/core/command.c:6340
 #, c-format
 msgid "Link: processing %d FITS file...\n"
 msgid_plural "Link: processing %d FITS files...\n"
@@ -13382,20 +13385,20 @@ msgstr[0] "Конвертация: обработка %d FITS-файла…\n"
 msgstr[1] "Конвертация: обработка %d FITS-файлов…\n"
 msgstr[2] "Конвертация: обработка %d FITS-файлов…\n"
 
-#: src/core/command.c:6347
+#: src/core/command.c:6346
 msgid "Link: no working directory set.\n"
 msgstr "Ссылка: рабочая директория не указана.\n"
 
-#: src/core/command.c:6373
+#: src/core/command.c:6372
 msgid "Conversion: no working directory set.\n"
 msgstr "Конвертация: рабочая директория не указана.\n"
 
-#: src/core/command.c:6442
+#: src/core/command.c:6441
 #, c-format
 msgid "Conversion: error opening working directory %s.\n"
 msgstr "Конвертация: ошибка при открытии рабочей директории %s.\n"
 
-#: src/core/command.c:6459 src/gui/conversion.c:196
+#: src/core/command.c:6458 src/gui/conversion.c:196
 msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
@@ -13403,15 +13406,15 @@ msgstr ""
 "Сенсоры FujiFilm XTRANS не поддерживаются стандартом SER v2 (стиль CFA). "
 "Вместо этого вы можете использовать последовательности FITS."
 
-#: src/core/command.c:6473
+#: src/core/command.c:6472
 msgid "No RAW files were found for conversion\n"
 msgstr "Не найдено RAW-файлов для конвертирования\n"
 
-#: src/core/command.c:6474
+#: src/core/command.c:6473
 msgid "No files were found for conversion\n"
 msgstr "Не найдено файлов для конвертирования\n"
 
-#: src/core/command.c:6491
+#: src/core/command.c:6490
 #, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
@@ -13419,37 +13422,37 @@ msgstr[0] "Конвертация: обработка %d FITS-файла…\n"
 msgstr[1] "Конвертация: обработка %d FITS-файлов…\n"
 msgstr[2] "Конвертация: обработка %d FITS-файлов…\n"
 
-#: src/core/command.c:6568 src/registration/registration.c:1464
+#: src/core/command.c:6567 src/registration/registration.c:1464
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "Регистрация только по сдвигу возможна с OpenCV 4.4\n"
 
 #. using absolute min_pairs required by homography
-#: src/core/command.c:6619
+#: src/core/command.c:6618
 #, c-format
 msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr "%d меньше чем минимально возможное число пар звёзд %d, прерывание.\n"
 
-#: src/core/command.c:6683 src/registration/registration.c:144
+#: src/core/command.c:6682 src/registration/registration.c:144
 msgid "Two-Pass Global Star Alignment (deep-sky)"
 msgstr "Всё звездное небо за 2 шага (дальний космос)"
 
-#: src/core/command.c:6686 src/registration/registration.c:142
+#: src/core/command.c:6685 src/registration/registration.c:142
 msgid "Global Star Alignment (deep-sky)"
 msgstr "Всё звездное небо (дальний космос)"
 
-#: src/core/command.c:6694
+#: src/core/command.c:6693
 msgid ""
 "The -nostarlist option has an effect only when -2pass is used, ignoring\n"
 msgstr ""
 "Опция -nostarlist имеет эффект только когда используется -2pass, игнорируем\n"
 
-#: src/core/command.c:6703 src/core/processing.c:143
+#: src/core/command.c:6702 src/core/processing.c:143
 #: src/registration/applyreg.c:653 src/registration/registration.c:1501
 msgid "Not enough space to save the output images, aborting\n"
 msgstr ""
 "Недостаточно места для сохранения результирующих изображений, прерывание\n"
 
-#: src/core/command.c:6710
+#: src/core/command.c:6709
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation\n"
@@ -13457,7 +13460,7 @@ msgstr ""
 "Принудительная установка преобразование регистрации в сдвиг, которое "
 "является единственным преобразованием, совместимым с \"Без интерполяции\"\n"
 
-#: src/core/command.c:6713
+#: src/core/command.c:6712
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation, is not compatible with "
@@ -13467,7 +13470,7 @@ msgstr ""
 "является единственным преобразованием, совместимым с \"Без интерполяции\", "
 "несовместима с OpenCV ниже 4.4. Прерывание\n"
 
-#: src/core/command.c:6719 src/registration/registration.c:1528
+#: src/core/command.c:6718 src/registration/registration.c:1528
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
@@ -13477,42 +13480,42 @@ msgstr ""
 
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
-#: src/core/command.c:6727 src/registration/registration.c:1547
+#: src/core/command.c:6726 src/registration/registration.c:1547
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "Регистрация: обработка методом: %s\n"
 
-#: src/core/command.c:6738 src/core/command.c:7016
+#: src/core/command.c:6737 src/core/command.c:7015
 #: src/registration/registration.c:1551
 msgid "Interpolation clamping active\n"
 msgstr "Фиксация при интерполяции включена\n"
 
-#: src/core/command.c:6761 src/core/command.c:6779 src/core/command.c:6798
-#: src/core/command.c:6817 src/core/command.c:6836 src/core/command.c:6854
+#: src/core/command.c:6760 src/core/command.c:6778 src/core/command.c:6797
+#: src/core/command.c:6816 src/core/command.c:6835 src/core/command.c:6853
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
 msgstr "Не удалось разобрать аргумент `%s' фильтра `%s', прерывание.\n"
 
-#: src/core/command.c:6894
+#: src/core/command.c:6893
 msgid "No registration data exists for this sequence, aborting\n"
 msgstr "Нет данных регистрации для этой последовательности, прерывание\n"
 
-#: src/core/command.c:6980
+#: src/core/command.c:6979
 #, c-format
 msgid "Unknown framing type %s, aborting.\n"
 msgstr "Неизвестный метод кадрирования %s, прерывание.\n"
 
-#: src/core/command.c:6996
+#: src/core/command.c:6995
 #, c-format
 msgid ""
 "Registration data does not exist for layer #%d, will use layer #%d instead.\n"
 msgstr "Для слоя №%d нет данных регистрации, будет использован слой №%d.\n"
 
-#: src/core/command.c:7018
+#: src/core/command.c:7017
 msgid "Registration: Applying existing data"
 msgstr "Регистрация: Применение существующих данных"
 
-#: src/core/command.c:7040
+#: src/core/command.c:7039
 msgid ""
 "Output normalization is allowed only with median or mean stacking, "
 "ignoring.\n"
@@ -13520,28 +13523,28 @@ msgstr ""
 "Нормализация вывода доступна только при укладке по медиане или средней, "
 "игнорируем.\n"
 
-#: src/core/command.c:7046 src/core/command.c:7056 src/core/command.c:7064
-#: src/core/command.c:7072
+#: src/core/command.c:7045 src/core/command.c:7055 src/core/command.c:7063
+#: src/core/command.c:7071
 msgid "Weighting is allowed only with average stacking, ignoring.\n"
 msgstr "Присвоение веса возможно только при укладке по средней, игнорируем.\n"
 
-#: src/core/command.c:7048 src/core/command.c:7074
+#: src/core/command.c:7047 src/core/command.c:7073
 msgid ""
 "Weighting is allowed only if normalization has been activated, ignoring.\n"
 msgstr ""
 "Присвоение веса возможно только при включённой нормализации, игнорируем.\n"
 
-#: src/core/command.c:7050 src/core/command.c:7058 src/core/command.c:7066
-#: src/core/command.c:7076
+#: src/core/command.c:7049 src/core/command.c:7057 src/core/command.c:7065
+#: src/core/command.c:7075
 msgid "Only one weighting method can be used\n"
 msgstr "Можно использовать лишь один метод присвоения веса\n"
 
-#: src/core/command.c:7082
+#: src/core/command.c:7081
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
 msgstr ""
 "Быстрая нормализация возможна только при укладке по средней, игнорируем.\n"
 
-#: src/core/command.c:7084
+#: src/core/command.c:7083
 msgid ""
 "Fast normalization is allowed only if normalization has been activated, "
 "ignoring.\n"
@@ -13549,32 +13552,32 @@ msgstr ""
 "Быстрая нормализация возможна только при включённой нормализации, "
 "игнорируем.\n"
 
-#: src/core/command.c:7090
+#: src/core/command.c:7089
 msgid "Normalization options are not allowed in this context, ignoring.\n"
 msgstr "В этом контексте недоступны параметры нормализации, игнорируем.\n"
 
-#: src/core/command.c:7104
+#: src/core/command.c:7103
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
 msgstr "Выравнивание RGB возможно только при укладке по средней, игнорируем.\n"
 
-#: src/core/command.c:7106
+#: src/core/command.c:7105
 msgid ""
 "RGB equalization is allowed only if normalization has been activated, "
 "ignoring.\n"
 msgstr ""
 "Выравнивание RGB возможно только при включённой нормализации, игнорируем.\n"
 
-#: src/core/command.c:7122
+#: src/core/command.c:7121
 msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr "В этом контексте имя исходящего файле не разрешено, игнорирование.\n"
 
-#: src/core/command.c:7126
+#: src/core/command.c:7125
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
 msgstr ""
 "Карты выбраковки могут быть созданы только при укладке с выбраковкой, "
 "игнорируем.\n"
 
-#: src/core/command.c:7128
+#: src/core/command.c:7127
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
 "ignoring.\n"
@@ -13582,21 +13585,21 @@ msgstr ""
 "Карты выбраковки могут быть созданы только при включённой выбраковке, "
 "игнорируем.\n"
 
-#: src/core/command.c:7136
+#: src/core/command.c:7135
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Неожиданный аргумент для укладки `%s', прерывание.\n"
 
-#: src/core/command.c:7155
+#: src/core/command.c:7154
 #, c-format
 msgid "Stacking sequence %s\n"
 msgstr "Укладка последовательности %s\n"
 
-#: src/core/command.c:7169
+#: src/core/command.c:7168
 msgid "Not using rejection for stacking\n"
 msgstr "Укладка без выбраковки\n"
 
-#: src/core/command.c:7191
+#: src/core/command.c:7190
 #, c-format
 msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
@@ -13606,37 +13609,37 @@ msgstr ""
 "преобразований, что простые сдвиги. Необходимо применить существующую "
 "регистрацию перед укладкой.\n"
 
-#: src/core/command.c:7256
+#: src/core/command.c:7255
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr "Не удалось сохранить результат укладки %s\n"
 
-#: src/core/command.c:7263 src/stacking/stacking.c:611
+#: src/core/command.c:7262 src/stacking/stacking.c:611
 msgid "Saving rejection maps\n"
 msgstr "Сохранение карт выбраковки\n"
 
-#: src/core/command.c:7292 src/stacking/stacking.c:664
+#: src/core/command.c:7291 src/stacking/stacking.c:664
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr "Укладка не удалась, проверьте журнал, чтобы устранить проблему.\n"
 
-#: src/core/command.c:7317
+#: src/core/command.c:7316
 msgid "Looking for sequences in current working directory...\n"
 msgstr "Поиск последовательностей в текущей рабочей директории...\n"
 
-#: src/core/command.c:7319
+#: src/core/command.c:7318
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr "Ошибка при поиске последовательностей или открытии директории.\n"
 
-#: src/core/command.c:7328
+#: src/core/command.c:7327
 msgid "Starting stacking of found sequences...\n"
 msgstr "Начинается укладка найденных последовательностей...\n"
 
-#: src/core/command.c:7340
+#: src/core/command.c:7339
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr "Успешно уложено %d последовательностей.\n"
 
-#: src/core/command.c:7397 src/core/command.c:7523
+#: src/core/command.c:7396 src/core/command.c:7522
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
@@ -13644,7 +13647,7 @@ msgstr ""
 "Для способа укладки 'Среднее с выбраковкой' необходимы два дополнительных "
 "аргумента: нижний и верхний пороги σ.\n"
 
-#: src/core/command.c:7402 src/core/command.c:7531
+#: src/core/command.c:7401 src/core/command.c:7530
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
@@ -13652,7 +13655,7 @@ msgstr ""
 "Дополнительные параметры для алгоритма выбраковки GESDT должны быть между 0 "
 "и 1. Значения по умолчанию: 0.3 и 0.05.\n"
 
-#: src/core/command.c:7407 src/core/command.c:7536
+#: src/core/command.c:7406 src/core/command.c:7535
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
@@ -13660,59 +13663,59 @@ msgstr ""
 "Дополнительные параметры для алгоритма выбраковки по процентилям должны быть "
 "между 0 и 1. Значения по умолчанию: 0.2 и 0.1.\n"
 
-#: src/core/command.c:7416 src/core/command.c:7545
+#: src/core/command.c:7415 src/core/command.c:7544
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr "Неверный метод укладки '%s'\n"
 
-#: src/core/command.c:7446 src/stacking/stacking.c:666
+#: src/core/command.c:7445 src/stacking/stacking.c:666
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
 msgstr "Похоже, что произошла ошибка выделения памяти, измените настройки\n"
 
-#: src/core/command.c:7449
+#: src/core/command.c:7448
 msgid "Stacked sequence successfully.\n"
 msgstr "Последовательность успешно уложена.\n"
 
-#: src/core/command.c:7493
+#: src/core/command.c:7492
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "Отсутствующие аргументы для укладки с выбраковкой.\n"
 
-#: src/core/command.c:7585 src/core/command.c:9138 src/core/preprocess.c:663
+#: src/core/command.c:7584 src/core/command.c:9137 src/core/preprocess.c:663
 #: src/core/preprocess.c:988
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr ""
 "Не удалось загрузить опорное изображение в последовательности, прерывание.\n"
 
-#: src/core/command.c:7597 src/core/preprocess.c:556
+#: src/core/command.c:7596 src/core/preprocess.c:556
 msgid "Could not load the image, aborting.\n"
 msgstr "Не удалось загрузить изображение, прерывание.\n"
 
-#: src/core/command.c:7622
+#: src/core/command.c:7621
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr ""
 "Значение смещения не может быть разобрано из выражения: %s, прерывание.\n"
 
-#: src/core/command.c:7628 src/core/preprocess.c:686
+#: src/core/command.c:7627 src/core/preprocess.c:686
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr "Синтетический шум считывания: Уровень = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:7631
+#: src/core/command.c:7630
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr ""
 "Значение смещения за приделами позволенных границ [-%d,%d], прерывание.\n"
 
-#: src/core/command.c:7715
+#: src/core/command.c:7714
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr ""
 "Темновая оптимизация: Это процесс нельзя применить к 8-битным изображениям\n"
 
-#: src/core/command.c:7743
+#: src/core/command.c:7742
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
@@ -13720,7 +13723,7 @@ msgstr ""
 "Прежде чем включать эту опцию, укажите темновой мастер-кадр с помощью -"
 "dark=, прерывание.\n"
 
-#: src/core/command.c:7763
+#: src/core/command.c:7762
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
@@ -13728,13 +13731,13 @@ msgstr ""
 "Косметическая коррекция темновым мастер-кадром: для холодных пикселей "
 "используется σ %.2lf.\n"
 
-#: src/core/command.c:7765
+#: src/core/command.c:7764
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr ""
 "Косметическая коррекция темновым мастер-кадром: отключена для холодных "
 "пикселей.\n"
 
-#: src/core/command.c:7767
+#: src/core/command.c:7766
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
@@ -13742,44 +13745,44 @@ msgstr ""
 "Косметическая коррекция темновым мастер-кадром: для горячих пикселей "
 "используется σ %.2lf.\n"
 
-#: src/core/command.c:7769
+#: src/core/command.c:7768
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr ""
 "Косметическая коррекция темновым мастер-кадром: отключена для горячих "
 "пикселей.\n"
 
-#: src/core/command.c:7776
+#: src/core/command.c:7775
 #, c-format
 msgid "Could not open file %s, aborting.\n"
 msgstr "Не удалось открыть файл %s, прерывание.\n"
 
-#: src/core/command.c:7780
+#: src/core/command.c:7779
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
 msgstr "Косметическая коррекция по карте дефектных пикселей: %s.\n"
 
-#: src/core/command.c:7784
+#: src/core/command.c:7783
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr "Укажите карту дефектных пикселей с помощью -cc=bpm, прерывание.\n"
 
-#: src/core/command.c:7789
+#: src/core/command.c:7788
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
 msgstr "Неизвестный аргумент %s, прерывание.\n"
 
-#: src/core/command.c:7827 src/core/command.c:7845 src/core/preprocess.c:925
+#: src/core/command.c:7826 src/core/command.c:7844 src/core/preprocess.c:925
 msgid "Preprocessing...\n"
 msgstr "Предобработка…\n"
 
-#: src/core/command.c:7866
+#: src/core/command.c:7865
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr "Активен режим обработки с точностью 16 бит на канал\n"
 
-#: src/core/command.c:7867
+#: src/core/command.c:7866
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr "Активен режим обработки с точностью 32 бита на канал\n"
 
-#: src/core/command.c:7883
+#: src/core/command.c:7882
 msgid "Please specify the type of compression and quantization value.\n"
 msgstr "Пожалуйста, укажите тип сжатия и уровень квантования.\n"
 
@@ -13796,30 +13799,30 @@ msgstr "Пожалуйста, укажите тип сжатия и уровен
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:7910
+#: src/core/command.c:7909
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr "Неверный тип сжатия. Доступны rice, gzip1, gzip2\n"
 
-#: src/core/command.c:7914
+#: src/core/command.c:7913
 msgid "Please specify the value of quantization.\n"
 msgstr "Пожалуйста, укажите уровень квантования.\n"
 
-#: src/core/command.c:7921
+#: src/core/command.c:7920
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr ""
 "Для алгоритмов GZIP1 и GZIP2 уровень квантования может быть равен только 0.\n"
 
-#: src/core/command.c:7924
+#: src/core/command.c:7923
 #, c-format
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
 msgstr "Включено сжатие с помощью алгоритма %s и уровнем квантования %.2lf\n"
 
-#: src/core/command.c:7927
+#: src/core/command.c:7926
 msgid "No compression enabled.\n"
 msgstr "Сжатие отключено.\n"
 
-#: src/core/command.c:7945
+#: src/core/command.c:7944
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
@@ -13827,7 +13830,7 @@ msgid ""
 msgstr ""
 "Число логических процессоров ДОЛЖНО быть больше 0 и меньше или равно %d.\n"
 
-#: src/core/command.c:7956
+#: src/core/command.c:7955
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
@@ -13835,7 +13838,7 @@ msgstr[0] "Сейчас используется %d логический про�
 msgstr[1] "Сейчас используются %d логических процессора\n"
 msgstr[2] "Сейчас используются %d логических процессоров\n"
 
-#: src/core/command.c:7973
+#: src/core/command.c:7972
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
@@ -13843,7 +13846,7 @@ msgstr ""
 "Допустимый диапазон для доли памяти, используемой для укладки — [0.05, 4]. "
 "Рекомендуются значения меньшие, чем доступный объём памяти\n"
 
-#: src/core/command.c:7977
+#: src/core/command.c:7976
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -13854,54 +13857,54 @@ msgstr ""
 "использования памяти на диске, что может быть очень медленным и это не "
 "рекомендуется (запрошено %g)\n"
 
-#: src/core/command.c:7982
+#: src/core/command.c:7981
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr "Используемая память для укладки изменена на %g\n"
 
-#: src/core/command.c:7989
+#: src/core/command.c:7988
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr "********* СПИСОК ДОСТУПНЫХ КОМАНД *********\n"
 
-#: src/core/command.c:7997
+#: src/core/command.c:7996
 #, c-format
 msgid "Can be used in a script: %s\n"
 msgstr "Можно использовать в сценарии: %s\n"
 
-#: src/core/command.c:7997 src/core/command_line_processor.c:451
+#: src/core/command.c:7996 src/core/command_line_processor.c:451
 msgid "YES"
 msgstr "ДА"
 
-#: src/core/command.c:7997 src/core/command_line_processor.c:454
+#: src/core/command.c:7996 src/core/command_line_processor.c:454
 msgid "NO"
 msgstr "НЕТ"
 
-#: src/core/command.c:8007
+#: src/core/command.c:8006
 #, c-format
 msgid "Error: command %s is not available\n"
 msgstr "Ошибка: команда %s недоступна\n"
 
-#: src/core/command.c:8021 src/core/OS_utils.c:497 src/core/OS_utils.c:511
+#: src/core/command.c:8020 src/core/OS_utils.c:497 src/core/OS_utils.c:511
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "процессор"
 msgstr[1] "процессора"
 msgstr[2] "процессоров"
 
-#: src/core/command.c:8123
+#: src/core/command.c:8122
 msgid "Required version is not correct.\n"
 msgstr "Требуемая версия неверна.\n"
 
-#: src/core/command.c:8154
+#: src/core/command.c:8153
 msgid "The required version of Siril is ok.\n"
 msgstr "Требуемая версия Siril подходит.\n"
 
-#: src/core/command.c:8159
+#: src/core/command.c:8158
 msgid "A newer version of Siril is required, please update your version.\n"
 msgstr ""
 "Необходима более новая версия Siril, пожалуйста, обновите вашу версию.\n"
 
-#: src/core/command.c:8161
+#: src/core/command.c:8160
 #, c-format
 msgid ""
 "The script you are executing requires a newer version of Siril to run (%s), "
@@ -13910,16 +13913,16 @@ msgstr ""
 "Для запуска этого сценария требуется более новая версия Siril (%s), "
 "прерывание.\n"
 
-#: src/core/command.c:8171 src/core/command.c:8222
+#: src/core/command.c:8170 src/core/command.c:8221
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr "Текущее выделение [x, y, ш, в]: %d %d %d %d\n"
 
-#: src/core/command.c:8174
+#: src/core/command.c:8173
 msgid "No current selection in image\n"
 msgstr "На изображении нет текущего выделения\n"
 
-#: src/core/command.c:8181
+#: src/core/command.c:8180
 msgid ""
 "Too many arguments to boxselect, use either -clear or the coordinates, not "
 "both.\n"
@@ -13927,15 +13930,15 @@ msgstr ""
 "Слишком много аргументов для boxselect, используйте либо -clear, либо "
 "координаты, но не одновременно.\n"
 
-#: src/core/command.c:8185
+#: src/core/command.c:8184
 msgid "Selected area in image was cleared\n"
 msgstr "Выбранная область изображения очищена\n"
 
-#: src/core/command.c:8191 src/core/command.c:8207
+#: src/core/command.c:8190 src/core/command.c:8206
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr "Пожалуйста, укажите x, y, ш и в, прерывание\n"
 
-#: src/core/command.c:8211
+#: src/core/command.c:8210
 #, c-format
 msgid ""
 "The provided coordinates are outside the dimension of the currently loaded "
@@ -13943,35 +13946,35 @@ msgid ""
 msgstr ""
 "Указанные координаты за приделами загруженного изображения (%d × %d).\n"
 
-#: src/core/command.c:8216
+#: src/core/command.c:8215
 msgid "Overriding previous selection\n"
 msgstr "Переопределение предыдущего выделения\n"
 
-#: src/core/command.c:8268 src/core/command.c:8299
+#: src/core/command.c:8267 src/core/command.c:8298
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "Все изображения должны быть монохромными и одного размера\n"
 
-#: src/core/command.c:8354
+#: src/core/command.c:8353
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr ""
 "SER не может содержать информацию WCS, астрономическое решение будет "
 "экспортировано в формат куба FITS\n"
 
-#: src/core/command.c:8364 src/core/command.c:8376 src/core/command.c:9050
-#: src/core/command.c:9062
+#: src/core/command.c:8363 src/core/command.c:8375 src/core/command.c:9049
+#: src/core/command.c:9061
 msgid "Could not parse target coordinates\n"
 msgstr "Не удалось разобрать координаты цели\n"
 
-#: src/core/command.c:8446
+#: src/core/command.c:8445
 msgid "Catalog can only be NOMAD or APASS for photometric usage\n"
 msgstr "Для фотометрии можно использовать только каталоги NOMAD или APASS\n"
 
-#: src/core/command.c:8454
+#: src/core/command.c:8453
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr "Указание каталога не имеет значения для решателя astrometry.net\n"
 
-#: src/core/command.c:8456
+#: src/core/command.c:8455
 msgid ""
 "Astrometry.net interaction relies on the missing WCSLIB software, cannot "
 "continue.\n"
@@ -13979,12 +13982,12 @@ msgstr ""
 "Взаимодействие с Astrometry.net полагается на отсутствующее программное "
 "обеспечение WCSLIB, не удалось продолжить.\n"
 
-#: src/core/command.c:8474
+#: src/core/command.c:8473
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr "Вместо локального, используется удалённый каталог NOMAD %s\n"
 
-#: src/core/command.c:8482
+#: src/core/command.c:8481
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
@@ -13992,18 +13995,18 @@ msgstr ""
 "Локальный решатель astrometry.net не найден, прерывание. Пожалуйста, "
 "проверьте настройки.\n"
 
-#: src/core/command.c:8536
+#: src/core/command.c:8535
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr "Используются координаты цели из заголовка изображения: %f, %f\n"
 
-#: src/core/command.c:8544
+#: src/core/command.c:8543
 msgid "Photometric color correction will use plate solving first\n"
 msgstr ""
 "Фотометрическая коррекция цвета сначала будет использовать астрономическое "
 "решение\n"
 
-#: src/core/command.c:8545
+#: src/core/command.c:8544
 msgid ""
 "Photometric color correction will use WCS information and bypass internal "
 "plate solver\n"
@@ -14011,112 +14014,112 @@ msgstr ""
 "Фотометрическая коррекция цвета будет использовать информацию WCS и не "
 "примет во внимание встроенный решатель\n"
 
-#: src/core/command.c:8547
+#: src/core/command.c:8546
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr ""
 "Изображение уже имеет астрономическое решение. Ничего не будет сделано.\n"
 
-#: src/core/command.c:8568 src/core/command.c:8592
+#: src/core/command.c:8567 src/core/command.c:8591
 msgid ""
 "Focal length and pixel size are only used for plate solving, ignored now\n"
 msgstr ""
 "Фокусное расстояние и размер пикселя используются только для "
 "астрономического решения, сейчас игнорируются\n"
 
-#: src/core/command.c:8571
+#: src/core/command.c:8570
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr "Используется размер пикселя: %.2f\n"
 
-#: src/core/command.c:8585
+#: src/core/command.c:8584
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr "Используется размер пикселя из настроек: %.2f\n"
 
-#: src/core/command.c:8587
+#: src/core/command.c:8586
 #, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr "Используется размер пикселя, полученный из изображения: %.2f\n"
 
-#: src/core/command.c:8595
+#: src/core/command.c:8594
 #, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr "Используется предоставленное фокусное расстояние: %.2f\n"
 
-#: src/core/command.c:8609
+#: src/core/command.c:8608
 #, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr "Используется фокусное расстояние из настроек: %.2f\n"
 
-#: src/core/command.c:8611
+#: src/core/command.c:8610
 #, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr "Используется фокусное расстояние, полученное из изображения: %.2f\n"
 
-#: src/core/command.c:8616 src/core/command.c:8628
+#: src/core/command.c:8615 src/core/command.c:8627
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
 "Аргументы, изменяющие блеск, бесполезны при поиске астрономического решения "
 "при помощи astrometry.net\n"
 
-#: src/core/command.c:8721
-#, fuzzy
+#: src/core/command.c:8720
 msgid ""
 "This option only works on images that have observation date information\n"
-msgstr "Команда работает только на изображениях с данным о дате наблюдения\n"
+msgstr ""
+"Команда работает только на изображениях, имеющих данные о дате наблюдения\n"
 
-#: src/core/command.c:8731
+#: src/core/command.c:8730
 msgid "The observatory should be coded as a 3-letter word\n"
 msgstr ""
 
-#: src/core/command.c:8744
+#: src/core/command.c:8743
 #, fuzzy
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr ""
 "Неверное значение. Параметр \"Авто\" должен быть \"Вкл.\" или \"Выкл.\", "
 "прерывание.\n"
 
-#: src/core/command.c:8754
+#: src/core/command.c:8753
 #, fuzzy
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr ""
 "Неверное значение. Параметр \"Авто\" должен быть \"Вкл.\" или \"Выкл.\", "
 "прерывание.\n"
 
-#: src/core/command.c:8780
+#: src/core/command.c:8779
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr ""
 
-#: src/core/command.c:8876 src/core/command.c:8920
+#: src/core/command.c:8875 src/core/command.c:8919
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "Указана неизвестная опция: %s\n"
 
-#: src/core/command.c:8931 src/core/command.c:8952
+#: src/core/command.c:8930 src/core/command.c:8951
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 "Сначала необходимо инициализировать укладку на лету командой START_LS\n"
 
-#: src/core/command.c:8935
+#: src/core/command.c:8934
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 "Укладка на лету сконфигурирована для использования слежения за файлами, а не "
 "этой команды\n"
 
-#: src/core/command.c:8977
+#: src/core/command.c:8976
 #, c-format
 msgid "String in: %s\n"
 msgstr "Входящая строка: %s\n"
 
-#: src/core/command.c:8978
+#: src/core/command.c:8977
 #, c-format
 msgid "String out: %s\n"
 msgstr "Исходящая строка: %s\n"
 
-#: src/core/command.c:9147
+#: src/core/command.c:9146
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
@@ -14124,64 +14127,61 @@ msgstr ""
 "Ошибка: режим CFA не может быть использован со цветными изображениями или "
 "монохромными изображениями без шаблона Байера.\n"
 
-#: src/core/command.c:9187
+#: src/core/command.c:9186
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "За -layer= следует неверная опция, прерывание.\n"
 
-#: src/core/command.c:9218
+#: src/core/command.c:9217
 msgid "Error: Could not parse -from values.\n"
 msgstr "Ошибка: Не удалось разобрать значения -from.\n"
 
-#: src/core/command.c:9226
+#: src/core/command.c:9225
 msgid "Error: Could not parse -to values.\n"
 msgstr "Ошибка: Не удалось разобрать значения -to.\n"
 
-#: src/core/command.c:9234
+#: src/core/command.c:9233
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "Ошибка: Не удалось разобрать значения -wn1at.\n"
 
-#: src/core/command.c:9242
+#: src/core/command.c:9241
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "Ошибка: Не удалось разобрать %s значений.\n"
 
-#: src/core/command.c:9248
+#: src/core/command.c:9247
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Ошибка: эта опция не может использоваться для последовательностей.\n"
 
-#: src/core/command.c:9278
+#: src/core/command.c:9277
 msgid "Error: sequence has variable sized images.\n"
 msgstr "Ошибка: последовательность содержит изображения разного размера.\n"
 
-#: src/core/command.c:9357
-#, fuzzy
+#: src/core/command.c:9356
 msgid "Error opening target ICC profile.\n"
-msgstr "Ошибка при открытии файла %s\n"
+msgstr "Ошибка открытия целевого профиля ICC.\n"
 
-#: src/core/command.c:9361
+#: src/core/command.c:9360
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
-#: src/core/command.c:9364 src/core/command.c:9427
-#, fuzzy
+#: src/core/command.c:9363 src/core/command.c:9426
 msgid "Error opening ICC profile.\n"
-msgstr "Ошибка при открытии файла"
+msgstr "Ошибка при открытии профиля ICC.\n"
 
-#: src/core/command.c:9380
+#: src/core/command.c:9379
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr ""
 
-#: src/core/command.c:9394
+#: src/core/command.c:9393
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
 
-#: src/core/command.c:9425
-#, fuzzy
+#: src/core/command.c:9424
 msgid "Color space conversion complete.\n"
-msgstr "Оценка ядра завершена.\n"
+msgstr "Преобразование цветового пространства завершено.\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -14452,7 +14452,6 @@ msgstr ""
 "в которой исполняется программа"
 
 #: src/core/command_def.h:19
-#, fuzzy
 msgid ""
 "Searches an object by <b>name</b> and adds it to the user annotation "
 "catalog. The object is first searched in the annotation catalogs, if not "
@@ -14469,9 +14468,12 @@ msgstr ""
 "аннотированных каталогах. Если объект не найден, выполняется запрос "
 "удалённого сервера SIMBAD.\n"
 "Объектом может быть тело Солнечной системы. В этом случае необходим префикс "
-"'a:' для астероида, 'p:' для планеты и 'c:' для кометы. Поиск выполняется "
-"для даты и местоположению Земли, указанным в заголовке файла, с помощью "
-"сервиса Miriade от Института небесной механики и вычисления эфемерид (IMCCE)"
+"'a:' для астероида, 'p:' для планеты, 'c:' для кометы, 'dp:' для карликовой "
+"планеты или 's:' для естественного спутника. Поиск выполняется для даты и "
+"местоположению Земли, указанным в заголовке файла, с помощью сервиса <a "
+"href=\"https://ssp.imcce.fr/webservices/miriade/howto/ephemcc/#howto-"
+"sso\">Miriade</a> от Института небесной механики и вычисления эфемерид "
+"(IMCCE)"
 
 #: src/core/command_def.h:20
 msgid ""
@@ -18848,571 +18850,592 @@ msgstr "Обработка изображений, чьи выходные да�
 msgid "for a total of images processed of %d)\n"
 msgstr "для общего кол-ва обработанных изображений %d)\n"
 
-#: src/core/settings.c:281
+#: src/core/settings.c:295
 msgid "current working directory"
 msgstr "текущая рабочая директория"
 
-#: src/core/settings.c:282
+#: src/core/settings.c:296
 msgid "FITS file extension"
 msgstr "расширение файла FITS"
 
-#: src/core/settings.c:283
+#: src/core/settings.c:297
 msgid "don't use 32 bits for pixel depth"
 msgstr "не используются 32 бита для разрядности"
 
-#: src/core/settings.c:284
+#: src/core/settings.c:298
 #, fuzzy
 msgid "embed ICC profiles in FITS when saving"
 msgstr "Встроить профиль sRGB ICC в изображение"
 
-#: src/core/settings.c:285
+#: src/core/settings.c:299
 msgid "allow FITS cubes to have different sizes"
 msgstr "позволяет кубам FITS иметь разные размеры"
 
-#: src/core/settings.c:286
+#: src/core/settings.c:300
 msgid "memory mode (0 ratio, 1 amount)"
 msgstr "режим памяти (0 — отношение, 1 — объём)"
 
-#: src/core/settings.c:287
+#: src/core/settings.c:301
 msgid "memory ratio of available"
 msgstr "доля доступной памяти"
 
-#: src/core/settings.c:288
+#: src/core/settings.c:302
 msgid "amount of memory in GB"
 msgstr "объём памяти в Гб"
 
-#: src/core/settings.c:289
+#: src/core/settings.c:303
 msgid "HD AutoStretch bit depth"
 msgstr "Разрядность расширенного авторастягивания"
 
-#: src/core/settings.c:290
+#: src/core/settings.c:304
 msgid "need requires cmd in script"
 msgstr "в сценарии необходима команда requires"
 
-#: src/core/settings.c:291
+#: src/core/settings.c:305
 msgid "need requires cmd in pipe"
 msgstr "в канале необходима команда requires"
 
-#: src/core/settings.c:292
+#: src/core/settings.c:306
 msgid "check update at start-up"
 msgstr "проверка обновлений при запуске"
 
-#: src/core/settings.c:293
+#: src/core/settings.c:307
 msgid "active siril language"
 msgstr "активный язык siril"
 
-#: src/core/settings.c:294
+#: src/core/settings.c:308
 msgid "swap directory"
 msgstr "директория подкачки"
 
-#: src/core/settings.c:295
+#: src/core/settings.c:309
 msgid "update pixel size of binned images"
 msgstr "обновить размер пикселя после биннига"
 
-#: src/core/settings.c:296
+#: src/core/settings.c:310
 msgid "WCS formalism used in FITS header"
 msgstr "формализм WCS, используемый в заголовке FITS"
 
-#: src/core/settings.c:297
+#: src/core/settings.c:311
 msgid "Path of the namedstars.dat catalogue"
 msgstr "Путь к каталогу namedstars.dat"
 
-#: src/core/settings.c:298
+#: src/core/settings.c:312
 msgid "Path of the unnamedstars.dat catalogue"
 msgstr "Путь к каталогу unnamedstars.dat"
 
-#: src/core/settings.c:299
+#: src/core/settings.c:313
 msgid "Path of the deepstars.dat catalogue"
 msgstr "Путь к каталогу deepstars.dat"
 
-#: src/core/settings.c:300
+#: src/core/settings.c:314
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr "Путь к каталогу USNO-NOMAD-1e8.dat"
 
-#: src/core/settings.c:301
+#: src/core/settings.c:315
 msgid "add CTYPE3='RGB' in the FITS header"
 msgstr "добавить CTYPE3='RGB' в заголовок FITS"
 
-#: src/core/settings.c:302
+#: src/core/settings.c:316
 msgid "user copyright to put in file header"
 msgstr "авторские права пользователя для размещения в заголовке файла"
 
-#: src/core/settings.c:303
+#: src/core/settings.c:317
 msgid "location of the StarNet executable"
 msgstr "расположение исполняемого файла StarNet"
 
-#: src/core/settings.c:304
+#: src/core/settings.c:318
 msgid "location of the StarNet-torch weights file"
 msgstr "расположение файла с весами StarNet-torch"
 
 #. TODO: remove when we release 1.4. For now, it's kept to avoid having the key removed when switching back and forth to 1.2/1.3
-#: src/core/settings.c:306
+#: src/core/settings.c:320
 msgid "directory of the gnuplot installation"
 msgstr "директория установки gnuplot"
 
-#: src/core/settings.c:308
+#: src/core/settings.c:322
 msgid "directory of the asnet_ansvr installation"
 msgstr "директория установки asnet_ansvr"
 
-#: src/core/settings.c:310
+#: src/core/settings.c:324
 msgid "directory containing the solve-field executable"
 msgstr "расположение исполняемого файла solve-field"
 
-#: src/core/settings.c:312
+#: src/core/settings.c:326
 msgid "FFTW planning timelimit"
 msgstr "Ограничение времени планирования FFTW"
 
-#: src/core/settings.c:313
+#: src/core/settings.c:327
 msgid "Convolution minimum kernel size to use FFTW"
 msgstr "Минимальный размер ядра свёртки для использования FFTW"
 
-#: src/core/settings.c:315
+#: src/core/settings.c:329
 msgid "multithreaded FFTW"
 msgstr "мультипотоковое FFTW"
 
-#: src/core/settings.c:317
+#: src/core/settings.c:331
 msgid "focal length in mm for radius adjustment"
 msgstr "фокусное расстояние в мм для настройки радиуса"
 
-#: src/core/settings.c:318
+#: src/core/settings.c:332
 msgid "pixel size in µm for radius adjustment"
 msgstr "размер пикселя в мкм для настройки радиуса"
 
-#: src/core/settings.c:320
+#: src/core/settings.c:334
 msgid "use pattern from the file header"
 msgstr "шаблон из заголовка файла"
 
-#: src/core/settings.c:321
+#: src/core/settings.c:335
 msgid "index of the Bayer pattern"
 msgstr "индекс шаблона Байера"
 
-#: src/core/settings.c:322
+#: src/core/settings.c:336
 msgid "type of interpolation"
 msgstr "тип интерполяции"
 
-#: src/core/settings.c:323
+#: src/core/settings.c:337
 msgid "force debayer top-down"
 msgstr "принудительная дебайеризация сверху вниз"
 
-#: src/core/settings.c:324
+#: src/core/settings.c:338
 msgid "Bayer matrix offset X"
 msgstr "Смещение шаблона Байера по X"
 
-#: src/core/settings.c:325
+#: src/core/settings.c:339
 msgid "Bayer matrix offset Y"
 msgstr "Смещение шаблона Байера по Y"
 
-#: src/core/settings.c:326
+#: src/core/settings.c:340
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
 msgstr "Число проходов для алгоритма X-Trans Markesteijn"
 
-#: src/core/settings.c:328
+#: src/core/settings.c:342
 msgid "electrons per ADU for noise estimation"
 msgstr "электронов/ADU для оценки шума"
 
-#: src/core/settings.c:329
+#: src/core/settings.c:343
 msgid "inner radius for background annulus"
 msgstr "внутренний радиус кольца фона"
 
-#: src/core/settings.c:330
+#: src/core/settings.c:344
 msgid "outer radius for background annulus"
 msgstr "внешний радиус кольца фона"
 
-#: src/core/settings.c:331
+#: src/core/settings.c:345
 msgid "factor for inner radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внутреннего радиуса"
 
-#: src/core/settings.c:332
+#: src/core/settings.c:346
 msgid "factor for outer radius automatic computation"
 msgstr "коэффициент для автоматического расчёта внешнего радиуса"
 
-#: src/core/settings.c:333
+#: src/core/settings.c:347
 msgid "force flux aperture value"
 msgstr "значение апертуры светового потока"
 
-#: src/core/settings.c:334
+#: src/core/settings.c:348
 msgid "forced aperture for flux computation"
 msgstr "значение апертуры для вычисления светового потока"
 
-#: src/core/settings.c:335
+#: src/core/settings.c:349
 msgid "minimum valid pixel value for photometry"
 msgstr "минимально надёжное значение пикселя для фотометрии"
 
-#: src/core/settings.c:336
+#: src/core/settings.c:350
 msgid "maximum valid pixel value for photometry"
 msgstr "максимально надёжное значение пикселя для фотометрии"
 
-#: src/core/settings.c:338
+#: src/core/settings.c:352
 msgid "degrees of the polynomial correction"
 msgstr "степень полиномиальной коррекции"
 
-#: src/core/settings.c:339
+#: src/core/settings.c:353
 msgid "radius around the target coordinates (degrees)"
 msgstr "радиус вокруг координат цели (градусы)"
 
-#: src/core/settings.c:340
+#: src/core/settings.c:354
 msgid "do not delete .xyls FITS tables"
 msgstr "не удалять таблицы .xyls"
 
-#: src/core/settings.c:341
+#: src/core/settings.c:355
 msgid "do not delete .wcs result files"
 msgstr "не удалять файлы .wcs"
 
-#: src/core/settings.c:342
+#: src/core/settings.c:356
 msgid "maximum seconds to try solving"
 msgstr "максимальное кол-во секунд для попытки решения"
 
-#: src/core/settings.c:343
+#: src/core/settings.c:357
 msgid "show solve-field output in main log"
 msgstr "показать вывод solve-field в журнале"
 
-#: src/core/settings.c:345
+#: src/core/settings.c:359
 msgid "update default focal length and pixel size from the result"
 msgstr ""
 "обновить фокусное расстояние и размер пикселя, используемые по умолчанию, из "
 "результатов"
 
-#: src/core/settings.c:346
+#: src/core/settings.c:360
 msgid "percent below and above the expected sampling to allow"
 msgstr "процент, определяющий допустимые нижнюю и верхнюю границы масштаба"
 
-#: src/core/settings.c:348
+#: src/core/settings.c:362
 msgid "panel size of aberration inspector"
 msgstr "размер панели диалога аберраций"
 
-#: src/core/settings.c:349
+#: src/core/settings.c:363
 msgid "window size of aberration inspector"
 msgstr "размер окна диалога аберраций"
 
-#: src/core/settings.c:351
+#: src/core/settings.c:365
 msgid "FITS compression enabled"
 msgstr "Включено сжатие FITS"
 
-#: src/core/settings.c:352
+#: src/core/settings.c:366
 msgid "FITS compression method"
 msgstr "Метод сжатия FITS"
 
-#: src/core/settings.c:353
+#: src/core/settings.c:367
 msgid "quantization factor for 32-bit float"
 msgstr "коэффициент квантования для 32 битных значений с плавающей запятой"
 
-#: src/core/settings.c:354
+#: src/core/settings.c:368
 msgid "Hcompress scale factor"
 msgstr "Коэффициент масштаба HCompress"
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
-#: src/core/settings.c:357
+#: src/core/settings.c:371
 msgid "type of sensor for cosmetic correction"
 msgstr "тип сенсора для косметической коррекции"
 
-#: src/core/settings.c:358
+#: src/core/settings.c:372
 msgid "equalize flat channels"
 msgstr "выравнять плоские каналы"
 
-#: src/core/settings.c:359
+#: src/core/settings.c:373
 msgid "enable correction for X-Trans sensor"
 msgstr "включить коррекцию для сенсора X-Trans"
 
-#: src/core/settings.c:360 src/core/settings.c:361 src/core/settings.c:362
-#: src/core/settings.c:363 src/core/settings.c:364 src/core/settings.c:365
-#: src/core/settings.c:366 src/core/settings.c:367
+#: src/core/settings.c:374 src/core/settings.c:375 src/core/settings.c:376
+#: src/core/settings.c:377 src/core/settings.c:378 src/core/settings.c:379
+#: src/core/settings.c:380 src/core/settings.c:381
 msgid "if no X-Trans model found, use this"
 msgstr "если никакой модели X-Trans не найдено, использовать"
 
-#: src/core/settings.c:368
+#: src/core/settings.c:382
 msgid "default master bias"
 msgstr "мастер-кадр шума считывания по умолчанию"
 
-#: src/core/settings.c:369
+#: src/core/settings.c:383
 msgid "use default master bias"
 msgstr "использовать мастер-кадр шума считывания по умолчанию"
 
-#: src/core/settings.c:370
+#: src/core/settings.c:384
 msgid "default master dark"
 msgstr "темновой мастер-кадр по умолчанию"
 
-#: src/core/settings.c:371
+#: src/core/settings.c:385
 msgid "use default master dark"
 msgstr "использовать темновой мастер-кадр по умолчанию"
 
-#: src/core/settings.c:372
+#: src/core/settings.c:386
 msgid "default master flat"
 msgstr "мастер-кадр плоского поля по умолчанию"
 
-#: src/core/settings.c:373
+#: src/core/settings.c:387
 msgid "use default master flat"
 msgstr "использовать мастер-кадр плоского поля по умолчанию"
 
-#: src/core/settings.c:374
+#: src/core/settings.c:388
 msgid "default stack name"
 msgstr "название стопки по умолчанию"
 
-#: src/core/settings.c:375
+#: src/core/settings.c:389
 msgid "use preferred stack name"
 msgstr "использовать предпочитаемое название стека"
 
-#: src/core/settings.c:377
+#: src/core/settings.c:391
 msgid "index of the selected registration method"
 msgstr "индекс выбранного метода регистрации"
 
-#: src/core/settings.c:378
+#: src/core/settings.c:392
 msgid "index of the selected interpolation method"
 msgstr "индекс выбранного метода интерполяции"
 
-#: src/core/settings.c:379
+#: src/core/settings.c:393
 msgid "use clamping method with Lanczos and Cubic interpolation"
 msgstr ""
 "использование метода фиксации для интерполяции методом Ланцош-4 или "
 "бикубической интерполяции"
 
-#: src/core/settings.c:381
+#: src/core/settings.c:395
 msgid "index of the selected method"
 msgstr "индекс выбранного метода"
 
-#: src/core/settings.c:382
+#: src/core/settings.c:396
 msgid "index of the normalization method"
 msgstr "индекс метода нормализации"
 
-#: src/core/settings.c:383
+#: src/core/settings.c:397
 msgid "index of the rejection method"
 msgstr "индекс метода выбраковки"
 
-#: src/core/settings.c:384
+#: src/core/settings.c:398
 msgid "index of the weighting method"
 msgstr "индекс метода присвоения веса"
 
-#: src/core/settings.c:385
+#: src/core/settings.c:399
 msgid "sigma low value for rejection"
 msgstr "нижнее значение σ для выбраковки"
 
-#: src/core/settings.c:386
+#: src/core/settings.c:400
 msgid "sigma high value for rejection"
 msgstr "верхнее значение σ для выбраковки"
 
-#: src/core/settings.c:387
+#: src/core/settings.c:401
 msgid "linear low value for rejection"
 msgstr "значение нижнего порога для выбраковки"
 
-#: src/core/settings.c:388
+#: src/core/settings.c:402
 msgid "linear high value for rejection"
 msgstr "значение верхнего порога для выбраковки"
 
-#: src/core/settings.c:389
+#: src/core/settings.c:403
 msgid "percentile low value for rejection"
 msgstr "нижнее значение процентиля для выбраковки"
 
-#: src/core/settings.c:390
+#: src/core/settings.c:404
 msgid "percentile high value for rejection"
 msgstr "верхнее значение процентиля для выбраковки"
 
-#: src/core/settings.c:392
+#: src/core/settings.c:406
 msgid "first start of siril"
 msgstr "первый запуск siril"
 
-#: src/core/settings.c:393
+#: src/core/settings.c:407
 msgid "don't confirm quit when exiting"
 msgstr "не спрашивать перед выходом"
 
-#: src/core/settings.c:394
+#: src/core/settings.c:408
 msgid "don't confirm save when non linear mode"
 msgstr "не спрашивать перед сохранением в нелинейном режиме"
 
-#: src/core/settings.c:395
+#: src/core/settings.c:409
 msgid "remember window position"
 msgstr "запоминать положение окна"
 
-#: src/core/settings.c:396 src/core/settings.c:397 src/core/settings.c:398
-#: src/core/settings.c:399
+#: src/core/settings.c:410 src/core/settings.c:411 src/core/settings.c:412
+#: src/core/settings.c:413
 msgid "main window position"
 msgstr "положение главного окна"
 
-#: src/core/settings.c:400
+#: src/core/settings.c:414
 msgid "position of the two sides separator"
 msgstr "положение двухстороннего разделителя"
 
-#: src/core/settings.c:401
+#: src/core/settings.c:415
 msgid "main window is extended"
 msgstr "главное окно расширено"
 
-#: src/core/settings.c:402
+#: src/core/settings.c:416
 msgid "main window is maximized"
 msgstr "главное окно развёрнуто"
 
-#: src/core/settings.c:403
+#: src/core/settings.c:417
 msgid "index of the selected theme"
 msgstr "индекс выбранной темы"
 
-#: src/core/settings.c:404
+#: src/core/settings.c:418
 msgid "font scale in percent"
 msgstr "масштаб шрифта в процентах"
 
-#: src/core/settings.c:405
+#: src/core/settings.c:419
 msgid "icon style"
 msgstr "стиль иконок"
 
-#: src/core/settings.c:406
+#: src/core/settings.c:420
 msgid "list of script directories"
 msgstr "список каталогов со сценариями"
 
-#: src/core/settings.c:407
+#: src/core/settings.c:421
 msgid "use and sync online scripts repository"
 msgstr "использование и синхронизация удалённого репозитория сценариев"
 
-#: src/core/settings.c:408
+#: src/core/settings.c:422
 msgid "auto sync online scripts repository"
 msgstr "автосинхронизация удалённого репозитория сценариев"
 
-#: src/core/settings.c:409
+#: src/core/settings.c:423
 msgid "list of scripts selected from the repository"
 msgstr "список сценариев, выбранных из репозитория"
 
-#: src/core/settings.c:410
+#: src/core/settings.c:424
 msgid "warn when launching a script"
 msgstr "предупреждать при запуске сценария"
 
-#: src/core/settings.c:411
+#: src/core/settings.c:425
 msgid "show thumbnails in open dialog"
 msgstr "показывать миниатюры при выборе файлов"
 
-#: src/core/settings.c:412
+#: src/core/settings.c:426
 msgid "size of the thumbnails"
 msgstr "размер миниатюр"
 
-#: src/core/settings.c:413
+#: src/core/settings.c:427
 msgid "number of elements of the grid guides"
 msgstr "количество элементов направляющих сетки"
 
-#: src/core/settings.c:414
+#: src/core/settings.c:428
 msgid "show tenths of arcseconds on hover"
 msgstr "показать десятые доли угловых секунд при наведении"
 
-#: src/core/settings.c:415
+#: src/core/settings.c:429
 msgid "default display mode"
 msgstr "режим показа по умолчанию"
 
-#: src/core/settings.c:416
+#: src/core/settings.c:430
 msgid "default histogram display mode"
 msgstr "режим показа гистограмы по умолчанию"
 
-#: src/core/settings.c:417
+#: src/core/settings.c:431
 msgid "ROI selection mode"
 msgstr "Режим выбора ROI"
 
-#: src/core/settings.c:418
-msgid "Enable ROI dialog warning"
-msgstr ""
-
-#: src/core/settings.c:419
-msgid "path to custom monitor ICC profile"
-msgstr ""
-
-#: src/core/settings.c:420
-msgid "path to soft proofing ICC profile"
-msgstr ""
-
-#: src/core/settings.c:421
-msgid "custom monitor profile active"
-msgstr ""
-
-#: src/core/settings.c:422
-msgid "output proofing profile active"
-msgstr ""
-
-#: src/core/settings.c:423
-msgid "path to custom RGB ICC profile"
-msgstr ""
-
-#: src/core/settings.c:424
-msgid "path to custom gray ICC profile"
-msgstr ""
-
-#: src/core/settings.c:425
-msgid "color management rendering intent"
-msgstr ""
-
-#: src/core/settings.c:426
-msgid "color management soft proofing intent"
-msgstr ""
-
-#: src/core/settings.c:427
-msgid "color mangement export intent"
-msgstr ""
-
-#: src/core/settings.c:428
-msgid "default to sRGB when exporting non color managed images"
-msgstr ""
-
-#: src/core/settings.c:429
-msgid "color mangement working gamut"
-msgstr ""
-
-#: src/core/settings.c:430
-msgid "color mangement export profile for 8bit files"
-msgstr ""
-
-#: src/core/settings.c:431
-msgid "color mangement export profile for 16bit files"
-msgstr ""
-
 #: src/core/settings.c:432
-msgid "autoconvert images with an ICC profile to the working color space"
+msgid "enable ROI dialog warning"
 msgstr ""
 
 #: src/core/settings.c:433
-msgid "encodes ICC profile auto-assignment options"
-msgstr ""
+#, fuzzy
+msgid "configure background samples color"
+msgstr "Не удалось создать образцы фона для изображения %s\n"
 
 #: src/core/settings.c:434
-msgid "enable rendering BPC"
+msgid "configure standard annotation color"
 msgstr ""
 
 #: src/core/settings.c:435
-msgid "pedantically assign linear ICC profiles"
+msgid "configure dso annotation color"
+msgstr ""
+
+#: src/core/settings.c:436
+msgid "configure sso annotation color"
 msgstr ""
 
 #: src/core/settings.c:437
+msgid "configure tmp annotation color"
+msgstr ""
+
+#: src/core/settings.c:438
+msgid "path to custom monitor ICC profile"
+msgstr ""
+
+#: src/core/settings.c:439
+msgid "path to soft proofing ICC profile"
+msgstr ""
+
+#: src/core/settings.c:440
+msgid "custom monitor profile active"
+msgstr ""
+
+#: src/core/settings.c:441
+msgid "output proofing profile active"
+msgstr ""
+
+#: src/core/settings.c:442
+msgid "path to custom RGB ICC profile"
+msgstr ""
+
+#: src/core/settings.c:443
+msgid "path to custom gray ICC profile"
+msgstr ""
+
+#: src/core/settings.c:444
+msgid "color management rendering intent"
+msgstr ""
+
+#: src/core/settings.c:445
+msgid "color management soft proofing intent"
+msgstr ""
+
+#: src/core/settings.c:446
+msgid "color mangement export intent"
+msgstr ""
+
+#: src/core/settings.c:447
+msgid "default to sRGB when exporting non color managed images"
+msgstr ""
+
+#: src/core/settings.c:448
+msgid "color mangement working gamut"
+msgstr ""
+
+#: src/core/settings.c:449
+msgid "color mangement export profile for 8bit files"
+msgstr ""
+
+#: src/core/settings.c:450
+msgid "color mangement export profile for 16bit files"
+msgstr ""
+
+#: src/core/settings.c:451
+msgid "autoconvert images with an ICC profile to the working color space"
+msgstr ""
+
+#: src/core/settings.c:452
+msgid "encodes ICC profile auto-assignment options"
+msgstr ""
+
+#: src/core/settings.c:453
+msgid "enable rendering BPC"
+msgstr ""
+
+#: src/core/settings.c:454
+msgid "pedantically assign linear ICC profiles"
+msgstr ""
+
+#: src/core/settings.c:456
 msgid "index of the compass position over grid"
 msgstr "индекс положения компаса над сеткой"
 
-#: src/core/settings.c:438
+#: src/core/settings.c:457
 msgid "show Messier objects in annotations"
 msgstr "показывать объекты каталога Мессье в аннотациях"
 
-#: src/core/settings.c:439
+#: src/core/settings.c:458
 msgid "show NGC objects in annotations"
 msgstr "показывать объекты каталога NGC в аннотациях"
 
-#: src/core/settings.c:440
+#: src/core/settings.c:459
 msgid "show IC objects in annotations"
 msgstr "показывать объекты каталога IC в аннотациях"
 
-#: src/core/settings.c:441
+#: src/core/settings.c:460
 msgid "show LDN objects in annotations"
 msgstr "показывать объекты каталога LDN в аннотациях"
 
-#: src/core/settings.c:442
+#: src/core/settings.c:461
 msgid "show SH2 objects in annotations"
 msgstr "показывать объекты каталога SH2 в аннотациях"
 
-#: src/core/settings.c:443
+#: src/core/settings.c:462
 msgid "show stars in annotations"
 msgstr "показать звёзды в аннотациях"
 
-#: src/core/settings.c:444
+#: src/core/settings.c:463
 #, fuzzy
 msgid "show user DSO objects in annotations"
 msgstr "показать пользовательские объекты в аннотациях"
 
-#: src/core/settings.c:445
+#: src/core/settings.c:464
 #, fuzzy
 msgid "show user SSO objects in annotations"
 msgstr "показать пользовательские объекты в аннотациях"
 
-#: src/core/settings.c:447
+#: src/core/settings.c:466
 msgid "list of pixel math presets"
 msgstr "список предустановок математических операций"
 
-#: src/core/settings.c:487
+#: src/core/settings.c:506
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
 msgstr "Неизвестный параметр настроек %s.%s\n"
@@ -20193,15 +20216,15 @@ msgstr ""
 "Это нестабильная версия, находящаяся в разработке\n"
 "коммит %s\n"
 
-#: src/gui/about_dialog.c:80
+#: src/gui/about_dialog.c:78
 msgid "Astronomical image (pre-)processing program"
 msgstr "Программа для обработки астрономических изображений"
 
-#: src/gui/about_dialog.c:81
+#: src/gui/about_dialog.c:79
 msgid "translator-credits"
 msgstr "Александр Прокудин <alexandre.prokoudine@gmail.com>"
 
-#: src/gui/about_dialog.c:83
+#: src/gui/about_dialog.c:81
 msgid "Visit the Siril website"
 msgstr "Перейти на сайт Siril"
 
@@ -20588,11 +20611,11 @@ msgstr ""
 
 #: src/gui/callbacks.c:2129
 msgid "SOLAR SYSTEM"
-msgstr ""
+msgstr "СОЛНЕЧНАЯ СИСТЕМА"
 
 #: src/gui/callbacks.c:2129
 msgid "DEEP SKY"
-msgstr ""
+msgstr "ГЛУБОКИЙ КОСМОС"
 
 #: src/gui/callbacks.c:2131
 msgid "Catalog deletion"
@@ -20986,9 +21009,9 @@ msgstr ""
 "отсутствует"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:173
-#: src/gui/colors.c:259 src/gui/colors.c:270 src/gui/histogram.c:1710
+#: src/gui/colors.c:259 src/gui/colors.c:270 src/gui/histogram.c:1700
 #: src/gui/photometric_cc.c:199 src/gui/photometric_cc.c:217
-#: src/gui/remixer.c:1315 src/gui/remixer.c:1363
+#: src/gui/remixer.c:1309 src/gui/remixer.c:1357
 msgid "There is no selection"
 msgstr "Выделение отсутствует"
 
@@ -21044,12 +21067,12 @@ msgstr "Не удалось отобразить ссылку"
 msgid "Please go to <a href=\""
 msgstr "Перейти по <a href=\""
 
-#: src/gui/histogram.c:151 src/gui/histogram.c:157 src/gui/histogram.c:1102
-#: src/gui/histogram.c:1108 src/gui/histogram.c:1790 src/gui/histogram.c:1807
+#: src/gui/histogram.c:151 src/gui/histogram.c:157 src/gui/histogram.c:1096
+#: src/gui/histogram.c:1102 src/gui/histogram.c:1780 src/gui/histogram.c:1797
 msgid "Channels warning"
 msgstr "Предупреждение каналов"
 
-#: src/gui/histogram.c:152 src/gui/histogram.c:1103 src/gui/histogram.c:1808
+#: src/gui/histogram.c:152 src/gui/histogram.c:1097 src/gui/histogram.c:1798
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
@@ -21058,7 +21081,7 @@ msgstr ""
 "человеческого глаза не может быть использована: устанавливаем "
 "равновзвешенную цветовую модель."
 
-#: src/gui/histogram.c:158 src/gui/histogram.c:1109 src/gui/histogram.c:1791
+#: src/gui/histogram.c:158 src/gui/histogram.c:1103 src/gui/histogram.c:1781
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -21066,113 +21089,113 @@ msgstr ""
 "Не все цветовые каналы выбраны. Растягивание насыщенности не может быть "
 "использовано: устанавливаем цветовую модель с независимыми каналами."
 
-#: src/gui/histogram.c:368
+#: src/gui/histogram.c:366
 msgid "Toggles whether to apply the stretch to the monochrome channel"
 msgstr "Применить растягивание к монохромному каналу"
 
-#: src/gui/histogram.c:391 src/gui/sequence_list.c:127
+#: src/gui/histogram.c:386 src/gui/sequence_list.c:127
 msgid "Red channel"
 msgstr "Красный канал"
 
-#: src/gui/histogram.c:1240
+#: src/gui/histogram.c:1234
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Преобразование гист-мы (сред.=%.3f, низ=%.3f, верх=%.3f)"
 
-#: src/gui/histogram.c:1247
+#: src/gui/histogram.c:1241
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1250
+#: src/gui/histogram.c:1244
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1253
+#: src/gui/histogram.c:1247
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1256
+#: src/gui/histogram.c:1250
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1259
+#: src/gui/histogram.c:1253
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr "Линейное растягивание BP: %.2f"
 
-#: src/gui/histogram.c:1265
+#: src/gui/histogram.c:1259
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS SAT точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1268
+#: src/gui/histogram.c:1262
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr ""
 "GHS INV SAT точка симметрии: %.3f, сила: %.2f, локально: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1271
+#: src/gui/histogram.c:1265
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH SAT точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1274
+#: src/gui/histogram.c:1268
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV SAT точка симметрии: %.3f, сила: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1277
+#: src/gui/histogram.c:1271
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr "GHS LINEAR SAT BP: %.2f"
 
-#: src/gui/histogram.c:1331
+#: src/gui/histogram.c:1325
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 "Не удалось вычислить параметры авторастягивания, используются значения по "
 "умолчанию\n"
 
-#: src/gui/histogram.c:1351
+#: src/gui/histogram.c:1345
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Обобщённое гиперболическое преобразование"
 
-#: src/gui/histogram.c:1379 src/gui/histogram.c:1779
+#: src/gui/histogram.c:1369 src/gui/histogram.c:1769
 msgid "Clicking on the histogram sets SP"
 msgstr "Нажатие на гистограмму устанавливает точку симметрии"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1671
+#: src/gui/histogram.c:1661
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 "Точка сохранения теней не может быть выше, чем центральная точка "
 "растягивания\n"
 
-#: src/gui/histogram.c:1711 src/gui/remixer.c:1316 src/gui/remixer.c:1364
+#: src/gui/histogram.c:1701 src/gui/remixer.c:1310 src/gui/remixer.c:1358
 msgid "Make a selection of the point or area to set SP"
 msgstr "Выберите точку или область для установки точки симметрии"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1750
+#: src/gui/histogram.c:1740
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 "Точка сохранения светов не может быть ниже, чем центральная точка "
 "растягивания\n"
 
-#: src/gui/histogram.c:1777
+#: src/gui/histogram.c:1767
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr "Клик на линейной гистограмме устанавливает точку чёрного (BP)"
 
-#: src/gui/histogram.c:1926
+#: src/gui/histogram.c:1916
 msgid "Midtone Transfer Function"
 msgstr "Передаточная функция полутонов"
 
-#: src/gui/histogram.c:1956
+#: src/gui/histogram.c:1946
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Обратная обобщённая гиперболическая функция переноса"
 
@@ -21184,7 +21207,7 @@ msgstr ""
 "Ошибка: не удалось выделить память при инициализации HD LUT. Сброс к "
 "стандартным 16 битным LUT.\n"
 
-#: src/gui/image_display.c:717
+#: src/gui/image_display.c:715
 #, c-format
 msgid ""
 "<big>Unstable Development Version</big>\n"
@@ -21777,26 +21800,26 @@ msgstr "Только в выделении"
 msgid "Exclude selected points"
 msgstr "Исключить выбранные точки"
 
-#: src/gui/preferences.c:449
+#: src/gui/preferences.c:474
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr "Нет прав на запись в директорию %s\n"
 
-#: src/gui/preferences.c:468
+#: src/gui/preferences.c:493
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr "Отсутствуют права на выполнение файла: %s\n"
 
-#: src/gui/preferences.c:506
+#: src/gui/preferences.c:531
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr "Отсутствуют права на чтение файла: %s\n"
 
-#: src/gui/preferences.c:535
+#: src/gui/preferences.c:560
 msgid "Cannot refresh script list"
 msgstr "Не удалось обновить список сценариев"
 
-#: src/gui/preferences.c:825
+#: src/gui/preferences.c:872
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
@@ -21804,7 +21827,7 @@ msgstr ""
 "Внутренний радиус должен быть меньше внешнего. Пожалуйста, измените значение "
 "на вкладке «Фотометрия»."
 
-#: src/gui/preferences.c:834
+#: src/gui/preferences.c:881
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
@@ -21812,28 +21835,28 @@ msgstr ""
 "Установка значения квантования в 0 имеет смысл только при сжатии GZIP, а "
 "GZIP 2 часто обеспечивает лучшее сжатие изображений с плавающей точкой."
 
-#: src/gui/preferences.c:846
+#: src/gui/preferences.c:893
 msgid "Wrong value"
 msgstr "Неверное значение"
 
-#: src/gui/preferences.c:885
+#: src/gui/preferences.c:932
 msgid "Reset all preferences"
 msgstr "Вернуть исходные параметры"
 
-#: src/gui/preferences.c:886
+#: src/gui/preferences.c:933
 msgid "Do you really want to reset all preferences to default value?"
 msgstr "Действительно хотите вернуть все параметры к исходным?"
 
-#: src/gui/preferences.c:887
+#: src/gui/preferences.c:934
 msgid "Reset Preferences"
 msgstr "Вернуть исходные параметры"
 
-#: src/gui/preferences.c:902
+#: src/gui/preferences.c:949
 #, fuzzy
 msgid "External ICC Profiles"
 msgstr "ICC-профиль"
 
-#: src/gui/preferences.c:902
+#: src/gui/preferences.c:949
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
@@ -21978,11 +22001,11 @@ msgstr "Несохранённый результат восстановлени
 msgid "Star recomposition"
 msgstr "Восстановление звёзд"
 
-#: src/gui/remixer.c:692 src/gui/remixer.c:1432
+#: src/gui/remixer.c:692 src/gui/remixer.c:1426
 msgid "Show advanced stretch options."
 msgstr "Показать больше настроек растягивания."
 
-#: src/gui/remixer.c:1045 src/gui/remixer.c:1062
+#: src/gui/remixer.c:1039 src/gui/remixer.c:1056
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of the current selection. This helps in picking out "
@@ -21992,56 +22015,56 @@ msgstr ""
 "среднего значения текущего выделения. Это помогает выделить слабые детали "
 "выше тёмного фона."
 
-#: src/gui/remixer.c:1048 src/gui/remixer.c:1065
+#: src/gui/remixer.c:1042 src/gui/remixer.c:1059
 msgid "Eyedropper disabled with unapplied BP shift"
 msgstr "Пипетка отключена с неприменённым сдвигом BP"
 
-#: src/gui/remixer.c:1127 src/gui/remixer.c:1219
+#: src/gui/remixer.c:1121 src/gui/remixer.c:1213
 msgid "Image loading failed"
 msgstr "Не удалось загрузить изображение"
 
-#: src/gui/remixer.c:1138 src/gui/remixer.c:1230
+#: src/gui/remixer.c:1132 src/gui/remixer.c:1224
 msgid "Error: images do not match"
 msgstr "Ошибка: изображения не совпадают"
 
-#: src/gui/remixer.c:1139 src/gui/remixer.c:1231
+#: src/gui/remixer.c:1133 src/gui/remixer.c:1225
 msgid "Image width, height, bit depth and number of channels must match"
 msgstr ""
 "Ширина, высота, разрядность и количество каналов изображения должны совпадать"
 
-#: src/gui/remixer.c:1152
+#: src/gui/remixer.c:1146
 msgid ""
 "Color profiles did not match: left-hand image has been converted to right-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1155
+#: src/gui/remixer.c:1149
 msgid ""
 "Color profiles did not match: right-hand image has been assigned the left-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1189
+#: src/gui/remixer.c:1183
 msgid "Setting the output image ICC profile to the working color space.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1244 src/gui/remixer.c:1252
+#: src/gui/remixer.c:1238 src/gui/remixer.c:1246
 msgid ""
 "Color profiles did not match: right-hand image has been converted to left-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1247
+#: src/gui/remixer.c:1241
 msgid ""
 "Color profiles did not match: left-hand image has been assigned the right-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1320 src/gui/remixer.c:1368
+#: src/gui/remixer.c:1314 src/gui/remixer.c:1362
 msgid "There is no starless image loaded"
 msgstr "Изображение без звёзд не загружено"
 
-#: src/gui/remixer.c:1321
+#: src/gui/remixer.c:1315
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
@@ -22049,7 +22072,7 @@ msgstr ""
 "Загрузить изображение с помощью левого диалога выбора файлов, прежде чем "
 "пытаться установить SP с помощью пипетки"
 
-#: src/gui/remixer.c:1369
+#: src/gui/remixer.c:1363
 msgid ""
 "Load an image using the right-hand file chooser before attempting to set SP "
 "using the eyedropper"
@@ -22058,11 +22081,11 @@ msgstr ""
 "пытаться установить SP с помощью пипетки"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
-#: src/gui/remixer.c:1415
+#: src/gui/remixer.c:1409
 msgid "Simple"
 msgstr "Меньше"
 
-#: src/gui/remixer.c:1416
+#: src/gui/remixer.c:1410
 msgid ""
 "Show only simple stretch options. Note that any parameters that have been "
 "set while in advanced mode will remain set."
@@ -22272,7 +22295,7 @@ msgstr "Включить все изображения?"
 msgid "Include All"
 msgstr "Включить все"
 
-#: src/gui/sequence_list.c:999
+#: src/gui/sequence_list.c:995
 msgid "sequence"
 msgid_plural "sequences"
 msgstr[0] "последовательность"
@@ -22287,15 +22310,10 @@ msgstr "Изображение (или последовательность) у�
 msgid "Are you sure you want to close everything and open the new image?"
 msgstr "Уверены, что хотите закрыть всё и открыть новое изображение?"
 
-#: src/gui/siril_css.c:48
-#, c-format
-msgid "Unable to load CSS style sheet file: %s. Please reinstall Siril\n"
-msgstr "Не удалось загрузить стиль CSS: %s. Пожалуйста, переустановите Siril\n"
-
-#: src/gui/siril_css.c:73
-#, c-format
-msgid "Successfully loaded '%s'\n"
-msgstr "Загружен успешно '%s'\n"
+#: src/gui/siril_css.c:63
+#, fuzzy, c-format
+msgid "Failed to load CSS sheet: %s.\n"
+msgstr "Не удалось записать в итоговый файл\n"
 
 #: src/gui/siril_intro.c:34
 msgid ""
@@ -24144,26 +24162,26 @@ msgstr ""
 msgid "Trying to add an image of different size in a SER\n"
 msgstr "Попытка добавить изображение другого размера в SER\n"
 
-#: src/io/single_image.c:220
+#: src/io/single_image.c:217
 msgid "Cannot open a sequence from here\n"
 msgstr "Нельзя открыть последовательность отсюда\n"
 
-#: src/io/single_image.c:233
+#: src/io/single_image.c:230
 #, c-format
 msgid "Opening %s failed.\n"
 msgstr "Не удалось открыть %s.\n"
 
-#: src/io/single_image.c:278
+#: src/io/single_image.c:275
 msgid ""
 "Cannot open another file while the processing thread is still operating on "
 "the current one!\n"
 msgstr "Нельзя открыть другой файл пока идёт предобработка текущего!\n"
 
-#: src/io/single_image.c:290
+#: src/io/single_image.c:287
 msgid "Error opening file"
 msgstr "Ошибка при открытии файла"
 
-#: src/io/single_image.c:291
+#: src/io/single_image.c:288
 msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr ""
@@ -24199,9 +24217,8 @@ msgid "GCVS"
 msgstr ""
 
 #: src/io/siril_catalogues.c:238
-#, fuzzy
 msgid "PGC"
-msgstr "PPG"
+msgstr "PGC"
 
 #: src/io/siril_catalogues.c:240
 msgid "Exoplanet archive"
@@ -26150,6 +26167,15 @@ msgstr "Увеличение масштаба последовательност
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Укладка будет выполнена без увеличения масштаба (отключен 'drizzle')\n"
 
+#, c-format
+#~ msgid "Unable to load CSS style sheet file: %s. Please reinstall Siril\n"
+#~ msgstr ""
+#~ "Не удалось загрузить стиль CSS: %s. Пожалуйста, переустановите Siril\n"
+
+#, c-format
+#~ msgid "Successfully loaded '%s'\n"
+#~ msgstr "Загружен успешно '%s'\n"
+
 #~ msgid ""
 #~ "Stars file did not contain the expected header for NINA-style format\n"
 #~ msgstr "Файл звёзд не содержит ожидаемого заголовка в формате NINA\n"
@@ -26307,10 +26333,6 @@ msgstr "Укладка будет выполнена без увеличения
 #~ msgstr ""
 #~ "Не удалось получить. Код %ld\n"
 #~ "%s\n"
-
-#, c-format
-#~ msgid "Solar System Objects search on observation date %s\n"
-#~ msgstr "Поиск объектов Солнечной системы на дату %s\n"
 
 #, c-format
 #~ msgid "URL: %s\n"

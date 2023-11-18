@@ -24,6 +24,19 @@ AM_CPPFLAGS = \
 	$(LIBGIT_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
 
+
+siril_resource.c: siril_resource.h
+	$(AM_V_GEN)
+	glib-compile-resources \
+	--sourcedir=$(top_builddir) \
+	--sourcedir=$(sourcedir) \
+	--target=$@ \
+	--generate-source \
+	--c-name siril_resource \
+	$(srcdir)/siril_resource.xml
+
+siril_common_SOURCES: siril_resource.h
+
 siril_common_SOURCES = \
 	core/siril.h \
 	core/proto.h \
@@ -449,63 +462,10 @@ siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \
 		      $(libhtmeshlibs)
 
-siril_SOURCES = $(siril_common_SOURCES) main.c
+siril_SOURCES = $(siril_common_SOURCES) siril_resource.c siril_resource.h main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c
 siril_LDADD = $(siril_common_LDADD)
 siril_cli_LDADD = $(siril_common_LDADD)
-
-pkgdata_DATA = \
-	gui/siril-shortcuts.ui \
-	gui/uifiles/filefilters.ui \
-	gui/uifiles/menus.ui \
-	gui/uifiles/cosmetic_dialog.ui \
-	gui/uifiles/binxy_dialog.ui \
-	gui/uifiles/siril.ui \
-	gui/uifiles/CLAHE_dialog.ui \
-	gui/uifiles/cut_dialog.ui \
-	gui/uifiles/cut_coords_dialog.ui \
-	gui/uifiles/extract_wavelet_layers_dialog.ui \
-	gui/uifiles/canon_fixbanding_dialog.ui \
-	gui/uifiles/Median_dialog.ui \
-	gui/uifiles/rgradient_dialog.ui \
-	gui/uifiles/starnet_dialog.ui \
-	gui/uifiles/wavelets_dialog.ui \
-	gui/uifiles/asinh_dialog.ui \
-	gui/uifiles/background_extraction_dialog.ui \
-	gui/uifiles/savepopup.ui \
-	gui/uifiles/satu_dialog.ui \
-	gui/uifiles/SCNR_dialog.ui \
-	gui/uifiles/bdeconv_dialog.ui \
-	gui/uifiles/crop_dialog.ui \
-	gui/uifiles/cut_spectroscopy_dialog.ui \
-	gui/uifiles/colorchooserdialog.ui \
-	gui/uifiles/denoise_dialog.ui \
-	gui/uifiles/extract_channel_dialog.ui \
-	gui/uifiles/file_information_dialog.ui \
-	gui/uifiles/composition_dialog.ui \
-	gui/uifiles/dialog_FFT.ui \
-	gui/uifiles/dialog_star_remix.ui \
-	gui/uifiles/linearmatch_dialog.ui \
-	gui/uifiles/icc_dialog.ui \
-	gui/uifiles/icc_gamut_dialog.ui \
-	gui/uifiles/seqlist_dialog.ui \
-	gui/uifiles/IPS_dialog.ui \
-	gui/uifiles/StatWindow.ui \
-	gui/uifiles/stars_list_window.ui \
-	gui/uifiles/livestacking_player.ui \
-	gui/uifiles/merge_cfa_dialog.ui \
-	gui/uifiles/histogram_dialog.ui \
-	gui/uifiles/bilateral.ui \
-	gui/uifiles/pixelmath.ui \
-	gui/uifiles/resample_dialog.ui \
-	gui/uifiles/rotation_dialog.ui \
-	gui/uifiles/script_contents_dialog.ui \
-	gui/uifiles/split_cfa_dialog.ui \
-	gui/uifiles/data_dialog.ui \
-	gui/uifiles/color_calibration.ui \
-	gui/uifiles/settings_window.ui \
-	gui/uifiles/aberration_inspector.ui \
-	gui/siril.css
 
 if PLATFORM_WIN32
 AM_LDFLAGS += -Wl,--export-all-symbols

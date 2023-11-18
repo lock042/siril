@@ -94,8 +94,8 @@ static void update_theme_button(const gchar *button_name, const gchar *path) {
 	gchar *image;
 	GtkWidget *w_image;
 
-	image = g_build_filename(siril_get_system_data_dir(), "pixmaps", path, NULL);
-	w_image = gtk_image_new_from_file(image);
+	image = g_strdup_printf("/org/siril/ui/pixmaps/%s", path);
+	w_image = gtk_image_new_from_resource(image);
 	gtk_widget_show(w_image);
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget(button_name)), w_image);
 	gtk_widget_show(lookup_widget(button_name));

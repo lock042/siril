@@ -31,25 +31,25 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="tooltip-text" translatable="yes">Compute the image tilt. Tilt is shown as an overlay and overall tilt information is written to the Console tab. The tilt overlay can be cleared using the Remove button</property>
-    <property name="pixbuf">pixmaps/tilt_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/tilt_dark.svg</property>
   </object>
   <object class="GtkImage" id="image_export">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="tooltip-text" translatable="yes">Export list of stars to a file</property>
-    <property name="pixbuf">pixmaps/export_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/export_dark.svg</property>
   </object>
   <object class="GtkImage" id="image_starfinder">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="tooltip-text" translatable="yes">Detect stars in the current loaded image (not sequence image) and compute PSF</property>
-    <property name="pixbuf">pixmaps/starfinder_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/starfinder_dark.svg</property>
   </object>
   <object class="GtkImage" id="image_sum">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="tooltip-text" translatable="yes">Average PSF parameters for selected stars</property>
-    <property name="pixbuf">pixmaps/sum_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/sum_dark.svg</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_convergence">
     <property name="lower">1</property>

@@ -84,17 +84,17 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkImage" id="curve">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/curve.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/curve.svg</property>
   </object>
   <object class="GtkImage" id="grid">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/grid.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/grid.svg</property>
   </object>
   <object class="GtkImage" id="histo-orig">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/histo-orig.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/histo-orig.svg</property>
   </object>
   <object class="GtkAdjustment" id="histoAdjZoomH">
     <property name="lower">1</property>
@@ -113,22 +113,22 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkImage" id="histo_blue">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/b.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/b.svg</property>
   </object>
   <object class="GtkImage" id="histo_green">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/g.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/g.svg</property>
   </object>
   <object class="GtkImage" id="histo_red">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/r.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/r.svg</property>
   </object>
   <object class="GtkImage" id="mtf">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/mtf.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/mtf.svg</property>
   </object>
   <object class="GtkDialog" id="histogram_dialog">
     <property name="width-request">400</property>
@@ -1091,7 +1091,7 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
                               <object class="GtkImage" id="eyedropper">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="pixbuf">pixmaps/eyedropper.svg</property>
+                                <property name="resource">/org/siril/ui/pixmaps/eyedropper.svg</property>
                               </object>
                             </child>
                           </object>

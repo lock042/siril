@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-13 15:16+0100\n"
+"POT-Creation-Date: 2023-11-18 13:09+0100\n"
 "PO-Revision-Date: 2023-06-30 08:40+0000\n"
 "Last-Translator: Antoine Hoeffelman <swerves_pilafs.0v@icloud.com>\n"
 "Language-Team: Dutch (Belgium) <https://weblate.pixls.us/projects/siril/"
@@ -43,7 +43,7 @@ msgstr "Krijg scripts"
 msgid "Keyboard Shortcuts"
 msgstr "Toetsenbord sneltoetsen"
 
-#: src/gui/uifiles/menus.ui:151 src/gui/about_dialog.c:73
+#: src/gui/uifiles/menus.ui:151 src/gui/about_dialog.c:71
 msgid "About Siril"
 msgstr "Over Siril"
 
@@ -84,25 +84,25 @@ msgstr "Dynamische PSF..."
 #: src/gui/uifiles/menus.ui:325 src/gui/uifiles/siril.ui:7169
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:134
 #: src/gui/uifiles/wavelets_dialog.ui:183
-#: src/gui/uifiles/settings_window.ui:3274
-#: src/gui/uifiles/settings_window.ui:3341
+#: src/gui/uifiles/settings_window.ui:3276
+#: src/gui/uifiles/settings_window.ui:3345
 msgid "Linear"
 msgstr "Lineair"
 
-#: src/gui/uifiles/menus.ui:336 src/gui/uifiles/settings_window.ui:3275
-#: src/gui/uifiles/settings_window.ui:3342
+#: src/gui/uifiles/menus.ui:336 src/gui/uifiles/settings_window.ui:3277
+#: src/gui/uifiles/settings_window.ui:3346
 msgid "Logarithm"
 msgstr "Logaritmisch"
 
-#: src/gui/uifiles/menus.ui:347 src/gui/uifiles/settings_window.ui:3276
+#: src/gui/uifiles/menus.ui:347 src/gui/uifiles/settings_window.ui:3278
 msgid "Square root"
 msgstr "Vierkantswortel"
 
-#: src/gui/uifiles/menus.ui:358 src/gui/uifiles/settings_window.ui:3277
+#: src/gui/uifiles/menus.ui:358 src/gui/uifiles/settings_window.ui:3279
 msgid "Squared"
 msgstr "Kwadratisch"
 
-#: src/gui/uifiles/menus.ui:369 src/gui/uifiles/settings_window.ui:3278
+#: src/gui/uifiles/menus.ui:369 src/gui/uifiles/settings_window.ui:3280
 msgid "Asinh"
 msgstr "Bgsinh"
 
@@ -114,7 +114,7 @@ msgstr "AutoStretch"
 msgid "High definition"
 msgstr "Hoge resolutie"
 
-#: src/gui/uifiles/menus.ui:401 src/gui/uifiles/settings_window.ui:3280
+#: src/gui/uifiles/menus.ui:401 src/gui/uifiles/settings_window.ui:3282
 msgid "Histogram"
 msgstr "Histrogram"
 
@@ -901,7 +901,7 @@ msgid "Blue"
 msgstr "Blauw"
 
 #: src/gui/uifiles/siril.ui:1141 src/gui/uifiles/extract_channel_dialog.ui:189
-#: src/core/command.c:5369 src/core/command.c:5373
+#: src/core/command.c:5368 src/core/command.c:5372
 msgid "RGB"
 msgstr "RGB"
 
@@ -943,9 +943,9 @@ msgstr "Verwijder alle bestanden van de lijst"
 #: src/gui/uifiles/file_information_dialog.ui:171
 #: src/gui/uifiles/composition_dialog.ui:96
 #: src/gui/uifiles/settings_window.ui:1745
-#: src/gui/uifiles/settings_window.ui:3722
-#: src/gui/uifiles/settings_window.ui:3736
-#: src/gui/uifiles/settings_window.ui:5215
+#: src/gui/uifiles/settings_window.ui:3894
+#: src/gui/uifiles/settings_window.ui:3908
+#: src/gui/uifiles/settings_window.ui:5387
 msgid "Clear"
 msgstr "Wis"
 
@@ -1479,7 +1479,7 @@ msgstr ""
 "Hoeveel keer de standaardafwijking de pixelwaarde moet verschillen om als "
 "defect te worden beschouwd."
 
-#: src/gui/uifiles/siril.ui:2652 src/gui/uifiles/settings_window.ui:4831
+#: src/gui/uifiles/siril.ui:2652 src/gui/uifiles/settings_window.ui:5003
 msgid "Estimate"
 msgstr "Schat"
 
@@ -3270,8 +3270,8 @@ msgstr ""
 "scriptpaden die in de voorkeuren zijn gedefinieerd, zijn ingesteld op de "
 "bestaande scriptmappen."
 
-#: src/gui/uifiles/siril.ui:7733 src/gui/uifiles/settings_window.ui:4222
-#: src/gui/uifiles/settings_window.ui:4543
+#: src/gui/uifiles/siril.ui:7733 src/gui/uifiles/settings_window.ui:4394
+#: src/gui/uifiles/settings_window.ui:4715
 msgid "Scripts"
 msgstr "Scripts"
 
@@ -5417,11 +5417,11 @@ msgid "Select the color space corresponding to the three extracted images"
 msgstr ""
 "Kies de kleurruimte overeenstemmend met de drie geëxtraheerde afbeeldingen"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5360
+#: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5359
 msgid "HSL"
 msgstr "HSL"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5363
+#: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5362
 msgid "HSV"
 msgstr "HSV"
 
@@ -5803,7 +5803,7 @@ msgstr "Log histogrammen"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:127 src/gui/remixer.c:691
-#: src/gui/remixer.c:1431
+#: src/gui/remixer.c:1425
 msgid "Advanced"
 msgstr "Geavanceerd"
 
@@ -6260,8 +6260,8 @@ msgstr ""
 msgid "Reject high"
 msgstr "Verwerping hoog"
 
-#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3474
-#: src/gui/uifiles/settings_window.ui:4208 src/core/icc_profile.c:1254
+#: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3646
+#: src/gui/uifiles/settings_window.ui:4380 src/core/icc_profile.c:1254
 #: src/core/icc_profile.c:1256
 #, fuzzy
 msgid "Color Management"
@@ -6378,7 +6378,7 @@ msgid "<b>Color Management Operations</b>"
 msgstr "<b> Geheugenbeheer </b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
-#: src/gui/uifiles/settings_window.ui:3535
+#: src/gui/uifiles/settings_window.ui:3707
 #, fuzzy
 msgid "Gamut visualisation"
 msgstr "Alleen voor visualisatie"
@@ -6437,7 +6437,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:149
-#: src/gui/uifiles/settings_window.ui:4502
+#: src/gui/uifiles/settings_window.ui:4674
 msgid "Sel"
 msgstr "Sel"
 
@@ -7507,7 +7507,7 @@ msgstr ""
 msgid "Sequences"
 msgstr "Reeksen"
 
-#: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1337
+#: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1331
 msgid "Histogram Transformation"
 msgstr "Histogram Transformatie"
 
@@ -9076,7 +9076,7 @@ msgid "<b>Aberration Inspector</b>"
 msgstr "<b>Aberratie-inspecteur</b>"
 
 #: src/gui/uifiles/settings_window.ui:2959
-#: src/gui/uifiles/settings_window.ui:3450
+#: src/gui/uifiles/settings_window.ui:3622
 msgid "User Interface"
 msgstr "Gebruikersomgeving"
 
@@ -9169,32 +9169,34 @@ msgstr "Normaal (256x256)"
 msgid "Image Thumbnails"
 msgstr "Afbeeldingsminiaturen"
 
-#: src/gui/uifiles/settings_window.ui:3261
-msgid "Default screen transfer function"
+#: src/gui/uifiles/settings_window.ui:3263
+#, fuzzy
+msgid "Default screen transfer function:"
 msgstr "Standaard transferfunctie"
 
-#: src/gui/uifiles/settings_window.ui:3279
+#: src/gui/uifiles/settings_window.ui:3281
 msgid "Autostretch"
 msgstr "Autostretch"
 
-#: src/gui/uifiles/settings_window.ui:3296
+#: src/gui/uifiles/settings_window.ui:3298
 msgid "Image Display"
 msgstr "Beeldweergave"
 
-#: src/gui/uifiles/settings_window.ui:3328
-msgid "Default display mode"
+#: src/gui/uifiles/settings_window.ui:3332
+#, fuzzy
+msgid "Default display mode:"
 msgstr "Standaard weergavemodus"
 
-#: src/gui/uifiles/settings_window.ui:3358
+#: src/gui/uifiles/settings_window.ui:3362
 msgid "Histogram Display"
 msgstr "Histogramweergave"
 
-#: src/gui/uifiles/settings_window.ui:3390
+#: src/gui/uifiles/settings_window.ui:3396
 #, fuzzy
-msgid "Type of selection"
+msgid "Type of selection:"
 msgstr "Geen selectie"
 
-#: src/gui/uifiles/settings_window.ui:3401
+#: src/gui/uifiles/settings_window.ui:3407
 msgid ""
 "Sets the method of selecting a ROI.\n"
 "<b>Manual</b> requires the ROI to be selected and cleared manually using the "
@@ -9203,37 +9205,66 @@ msgid ""
 "selection, and clears it when the selection is cleared."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3406
+#: src/gui/uifiles/settings_window.ui:3412
 #, fuzzy
 msgid "Manual"
 msgstr "Manuele PSF"
 
-#: src/gui/uifiles/settings_window.ui:3407
+#: src/gui/uifiles/settings_window.ui:3413
 #, fuzzy
 msgid "Automatic from selection"
 msgstr "Automatische detectie"
 
-#: src/gui/uifiles/settings_window.ui:3423
+#: src/gui/uifiles/settings_window.ui:3429
 msgid "Region of Interest"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3490
+#: src/gui/uifiles/settings_window.ui:3476
+#, fuzzy
+msgid "Background extraction samples:"
+msgstr "Gradient Extractie"
+
+#: src/gui/uifiles/settings_window.ui:3488
+#, fuzzy
+msgid "Standard annotations:"
+msgstr "sterren in annotaties weergeven"
+
+#: src/gui/uifiles/settings_window.ui:3500
+#, fuzzy
+msgid "Deep Sky Object (user) annotations:"
+msgstr "SH2-objecten in annotaties weergeven"
+
+#: src/gui/uifiles/settings_window.ui:3512
+#, fuzzy
+msgid "Solar System Object (user) annotations:"
+msgstr "Objecten in het zonnestelsel zoeken op waarnemingsdatum %s\n"
+
+#: src/gui/uifiles/settings_window.ui:3524
+#, fuzzy
+msgid "Temporary Object (user) annotations:"
+msgstr "Gebruikersobjecten in annotaties weergeven"
+
+#: src/gui/uifiles/settings_window.ui:3595
+msgid "Overlay Colors"
+msgstr ""
+
+#: src/gui/uifiles/settings_window.ui:3662
 msgid "This section contains options relating to working color spaces"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3506
+#: src/gui/uifiles/settings_window.ui:3678
 msgid ""
 "This selects the family of RGB profiles that will be used throughout most of "
 "the workflow. For a discussion of which gamut to pick, see the Color "
 "Management section of the manual."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3508
+#: src/gui/uifiles/settings_window.ui:3680
 #, fuzzy
 msgid "Preferred Color Space:"
 msgstr "Kleurruimte:"
 
-#: src/gui/uifiles/settings_window.ui:3519
+#: src/gui/uifiles/settings_window.ui:3691
 msgid ""
 "This sets your preferred family of color spaces for use as working color "
 "spaces: it comprises a RGB color profile and a matching Gray color profile. "
@@ -9241,172 +9272,172 @@ msgid ""
 "also be used by the file export options."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3522
-#: src/gui/uifiles/settings_window.ui:3872
-#: src/gui/uifiles/settings_window.ui:3952
+#: src/gui/uifiles/settings_window.ui:3694
+#: src/gui/uifiles/settings_window.ui:4044
+#: src/gui/uifiles/settings_window.ui:4124
 msgid "sRGB"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3523
+#: src/gui/uifiles/settings_window.ui:3695
 msgid "Rec2020"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3524
+#: src/gui/uifiles/settings_window.ui:3696
 #, fuzzy
 msgid "From files"
 msgstr "Profiel"
 
-#: src/gui/uifiles/settings_window.ui:3539
+#: src/gui/uifiles/settings_window.ui:3711
 msgid ""
 "Show the CIE1931 xy space and a representation of various color gamuts "
 "within it."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3551
+#: src/gui/uifiles/settings_window.ui:3723
 msgid ""
 "Use these opions together with the \"From files\" option for Preferred Color "
 "Spaces above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3554
+#: src/gui/uifiles/settings_window.ui:3726
 msgid "External color profiles:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3566
+#: src/gui/uifiles/settings_window.ui:3738
 msgid ""
 "This should be an ICC profile in your preferred gamut with the color space's "
 "native nonlinear tone response curve."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3568
+#: src/gui/uifiles/settings_window.ui:3740
 #, fuzzy
 msgid "RGB ICC profile"
 msgstr "ICC profiel"
 
-#: src/gui/uifiles/settings_window.ui:3579
+#: src/gui/uifiles/settings_window.ui:3751
 msgid ""
 "This should be a Gray ICC profile with a tone response curve that matches "
 "that of the nonlinear TRC profile you set above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3581
+#: src/gui/uifiles/settings_window.ui:3753
 #, fuzzy
 msgid "Gray ICC profile"
 msgstr "ICC profiel"
 
-#: src/gui/uifiles/settings_window.ui:3593
+#: src/gui/uifiles/settings_window.ui:3765
 msgid ""
 "Use this together with the \"From files\" option above. This should be a RGB "
 "ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg "
 "etc.)"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3608
+#: src/gui/uifiles/settings_window.ui:3780
 msgid ""
 "Use this together with the \"From files\" option above. This should be a "
 "Gray (mono) ICC profile with a tone response curve that matches that of the "
 "RGB profile you set above."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3626
+#: src/gui/uifiles/settings_window.ui:3798
 #, fuzzy
 msgid "Working Color Spaces"
 msgstr "Kleurruimte:"
 
-#: src/gui/uifiles/settings_window.ui:3659
+#: src/gui/uifiles/settings_window.ui:3831
 msgid "Custom monitor profile:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3671
+#: src/gui/uifiles/settings_window.ui:3843
 msgid ""
 "To use a custom monitor ICC profile, set it here. If no custom profile is "
 "set, sRGB with D65 white point and gamma = 2.2 will be used."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3685
+#: src/gui/uifiles/settings_window.ui:3857
 msgid ""
 "Specify an output device profile for soft proofing purposes. If this is not "
 "set or is inactive, the monitor profile (or sRGB by default) will be used as "
 "the soft proofing target."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3700
+#: src/gui/uifiles/settings_window.ui:3872
 msgid "Output device proofing profile:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3713
+#: src/gui/uifiles/settings_window.ui:3885
 msgid "Rendering intent:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3726
+#: src/gui/uifiles/settings_window.ui:3898
 msgid "Clear the profile and revert to the default"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3740
+#: src/gui/uifiles/settings_window.ui:3912
 msgid "Clear the profile: soft proofing will be unavailable"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3752
+#: src/gui/uifiles/settings_window.ui:3924
 msgid "Select the display intent. The default is perceptual rendering."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3755
-#: src/gui/uifiles/settings_window.ui:3902
+#: src/gui/uifiles/settings_window.ui:3927
+#: src/gui/uifiles/settings_window.ui:4074
 msgid "Perceptual"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3756
-#: src/gui/uifiles/settings_window.ui:3903
+#: src/gui/uifiles/settings_window.ui:3928
+#: src/gui/uifiles/settings_window.ui:4075
 msgid "Relative Colorimetric"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3757
-#: src/gui/uifiles/settings_window.ui:3904
+#: src/gui/uifiles/settings_window.ui:3929
+#: src/gui/uifiles/settings_window.ui:4076
 #, fuzzy
 msgid "Saturation"
 msgstr "Saturatie: "
 
-#: src/gui/uifiles/settings_window.ui:3758
-#: src/gui/uifiles/settings_window.ui:3905
+#: src/gui/uifiles/settings_window.ui:3930
+#: src/gui/uifiles/settings_window.ui:4077
 msgid "Absolute Colorimetric"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3769
-#: src/gui/uifiles/settings_window.ui:3784
+#: src/gui/uifiles/settings_window.ui:3941
+#: src/gui/uifiles/settings_window.ui:3956
 #, fuzzy
 msgid "active"
 msgstr "relatieve"
 
-#: src/gui/uifiles/settings_window.ui:3773
+#: src/gui/uifiles/settings_window.ui:3945
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3788
+#: src/gui/uifiles/settings_window.ui:3960
 msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
 "profile is set."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3799
+#: src/gui/uifiles/settings_window.ui:3971
 #, fuzzy
 msgid "Black point compensation"
 msgstr "Geen zwarte punt correctie"
 
-#: src/gui/uifiles/settings_window.ui:3803
+#: src/gui/uifiles/settings_window.ui:3975
 msgid ""
 "Enable BPC for rendering. This is not normally required but may be useful if "
 "an image has a malformed source profile."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3821
+#: src/gui/uifiles/settings_window.ui:3993
 #, fuzzy
 msgid "Custom Profiles"
 msgstr "Profiel"
 
-#: src/gui/uifiles/settings_window.ui:3838
+#: src/gui/uifiles/settings_window.ui:4010
 msgid ""
 "This section contains settings affecting how color spaces are applied to "
 "saved files\n"
@@ -9415,11 +9446,11 @@ msgid ""
 "configured in FITS Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3857
+#: src/gui/uifiles/settings_window.ui:4029
 msgid "Export high bit depth images using:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3868
+#: src/gui/uifiles/settings_window.ui:4040
 msgid ""
 "Selects which color space to export >8bpp bit depth images to. The ICC color "
 "profile will be embedded in the file.\n"
@@ -9427,30 +9458,30 @@ msgid ""
 "always be exported as sRGB."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3873
-#: src/gui/uifiles/settings_window.ui:3953
+#: src/gui/uifiles/settings_window.ui:4045
+#: src/gui/uifiles/settings_window.ui:4125
 msgid "Working gamut"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3874
-#: src/gui/uifiles/settings_window.ui:3954
+#: src/gui/uifiles/settings_window.ui:4046
+#: src/gui/uifiles/settings_window.ui:4126
 #, fuzzy
 msgid "Image's current ICC profile"
 msgstr "Huidige grafiek opslaan als png"
 
-#: src/gui/uifiles/settings_window.ui:3888
+#: src/gui/uifiles/settings_window.ui:4060
 msgid "Conversion and export intent:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3899
+#: src/gui/uifiles/settings_window.ui:4071
 msgid "Select the color management intent for conversion / export"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3916
+#: src/gui/uifiles/settings_window.ui:4088
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3920
+#: src/gui/uifiles/settings_window.ui:4092
 msgid ""
 "For files with no assigned color profile, when exporting to TIFF / PNG / "
 "JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a "
@@ -9459,11 +9490,11 @@ msgid ""
 "If this option is unchecked, no ICC profile will be embedded."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3937
+#: src/gui/uifiles/settings_window.ui:4109
 msgid "Export 8-bit images using:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3948
+#: src/gui/uifiles/settings_window.ui:4120
 msgid ""
 "Selects which color space to export 8-bit images to, if the format supports "
 "ICC profiles. The ICC color profile will be embedded in the file.\n"
@@ -9471,61 +9502,61 @@ msgid ""
 "always be exported as sRGB."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:3971
+#: src/gui/uifiles/settings_window.ui:4143
 msgid "File Import / Export Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4005
+#: src/gui/uifiles/settings_window.ui:4177
 msgid "Auto assign working color space:"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4018
+#: src/gui/uifiles/settings_window.ui:4190
 msgid "Convert other color profiles to the working profile?"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4029
+#: src/gui/uifiles/settings_window.ui:4201
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4032
-#: src/gui/uifiles/settings_window.ui:4086
+#: src/gui/uifiles/settings_window.ui:4204
+#: src/gui/uifiles/settings_window.ui:4258
 msgid "Never"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4033
+#: src/gui/uifiles/settings_window.ui:4205
 msgid "Ask every time"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4034
+#: src/gui/uifiles/settings_window.ui:4206
 msgid "Always"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4044
+#: src/gui/uifiles/settings_window.ui:4216
 #, fuzzy
 msgid "On load"
 msgstr "niet geladen"
 
-#: src/gui/uifiles/settings_window.ui:4058
+#: src/gui/uifiles/settings_window.ui:4230
 #, fuzzy
 msgid "On stacking"
 msgstr "Som stacking"
 
-#: src/gui/uifiles/settings_window.ui:4072
+#: src/gui/uifiles/settings_window.ui:4244
 msgid "On stretching"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4101
+#: src/gui/uifiles/settings_window.ui:4273
 #, fuzzy
 msgid "Output of RGB composition / PixelMath"
 msgstr "Open het dialoogvenster RGB-compositietool"
 
-#: src/gui/uifiles/settings_window.ui:4115
+#: src/gui/uifiles/settings_window.ui:4287
 msgid "Pedantically assign linear ICC profiles"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4119
+#: src/gui/uifiles/settings_window.ui:4291
 msgid ""
 "When assigning an ICC image to:\n"
 "* a loaded image that doesn't show stretches in HISTORY\n"
@@ -9535,15 +9566,15 @@ msgid ""
 "unnecessary."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4140
+#: src/gui/uifiles/settings_window.ui:4312
 msgid "Auto Conversion / Assignment Options"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4169
+#: src/gui/uifiles/settings_window.ui:4341
 msgid "Export built-in profiles"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4173
+#: src/gui/uifiles/settings_window.ui:4345
 msgid ""
 "Export the built-in profiles to the working directory. Elle Stone's profiles "
 "are distributed with the CC BY-SA-3.0 licence. As they are built into the "
@@ -9551,12 +9582,12 @@ msgid ""
 "provision of the licence."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4190
+#: src/gui/uifiles/settings_window.ui:4362
 #, fuzzy
 msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Profieltype </b>"
 
-#: src/gui/uifiles/settings_window.ui:4253
+#: src/gui/uifiles/settings_window.ui:4425
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
@@ -9568,23 +9599,23 @@ msgstr ""
 "zoveel regels als je wilt. Houd er echter rekening mee dat hoe meer paden "
 "gecontroleerd worden, hoe langer opstarten duurt."
 
-#: src/gui/uifiles/settings_window.ui:4266
+#: src/gui/uifiles/settings_window.ui:4438
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>Script Opslagmappen</b>"
 
-#: src/gui/uifiles/settings_window.ui:4283
+#: src/gui/uifiles/settings_window.ui:4455
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr "Scant de scriptmappen opnieuw en werkt het scriptmenu bij."
 
-#: src/gui/uifiles/settings_window.ui:4314
+#: src/gui/uifiles/settings_window.ui:4486
 msgid "Show warning before script execution"
 msgstr "Waarschuwing tonen voordat script wordt uitgevoerd"
 
-#: src/gui/uifiles/settings_window.ui:4330
+#: src/gui/uifiles/settings_window.ui:4502
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr "De opdracht \"Vereist\" is verplicht in scripts"
 
-#: src/gui/uifiles/settings_window.ui:4334
+#: src/gui/uifiles/settings_window.ui:4506
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -9600,16 +9631,16 @@ msgstr ""
 "<span foreground=\"red\"><b>WAARSCHUWING: schakel deze optie alleen uit als "
 "u weet wat u doet!</b></span>"
 
-#: src/gui/uifiles/settings_window.ui:4355
-#: src/gui/uifiles/settings_window.ui:5091
+#: src/gui/uifiles/settings_window.ui:4527
+#: src/gui/uifiles/settings_window.ui:5263
 msgid "Warning Dialogs"
 msgstr "Waarschuwingsdialogen"
 
-#: src/gui/uifiles/settings_window.ui:4383
+#: src/gui/uifiles/settings_window.ui:4555
 msgid "Enable use of the siril-scripts online repository"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4387
+#: src/gui/uifiles/settings_window.ui:4559
 msgid ""
 "Siril will fetch and update scripts from the official siril-scripts "
 "repository. These will be available offline and specific scripts can be "
@@ -9621,57 +9652,57 @@ msgid ""
 "only take place when the Apply button is clicked, in the usual way."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4408
+#: src/gui/uifiles/settings_window.ui:4580
 #, fuzzy
 msgid "Automatic updates"
 msgstr "Automatische detectie"
 
-#: src/gui/uifiles/settings_window.ui:4412
+#: src/gui/uifiles/settings_window.ui:4584
 msgid "Automatically update the repository at startup."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4423
+#: src/gui/uifiles/settings_window.ui:4595
 #, fuzzy
 msgid "Manual update"
 msgstr "Manuele coördinaten"
 
-#: src/gui/uifiles/settings_window.ui:4428
+#: src/gui/uifiles/settings_window.ui:4600
 msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
 "changes."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4455
+#: src/gui/uifiles/settings_window.ui:4627
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to view the script description and code."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4470
+#: src/gui/uifiles/settings_window.ui:4642
 msgid "Category"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:4486
+#: src/gui/uifiles/settings_window.ui:4658
 #, fuzzy
 msgid "Script"
 msgstr "Scripts"
 
-#: src/gui/uifiles/settings_window.ui:4529
+#: src/gui/uifiles/settings_window.ui:4701
 #, fuzzy
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Script Opslagmappen</b>"
 
-#: src/gui/uifiles/settings_window.ui:4557
-#: src/gui/uifiles/settings_window.ui:4920
+#: src/gui/uifiles/settings_window.ui:4729
+#: src/gui/uifiles/settings_window.ui:5092
 msgid "Performances"
 msgstr "Performanties"
 
-#: src/gui/uifiles/settings_window.ui:4588
+#: src/gui/uifiles/settings_window.ui:4760
 msgid "Ratio of available"
 msgstr "Verhouding van beschikbaar"
 
-#: src/gui/uifiles/settings_window.ui:4592
+#: src/gui/uifiles/settings_window.ui:4764
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -9690,11 +9721,11 @@ msgstr ""
 "een waarde van 1 of hoger waarschijnlijk resulteren in een crash van Siril "
 "of van het besturingssysteem."
 
-#: src/gui/uifiles/settings_window.ui:4608
+#: src/gui/uifiles/settings_window.ui:4780
 msgid "Fixed amount (GB)"
 msgstr "Vaste houveelheid (GB)"
 
-#: src/gui/uifiles/settings_window.ui:4612
+#: src/gui/uifiles/settings_window.ui:4784
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -9707,7 +9738,7 @@ msgstr ""
 "uw systeem kan resulteren in een crash van siril of van het "
 "besturingssysteem."
 
-#: src/gui/uifiles/settings_window.ui:4628
+#: src/gui/uifiles/settings_window.ui:4800
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -9720,15 +9751,15 @@ msgstr ""
 "ratio zou Siril sneller laten bewerken, maar een ratio's boven 1 vereits on-"
 "disk geheugen dewelke trager is en dus afgeraden is"
 
-#: src/gui/uifiles/settings_window.ui:4673
+#: src/gui/uifiles/settings_window.ui:4845
 msgid "<b>Memory management</b>"
 msgstr "<b> Geheugenbeheer </b>"
 
-#: src/gui/uifiles/settings_window.ui:4706
+#: src/gui/uifiles/settings_window.ui:4878
 msgid "Default bit depth for HD AutoStretch"
 msgstr "Standaard bitdiepte voor HD AutoStretch"
 
-#: src/gui/uifiles/settings_window.ui:4722
+#: src/gui/uifiles/settings_window.ui:4894
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -9745,23 +9776,23 @@ msgstr ""
 "volgende wijziging van de viewermodus en kan nu worden toegepast met de knop "
 "aan de rechterkant."
 
-#: src/gui/uifiles/settings_window.ui:4739
+#: src/gui/uifiles/settings_window.ui:4911
 msgid "Apply bit depth"
 msgstr "Pas bitdiepte toe"
 
-#: src/gui/uifiles/settings_window.ui:4743
+#: src/gui/uifiles/settings_window.ui:4915
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "Stel nu de geselecteerde HD AutoStretch-bitdiepte in"
 
-#: src/gui/uifiles/settings_window.ui:4766
+#: src/gui/uifiles/settings_window.ui:4938
 msgid "HD AutoStretch"
 msgstr "HD AutoStretch"
 
-#: src/gui/uifiles/settings_window.ui:4796
+#: src/gui/uifiles/settings_window.ui:4968
 msgid "Multithreaded FFTW"
 msgstr "Multithreaded FFTW"
 
-#: src/gui/uifiles/settings_window.ui:4800
+#: src/gui/uifiles/settings_window.ui:4972
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -9772,11 +9803,11 @@ msgstr ""
 "verlengen wanneer FFTW voor het eerst op een afbeelding van een bepaalde "
 "grootte werkt."
 
-#: src/gui/uifiles/settings_window.ui:4815 src/core/settings.c:314
+#: src/gui/uifiles/settings_window.ui:4987 src/core/settings.c:328
 msgid "FFTW planning strategy"
 msgstr "FFTW-planningsstrategie"
 
-#: src/gui/uifiles/settings_window.ui:4826
+#: src/gui/uifiles/settings_window.ui:4998
 #, fuzzy
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
@@ -9807,23 +9838,23 @@ msgstr ""
 "van het initiële plan voor een bepaalde grootte en planningsniveau langer "
 "duurt als u multithreaded FFTW hebt geselecteerd."
 
-#: src/gui/uifiles/settings_window.ui:4832
+#: src/gui/uifiles/settings_window.ui:5004
 msgid "Measure"
 msgstr "Meten"
 
-#: src/gui/uifiles/settings_window.ui:4833
+#: src/gui/uifiles/settings_window.ui:5005
 msgid "Patient"
 msgstr "Geduldig"
 
-#: src/gui/uifiles/settings_window.ui:4834
+#: src/gui/uifiles/settings_window.ui:5006
 msgid "Exhaustive"
 msgstr "Grondig"
 
-#: src/gui/uifiles/settings_window.ui:4847
+#: src/gui/uifiles/settings_window.ui:5019
 msgid "FFTW planning time limit (seconds)"
 msgstr "FFTW planning tijdslimiet (seconden)"
 
-#: src/gui/uifiles/settings_window.ui:4858
+#: src/gui/uifiles/settings_window.ui:5030
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -9836,11 +9867,11 @@ msgstr ""
 "operatie bevindt. Indien ingesteld op 0, wordt altijd een minimaal "
 "planningsniveau van Schatting voltooid."
 
-#: src/gui/uifiles/settings_window.ui:4873
+#: src/gui/uifiles/settings_window.ui:5045
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "Minimale PSF-grootte om FFT-convoluties te gebruiken"
 
-#: src/gui/uifiles/settings_window.ui:4884
+#: src/gui/uifiles/settings_window.ui:5056
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -9858,16 +9889,16 @@ msgstr ""
 "af van uw hardware en is daarom configureerbaar. Deze parameter stelt de "
 "minimale grootte in waarvoor Fourier-transformaties zullen worden gebruikt."
 
-#: src/gui/uifiles/settings_window.ui:4906
+#: src/gui/uifiles/settings_window.ui:5078
 msgid "<b>FFTW Options</b>"
 msgstr "<b>FFTW Opties</b>"
 
-#: src/gui/uifiles/settings_window.ui:4934
-#: src/gui/uifiles/settings_window.ui:5351
+#: src/gui/uifiles/settings_window.ui:5106
+#: src/gui/uifiles/settings_window.ui:5523
 msgid "Miscellaneous"
 msgstr "Diversen"
 
-#: src/gui/uifiles/settings_window.ui:4962
+#: src/gui/uifiles/settings_window.ui:5134
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -9875,53 +9906,53 @@ msgstr ""
 "Kies een bestaand directory. Wees zeker dat er genoed ruimte beschikbaar is "
 "en dat je de rechten hebt."
 
-#: src/gui/uifiles/settings_window.ui:4965
+#: src/gui/uifiles/settings_window.ui:5137
 msgid "Select Swap Directory"
 msgstr "Kies een swap folder"
 
-#: src/gui/uifiles/settings_window.ui:4978
+#: src/gui/uifiles/settings_window.ui:5150
 msgid "available mem"
 msgstr "beschikbaar gehuegen"
 
-#: src/gui/uifiles/settings_window.ui:4990
+#: src/gui/uifiles/settings_window.ui:5162
 msgid "Restore to Default"
 msgstr "Herstel de Standaardwaarden"
 
-#: src/gui/uifiles/settings_window.ui:4994
+#: src/gui/uifiles/settings_window.ui:5166
 msgid "Restore the default swap storage directory"
 msgstr "Herstel de standaard swap-opslagmap"
 
-#: src/gui/uifiles/settings_window.ui:5013
+#: src/gui/uifiles/settings_window.ui:5185
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Swap Geheugen Folder</b>"
 
-#: src/gui/uifiles/settings_window.ui:5040
+#: src/gui/uifiles/settings_window.ui:5212
 msgid "Don't ask before quitting"
 msgstr "Niet vragen bij het sluiten"
 
-#: src/gui/uifiles/settings_window.ui:5055
+#: src/gui/uifiles/settings_window.ui:5227
 msgid "Don't ask before saving when display is not linear"
 msgstr "Vraag niet vooraleer u opslaat wanneer als weergave niet lineair is"
 
-#: src/gui/uifiles/settings_window.ui:5070
+#: src/gui/uifiles/settings_window.ui:5242
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5074
+#: src/gui/uifiles/settings_window.ui:5246
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:5113
+#: src/gui/uifiles/settings_window.ui:5285
 msgid "Play introduction"
 msgstr "Speel introductie"
 
-#: src/gui/uifiles/settings_window.ui:5127
+#: src/gui/uifiles/settings_window.ui:5299
 msgid "Introduction Tips"
 msgstr "Introductietips"
 
-#: src/gui/uifiles/settings_window.ui:5158
+#: src/gui/uifiles/settings_window.ui:5330
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -9942,15 +9973,15 @@ msgstr ""
 "uitvoerbare bestanden selecteren: Siril zal automatisch de andere vinden als "
 "deze bestaat."
 
-#: src/gui/uifiles/settings_window.ui:5167
+#: src/gui/uifiles/settings_window.ui:5339
 msgid "Select StarNet executable"
 msgstr "Selecteer StarNet-uitvoerbaar bestand"
 
-#: src/gui/uifiles/settings_window.ui:5181
+#: src/gui/uifiles/settings_window.ui:5353
 msgid "Must point to a valid StarNet executable."
 msgstr "Moet verwijzen naar een geldig StarNet-uitvoerbaar bestand."
 
-#: src/gui/uifiles/settings_window.ui:5195
+#: src/gui/uifiles/settings_window.ui:5367
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -9961,11 +9992,11 @@ msgstr ""
 "<b>moet</b> het gewichtenbestand zich in dezelfde map bevinden als het "
 "StarNet-uitvoerbare bestand."
 
-#: src/gui/uifiles/settings_window.ui:5202
+#: src/gui/uifiles/settings_window.ui:5374
 msgid "Select StarNet weights file"
 msgstr "Selecteer StarNet-gewichtenbestand"
 
-#: src/gui/uifiles/settings_window.ui:5219
+#: src/gui/uifiles/settings_window.ui:5391
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -9974,7 +10005,7 @@ msgstr ""
 "gewichtenbestand zich in dezelfde map bevinden als het StarNet-uitvoerbare "
 "bestand."
 
-#: src/gui/uifiles/settings_window.ui:5234
+#: src/gui/uifiles/settings_window.ui:5406
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -9982,23 +10013,23 @@ msgstr ""
 "Kan verwijzen naar een bestand met neurale netgewichten van StarNet.\n"
 "Alleen Torch-gebaseerde StarNet-versies."
 
-#: src/gui/uifiles/settings_window.ui:5261
+#: src/gui/uifiles/settings_window.ui:5433
 msgid "Software Location"
 msgstr "Softwarelocatie"
 
-#: src/gui/uifiles/settings_window.ui:5284
+#: src/gui/uifiles/settings_window.ui:5456
 msgid "Copyright when saving image as TIFF"
 msgstr "Copyright bij het opslaan van afbeelding als TIFF"
 
-#: src/gui/uifiles/settings_window.ui:5296
+#: src/gui/uifiles/settings_window.ui:5468
 msgid "Copyright TIFF"
 msgstr "Copyright TIFF"
 
-#: src/gui/uifiles/settings_window.ui:5318
+#: src/gui/uifiles/settings_window.ui:5490
 msgid "Check update at startup"
 msgstr "Controleer update bij opstarten"
 
-#: src/gui/uifiles/settings_window.ui:5334
+#: src/gui/uifiles/settings_window.ui:5506
 msgid "Update"
 msgstr "Update"
 
@@ -10202,11 +10233,11 @@ msgctxt "shortcut window"
 msgid "Quit the application"
 msgstr "Sluit het programma"
 
-#: src/main-cli.c:104 src/main.c:108
+#: src/main-cli.c:104 src/main.c:109
 msgid "changing the current working directory as the argument"
 msgstr "wijzigen van de huidige werkmap als argument"
 
-#: src/main-cli.c:105 src/main.c:109
+#: src/main-cli.c:105 src/main.c:110
 msgid ""
 "run the siril commands script in console mode. If argument is equal to \"-"
 "\", then siril will read stdin input"
@@ -10214,69 +10245,69 @@ msgstr ""
 "voer het siril-opdrachtenscript uit in consolemodus. Als het argument gelijk "
 "is aan \"-\", dan zal siril de stdin-invoer lezen"
 
-#: src/main-cli.c:106 src/main.c:110
+#: src/main-cli.c:106 src/main.c:111
 msgid ""
 "load configuration from file name instead of the default configuration file"
 msgstr ""
 "laad configuratie van bestandsnaam in plaats van het standaard "
 "configuratiebestand"
 
-#: src/main-cli.c:107 src/main.c:111
+#: src/main-cli.c:107 src/main.c:112
 msgid "run in console mode with command and log stream through named pipes"
 msgstr "draaien in consolemodus met opdracht en log stream door benoemde pipes"
 
-#: src/main-cli.c:108 src/main.c:112
+#: src/main-cli.c:108 src/main.c:113
 msgid "specify the path for the read pipe, the one receiving commands"
 msgstr "geef het pad op voor de leespijp, degene die opdrachten ontvangt"
 
-#: src/main-cli.c:109 src/main.c:113
+#: src/main-cli.c:109 src/main.c:114
 msgid "specify the path for the write pipe, the one outputing messages"
 msgstr "geef het pad op voor de schrijfpijp, degene die berichten uitvoert"
 
-#: src/main-cli.c:110 src/main.c:114
+#: src/main-cli.c:110 src/main.c:115
 msgid ""
 "print all supported image file formats (depending on installed libraries)"
 msgstr ""
 "print alle ondersteunde afbeeldingsbestandsformaten (afhankelijk van "
 "geïnstalleerde bibliotheken)"
 
-#: src/main-cli.c:111 src/main.c:115
+#: src/main-cli.c:111 src/main.c:116
 msgid "print the application’s version"
 msgstr "print de versie van het programma"
 
-#: src/main-cli.c:112 src/main.c:116
+#: src/main-cli.c:112 src/main.c:117
 msgid "print the copyright"
 msgstr "toon de copyright"
 
-#: src/main-cli.c:154 src/main.c:252
+#: src/main-cli.c:154 src/main.c:248
 #, c-format
 msgid "Welcome to %s v%s\n"
 msgstr "Welcop in %s v%s\n"
 
-#: src/main-cli.c:164 src/main.c:262
+#: src/main-cli.c:164 src/main.c:258
 #, c-format
 msgid "Could not load or create settings file, exiting.\n"
 msgstr "Kon paramersbestand niet laden of aanmaken, aan het sluiten.\n"
 
-#: src/main-cli.c:209 src/main.c:317
+#: src/main-cli.c:209 src/main.c:313
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr "Bestand [%s] bestaat niet (van CWD, gebruik absolute pad?)\n"
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:340 src/main.c:519
+#: src/main-cli.c:340 src/main.c:517
 msgid "Siril - A free astronomical image processing software."
 msgstr ""
 "Siril - Gratis software voor het bewerken van astronomische afbeeldingen."
 
-#: src/main-cli.c:347 src/main.c:537
+#: src/main-cli.c:347 src/main.c:535
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr ""
 "Voer \"%s --help\" uit om een volledige lijst met beschikbare "
 "opdrachtregelopties te zien."
 
-#: src/main.c:139
+#: src/main.c:137
 #, fuzzy, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI.\n"
@@ -10286,7 +10317,7 @@ msgstr ""
 "%s\n"
 "Sluiten.\n"
 
-#: src/main.c:154
+#: src/main.c:151
 #, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI:\n"
@@ -10297,18 +10328,18 @@ msgstr ""
 "%s\n"
 "Sluiten.\n"
 
-#: src/main.c:205
+#: src/main.c:201
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
 msgstr "Ondersteuning voor FFTW-multithreading initialiseren...\n"
 
-#: src/main.c:300
+#: src/main.c:296
 msgid ""
 "Online scripts repository not enabled. Not fetching or updating siril-"
 "scripts...\n"
 msgstr ""
 
-#: src/main.c:377 src/core/command.c:7147 src/core/command_line_processor.c:628
+#: src/main.c:375 src/core/command.c:7146 src/core/command_line_processor.c:628
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -10538,7 +10569,7 @@ msgstr "Waarschuwing: gebruik de huidige selectie om sterren te detecteren\n"
 msgid "Selection is not used in manual star selection mode\n"
 msgstr "Selectie wordt niet gebruikt in de manuele sterselectiemodus\n"
 
-#: src/algos/astrometry_solver.c:1335 src/core/command.c:8531
+#: src/algos/astrometry_solver.c:1335 src/core/command.c:8530
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
@@ -10546,13 +10577,13 @@ msgstr ""
 "Kan niet plate solven, er zijn geen doelcoördinaten doorgegeven en de "
 "afbeeldingsheader bevat er ook geen\n"
 
-#: src/algos/astrometry_solver.c:1343 src/core/command.c:8578
+#: src/algos/astrometry_solver.c:1343 src/core/command.c:8577
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
 "Pixelgrootte niet gevonden in afbeelding of in instellingen, kan niet "
 "doorgaan\n"
 
-#: src/algos/astrometry_solver.c:1353 src/core/command.c:8602
+#: src/algos/astrometry_solver.c:1353 src/core/command.c:8601
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
 "Brandpuntsafstand niet gevonden in afbeelding of in instellingen, kan niet "
@@ -10695,7 +10726,7 @@ msgstr ""
 #: src/filters/banding.c:215 src/filters/banding.c:298
 #: src/filters/cosmetic_correction.c:206 src/filters/cosmetic_correction.c:626
 #: src/filters/saturation.c:205 src/filters/saturation.c:264
-#: src/gui/histogram.c:1719 src/gui/remixer.c:1327 src/gui/remixer.c:1375
+#: src/gui/histogram.c:1709 src/gui/remixer.c:1321 src/gui/remixer.c:1369
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "Fout: berekening van de statistiek gefaald.\n"
@@ -10797,8 +10828,8 @@ msgstr "Geen csv-uitvoerbestand om te maken\n"
 msgid "No variable star selected\n"
 msgstr "Geen variabele ster geselecteerd\n"
 
-#: src/algos/comparison_stars.c:353 src/core/command.c:8687
-#: src/core/command.c:8800 src/core/command.c:8817 src/core/command.c:8987
+#: src/algos/comparison_stars.c:353 src/core/command.c:8686
+#: src/core/command.c:8799 src/core/command.c:8816 src/core/command.c:8986
 #: src/gui/plot.c:1241
 msgid "This command only works on plate solved images\n"
 msgstr "Dit commando werkt alleen op plate-solved afbeeldingen\n"
@@ -11743,8 +11774,8 @@ msgstr "Compositing resultaat niet opgeslaan"
 msgid "Compositing result image"
 msgstr "Compositing resultaat afbeelding"
 
-#: src/compositing/compositing.c:645 src/gui/remixer.c:1126
-#: src/gui/remixer.c:1218
+#: src/compositing/compositing.c:645 src/gui/remixer.c:1120
+#: src/gui/remixer.c:1212
 msgid "Error: image could not be loaded"
 msgstr "Fout: afbeelding kan niet worden geladen"
 
@@ -11902,8 +11933,8 @@ msgstr "Reeks succesvol gestackt.\n"
 #: src/filters/fft.c:625 src/gui/compstars.c:147 src/gui/compstars.c:156
 #: src/gui/compstars.c:164 src/gui/compstars.c:170 src/gui/compstars.c:176
 #: src/gui/nina_light_curve.c:105 src/gui/nina_light_curve.c:143
-#: src/gui/open_dialog.c:395 src/gui/preferences.c:450
-#: src/gui/preferences.c:469 src/gui/preferences.c:507 src/gui/PSF_list.c:305
+#: src/gui/open_dialog.c:395 src/gui/preferences.c:475
+#: src/gui/preferences.c:494 src/gui/preferences.c:532 src/gui/PSF_list.c:305
 #: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:401
 #: src/io/gitscripts.c:724 src/io/gitscripts.c:749
 msgid "Error"
@@ -12030,28 +12061,28 @@ msgid "=FITS header for currently loaded image=\n"
 msgstr "=FITS-header voor huidig geladen afbeelding=\n"
 
 #: src/core/command.c:229 src/core/command.c:606 src/core/command.c:690
-#: src/core/command.c:779 src/core/command.c:1162 src/core/command.c:1214
-#: src/core/command.c:1365 src/core/command.c:1384 src/core/command.c:1478
-#: src/core/command.c:1608 src/core/command.c:2903 src/core/command.c:2953
-#: src/core/command.c:3061 src/core/command.c:3237 src/core/command.c:3522
-#: src/core/command.c:4530 src/core/command.c:4999 src/core/command.c:5060
-#: src/core/command.c:5166 src/core/command.c:5680 src/core/command.c:5759
-#: src/core/command.c:5807 src/core/command.c:5856 src/core/command.c:6023
-#: src/core/command.c:6033 src/core/command.c:6069 src/core/command.c:6292
-#: src/core/command.c:6433 src/core/command.c:6675 src/core/command.c:7003
-#: src/core/command.c:7795
+#: src/core/command.c:779 src/core/command.c:1161 src/core/command.c:1213
+#: src/core/command.c:1364 src/core/command.c:1383 src/core/command.c:1477
+#: src/core/command.c:1607 src/core/command.c:2902 src/core/command.c:2952
+#: src/core/command.c:3060 src/core/command.c:3236 src/core/command.c:3521
+#: src/core/command.c:4529 src/core/command.c:4998 src/core/command.c:5059
+#: src/core/command.c:5165 src/core/command.c:5679 src/core/command.c:5758
+#: src/core/command.c:5806 src/core/command.c:5855 src/core/command.c:6022
+#: src/core/command.c:6032 src/core/command.c:6068 src/core/command.c:6291
+#: src/core/command.c:6432 src/core/command.c:6674 src/core/command.c:7002
+#: src/core/command.c:7794
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr "Onbekende parameter %s, wordt afgebroken.\n"
 
-#: src/core/command.c:262 src/core/command.c:722 src/core/command.c:951
-#: src/core/command.c:1005 src/core/command.c:1666 src/core/command.c:1671
-#: src/core/command.c:2203 src/core/command.c:2716 src/core/command.c:2723
-#: src/core/command.c:2733 src/core/command.c:2741 src/core/command.c:2749
-#: src/core/command.c:2824 src/core/command.c:3912 src/core/command.c:4650
-#: src/core/command.c:4655 src/core/command.c:7874 src/core/command.c:8463
-#: src/core/command.c:8761 src/core/command.c:8963 src/core/command.c:9031
-#: src/core/command.c:9072
+#: src/core/command.c:262 src/core/command.c:722 src/core/command.c:950
+#: src/core/command.c:1004 src/core/command.c:1665 src/core/command.c:1670
+#: src/core/command.c:2202 src/core/command.c:2715 src/core/command.c:2722
+#: src/core/command.c:2732 src/core/command.c:2740 src/core/command.c:2748
+#: src/core/command.c:2823 src/core/command.c:3911 src/core/command.c:4649
+#: src/core/command.c:4654 src/core/command.c:7873 src/core/command.c:8462
+#: src/core/command.c:8760 src/core/command.c:8962 src/core/command.c:9030
+#: src/core/command.c:9071
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "Ongeldig argument %s, wordt afgebroken.\n"
@@ -12178,8 +12209,8 @@ msgstr ""
 "Fout in pas-parameter: moet een positief even geheel getal zijn, max. 512, "
 "wordt afgebroken.\n"
 
-#: src/core/command.c:611 src/core/command.c:697 src/core/command.c:3243
-#: src/core/command.c:3307
+#: src/core/command.c:611 src/core/command.c:697 src/core/command.c:3242
+#: src/core/command.c:3306
 msgid "Error parsing arguments, aborting.\n"
 msgstr "Fout bij het parseren van argumenten, afbreken.\n"
 
@@ -12190,97 +12221,97 @@ msgstr ""
 "starnet-het commando niet beschikbaar omdat Siril niet is gecompileerd met "
 "libtiff.\n"
 
-#: src/core/command.c:655 src/core/command.c:1021 src/core/command.c:1958
+#: src/core/command.c:655 src/core/command.c:1020 src/core/command.c:1957
 msgid "Error: cannot open sequence\n"
 msgstr "Fout: reeks kan niet worden geopend\n"
 
-#: src/core/command.c:842
+#: src/core/command.c:850
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
 msgstr ""
 "Fout, vereist minimaal 4 argumenten om de 4 bestanden te specificeren!\n"
 
-#: src/core/command.c:865
-msgid "Error loading files!\n"
-msgstr "Fout bij het laden van bestanden!\n"
-
-#: src/core/command.c:870
+#: src/core/command.c:856
 msgid "Reconstructing RGGB Bayer matrix.\n"
 msgstr "RGGB Bayer-matrix reconstrueren.\n"
 
-#: src/core/command.c:873
+#: src/core/command.c:859
 msgid "Reconstructing BGGR Bayer matrix.\n"
 msgstr "BGGR Bayer-matrix reconstrueren.\n"
 
-#: src/core/command.c:876
+#: src/core/command.c:862
 msgid "Reconstructing GBRG Bayer matrix.\n"
 msgstr "GBRG Bayer-matrix reconstrueren.\n"
 
-#: src/core/command.c:879
+#: src/core/command.c:865
 msgid "Reconstructing GRBG Bayer matrix.\n"
 msgstr "GRBG Bayer-matrix reconstrueren.\n"
 
-#: src/core/command.c:881 src/core/command.c:5719
+#: src/core/command.c:867 src/core/command.c:5718
 msgid "Invalid Bayer matrix specified!\n"
 msgstr "Ongeldige Bayer-matrix opgegeven!\n"
 
-#: src/core/command.c:892
+#: src/core/command.c:877
+msgid "Error loading files!\n"
+msgstr "Fout bij het laden van bestanden!\n"
+
+#: src/core/command.c:891
 msgid "Unsaved Bayer pattern merge"
 msgstr "Niet-opgeslagen Bayer-patroonsamenvoeging"
 
-#: src/core/command.c:893
+#: src/core/command.c:892
 msgid "Bayer pattern merge"
 msgstr "Bayer-patroon samenvoegen"
 
-#: src/core/command.c:923
+#: src/core/command.c:922
 msgid "Could not understand the requested operator\n"
 msgstr "Kon de opgevraagde operator niet begrijpen\n"
 
-#: src/core/command.c:969
+#: src/core/command.c:968
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
 msgstr ""
 "Vermenigvuldigen met een coëfficient lager of gelijk aan 0 is niet "
 "mogelijk.\n"
 
-#: src/core/command.c:997
+#: src/core/command.c:996
 #, c-format
 msgid "Entropy: %.3f\n"
 msgstr "Entropie: %.3f\n"
 
-#: src/core/command.c:1027
+#: src/core/command.c:1026
 msgid "Reference image is undefined, the following would be used:\n"
 msgstr "Referentiebeeld is ongedefinieerd, het volgende zou worden gebruikt:\n"
 
-#: src/core/command.c:1035
+#: src/core/command.c:1034
 #, c-format
 msgid "Image %d: '%s'\n"
 msgstr "Afbeelding %d: '%s'\n"
 
-#: src/core/command.c:1037
+#: src/core/command.c:1036
 #, c-format
 msgid "Image %d\n"
 msgstr "Afbeelding %d\n"
 
-#: src/core/command.c:1040
+#: src/core/command.c:1039
 msgid ""
 "Warning: this image is excluded from the sequence main processing list\n"
 msgstr ""
 "Waarschuwing: deze afbeelding is uitgesloten van de hoofdlijst voor "
 "verwerking van de reeks .\n"
 
-#: src/core/command.c:1064
+#: src/core/command.c:1063
 msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr "Fout: zal de PSF niet wissen terwijl een reeks wordt uitgevoerd.\n"
 
-#: src/core/command.c:1069
+#: src/core/command.c:1068
 msgid "Deconvolution kernel cleared.\n"
 msgstr "Deconvolutie kernel gewist.\n"
 
-#: src/core/command.c:1073
+#: src/core/command.c:1072
 msgid "Save PSF to file:\n"
 msgstr "PSF opslaan in bestand:\n"
 
-#: src/core/command.c:1078 src/core/command.c:1155 src/core/command.c:1207
-#: src/core/command.c:1358
+#: src/core/command.c:1077 src/core/command.c:1154 src/core/command.c:1206
+#: src/core/command.c:1357
 msgid ""
 "Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \"."
 "tif\"\n"
@@ -12288,7 +12319,7 @@ msgstr ""
 "Fout: bestandsnaam moet de extensie \".fit\", \".fits\", \".fts\" of \"."
 "tif\" hebben\n"
 
-#: src/core/command.c:1090 src/core/command.c:1173
+#: src/core/command.c:1089 src/core/command.c:1172
 #, c-format
 msgid ""
 "Error: image or sequence must be loaded to carry out %s PSF estimation, "
@@ -12297,31 +12328,31 @@ msgstr ""
 "Fout: afbeelding of reeks moet worden geladen om %s PSF-schatting uit te "
 "voeren, afbreken...\n"
 
-#: src/core/command.c:1095
+#: src/core/command.c:1094
 msgid "Blind kernel estimation:\n"
 msgstr "Blinde kernelschatting:\n"
 
-#: src/core/command.c:1101
+#: src/core/command.c:1100
 msgid "ℓ0 descent prior method\n"
 msgstr "ℓ0 Descent methode alvorens\n"
 
-#: src/core/command.c:1105
+#: src/core/command.c:1104
 msgid "spectral irregularity method\n"
 msgstr "spectrale onregelmatigheidsmethode\n"
 
-#: src/core/command.c:1109
+#: src/core/command.c:1108
 msgid "multiscale estimation\n"
 msgstr "multischaal schatting\n"
 
-#: src/core/command.c:1117 src/core/command.c:1129 src/core/command.c:1252
-#: src/core/command.c:1262 src/core/command.c:1272 src/core/command.c:1282
-#: src/core/command.c:1292 src/core/command.c:1302 src/core/command.c:1312
-#: src/core/command.c:1322 src/core/command.c:1332
+#: src/core/command.c:1116 src/core/command.c:1128 src/core/command.c:1251
+#: src/core/command.c:1261 src/core/command.c:1271 src/core/command.c:1281
+#: src/core/command.c:1291 src/core/command.c:1301 src/core/command.c:1311
+#: src/core/command.c:1321 src/core/command.c:1331
 #, c-format
 msgid "Error in %s parameter: must be in %s, aborting.\n"
 msgstr "Fout in parameter %s: moet in %s staan, wordt afgebroken.\n"
 
-#: src/core/command.c:1139 src/core/command.c:1191 src/core/command.c:1342
+#: src/core/command.c:1138 src/core/command.c:1190 src/core/command.c:1341
 msgid ""
 "Error in ks parameter: must be odd and between 3 and minimum of (image "
 "height, image width), aborting.\n"
@@ -12329,62 +12360,62 @@ msgstr ""
 "Fout in ks-parameter: moet oneven zijn en tussen 3 en minimaal (beeldhoogte, "
 "beeldbreedte), afgebroken.\n"
 
-#: src/core/command.c:1151 src/core/command.c:1203 src/core/command.c:1354
+#: src/core/command.c:1150 src/core/command.c:1202 src/core/command.c:1353
 msgid "Error: no filename specified, aborting.\n"
 msgstr "Fout: geen bestandsnaam opgegeven, afbreken.\n"
 
-#: src/core/command.c:1183
+#: src/core/command.c:1182
 msgid "symmetric kernel\n"
 msgstr "symmetrische kernel\n"
 
-#: src/core/command.c:1225
+#: src/core/command.c:1224
 msgid "Manual PSF generation:\n"
 msgstr "Manuele PSF-generatie:\n"
 
-#: src/core/command.c:1232
+#: src/core/command.c:1231
 msgid "Gaussian PSF\n"
 msgstr "Gaussische PSF\n"
 
-#: src/core/command.c:1236
+#: src/core/command.c:1235
 msgid "Moffat PSF\n"
 msgstr "Moffat PSF\n"
 
-#: src/core/command.c:1240
+#: src/core/command.c:1239
 msgid "Disc PSF\n"
 msgstr "Disc PSF\n"
 
-#: src/core/command.c:1244
+#: src/core/command.c:1243
 msgid "Airy disc PSF\n"
 msgstr "Airy disc PSF\n"
 
-#: src/core/command.c:1372
+#: src/core/command.c:1371
 msgid "Load PSF from file:\n"
 msgstr "Laad PSF vanuit bestand:\n"
 
-#: src/core/command.c:1375 src/core/command.c:1410 src/core/command.c:1532
+#: src/core/command.c:1374 src/core/command.c:1409 src/core/command.c:1531
 msgid "Error loading PSF.\n"
 msgstr "Fout bij het laden van PSF.\n"
 
-#: src/core/command.c:1421 src/core/command.c:1543
+#: src/core/command.c:1420 src/core/command.c:1542
 msgid "Error in alpha parameter: must be between 0 and 1e5, aborting.\n"
 msgstr ""
 "Fout in alfaparameter: moet tussen 0 en 1e5 liggen, wordt afgebroken.\n"
 
-#: src/core/command.c:1434 src/core/command.c:1558
+#: src/core/command.c:1433 src/core/command.c:1557
 msgid "Error in iterations parameter: must be between 1 and 1e5, aborting.\n"
 msgstr ""
 "Fout in iteratieparameter: moet tussen 1 en 1e5 zijn, wordt afgebroken.\n"
 
-#: src/core/command.c:1447 src/core/command.c:1573
+#: src/core/command.c:1446 src/core/command.c:1572
 msgid "Error in stop parameter: must be between 0 and 1, aborting.\n"
 msgstr "Fout in stopparameter: moet tussen 0 en 1 liggen, wordt afgebroken.\n"
 
-#: src/core/command.c:1461 src/core/command.c:1589
+#: src/core/command.c:1460 src/core/command.c:1588
 msgid "Error in step size parameter: must be between 0 and 1, aborting.\n"
 msgstr ""
 "Fout in stapgrootteparameter: moet tussen 0 en 1 liggen, wordt afgebroken.\n"
 
-#: src/core/command.c:1693
+#: src/core/command.c:1692
 msgid ""
 "It is impossible to crop the image when a filter with preview session is "
 "active. Please consider to close the filter dialog first.\n"
@@ -12393,99 +12424,99 @@ msgstr ""
 "voorbeeldsessie actief is. Overweeg eerst het filterdialoogvenster te "
 "sluiten.\n"
 
-#: src/core/command.c:1707 src/core/command.c:4141
+#: src/core/command.c:1706 src/core/command.c:4140
 msgid "Crop: x and y must be positive values.\n"
 msgstr "Crop: x en y moeten positieve waarden zijn.\n"
 
-#: src/core/command.c:1713 src/core/command.c:4147
+#: src/core/command.c:1712 src/core/command.c:4146
 msgid "Crop: width and height must be greater than 0.\n"
 msgstr "Crop: hoogte en breedte moeten groter dan 0 zijn.\n"
 
-#: src/core/command.c:1717 src/core/command.c:4163
+#: src/core/command.c:1716 src/core/command.c:4162
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
 msgstr ""
 "Crop: breedte en hoogte moeten respectievelijk kleiner zijn dan %d en %d.\n"
 
-#: src/core/command.c:1722 src/core/command.c:4153
+#: src/core/command.c:1721 src/core/command.c:4152
 msgid "Crop: select a region or provide x, y, width, height\n"
 msgstr "Crop: kies een regio of voer x, y, breedte en hoogte in\n"
 
-#: src/core/command.c:1730 src/gui/menu_gray_geometry.c:272
+#: src/core/command.c:1729 src/gui/menu_gray_geometry.c:272
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "Crop (x=%d, y=%d, w=%d, h=%d)"
 
-#: src/core/command.c:1774 src/core/command.c:4458 src/core/command.c:4471
-#: src/core/command.c:4873 src/core/command.c:4891 src/core/command.c:4902
-#: src/core/command.c:8141
+#: src/core/command.c:1773 src/core/command.c:4457 src/core/command.c:4470
+#: src/core/command.c:4872 src/core/command.c:4890 src/core/command.c:4901
+#: src/core/command.c:8140
 msgid "Wrong parameters.\n"
 msgstr "Foute parameters.\n"
 
-#: src/core/command.c:1830 src/core/command.c:2891 src/core/command.c:2898
-#: src/core/command.c:2925 src/core/command.c:3029 src/core/command.c:3107
-#: src/core/command.c:4084 src/core/command.c:4183 src/core/command.c:4486
-#: src/core/command.c:4518 src/core/command.c:4781 src/core/command.c:5049
-#: src/core/command.c:5124 src/core/command.c:5252 src/core/command.c:5530
-#: src/core/command.c:5629 src/core/command.c:5669 src/core/command.c:5738
-#: src/core/command.c:5749 src/core/command.c:5797 src/core/command.c:5846
-#: src/core/command.c:5890 src/core/command.c:6220 src/core/command.c:6275
-#: src/core/command.c:6416 src/core/command.c:6560 src/core/command.c:6605
-#: src/core/command.c:6613 src/core/command.c:6629 src/core/command.c:6644
-#: src/core/command.c:6770 src/core/command.c:6788 src/core/command.c:6807
-#: src/core/command.c:6826 src/core/command.c:6845 src/core/command.c:6863
-#: src/core/command.c:6918 src/core/command.c:6928 src/core/command.c:6961
-#: src/core/command.c:7116 src/core/command.c:7708 src/core/command.c:7737
+#: src/core/command.c:1829 src/core/command.c:2890 src/core/command.c:2897
+#: src/core/command.c:2924 src/core/command.c:3028 src/core/command.c:3106
+#: src/core/command.c:4083 src/core/command.c:4182 src/core/command.c:4485
+#: src/core/command.c:4517 src/core/command.c:4780 src/core/command.c:5048
+#: src/core/command.c:5123 src/core/command.c:5251 src/core/command.c:5529
+#: src/core/command.c:5628 src/core/command.c:5668 src/core/command.c:5737
+#: src/core/command.c:5748 src/core/command.c:5796 src/core/command.c:5845
+#: src/core/command.c:5889 src/core/command.c:6219 src/core/command.c:6274
+#: src/core/command.c:6415 src/core/command.c:6559 src/core/command.c:6604
+#: src/core/command.c:6612 src/core/command.c:6628 src/core/command.c:6643
+#: src/core/command.c:6769 src/core/command.c:6787 src/core/command.c:6806
+#: src/core/command.c:6825 src/core/command.c:6844 src/core/command.c:6862
+#: src/core/command.c:6917 src/core/command.c:6927 src/core/command.c:6960
+#: src/core/command.c:7115 src/core/command.c:7707 src/core/command.c:7736
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr "Argument ontbreekt aan %s, stopt.\n"
 
-#: src/core/command.c:1890
+#: src/core/command.c:1889
 msgid "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
 msgstr "Fout: BP moet worden opgegeven tussen 0,0 en 1,0 met behulp van -BP=\n"
 
-#: src/core/command.c:1894
+#: src/core/command.c:1893
 msgid "Error: BP must be >= 0.0 and <= 1.0.\n"
 msgstr "Fout: BP moet >= 0,0 en <= 1,0 zijn.\n"
 
-#: src/core/command.c:1904
+#: src/core/command.c:1903
 msgid "Error: D must be specified between 0.0 and 1.0 using -D=\n"
 msgstr "Fout: D moet worden opgegeven tussen 0,0 en 1,0 met behulp van -D=\n"
 
-#: src/core/command.c:1910
+#: src/core/command.c:1909
 msgid "Error: B must be >= 0.0 and <= 15.0.\n"
 msgstr "Fout: B moet >= 0,0 en <= 15,0 zijn.\n"
 
-#: src/core/command.c:1917
+#: src/core/command.c:1916
 msgid "Error: D must be > 0.0 and <= 10.0.\n"
 msgstr "Fout: D moet > 0,0 en <= 10,0 zijn.\n"
 
-#: src/core/command.c:1921
+#: src/core/command.c:1920
 msgid "Error: SP must be >= 0.0 and <= 1.0.\n"
 msgstr "Fout: SP moet >= 0,0 en <= 1,0 zijn.\n"
 
-#: src/core/command.c:1925
+#: src/core/command.c:1924
 msgid "Error: LP must be >= 0.0 and <= SP.\n"
 msgstr "Fout: LP moet >= 0,0 en <= SP zijn.\n"
 
-#: src/core/command.c:1929
+#: src/core/command.c:1928
 msgid "Error: HP must be >= SP and <= 1.0.\n"
 msgstr "Fout: HP moet >= SP en <= 1.0 zijn.\n"
 
-#: src/core/command.c:1934
+#: src/core/command.c:1933
 msgid ""
 "Error: saturation stretch requires that all channels must be selected.\n"
 msgstr "Fout: saturation stretch vereist dat alle kanalen geselecteerd zijn.\n"
 
-#: src/core/command.c:1990
+#: src/core/command.c:1989
 msgid "Error: cannot apply saturation stretch to mono images.\n"
 msgstr "Fout: kan saturatie stretch niet toepassen op mono-afbeeldingen.\n"
 
-#: src/core/command.c:2036
+#: src/core/command.c:2035
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr "Fout: kan saturatie stretch niet toepassen op een mono-afbeelding.\n"
 
-#: src/core/command.c:2108 src/core/command.c:8094 src/filters/wavelets.c:255
+#: src/core/command.c:2107 src/core/command.c:8093 src/filters/wavelets.c:255
 #: src/filters/wavelets.c:325
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
@@ -12493,87 +12524,87 @@ msgstr ""
 "Wavelet: het maximaal aantal vlakken voor een beeld met deze afmetingen is "
 "%d\n"
 
-#: src/core/command.c:2114 src/filters/wavelets.c:264
+#: src/core/command.c:2113 src/filters/wavelets.c:264
 #, c-format
 msgid "Wavelet: type must be %d or %d\n"
 msgstr "Wavelet: type moet %d of %d zijn\n"
 
-#: src/core/command.c:2159
+#: src/core/command.c:2158
 msgid "Low value must be in the [0, 1] range.\n"
 msgstr "De lage waarde moet in het bereik [0, 1] liggen.\n"
 
-#: src/core/command.c:2164
+#: src/core/command.c:2163
 msgid "High value must be in the [0, 1] range.\n"
 msgstr "Hoge waarde moet in het bereik [0, 1] liggen.\n"
 
-#: src/core/command.c:2194
+#: src/core/command.c:2193
 msgid "Stretch must be greater than or equal to 1\n"
 msgstr "Stretch moet groter dan of gelijk zijn aan 1 zijn\n"
 
-#: src/core/command.c:2224
+#: src/core/command.c:2223
 msgid "Clip limit must be > 0.\n"
 msgstr "Cliplimiet moet > 0 zijn.\n"
 
-#: src/core/command.c:2231
+#: src/core/command.c:2230
 msgid "Tile size must be > 0.\n"
 msgstr "De tegelgrootte moet> 0 zijn.\n"
 
-#: src/core/command.c:2275
+#: src/core/command.c:2274
 msgid "Cannot list files, set working directory first.\n"
 msgstr ""
 "Kan de bestanden niet oplijsten, gelieven een werkfolder eerst te "
 "definiëren.\n"
 
-#: src/core/command.c:2281 src/core/command.c:2291 src/core/command.c:2352
+#: src/core/command.c:2280 src/core/command.c:2290 src/core/command.c:2351
 msgid "Siril cannot open the directory.\n"
 msgstr "Siril kan deze map niet openen.\n"
 
-#: src/core/command.c:2313
+#: src/core/command.c:2312
 #, c-format
 msgid "Link: %s\n"
 msgstr "Link: %s\n"
 
-#: src/core/command.c:2317 src/core/command.c:2367
+#: src/core/command.c:2316 src/core/command.c:2366
 #, c-format
 msgid "Directory: %s\n"
 msgstr "Map: %s\n"
 
-#: src/core/command.c:2327 src/core/command.c:2334 src/core/command.c:2375
-#: src/core/command.c:2381
+#: src/core/command.c:2326 src/core/command.c:2333 src/core/command.c:2374
+#: src/core/command.c:2380
 #, c-format
 msgid "Sequence: %s\n"
 msgstr "Reeks: %s\n"
 
-#: src/core/command.c:2330 src/core/command.c:2332 src/core/command.c:2377
-#: src/core/command.c:2379
+#: src/core/command.c:2329 src/core/command.c:2331 src/core/command.c:2376
+#: src/core/command.c:2378
 #, c-format
 msgid "Image: %s\n"
 msgstr "Afbeelding: %s\n"
 
-#: src/core/command.c:2390 src/core/command.c:8005
+#: src/core/command.c:2389 src/core/command.c:8004
 msgid "********* END OF THE LIST *********\n"
 msgstr "********* EINDE VAN DE LIJST *********\n"
 
-#: src/core/command.c:2399
+#: src/core/command.c:2398
 msgid "Merge: no working directory set.\n"
 msgstr "Samenvoegen: geen werkmap ingesteld.\n"
 
-#: src/core/command.c:2404 src/core/command.c:6255 src/core/command.c:6382
+#: src/core/command.c:2403 src/core/command.c:6254 src/core/command.c:6381
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
 msgstr "Opgegeven uitvoernaam %s bevat verboden tekens, wordt afgebroken\n"
 
-#: src/core/command.c:2424
+#: src/core/command.c:2423
 #, c-format
 msgid "Could not open sequence `%s' for merging\n"
 msgstr "Kon reeks `%s' voor samenvoegen niet openen\n"
 
-#: src/core/command.c:2431
+#: src/core/command.c:2430
 #, c-format
 msgid "Sequence `%s' is invalid, could not merge\n"
 msgstr "Reeks `%s' is ongeldig, kan niet worden samengevoegd\n"
 
-#: src/core/command.c:2442
+#: src/core/command.c:2441
 #, c-format
 msgid ""
 "All sequences must be the same format for merging. Sequence `%s' is "
@@ -12582,39 +12613,39 @@ msgstr ""
 "Alle reeksen moeten hetzelfde formaat hebben om te kunnen worden "
 "samengevoegd. Volgorde `%s' is anders\n"
 
-#: src/core/command.c:2489 src/core/command.c:2528
+#: src/core/command.c:2488 src/core/command.c:2527
 #, c-format
 msgid "Failed to create the output SER file `%s'\n"
 msgstr "Kan het uitvoer-SER-bestand `%s' niet maken\n"
 
-#: src/core/command.c:2500 src/core/command.c:2541
+#: src/core/command.c:2499 src/core/command.c:2540
 #, c-format
 msgid "Failed to read frame %d from input sequence `%s'\n"
 msgstr "Kan frame %d niet lezen van invoerreeks `%s'\n"
 
-#: src/core/command.c:2508 src/core/command.c:2549
+#: src/core/command.c:2507 src/core/command.c:2548
 #, c-format
 msgid "Failed to write frame %d in merged sequence\n"
 msgstr "Kan frame %d niet in samengevoegde reeks schrijven\n"
 
-#: src/core/command.c:2518 src/core/command.c:2559
+#: src/core/command.c:2517 src/core/command.c:2558
 msgid "Error while finalizing the merged sequence\n"
 msgstr "Fout bij het voltooien van de samengevoegde reeks\n"
 
-#: src/core/command.c:2564
+#: src/core/command.c:2563
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
 msgstr ""
 "Dit type reeks kan niet worden gemaakt door Siril, waardoor de samenvoeging "
 "wordt afgebroken\n"
 
-#: src/core/command.c:2584 src/core/command.c:7592 src/io/single_image.c:210
+#: src/core/command.c:2583 src/core/command.c:7591 src/io/single_image.c:207
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr ""
 "Fout bij het openen van afbeelding %s: bestand niet gevonden of niet "
 "ondersteund.\n"
 
-#: src/core/command.c:2589
+#: src/core/command.c:2588
 msgid ""
 "This command is only supported with FITS and TIFF, able to contain "
 "orientation information\n"
@@ -12622,7 +12653,7 @@ msgstr ""
 "Deze opdracht wordt alleen ondersteund met FITS en TIFF, die oriëntatie-"
 "informatie kunnen bevatten\n"
 
-#: src/core/command.c:2594
+#: src/core/command.c:2593
 msgid ""
 "This command is only supported with single FITS images, for the first HDU, "
 "not a FITS cube.\n"
@@ -12630,92 +12661,92 @@ msgstr ""
 "Deze commando wordt alleen ondersteund met enkelvoudige FITS-afbeeldingen, "
 "voor de eerste HDU, niet een FITS-kubus.\n"
 
-#: src/core/command.c:2601 src/core/command.c:2615 src/core/command.c:4672
-#: src/core/command.c:8942 src/pixelMath/pixel_math_runner.c:1121
+#: src/core/command.c:2600 src/core/command.c:2614 src/core/command.c:4671
+#: src/core/command.c:8941 src/pixelMath/pixel_math_runner.c:1121
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "Kan bestand niet openen: %s\n"
 
-#: src/core/command.c:2607 src/core/command.c:2636
+#: src/core/command.c:2606 src/core/command.c:2635
 msgid "Image data is already bottom-up\n"
 msgstr "Beeldgegevens zijn al bottom-up\n"
 
-#: src/core/command.c:2613 src/core/command.c:2639
+#: src/core/command.c:2612 src/core/command.c:2638
 msgid "Mirroring image to convert to bottom-up data\n"
 msgstr "Spiegelen om te converteren naar bottom-up data\n"
 
-#: src/core/command.c:2625
+#: src/core/command.c:2624
 #, c-format
 msgid "Could not save mirrored image: %s\n"
 msgstr "Kon gespiegelde afbeelding niet opslaan: %s\n"
 
-#: src/core/command.c:2663 src/core/command.c:3867 src/core/command.c:3874
-#: src/core/command.c:3879 src/core/command.c:5134 src/core/command.c:5143
-#: src/core/command.c:5152 src/core/command.c:5592 src/core/command.c:6268
-#: src/core/command.c:6409 src/core/command.c:6992 src/core/command.c:8393
-#: src/core/command.c:8404 src/core/command.c:8416 src/core/command.c:8440
-#: src/core/command.c:8725 src/core/command.c:8837 src/core/command.c:8846
-#: src/core/command.c:8855 src/core/command.c:8864 src/core/command.c:8871
+#: src/core/command.c:2662 src/core/command.c:3866 src/core/command.c:3873
+#: src/core/command.c:3878 src/core/command.c:5133 src/core/command.c:5142
+#: src/core/command.c:5151 src/core/command.c:5591 src/core/command.c:6267
+#: src/core/command.c:6408 src/core/command.c:6991 src/core/command.c:8392
+#: src/core/command.c:8403 src/core/command.c:8415 src/core/command.c:8439
+#: src/core/command.c:8724 src/core/command.c:8836 src/core/command.c:8845
+#: src/core/command.c:8854 src/core/command.c:8863 src/core/command.c:8870
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Ongeldig argument voor %s, wordt afgebroken.\n"
 
-#: src/core/command.c:2778
+#: src/core/command.c:2777
 #, c-format
 msgid "Symmetry point SP=%f\n"
 msgstr "Symmetriepunt SP=%f\n"
 
-#: src/core/command.c:2793
+#: src/core/command.c:2792
 #, c-format
 msgid "Symmetry point for channel %d: SP=%f\n"
 msgstr "Symmetriepunt voor kanaal %d: SP=%f\n"
 
-#: src/core/command.c:2834
+#: src/core/command.c:2833
 msgid "The target background value must be in the [0, 1] range\n"
 msgstr "De doelwit achtergrondwaarde moet in het bereik [0, 1] liggen\n"
 
-#: src/core/command.c:2839
+#: src/core/command.c:2838
 #, c-format
 msgid "Computing %s auto-stretch with values %f and %f\n"
 msgstr "%s auto-stretch berekenen met waarden %f en %f\n"
 
-#: src/core/command.c:2840
+#: src/core/command.c:2839
 msgid "linked"
 msgstr "gekoppeld"
 
-#: src/core/command.c:2840
+#: src/core/command.c:2839
 msgid "unlinked"
 msgstr "niet gekoppeld"
 
-#: src/core/command.c:2867
+#: src/core/command.c:2866
 msgid "Factor must be a number greater than 0.\n"
 msgstr "Factor moet een getal groter dan 0 zijn.\n"
 
-#: src/core/command.c:2909
+#: src/core/command.c:2908
 #, c-format
 msgid "Scale %lf not allowed. Should be between 0.0 and 5.0.\n"
 msgstr "Schaal %lf niet toegestaan. Moet tussen 0,0 en 5,0 liggen.\n"
 
-#: src/core/command.c:2913
+#: src/core/command.c:2912
 msgid "Scale is 1.0. Not doing anything.\n"
 msgstr "Schaal is 1.0. Niets doen.\n"
 
-#: src/core/command.c:2948 src/core/command.c:3052 src/core/command.c:6584
-#: src/core/command.c:6671 src/core/command.c:6955
+#: src/core/command.c:2947 src/core/command.c:3051 src/core/command.c:6583
+#: src/core/command.c:6670 src/core/command.c:6954
 #, c-format
 msgid "Unknown transformation type %s, aborting.\n"
 msgstr "Onbekend transformatietype %s, afbreken.\n"
 
-#: src/core/command.c:2957
+#: src/core/command.c:2956
 #, c-format
 msgid "Resampling to %d x %d pixels with %s interpolation\n"
 msgstr "Resampling naar %d x %d pixels met %s interpolatie\n"
 
-#: src/core/command.c:2976 src/core/siril.c:278 src/filters/rgradient.c:240
+#: src/core/command.c:2975 src/core/siril.c:278 src/filters/rgradient.c:240
 msgid "This process cannot be applied to 8b images\n"
 msgstr "Dit proces kan niet worden toegepast op 8b-afbeeldingen\n"
 
-#: src/core/command.c:2992
+#: src/core/command.c:2991
 msgid ""
 "The coordinates cannot be greater than the size of the image. Please change "
 "their values and retry.\n"
@@ -12723,7 +12754,7 @@ msgstr ""
 "De coördinaten mogen niet groter zijn dan de grootte van de afbeelding. "
 "Wijzig hun waarden en probeer het opnieuw.\n"
 
-#: src/core/command.c:3009
+#: src/core/command.c:3008
 msgid ""
 "Rotation will apply only to current selection, the resulting image will be "
 "cropped.\n"
@@ -12731,24 +12762,24 @@ msgstr ""
 "Rotatie is alleen van toepassing op de huidige selectie, de resulterende "
 "afbeelding wordt bijgesneden.\n"
 
-#: src/core/command.c:3020
+#: src/core/command.c:3019
 #, c-format
 msgid "Angle %lf not allowed. Should be between 0.0 and 360.0.\n"
 msgstr "Hoek %lf niet toegestaan. Moet tussen 0,0 en 360,0 liggen.\n"
 
-#: src/core/command.c:3058
+#: src/core/command.c:3057
 msgid "-nocrop option is not valid if a selection is active. Ignoring\n"
 msgstr "-nocrop optie is niet geldig als een selectie actief is. Negeren\n"
 
-#: src/core/command.c:3068
+#: src/core/command.c:3067
 msgid "Angle is 0.0 or 360.0 degrees. Doing nothing...\n"
 msgstr "Hoek is 0,0 of 360,0 graden. Niks doen...\n"
 
-#: src/core/command.c:3143 src/core/command.c:3369
+#: src/core/command.c:3142 src/core/command.c:3368
 msgid "Wrong magnitude value.\n"
 msgstr "Verkeerde magnitudewaarde.\n"
 
-#: src/core/command.c:3154 src/core/command.c:3756 src/core/command.c:3937
+#: src/core/command.c:3153 src/core/command.c:3755 src/core/command.c:3936
 #: src/core/siril_actions.c:696
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
@@ -12757,17 +12788,17 @@ msgstr ""
 "Huidige selectie is te groot. Kies een regui rond een ster om de PSF te "
 "bepalen.\n"
 
-#: src/core/command.c:3158 src/core/command.c:3760 src/core/command.c:3941
+#: src/core/command.c:3157 src/core/command.c:3759 src/core/command.c:3940
 #: src/io/sequence.c:1916
 msgid "Select an area first\n"
 msgstr "Kies eerst een redio\n"
 
-#: src/core/command.c:3170 src/core/command.c:3789
+#: src/core/command.c:3169 src/core/command.c:3788
 #, c-format
 msgid "PSF minimisation failed with error %d\n"
 msgstr "PSF-minimalisatie mislukt met fout %d\n"
 
-#: src/core/command.c:3175
+#: src/core/command.c:3174
 #, c-format
 msgid ""
 "Relative magnitude: %.3lf, True reduced magnitude: %.3lf, Offset: %.3lf\n"
@@ -12775,17 +12806,17 @@ msgstr ""
 "Relatieve magnitude: %.3lf, Echte verminderde magnitude: %.3lf, Offset: "
 "%.3lf\n"
 
-#: src/core/command.c:3252 src/core/command.c:3259 src/core/command.c:3268
+#: src/core/command.c:3251 src/core/command.c:3258 src/core/command.c:3267
 msgid "Inner radius value must be less than outer. Please change the value."
 msgstr ""
 "Inner radius moet kleiner zijn dan de buitenradius. Gelieve de waarde te "
 "wijzigen."
 
-#: src/core/command.c:3286 src/core/command.c:3293 src/core/command.c:3301
+#: src/core/command.c:3285 src/core/command.c:3292 src/core/command.c:3300
 msgid "minimum value must be smaller than the maximum\n"
 msgstr "minimumwaarde moet kleiner zijn dan het maximum\n"
 
-#: src/core/command.c:3311
+#: src/core/command.c:3310
 #, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera "
@@ -12794,24 +12825,24 @@ msgstr ""
 "Radius lokale achtergrondring: %.1f tot %.1f, opening: %.1f (%s), "
 "cameraconversiegain: %f e-/ADU, met gebruik van pixels met waarden ]%f, %f[\n"
 
-#: src/core/command.c:3315
+#: src/core/command.c:3314
 msgid "forced"
 msgstr "gedwongen"
 
-#: src/core/command.c:3315
+#: src/core/command.c:3314
 msgid "unused, dynamic"
 msgstr "ongebruikt, dynamisch"
 
-#: src/core/command.c:3335
+#: src/core/command.c:3334
 #, c-format
 msgid "The reference image must be set between 1 and %d\n"
 msgstr "Het referentiebeeld moet worden ingesteld tussen 1 en %d\n"
 
-#: src/core/command.c:3377
+#: src/core/command.c:3376
 msgid "Run a PSF for the sequence first (see seqpsf)\n"
 msgstr "Voer eerst een PSF uit voor de reeks (zie seqpsf)\n"
 
-#: src/core/command.c:3381
+#: src/core/command.c:3380
 #, c-format
 msgid ""
 "Reference magnitude has been set for star %d to %f and will be computed for "
@@ -12820,23 +12851,23 @@ msgstr ""
 "Referentiemagnitude werd gekozen voor ster %d tot %f en zal worden berekend "
 "voor elk beeld\n"
 
-#: src/core/command.c:3391
+#: src/core/command.c:3390
 #, c-format
 msgid "FITS extension unknown: %s\n"
 msgstr "Onbekend FITS extensie: %s\n"
 
-#: src/core/command.c:3429
+#: src/core/command.c:3428
 msgid "Wrong parameter values. Radius must be between 3 and 50, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Straal moet tussen 3 en 50 liggen, wordt "
 "afgebroken.\n"
 
-#: src/core/command.c:3436
+#: src/core/command.c:3435
 msgid "Wrong parameter values. Sigma must be greater than 0.05, aborting\n"
 msgstr ""
 "Verkeerde parameterwaarden. Sigma moet groter zijn dan 0,05, afgebroken\n"
 
-#: src/core/command.c:3443
+#: src/core/command.c:3442
 #, c-format
 msgid ""
 "Wrong parameter values. Minimum beta must be greater than or equal to 0.0 "
@@ -12845,112 +12876,112 @@ msgstr ""
 "Verkeerde parameterwaarden. Minimale bèta moet groter zijn dan of gelijk "
 "zijn aan 0,0 en kleiner dan %.0f, wordt afgebroken\n"
 
-#: src/core/command.c:3454
+#: src/core/command.c:3453
 msgid ""
 "Wrong parameter values. Roundness must be between 0 and 0.95, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Rondheid moet tussen 0 en 0,95 liggen, wordt "
 "afgebroken.\n"
 
-#: src/core/command.c:3461
+#: src/core/command.c:3460
 msgid ""
 "Wrong parameter values. Focal length must be greater than 0, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Brandpuntsafstand moet groter zijn dan 0, wordt "
 "afgebroken.\n"
 
-#: src/core/command.c:3468
+#: src/core/command.c:3467
 msgid "Wrong parameter values. Pixel size must be greater than 0, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Pixelgrootte moet groter zijn dan 0, wordt "
 "afgebroken.\n"
 
-#: src/core/command.c:3476
+#: src/core/command.c:3475
 #, fuzzy
 msgid "Wrong parameter values. Relax must be set to on or off, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Auto moet aan of uit staan, wordt afgebroken.\n"
 
-#: src/core/command.c:3483
+#: src/core/command.c:3482
 msgid ""
 "Wrong parameter values. Convergence must be between 1 and 3, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Convergentie moet tussen 1 en 3 zijn, "
 "afgebroken.\n"
 
-#: src/core/command.c:3490 src/core/command.c:3497 src/core/command.c:3504
+#: src/core/command.c:3489 src/core/command.c:3496 src/core/command.c:3503
 #, c-format
 msgid "Wrong parameter value %s.\n"
 msgstr "Verkeerde parameterwaarde %s.\n"
 
-#: src/core/command.c:3508
+#: src/core/command.c:3507
 msgid "Resetting findstar parameters to default values.\n"
 msgstr "Findstar-parameters resetten naar standaardwaarden.\n"
 
-#: src/core/command.c:3529
+#: src/core/command.c:3528
 #, c-format
 msgid "sigma = %3.2f\n"
 msgstr "sigma = %3.2f\n"
 
-#: src/core/command.c:3532
+#: src/core/command.c:3531
 #, c-format
 msgid "roundness range = [%f, %f]\n"
 msgstr "rondheidsbereik = [%f, %f]\n"
 
-#: src/core/command.c:3534
+#: src/core/command.c:3533
 #, c-format
 msgid "roundness = %3.2f\n"
 msgstr "rondheid = %3.2f\n"
 
-#: src/core/command.c:3539
+#: src/core/command.c:3538
 #, c-format
 msgid "radius = %d\n"
 msgstr "radius = %d\n"
 
-#: src/core/command.c:3542
+#: src/core/command.c:3541
 #, c-format
 msgid "amplitude range = [%f, %f]\n"
 msgstr "amplitudebereik = [%f, %f]\n"
 
-#: src/core/command.c:3544
+#: src/core/command.c:3543
 msgid "amplitude range unlimited\n"
 msgstr "amplitudebereik onbeperkt\n"
 
-#: src/core/command.c:3549
+#: src/core/command.c:3548
 #, c-format
 msgid "convergence = %d\n"
 msgstr "convergentie = %d\n"
 
-#: src/core/command.c:3551
+#: src/core/command.c:3550
 #, c-format
 msgid "focal = %3.1f\n"
 msgstr "brandpuntsafstand = %3.1f\n"
 
-#: src/core/command.c:3553
+#: src/core/command.c:3552
 #, c-format
 msgid "pixelsize = %3.2f\n"
 msgstr "pixelgrootte = %3.2f\n"
 
-#: src/core/command.c:3555
+#: src/core/command.c:3554
 #, c-format
 msgid "relax = %s\n"
 msgstr "relax = %s\n"
 
-#: src/core/command.c:3557
+#: src/core/command.c:3556
 #, c-format
 msgid "profile = %s\n"
 msgstr "profiel = %s\n"
 
-#: src/core/command.c:3560
+#: src/core/command.c:3559
 #, c-format
 msgid "minimum beta = %3.2f\n"
 msgstr "minimum beta = %3.2f\n"
 
-#: src/core/command.c:3569
+#: src/core/command.c:3568
 msgid "Reference magnitude unset for sequence\n"
 msgstr "Referentiemagnitude niet gekozen voor de reeks\n"
 
-#: src/core/command.c:3591
+#: src/core/command.c:3590
 msgid ""
 "You need to add at least one image as variable. Use $ tokens to surround the "
 "file names .\n"
@@ -12958,19 +12989,19 @@ msgstr ""
 "U moet ten minste één afbeelding als variabele toevoegen. Gebruik $ tokens "
 "om de bestandsnamen te omgeven.\n"
 
-#: src/core/command.c:3594
+#: src/core/command.c:3593
 msgid "There is an unmatched $. Please check the expression.\n"
 msgstr "Er is een alleenstaande $. Controleer de uitdrukking.\n"
 
-#: src/core/command.c:3605 src/core/command.c:3610
+#: src/core/command.c:3604 src/core/command.c:3609
 msgid "Rescale can only be done in the [0, 1] range.\n"
 msgstr "Herschalen is enkel mogelijk in het bereik [0, 1].\n"
 
-#: src/core/command.c:3679
+#: src/core/command.c:3678
 msgid "Image must have same dimension\n"
 msgstr "De afbeelding moet dezelfde afmeting hebben\n"
 
-#: src/core/command.c:3765
+#: src/core/command.c:3764
 msgid ""
 "Please display the channel on which you want to compute the PSF or use -"
 "channel argument\n"
@@ -12978,15 +13009,15 @@ msgstr ""
 "Geef het kanaal weer waarop u de PSF wilt berekenen of gebruik het argument -"
 "channel\n"
 
-#: src/core/command.c:3774
+#: src/core/command.c:3773
 msgid "Please provide the channel number starting from 0 for red\n"
 msgstr "Geef het kanaalnummer op vanaf 0 voor rood\n"
 
-#: src/core/command.c:3849 src/core/command.c:3889 src/core/command.c:3904
+#: src/core/command.c:3848 src/core/command.c:3888 src/core/command.c:3903
 msgid "The given coordinates are not in the image, aborting\n"
 msgstr "De opgegeven coördinaten staan niet in de afbeelding, afgebroken\n"
 
-#: src/core/command.c:3854
+#: src/core/command.c:3853
 msgid ""
 "Selection was not completely inside the first image of the sequence, "
 "aborting.\n"
@@ -12994,7 +13025,7 @@ msgstr ""
 "Selectie was niet volledig binnen het eerste beeld van de reeks, "
 "afgebroken.\n"
 
-#: src/core/command.c:3884
+#: src/core/command.c:3883
 msgid ""
 "The reference image of the sequence does not have the WCS information "
 "required for star selection by equatorial coordinates\n"
@@ -13002,18 +13033,18 @@ msgstr ""
 "Het referentiebeeld van de reeks heeft niet de WCS-informatie die nodig is "
 "voor sterselectie op basis van equatoriale coördinaten\n"
 
-#: src/core/command.c:3907
+#: src/core/command.c:3906
 #, c-format
 msgid "Coordinates of the star: %.1f, %.1f\n"
 msgstr "Coördinaten van de ster: %.1f, %.1f\n"
 
-#: src/core/command.c:3922
+#: src/core/command.c:3921
 msgid "Arguments are not optional when called from a script\n"
 msgstr ""
 "Argumenten zijn niet optioneel wanneer ze worden aangeroepen vanuit een "
 "script\n"
 
-#: src/core/command.c:3926
+#: src/core/command.c:3925
 msgid ""
 "Arguments are optional only if a sequence is already loaded and selection "
 "around a star made\n"
@@ -13021,26 +13052,26 @@ msgstr ""
 "Argumenten zijn alleen optioneel als er al een reeks is geladen en selectie "
 "rond een ster is gemaakt\n"
 
-#: src/core/command.c:3965 src/core/command.c:4021
+#: src/core/command.c:3964 src/core/command.c:4020
 #, c-format
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr ""
 "PSF kan niet worden berekend op kanaal %d voor deze reeks van %d kanalen\n"
 
-#: src/core/command.c:3993
+#: src/core/command.c:3992
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "De PSF uitvoeren op de reeks, laag %d\n"
 
-#: src/core/command.c:4035
+#: src/core/command.c:4034
 msgid "Missing argument to command\n"
 msgstr "Ontbrekend argument voor het commando\n"
 
-#: src/core/command.c:4050
+#: src/core/command.c:4049
 msgid "Could not find stars in the first image, aborting.\n"
 msgstr "Kan geen sterren vinden in de eerste afbeelding, wordt afgebroken.\n"
 
-#: src/core/command.c:4060
+#: src/core/command.c:4059
 #, c-format
 msgid ""
 "Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
@@ -13048,7 +13079,7 @@ msgstr ""
 "Radii van de binnenste en buitenste fotometrische ring instellen op %.1f en "
 "%.1f (FWHM is %f)\n"
 
-#: src/core/command.c:4068 src/gui/nina_light_curve.c:131
+#: src/core/command.c:4067 src/gui/nina_light_curve.c:131
 #, c-format
 msgid ""
 "Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
@@ -13056,7 +13087,7 @@ msgstr ""
 "Gebruik van vooraf geconfigureerde binnenste en buitenste fotometrische "
 "ringradii van %.1f en %.1f\n"
 
-#: src/core/command.c:4090
+#: src/core/command.c:4089
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
@@ -13066,81 +13097,81 @@ msgstr ""
 "is voor sterselectie op basis van equatoriale coördinaten, plate-sole de "
 "referentie of de eerste\n"
 
-#: src/core/command.c:4211
+#: src/core/command.c:4210
 #, c-format
 msgid "Background value (channel: #%d): %d (%.3e)\n"
 msgstr "Achtergrondwaarde (kanaal: #%d): %d (%.3e)\n"
 
-#: src/core/command.c:4267
+#: src/core/command.c:4266
 #, c-format
 msgid "The file %s has been created for the %s layer.\n"
 msgstr "Het bestand %s werd aangemaakt voor de laag %s.\n"
 
-#: src/core/command.c:4278
+#: src/core/command.c:4277
 msgid "Clearing tilt information\n"
 msgstr "Tiltinformatie wissen\n"
 
-#: src/core/command.c:4299 src/core/command.c:4304 src/core/command.c:4325
-#: src/core/command.c:4341 src/core/command.c:4364
+#: src/core/command.c:4298 src/core/command.c:4303 src/core/command.c:4324
+#: src/core/command.c:4340 src/core/command.c:4363
 #, c-format
 msgid "Replacement value is out of range (0 - %d)\n"
 msgstr "Vervangingswaarde valt buiten bereik (0 - %d)\n"
 
-#: src/core/command.c:4308
+#: src/core/command.c:4307
 msgid "lo must be strictly smaller than hi\n"
 msgstr "lo moet strikt kleiner zijn dan hi\n"
 
-#: src/core/command.c:4379
+#: src/core/command.c:4378
 msgid "Level value is incorrect\n"
 msgstr "Niveauwaarde is onjuist\n"
 
-#: src/core/command.c:4384
+#: src/core/command.c:4383
 msgid "Coeff value is incorrect\n"
 msgstr "Coëff-waarde is onjuist\n"
 
-#: src/core/command.c:4389
+#: src/core/command.c:4388
 msgid "Sigma value is incorrect\n"
 msgstr "Sigma-waarde is onjuist\n"
 
-#: src/core/command.c:4405
+#: src/core/command.c:4404
 msgid "Number of layers MUST be 1 or 3\n"
 msgstr "Aantal lagen MOET 1 of 3 zijn\n"
 
-#: src/core/command.c:4409
+#: src/core/command.c:4408
 msgid "Width and Height must be positive values.\n"
 msgstr "Breedte en Hoogte moeten positieve waarden zijn.\n"
 
-#: src/core/command.c:4422
+#: src/core/command.c:4421
 msgid "new empty image"
 msgstr "nieuw lege afbeelding"
 
-#: src/core/command.c:4432
+#: src/core/command.c:4431
 #, c-format
 msgid "Values must be positive and less than %d.\n"
 msgstr "Waarden moeten positief en kleiner dan %d zijn.\n"
 
-#: src/core/command.c:4444 src/core/command.c:4886
+#: src/core/command.c:4443 src/core/command.c:4885
 #, c-format
 msgid "Value must be positive and less than %d.\n"
 msgstr "Waarde moet positief zijn en kleiner dan %d.\n"
 
-#: src/core/command.c:4463
+#: src/core/command.c:4462
 msgid "Fill2: select a region or provide x, y, width, height\n"
 msgstr "Fill2: kies een regio of voer x, y, breedte en hoogte in\n"
 
-#: src/core/command.c:4492 src/core/command.c:6281 src/core/command.c:6422
-#: src/core/command.c:7250 src/io/path_parse.c:543
+#: src/core/command.c:4491 src/core/command.c:6280 src/core/command.c:6421
+#: src/core/command.c:7249 src/io/path_parse.c:543
 #: src/io/remote_catalogues.c:657 src/io/siril_catalogues.c:729
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr "Kan geen uitvoermap maken: %s\n"
 
 #. handling mono case
-#: src/core/command.c:4502 src/core/command.c:6588 src/core/command.c:6984
+#: src/core/command.c:4501 src/core/command.c:6587 src/core/command.c:6983
 msgid "This sequence is mono, ignoring layer number.\n"
 msgstr "Deze reeks is mono, waarbij het layer-nummer wordt genegeerd.\n"
 
-#: src/core/command.c:4509 src/core/command.c:6596
+#: src/core/command.c:4508 src/core/command.c:6595
 #, c-format
 msgid ""
 "Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
@@ -13149,62 +13180,62 @@ msgstr ""
 "gebruiken.\n"
 
 #. limiting values to avoid too long computation or too low number of candidates
-#: src/core/command.c:4525 src/core/command.c:6636
+#: src/core/command.c:4524 src/core/command.c:6635
 #, c-format
 msgid "Max number of stars %s not allowed. Should be between %d and %d.\n"
 msgstr "Max aantal sterren %s niet toegestaan. Moet tussen %d en %d zijn.\n"
 
-#: src/core/command.c:4572
+#: src/core/command.c:4571
 msgid ""
 "Warning: an undebayered CFA image is loaded. Star detection may produce "
 "results for this image but will not perform optimally and star parameters "
 "may be inaccurate.\n"
 msgstr ""
 
-#: src/core/command.c:4620
+#: src/core/command.c:4619
 msgid "Option -out= is not available for sequences, ignoring\n"
 msgstr "Optie -out= is niet beschikbaar voor reeksen, negeren\n"
 
-#: src/core/command.c:4632
+#: src/core/command.c:4631
 msgid ""
 "Warning: sequence contains undebayered CFA images. Star detection may "
 "produce results for this sequence but will not perform optimally and star "
 "parameters may be inaccurate.\n"
 msgstr ""
 
-#: src/core/command.c:4640
+#: src/core/command.c:4639
 msgid "find_hot must be applied on an one-channel master-dark frame"
 msgstr "find_hot moet worden toegepast op een één-kalaal master-dark"
 
-#: src/core/command.c:4660
+#: src/core/command.c:4659
 #, c-format
 msgid "%ld cold and %ld hot pixels\n"
 msgstr "%ld koude en %ld warme pixels\n"
 
-#: src/core/command.c:4722 src/core/command.c:4759
+#: src/core/command.c:4721 src/core/command.c:4758
 #, c-format
 msgid "File [%s] does not exist.\n"
 msgstr "Bestand [%s] bestaat niet.\n"
 
-#: src/core/command.c:4737
+#: src/core/command.c:4736
 msgid "There were some errors, please check your input file.\n"
 msgstr "Er waren fouten, controleer de input file.\n"
 
-#: src/core/command.c:4805
+#: src/core/command.c:4804
 msgid "The size of the kernel MUST be odd and in the range [3, 15].\n"
 msgstr ""
 "De grootte van de kernel MOET oneven zijn en binnen het bereik [3, 15].\n"
 
-#: src/core/command.c:4810
+#: src/core/command.c:4809
 msgid "Modulation value MUST be between 0 and 1\n"
 msgstr "Modulatiewaarde MOET tussen 0 en 1 zijn\n"
 
-#: src/core/command.c:4828
+#: src/core/command.c:4827
 #, c-format
 msgid "Center of gravity coordinates are (%.3lf, %.3lf)\n"
 msgstr "De coördinaten van het zwaartepunt zijn (%.3lf, %.3lf)\n"
 
-#: src/core/command.c:4927
+#: src/core/command.c:4926
 msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
@@ -13212,82 +13243,82 @@ msgstr ""
 "Type kan 0 (gemiddeld neutraal) of 1 (maximaal neutraal), 2 (maximaal "
 "masker) of 3 (additief masker) zijn\n"
 
-#: src/core/command.c:4938
+#: src/core/command.c:4937
 msgid "Amount can only be [0, 1]\n"
 msgstr "Amount kan alleen [0,1] zijn\n"
 
-#: src/core/command.c:4978 src/core/command.c:5023
+#: src/core/command.c:4977 src/core/command.c:5022
 msgid "Amount value must be in the [0, 4] range.\n"
 msgstr "De waarde voor Amount moet in het bereik [0, 4] liggen.\n"
 
-#: src/core/command.c:4984 src/core/command.c:5031
+#: src/core/command.c:4983 src/core/command.c:5030
 msgid "1/sigma value must be in the [0, 5] range.\n"
 msgstr "De waarde van 1/sigma moet in het bereik [0, 5] liggen.\n"
 
-#: src/core/command.c:5108
+#: src/core/command.c:5107
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
 msgstr ""
 "De graad van polynomiale orde moet binnen het bereik van [1, 4] vallen.\n"
 
-#: src/core/command.c:5118
+#: src/core/command.c:5117
 msgid "There can be only one prefix argument"
 msgstr "Er kan slechts één voorvoegselargument zijn"
 
-#: src/core/command.c:5157
+#: src/core/command.c:5156
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr "smooth parameter wordt niet gebruikt met het polynoommodel, negeren.\n"
 
-#: src/core/command.c:5224
+#: src/core/command.c:5223
 msgid "Sigma low must be positive.\n"
 msgstr "Sigma laag moet positief zijn.\n"
 
-#: src/core/command.c:5230
+#: src/core/command.c:5229
 msgid "Sigma high must be positive.\n"
 msgstr "Sigma hoog moet positief zijn.\n"
 
-#: src/core/command.c:5282
+#: src/core/command.c:5281
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr "Het tweede argument moet tussen 1 en het aantal afbeeldingen liggen.\n"
 
-#: src/core/command.c:5288
+#: src/core/command.c:5287
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr ""
 "Het derde argument moet groter of gelijk zijn dan het \"from\" argument.\n"
 
-#: src/core/command.c:5294
+#: src/core/command.c:5293
 msgid "The third argument is larger than the number of images.\n"
 msgstr "Het derde argument is groter dan het aantal afbeeldingen.\n"
 
-#: src/core/command.c:5295
+#: src/core/command.c:5294
 #, c-format
 msgid "Re-adjusting to %d.\n"
 msgstr "Opnieuw aanpassen naar %d.\n"
 
-#: src/core/command.c:5319 src/gui/sequence_list.c:636
+#: src/core/command.c:5318 src/gui/sequence_list.c:636
 #, c-format
 msgid "Selection update finished, %d images are selected in the sequence\n"
 msgstr "Selectie update klaar, %d beelden geselecteerd uit de reeks\n"
 
-#: src/core/command.c:5348 src/gui/colors.c:394
+#: src/core/command.c:5347 src/gui/colors.c:394
 msgid "Could not copy the input image, aborting.\n"
 msgstr "Kan de invoerafbeelding niet kopiëren, wordt afgebroken.\n"
 
-#: src/core/command.c:5366
+#: src/core/command.c:5365
 msgid "CieLAB"
 msgstr "CieLAB"
 
-#: src/core/command.c:5725
+#: src/core/command.c:5724
 #, c-format
 msgid "Reconstructing %s Bayer matrix.\n"
 msgstr "%s Bayer-matrix reconstrueren.\n"
 
-#: src/core/command.c:5932
+#: src/core/command.c:5931
 #, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "Statistische berekening mislukt voor kanaal %d (allemaal nul?).\n"
 
-#: src/core/command.c:5953 src/core/command.c:5958
+#: src/core/command.c:5952 src/core/command.c:5957
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -13296,7 +13327,7 @@ msgstr ""
 "%s laag: Gemiddelde: %0.1f, Mediaan: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: "
 "%0.1f, bgnoise: %0.1f\n"
 
-#: src/core/command.c:5970 src/core/command.c:5977
+#: src/core/command.c:5969 src/core/command.c:5976
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -13305,63 +13336,63 @@ msgstr ""
 "%s laag: Gemiddelde: %0.1f, Mediaan: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: "
 "%0.1f, bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 
-#: src/core/command.c:6063
+#: src/core/command.c:6062
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
 msgstr "Er lijkt geen afbeelding te zijn geladen, opnieuw laden vanaf '%s'\n"
 
-#: src/core/command.c:6166
+#: src/core/command.c:6165
 #, c-format
 msgid "Failed to save the JSON file %s: %s\n"
 msgstr "Kan het JSON-bestand %s niet opslaan: %s\n"
 
-#: src/core/command.c:6169
+#: src/core/command.c:6168
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
 msgstr "Sla metadata op in het JSON-bestand '%s'\n"
 
-#: src/core/command.c:6182 src/io/remote_catalogues.c:486
+#: src/core/command.c:6181 src/io/remote_catalogues.c:486
 msgid ""
 "json-glib was not found at build time, cannot proceed. Install and rebuild.\n"
 msgstr ""
 "json-glib is niet gevonden tijdens het bouwen, kan niet doorgaan. "
 "Installeren en opnieuw herbouw.\n"
 
-#: src/core/command.c:6201
+#: src/core/command.c:6200
 #, c-format
 msgid "Image %d, %s = %s\n"
 msgstr "Afbeelding %d, %s = %s\n"
 
-#: src/core/command.c:6210
+#: src/core/command.c:6209
 msgid "This command can only run for FITS images\n"
 msgstr "Dit commando kan alleen worden uitgevoerd op FITS-afbeeldingen\n"
 
-#: src/core/command.c:6229
+#: src/core/command.c:6228
 #, c-format
 msgid "Failed to create output file: %s\n"
 msgstr "Kan uitvoerbestand niet maken: %s\n"
 
-#: src/core/command.c:6235
+#: src/core/command.c:6234
 msgid "Failed to write to output file\n"
 msgstr "Kan niet schrijven naar uitvoerbestand\n"
 
-#: src/core/command.c:6251 src/core/command.c:6378
+#: src/core/command.c:6250 src/core/command.c:6377
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
 msgstr ""
 "Het eerste argument is de geconverteerde reeksnaam en zal niet beginnen met "
 "een -\n"
 
-#: src/core/command.c:6301
+#: src/core/command.c:6300
 #, c-format
 msgid "Link: error opening working directory %s.\n"
 msgstr "Link: fout bij openen van werkmap %s.\n"
 
-#: src/core/command.c:6324
+#: src/core/command.c:6323
 msgid "No FITS files were found for link\n"
 msgstr "Er zijn geen FITS-bestanden gevonden voor link\n"
 
-#: src/core/command.c:6335 src/core/command.c:6485
+#: src/core/command.c:6334 src/core/command.c:6484
 msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
@@ -13369,27 +13400,27 @@ msgstr ""
 "Je moet een extra argument doorgeven -fitseq om je reeks om te zetten naar "
 "het formaat van fitseq.\n"
 
-#: src/core/command.c:6341
+#: src/core/command.c:6340
 #, c-format
 msgid "Link: processing %d FITS file...\n"
 msgid_plural "Link: processing %d FITS files...\n"
 msgstr[0] "Link: %d FITS-bestand verwerken...\n"
 msgstr[1] "Link: %d FITS-bestanden verwerken...\n"
 
-#: src/core/command.c:6347
+#: src/core/command.c:6346
 msgid "Link: no working directory set.\n"
 msgstr "Link: geen werkmap ingesteld.\n"
 
-#: src/core/command.c:6373
+#: src/core/command.c:6372
 msgid "Conversion: no working directory set.\n"
 msgstr "Cenversie: geen werkfolder gedefiniëerd.\n"
 
-#: src/core/command.c:6442
+#: src/core/command.c:6441
 #, c-format
 msgid "Conversion: error opening working directory %s.\n"
 msgstr "Conversie: fout bij het opnenen van de werkfolder %s.\n"
 
-#: src/core/command.c:6459 src/gui/conversion.c:196
+#: src/core/command.c:6458 src/gui/conversion.c:196
 msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
@@ -13397,51 +13428,51 @@ msgstr ""
 "FujiFilm XTRANS-sensoren worden niet ondersteund door de SER v2-standaard "
 "(CFA-stijl). U kunt in plaats daarvan FITS-reeksen gebruiken."
 
-#: src/core/command.c:6473
+#: src/core/command.c:6472
 msgid "No RAW files were found for conversion\n"
 msgstr "Er zijn geen RAW-bestanden gevonden voor conversie\n"
 
-#: src/core/command.c:6474
+#: src/core/command.c:6473
 msgid "No files were found for conversion\n"
 msgstr "Er zijn geen bestanden gevonden voor conversie\n"
 
-#: src/core/command.c:6491
+#: src/core/command.c:6490
 #, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "Converteren: %d bestand verwerken...\n"
 msgstr[1] "Converteren: %d bestanden verwerken...\n"
 
-#: src/core/command.c:6568 src/registration/registration.c:1464
+#: src/core/command.c:6567 src/registration/registration.c:1464
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "Shift-only registratie is alleen mogelijk met OpenCV 4.4\n"
 
 #. using absolute min_pairs required by homography
-#: src/core/command.c:6619
+#: src/core/command.c:6618
 #, c-format
 msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr "%d kleiner dan minimaal toegestane sterparen: %d, wordt afgebroken.\n"
 
-#: src/core/command.c:6683 src/registration/registration.c:144
+#: src/core/command.c:6682 src/registration/registration.c:144
 msgid "Two-Pass Global Star Alignment (deep-sky)"
 msgstr "Two-Pass Global Star Alignment (deep-sky)"
 
-#: src/core/command.c:6686 src/registration/registration.c:142
+#: src/core/command.c:6685 src/registration/registration.c:142
 msgid "Global Star Alignment (deep-sky)"
 msgstr "Globale Ster Uitlijning (deep-sky)"
 
-#: src/core/command.c:6694
+#: src/core/command.c:6693
 msgid ""
 "The -nostarlist option has an effect only when -2pass is used, ignoring\n"
 msgstr ""
 "De optie -nostarlist heeft enkel effect als -2pass wordt gebruikt, negeren\n"
 
-#: src/core/command.c:6703 src/core/processing.c:143
+#: src/core/command.c:6702 src/core/processing.c:143
 #: src/registration/applyreg.c:653 src/registration/registration.c:1501
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "Onvoldoende ruimte om de uitvoerafbeeldingen op te slaan, afgebroken\n"
 
-#: src/core/command.c:6710
+#: src/core/command.c:6709
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation\n"
@@ -13449,7 +13480,7 @@ msgstr ""
 "De registratietransformatie dwingen om te verschuiven, wat de enige "
 "transformatie is die compatibel is met geen interpolatie\n"
 
-#: src/core/command.c:6713
+#: src/core/command.c:6712
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation, is not compatible with "
@@ -13459,7 +13490,7 @@ msgstr ""
 "transformatie is die compatibel is zonder interpolatie, is niet compatibel "
 "met OpenCV lager dan 4.4. Afbreken\n"
 
-#: src/core/command.c:6719 src/registration/registration.c:1528
+#: src/core/command.c:6718 src/registration/registration.c:1528
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
@@ -13469,32 +13500,32 @@ msgstr ""
 
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
-#: src/core/command.c:6727 src/registration/registration.c:1547
+#: src/core/command.c:6726 src/registration/registration.c:1547
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "Registratie: processing met methode: %s\n"
 
-#: src/core/command.c:6738 src/core/command.c:7016
+#: src/core/command.c:6737 src/core/command.c:7015
 #: src/registration/registration.c:1551
 msgid "Interpolation clamping active\n"
 msgstr "Interpolatieklemming actief\n"
 
-#: src/core/command.c:6761 src/core/command.c:6779 src/core/command.c:6798
-#: src/core/command.c:6817 src/core/command.c:6836 src/core/command.c:6854
+#: src/core/command.c:6760 src/core/command.c:6778 src/core/command.c:6797
+#: src/core/command.c:6816 src/core/command.c:6835 src/core/command.c:6853
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
 msgstr "Kon argument `%s' aan de filter `%s' niet ontleden , stoppen.\n"
 
-#: src/core/command.c:6894
+#: src/core/command.c:6893
 msgid "No registration data exists for this sequence, aborting\n"
 msgstr "Er zijn geen registratiegegevens voor deze reeks, wordt afgebroken\n"
 
-#: src/core/command.c:6980
+#: src/core/command.c:6979
 #, c-format
 msgid "Unknown framing type %s, aborting.\n"
 msgstr "Onbekend frametype %s, wordt afgebroken.\n"
 
-#: src/core/command.c:6996
+#: src/core/command.c:6995
 #, c-format
 msgid ""
 "Registration data does not exist for layer #%d, will use layer #%d instead.\n"
@@ -13502,11 +13533,11 @@ msgstr ""
 "Registratiegegevens bestaan niet voor laag #%d, in plaats daarvan wordt laag "
 "#%d gebruikt.\n"
 
-#: src/core/command.c:7018
+#: src/core/command.c:7017
 msgid "Registration: Applying existing data"
 msgstr "Registratie: toepassen van bestaande gegevens"
 
-#: src/core/command.c:7040
+#: src/core/command.c:7039
 msgid ""
 "Output normalization is allowed only with median or mean stacking, "
 "ignoring.\n"
@@ -13514,28 +13545,28 @@ msgstr ""
 "Uitvoernormalisatie is alleen toegestaan met mediaan of gemiddeld stacking, "
 "negeren.\n"
 
-#: src/core/command.c:7046 src/core/command.c:7056 src/core/command.c:7064
-#: src/core/command.c:7072
+#: src/core/command.c:7045 src/core/command.c:7055 src/core/command.c:7063
+#: src/core/command.c:7071
 msgid "Weighting is allowed only with average stacking, ignoring.\n"
 msgstr "Weging is alleen toegestaan bij gemiddelde stapeling, negeren.\n"
 
-#: src/core/command.c:7048 src/core/command.c:7074
+#: src/core/command.c:7047 src/core/command.c:7073
 msgid ""
 "Weighting is allowed only if normalization has been activated, ignoring.\n"
 msgstr ""
 "Weging is alleen toegestaan als normalisatie is geactiveerd, negeren.\n"
 
-#: src/core/command.c:7050 src/core/command.c:7058 src/core/command.c:7066
-#: src/core/command.c:7076
+#: src/core/command.c:7049 src/core/command.c:7057 src/core/command.c:7065
+#: src/core/command.c:7075
 msgid "Only one weighting method can be used\n"
 msgstr "Er kan slechts één wegingsmethode worden gebruikt\n"
 
-#: src/core/command.c:7082
+#: src/core/command.c:7081
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
 msgstr ""
 "Snelle normalisatie is alleen toegestaan met gemiddeld stacking, negeren.\n"
 
-#: src/core/command.c:7084
+#: src/core/command.c:7083
 msgid ""
 "Fast normalization is allowed only if normalization has been activated, "
 "ignoring.\n"
@@ -13543,16 +13574,16 @@ msgstr ""
 "Snelle normalisatie is alleen toegestaan als normalisatie is geactiveerd, "
 "negeren.\n"
 
-#: src/core/command.c:7090
+#: src/core/command.c:7089
 msgid "Normalization options are not allowed in this context, ignoring.\n"
 msgstr "Normalisatieopties niet toegestaan in deze context, genegeerd.\n"
 
-#: src/core/command.c:7104
+#: src/core/command.c:7103
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
 msgstr ""
 "RGB-equalization is alleen toegestaan bij gemiddeld stacking, negeren.\n"
 
-#: src/core/command.c:7106
+#: src/core/command.c:7105
 msgid ""
 "RGB equalization is allowed only if normalization has been activated, "
 "ignoring.\n"
@@ -13560,18 +13591,18 @@ msgstr ""
 "RGB-equalization is alleen toegestaan als normalisatie is geactiveerd, "
 "negeren.\n"
 
-#: src/core/command.c:7122
+#: src/core/command.c:7121
 msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr ""
 "Output bestandsnaam niet toegestaan in deze context, wordt genegeerd.\n"
 
-#: src/core/command.c:7126
+#: src/core/command.c:7125
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
 msgstr ""
 "Verwerpingsmappen kunnen alleen worden gemaakt met verwerping stacking, "
 "negeren.\n"
 
-#: src/core/command.c:7128
+#: src/core/command.c:7127
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
 "ignoring.\n"
@@ -13579,21 +13610,21 @@ msgstr ""
 "Verwerpingsmappen kunnen alleen worden gemaakt als verwerping is "
 "geactiveerd, negeren.\n"
 
-#: src/core/command.c:7136
+#: src/core/command.c:7135
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Onverwacht argument aan de stack `%s'. Stopgezet.\n"
 
-#: src/core/command.c:7155
+#: src/core/command.c:7154
 #, c-format
 msgid "Stacking sequence %s\n"
 msgstr "Stack reeks %s\n"
 
-#: src/core/command.c:7169
+#: src/core/command.c:7168
 msgid "Not using rejection for stacking\n"
 msgstr "Verwerping voor de stacking niet toegepast\n"
 
-#: src/core/command.c:7191
+#: src/core/command.c:7190
 #, c-format
 msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
@@ -13603,37 +13634,37 @@ msgstr ""
 "simpele verschuivingen. U moet de bestaande registratie toepassen voordat u "
 "gaat stapelen\n"
 
-#: src/core/command.c:7256
+#: src/core/command.c:7255
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr "Kan de resultaat %s van de staking niet oplsaan\n"
 
-#: src/core/command.c:7263 src/stacking/stacking.c:611
+#: src/core/command.c:7262 src/stacking/stacking.c:611
 msgid "Saving rejection maps\n"
 msgstr "Verwerpingsmap opslaan\n"
 
-#: src/core/command.c:7292 src/stacking/stacking.c:664
+#: src/core/command.c:7291 src/stacking/stacking.c:664
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr "Stacking gefaald, lees de log om het probleem op te lossen.\n"
 
-#: src/core/command.c:7317
+#: src/core/command.c:7316
 msgid "Looking for sequences in current working directory...\n"
 msgstr "Zoekt zequenties in huidige werkfolder...\n"
 
-#: src/core/command.c:7319
+#: src/core/command.c:7318
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr "Fout tijdens het zoeken van reeksen of bij het openen van de map.\n"
 
-#: src/core/command.c:7328
+#: src/core/command.c:7327
 msgid "Starting stacking of found sequences...\n"
 msgstr "Begin stacking van de gevonden reeksen\n"
 
-#: src/core/command.c:7340
+#: src/core/command.c:7339
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr "Stackte %d reeksen succesvol.\n"
 
-#: src/core/command.c:7397 src/core/command.c:7523
+#: src/core/command.c:7396 src/core/command.c:7522
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
@@ -13641,7 +13672,7 @@ msgstr ""
 "De gemiddelde stapeling met afwijzing vereist twee extra argumenten: sigma "
 "laag en hoog.\n"
 
-#: src/core/command.c:7402 src/core/command.c:7531
+#: src/core/command.c:7401 src/core/command.c:7530
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
@@ -13649,7 +13680,7 @@ msgstr ""
 "Extra parameters van het GESDT-afwijzingsalgoritme moeten tussen 0 en 1 "
 "zijn, standaard is 0.3 en 0.05.\n"
 
-#: src/core/command.c:7407 src/core/command.c:7536
+#: src/core/command.c:7406 src/core/command.c:7535
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
@@ -13657,12 +13688,12 @@ msgstr ""
 "Extra parameters van het percentielafwijzingsalgoritme moeten tussen 0 en 1 "
 "liggen, standaard is 0.2 en 0.1.\n"
 
-#: src/core/command.c:7416 src/core/command.c:7545
+#: src/core/command.c:7415 src/core/command.c:7544
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr "Stackingsmethode van type '%s' is ongeldig\n"
 
-#: src/core/command.c:7446 src/stacking/stacking.c:666
+#: src/core/command.c:7445 src/stacking/stacking.c:666
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
@@ -13670,47 +13701,47 @@ msgstr ""
 "Het lijkt erop dat er een geheugentoewijzingsfout is, verander de "
 "geheugeninstellingen en probeer deze te repareren.\n"
 
-#: src/core/command.c:7449
+#: src/core/command.c:7448
 msgid "Stacked sequence successfully.\n"
 msgstr "Reeks succesvol gestackt.\n"
 
-#: src/core/command.c:7493
+#: src/core/command.c:7492
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "Ontbrekende argumenten voor het stacking met verwerping.\n"
 
-#: src/core/command.c:7585 src/core/command.c:9138 src/core/preprocess.c:663
+#: src/core/command.c:7584 src/core/command.c:9137 src/core/preprocess.c:663
 #: src/core/preprocess.c:988
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "Kan het referentiebeeld van de reeks niet laden, wordt afgebroken.\n"
 
-#: src/core/command.c:7597 src/core/preprocess.c:556
+#: src/core/command.c:7596 src/core/preprocess.c:556
 msgid "Could not load the image, aborting.\n"
 msgstr "Kan de afbeelding niet laden, wordt afgebroken.\n"
 
-#: src/core/command.c:7622
+#: src/core/command.c:7621
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr ""
 "De offsetwaarde kon niet worden geparseerd uit expressie: %s, afbreken.\n"
 
-#: src/core/command.c:7628 src/core/preprocess.c:686
+#: src/core/command.c:7627 src/core/preprocess.c:686
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr "Synthetische offset: Niveau = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:7631
+#: src/core/command.c:7630
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr ""
 "De offsetwaarde is buiten de toegestane grenzen [-%d,%d], afgebroken.\n"
 
-#: src/core/command.c:7715
+#: src/core/command.c:7714
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr ""
 "Dark optimalisatie: dit proces kan niet worden toegepast op 8b-afbeeldingen\n"
 
-#: src/core/command.c:7743
+#: src/core/command.c:7742
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
@@ -13718,7 +13749,7 @@ msgstr ""
 "U moet een masterdark specificeren met -dark= voordat u deze optie "
 "activeert, afbreken.\n"
 
-#: src/core/command.c:7763
+#: src/core/command.c:7762
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
@@ -13726,12 +13757,12 @@ msgstr ""
 "Cosmetische correctie van masterdark: sigma %.2lf gebruiken voor koude "
 "pixels.\n"
 
-#: src/core/command.c:7765
+#: src/core/command.c:7764
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr ""
 "Cosmetische correctie van masterdark: gedeactiveerd voor koude pixels.\n"
 
-#: src/core/command.c:7767
+#: src/core/command.c:7766
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
@@ -13739,45 +13770,45 @@ msgstr ""
 "Cosmetische correctie van masterdark: sigma %.2lf gebruiken voor warme "
 "pixels.\n"
 
-#: src/core/command.c:7769
+#: src/core/command.c:7768
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr ""
 "Cosmetische correctie van masterdark: gedeactiveerd voor warme pixels.\n"
 
-#: src/core/command.c:7776
+#: src/core/command.c:7775
 #, c-format
 msgid "Could not open file %s, aborting.\n"
 msgstr "Kan bestand %s niet openen, wordt afgebroken.\n"
 
-#: src/core/command.c:7780
+#: src/core/command.c:7779
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
 msgstr "Cosmetische correctie van Slechte Pixelmap: %s.\n"
 
-#: src/core/command.c:7784
+#: src/core/command.c:7783
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr ""
 "U moet een slechte pixelmapbestand specificeren met de optie -cc=bpm, "
 "afgebroken.\n"
 
-#: src/core/command.c:7789
+#: src/core/command.c:7788
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
 msgstr "Onbekend argument %s, wordt afgebroken.\n"
 
-#: src/core/command.c:7827 src/core/command.c:7845 src/core/preprocess.c:925
+#: src/core/command.c:7826 src/core/command.c:7844 src/core/preprocess.c:925
 msgid "Preprocessing...\n"
 msgstr "Voorverwerking...\n"
 
-#: src/core/command.c:7866
+#: src/core/command.c:7865
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr "16-bits per kanaal in de modus voor verwerkte afbeeldingen is actief\n"
 
-#: src/core/command.c:7867
+#: src/core/command.c:7866
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr "32-bits per kanaal in de modus voor verwerkte afbeeldingen is actief\n"
 
-#: src/core/command.c:7883
+#: src/core/command.c:7882
 msgid "Please specify the type of compression and quantization value.\n"
 msgstr "Geef het type compressie en kwantiseringswaarde op.\n"
 
@@ -13794,20 +13825,20 @@ msgstr "Geef het type compressie en kwantiseringswaarde op.\n"
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:7910
+#: src/core/command.c:7909
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr "Verkeerd type compressie. Keuzes zijn rijst, gzip 1, bzip2\n"
 
-#: src/core/command.c:7914
+#: src/core/command.c:7913
 msgid "Please specify the value of quantization.\n"
 msgstr "Geef de waarde van de kwantisering op.\n"
 
-#: src/core/command.c:7921
+#: src/core/command.c:7920
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr ""
 "Kwantisering kan alleen gelijk zijn aan 0 voor GZIP1- en GZIP2-algoritmen.\n"
 
-#: src/core/command.c:7924
+#: src/core/command.c:7923
 #, c-format
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
@@ -13815,11 +13846,11 @@ msgstr ""
 "Compressie ingeschakeld met het %s-algoritme en een kwantiseringswaarde van "
 "%.2lf\n"
 
-#: src/core/command.c:7927
+#: src/core/command.c:7926
 msgid "No compression enabled.\n"
 msgstr "Geen compressie ingeschakeld.\n"
 
-#: src/core/command.c:7945
+#: src/core/command.c:7944
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
@@ -13828,14 +13859,14 @@ msgstr ""
 "Aantal logische processoren MOET groter dan 0 en kleiner of gelijk aan %d "
 "zijn.\n"
 
-#: src/core/command.c:7956
+#: src/core/command.c:7955
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] "Nu %d logische processor gebruikt\n"
 msgstr[1] "Nu %d logische processoren gebruiken\n"
 
-#: src/core/command.c:7973
+#: src/core/command.c:7972
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
@@ -13843,7 +13874,7 @@ msgstr ""
 "De toegelaten grenswaarden voor de geheugen ratio voor de stacking zijn "
 "[0.05, 4], met waarden onder de beschibare geheugen aangeraden\n"
 
-#: src/core/command.c:7977
+#: src/core/command.c:7976
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -13853,52 +13884,52 @@ msgstr ""
 "Een ratio boven 1 voor het geheugen voor de stacking maakt gebruik van on-"
 "disk geheugen, dewelke heel traag kan zijn en afgeraden is (%g aangevraagd)\n"
 
-#: src/core/command.c:7982
+#: src/core/command.c:7981
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr "Bruikbare geheugen voor de stacking aangepast tot %g\n"
 
-#: src/core/command.c:7989
+#: src/core/command.c:7988
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr "********* LIJST VAN BESCHIKBARE COMMANDO'S *********\n"
 
-#: src/core/command.c:7997
+#: src/core/command.c:7996
 #, c-format
 msgid "Can be used in a script: %s\n"
 msgstr "Kan gebruikt worden in een script: %s\n"
 
-#: src/core/command.c:7997 src/core/command_line_processor.c:451
+#: src/core/command.c:7996 src/core/command_line_processor.c:451
 msgid "YES"
 msgstr "JA"
 
-#: src/core/command.c:7997 src/core/command_line_processor.c:454
+#: src/core/command.c:7996 src/core/command_line_processor.c:454
 msgid "NO"
 msgstr "NEE"
 
-#: src/core/command.c:8007
+#: src/core/command.c:8006
 #, c-format
 msgid "Error: command %s is not available\n"
 msgstr "Fout: commando %s is niet beschikbaar\n"
 
-#: src/core/command.c:8021 src/core/OS_utils.c:497 src/core/OS_utils.c:511
+#: src/core/command.c:8020 src/core/OS_utils.c:497 src/core/OS_utils.c:511
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "processor"
 msgstr[1] "processoren"
 
-#: src/core/command.c:8123
+#: src/core/command.c:8122
 msgid "Required version is not correct.\n"
 msgstr "Vereiste versie is niet correct.\n"
 
-#: src/core/command.c:8154
+#: src/core/command.c:8153
 msgid "The required version of Siril is ok.\n"
 msgstr "De vereiste versie van Siril is in orde.\n"
 
-#: src/core/command.c:8159
+#: src/core/command.c:8158
 msgid "A newer version of Siril is required, please update your version.\n"
 msgstr "Een nieuwere versie van Siril is vereist, update uw versie.\n"
 
-#: src/core/command.c:8161
+#: src/core/command.c:8160
 #, c-format
 msgid ""
 "The script you are executing requires a newer version of Siril to run (%s), "
@@ -13907,16 +13938,16 @@ msgstr ""
 "Het script dat u uitvoert, vereist een nieuwere versie van Siril om te "
 "worden uitgevoerd (%s), en wordt afgebroken.\n"
 
-#: src/core/command.c:8171 src/core/command.c:8222
+#: src/core/command.c:8170 src/core/command.c:8221
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr "Huidige selectie [x, y, w, h]: %d %d %d %d\n"
 
-#: src/core/command.c:8174
+#: src/core/command.c:8173
 msgid "No current selection in image\n"
 msgstr "Geen huidige selectie in afbeelding\n"
 
-#: src/core/command.c:8181
+#: src/core/command.c:8180
 msgid ""
 "Too many arguments to boxselect, use either -clear or the coordinates, not "
 "both.\n"
@@ -13924,15 +13955,15 @@ msgstr ""
 "Te veel argumenten voor boxselect, gebruik -clear of de coördinaten, niet "
 "beide.\n"
 
-#: src/core/command.c:8185
+#: src/core/command.c:8184
 msgid "Selected area in image was cleared\n"
 msgstr "Het geselecteerde gebied in de afbeelding is gewist\n"
 
-#: src/core/command.c:8191 src/core/command.c:8207
+#: src/core/command.c:8190 src/core/command.c:8206
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr "Specificeer a.u.b. x, y, w en h, afbreken\n"
 
-#: src/core/command.c:8211
+#: src/core/command.c:8210
 #, c-format
 msgid ""
 "The provided coordinates are outside the dimension of the currently loaded "
@@ -13941,37 +13972,37 @@ msgstr ""
 "De verstrekte coördinaten vallen buiten de afmetingen van de momenteel "
 "geladen afbeelding (%d x %d).\n"
 
-#: src/core/command.c:8216
+#: src/core/command.c:8215
 msgid "Overriding previous selection\n"
 msgstr "Eerdere selectie overschrijven\n"
 
-#: src/core/command.c:8268 src/core/command.c:8299
+#: src/core/command.c:8267 src/core/command.c:8298
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr ""
 "De afbeeldingen moeten allemaal dezelfde afmetingen hebben en monochroom "
 "zijn\n"
 
-#: src/core/command.c:8354
+#: src/core/command.c:8353
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr ""
 
-#: src/core/command.c:8364 src/core/command.c:8376 src/core/command.c:9050
-#: src/core/command.c:9062
+#: src/core/command.c:8363 src/core/command.c:8375 src/core/command.c:9049
+#: src/core/command.c:9061
 msgid "Could not parse target coordinates\n"
 msgstr "Kan doelcoördinaten niet analyseren\n"
 
-#: src/core/command.c:8446
+#: src/core/command.c:8445
 msgid "Catalog can only be NOMAD or APASS for photometric usage\n"
 msgstr "Catalogus kunnen enkel NOMAD of APASS zijn voor fotometrisch gebruik\n"
 
-#: src/core/command.c:8454
+#: src/core/command.c:8453
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr ""
 "Het specificeren van een catalogus heeft geen effect op het solven van "
 "astrometry.net\n"
 
-#: src/core/command.c:8456
+#: src/core/command.c:8455
 msgid ""
 "Astrometry.net interaction relies on the missing WCSLIB software, cannot "
 "continue.\n"
@@ -13979,27 +14010,27 @@ msgstr ""
 "Astrometry.net-interactie is afhankelijk van de ontbrekende WCSLIB-software, "
 "kan niet doorgaan.\n"
 
-#: src/core/command.c:8474
+#: src/core/command.c:8473
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr "Externe %s gebruiken in plaats van de lokale NOMAD-catalogus\n"
 
-#: src/core/command.c:8482
+#: src/core/command.c:8481
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr ""
 
-#: src/core/command.c:8536
+#: src/core/command.c:8535
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr "Doelcoördinaat uit afbeeldingsheader gebruiken: %f, %f\n"
 
-#: src/core/command.c:8544
+#: src/core/command.c:8543
 msgid "Photometric color correction will use plate solving first\n"
 msgstr "Fotometrische kleurcorrectie maakt eerst gebruik van plate-solving\n"
 
-#: src/core/command.c:8545
+#: src/core/command.c:8544
 msgid ""
 "Photometric color correction will use WCS information and bypass internal "
 "plate solver\n"
@@ -14007,55 +14038,55 @@ msgstr ""
 "Fotometrische kleurcorrectie maakt gebruik van WCS-informatie en omzeilt de "
 "interne plaatoplosser\n"
 
-#: src/core/command.c:8547
+#: src/core/command.c:8546
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr "Afbeelding is al geplate-solved. Er zal niets worden gedaan.\n"
 
-#: src/core/command.c:8568 src/core/command.c:8592
+#: src/core/command.c:8567 src/core/command.c:8591
 msgid ""
 "Focal length and pixel size are only used for plate solving, ignored now\n"
 msgstr ""
 "Brandpuntsafstand en pixelgrootte worden alleen gebruikt voor plate-solving, "
 "nu genegeerd\n"
 
-#: src/core/command.c:8571
+#: src/core/command.c:8570
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr "Gebruik van opgegeven pixelgrootte: %.2f\n"
 
-#: src/core/command.c:8585
+#: src/core/command.c:8584
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr "Pixelgrootte uit voorkeuren gebruiken: %.2f\n"
 
-#: src/core/command.c:8587
+#: src/core/command.c:8586
 #, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr "Pixelgrootte van afbeelding gebruiken: %.2f\n"
 
-#: src/core/command.c:8595
+#: src/core/command.c:8594
 #, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr "Gebruik van de meegeleverde brandpuntsafstand: %.2f\n"
 
-#: src/core/command.c:8609
+#: src/core/command.c:8608
 #, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr "Brandpuntsafstand uit voorkeuren gebruiken: %.2f\n"
 
-#: src/core/command.c:8611
+#: src/core/command.c:8610
 #, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr "Brandpuntsafstand van afbeelding gebruiken: %.2f\n"
 
-#: src/core/command.c:8616 src/core/command.c:8628
+#: src/core/command.c:8615 src/core/command.c:8627
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
 "Argumenten voor wijziging van de magnitude zijn nutteloos voor plate-solving "
 "op astrometry.net\n"
 
-#: src/core/command.c:8721
+#: src/core/command.c:8720
 #, fuzzy
 msgid ""
 "This option only works on images that have observation date information\n"
@@ -14063,54 +14094,54 @@ msgstr ""
 "Deze commando werkt alleen op afbeeldingen met informatie over de "
 "waarnemingsdatum\n"
 
-#: src/core/command.c:8731
+#: src/core/command.c:8730
 msgid "The observatory should be coded as a 3-letter word\n"
 msgstr ""
 
-#: src/core/command.c:8744
+#: src/core/command.c:8743
 #, fuzzy
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Auto moet aan of uit staan, wordt afgebroken.\n"
 
-#: src/core/command.c:8754
+#: src/core/command.c:8753
 #, fuzzy
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr ""
 "Verkeerde parameterwaarden. Auto moet aan of uit staan, wordt afgebroken.\n"
 
-#: src/core/command.c:8780
+#: src/core/command.c:8779
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr ""
 
-#: src/core/command.c:8876 src/core/command.c:8920
+#: src/core/command.c:8875 src/core/command.c:8919
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "Onbekende optie geboden: %s\n"
 
-#: src/core/command.c:8931 src/core/command.c:8952
+#: src/core/command.c:8930 src/core/command.c:8951
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 "Live stacking moet eerst worden geïnitialiseerd met het commando START_LS\n"
 
-#: src/core/command.c:8935
+#: src/core/command.c:8934
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 "Live stacking is geconfigureerd om bestanden te bekijken, niet dit commando\n"
 
-#: src/core/command.c:8977
+#: src/core/command.c:8976
 #, c-format
 msgid "String in: %s\n"
 msgstr "String in: %s\n"
 
-#: src/core/command.c:8978
+#: src/core/command.c:8977
 #, c-format
 msgid "String out: %s\n"
 msgstr "String uit: %s\n"
 
-#: src/core/command.c:9147
+#: src/core/command.c:9146
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
@@ -14118,66 +14149,66 @@ msgstr ""
 "Fout: CFA-modus kan niet worden gebruikt met kleurenafbeeldingen of mono-"
 "afbeeldingen zonder Bayer-patroon.\n"
 
-#: src/core/command.c:9187
+#: src/core/command.c:9186
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "Onjuiste optie volgt -layer=, wordt afgebroken.\n"
 
-#: src/core/command.c:9218
+#: src/core/command.c:9217
 #, fuzzy
 msgid "Error: Could not parse -from values.\n"
 msgstr "Fout: Kan %s waarden niet parseren.\n"
 
-#: src/core/command.c:9226
+#: src/core/command.c:9225
 #, fuzzy
 msgid "Error: Could not parse -to values.\n"
 msgstr "Fout: Kan %s waarden niet parseren.\n"
 
-#: src/core/command.c:9234
+#: src/core/command.c:9233
 #, fuzzy
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "Fout: Kan %s waarden niet parseren.\n"
 
-#: src/core/command.c:9242
+#: src/core/command.c:9241
 #, fuzzy
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "Fout: Kan %s waarden niet parseren.\n"
 
-#: src/core/command.c:9248
+#: src/core/command.c:9247
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Fout: deze optie kan niet worden gebruikt voor reeksen.\n"
 
-#: src/core/command.c:9278
+#: src/core/command.c:9277
 #, fuzzy
 msgid "Error: sequence has variable sized images.\n"
 msgstr "Fout: zoekfout in bestand.\n"
 
-#: src/core/command.c:9357
+#: src/core/command.c:9356
 #, fuzzy
 msgid "Error opening target ICC profile.\n"
 msgstr "Fout bij het openen van het bestand %s\n"
 
-#: src/core/command.c:9361
+#: src/core/command.c:9360
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
-#: src/core/command.c:9364 src/core/command.c:9427
+#: src/core/command.c:9363 src/core/command.c:9426
 #, fuzzy
 msgid "Error opening ICC profile.\n"
 msgstr "Fout bij het openen van het bestand"
 
-#: src/core/command.c:9380
+#: src/core/command.c:9379
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr ""
 
-#: src/core/command.c:9394
+#: src/core/command.c:9393
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
 
-#: src/core/command.c:9425
+#: src/core/command.c:9424
 #, fuzzy
 msgid "Color space conversion complete.\n"
 msgstr "Kernelschatting voltooid.\n"
@@ -18777,569 +18808,590 @@ msgstr "Alle beelden die nog geen output hebben bewerken (%d)"
 msgid "for a total of images processed of %d)\n"
 msgstr "voor een totaal van %d bewerkte beelden)\n"
 
-#: src/core/settings.c:281
+#: src/core/settings.c:295
 msgid "current working directory"
 msgstr "huidige werkmap"
 
-#: src/core/settings.c:282
+#: src/core/settings.c:296
 msgid "FITS file extension"
 msgstr "FITS-bestandsextensie"
 
-#: src/core/settings.c:283
+#: src/core/settings.c:297
 msgid "don't use 32 bits for pixel depth"
 msgstr "gebruik geen 32 bits voor pixeldiepte"
 
-#: src/core/settings.c:284
+#: src/core/settings.c:298
 #, fuzzy
 msgid "embed ICC profiles in FITS when saving"
 msgstr "Sluit sRGB ICC-profiel in de afbeelding in"
 
-#: src/core/settings.c:285
+#: src/core/settings.c:299
 msgid "allow FITS cubes to have different sizes"
 msgstr "toestaan dat FITS-kubussen verschillende maten hebben"
 
-#: src/core/settings.c:286
+#: src/core/settings.c:300
 msgid "memory mode (0 ratio, 1 amount)"
 msgstr "geheugenmodus (0 verhouding, 1 hoeveelheid)"
 
-#: src/core/settings.c:287
+#: src/core/settings.c:301
 msgid "memory ratio of available"
 msgstr "geheugenverhouding van beschikbaar"
 
-#: src/core/settings.c:288
+#: src/core/settings.c:302
 msgid "amount of memory in GB"
 msgstr "hoeveelheid geheugen in GB"
 
-#: src/core/settings.c:289
+#: src/core/settings.c:303
 msgid "HD AutoStretch bit depth"
 msgstr "HD AutoStretch bitdiepte"
 
-#: src/core/settings.c:290
+#: src/core/settings.c:304
 msgid "need requires cmd in script"
 msgstr "vereist commando in script"
 
-#: src/core/settings.c:291
+#: src/core/settings.c:305
 msgid "need requires cmd in pipe"
 msgstr "vereist commando in pipe"
 
-#: src/core/settings.c:292
+#: src/core/settings.c:306
 msgid "check update at start-up"
 msgstr "controleer de update bij het opstarten"
 
-#: src/core/settings.c:293
+#: src/core/settings.c:307
 msgid "active siril language"
 msgstr "actieve siril-taal"
 
-#: src/core/settings.c:294
+#: src/core/settings.c:308
 msgid "swap directory"
 msgstr "swapmap"
 
-#: src/core/settings.c:295
+#: src/core/settings.c:309
 msgid "update pixel size of binned images"
 msgstr "update pixelgrootte van binned afbeeldingen"
 
-#: src/core/settings.c:296
+#: src/core/settings.c:310
 msgid "WCS formalism used in FITS header"
 msgstr "WCS-formalisme gebruikt in FITS-header"
 
-#: src/core/settings.c:297
+#: src/core/settings.c:311
 msgid "Path of the namedstars.dat catalogue"
 msgstr "Pad van de namedstars.dat-catalogus"
 
-#: src/core/settings.c:298
+#: src/core/settings.c:312
 msgid "Path of the unnamedstars.dat catalogue"
 msgstr "Pad van de unnamedstars.dat-catalogus"
 
-#: src/core/settings.c:299
+#: src/core/settings.c:313
 msgid "Path of the deepstars.dat catalogue"
 msgstr "Pad van de deepstars.dat-catalogus"
 
-#: src/core/settings.c:300
+#: src/core/settings.c:314
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr "Pad van de USNO-NOMAD-1e8.dat-catalogus"
 
-#: src/core/settings.c:301
+#: src/core/settings.c:315
 msgid "add CTYPE3='RGB' in the FITS header"
 msgstr "add CTYPE3='RGB' in de FITS-header"
 
-#: src/core/settings.c:302
+#: src/core/settings.c:316
 msgid "user copyright to put in file header"
 msgstr "gebruikersauteursrecht om in de bestandsheader te plaatsen"
 
-#: src/core/settings.c:303
+#: src/core/settings.c:317
 msgid "location of the StarNet executable"
 msgstr "locatie van het uitvoerbare StarNet-bestand"
 
-#: src/core/settings.c:304
+#: src/core/settings.c:318
 msgid "location of the StarNet-torch weights file"
 msgstr "locatie van het gewichtenbestand van de StarNet-torch"
 
 #. TODO: remove when we release 1.4. For now, it's kept to avoid having the key removed when switching back and forth to 1.2/1.3
-#: src/core/settings.c:306
+#: src/core/settings.c:320
 msgid "directory of the gnuplot installation"
 msgstr "directory van de gnuplot-installatie"
 
-#: src/core/settings.c:308
+#: src/core/settings.c:322
 msgid "directory of the asnet_ansvr installation"
 msgstr "directory van de asnet_ansvr-installatie"
 
-#: src/core/settings.c:310
+#: src/core/settings.c:324
 msgid "directory containing the solve-field executable"
 msgstr "directory van de solve-field-installatie"
 
-#: src/core/settings.c:312
+#: src/core/settings.c:326
 msgid "FFTW planning timelimit"
 msgstr "FFTW planning tijdslimiet"
 
-#: src/core/settings.c:313
+#: src/core/settings.c:327
 msgid "Convolution minimum kernel size to use FFTW"
 msgstr "Minimale kernelgrootte van de convolutie om FFTW te gebruiken"
 
-#: src/core/settings.c:315
+#: src/core/settings.c:329
 msgid "multithreaded FFTW"
 msgstr "multithreaded FFTW"
 
-#: src/core/settings.c:317
+#: src/core/settings.c:331
 msgid "focal length in mm for radius adjustment"
 msgstr "brandpuntsafstand in mm voor afstelling van de radius"
 
-#: src/core/settings.c:318
+#: src/core/settings.c:332
 msgid "pixel size in µm for radius adjustment"
 msgstr "pixelgrootte in µm voor afstelling van de radius"
 
-#: src/core/settings.c:320
+#: src/core/settings.c:334
 msgid "use pattern from the file header"
 msgstr "gebruik patroon uit de bestandsheader"
 
-#: src/core/settings.c:321
+#: src/core/settings.c:335
 msgid "index of the Bayer pattern"
 msgstr "index van het Bayer-patroon"
 
-#: src/core/settings.c:322
+#: src/core/settings.c:336
 msgid "type of interpolation"
 msgstr "soort interpolatie"
 
-#: src/core/settings.c:323
+#: src/core/settings.c:337
 msgid "force debayer top-down"
 msgstr "forceer debayer van bovenaf"
 
-#: src/core/settings.c:324
+#: src/core/settings.c:338
 msgid "Bayer matrix offset X"
 msgstr "Bayer-matrixverschuiving X"
 
-#: src/core/settings.c:325
+#: src/core/settings.c:339
 msgid "Bayer matrix offset Y"
 msgstr "Bayer-matrixverschuiving Y"
 
-#: src/core/settings.c:326
+#: src/core/settings.c:340
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
 msgstr "Aantal passes voor het X-Trans Markesteijn algoritme"
 
-#: src/core/settings.c:328
+#: src/core/settings.c:342
 msgid "electrons per ADU for noise estimation"
 msgstr "elektronen per ADU voor ruisschatting"
 
-#: src/core/settings.c:329
+#: src/core/settings.c:343
 msgid "inner radius for background annulus"
 msgstr "binnenradius voor achtergrondring"
 
-#: src/core/settings.c:330
+#: src/core/settings.c:344
 msgid "outer radius for background annulus"
 msgstr "buitenradius voor achtergrondring"
 
-#: src/core/settings.c:331
+#: src/core/settings.c:345
 msgid "factor for inner radius automatic computation"
 msgstr "factor voor automatische berekening van de binnenradius"
 
-#: src/core/settings.c:332
+#: src/core/settings.c:346
 msgid "factor for outer radius automatic computation"
 msgstr "factor voor automatische berekening van de buitenradius"
 
-#: src/core/settings.c:333
+#: src/core/settings.c:347
 msgid "force flux aperture value"
 msgstr "forceer flux-opening waarde"
 
-#: src/core/settings.c:334
+#: src/core/settings.c:348
 msgid "forced aperture for flux computation"
 msgstr "vast opening voor fluxberekening"
 
-#: src/core/settings.c:335
+#: src/core/settings.c:349
 msgid "minimum valid pixel value for photometry"
 msgstr "minimaal geldige pixelwaarde voor fotometrie"
 
-#: src/core/settings.c:336
+#: src/core/settings.c:350
 msgid "maximum valid pixel value for photometry"
 msgstr "maximaal geldige pixelwaarde voor fotometrie"
 
-#: src/core/settings.c:338
+#: src/core/settings.c:352
 msgid "degrees of the polynomial correction"
 msgstr "graad van de polynoomcorrectie"
 
-#: src/core/settings.c:339
+#: src/core/settings.c:353
 msgid "radius around the target coordinates (degrees)"
 msgstr "radius rond de doelcoördinaten (graden)"
 
-#: src/core/settings.c:340
+#: src/core/settings.c:354
 msgid "do not delete .xyls FITS tables"
 msgstr "verwijder geen .xyls FITS-tabellen"
 
-#: src/core/settings.c:341
+#: src/core/settings.c:355
 msgid "do not delete .wcs result files"
 msgstr "verwijder geen .wcs resultaatbestanden"
 
-#: src/core/settings.c:342
+#: src/core/settings.c:356
 msgid "maximum seconds to try solving"
 msgstr "maximale seconden om te proberen te solven"
 
-#: src/core/settings.c:343
+#: src/core/settings.c:357
 msgid "show solve-field output in main log"
 msgstr "uitvoer van het slove-field weergeven in hoofdlog"
 
-#: src/core/settings.c:345
+#: src/core/settings.c:359
 msgid "update default focal length and pixel size from the result"
 msgstr "update standaard brandpuntsafstand en pixelgrootte van het resultaat"
 
-#: src/core/settings.c:346
+#: src/core/settings.c:360
 msgid "percent below and above the expected sampling to allow"
 msgstr "procent onder en boven de verwachte sampling om toe te staan"
 
-#: src/core/settings.c:348
+#: src/core/settings.c:362
 msgid "panel size of aberration inspector"
 msgstr "paneelgrootte van aberratie-inspecteur"
 
-#: src/core/settings.c:349
+#: src/core/settings.c:363
 msgid "window size of aberration inspector"
 msgstr "venstergrootte van aberratie-inspecteur"
 
-#: src/core/settings.c:351
+#: src/core/settings.c:365
 msgid "FITS compression enabled"
 msgstr "FITS-compressie ingeschakeld"
 
-#: src/core/settings.c:352
+#: src/core/settings.c:366
 msgid "FITS compression method"
 msgstr "FITS-compressie ingeschakeld"
 
-#: src/core/settings.c:353
+#: src/core/settings.c:367
 msgid "quantization factor for 32-bit float"
 msgstr "kwantiseringsfactor voor 32-bits float"
 
-#: src/core/settings.c:354
+#: src/core/settings.c:368
 msgid "Hcompress scale factor"
 msgstr "Hcompress schaalfactor"
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
-#: src/core/settings.c:357
+#: src/core/settings.c:371
 msgid "type of sensor for cosmetic correction"
 msgstr "type sensor voor cosmetische correctie"
 
-#: src/core/settings.c:358
+#: src/core/settings.c:372
 msgid "equalize flat channels"
 msgstr "flat-kanalen egaliseren"
 
-#: src/core/settings.c:359
+#: src/core/settings.c:373
 msgid "enable correction for X-Trans sensor"
 msgstr "correctie inschakelen voor X-Trans-sensor"
 
-#: src/core/settings.c:360 src/core/settings.c:361 src/core/settings.c:362
-#: src/core/settings.c:363 src/core/settings.c:364 src/core/settings.c:365
-#: src/core/settings.c:366 src/core/settings.c:367
+#: src/core/settings.c:374 src/core/settings.c:375 src/core/settings.c:376
+#: src/core/settings.c:377 src/core/settings.c:378 src/core/settings.c:379
+#: src/core/settings.c:380 src/core/settings.c:381
 msgid "if no X-Trans model found, use this"
 msgstr "als er geen X-Trans-model is gevonden, gebruik dit dan"
 
-#: src/core/settings.c:368
+#: src/core/settings.c:382
 msgid "default master bias"
 msgstr "standaard masterbias"
 
-#: src/core/settings.c:369
+#: src/core/settings.c:383
 msgid "use default master bias"
 msgstr "gebruik de standaard masterbias"
 
-#: src/core/settings.c:370
+#: src/core/settings.c:384
 msgid "default master dark"
 msgstr "standaard masterdark"
 
-#: src/core/settings.c:371
+#: src/core/settings.c:385
 msgid "use default master dark"
 msgstr "gebruik standaard master dark"
 
-#: src/core/settings.c:372
+#: src/core/settings.c:386
 msgid "default master flat"
 msgstr "standaard master-flat"
 
-#: src/core/settings.c:373
+#: src/core/settings.c:387
 msgid "use default master flat"
 msgstr "gebruik standaard master-flat"
 
-#: src/core/settings.c:374
+#: src/core/settings.c:388
 msgid "default stack name"
 msgstr "standaard stacknaam"
 
-#: src/core/settings.c:375
+#: src/core/settings.c:389
 msgid "use preferred stack name"
 msgstr "gebruik de voorkeursstacknaam"
 
-#: src/core/settings.c:377
+#: src/core/settings.c:391
 msgid "index of the selected registration method"
 msgstr "index van de geselecteerde registratiemethode"
 
-#: src/core/settings.c:378
+#: src/core/settings.c:392
 msgid "index of the selected interpolation method"
 msgstr "index van de geselecteerde interpolatiemethode"
 
-#: src/core/settings.c:379
+#: src/core/settings.c:393
 msgid "use clamping method with Lanczos and Cubic interpolation"
 msgstr "gebruik klemmethode met Lanczos en kubieke interpolatie"
 
-#: src/core/settings.c:381
+#: src/core/settings.c:395
 msgid "index of the selected method"
 msgstr "index van de geselecteerde methode"
 
-#: src/core/settings.c:382
+#: src/core/settings.c:396
 msgid "index of the normalization method"
 msgstr "index van de normalisatiemethode"
 
-#: src/core/settings.c:383
+#: src/core/settings.c:397
 msgid "index of the rejection method"
 msgstr "index van de verwerpingsmethode"
 
-#: src/core/settings.c:384
+#: src/core/settings.c:398
 msgid "index of the weighting method"
 msgstr "index van de wegingsmethode"
 
-#: src/core/settings.c:385
+#: src/core/settings.c:399
 msgid "sigma low value for rejection"
 msgstr "sigma laag-waarde voor verwerping"
 
-#: src/core/settings.c:386
+#: src/core/settings.c:400
 msgid "sigma high value for rejection"
 msgstr "sigma hoog-waarde voor verwerping"
 
-#: src/core/settings.c:387
+#: src/core/settings.c:401
 msgid "linear low value for rejection"
 msgstr "lineaire-laag waarde voor verwerping"
 
-#: src/core/settings.c:388
+#: src/core/settings.c:402
 msgid "linear high value for rejection"
 msgstr "lineaire-hoog waarde voor verwerping"
 
-#: src/core/settings.c:389
+#: src/core/settings.c:403
 msgid "percentile low value for rejection"
 msgstr "percentiel-laag waarde voor verwerping"
 
-#: src/core/settings.c:390
+#: src/core/settings.c:404
 msgid "percentile high value for rejection"
 msgstr "percentiel-hoog waarde voor verwerping"
 
-#: src/core/settings.c:392
+#: src/core/settings.c:406
 msgid "first start of siril"
 msgstr "eerste start van siril"
 
-#: src/core/settings.c:393
+#: src/core/settings.c:407
 msgid "don't confirm quit when exiting"
 msgstr "bevestig het afsluiten niet bij het afsluiten"
 
-#: src/core/settings.c:394
+#: src/core/settings.c:408
 msgid "don't confirm save when non linear mode"
 msgstr "bevestig het opslaan niet in niet-lineaire modus"
 
-#: src/core/settings.c:395
+#: src/core/settings.c:409
 msgid "remember window position"
 msgstr "onthoud de vensterpositie"
 
-#: src/core/settings.c:396 src/core/settings.c:397 src/core/settings.c:398
-#: src/core/settings.c:399
+#: src/core/settings.c:410 src/core/settings.c:411 src/core/settings.c:412
+#: src/core/settings.c:413
 msgid "main window position"
 msgstr "positie van het hoofdvenster"
 
-#: src/core/settings.c:400
+#: src/core/settings.c:414
 msgid "position of the two sides separator"
 msgstr "positie van de tweezijdige scheider"
 
-#: src/core/settings.c:401
+#: src/core/settings.c:415
 msgid "main window is extended"
 msgstr "hoofdvenster wordt verlengd"
 
-#: src/core/settings.c:402
+#: src/core/settings.c:416
 msgid "main window is maximized"
 msgstr "hoofdvenster is gemaximaliseerd"
 
-#: src/core/settings.c:403
+#: src/core/settings.c:417
 msgid "index of the selected theme"
 msgstr "index van het geselecteerde thema"
 
-#: src/core/settings.c:404
+#: src/core/settings.c:418
 msgid "font scale in percent"
 msgstr "lettertypeschaal in procenten"
 
-#: src/core/settings.c:405
+#: src/core/settings.c:419
 msgid "icon style"
 msgstr "icoon stijl"
 
-#: src/core/settings.c:406
+#: src/core/settings.c:420
 msgid "list of script directories"
 msgstr "lijst met scriptmappen"
 
-#: src/core/settings.c:407
+#: src/core/settings.c:421
 msgid "use and sync online scripts repository"
 msgstr ""
 
-#: src/core/settings.c:408
+#: src/core/settings.c:422
 msgid "auto sync online scripts repository"
 msgstr ""
 
-#: src/core/settings.c:409
+#: src/core/settings.c:423
 #, fuzzy
 msgid "list of scripts selected from the repository"
 msgstr "lijst met scriptmappen"
 
-#: src/core/settings.c:410
+#: src/core/settings.c:424
 msgid "warn when launching a script"
 msgstr "waarschuwen bij het starten van een script"
 
-#: src/core/settings.c:411
+#: src/core/settings.c:425
 msgid "show thumbnails in open dialog"
 msgstr "toon miniaturen in geopend dialoogvenster"
 
-#: src/core/settings.c:412
+#: src/core/settings.c:426
 msgid "size of the thumbnails"
 msgstr "grootte van de miniaturen"
 
-#: src/core/settings.c:413
+#: src/core/settings.c:427
 msgid "number of elements of the grid guides"
 msgstr "aantal elementen van de rasterhulplijnen"
 
-#: src/core/settings.c:414
+#: src/core/settings.c:428
 msgid "show tenths of arcseconds on hover"
 msgstr "toon tienden van boogseconden bij zweven"
 
-#: src/core/settings.c:415
+#: src/core/settings.c:429
 msgid "default display mode"
 msgstr "standaard weergavemodus"
 
-#: src/core/settings.c:416
+#: src/core/settings.c:430
 msgid "default histogram display mode"
 msgstr "standaard histogramweergavemodus"
 
-#: src/core/settings.c:417
+#: src/core/settings.c:431
 #, fuzzy
 msgid "ROI selection mode"
 msgstr "Geen selectie"
 
-#: src/core/settings.c:418
-msgid "Enable ROI dialog warning"
-msgstr ""
-
-#: src/core/settings.c:419
-msgid "path to custom monitor ICC profile"
-msgstr ""
-
-#: src/core/settings.c:420
-msgid "path to soft proofing ICC profile"
-msgstr ""
-
-#: src/core/settings.c:421
-msgid "custom monitor profile active"
-msgstr ""
-
-#: src/core/settings.c:422
-msgid "output proofing profile active"
-msgstr ""
-
-#: src/core/settings.c:423
-msgid "path to custom RGB ICC profile"
-msgstr ""
-
-#: src/core/settings.c:424
-msgid "path to custom gray ICC profile"
-msgstr ""
-
-#: src/core/settings.c:425
-msgid "color management rendering intent"
-msgstr ""
-
-#: src/core/settings.c:426
-msgid "color management soft proofing intent"
-msgstr ""
-
-#: src/core/settings.c:427
-msgid "color mangement export intent"
-msgstr ""
-
-#: src/core/settings.c:428
-msgid "default to sRGB when exporting non color managed images"
-msgstr ""
-
-#: src/core/settings.c:429
-msgid "color mangement working gamut"
-msgstr ""
-
-#: src/core/settings.c:430
-msgid "color mangement export profile for 8bit files"
-msgstr ""
-
-#: src/core/settings.c:431
-msgid "color mangement export profile for 16bit files"
-msgstr ""
-
 #: src/core/settings.c:432
-msgid "autoconvert images with an ICC profile to the working color space"
+msgid "enable ROI dialog warning"
 msgstr ""
 
 #: src/core/settings.c:433
-msgid "encodes ICC profile auto-assignment options"
-msgstr ""
+#, fuzzy
+msgid "configure background samples color"
+msgstr "Te weinig achtergrondsamples.\n"
 
 #: src/core/settings.c:434
-msgid "enable rendering BPC"
+msgid "configure standard annotation color"
 msgstr ""
 
 #: src/core/settings.c:435
-msgid "pedantically assign linear ICC profiles"
+msgid "configure dso annotation color"
+msgstr ""
+
+#: src/core/settings.c:436
+msgid "configure sso annotation color"
 msgstr ""
 
 #: src/core/settings.c:437
+msgid "configure tmp annotation color"
+msgstr ""
+
+#: src/core/settings.c:438
+msgid "path to custom monitor ICC profile"
+msgstr ""
+
+#: src/core/settings.c:439
+msgid "path to soft proofing ICC profile"
+msgstr ""
+
+#: src/core/settings.c:440
+msgid "custom monitor profile active"
+msgstr ""
+
+#: src/core/settings.c:441
+msgid "output proofing profile active"
+msgstr ""
+
+#: src/core/settings.c:442
+msgid "path to custom RGB ICC profile"
+msgstr ""
+
+#: src/core/settings.c:443
+msgid "path to custom gray ICC profile"
+msgstr ""
+
+#: src/core/settings.c:444
+msgid "color management rendering intent"
+msgstr ""
+
+#: src/core/settings.c:445
+msgid "color management soft proofing intent"
+msgstr ""
+
+#: src/core/settings.c:446
+msgid "color mangement export intent"
+msgstr ""
+
+#: src/core/settings.c:447
+msgid "default to sRGB when exporting non color managed images"
+msgstr ""
+
+#: src/core/settings.c:448
+msgid "color mangement working gamut"
+msgstr ""
+
+#: src/core/settings.c:449
+msgid "color mangement export profile for 8bit files"
+msgstr ""
+
+#: src/core/settings.c:450
+msgid "color mangement export profile for 16bit files"
+msgstr ""
+
+#: src/core/settings.c:451
+msgid "autoconvert images with an ICC profile to the working color space"
+msgstr ""
+
+#: src/core/settings.c:452
+msgid "encodes ICC profile auto-assignment options"
+msgstr ""
+
+#: src/core/settings.c:453
+msgid "enable rendering BPC"
+msgstr ""
+
+#: src/core/settings.c:454
+msgid "pedantically assign linear ICC profiles"
+msgstr ""
+
+#: src/core/settings.c:456
 msgid "index of the compass position over grid"
 msgstr "index van de kompaspositie op het raster"
 
-#: src/core/settings.c:438
+#: src/core/settings.c:457
 msgid "show Messier objects in annotations"
 msgstr "Messier-objecten in annotaties weergeven"
 
-#: src/core/settings.c:439
+#: src/core/settings.c:458
 msgid "show NGC objects in annotations"
 msgstr "NGC-objecten in annotaties weergeven"
 
-#: src/core/settings.c:440
+#: src/core/settings.c:459
 msgid "show IC objects in annotations"
 msgstr "IC-objecten in annotaties weergeven"
 
-#: src/core/settings.c:441
+#: src/core/settings.c:460
 msgid "show LDN objects in annotations"
 msgstr "LDN-objecten in annotaties weergeven"
 
-#: src/core/settings.c:442
+#: src/core/settings.c:461
 msgid "show SH2 objects in annotations"
 msgstr "SH2-objecten in annotaties weergeven"
 
-#: src/core/settings.c:443
+#: src/core/settings.c:462
 msgid "show stars in annotations"
 msgstr "sterren in annotaties weergeven"
 
-#: src/core/settings.c:444
+#: src/core/settings.c:463
 #, fuzzy
 msgid "show user DSO objects in annotations"
 msgstr "Gebruikersobjecten in annotaties weergeven"
 
-#: src/core/settings.c:445
+#: src/core/settings.c:464
 #, fuzzy
 msgid "show user SSO objects in annotations"
 msgstr "Gebruikersobjecten in annotaties weergeven"
 
-#: src/core/settings.c:447
+#: src/core/settings.c:466
 msgid "list of pixel math presets"
 msgstr "lijst met presets voor pixel math"
 
-#: src/core/settings.c:487
+#: src/core/settings.c:506
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
 msgstr "Onbekende instellingsvariabele %s.%s\n"
@@ -20120,15 +20172,15 @@ msgstr ""
 "Dit is een onstabiele ontwikkelingsversie\n"
 "commit %s\n"
 
-#: src/gui/about_dialog.c:80
+#: src/gui/about_dialog.c:78
 msgid "Astronomical image (pre-)processing program"
 msgstr "Software voor het bewerken van astronomische foto's"
 
-#: src/gui/about_dialog.c:81
+#: src/gui/about_dialog.c:79
 msgid "translator-credits"
 msgstr "vertaler-credits"
 
-#: src/gui/about_dialog.c:83
+#: src/gui/about_dialog.c:81
 msgid "Visit the Siril website"
 msgstr "Bezoek de website van Siril"
 
@@ -20914,9 +20966,9 @@ msgstr ""
 "Siril kan de startcoördinaat niet instellen omdat er geen selectie is gemaakt"
 
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:173
-#: src/gui/colors.c:259 src/gui/colors.c:270 src/gui/histogram.c:1710
+#: src/gui/colors.c:259 src/gui/colors.c:270 src/gui/histogram.c:1700
 #: src/gui/photometric_cc.c:199 src/gui/photometric_cc.c:217
-#: src/gui/remixer.c:1315 src/gui/remixer.c:1363
+#: src/gui/remixer.c:1309 src/gui/remixer.c:1357
 msgid "There is no selection"
 msgstr "Er is geen selectie"
 
@@ -20972,12 +21024,12 @@ msgstr "Kon link niet weergeven"
 msgid "Please go to <a href=\""
 msgstr "Gelieve naar <a href=\" te gaan"
 
-#: src/gui/histogram.c:151 src/gui/histogram.c:157 src/gui/histogram.c:1102
-#: src/gui/histogram.c:1108 src/gui/histogram.c:1790 src/gui/histogram.c:1807
+#: src/gui/histogram.c:151 src/gui/histogram.c:157 src/gui/histogram.c:1096
+#: src/gui/histogram.c:1102 src/gui/histogram.c:1780 src/gui/histogram.c:1797
 msgid "Channels warning"
 msgstr "Waarschuwing voor kanalen"
 
-#: src/gui/histogram.c:152 src/gui/histogram.c:1103 src/gui/histogram.c:1808
+#: src/gui/histogram.c:152 src/gui/histogram.c:1097 src/gui/histogram.c:1798
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
@@ -20985,7 +21037,7 @@ msgstr ""
 "Niet alle kleurkanalen zijn geselecteerd. Human luminance kleurmodel kan "
 "niet worden gebruikt: even gewogen luminantie kleurmodel instellen."
 
-#: src/gui/histogram.c:158 src/gui/histogram.c:1109 src/gui/histogram.c:1791
+#: src/gui/histogram.c:158 src/gui/histogram.c:1103 src/gui/histogram.c:1781
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
@@ -20993,110 +21045,110 @@ msgstr ""
 "Niet alle kleurkanalen zijn geselecteerd. Saturation stretch kan niet worden "
 "gebruikt: onafhankelijke kanalen kleurmodel instellen."
 
-#: src/gui/histogram.c:368
+#: src/gui/histogram.c:366
 msgid "Toggles whether to apply the stretch to the monochrome channel"
 msgstr "Schakelt tussen het toepassen van de stretch op het monochrome kanaal"
 
-#: src/gui/histogram.c:391 src/gui/sequence_list.c:127
+#: src/gui/histogram.c:386 src/gui/sequence_list.c:127
 msgid "Red channel"
 msgstr "Rood kanaal"
 
-#: src/gui/histogram.c:1240
+#: src/gui/histogram.c:1234
 #, c-format
 msgid "Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 msgstr "Histogramtransf. (mid=%.3f, lo=%.3f, hi=%.3f)"
 
-#: src/gui/histogram.c:1247
+#: src/gui/histogram.c:1241
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS pivot: %.3f, hoeveelheid: %.2f, lokaal: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1250
+#: src/gui/histogram.c:1244
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV pivot: %.3f, hoeveelheid: %.2f, lokaal: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1253
+#: src/gui/histogram.c:1247
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH spil: %.3f, hoeveelheid: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1256
+#: src/gui/histogram.c:1250
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV pivot: %.3f, hoeveelheid: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1259
+#: src/gui/histogram.c:1253
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
 msgstr "GHS LINEAR BP: %.2f"
 
-#: src/gui/histogram.c:1265
+#: src/gui/histogram.c:1259
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS SAT pivot: %.3f, hoeveelheid: %.2f, lokaal: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1268
+#: src/gui/histogram.c:1262
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 msgstr "GHS INV SAT pivot: %.3f, hoeveelheid: %.2f, lokaal: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1271
+#: src/gui/histogram.c:1265
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH SAT pivot: %.3f, hoeveelheid: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1274
+#: src/gui/histogram.c:1268
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 msgstr "GHS ASINH INV SAT spil: %.3f, hoeveelheid: %.2f [%.2f %.2f]"
 
-#: src/gui/histogram.c:1277
+#: src/gui/histogram.c:1271
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
 msgstr "GHS LINEAR SAT BP: %.2f"
 
-#: src/gui/histogram.c:1331
+#: src/gui/histogram.c:1325
 msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 "Kon autostretch-parameters niet berekenen, met gebruik van standaardwaarden\n"
 
-#: src/gui/histogram.c:1351
+#: src/gui/histogram.c:1345
 msgid "Generalised Hyperbolic Stretch Transformations"
 msgstr "Generalised Hyperbolic Stretch Transformaties"
 
-#: src/gui/histogram.c:1379 src/gui/histogram.c:1779
+#: src/gui/histogram.c:1369 src/gui/histogram.c:1769
 msgid "Clicking on the histogram sets SP"
 msgstr "Als u op het histogram klikt, wordt SP ingesteld"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1671
+#: src/gui/histogram.c:1661
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 "Schaduwbehoudpunt kan niet hoger worden ingesteld dan stretchbrandpunt\n"
 
-#: src/gui/histogram.c:1711 src/gui/remixer.c:1316 src/gui/remixer.c:1364
+#: src/gui/histogram.c:1701 src/gui/remixer.c:1310 src/gui/remixer.c:1358
 msgid "Make a selection of the point or area to set SP"
 msgstr "Maak een selectie van het punt of gebied waarop u SP wilt instellen"
 
 #. Prevent spamming the warning log message
-#: src/gui/histogram.c:1750
+#: src/gui/histogram.c:1740
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
 msgstr ""
 "Highlight-behoudspunt kan niet lager worden ingesteld dan stretchbrandpunt\n"
 
-#: src/gui/histogram.c:1777
+#: src/gui/histogram.c:1767
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr ""
 "Als u op het histogram voor lineaire uitrekking klikt, wordt BP ingesteld"
 
-#: src/gui/histogram.c:1926
+#: src/gui/histogram.c:1916
 msgid "Midtone Transfer Function"
 msgstr "Midtone Transfer Function"
 
-#: src/gui/histogram.c:1956
+#: src/gui/histogram.c:1946
 msgid "Generalised Hyperbolic Transfer Function"
 msgstr "Gegeneraliseerde hyperbolische transferfunctie"
 
@@ -21108,7 +21160,7 @@ msgstr ""
 "Fout: geheugentoewijzing mislukt bij het instantiëren van HD LUTs. "
 "Terugkeren naar standaard 16 bit LUTs.\n"
 
-#: src/gui/image_display.c:717
+#: src/gui/image_display.c:715
 #, c-format
 msgid ""
 "<big>Unstable Development Version</big>\n"
@@ -21702,26 +21754,26 @@ msgstr "Houd alleen punten binnen de selectie"
 msgid "Exclude selected points"
 msgstr "Geselecteerde punten uitsluiten"
 
-#: src/gui/preferences.c:449
+#: src/gui/preferences.c:474
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr "Schrijven in deze map is niet toegestaan: %s\n"
 
-#: src/gui/preferences.c:468
+#: src/gui/preferences.c:493
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr "U hebt geen toestemming om dit bestand uit te voeren: %s\n"
 
-#: src/gui/preferences.c:506
+#: src/gui/preferences.c:531
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr "Je hebt geen rechten om dit bestand te lezen: %s\n"
 
-#: src/gui/preferences.c:535
+#: src/gui/preferences.c:560
 msgid "Cannot refresh script list"
 msgstr "Kan scriptlijst niet vernieuwen"
 
-#: src/gui/preferences.c:825
+#: src/gui/preferences.c:872
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
@@ -21729,7 +21781,7 @@ msgstr ""
 "De waarde van de binnenradius moet kleiner zijn dan de waarde van de "
 "buitenradius. Wijzig de waarde op het tabblad Fotometrie."
 
-#: src/gui/preferences.c:834
+#: src/gui/preferences.c:881
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
@@ -21737,28 +21789,28 @@ msgstr ""
 "Kwantisering op 0 zetten heeft alleen zin bij een GZIP-compressie en GZIP 2 "
 "produceert vaak betere compressie van floatingpoint afbeeldingen."
 
-#: src/gui/preferences.c:846
+#: src/gui/preferences.c:893
 msgid "Wrong value"
 msgstr "Foute waarde"
 
-#: src/gui/preferences.c:885
+#: src/gui/preferences.c:932
 msgid "Reset all preferences"
 msgstr "Alle voorkeuren resetten"
 
-#: src/gui/preferences.c:886
+#: src/gui/preferences.c:933
 msgid "Do you really want to reset all preferences to default value?"
 msgstr "Wilt u echt alle voorkeuren terugzetten naar de standaardwaarde?"
 
-#: src/gui/preferences.c:887
+#: src/gui/preferences.c:934
 msgid "Reset Preferences"
 msgstr "Reset voorkeuren"
 
-#: src/gui/preferences.c:902
+#: src/gui/preferences.c:949
 #, fuzzy
 msgid "External ICC Profiles"
 msgstr "ICC profiel"
 
-#: src/gui/preferences.c:902
+#: src/gui/preferences.c:949
 msgid ""
 "In order to use ICC profiles loaded from files as your preferred color space "
 "you must set the Preferred Color Space drop-down to \"From files\"."
@@ -21903,11 +21955,11 @@ msgstr "Niet-opgeslagen resultaat van sterhercompositie"
 msgid "Star recomposition"
 msgstr "Sterhercompositie"
 
-#: src/gui/remixer.c:692 src/gui/remixer.c:1432
+#: src/gui/remixer.c:692 src/gui/remixer.c:1426
 msgid "Show advanced stretch options."
 msgstr "Geavanceerde stretchopties weergeven."
 
-#: src/gui/remixer.c:1045 src/gui/remixer.c:1062
+#: src/gui/remixer.c:1039 src/gui/remixer.c:1056
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of the current selection. This helps in picking out "
@@ -21917,56 +21969,56 @@ msgstr ""
 "basis van de gemiddelde waarde van de huidige selectie. Dit helpt bij het "
 "uitkiezen van zwakke details boven de donkere achtergrond."
 
-#: src/gui/remixer.c:1048 src/gui/remixer.c:1065
+#: src/gui/remixer.c:1042 src/gui/remixer.c:1059
 msgid "Eyedropper disabled with unapplied BP shift"
 msgstr "Pipet uitgeschakeld met niet toegepaste BP-verschuiving"
 
-#: src/gui/remixer.c:1127 src/gui/remixer.c:1219
+#: src/gui/remixer.c:1121 src/gui/remixer.c:1213
 msgid "Image loading failed"
 msgstr "Het laden van afbeeldingen is mislukt"
 
-#: src/gui/remixer.c:1138 src/gui/remixer.c:1230
+#: src/gui/remixer.c:1132 src/gui/remixer.c:1224
 msgid "Error: images do not match"
 msgstr "Fout: afbeeldingen komen niet overeen"
 
-#: src/gui/remixer.c:1139 src/gui/remixer.c:1231
+#: src/gui/remixer.c:1133 src/gui/remixer.c:1225
 msgid "Image width, height, bit depth and number of channels must match"
 msgstr ""
 "Beeldbreedte, -hoogte, -bitsdiepte en aantal kanalen moeten overeenkomen"
 
-#: src/gui/remixer.c:1152
+#: src/gui/remixer.c:1146
 msgid ""
 "Color profiles did not match: left-hand image has been converted to right-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1155
+#: src/gui/remixer.c:1149
 msgid ""
 "Color profiles did not match: right-hand image has been assigned the left-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1189
+#: src/gui/remixer.c:1183
 msgid "Setting the output image ICC profile to the working color space.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1244 src/gui/remixer.c:1252
+#: src/gui/remixer.c:1238 src/gui/remixer.c:1246
 msgid ""
 "Color profiles did not match: right-hand image has been converted to left-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1247
+#: src/gui/remixer.c:1241
 msgid ""
 "Color profiles did not match: left-hand image has been assigned the right-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1320 src/gui/remixer.c:1368
+#: src/gui/remixer.c:1314 src/gui/remixer.c:1362
 msgid "There is no starless image loaded"
 msgstr "Er is geen starless image geladen"
 
-#: src/gui/remixer.c:1321
+#: src/gui/remixer.c:1315
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
@@ -21974,7 +22026,7 @@ msgstr ""
 "Laad een afbeelding met de linker bestandskiezer voordat u SP probeert in te "
 "stellen met de pipet"
 
-#: src/gui/remixer.c:1369
+#: src/gui/remixer.c:1363
 #, fuzzy
 msgid ""
 "Load an image using the right-hand file chooser before attempting to set SP "
@@ -21984,11 +22036,11 @@ msgstr ""
 "met de pipet"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
-#: src/gui/remixer.c:1415
+#: src/gui/remixer.c:1409
 msgid "Simple"
 msgstr "Eenvoudig"
 
-#: src/gui/remixer.c:1416
+#: src/gui/remixer.c:1410
 msgid ""
 "Show only simple stretch options. Note that any parameters that have been "
 "set while in advanced mode will remain set."
@@ -22198,7 +22250,7 @@ msgstr "Alle beelden kiezen ?"
 msgid "Include All"
 msgstr "Kies alle"
 
-#: src/gui/sequence_list.c:999
+#: src/gui/sequence_list.c:995
 msgid "sequence"
 msgid_plural "sequences"
 msgstr[0] "seuqentie"
@@ -22213,17 +22265,10 @@ msgid "Are you sure you want to close everything and open the new image?"
 msgstr ""
 "Weet je zeker dat je alles wilt sluiten en de nieuwe afbeelding wilt openen?"
 
-#: src/gui/siril_css.c:48
-#, c-format
-msgid "Unable to load CSS style sheet file: %s. Please reinstall Siril\n"
-msgstr ""
-"Onmogelijk om de CSS style sheet %s te laden. Gelieve Siril te "
-"herinstalleren\n"
-
-#: src/gui/siril_css.c:73
-#, c-format
-msgid "Successfully loaded '%s'\n"
-msgstr "Succesvol '%s' geladen\n"
+#: src/gui/siril_css.c:63
+#, fuzzy, c-format
+msgid "Failed to load CSS sheet: %s.\n"
+msgstr "Kan niet schrijven naar uitvoerbestand\n"
 
 #: src/gui/siril_intro.c:34
 msgid ""
@@ -24087,16 +24132,16 @@ msgstr ""
 "Probeert een beeld van verschillende grootte in een SER bestand toe te "
 "voegen\n"
 
-#: src/io/single_image.c:220
+#: src/io/single_image.c:217
 msgid "Cannot open a sequence from here\n"
 msgstr "Kan vanaf hier geen reeks openen\n"
 
-#: src/io/single_image.c:233
+#: src/io/single_image.c:230
 #, c-format
 msgid "Opening %s failed.\n"
 msgstr "%s openen gefaald.\n"
 
-#: src/io/single_image.c:278
+#: src/io/single_image.c:275
 msgid ""
 "Cannot open another file while the processing thread is still operating on "
 "the current one!\n"
@@ -24104,11 +24149,11 @@ msgstr ""
 "Kan geen ander bestand openen terwijl de verwerkingsthread nog bezig is met "
 "de huidige!\n"
 
-#: src/io/single_image.c:290
+#: src/io/single_image.c:287
 msgid "Error opening file"
 msgstr "Fout bij het openen van het bestand"
 
-#: src/io/single_image.c:291
+#: src/io/single_image.c:288
 msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr "Fout bij het openen van dit beeld. Bekijk de log voor meer informatie."
@@ -26110,6 +26155,16 @@ msgstr "Reeksen herschaling voor stacking"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Stacking wordt zonder heschaling toegepast (zonder 'drizzle')\n"
 
+#, c-format
+#~ msgid "Unable to load CSS style sheet file: %s. Please reinstall Siril\n"
+#~ msgstr ""
+#~ "Onmogelijk om de CSS style sheet %s te laden. Gelieve Siril te "
+#~ "herinstalleren\n"
+
+#, c-format
+#~ msgid "Successfully loaded '%s'\n"
+#~ msgstr "Succesvol '%s' geladen\n"
+
 #~ msgid ""
 #~ "Stars file did not contain the expected header for NINA-style format\n"
 #~ msgstr ""
@@ -26264,10 +26319,6 @@ msgstr "Stacking wordt zonder heschaling toegepast (zonder 'drizzle')\n"
 #~ msgstr ""
 #~ "Ophalen mislukt met code %ld\n"
 #~ "%s\n"
-
-#, c-format
-#~ msgid "Solar System Objects search on observation date %s\n"
-#~ msgstr "Objecten in het zonnestelsel zoeken op waarnemingsdatum %s\n"
 
 #, c-format
 #~ msgid "URL: %s\n"
@@ -28909,9 +28960,6 @@ msgstr "Stacking wordt zonder heschaling toegepast (zonder 'drizzle')\n"
 
 #~ msgid "This will apply the selected correction."
 #~ msgstr "Dit zal de gekozen correctie uitvoeren."
-
-#~ msgid "Insufficient background samples.\n"
-#~ msgstr "Te weinig achtergrondsamples.\n"
 
 #~ msgid ""
 #~ "Background cannot be extracted from itself. Please, click on Show Image\n"
