@@ -806,22 +806,16 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_right")), com.wd);
 		}
 		// Set eyedropper icons to light or dark according to theme
-		gchar *image;
-		GtkWidget *v, *w;
+		GtkWidget *v = NULL, *w = NULL;
 		if (com.pref.gui.combo_theme == 0) {
-			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper_dark.svg", NULL);
-			v = gtk_image_new_from_file(image);
-			w = gtk_image_new_from_file(image);
+			v = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 		} else {
-			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
-			v = gtk_image_new_from_file(image);
-			w = gtk_image_new_from_file(image);
+			v = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
 		}
 		gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_SP_left")), v);
 		gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_SP_right")), w);
 		gtk_widget_show(v);
 		gtk_widget_show(w);
-		g_free(image);
 
 		// Hide the advanced widgets, these can be show using the Advanced button for full control
 		gtk_widget_set_visible(lookup_widget("ghtStretchTypecontrols3"), FALSE);

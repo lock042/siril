@@ -703,6 +703,7 @@ struct common_icc {
 
 /* The global data structure of siril core */
 struct cominf {
+	GResource *resource; // resources
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings
