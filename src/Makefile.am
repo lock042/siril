@@ -36,11 +36,8 @@ siril_resource.c: siril_resource.h
 	$(srcdir)/siril_resource.xml
 
 siril_common_SOURCES: siril_resource.h
-siril_common_SOURCES = \
-	siril_resource.c \
-	siril_resource.h
 
-siril_common_SOURCES += \
+siril_common_SOURCES = \
 	core/siril.h \
 	core/proto.h \
 	algos/anscombe.c \
@@ -461,7 +458,7 @@ siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \
 		      $(libhtmeshlibs)
 
-siril_SOURCES = $(siril_common_SOURCES) main.c
+siril_SOURCES = $(siril_common_SOURCES) siril_resource.c siril_resource.h main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c
 siril_LDADD = $(siril_common_LDADD)
 siril_cli_LDADD = $(siril_common_LDADD)
