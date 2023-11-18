@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-13 15:16+0100\n"
-"PO-Revision-Date: 2023-11-13 21:58+0000\n"
+"PO-Revision-Date: 2023-11-18 00:32+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -19360,7 +19360,8 @@ msgstr "n'utilise pas 32 bits pour la profondeur de pixel"
 
 #: src/core/settings.c:284
 msgid "embed ICC profiles in FITS when saving"
-msgstr "intégrer les profils ICC dans le FITS lors de l'enregistrement"
+msgstr ""
+"intégrer les profils ICC dans les fichiers FITS lors de l'enregistrement"
 
 #: src/core/settings.c:285
 msgid "allow FITS cubes to have different sizes"
@@ -19404,7 +19405,7 @@ msgstr "répertoire de swap"
 
 #: src/core/settings.c:295
 msgid "update pixel size of binned images"
-msgstr "mise à jour de la taille des pixels des images binées"
+msgstr "mettre à jour la taille des pixels des images aux pixels groupés"
 
 #: src/core/settings.c:296
 msgid "WCS formalism used in FITS header"
@@ -19756,7 +19757,7 @@ msgstr "utiliser et synchroniser le dépôt de scripts en ligne"
 
 #: src/core/settings.c:408
 msgid "auto sync online scripts repository"
-msgstr "synchronisation automatique du dépôt de scripts en ligne"
+msgstr "synchroniser automatiquement les dépôts de scripts en ligne"
 
 #: src/core/settings.c:409
 msgid "list of scripts selected from the repository"
@@ -19796,7 +19797,7 @@ msgstr "Mode de sélection des ROI"
 
 #: src/core/settings.c:418
 msgid "Enable ROI dialog warning"
-msgstr "Activer l'avertissement du dialogue de la ROI"
+msgstr "Activer l'avertissement de la boîte de dialogue des ROI"
 
 #: src/core/settings.c:419
 msgid "path to custom monitor ICC profile"
@@ -19901,11 +19902,12 @@ msgstr "afficher les étoiles dans les annotations"
 
 #: src/core/settings.c:444
 msgid "show user DSO objects in annotations"
-msgstr "affiche les objets DSO du catalogue utilisateur dans les annotations"
+msgstr "afficher les objets ciel profond de l'utilisateur dans les annotations"
 
 #: src/core/settings.c:445
 msgid "show user SSO objects in annotations"
-msgstr "affiche les objets SSO du catalogue utilisateur dans les annotations"
+msgstr ""
+"afficher les objets du système solaire de l'utilisateur dans les annotations"
 
 #: src/core/settings.c:447
 msgid "list of pixel math presets"

@@ -229,7 +229,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkImage" id="astrometry">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/astrometry_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/astrometry_dark.svg</property>
   </object>
   <object class="GtkAdjustment" id="clamp_adjustment">
     <property name="upper">1</property>
@@ -240,12 +240,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkImage" id="image3">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/wcs-grid_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/wcs-grid_dark.svg</property>
   </object>
   <object class="GtkImage" id="image4">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/chain.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/chain.svg</property>
   </object>
   <object class="GtkImage" id="imageHelp">
     <property name="visible">True</property>
@@ -255,32 +255,32 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkImage" id="image_colormap">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/cm.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/cm.svg</property>
   </object>
   <object class="GtkImage" id="image_cut">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/cut.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/cut_dark.svg</property>
   </object>
   <object class="GtkImage" id="image_mirrorx">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/mirrorx_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/mirrorx_dark.svg</property>
   </object>
   <object class="GtkImage" id="image_mirrory">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/mirrory_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/mirrory_dark.svg</property>
   </object>
   <object class="GtkImage" id="image_neg">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/neg.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/neg.svg</property>
   </object>
   <object class="GtkImage" id="image_seqlist">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/list.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/list.svg</property>
   </object>
   <object class="GtkImage" id="imagestop">
     <property name="visible">True</property>
@@ -320,7 +320,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkImage" id="photometry">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/photometry_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/photometry_dark.svg</property>
   </object>
   <object class="GtkAdjustment" id="register_minpairs">
     <property name="lower">4</property>
@@ -352,12 +352,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkImage" id="rotate90-acw">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/rotate-acw_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/rotate-acw_dark.svg</property>
   </object>
   <object class="GtkImage" id="rotate90-cw">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="pixbuf">pixmaps/rotate-cw_dark.svg</property>
+    <property name="resource">/org/siril/ui/pixmaps/rotate-cw_dark.svg</property>
   </object>
   <object class="GtkWindow" id="search_objects">
     <property name="can-focus">False</property>
@@ -3815,7 +3815,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkImage" id="framing-image">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="pixbuf">pixmaps/framing-default.svg</property>
+                                                            <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -6897,7 +6897,7 @@ WARNING: This option should not be checked for master stacking.</property>
                       <object class="GtkImage">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="pixbuf">pixmaps/check_menu.svg</property>
+                        <property name="resource">/org/siril/ui/pixmaps/check_menu.svg</property>
                       </object>
                     </child>
                   </object>
@@ -6918,7 +6918,7 @@ WARNING: This option should not be checked for master stacking.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">center</property>
-                        <property name="pixbuf">pixmaps/color_management_off.svg</property>
+                        <property name="resource">/org/siril/ui/pixmaps/color_management_off.svg</property>
                       </object>
                     </child>
                   </object>
