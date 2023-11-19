@@ -13,6 +13,7 @@ siril 1.4.0 xx xx, xx
 * Add ROI processing for certain functions (!571, fixes #1098 and #1188)
 * Fixed crash in the new RGB compositing tool (#1205)
 * Fixed loss of DATE-OBS header in RGB compositing tool
+* Fixed https requests with libcurl for Windows crossroad builds (#604)
 * Reduce verbosity of script reload logging (#1217)
 * Split up the monolithic glade UI file (!550)
 * Added fully color managed workflow using ICC profiles (!542, fixes #1010, #1207)
