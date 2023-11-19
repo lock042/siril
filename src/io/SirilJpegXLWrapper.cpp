@@ -68,7 +68,7 @@
  */
 bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
                          std::vector<float>* pixels, size_t* xsize,
-                         size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth, std::vector<uint8_t>* icc_profile) {
+                         size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth, std::vector<uint8_t>* orig_icc_profile, std::vector<uint8_t>* internal_icc_profile) {
   // Multi-threaded parallel runner.
   auto runner = JxlResizableParallelRunnerMake(nullptr);
 
@@ -119,17 +119,30 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
           JxlResizableParallelRunnerSuggestThreads(info.xsize, info.ysize));
     } else if (status == JXL_DEC_COLOR_ENCODING) {
       // Get the ICC color profile of the pixel data
-      size_t icc_size;
+      size_t icc_size_original, icc_size_data;
       if (JXL_DEC_SUCCESS !=
           JxlDecoderGetICCProfileSize(dec.get(), &format, JXL_COLOR_PROFILE_TARGET_DATA,
-                                      &icc_size)) {
+                                      &icc_size_data)) {
         fprintf(stderr, "JxlDecoderGetICCProfileSize failed\n");
         return false;
       }
-      icc_profile->resize(icc_size);
+      internal_icc_profile->resize(icc_size_data);
       if (JXL_DEC_SUCCESS != JxlDecoderGetColorAsICCProfile(
                                  dec.get(), &format, JXL_COLOR_PROFILE_TARGET_DATA,
-                                 icc_profile->data(), icc_profile->size())) {
+                                 internal_icc_profile->data(), internal_icc_profile->size())) {
+        fprintf(stderr, "JxlDecoderGetColorAsICCProfile failed\n");
+        return false;
+      }
+      if (JXL_DEC_SUCCESS !=
+          JxlDecoderGetICCProfileSize(dec.get(), &format, JXL_COLOR_PROFILE_TARGET_ORIGINAL,
+                                      &icc_size_original)) {
+        fprintf(stderr, "JxlDecoderGetICCProfileSize failed\n");
+        return false;
+      }
+      orig_icc_profile->resize(icc_size_original);
+      if (JXL_DEC_SUCCESS != JxlDecoderGetColorAsICCProfile(
+                                 dec.get(), &format, JXL_COLOR_PROFILE_TARGET_ORIGINAL,
+                                 orig_icc_profile->data(), orig_icc_profile->size())) {
         fprintf(stderr, "JxlDecoderGetColorAsICCProfile failed\n");
         return false;
       }
@@ -162,8 +175,6 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
       // All decoding successfully finished.
       // It's not required to call JxlDecoderReleaseInput(dec.get()) here since
       // the decoder will be destroyed.
-
-      // icc_profile->size() is 732, icc_profile is valid here
       return true;
     } else {
       fprintf(stderr, "Unknown decoder status\n");
@@ -175,21 +186,30 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
 extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
                          float** pixels, size_t* xsize,
                          size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth,
-                         uint8_t** icc_profile, size_t *icc_profile_length) {
+                         uint8_t** icc_profile, size_t *icc_profile_length,
+                         uint8_t** internal_icc_profile, size_t *internal_icc_profile_length) {
     std::vector<float> vec_pixels;
-    std::vector<uint8_t> vec_icc_profile;
+    std::vector<uint8_t> original_vec_icc_profile;
+    std::vector<uint8_t> internal_vec_icc_profile;
     if (!DecodeJpegXlOneShot(jxl, size,
                          &vec_pixels, xsize,
                          ysize, zsize, extra_channels, bitdepth,
-                         &vec_icc_profile))
+                         &original_vec_icc_profile, &internal_vec_icc_profile))
         return -1;
     float *array = (float*) malloc(vec_pixels.size() * sizeof(float));
     *pixels = array;
-    uint8_t *icc_array = (uint8_t*) malloc(vec_icc_profile.size() * sizeof(uint8_t));
-    *icc_profile = icc_array;
     memcpy(*pixels, vec_pixels.data(), vec_pixels.size() * sizeof(float));
-    memcpy(*icc_profile, vec_icc_profile.data(), vec_icc_profile.size() * sizeof(uint8_t));
-    *icc_profile_length = vec_icc_profile.size();
+    uint8_t *icc_array = (uint8_t*) malloc(original_vec_icc_profile.size() * sizeof(uint8_t));
+    *icc_profile = icc_array;
+    memcpy(*icc_profile, original_vec_icc_profile.data(), original_vec_icc_profile.size() * sizeof(uint8_t));
+    *icc_profile_length = original_vec_icc_profile.size();
+
+    uint8_t *internal_icc_array = (uint8_t*) malloc(internal_vec_icc_profile.size() * sizeof(uint8_t));
+    *internal_icc_profile = internal_icc_array;
+    memcpy(*internal_icc_profile, internal_vec_icc_profile.data(), internal_vec_icc_profile.size() * sizeof(uint8_t));
+    *internal_icc_profile_length = internal_vec_icc_profile.size();
+
+
     return 0;
 }
 

@@ -2913,7 +2913,7 @@ int readjxl(const char* name, fits *fit) {
 	size_t xsize = 0, ysize = 0, zsize = 0, extra_channels = 0;
 	uint8_t bitdepth = 0;
 	float* pixels = NULL;
-	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &extra_channels, &bitdepth, &icc_profile, &icc_profile_length)) {
+	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &extra_channels, &bitdepth, &icc_profile, &icc_profile_length, &internal_icc_profile, &internal_icc_profile_length)) {
 		siril_debug_print("Error while decoding the jxl file\n");
 		return 1;
 	}
@@ -2973,23 +2973,27 @@ int readjxl(const char* name, fits *fit) {
 		}
 	}
 
-/*	cmsHPROFILE internal = cmsOpenProfileFromMem(internal_icc_profile, internal_icc_profile_length);
+	cmsHPROFILE internal = cmsOpenProfileFromMem(internal_icc_profile, internal_icc_profile_length);
 	cmsHPROFILE original = cmsOpenProfileFromMem(icc_profile, icc_profile_length);
-	if (internal && internal) {
-		fit->icc_profile = copyICCProfile(original);
+	if (internal && original) {
+		fit->icc_profile = copyICCProfile(internal);
+		fit->color_managed = TRUE; // Don't use color_manage() here as we don't want the GUI updated yet
 		gchar* orig_desc = siril_color_profile_get_description(original);
 		gchar* int_desc = siril_color_profile_get_description(internal);
 		siril_debug_print("Transforming from %s to %s\n", int_desc, orig_desc);
 		g_free(orig_desc);
 		g_free(int_desc);
 		siril_colorspace_transform(fit, original);
+		if (fit->icc_profile) cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(original);
+	} else if (internal) {
+		fit->icc_profile = copyICCProfile(internal);
 	}
+	color_manage(fit, (fit->icc_profile != NULL));
 	if (original) cmsCloseProfile(original);
 	if (internal) cmsCloseProfile(internal);
 	free(icc_profile);
-	free(internal_icc_profile);*/
-	fits_initialize_icc(fit, icc_profile, icc_profile_length);
-	free(icc_profile);
+	free(internal_icc_profile);
 
 	mirrorx(fit, FALSE);
 	fill_date_obs_if_any(fit, name);
