@@ -56,6 +56,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <lcms2.h>
+
 #include <vector>
 
 /** Decodes JPEG XL image to floating point pixels and ICC Profile. Pixel are
@@ -160,6 +162,8 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
       // All decoding successfully finished.
       // It's not required to call JxlDecoderReleaseInput(dec.get()) here since
       // the decoder will be destroyed.
+
+      // icc_profile->size() is 732, icc_profile is valid here
       return true;
     } else {
       fprintf(stderr, "Unknown decoder status\n");
@@ -185,6 +189,7 @@ extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
     *icc_profile = icc_array;
     memcpy(*pixels, vec_pixels.data(), vec_pixels.size() * sizeof(float));
     memcpy(*icc_profile, vec_icc_profile.data(), vec_icc_profile.size() * sizeof(uint8_t));
+    *icc_profile_length = vec_icc_profile.size();
     return 0;
 }
 
@@ -198,7 +203,7 @@ extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
  */
 bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
                       const uint32_t ysize, const uint32_t zsize, const uint8_t bitdepth,
-                      std::vector<uint8_t>* compressed, const uint32_t effort, const float distance) {
+                      std::vector<uint8_t>* compressed, const uint32_t effort, const float distance, std::vector<uint8_t>* icc_profile) {
   auto enc = JxlEncoderMake(/*memory_manager=*/nullptr);
 #ifdef HAVE_LIBJXL_THREADS
   auto runner = JxlThreadParallelRunnerMake(
@@ -237,13 +242,20 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
     return false;
   }
 
-  JxlColorEncoding color_encoding = {};
-  JxlColorEncodingSetToSRGB(&color_encoding,
-                            /*is_gray=*/pixel_format.num_channels < 3);
-  if (JXL_ENC_SUCCESS !=
-      JxlEncoderSetColorEncoding(enc.get(), &color_encoding)) {
-    fprintf(stderr, "JxlEncoderSetColorEncoding failed\n");
-    return false;
+  if (!icc_profile->empty()) {
+    if (JXL_ENC_SUCCESS !=
+        JxlEncoderSetICCProfile(enc.get(), icc_profile->data(), icc_profile->size())) {
+      fprintf(stderr, "Warning: JxlEncoderSetICCProfile failed. Using internal profile...\n");
+    }
+  } else {
+    fprintf(stderr, "Warning: Using internal SRGB profile.\n");
+    JxlColorEncoding color_encoding = {};
+    JxlColorEncodingSetToSRGB(&color_encoding, (pixel_format.num_channels == 1));
+    if (JXL_ENC_SUCCESS !=
+        JxlEncoderSetColorEncoding(enc.get(), &color_encoding)) {
+      fprintf(stderr, "JxlEncoderSetColorEncoding failed\n");
+      return false;
+    }
   }
 
   JxlEncoderFrameSettings* frame_settings =
@@ -260,7 +272,7 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
 
   if (JXL_ENC_SUCCESS !=
       JxlEncoderAddImageFrame(frame_settings, &pixel_format,
-                              (void*)pixels.data(),
+                              static_cast<const void*>(pixels.data()),
                               pixels.size())) {
     fprintf(stderr, "JxlEncoderAddImageFrame failed\n");
     return false;
@@ -292,14 +304,15 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
 extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t xsize,
                       const uint32_t ysize, const uint32_t zsize, const uint8_t bitdepth,
                       void** compressed, size_t* compressed_length, uint32_t effort,
-                      const double distance) {
+                      const double distance, uint8_t* icc_profile, uint32_t icc_profile_length) {
+    std::vector<uint8_t> vec_icc_profile(icc_profile, icc_profile + icc_profile_length);
     int datasize = bitdepth / 8;
     std::vector<uint8_t> vec_pixels(pixels, pixels + xsize * ysize * zsize * datasize);
     std::vector<uint8_t> vec_compressed;
 
     int retval = (!EncodeJxlOneshot(vec_pixels, xsize,
                       ysize, zsize, bitdepth,
-                      &vec_compressed, effort, distance)) ? 1 : 0;
+                      &vec_compressed, effort, distance, &vec_icc_profile)) ? 1 : 0;
     void* array = (void*) malloc(vec_compressed.size() * datasize);
     *compressed = array;
     memcpy(*compressed, vec_compressed.data(), vec_compressed.size() * sizeof(uint8_t));

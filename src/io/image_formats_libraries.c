@@ -2908,6 +2908,8 @@ int readjxl(const char* name, fits *fit) {
 	}
 	uint8_t* icc_profile = NULL;
 	size_t icc_profile_length = 0;
+	uint8_t* internal_icc_profile = NULL;
+	size_t internal_icc_profile_length = 0;
 	size_t xsize = 0, ysize = 0, zsize = 0, extra_channels = 0;
 	uint8_t bitdepth = 0;
 	float* pixels = NULL;
@@ -2971,9 +2973,22 @@ int readjxl(const char* name, fits *fit) {
 		}
 	}
 
-	// For now, we just free the ICC profile data and ignore it.
-	// Once the color management MR merges, support for color managed
-	// JPEG XLs can be added trivially.
+/*	cmsHPROFILE internal = cmsOpenProfileFromMem(internal_icc_profile, internal_icc_profile_length);
+	cmsHPROFILE original = cmsOpenProfileFromMem(icc_profile, icc_profile_length);
+	if (internal && internal) {
+		fit->icc_profile = copyICCProfile(original);
+		gchar* orig_desc = siril_color_profile_get_description(original);
+		gchar* int_desc = siril_color_profile_get_description(internal);
+		siril_debug_print("Transforming from %s to %s\n", int_desc, orig_desc);
+		g_free(orig_desc);
+		g_free(int_desc);
+		siril_colorspace_transform(fit, original);
+	}
+	if (original) cmsCloseProfile(original);
+	if (internal) cmsCloseProfile(internal);
+	free(icc_profile);
+	free(internal_icc_profile);*/
+	fits_initialize_icc(fit, icc_profile, icc_profile_length);
 	free(icc_profile);
 
 	mirrorx(fit, FALSE);
@@ -3004,9 +3019,12 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 	uint8_t *compressed = NULL;
 	size_t compressed_length;
 
+	uint32_t icc_profile_length = 0;
+	uint8_t *icc_profile = get_icc_profile_data(fit->icc_profile, &icc_profile_length);
+
 	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
                       fit->ry, fit->naxes[2], bitdepth,
-                      &compressed, &compressed_length, effort, distance);
+                      &compressed, &compressed_length, effort, distance, icc_profile, icc_profile_length);
 
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
