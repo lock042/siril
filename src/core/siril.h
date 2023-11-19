@@ -186,6 +186,7 @@ typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
+
 /* global structures */
 
 typedef enum {

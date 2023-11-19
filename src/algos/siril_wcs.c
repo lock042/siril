@@ -28,17 +28,11 @@
 #include "algos/astrometry_solver.h"
 #include "io/image_format_fits.h"
 
-#include <wcslib.h>
-#include <wcsfix.h>
-
 #include "siril_wcs.h"
 
 
 // Use this flag to print wcslib related verbose - not for production
 #define DEBUG_WCS 1
-
-/* we force naxis to 2 */
-#define NAXIS 2
 
 gboolean has_wcs(fits *fit) {
 	return fit->wcslib != NULL;
@@ -335,29 +329,53 @@ void center2wcs(fits *fit, double *r, double *d) {
 	*d = world[1];
 }
 
+void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]) {
+	if (!prm || !prm->pc)
+		return;
+	double *pcij = prm->pc;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			pc[i][j] = *(pcij++);
+		}
+	}
+}
+void wcs_cd2mat(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
+	if (!prm || !prm->cd)
+		return;
+	double *cdij = prm->cd;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			cd[i][j] = *(cdij++);
+		}
+	}
+}
+
+void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]) {
+	if (!prm || !prm->pc)
+		return;
+	double *pcij = prm->pc;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			*(pcij++) = pc[i][j];
+		}
+	}
+}
+void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
+	if (!prm || !prm->cd)
+		return;
+	double *cdij = prm->cd;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			*(cdij++) = cd[i][j];
+		}
+	}
+}
+
 /* get resolution in degree/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
 	if (fit->wcslib) {
-		double cd[NAXIS][NAXIS], pc[NAXIS][NAXIS];
-		double cdelt[NAXIS];
-
-		double *pcij = fit->wcslib->pc;
-		for (int i = 0; i < NAXIS; i++) {
-			for (int j = 0; j < NAXIS; j++) {
-				pc[i][j] = *(pcij++);
-			}
-		}
-
-		for (int i = 0; i < NAXIS; i++) {
-			cdelt[i] = fit->wcslib->cdelt[i];
-		}
-
-		wcs_pc_to_cd(pc, cdelt, cd);
-
-		double res_x = sqrt(cd[0][0] * cd[0][0] + cd[1][0] * cd[1][0]);
-		double res_y = sqrt(cd[0][1] * cd[0][1] + cd[1][1] * cd[1][1]);
-		resolution = (res_x + res_y) * 0.5;
+		resolution = (fabs(fit->wcslib->cdelt[0]) + fabs(fit->wcslib->cdelt[1])) * 0.5;
 	}
 	if (resolution <= 0.0) {
 		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
