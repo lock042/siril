@@ -171,6 +171,8 @@ gboolean load_WCS_from_file(fits* fit) {
 //				cdfix(prm);
 //			}
 			wcsset(prm);
+			if (prm->cdelt[0] == 1.) // header contains CD info
+				wcspcx(prm, 0, 0, NULL); // decompose CD to CDELT and PC
 			if (prm->lng >= 0 && prm->lat >= 0
 					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
 				int axes[2], nsub;
