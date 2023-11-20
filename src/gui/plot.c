@@ -46,6 +46,7 @@
 #include "kplot.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
+#include "io/aavso_extended.h"
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
@@ -53,6 +54,8 @@
 #include "opencv/opencv.h"
 #include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
+
+gboolean output_aavso = TRUE; // FIXME: temporary variable
 
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
 
@@ -709,13 +712,22 @@ static double get_error_for_time(pldata *plot, double time) {
 // call after having filled the plot data of the multiple stars with either
 // generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
-int light_curve(pldata *plot, sequence *seq, gchar *filename) {
+static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	int i, j, nbImages = 0;
+	aavso_dlg *aavso_ptr = NULL;
+	double c_std = 0.0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
 		return -1;
+	}
+
+	gboolean aavso = ptr == NULL ? FALSE : TRUE;
+	if (aavso) {
+		aavso_ptr = (aavso_dlg *)ptr;
+		/* define c_std */
+		c_std = aavso_ptr->c_std;
 	}
 
 	/* get number of valid frames for each star */
@@ -778,7 +790,16 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		pldata *cur_plot = plot->next;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+		int start, end;
+		if (aavso) {
+			// we use only one comparison star that should be set before
+			start = 1; // FIXME: the number should be defined in the aavso dialog;
+			end = start + 1;
+		} else {
+			start = 1;
+			end = MAX_SEQPSF;
+		}
+		for (int r = start; r < end && seq->photometry[r]; r++) {
 			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
 				/* variable data, inversion of Pogson's law
 				 * Flux = 10^(-0.4 * mag)
@@ -796,7 +817,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 			cmag = -2.5 * log10(cmag / nb_ref);
 			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
 
-			vmag[j] = vmag[j] - cmag;
+			vmag[j] = vmag[j] - cmag + c_std;
 			err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
 			j++;
 		}
@@ -809,24 +830,39 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
+	gboolean is_julian = (julian0 > 0);
 	char add_title[128];
-	if (julian0) {
+	if (!is_julian) {
 		g_sprintf(add_title, "#JD_UT (+ %d)\n", julian0);
 		siril_plot_set_title(spl_data, add_title);
 	}
 	spl_data->revertY = TRUE;
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+		if (is_julian) {
+			splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
+			lc->plots[0]->x_offset = (double)julian0;
+	}
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
 	int ret = 0;
-	if (!siril_plot_save_dat(spl_data, filename, (julian0) ? TRUE : FALSE)) {
-		ret = 1;
-		free_siril_plot_data(spl_data);
-		spl_data = NULL; // just in case we try to use it later on
+
+	if (aavso) {
+		export_to_aavso_extended(spl_data, aavso_ptr, filename);
 	} else {
-		siril_plot_set_title(spl_data, "Light Curve");
-		create_new_siril_plot_window(spl_data);
+		gboolean success = FALSE;
+		if (is_julian)
+			success = siril_plot_save_JD_light_curve(spl_data, filename, TRUE);
+		else
+			success = siril_plot_save_dat(spl_data, filename, FALSE);
+		if (!success) {
+			ret = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
+		} else {
+			siril_plot_set_title(spl_data, "Light Curve");
+			create_new_siril_plot_window(spl_data);
+		}
 	}
 
 	free(vmag);
@@ -836,7 +872,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	return ret;
 }
 
-static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
+static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	if (!plot) {
 		fprintf(stderr, "exportCSV: Nothing to export\n");
 		return 1;
@@ -1212,7 +1248,7 @@ static void set_filter(GtkFileChooser *dialog, const gchar *format) {
 	g_free(pattern);
 }
 
-static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *)) {
+static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *, void *), void *ptr) {
 	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	SirilWidget *widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
 	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
@@ -1227,7 +1263,7 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	gint res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = siril_file_chooser_get_filename(dialog);
-		export_function(plot_data, &com.seq, file);
+		export_function(plot_data, &com.seq, file, ptr);
 
 		g_free(file);
 	}
@@ -1264,14 +1300,41 @@ void on_ButtonCompStars_clicked(GtkButton *button, gpointer user_data) {
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	save_dialog(".csv", exportCSV);
+	save_dialog(".csv", exportCSV, NULL);
+	set_cursor_waiting(FALSE);
+}
+
+void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
+	gtk_widget_hide(lookup_widget("aavso_dialog"));
+}
+
+void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
+	// we want get some information from a dialog
+	/* temporary code */
+	aavso_dlg *aavso_ptr = calloc(1, sizeof(aavso_dlg));
+
+	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("obscode_entry")));
+	aavso_ptr->obstype = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("obstype_combo")));
+	aavso_ptr->starid = gtk_entry_get_text(GTK_ENTRY(lookup_widget("starid_entry")));
+	aavso_ptr->cname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("cname_entry")));
+	aavso_ptr->filter = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("aavso_filter_combo")));
+	aavso_ptr->kname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("kname_entry")));
+	aavso_ptr->c_std = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("cstd_entry"))), NULL);
+
+	set_cursor_waiting(TRUE);
+	save_dialog(".csv", light_curve, aavso_ptr);
+	gtk_widget_hide(lookup_widget("aavso_dialog"));
 	set_cursor_waiting(FALSE);
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-	save_dialog(".dat", light_curve);
-	set_cursor_waiting(FALSE);
+	if (output_aavso) {
+		gtk_widget_show_all(lookup_widget("aavso_dialog"));
+	} else {
+		set_cursor_waiting(TRUE);
+		save_dialog(".dat", light_curve, NULL);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {

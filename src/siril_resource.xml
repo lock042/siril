@@ -49,6 +49,7 @@
     <file compressed="true" preprocess="xml-stripblanks" alias="color_calibration.ui">gui/uifiles/color_calibration.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="settings_window.ui">gui/uifiles/settings_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="aberration_inspector.ui">gui/uifiles/aberration_inspector.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="aavso_dialog.ui">gui/uifiles/aavso_dialog.ui</file>
     <file compressed="true" alias="siril-shortcuts.ui">gui/siril-shortcuts.ui</file>
     <file compressed="true" alias="siril.css">gui/siril.css</file>
 

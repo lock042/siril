@@ -34,6 +34,7 @@
 
 static const SirilDialogEntry entries[] =
 {
+	{"aavso_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"asinh_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
 	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"background_extraction_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
