@@ -2382,6 +2382,158 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 	return run;
 }
 
+static cmsHPROFILE nclx_to_icc_profile (const struct heif_color_profile_nclx *nclx) {
+	const gchar *primaries_name = "";
+	const gchar *trc_name = "";
+	cmsHPROFILE profile = NULL;
+	cmsCIExyY whitepoint;
+	cmsCIExyYTRIPLE primaries;
+	cmsToneCurve *curve[3];
+
+	cmsFloat64Number srgb_parameters[5] =
+	{ 2.4, 1.0 / 1.055,  0.055 / 1.055, 1.0 / 12.92, 0.04045 };
+
+	cmsFloat64Number rec709_parameters[5] =
+	{ 2.2, 1.0 / 1.099,  0.099 / 1.099, 1.0 / 4.5, 0.081 };
+
+	if (nclx == NULL) {
+		return NULL;
+	}
+
+	if (nclx->color_primaries == heif_color_primaries_unspecified) {
+		return NULL;
+	}
+
+	if (nclx->color_primaries == heif_color_primaries_ITU_R_BT_709_5) {
+		if (nclx->transfer_characteristics == heif_transfer_characteristic_IEC_61966_2_1) {
+			return srgb_trc();
+		}
+
+		if (nclx->transfer_characteristics == heif_transfer_characteristic_linear) {
+			return srgb_linear();
+		}
+	}
+
+	whitepoint.x = nclx->color_primary_white_x;
+	whitepoint.y = nclx->color_primary_white_y;
+	whitepoint.Y = 1.0f;
+
+	primaries.Red.x = nclx->color_primary_red_x;
+	primaries.Red.y = nclx->color_primary_red_y;
+	primaries.Red.Y = 1.0f;
+
+	primaries.Green.x = nclx->color_primary_green_x;
+	primaries.Green.y = nclx->color_primary_green_y;
+	primaries.Green.Y = 1.0f;
+
+	primaries.Blue.x = nclx->color_primary_blue_x;
+	primaries.Blue.y = nclx->color_primary_blue_y;
+	primaries.Blue.Y = 1.0f;
+
+	switch (nclx->color_primaries) {
+		case heif_color_primaries_ITU_R_BT_709_5:
+			primaries_name = "BT.709";
+			break;
+		case   heif_color_primaries_ITU_R_BT_470_6_System_M:
+			primaries_name = "BT.470-6 System M";
+			break;
+		case heif_color_primaries_ITU_R_BT_470_6_System_B_G:
+			primaries_name = "BT.470-6 System BG";
+			break;
+		case heif_color_primaries_ITU_R_BT_601_6:
+			primaries_name = "BT.601";
+			break;
+		case heif_color_primaries_SMPTE_240M:
+			primaries_name = "SMPTE 240M";
+			break;
+		case 8:
+			primaries_name = "Generic film";
+			break;
+		case 9:
+			primaries_name = "BT.2020";
+			break;
+		case 10:
+			primaries_name = "XYZ";
+			break;
+		case 11:
+			primaries_name = "SMPTE RP 431-2";
+			break;
+		case 12:
+			primaries_name = "SMPTE EG 432-1 (DCI P3)";
+			break;
+		case 22:
+			primaries_name = "EBU Tech. 3213-E";
+			break;
+		default:
+			g_warning ("%s: Unsupported color_primaries value %d.",
+					G_STRFUNC, nclx->color_primaries);
+			return NULL;
+		break;
+	}
+
+	switch (nclx->transfer_characteristics) {
+		case heif_transfer_characteristic_ITU_R_BT_709_5:
+			curve[0] = curve[1] = curve[2] = cmsBuildParametricToneCurve (NULL, 4,
+											rec709_parameters);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "Rec709 RGB";
+			break;
+		case heif_transfer_characteristic_ITU_R_BT_470_6_System_M:
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 2.2f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "Gamma2.2 RGB";
+			break;
+		case heif_transfer_characteristic_ITU_R_BT_470_6_System_B_G:
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 2.8f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "Gamma2.8 RGB";
+			break;
+		case heif_transfer_characteristic_linear:
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 1.0f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "linear RGB";
+			break;
+		case heif_transfer_characteristic_IEC_61966_2_1:
+			/* same as default */
+			curve[0] = curve[1] = curve[2] = cmsBuildParametricToneCurve (NULL, 4,
+											srgb_parameters);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "sRGB-TRC RGB";
+			break;
+		default:
+			siril_log_color_message(_("Error: the specified NCLX TRC is not yet supported in Siril. "
+										"A linear TRC will be used: you may need to fix this file "
+										"up manually.\n"), "red");
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 1.0f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "linear RGB";
+			break;
+	}
+
+	if (profile) {
+		gchar *description = g_strdup_printf ("%s %s", primaries_name, trc_name);
+
+		icc_profile_set_tag (profile, cmsSigProfileDescriptionTag,
+											description);
+		icc_profile_set_tag (profile, cmsSigDeviceMfgDescTag,
+											"GIMP");
+		icc_profile_set_tag (profile, cmsSigDeviceModelDescTag,
+											description);
+		icc_profile_set_tag (profile, cmsSigCopyrightTag,
+											"Public Domain");
+		g_free (description);
+		return profile;
+	}
+
+	return NULL;
+}
+
 int readheif(const char* name, fits *fit, gboolean interactive){
 	struct heif_error err;
 #if LIBHEIF_HAVE_VERSION(1,13,0)
@@ -2474,8 +2626,12 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			}
 		}
 	} else if (cp_type == heif_color_profile_type_nclx) {
-		siril_log_color_message(_("HEIF file contains a NCLX colorspace identifier. Siril cannot handle these. Assuming sRGB but you may need to manually assign an ICC profile.\n"), "red");
-		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
+		struct heif_color_profile_nclx *nclx = NULL;
+		err = heif_image_handle_get_nclx_color_profile(handle, &nclx);
+		cmsHPROFILE profile = nclx_to_icc_profile(nclx);
+		heif_nclx_color_profile_free(nclx);
+		icc_buffer = get_icc_profile_data(profile, &icc_length);
+		cmsCloseProfile(profile);
 	} else if (cp_type == heif_color_profile_type_not_present) {
 		siril_debug_print("HEIF does not contain any color profile. Assuming sRGB.\n");
 		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
