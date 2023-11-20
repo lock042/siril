@@ -377,11 +377,6 @@ typedef struct {
 } single;
 
 typedef struct {
-	double equinox;
-	double crpix[2];
-	double crval[2];
-	double cdelt[2];
-	double pc[2][2];
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];
 	double ra;

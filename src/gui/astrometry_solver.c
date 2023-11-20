@@ -346,6 +346,7 @@ gboolean end_plate_solver(gpointer p) {
 		set_GUI_CAMERA();
 		update_coordinates(args->new_center);
 		delete_selected_area();
+		refresh_annotations(FALSE);
 		/* ****** */
 
 		if (args->flip_image || args->for_photometry_cc)

@@ -1337,7 +1337,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	if (ra0 == -1.) return;
 	dec0 *= (M_PI / 180.0);
 	ra0  *= (M_PI / 180.0);
-	double range = fit->wcsdata.cdelt[1] * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
+	double range = get_wcs_image_resolution(fit) * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
 	double step;
 
 	/* Compute borders in pixel for tags*/

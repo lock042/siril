@@ -245,7 +245,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	}
 	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
-	free_wcs(&fit, FALSE);
+	free_wcs(&fit);
 	return apply_reg_prepare_results(args);
 }
 

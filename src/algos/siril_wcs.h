@@ -31,8 +31,9 @@ typedef struct wcsprm wcsprm_t;
 
 gboolean has_wcs(fits *fit);
 gboolean has_wcsdata(fits *fit);
-void free_wcs(fits *fit, gboolean keep_RADEC);
-gboolean load_WCS_from_file(fits* fit);
+void free_wcs(fits *fit);
+wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec);
+gboolean load_WCS_from_fits(fits* fit);
 gboolean load_WCS_from_memory(fits *fit);
 // this one directly uses the WCSLIB struct
 void pix2wcs2(wcsprm_t *wcslib, double x, double y, double *r, double *d);
@@ -42,9 +43,11 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y);
 void center2wcs(fits *fit, double *r, double *d);
 double get_wcs_image_resolution(fits *fit);
 
+void wcs_cdelt2unity(wcsprm_t *prm);
 void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_cd2mat(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
 void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+void wcs_print(wcsprm_t *prm);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

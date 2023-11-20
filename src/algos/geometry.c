@@ -276,7 +276,7 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		fits_binning_float(fit, factor, mean);
 	}
 
-	free_wcs(fit, TRUE); // we keep RA/DEC to initialize platesolve
+	free_wcs(fit); // we keep RA/DEC to initialize platesolve
 	load_WCS_from_memory(fit);
 	refresh_annotations(TRUE);
 
@@ -325,7 +325,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
-	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
+	free_wcs(image); // we keep RA/DEC to initialize platesolve
 	load_WCS_from_memory(image);
 	refresh_annotations(TRUE);
 
