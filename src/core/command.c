@@ -1116,7 +1116,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -1167,7 +1167,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -1317,7 +1317,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
