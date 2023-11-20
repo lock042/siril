@@ -2459,6 +2459,28 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 #endif
 		return OPEN_IMAGE_ERROR;
 	}
+	uint8_t* icc_buffer = NULL;
+	uint32_t icc_length = 0;
+	// Get the ICC profile, if there is one
+	enum heif_color_profile_type cp_type = heif_image_handle_get_color_profile_type(handle);
+	const char* fourcc = cp_type == heif_color_profile_type_rICC ? "rICC" : cp_type == heif_color_profile_type_prof ? "prof" : cp_type == heif_color_profile_type_nclx ? "nclx" : "none";
+	if (cp_type == heif_color_profile_type_rICC || cp_type == heif_color_profile_type_prof) {
+		icc_length = heif_image_handle_get_raw_color_profile_size(handle);
+		if (icc_length > 0) {
+			icc_buffer = malloc(icc_length);
+			err = heif_image_handle_get_raw_color_profile(handle, icc_buffer);
+			if (err.code) {
+				siril_log_color_message(_("Error getting ICC profile from HEIF file. Continuing: you will need to manually assign an ICC profile\n"), "red");
+			}
+		}
+	} else if (cp_type == heif_color_profile_type_nclx) {
+		siril_log_color_message(_("HEIF file contains a NCLX colorspace identifier. Siril cannot handle these. Assuming sRGB but you may need to manually assign an ICC profile.\n"), "red");
+		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
+	} else if (cp_type == heif_color_profile_type_not_present) {
+		siril_debug_print("HEIF does not contain any color profile. Assuming sRGB.\n");
+		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
+	}
+	siril_debug_print("ICC profile type %s, length %u read from HEIF file.\n", fourcc, icc_length);
 
 	int has_alpha = heif_image_handle_has_alpha_channel(handle);
 	int bit_depth;
@@ -2468,7 +2490,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 #if LIBHEIF_HAVE_VERSION(1,8,0)
 	bit_depth = heif_image_handle_get_luma_bits_per_pixel (handle);
 	if (bit_depth < 0) {
-		siril_log_color_message(_("Input image has undefined bit-depth"), "red");
+		siril_log_color_message(_("Input image has undefined bit-depth.\n"), "red");
 		heif_image_handle_release (handle);
 		heif_context_free (ctx);
 
@@ -2615,6 +2637,10 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	fit->binning_x = fit->binning_y = 1;
 	mirrorx(fit, FALSE);
 
+	fits_initialize_icc(fit, icc_buffer, icc_length);
+	color_manage(fit, (fit->icc_profile != NULL));
+	free(icc_buffer);
+
 	heif_image_handle_release(handle);
 	heif_context_free(ctx);
 	heif_image_release(img);
@@ -2625,10 +2651,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry, bit_depth);
 	g_free(basename);
-
-	// Initialize ICC profile. As the buffer is set to NULL, this sets the
-	// profile as sRGB which is the target colorspace set in heif_decode_image()
-	fits_initialize_icc(fit, NULL, 0);
 
 	return OPEN_IMAGE_OK;
 }
@@ -2720,6 +2742,18 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		heif_context_free (ctx);
 		return 1;
 	}
+
+	// Set color profile
+	uint32_t icc_length = 0;
+	const char* fourcc = cmsIsMatrixShaper(fit->icc_profile) ? "rICC" : "prof";
+	uint8_t* icc_buffer = get_icc_profile_data(fit->icc_profile, &icc_length);
+	error = heif_image_set_raw_color_profile(image, fourcc, icc_buffer, icc_length);
+	if (error.code) {
+		siril_log_color_message(_("Error embedding ICC profile in HEIF file.\n"), "red");
+	} else {
+		siril_debug_print("ICC profile of type %s embedded in HEIF file.\n", fourcc);
+	}
+	free(icc_buffer);
 
 	if (bitdepth > 8) {
 		uint16_t		*data16;
