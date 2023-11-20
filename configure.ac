@@ -136,7 +136,7 @@ dnl check cairo
 PKG_CHECK_MODULES(CAIRO, cairo)
 
 dnl check wcslib
-PKG_CHECK_MODULES(WCSLIB, wcslib >=7.12)
+PKG_CHECK_MODULES(WCSLIB, wcslib >= 7.12)
 
 dnl check fftw3 and its threading capabilities
 m4_include([m4/fftw.m4])
