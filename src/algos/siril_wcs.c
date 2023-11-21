@@ -327,6 +327,7 @@ double get_wcs_image_resolution(fits *fit) {
 }
 
 void wcs_print(wcsprm_t *prm) {
+#if DEBUG_WCS
 	printf("CRPIX\n");
 	int c = 0;
 	for (int i = 0; i < NAXIS; i++) {
@@ -373,4 +374,5 @@ void wcs_print(wcsprm_t *prm) {
 				printf(" %g\n", dis->dp[j].value.f);
 		}
 	}
+#endif
 }
