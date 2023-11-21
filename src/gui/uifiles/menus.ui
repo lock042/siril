@@ -315,6 +315,28 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </packing>
     </child>
   </object>
+  <object class="GtkMenu" id="snapshot_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="snapshot_unique_file">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.snapshot</property>
+        <property name="label" translatable="yes">Save as unique file</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="snapshot_clipboard">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.clipboard</property>
+        <property name="label" translatable="yes">Copy to clipboard</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+  </object>
   <object class="GtkMenu" id="menu_display">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
