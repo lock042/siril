@@ -32,9 +32,9 @@ typedef struct wcsprm wcsprm_t;
 gboolean has_wcs(fits *fit);
 gboolean has_wcsdata(fits *fit);
 void free_wcs(fits *fit);
+wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status);
 wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec);
 gboolean load_WCS_from_fits(fits* fit);
-gboolean load_WCS_from_memory(fits *fit);
 // this one directly uses the WCSLIB struct
 void pix2wcs2(wcsprm_t *wcslib, double x, double y, double *r, double *d);
 void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double *world_y);

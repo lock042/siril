@@ -597,8 +597,6 @@ static void update_metadata() {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	if (firstlayer >= 0)
-		load_WCS_from_memory(&layers[firstlayer]->the_fit);
 	free(f);
 }
 
@@ -613,7 +611,6 @@ static void update_comp_metadata(fits *fit) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(fit);
 	free(f);
 }
 

@@ -56,13 +56,35 @@ void free_wcs(fits *fit) {
 	memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
 }
 
-gboolean load_WCS_from_memory(fits *fit) {
-	return TRUE;
+wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
+	wcsprm_t *wcsdst = NULL;
+	int axes[2], nsub;
+	nsub = 2;
+	axes[0] = WCSSUB_LONGITUDE;
+	axes[1] = WCSSUB_LATITUDE;
+	wcsdst = calloc(1, sizeof(wcsprm_t));
+	if (!wcsdst) {
+		PRINT_ALLOC_ERR;
+		*status = WCSERR_MEMORY;
+		return NULL;
+	}
+	wcsdst->flag = -1;
+	int statuscpy = wcssub(1, wcssrc, &nsub, axes, wcsdst);
+	if (statuscpy) {
+		*status = statuscpy;
+		wcsfree(wcsdst);
+		return NULL;
+	}
+	wcsdst->flag = 0;
+	wcsset(wcsdst);
+	*status = 0;
+	return wcsdst;
 }
+
 
 wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 	wcsprm_t *data = NULL, *wcs = NULL;
-	int nreject, nwcs, status;
+	int nreject, nwcs;
 	/** There was a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
 	 * We now force to have 7.12 at least */
 	int wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
@@ -74,16 +96,9 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 			wcsset(prm); // is it necessary?
 			if (prm->lng >= 0 && prm->lat >= 0
 					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
-				int axes[2], nsub;
-				nsub = 2;
-				axes[0] = WCSSUB_LONGITUDE;
-				axes[1] = WCSSUB_LATITUDE;
-				wcs = calloc(1, sizeof(wcsprm_t));
-				wcs->flag = -1;
-				status = wcssub(1, prm, &nsub, axes, wcs);
-				wcs->flag = 0;
-				wcsset(wcs);
-				if (status == 0) {
+				int status = -1;
+				wcs = wcs_deepcopy(prm, &status);
+				if (!status) {
 					if (wcs->altlin & 2) { // header contains CD info
 						double cd[2][2];
 						// we copy cd to pc and set cdelt to unity

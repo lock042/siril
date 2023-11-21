@@ -187,7 +187,7 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	if (!has_wcsdata(fit)) {
 		free_wcs(fit);
 	} else {
-		load_WCS_from_memory(fit);
+		// load_WCS_from_memory(fit);
 	}
 
 	full_stats_invalidation_from_fit(fit);
@@ -241,7 +241,7 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	if (!has_wcsdata(fit)) {
 		free_wcs(fit);
 	} else {
-		load_WCS_from_memory(fit);
+		// load_WCS_from_memory(fit);
 	}
 
 	full_stats_invalidation_from_fit(fit);

@@ -44,6 +44,7 @@
 #include "gui/siril_preview.h"
 #include "algos/statistics.h"
 #include "algos/astrometry_solver.h"
+#include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "image_format_fits.h"
@@ -343,7 +344,7 @@ static void load_wcs_keywords(fits *fit) {
 			else siril_debug_print("read DEC as DMS\n");
 		}
 	}
-	// kewwords directly related to platesolve solution are loaded to fit->wcslib using loas_WCS_from_fits
+	// kewwords directly related to platesolve solution are loaded to fit->wcslib using load_WCS_from_fits
 
 	status = 0;
 	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->wcsdata.pltsolvd), fit->wcsdata.pltsolvd_comment, &status);
@@ -2947,7 +2948,13 @@ void copy_fits_metadata(fits *from, fits *to) {
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
 	// don't copy ICC profile, if that is needed it should be done separately
-	//wcssub()?
+	int status = -1;
+	to->wcslib = wcs_deepcopy(from->wcslib, &status);
+	if (status) {
+		wcsfree(to->wcslib);
+		siril_debug_print("could not copy wcslib struct\n");
+	}
+
 	// copy from->history?
 }
 

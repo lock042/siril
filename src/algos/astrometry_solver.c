@@ -627,7 +627,6 @@ gpointer plate_solver(gpointer p) {
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
 		flip_bottom_up_astrometry_data(args->fit);
-		load_WCS_from_memory(args->fit);
 		args->image_flipped = TRUE;
 	}
 
@@ -899,8 +898,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	siril_debug_print("pc2_1  = %*.12e\n", 20, args->fit->wcslib->pc[2]);
 	siril_debug_print("pc2_2  = %*.12e\n", 20, args->fit->wcslib->pc[3]);
 	siril_debug_print("******************************************\n");
-
-	load_WCS_from_memory(args->fit);
 
 	CHECK_FOR_CANCELLATION;
 
@@ -1199,9 +1196,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 				(double)args->fit->rx * 0.5, (double)args->fit->ry * 0.5, args->scalefactor, &S);
 		reframe_astrometry_data(args->fit, S);
 	}
-	// we need to reload here to make sure everything in fit->wcslib is updated
-	// TODO: this is where we loose the SIP info, will need to be smarter than this
-	load_WCS_from_memory(args->fit);
 
 	args->fit->wcsdata.pltsolvd = TRUE;
 	strcpy(args->fit->wcsdata.pltsolvd_comment, "This WCS header was created by Astrometry.net.");
