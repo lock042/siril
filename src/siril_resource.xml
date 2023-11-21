@@ -5,6 +5,7 @@
     <file compressed="true" preprocess="xml-stripblanks" alias="menus.ui">gui/uifiles/menus.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="cosmetic_dialog.ui">gui/uifiles/cosmetic_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="binxy_dialog.ui">gui/uifiles/binxy_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="search_window.ui">gui/uifiles/search_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="siril.ui">gui/uifiles/siril.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="CLAHE_dialog.ui">gui/uifiles/CLAHE_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="cut_dialog.ui">gui/uifiles/cut_dialog.ui</file>

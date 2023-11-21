@@ -47,6 +47,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/split_cfa_dialog.ui",
 	"/org/siril/ui/color_calibration.ui",
 	"/org/siril/ui/settings_window.ui",
+	"/org/siril/ui/search_window.ui",
 	"/org/siril/ui/siril.ui",
 	"/org/siril/ui/data_dialog.ui",
 	"/org/siril/ui/aberration_inspector.ui",
