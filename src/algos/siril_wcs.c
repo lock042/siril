@@ -93,7 +93,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs->altlin = 2;
 						wcspcx(wcs, 0, 0, NULL); // decompose CD to CDELT and PC
 						printf("contains CD\n");
-					} else {
+					} else if (wcs->altlin & 1) { // header contains PC info
 						double pc[2][2], cd[2][2];
 						wcs_pc2mat(wcs, pc);
 						wcs_pc_to_cd(pc, wcs->cdelt, cd);
@@ -101,6 +101,11 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs->flag = 0;
 						wcsset(wcs);
 						printf("contains PC\n");
+					} else { // contained some keywords but not enough to define at least a linear projection
+						siril_debug_print("wcs did not contain enough info\n");
+						free(wcs);
+						wcs = NULL;
+						break;
 					}
 					printf("at header readout\n");
 					wcs_print(wcs);
