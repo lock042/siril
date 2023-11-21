@@ -592,7 +592,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 						gfit.icc_profile,
 						type,
 						gui.icc.monitor,
-						type,
+						TYPE_RGB_8_PLANAR,
 						(gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : gui.icc.monitor,
 						com.pref.icc.rendering_intent,
 						com.pref.icc.proofing_intent,
