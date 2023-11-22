@@ -62,16 +62,21 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data, const char *dat
 
     header = g_string_new(head_data);
 
-    // Check if the data series is available
-    if (spl_data->plots != NULL) {
-        splxyerrdata *plots = (splxyerrdata *)spl_data->plots->data;
-        nbpoints = plots->nb;
-
-        // Allocate memory for data array
-        gchar **data = g_new(gchar *, nbpoints * nbcols);
-        if (!data) {
-            PRINT_ALLOC_ERR;
-            retval = FALSE;
+	// Check if the data series is available
+	if (spl_data->plots != NULL && spl_data->plot) {
+		splxyerrdata *plots = (splxyerrdata*) spl_data->plots->data;
+		nbpoints = plots->nb;
+		splxydata *plot = (splxydata*) spl_data->plot->data;
+		if (nbpoints != plot->nb) {
+			retval = FALSE;
+			goto clean_and_exit;
+		}
+;
+		// Allocate memory for data array
+		gchar **data = g_new(gchar*, nbpoints * nbcols);
+		if (!data) {
+			PRINT_ALLOC_ERR;
+			retval = FALSE;
             goto clean_and_exit;
         }
 
@@ -86,7 +91,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data, const char *dat
             data[index++] = g_strdup("NO"); // TRANS
             data[index++] = g_strdup("STD"); // MTYPE
             data[index++] = g_strdup(adata->cname); // CNAME
-            data[index++] = g_strdup(_NA_); // CMAG
+            data[index++] = g_strdup_printf("%8.6lf", plot->data[i].y); // CMAG
             data[index++] = g_strdup(adata->kname); // KNAME
             data[index++] = g_strdup(_NA_); // KMAG
             data[index++] = g_strdup(_NA_); // AMASS
@@ -135,19 +140,19 @@ gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso_ptr, c
     const char *data_header = "#NAME,DATE,MAG,MERR,FILT,TRANS,MTYPE,CNAME,CMAG,KNAME,KMAG,AMASS,GROUP,CHART,NOTES";
 
     strcpy(header.type, "EXTENDED");
-	strncpy(header.obscode, aavso_ptr->obscode, 11);
-	strncpy(header.software, PACKAGE_STRING, 255);
+	g_strlcpy(header.obscode, aavso_ptr->obscode, 12);
+	g_strlcpy(header.software, PACKAGE_STRING, 256);
 	header.delim = ',';
 	strcpy(header.date, "JD");
-	strncpy(header.obstype, aavso_ptr->obstype, 4);
-	strncpy(header.aavso_data_header, data_header, 511);
+	g_strlcpy(header.obstype, aavso_ptr->obstype, 5);
+	g_strlcpy(header.aavso_data_header, data_header, 512);
 
     generate_aavso_header(&header, aavso_param);
 
-    strncpy(adata.starid, aavso_ptr->starid, 30);
-    strncpy(adata.filter,aavso_ptr->filter, 5);
-    strncpy(adata.cname, aavso_ptr->cname, 20);
-    strncpy(adata.kname, aavso_ptr->kname, 20);
+    g_strlcpy(adata.starid, aavso_ptr->starid, 31);
+    g_strlcpy(adata.filter,aavso_ptr->filter, 6);
+    g_strlcpy(adata.cname, aavso_ptr->cname, 21);
+    g_strlcpy(adata.kname, aavso_ptr->kname, 21);
 
     siril_plot_save_aavso(data, datfilename, aavso_param, &adata);
 

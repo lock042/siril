@@ -716,7 +716,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 	int i, j, nbImages = 0;
 	aavso_dlg *aavso_ptr = NULL;
 	double c_std = 0.0;
-	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
+	double *vmag = NULL, *compmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -769,12 +769,25 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 	real_x = calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !real_x) {
 		PRINT_ALLOC_ERR;
-		free(vmag); // g_free is safe to use here as it takes no action if the arg is NULL
+		free(vmag);
 		free(err);
 		free(x);
 		free(real_x);
 		return -1;
 	}
+
+	if (aavso) {
+		compmag = calloc(nbImages, sizeof(double));
+		if (!compmag) {
+			PRINT_ALLOC_ERR;
+			free(vmag);
+			free(err);
+			free(x);
+			free(real_x);
+			return -1;
+		}
+	}
+
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
@@ -819,6 +832,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 
 			vmag[j] = vmag[j] - cmag + c_std;
 			err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
+			if (aavso) compmag[j] = cmag;
 			j++;
 		}
 	}
@@ -848,6 +862,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 	int ret = 0;
 
 	if (aavso) {
+		siril_plot_add_xydata(spl_data, "cmag", nb_valid_images, x, compmag, NULL, NULL);
 		export_to_aavso_extended(spl_data, aavso_ptr, filename);
 	} else {
 		gboolean success = FALSE;
