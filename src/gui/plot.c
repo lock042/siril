@@ -65,7 +65,7 @@ gboolean output_aavso = TRUE; // FIXME: temporary variable
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*varCurve = NULL, *buttonClearAll = NULL,
+		*varCurve = NULL, *exportAAVSO_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
 		*buttonNINA = NULL, *buttonCompStars = NULL;
@@ -1035,6 +1035,7 @@ static void fill_plot_statics() {
 		combo = lookup_widget("plotCombo");
 		comboX = lookup_widget("plotComboX");
 		varCurve = lookup_widget("varCurvePhotometry");
+		exportAAVSO_button = lookup_widget("exportAAVSO_button");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
 		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
@@ -1058,7 +1059,9 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_visible(varCurve, TRUE);
+	gtk_widget_set_visible(exportAAVSO_button, TRUE);
 	gtk_widget_set_sensitive(varCurve, use_photometry && current_selected_source == MAGNITUDE);
+	gtk_widget_set_sensitive(exportAAVSO_button, use_photometry && current_selected_source == MAGNITUDE);
 	gtk_widget_set_visible(buttonNINA, TRUE);
 	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonCompStars, TRUE);
@@ -1135,6 +1138,7 @@ void reset_plot() {
 		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
+		gtk_widget_set_visible(exportAAVSO_button, FALSE);
 		gtk_widget_set_visible(buttonNINA, FALSE);
 		gtk_widget_set_visible(buttonCompStars, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
@@ -1597,6 +1601,7 @@ static void update_ylabel() {
 	if (use_photometry) {
 		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
 		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
+		gtk_widget_set_sensitive(exportAAVSO_button, current_selected_source == MAGNITUDE);
 		switch (current_selected_source) {
 			case ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
