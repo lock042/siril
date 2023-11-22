@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -5166,37 +5166,6 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="spacing">5</property>
                                                 <child>
-                                                  <object class="GtkCheckButton" id="JulianPhotometry">
-                                                    <property name="label" translatable="yes">Julian Date</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkCheckButton" id="arcsecPhotometry">
-                                                    <property name="label" translatable="yes">arcsec</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_arcsecPhotometry_toggled" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
                                                   <object class="GtkComboBoxText" id="plotSourceCombo">
                                                     <property name="visible">True</property>
                                                     <property name="sensitive">False</property>
@@ -5212,7 +5181,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">1</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -5228,7 +5197,52 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">False</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkButton" id="exportAAVSO_button">
+                                                    <property name="label" translatable="yes">Export to AAVSO</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="halign">start</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
                                                     <property name="position">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkCheckButton" id="JulianPhotometry">
+                                                    <property name="label" translatable="yes">Julian Date</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">False</property>
+                                                    <property name="draw-indicator">True</property>
+                                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkCheckButton" id="arcsecPhotometry">
+                                                    <property name="label" translatable="yes">arcsec</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">False</property>
+                                                    <property name="draw-indicator">True</property>
+                                                    <signal name="toggled" handler="on_arcsecPhotometry_toggled" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">3</property>
                                                   </packing>
                                                 </child>
                                               </object>
