@@ -19,7 +19,6 @@
 const char* ui_files[] = {
 // Dependencies first
 	"/org/siril/ui/filefilters.ui",
-	"/org/siril/ui/menus.ui",
 	"/org/siril/ui/siril-shortcuts.ui",
 // Dialogs (sorted)
 	"/org/siril/ui/aavso_dialog.ui",
