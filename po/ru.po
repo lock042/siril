@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-18 13:09+0100\n"
-"PO-Revision-Date: 2023-11-22 09:00+0000\n"
+"PO-Revision-Date: 2023-11-22 09:43+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -6279,7 +6279,7 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:162
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr ""
+msgstr "<b><i>Текущий профиль ICC</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:212
 msgid "<b><i>Target ICC profile</i></b>"
@@ -6287,7 +6287,7 @@ msgstr "<b>Целевой профиль ICC</b>"
 
 #: src/gui/uifiles/icc_dialog.ui:237 src/gui/uifiles/icc_dialog.ui:291
 msgid "Manufacturer"
-msgstr ""
+msgstr "Производитель"
 
 #: src/gui/uifiles/icc_dialog.ui:250 src/gui/uifiles/icc_dialog.ui:304
 msgid "Copyright"
@@ -6295,11 +6295,11 @@ msgstr "Авторские права"
 
 #: src/gui/uifiles/icc_dialog.ui:315
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/gui/uifiles/icc_dialog.ui:343
 msgid "Built-in profile"
-msgstr ""
+msgstr "Встроенный профиль"
 
 #: src/gui/uifiles/icc_dialog.ui:354
 msgid ""
@@ -9142,9 +9142,8 @@ msgid "Histogram Display"
 msgstr "Гистограмма"
 
 #: src/gui/uifiles/settings_window.ui:3396
-#, fuzzy
 msgid "Type of selection:"
-msgstr "Тип выделения"
+msgstr "Тип выделения:"
 
 #: src/gui/uifiles/settings_window.ui:3407
 msgid ""
@@ -9178,9 +9177,8 @@ msgid "Background extraction samples:"
 msgstr "Извлечение фона"
 
 #: src/gui/uifiles/settings_window.ui:3488
-#, fuzzy
 msgid "Standard annotations:"
-msgstr "показать звёзды в аннотациях"
+msgstr "Стандартные аннотации:"
 
 #: src/gui/uifiles/settings_window.ui:3500
 #, fuzzy
@@ -9319,7 +9317,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3898
 msgid "Clear the profile and revert to the default"
-msgstr ""
+msgstr "Очистить профиль и вернуться к настройкам по умолчанию"
 
 #: src/gui/uifiles/settings_window.ui:3912
 msgid "Clear the profile: soft proofing will be unavailable"
@@ -9347,7 +9345,7 @@ msgstr "Насыщенность"
 #: src/gui/uifiles/settings_window.ui:3930
 #: src/gui/uifiles/settings_window.ui:4077
 msgid "Absolute Colorimetric"
-msgstr ""
+msgstr "Абсолютная колориметрическая"
 
 #: src/gui/uifiles/settings_window.ui:3941
 #: src/gui/uifiles/settings_window.ui:3956
@@ -9466,15 +9464,15 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:4204
 #: src/gui/uifiles/settings_window.ui:4258
 msgid "Never"
-msgstr ""
+msgstr "Никогда"
 
 #: src/gui/uifiles/settings_window.ui:4205
 msgid "Ask every time"
-msgstr ""
+msgstr "Всегда спрашивать"
 
 #: src/gui/uifiles/settings_window.ui:4206
 msgid "Always"
-msgstr ""
+msgstr "Всегда"
 
 #: src/gui/uifiles/settings_window.ui:4216
 msgid "On load"
@@ -10654,17 +10652,17 @@ msgstr "извлечение канала %s: выполнение...\n"
 #: src/algos/colors.c:733 src/algos/colors.c:870
 #, c-format
 msgid "%s: extract RGB channel"
-msgstr ""
+msgstr "%s: извлечь канал RGB"
 
 #: src/algos/colors.c:736 src/algos/colors.c:873
 #, c-format
 msgid "%s: extract HSL channel"
-msgstr ""
+msgstr "%s: извлечь канал HSL"
 
 #: src/algos/colors.c:753 src/algos/colors.c:889
 #, c-format
 msgid "%s: extract HSV channel"
-msgstr ""
+msgstr "%s: извлечь канал HSV"
 
 #: src/algos/colors.c:770 src/algos/colors.c:905
 #, c-format
@@ -10808,7 +10806,7 @@ msgstr "Команда работает только на изображения
 #: src/algos/comparison_stars.c:386
 #, c-format
 msgid "No comparison stars retrieved from the catalog %s, aborting\n"
-msgstr ""
+msgstr "В каталоге %s звёзды сравнения не найдены, прерывание\n"
 
 #: src/algos/comparison_stars.c:396
 msgid "No comparison stars found in the image, aborting\n"
@@ -11473,11 +11471,11 @@ msgstr ""
 #: src/algos/search_objects.c:62 src/algos/search_objects.c:137
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/algos/search_objects.c:134 src/io/remote_catalogues.c:407
 msgid "IMCCE server returned:\n"
-msgstr ""
+msgstr "Сервер IMCCE ответил:\n"
 
 #: src/algos/search_objects.c:155
 #, c-format
@@ -11492,12 +11490,12 @@ msgstr "Не удалось разобрать ответ сервера: %s\n"
 #: src/algos/search_objects.c:218
 #, c-format
 msgid "Found %s"
-msgstr ""
+msgstr "Найден %s"
 
 #: src/algos/search_objects.c:220
 #, c-format
 msgid " (aka %s)"
-msgstr ""
+msgstr " (он же %s)"
 
 #: src/algos/search_objects.c:221
 #, c-format
@@ -17967,14 +17965,14 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:198 src/core/icc_profile.c:1889
-#, fuzzy, c-format
+#, c-format
 msgid "Exported ICC profile to %s\n"
-msgstr "Поддерживаемые форматы: %s\n"
+msgstr "Профиль ICC экспортирован в %s\n"
 
 #: src/core/icc_profile.c:200 src/core/icc_profile.c:1891
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to export ICC profile to %s\n"
-msgstr "Не удалось сохранить файл JSON %s: %s\n"
+msgstr "Не удалось экспортировать профиль ICC в %s\n"
 
 #. Also we use this function to export the ICC sRGB perceptual display profile,
 #. but use a confirmation dialog to confirm the ICC's terms of use.
@@ -18034,9 +18032,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:495
-#, fuzzy
 msgid "Color management active.\n"
-msgstr "Активно подавление цветных артефактов.\n"
+msgstr "Управление цветом активно.\n"
 
 #: src/core/icc_profile.c:498
 msgid "JPEG ICC profiles supported.\n"
@@ -18067,9 +18064,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1025 src/core/icc_profile.c:1032
-#, fuzzy
 msgid "No ICC profile"
-msgstr "ICC-профиль"
+msgstr "Профиль ICC отсутствует"
 
 #: src/core/icc_profile.c:1068
 msgid ""
@@ -18082,14 +18078,13 @@ msgid "Image is not color managed. Will not write an ICC profile."
 msgstr ""
 
 #: src/core/icc_profile.c:1118
-#, fuzzy
 msgid "ICC profile removed"
-msgstr "ICC-профиль"
+msgstr "Профиль ICC удалён"
 
 #: src/core/icc_profile.c:1138 src/core/icc_profile.c:1229
-#, fuzzy, c-format
+#, c-format
 msgid "Assigned ICC profile: %s"
-msgstr "ICC-профиль"
+msgstr "Назначенный профиль ICC: %s"
 
 #: src/core/icc_profile.c:1144
 msgid ""
@@ -18104,9 +18099,9 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1180
-#, fuzzy, c-format
+#, c-format
 msgid "Converted to ICC profile: %s"
-msgstr "Преобразовать в 16 бит"
+msgstr "Преобразовано в профиль ICC: %s"
 
 #: src/core/icc_profile.c:1185
 #, fuzzy
@@ -18131,9 +18126,8 @@ msgid "Do you want to convert this image to the working color space?"
 msgstr ""
 
 #: src/core/icc_profile.c:1353
-#, fuzzy
 msgid "Error loading profile"
-msgstr "Ошибка при загрузке файлов!\n"
+msgstr "Ошибка при загрузке профиля"
 
 #: src/core/icc_profile.c:1354
 msgid ""
@@ -18169,12 +18163,12 @@ msgstr "Ошибка: не указано имя файла, прерывани�
 #: src/core/icc_profile.c:1547
 #, c-format
 msgid "Monitor profile loaded from %s\n"
-msgstr ""
+msgstr "Профиль монитора загружен из %s\n"
 
 #: src/core/icc_profile.c:1553
-#, fuzzy, c-format
+#, c-format
 msgid "Monitor profile could not be loaded from %s\n"
-msgstr "Настройки не могут быть загружены из %s: %s\n"
+msgstr "Профиль монитора не может быть загружен из %s\n"
 
 #: src/core/icc_profile.c:1557 src/core/icc_profile.c:1566
 msgid "Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"
@@ -18214,9 +18208,8 @@ msgid "Color profile assignment"
 msgstr "Ошибка в выравнивании слоёв."
 
 #: src/core/icc_profile.c:1692 src/core/icc_profile.c:1739
-#, fuzzy
 msgid "Color space not supported"
-msgstr "Формат не поддерживается."
+msgstr "Цветовое пространство не поддерживается"
 
 #: src/core/icc_profile.c:1692 src/core/icc_profile.c:1739
 msgid ""
@@ -18242,7 +18235,7 @@ msgstr ""
 
 #: src/core/icc_profile.c:1732
 msgid "No color profile set"
-msgstr ""
+msgstr "Цветовой профиль не установлен"
 
 #: src/core/icc_profile.c:1732
 msgid "The current image has no color profile. You need to assign one first."
@@ -18255,9 +18248,8 @@ msgid "Color profile conversion"
 msgstr ""
 
 #: src/core/icc_profile.c:1821 src/core/icc_profile.c:1826
-#, fuzzy
 msgid "Could not load file"
-msgstr "Не удалось открыть файл %s"
+msgstr "Не удалось загрузить файл"
 
 #: src/core/icc_profile.c:1821
 #, fuzzy
@@ -18269,9 +18261,8 @@ msgid "Error loading selected file or it does not contain a valid ICC profile."
 msgstr ""
 
 #: src/core/icc_profile.c:1833
-#, fuzzy
 msgid "Profile error"
-msgstr "Профиль"
+msgstr "Ошибка профиля"
 
 #: src/core/icc_profile.c:1833
 msgid ""
@@ -18866,9 +18857,8 @@ msgid "don't use 32 bits for pixel depth"
 msgstr "не используются 32 бита для разрядности"
 
 #: src/core/settings.c:298
-#, fuzzy
 msgid "embed ICC profiles in FITS when saving"
-msgstr "Встроить профиль sRGB ICC в изображение"
+msgstr "встроить профили ICC в FITS при сохранении"
 
 #: src/core/settings.c:299
 msgid "allow FITS cubes to have different sizes"
@@ -19425,14 +19415,12 @@ msgid "show stars in annotations"
 msgstr "показать звёзды в аннотациях"
 
 #: src/core/settings.c:463
-#, fuzzy
 msgid "show user DSO objects in annotations"
-msgstr "показать пользовательские объекты в аннотациях"
+msgstr "показать пользовательские объекты глубокого космоса в аннотациях"
 
 #: src/core/settings.c:464
-#, fuzzy
 msgid "show user SSO objects in annotations"
-msgstr "показать пользовательские объекты в аннотациях"
+msgstr "показать пользовательские объекты Солнечной системы в аннотациях"
 
 #: src/core/settings.c:466
 msgid "list of pixel math presets"
@@ -19697,7 +19685,7 @@ msgstr[2] "каналов"
 
 #: src/core/utils.c:1561 src/core/utils.c:1564
 msgid "(invalid UTF-8 string)"
-msgstr ""
+msgstr "(неверная строка UTF-8)"
 
 #: src/filters/asinh.c:77
 #, c-format
@@ -20654,7 +20642,7 @@ msgstr "Введите название целевой звезды для по�
 
 #: src/gui/compstars.c:59
 msgid "Narrow field of view"
-msgstr ""
+msgstr "Узкое поле зрения"
 
 #: src/gui/compstars.c:60
 msgid ""
@@ -21855,9 +21843,8 @@ msgid "Reset Preferences"
 msgstr "Вернуть исходные параметры"
 
 #: src/gui/preferences.c:949
-#, fuzzy
 msgid "External ICC Profiles"
-msgstr "ICC-профиль"
+msgstr "Внешние профили ICC"
 
 #: src/gui/preferences.c:949
 msgid ""
@@ -22314,9 +22301,9 @@ msgid "Are you sure you want to close everything and open the new image?"
 msgstr "Уверены, что хотите закрыть всё и открыть новое изображение?"
 
 #: src/gui/siril_css.c:63
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to load CSS sheet: %s.\n"
-msgstr "Не удалось записать в итоговый файл\n"
+msgstr "Не удалось загрузить таблицу CSS: %s\n"
 
 #: src/gui/siril_intro.c:34
 msgid ""
@@ -22644,9 +22631,9 @@ msgstr ""
 "недебайеризованным изображением CFA. Вы уверены, что хотите продолжить?"
 
 #: src/io/annotation_catalogues.c:393
-#, fuzzy, c-format
+#, c-format
 msgid "Could not write the updated catalogue %s\n"
-msgstr "Не удалось создать именованный канал %s\n"
+msgstr "Не удалось записать обновлённый каталог %s\n"
 
 #: src/io/annotation_catalogues.c:495
 #, c-format
@@ -22657,14 +22644,14 @@ msgstr ""
 "Объект уже найден в каталоге %s под именем \"%s\", снова не добавляем\n"
 
 #: src/io/annotation_catalogues.c:653
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s record found in the local SSO catalog\n"
-msgstr "Объект %s найден в каталоге %s, α = %f, δ = %f\n"
+msgstr "Объект %s найден в локальном каталоге Солнечной системы\n"
 
 #: src/io/annotation_catalogues.c:658
-#, fuzzy, c-format
+#, c-format
 msgid "at coordinates: %s, %s (on DATE-OBS:%s)\n"
-msgstr "Найден %s в координатах: %s, %s\n"
+msgstr "в координатах: %s, %s (на дату: %s)\n"
 
 #: src/io/conversion.c:160
 msgid "BMP images, "
@@ -23033,7 +23020,7 @@ msgstr ""
 
 #: src/io/gitscripts.c:532
 msgid "Repository Error"
-msgstr ""
+msgstr "Ошибка репозитория"
 
 #: src/io/gitscripts.c:548 src/io/gitscripts.c:558
 msgid ""
@@ -23050,9 +23037,9 @@ msgid "Error: unable to open local scripts repository.\n"
 msgstr "Ошибка: не удалось открыть локальный репозиторий сценариев.\n"
 
 #: src/io/gitscripts.c:722
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading script contents: %s\n"
-msgstr "Загрузка сценария: %s\n"
+msgstr "Ошибка загрузки содержимого сценария: %s\n"
 
 #: src/io/gitscripts.c:749
 msgid "Error getting the list of unmerged changes"
@@ -23308,9 +23295,8 @@ msgid "Siril cannot create JPG file.\n"
 msgstr "Siril не может создавать файл в формате JPG.\n"
 
 #: src/io/image_formats_libraries.c:1370
-#, fuzzy
 msgid "Error: failed to write ICC profile to JPG\n"
-msgstr "Ошибка: не удалось записать результат в пользовательский каталог.\n"
+msgstr "Ошибка: не удалось записать профиль ICC в JPG\n"
 
 #: src/io/image_formats_libraries.c:1390
 #, c-format
@@ -23639,6 +23625,8 @@ msgid ""
 "A corrupted version of %s was found in cache but cannot be deleted, "
 "aborting\n"
 msgstr ""
+"В кэше найдена повреждённая версия %s, но она не может быть удалена, "
+"прерывание\n"
 
 #: src/io/remote_catalogues.c:707
 #, c-format
@@ -23647,7 +23635,7 @@ msgstr "Использование уже скачанного каталога 
 
 #: src/io/remote_catalogues.c:728
 msgid "Contacting server\n"
-msgstr ""
+msgstr "Соединение с сервером\n"
 
 #: src/io/remote_catalogues.c:766 src/io/siril_catalogues.c:750
 #, fuzzy, c-format
@@ -23983,9 +23971,8 @@ msgid "Export: could not read frame, aborting\n"
 msgstr "Экспорт: невозможно прочитать кадр, прерывание\n"
 
 #: src/io/sequence_export.c:378
-#, fuzzy
 msgid "An image of the sequence doesn't have the same dimensions\n"
-msgstr "Укладка: изображения в последовательности имеют разные размеры\n"
+msgstr "Изображение из последовательности имеет другой размер\n"
 
 #: src/io/sequence_export.c:591
 msgid "Sequence export failed. Check the log."
@@ -24217,7 +24204,7 @@ msgstr "Переменная звезда не выбрана\n"
 
 #: src/io/siril_catalogues.c:234
 msgid "GCVS"
-msgstr ""
+msgstr "GCVS"
 
 #: src/io/siril_catalogues.c:238
 msgid "PGC"
@@ -24229,11 +24216,11 @@ msgstr ""
 
 #: src/io/siril_catalogues.c:242
 msgid "IMCCE solar system"
-msgstr ""
+msgstr "IMCCE Солнечная система"
 
 #: src/io/siril_catalogues.c:244
 msgid "AAVSO VSP Chart"
-msgstr ""
+msgstr "Карта AAVSO VSP"
 
 #: src/io/siril_catalogues.c:246
 msgid "local Tycho-2+NOMAD"
@@ -24257,7 +24244,7 @@ msgstr "Не удалось открыть каталог (%s)\n"
 
 #: src/io/siril_catalogues.c:585
 msgid "No columns found in the catalogue\n"
-msgstr ""
+msgstr "В каталоге столбцы не найдены\n"
 
 #. checking that current line has a number of columns consistent with the headers
 #: src/io/siril_catalogues.c:605
@@ -24273,9 +24260,9 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_catalogues.c:741
-#, fuzzy, c-format
+#, c-format
 msgid "File %s cannot be deleted (%s), aborting\n"
-msgstr "Не удалось создать %s, прерывание.\n"
+msgstr "Файл %s не может быть удалён (%s), прерывание.\n"
 
 #: src/io/siril_catalogues.c:846
 msgid "Cannot correct for velocities, will use ra/dec as is\n"
