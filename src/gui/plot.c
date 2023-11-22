@@ -1347,13 +1347,13 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
-	if (output_aavso) {
-		gtk_widget_show_all(lookup_widget("aavso_dialog"));
-	} else {
-		set_cursor_waiting(TRUE);
-		save_dialog(".dat", light_curve, NULL);
-		set_cursor_waiting(FALSE);
-	}
+	set_cursor_waiting(TRUE);
+	save_dialog(".dat", light_curve, NULL);
+	set_cursor_waiting(FALSE);
+}
+
+void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
+	gtk_widget_show_all(lookup_widget("aavso_dialog"));
 }
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
