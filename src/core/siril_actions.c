@@ -624,6 +624,7 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_set_file_filter("reference_filechooser_linearmatch", "filefilter_fits");
 	siril_open_dialog("linearmatch_dialog");
 }
 
@@ -634,6 +635,8 @@ void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	phasebutton = GTK_FILE_CHOOSER_BUTTON(lookup_widget("filechooser_phase"));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(magbutton), com.wd);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(phasebutton), com.wd);
+	siril_set_file_filter("filechooser_mag", "filefilter_fits");
+	siril_set_file_filter("filechooser_phase", "filefilter_fits");
 	siril_open_dialog("dialog_FFT");
 }
 

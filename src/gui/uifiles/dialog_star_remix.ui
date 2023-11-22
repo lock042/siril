@@ -184,7 +184,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="tooltip-text" translatable="yes">Select a starless image for recomposing with a star mask.
 While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
                         <property name="create-folders">False</property>
-                        <property name="filter">filefilter_fits</property>
                         <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_remix_filechooser_right_file_set" swapped="no"/>
@@ -820,7 +819,6 @@ Note that luminance based models are not generally invertible.</property>
                         <property name="tooltip-text" translatable="yes">Select a starless image for recomposing with a star mask.
 While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
                         <property name="create-folders">False</property>
-                        <property name="filter">filefilter_fits</property>
                         <property name="local-only">False</property>
                         <property name="title" translatable="yes"/>
                         <signal name="file-set" handler="on_remix_filechooser_left_file_set" swapped="no"/>
