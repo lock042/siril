@@ -280,7 +280,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="obstype_combo1">
+              <object class="GtkComboBoxText" id="cstar_combo">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">The number of the comparison star.</property>
@@ -333,7 +333,7 @@ where Vins is the instrumental magnitude of the variable, Cins is the instrument
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="obstype_combo2">
+              <object class="GtkComboBoxText" id="kstar_combo">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">The number of the check star.</property>

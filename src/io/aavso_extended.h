@@ -64,7 +64,9 @@ typedef struct aavso_dlg_struct {
 	const gchar *filter;
 	const gchar *starid;
 	const gchar *cname;
+	int c_idx;
 	const gchar *kname;
+	int k_idx;
 	double c_std;
 } aavso_dlg;
 

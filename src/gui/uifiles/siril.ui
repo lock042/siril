@@ -1206,6 +1206,45 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
     <property name="can-focus">False</property>
     <property name="resource">/org/siril/ui/pixmaps/photometry_dark.svg</property>
   </object>
+  <object class="GtkPopover" id="photometry_menu">
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkButton" id="varCurvePhotometry">
+            <property name="label" translatable="yes">Light Curve (ETD format)</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="exportAAVSO_button">
+            <property name="label" translatable="yes">AAVSO file format</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <signal name="clicked" handler="on_exportAAVSO_button_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkMenu" id="precision_menu">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -7024,37 +7063,6 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkButton" id="varCurvePhotometry">
-                                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.</property>
-                                                    <property name="halign">start</property>
-                                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">False</property>
-                                                    <property name="position">1</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkButton" id="exportAAVSO_button">
-                                                    <property name="label" translatable="yes">Export to AAVSO</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="halign">start</property>
-                                                    <signal name="clicked" handler="on_exportAAVSO_button_clicked" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">2</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
                                                   <object class="GtkCheckButton" id="JulianPhotometry">
                                                     <property name="label" translatable="yes">Julian Date</property>
                                                     <property name="can-focus">True</property>
@@ -7083,6 +7091,54 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                     <property name="fill">True</property>
                                                     <property name="pack-type">end</property>
                                                     <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkMenuButton" id="export_photo_button">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="action-name">win.bit-depth</property>
+                                                    <property name="use-popover">False</property>
+                                                    <property name="popover">photometry_menu</property>
+                                                    <child>
+                                                      <object class="GtkBox" id="export_box2">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <child>
+                                                          <object class="GtkLabel" id="precision_button_name1">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="label" translatable="yes">Export to...</property>
+                                                            <property name="use-underline">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkImage" id="precision_button_arrow1">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="icon-name">pan-down-symbolic</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">5</property>
                                                   </packing>
                                                 </child>
                                               </object>
@@ -9695,7 +9751,7 @@ WARNING: This option should not be checked for master stacking.</property>
                 <property name="popup">snapshot_menu</property>
                 <property name="use-popover">False</property>
                 <child>
-                  <object class="GtkBox" id="precision_button_box1">
+                  <object class="GtkBox" id="snapshot_button_box">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>

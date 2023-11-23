@@ -63,7 +63,7 @@
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*varCurve = NULL, *exportAAVSO_button = NULL, *buttonClearAll = NULL,
+		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
 		*buttonNINA = NULL, *buttonCompStars = NULL;
@@ -707,6 +707,15 @@ static double get_error_for_time(pldata *plot, double time) {
 	return 0.0;
 }
 
+static int get_number_of_stars(sequence *seq) {
+	int count = 0;
+	for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
+		if (seq->photometry[i][seq->reference_image] && seq->photometry[i][seq->reference_image]->phot_is_valid)
+			count++;
+	}
+	return count;
+}
+
 // call after having filled the plot data of the multiple stars with either
 // generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
@@ -1145,8 +1154,7 @@ static void fill_plot_statics() {
 		drawingPlot = lookup_widget("DrawingPlot");
 		combo = lookup_widget("plotCombo");
 		comboX = lookup_widget("plotComboX");
-		varCurve = lookup_widget("varCurvePhotometry");
-		exportAAVSO_button = lookup_widget("exportAAVSO_button");
+		varCurve = lookup_widget("export_photo_button");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
 		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
@@ -1170,9 +1178,7 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_visible(varCurve, TRUE);
-	gtk_widget_set_visible(exportAAVSO_button, TRUE);
 	gtk_widget_set_sensitive(varCurve, use_photometry && current_selected_source == MAGNITUDE);
-	gtk_widget_set_sensitive(exportAAVSO_button, use_photometry && current_selected_source == MAGNITUDE);
 	gtk_widget_set_visible(buttonNINA, TRUE);
 	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonCompStars, TRUE);
@@ -1249,7 +1255,6 @@ void reset_plot() {
 		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
-		gtk_widget_set_visible(exportAAVSO_button, FALSE);
 		gtk_widget_set_visible(buttonNINA, FALSE);
 		gtk_widget_set_visible(buttonCompStars, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
@@ -1450,6 +1455,18 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	aavso_ptr->filter = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("aavso_filter_combo")));
 	aavso_ptr->kname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("kname_entry")));
 	aavso_ptr->c_std = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("cstd_entry"))), NULL);
+	aavso_ptr->c_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("cstar_combo")));
+	aavso_ptr->k_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("kstar_combo")));
+
+	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
+		return;
+	}
+
+	if (aavso_ptr->c_idx == aavso_ptr->k_idx) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Wrong data"), _("The comparison star and the check star must be different."));
+		return;
+	}
 
 	set_cursor_waiting(TRUE);
 	save_dialog(".csv", export_AAVSO, aavso_ptr);
@@ -1463,7 +1480,22 @@ void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+static void fill_combo_boxes() {
+	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(lookup_widget("cstar_combo")));
+	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(lookup_widget("kstar_combo")));
+	int n = get_number_of_stars(&com.seq);
+
+	for (int i = 1; i < n; i++) {
+		gchar *txt = g_strdup_printf("%d", i);
+		gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(lookup_widget("cstar_combo")), i, NULL, txt);
+		gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(lookup_widget("kstar_combo")), i, NULL, txt);
+
+		g_free(txt);
+	}
+}
+
 void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
+	fill_combo_boxes();
 	gtk_widget_show_all(lookup_widget("aavso_dialog"));
 }
 
@@ -1712,7 +1744,6 @@ static void update_ylabel() {
 	if (use_photometry) {
 		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
 		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
-		gtk_widget_set_sensitive(exportAAVSO_button, current_selected_source == MAGNITUDE);
 		switch (current_selected_source) {
 			case ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
