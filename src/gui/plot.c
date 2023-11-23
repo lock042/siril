@@ -710,7 +710,7 @@ static double get_error_for_time(pldata *plot, double time) {
 static int get_number_of_stars(sequence *seq) {
 	int count = 0;
 	for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
-		if (seq->photometry[i][seq->reference_image] && seq->photometry[i][seq->reference_image]->phot_is_valid)
+		if (seq->photometry[i][seq->reference_image])
 			count++;
 	}
 	return count;
@@ -721,7 +721,6 @@ static int get_number_of_stars(sequence *seq) {
 // the first will be the target
 static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	int i, j, nbImages = 0;
-	double c_std = 0.0;
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
@@ -808,7 +807,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 			cmag = -2.5 * log10(cmag / nb_ref);
 			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
 
-			vmag[j] = vmag[j] - cmag + c_std;
+			vmag[j] = vmag[j] - cmag;
 			err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
 			j++;
 		}
@@ -865,7 +864,7 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 	aavso_dlg *aavso_ptr = NULL;
 	double c_std = 0.0;
 	double *vmag = NULL, *cstar = NULL, *kstar = NULL, *err = NULL, *x = NULL,
-			*real_x = NULL;
+			*real_x = NULL, *airmass = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -875,9 +874,8 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 	aavso_ptr = (aavso_dlg *)ptr;
 	/* define c_std */
 	c_std = aavso_ptr->c_std;
-	// FIXME
-	c_idx = 1;
-	k_idx = 2;
+	c_idx = aavso_ptr->c_idx + 1;
+	k_idx = aavso_ptr->k_idx + 1;
 
 	/* get number of valid frames for each star */
 	int ref_valid_count[MAX_SEQPSF] = { 0 };
@@ -919,12 +917,14 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 	real_x = calloc(nbImages, sizeof(double));
 	cstar = calloc(nbImages, sizeof(double));
 	kstar = calloc(nbImages, sizeof(double));
-	if (!vmag || !err || !x || !real_x || !cstar || !kstar) {
+	airmass = calloc(nbImages, sizeof(double));
+	if (!vmag || !err || !x || !real_x || !cstar || !kstar || !airmass) {
 		PRINT_ALLOC_ERR;
 		free(vmag);
 		free(err);
 		free(x);
 		free(real_x);
+		free(airmass);
 		free(cstar);
 		free(kstar);
 		return -1;
@@ -940,6 +940,7 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 		real_x[j] = x[j] + (double)julian0;	// absolute date
 		vmag[j] = plot->data[j].y;		// magnitude
 		err[j] = get_error_for_time(plot, x[j]);// error of the magnitude
+		airmass[j] = seq->imgparam[i].airmass;
 
 		pldata *cur_plot = plot->next;
 		/* First data plotted are variable data, others are references
@@ -993,6 +994,7 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 
 	siril_plot_add_xydata(spl_data, "cmag", nb_valid_images, x, cstar, NULL, NULL);
 	siril_plot_add_xydata(spl_data, "kmag", nb_valid_images, x, kstar, NULL, NULL);
+	siril_plot_add_xydata(spl_data, "airmass", nb_valid_images, x, airmass, NULL, NULL);
 
 	int ret = export_to_aavso_extended(spl_data, aavso_ptr, filename);
 
@@ -1002,6 +1004,7 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 	free(err);
 	free(x);
 	free(real_x);
+	free(airmass);
 	free(cstar);
 	free(kstar);
 	return ret;

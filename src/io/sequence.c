@@ -1718,6 +1718,8 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 		if (!args->seq->imgparam[index].date_obs && fit->date_obs)
 			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
 		data->exposure = fit->exposure;
+
+		args->seq->imgparam[index].airmass = fit->airmass;
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {

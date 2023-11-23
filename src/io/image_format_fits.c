@@ -188,6 +188,8 @@ void fit_get_photometry_data(fits *fit) {
 	int status = 0;
 	read_fits_date_obs_header(fit);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "AIRMASS", &fit->airmass, NULL, &status);
 }
 
 static int fit_stats(fitsfile *fptr, float *mini, float *maxi) {

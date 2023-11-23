@@ -291,6 +291,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
 	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
 	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+	regargs->imgparam[out_index].airmass = args->seq->imgparam[in_index].airmass;
 	cvGetEye(&regargs->regparam[out_index].H);
 
 	if (regargs->x2upscale) {

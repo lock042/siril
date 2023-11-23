@@ -41,14 +41,12 @@
 static void free_xyplot_data(splxydata *plot) {
 	free(plot->data);
 	g_free(plot->label);
-	plot = NULL;
 }
 
 static void free_xyerrplot_data(splxyerrdata *plots) {
 	g_free(plots->label);
 	for (int i = 0; i < 3; i++)
 		free_xyplot_data(plots->plots[i]);
-	plots = NULL;
 }
 
 static void free_list_plot(gpointer data) {
@@ -94,7 +92,7 @@ static splxyerrdata *alloc_xyerrplot_data(int nb) {
 }
 
 // allocate a legend entry
-static spllegend *new_legend_entry(spl_type type, double color[3]) {
+static spllegend *new_legend_entry(spl_type type, const double color[3]) {
 	spllegend *legend = g_slice_new(spllegend);
 	legend->type = type;
 	memcpy(legend->color, color, 3 * sizeof(double));
@@ -169,7 +167,6 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	//freeing kplot cfg structures
 	free(spl_data->cfgplot.clrs);
 	free(spl_data);
-	spl_data = NULL;
 }
 
 // setters
@@ -786,10 +783,3 @@ clean_and_exit:
 	free(data);
 	return retval;
 }
-
-
-
-
-
-
-

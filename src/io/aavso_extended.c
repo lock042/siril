@@ -83,6 +83,14 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data, const char *dat
 			goto clean_and_exit;
 		}
 
+		/* move to airmass data */
+		list = list->next;
+		splxydata *airmass = (splxydata*) list->data;
+		if (nbpoints != airmass->nb) {
+			retval = FALSE;
+			goto clean_and_exit;
+		}
+
 		// Allocate memory for data array
 		gchar **data = g_new(gchar*, nbpoints * nbcols);
 		if (!data) {
@@ -105,7 +113,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data, const char *dat
             data[index++] = g_strdup_printf("%8.6lf", cplot->data[i].y); // CMAG
             data[index++] = g_strdup(adata->kname); // KNAME
             data[index++] = g_strdup_printf("%8.6lf", kplot->data[i].y); // KMAG
-            data[index++] = g_strdup(_NA_); // AMASS
+            data[index++] = g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
             data[index++] = g_strdup(_NA_); // GROUP
             data[index++] = g_strdup(_NA_); // CHART
             data[index++] = g_strdup(_NA_); // NOTE
