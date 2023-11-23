@@ -56,7 +56,7 @@
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=8 -->
+          <!-- n-columns=2 n-rows=9 -->
           <object class="GtkGrid" id="grid4">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -184,7 +184,7 @@
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -218,7 +218,7 @@
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -283,7 +283,7 @@
               <object class="GtkComboBoxText" id="obstype_combo1">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">The type of observation in the data file. It can be CCD, DSLR, PEP (for Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a CMOS camera please report it as CCD.</property>
+                <property name="tooltip-text" translatable="yes">The number of the comparison star.</property>
                 <property name="active">0</property>
               </object>
               <packing>
@@ -318,6 +318,30 @@ where Vins is the instrumental magnitude of the variable, Cins is the instrument
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label5">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Check star: </property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="obstype_combo2">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">The number of the check star.</property>
+                <property name="active">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">7</property>
               </packing>
             </child>
           </object>

@@ -55,8 +55,6 @@
 #include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
 
-gboolean output_aavso = TRUE; // FIXME: temporary variable
-
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
 
 #define XLABELSIZE 15
@@ -714,20 +712,12 @@ static double get_error_for_time(pldata *plot, double time) {
 // the first will be the target
 static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	int i, j, nbImages = 0;
-	aavso_dlg *aavso_ptr = NULL;
 	double c_std = 0.0;
-	double *vmag = NULL, *compmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
+	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
 		return -1;
-	}
-
-	gboolean aavso = ptr == NULL ? FALSE : TRUE;
-	if (aavso) {
-		aavso_ptr = (aavso_dlg *)ptr;
-		/* define c_std */
-		c_std = aavso_ptr->c_std;
 	}
 
 	/* get number of valid frames for each star */
@@ -776,18 +766,6 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 		return -1;
 	}
 
-	if (aavso) {
-		compmag = calloc(nbImages, sizeof(double));
-		if (!compmag) {
-			PRINT_ALLOC_ERR;
-			free(vmag);
-			free(err);
-			free(x);
-			free(real_x);
-			return -1;
-		}
-	}
-
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
@@ -803,16 +781,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 		pldata *cur_plot = plot->next;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-		int start, end;
-		if (aavso) {
-			// we use only one comparison star that should be set before
-			start = 1; // FIXME: the number should be defined in the aavso dialog;
-			end = start + 1;
-		} else {
-			start = 1;
-			end = MAX_SEQPSF;
-		}
-		for (int r = start; r < end && seq->photometry[r]; r++) {
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
 				/* variable data, inversion of Pogson's law
 				 * Flux = 10^(-0.4 * mag)
@@ -832,7 +801,6 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 
 			vmag[j] = vmag[j] - cmag + c_std;
 			err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
-			if (aavso) compmag[j] = cmag;
 			j++;
 		}
 	}
@@ -861,29 +829,172 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 	spl_data->forsequence = TRUE;
 	int ret = 0;
 
-	if (aavso) {
-		siril_plot_add_xydata(spl_data, "cmag", nb_valid_images, x, compmag, NULL, NULL);
-		export_to_aavso_extended(spl_data, aavso_ptr, filename);
+
+	gboolean success = FALSE;
+	if (is_julian)
+		success = siril_plot_save_JD_light_curve(spl_data, filename, TRUE);
+	else
+		success = siril_plot_save_dat(spl_data, filename, FALSE);
+	if (!success) {
+		ret = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL; // just in case we try to use it later on
 	} else {
-		gboolean success = FALSE;
-		if (is_julian)
-			success = siril_plot_save_JD_light_curve(spl_data, filename, TRUE);
-		else
-			success = siril_plot_save_dat(spl_data, filename, FALSE);
-		if (!success) {
-			ret = 1;
-			free_siril_plot_data(spl_data);
-			spl_data = NULL; // just in case we try to use it later on
-		} else {
-			siril_plot_set_title(spl_data, "Light Curve");
-			create_new_siril_plot_window(spl_data);
-		}
+		siril_plot_set_title(spl_data, "Light Curve");
+		create_new_siril_plot_window(spl_data);
 	}
 
 	free(vmag);
 	free(err);
 	free(x);
 	free(real_x);
+	return ret;
+}
+
+static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
+	int i, j, nbImages = 0, c_idx, k_idx;
+	aavso_dlg *aavso_ptr = NULL;
+	double c_std = 0.0;
+	double *vmag = NULL, *cstar = NULL, *kstar = NULL, *err = NULL, *x = NULL,
+			*real_x = NULL;
+	siril_plot_data *spl_data = NULL;
+	if (!seq->photometry[0]) {
+		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		return -1;
+	}
+
+	aavso_ptr = (aavso_dlg *)ptr;
+	/* define c_std */
+	c_std = aavso_ptr->c_std;
+	// FIXME
+	c_idx = 1;
+	k_idx = 2;
+
+	/* get number of valid frames for each star */
+	int ref_valid_count[MAX_SEQPSF] = { 0 };
+	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
+	for (i = 0; i < plot->nb; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+		++nbImages;
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+			if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid)
+				ref_valid_count[r]++;
+		}
+	}
+
+	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
+	if (nbImages < 1)
+		return -1;
+
+	int nb_ref_stars = 0;
+	// select reference stars that are only available at least 3/4 of the time
+	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+		ref_valid[r] = ref_valid_count[r] >= nbImages * 3 / 4;
+		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", r, ref_valid_count[r], nbImages, ref_valid[r] ? "including" : "discarding");
+		if (ref_valid[r])
+			nb_ref_stars++;
+	}
+
+	if (nb_ref_stars == 0) {
+		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		return -1;
+	}
+	if (nb_ref_stars == 1)
+		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
+	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
+
+	vmag = calloc(nbImages, sizeof(double));
+	err = calloc(nbImages, sizeof(double));
+	x = calloc(nbImages, sizeof(double));
+	real_x = calloc(nbImages, sizeof(double));
+	cstar = calloc(nbImages, sizeof(double));
+	kstar = calloc(nbImages, sizeof(double));
+	if (!vmag || !err || !x || !real_x || !cstar || !kstar) {
+		PRINT_ALLOC_ERR;
+		free(vmag);
+		free(err);
+		free(x);
+		free(real_x);
+		free(cstar);
+		free(kstar);
+		return -1;
+	}
+
+	// i is index in dataset, j is index in output
+	for (i = 0, j = 0; i < plot->nb; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+		double cmag = 0.0, cerr = 0.0, kmag = 0.0;
+
+		x[j] = plot->data[j].x;			// relative date
+		real_x[j] = x[j] + (double)julian0;	// absolute date
+		vmag[j] = plot->data[j].y;		// magnitude
+		err[j] = get_error_for_time(plot, x[j]);// error of the magnitude
+
+		pldata *cur_plot = plot->next;
+		/* First data plotted are variable data, others are references
+		 * Variable is done above, now we compute references */
+
+		// we use only one comparison star that should be set before
+
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
+				/* variable data, inversion of Pogson's law
+				 * Flux = 10^(-0.4 * mag)
+				 */
+				if (r == c_idx) {
+					cmag = pow(10, -0.4 * cur_plot->data[j].y);
+					cerr = get_error_for_time(cur_plot, x[j]);
+				} else if (r == k_idx) {
+					kmag = pow(10, -0.4 * cur_plot->data[j].y);
+				}
+			}
+			cur_plot = cur_plot->next;
+		}
+		/* Converting back to magnitude */
+
+		cmag = -2.5 * log10(cmag);
+		vmag[j] = vmag[j] - cmag + c_std;
+		err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
+
+		kmag = -2.5 * log10(kmag);
+
+		cstar[j] = cmag;
+		kstar[j] = kmag;
+		j++;
+	}
+	int nb_valid_images = j;
+
+	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
+
+	/*  data are computed, now plot the graph. */
+
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	gboolean is_julian = (julian0 > 0);
+
+	spl_data->revertY = TRUE;
+	siril_plot_set_xlabel(spl_data, xlabel);
+	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+	if (is_julian) {
+		splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
+		lc->plots[0]->x_offset = (double)julian0;
+	}
+
+	siril_plot_add_xydata(spl_data, "cmag", nb_valid_images, x, cstar, NULL, NULL);
+	siril_plot_add_xydata(spl_data, "kmag", nb_valid_images, x, kstar, NULL, NULL);
+
+	int ret = export_to_aavso_extended(spl_data, aavso_ptr, filename);
+
+	free_siril_plot_data(spl_data);
+
+	free(vmag);
+	free(err);
+	free(x);
+	free(real_x);
+	free(cstar);
+	free(kstar);
 	return ret;
 }
 
@@ -1341,7 +1452,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	aavso_ptr->c_std = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("cstd_entry"))), NULL);
 
 	set_cursor_waiting(TRUE);
-	save_dialog(".csv", light_curve, aavso_ptr);
+	save_dialog(".csv", export_AAVSO, aavso_ptr);
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
 	set_cursor_waiting(FALSE);
 }

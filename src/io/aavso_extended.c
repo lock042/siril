@@ -66,12 +66,23 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data, const char *dat
 	if (spl_data->plots != NULL && spl_data->plot) {
 		splxyerrdata *plots = (splxyerrdata*) spl_data->plots->data;
 		nbpoints = plots->nb;
-		splxydata *plot = (splxydata*) spl_data->plot->data;
-		if (nbpoints != plot->nb) {
+
+		GList *list = spl_data->plot;
+
+		/* Get cstar data */
+		splxydata *cplot = (splxydata*) list->data;
+		if (nbpoints != cplot->nb) {
 			retval = FALSE;
 			goto clean_and_exit;
 		}
-;
+		/* move to kstar data */
+		list = list->next;
+		splxydata *kplot = (splxydata*) list->data;
+		if (nbpoints != kplot->nb) {
+			retval = FALSE;
+			goto clean_and_exit;
+		}
+
 		// Allocate memory for data array
 		gchar **data = g_new(gchar*, nbpoints * nbcols);
 		if (!data) {
@@ -91,9 +102,9 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data, const char *dat
             data[index++] = g_strdup("NO"); // TRANS
             data[index++] = g_strdup("STD"); // MTYPE
             data[index++] = g_strdup(adata->cname); // CNAME
-            data[index++] = g_strdup_printf("%8.6lf", plot->data[i].y); // CMAG
+            data[index++] = g_strdup_printf("%8.6lf", cplot->data[i].y); // CMAG
             data[index++] = g_strdup(adata->kname); // KNAME
-            data[index++] = g_strdup(_NA_); // KMAG
+            data[index++] = g_strdup_printf("%8.6lf", kplot->data[i].y); // KMAG
             data[index++] = g_strdup(_NA_); // AMASS
             data[index++] = g_strdup(_NA_); // GROUP
             data[index++] = g_strdup(_NA_); // CHART
