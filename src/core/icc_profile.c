@@ -592,7 +592,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 						gfit.icc_profile,
 						type,
 						gui.icc.monitor,
-						type,
+						TYPE_RGB_8_PLANAR,
 						(gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : gui.icc.monitor,
 						com.pref.icc.rendering_intent,
 						com.pref.icc.proofing_intent,
@@ -1670,7 +1670,7 @@ siril_close_dialog("icc_dialog");
 }
 
 void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
-
+	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile assignment"));
 
@@ -1712,6 +1712,7 @@ FINISH:
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
+	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile removal"));
 	if (gfit.icc_profile) {
@@ -1728,6 +1729,7 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
+	on_clear_roi();
 	if (!gfit.color_managed || !gfit.icc_profile) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
 		return;

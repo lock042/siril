@@ -55,6 +55,7 @@ static gboolean update_preview(gpointer user_data) {
 
 	waiting_for_thread(); // in case function is run in another thread
 	set_progress_bar_data(NULL, PROGRESS_DONE);
+	set_cursor_waiting(FALSE);
 	// Don't notify_gfit_modified() here, it must be done by the callers
 	return FALSE;
 }

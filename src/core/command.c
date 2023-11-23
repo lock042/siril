@@ -1150,7 +1150,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -1202,7 +1202,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -1353,7 +1353,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -9318,6 +9318,7 @@ int process_seq_profile(int nb) {
 }
 
 int process_icc_assign(int nb) {
+	if(!com.headless) on_clear_roi();
 	char *arg = word[1];
 	cmsHPROFILE profile = NULL;
 	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
@@ -9361,6 +9362,7 @@ int process_icc_assign(int nb) {
 }
 
 int process_icc_convert_to(int nb) {
+	if (!com.headless) on_clear_roi();
 	char *arg = word[1];
 	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
 	com.pref.icc.processing_intent = com.pref.icc.export_intent;
@@ -9429,6 +9431,7 @@ int process_icc_convert_to(int nb) {
 }
 
 int process_icc_remove(int nb) {
+	if (!com.headless) on_clear_roi();
 	siril_colorspace_transform(&gfit, NULL);
 	refresh_icc_transforms();
 	if (!com.headless)

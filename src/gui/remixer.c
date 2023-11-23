@@ -691,13 +691,13 @@ static void remixer_close() {
 	gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Advanced"));
 	gtk_widget_set_tooltip_text(lookup_widget("remix_advanced"), _("Show advanced stretch options."));
 	advanced_interface = FALSE;
+
 	siril_close_dialog("dialog_star_remix");
 }
 
 void apply_remix_cancel() {
-	set_cursor_waiting(TRUE);
 	remixer_close();
-	if (left_loaded || right_loaded) {
+	if (left_loaded || right_loaded || (!single_image_is_loaded() && !sequence_is_loaded())) {
 		close_single_image();
 	}
 	set_cursor_waiting(FALSE);
@@ -809,8 +809,10 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		GtkWidget *v = NULL, *w = NULL;
 		if (com.pref.gui.combo_theme == 0) {
 			v = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
+			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 		} else {
 			v = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
+			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
 		}
 		gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_SP_left")), v);
 		gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_SP_right")), w);
@@ -835,7 +837,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 
 void on_remix_close_clicked(GtkButton *button, gpointer user_data) {
 	close_histograms(TRUE, TRUE);
-	remixer_close();
+	apply_remix_cancel();
 	set_cursor_waiting(FALSE);
 }
 
