@@ -3623,7 +3623,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 	copy_fits_metadata(f[0], result);
 
 	/* then refine the variable fields */
-	gboolean found_WCS = has_wcsdata(f[0]);
+	gboolean found_WCS = has_wcs(f[0]);
 	GDateTime *date_obs = result->date_obs;	// already referenced
 	double expstart = f[0]->expstart;
 	double expend = f[0]->expend;
@@ -3633,9 +3633,15 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 	fits *current;
 	while ((current = f[image_count])) {
 		// take the first WCS information we find
-		if (!found_WCS && has_wcsdata(current)) {
-			result->wcsdata = current->wcsdata;
-			found_WCS = TRUE;
+		if (!found_WCS && has_wcs(current)) {
+			int status = -1;
+			result->wcslib = wcs_deepcopy(current->wcslib, &status);
+			if (status)
+				siril_debug_print("could not copy wcslib struct\n");
+			else {
+				result->wcsdata = current->wcsdata;
+				found_WCS = TRUE;
+			}
 		}
 		// set date_obs, the date of obs start, to the earliest found
 		if (date_obs && current->date_obs && g_date_time_compare(date_obs, current->date_obs) == 1) {
