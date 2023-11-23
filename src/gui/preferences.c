@@ -852,6 +852,17 @@ static void dump_ui_to_global_var() {
 
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
+	siril_set_file_filter("localcatalogue_path1", "filter_namedstars");
+	siril_set_file_filter("localcatalogue_path2", "filter_unnamedstars");
+	siril_set_file_filter("localcatalogue_path3", "filter_deepstars");
+	siril_set_file_filter("localcatalogue_path4", "filter_USNO-NOMAD-1e8");
+	siril_set_file_filter("custom_icc_standard_trc", "icc_filter");
+	siril_set_file_filter("custom_gray_icc_matching_trc", "icc_filter");
+	siril_set_file_filter("pref_custom_monitor_profile", "icc_filter");
+	siril_set_file_filter("pref_soft_proofing_profile", "icc_filter");
+	siril_set_file_filter("filechooser_starnet", "all_files");
+	siril_set_file_filter("filechooser_starnet_weights", "all_files");
+
 	set_icc_filechooser_directories();
 	update_preferences_from_model();
 	scripts_updated = FALSE;
