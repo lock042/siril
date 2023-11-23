@@ -146,6 +146,7 @@ gboolean load_WCS_from_fits(fits* fit) {
 	int nkeyrec;
 	if (fit->wcslib) {
 		free_wcs(fit);
+		reset_wcsdata(fit);
 	}
 	ffhdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status);
 	if (status) {
