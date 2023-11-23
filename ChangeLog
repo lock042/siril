@@ -20,6 +20,7 @@ xx/xx/xx
 * Refactored catalogue management, making it consistent accross all catalogues (#1154::0 and !579)
 * Added command conesearch (replaces nomad and solsys), including support for new catalogues (vsx, gcvs, exo, aavso_chart) (!579, #1171)
 * Added more configurable colors for some overlays (#1230)
+* Refactored wcs usage, by removing redundant info stored in the fit structure (!591 and #1154::1)
 
 siril 1.2.1
 xx/xx/xx
@@ -34,6 +35,7 @@ xx/xx/xx
 * Allowed for RA/DEC to be sorted in PSF windows (#1214)
 * Added SET-TEMP as valid FITS header to be saved (#1215)
 * Added configurable color for background extraction sample and standard annotations (#1230)
+* Added undo/redo when platesolving with astrometry.net (#1233)
 
 siril 1.2.0
 09/15/23
