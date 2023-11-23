@@ -1168,6 +1168,11 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		return 1;
 	}
 
+	// saving state for undo before modifying fit structure
+	if (!com.script) {
+		undo_save_state(args->fit, _("Plate Solve"));
+	}
+
 	memcpy(&args->fit->wcsdata, &result.wcsdata, sizeof(wcs_info));
 	memset(&result.wcsdata, 0, sizeof(wcs_info));
 	args->fit->wcslib = result.wcslib;
