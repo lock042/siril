@@ -277,6 +277,7 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 	}
 
 	free_wcs(fit);
+	reset_wcsdata(fit);
 	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
@@ -325,6 +326,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
 	free_wcs(image);
+	reset_wcsdata(image);
 	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
