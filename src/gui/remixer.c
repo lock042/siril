@@ -727,6 +727,8 @@ void initialize_remixer_transforms(fits* fit) {
 /*** callbacks **/
 
 void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
+	siril_set_file_filter("remix_filechooser_left", "filefilter_fits");
+	siril_set_file_filter("remix_filechooser_right", "filefilter_fits");
 	remixer_startup();
 	reset_controls_and_values();
 	remixer_show_preview = TRUE;
