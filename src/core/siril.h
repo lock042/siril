@@ -524,6 +524,7 @@ struct historic_struct {
 	int rx, ry, nchans;
 	data_type type;
 	wcs_info wcsdata;
+	struct wcsprm *wcslib;
 	double focal_length;
 	cmsHPROFILE icc_profile;
 };

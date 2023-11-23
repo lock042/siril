@@ -40,9 +40,12 @@ gboolean has_wcs(fits *fit) {
 
 // deal with cases where wcsdata is not NULL but members are set to 0
 gboolean has_wcsdata(fits *fit) {
-	// if ((fit->wcsdata.crval[0] == 0.0 && fit->wcsdata.crval[1] == 0.0))
-	// 	return FALSE;
-	return TRUE;
+	return fit->wcsdata.pltsolvd_comment[0] != '\0';
+}
+
+void reset_wcsdata(fits *fit) {
+	fit->wcsdata.pltsolvd = FALSE;
+	memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
 }
 
 
@@ -52,8 +55,6 @@ void free_wcs(fits *fit) {
 			free(fit->wcslib);
 		fit->wcslib = NULL;
 	}
-	fit->wcsdata.pltsolvd = FALSE;
-	memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
 }
 
 wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {

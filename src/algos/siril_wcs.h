@@ -31,6 +31,7 @@ typedef struct wcsprm wcsprm_t;
 
 gboolean has_wcs(fits *fit);
 gboolean has_wcsdata(fits *fit);
+void reset_wcsdata(fits *fit);
 void free_wcs(fits *fit);
 wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status);
 wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec);
