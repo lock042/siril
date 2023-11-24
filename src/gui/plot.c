@@ -63,7 +63,7 @@
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*varCurve = NULL, *buttonClearAll = NULL,
+		*photometry_output = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
 		*buttonNINA = NULL, *buttonCompStars = NULL;
@@ -829,14 +829,13 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 	spl_data->revertY = TRUE;
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
-		if (is_julian) {
-			splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
-			lc->plots[0]->x_offset = (double)julian0;
+	if (is_julian) {
+		splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
+		lc->plots[0]->x_offset = (double)julian0;
 	}
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
 	int ret = 0;
-
 
 	gboolean success = FALSE;
 	if (is_julian)
@@ -1006,7 +1005,7 @@ static void fill_plot_statics() {
 		drawingPlot = lookup_widget("DrawingPlot");
 		combo = lookup_widget("plotCombo");
 		comboX = lookup_widget("plotComboX");
-		varCurve = lookup_widget("export_photo_button");
+		photometry_output = lookup_widget("export_photo_button");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
 		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
@@ -1030,8 +1029,8 @@ static void validate_combos() {
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
-	gtk_widget_set_visible(varCurve, TRUE);
-	gtk_widget_set_sensitive(varCurve, use_photometry && current_selected_source == MAGNITUDE);
+	gtk_widget_set_visible(photometry_output, TRUE);
+	gtk_widget_set_sensitive(photometry_output, use_photometry && current_selected_source == MAGNITUDE);
 	gtk_widget_set_visible(buttonNINA, TRUE);
 	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonCompStars, TRUE);
@@ -1108,7 +1107,7 @@ void reset_plot() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
-		gtk_widget_set_visible(varCurve, FALSE);
+		gtk_widget_set_visible(photometry_output, FALSE);
 		gtk_widget_set_visible(buttonNINA, FALSE);
 		gtk_widget_set_visible(buttonCompStars, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
@@ -1604,7 +1603,7 @@ static void update_ylabel() {
 	gtk_widget_set_sensitive(buttonSavePrt, TRUE);
 	if (use_photometry) {
 		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
-		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
+		gtk_widget_set_sensitive(photometry_output, current_selected_source == MAGNITUDE);
 		switch (current_selected_source) {
 			case ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
