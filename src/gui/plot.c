@@ -251,7 +251,7 @@ static gboolean is_over_marker(double x, double y, enum marker_type marker_t) {
 	}
 }
 
-static int get_closest_marker(double x, double y, enum slider_type slider_t, double *valrange) {
+static int get_closest_marker(double x, double y, enum slider_type slider_t, const double *valrange) {
 	double val = (slider_t == SLIDER_X) ? (x - pdd.offset.x) / pdd.range.x : (pdd.offset.y + pdd.range.y - y) / pdd.range.y;
 	// should not be outside of [0, 1] but just in case
 	val = min(1., val);
@@ -707,7 +707,7 @@ static double get_error_for_time(pldata *plot, double time) {
 	return 0.0;
 }
 
-static int get_number_of_stars(sequence *seq) {
+static int get_number_of_stars(const sequence *seq) {
 	int count = 0;
 	for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
 		if (seq->photometry[i][seq->reference_image])
@@ -864,7 +864,7 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 	aavso_dlg *aavso_ptr = NULL;
 	double c_std = 0.0;
 	double *vmag = NULL, *cstar = NULL, *kstar = NULL, *err = NULL, *x = NULL,
-			*real_x = NULL, *airmass = NULL;
+			*airmass = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -914,61 +914,79 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 	vmag = calloc(nbImages, sizeof(double));
 	err = calloc(nbImages, sizeof(double));
 	x = calloc(nbImages, sizeof(double));
-	real_x = calloc(nbImages, sizeof(double));
 	cstar = calloc(nbImages, sizeof(double));
 	kstar = calloc(nbImages, sizeof(double));
 	airmass = calloc(nbImages, sizeof(double));
-	if (!vmag || !err || !x || !real_x || !cstar || !kstar || !airmass) {
+	if (!vmag || !err || !x || !cstar || !kstar || !airmass) {
 		PRINT_ALLOC_ERR;
 		free(vmag);
 		free(err);
 		free(x);
-		free(real_x);
 		free(airmass);
 		free(cstar);
 		free(kstar);
 		return -1;
 	}
 
+	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		double cmag = 0.0, cerr = 0.0, kmag = 0.0;
 
-		x[j] = plot->data[j].x;			// relative date
-		real_x[j] = x[j] + (double)julian0;	// absolute date
-		vmag[j] = plot->data[j].y;		// magnitude
-		err[j] = get_error_for_time(plot, x[j]);// error of the magnitude
+		// X value: the date
+		if (seq->imgparam[i].date_obs) {
+			double julian;
+			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
+			if (seq->exposure > 0.0) {
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+				julian = date_time_to_Julian(new_dt);
+				g_date_time_unref(new_dt);
+			} else {
+				julian = date_time_to_Julian(tsi);
+			}
+			g_date_time_unref(tsi);
+			x[j] = julian;
+			if (julian < min_date)
+				min_date = julian;
+		} else {
+			x[j] = (double) i + 1; // should not happen.
+		}
+
+
+		// Y value: the magnitude and error and their calibration
+		double target_mag = seq->photometry[0][i]->mag;
+		double target_err = seq->photometry[0][i]->s_mag;
 		airmass[j] = seq->imgparam[i].airmass;
 
-		pldata *cur_plot = plot->next;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-
-		// we use only one comparison star that should be set before
-
 		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
-				/* variable data, inversion of Pogson's law
+				/* inversion of Pogson's law to get back to the flux
 				 * Flux = 10^(-0.4 * mag)
 				 */
 				if (r == c_idx) {
-					cmag = pow(10, -0.4 * cur_plot->data[j].y);
-					cerr = get_error_for_time(cur_plot, x[j]);
+					cmag = pow(10, -0.4 * seq->photometry[r][i]->mag);
+					cerr = seq->photometry[r][i]->s_mag;
 				} else if (r == k_idx) {
-					kmag = pow(10, -0.4 * cur_plot->data[j].y);
+					kmag = pow(10, -0.4 * seq->photometry[r][i]->mag);
 				}
 			}
-			cur_plot = cur_plot->next;
 		}
+
 		/* Converting back to magnitude */
 
-		cmag = -2.5 * log10(cmag);
-		vmag[j] = vmag[j] - cmag + c_std;
-		err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
+		if (cmag != 0.0) {
+			cmag = -2.5 * log10(cmag);
+			vmag[j] = target_mag - cmag + c_std;
+			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
+		}
 
-		kmag = -2.5 * log10(kmag);
+		if (kmag != 0.0) {
+			kmag = -2.5 * log10(kmag);
+		}
 
 		cstar[j] = cmag;
 		kstar[j] = kmag;
@@ -1003,7 +1021,6 @@ static int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr)
 	free(vmag);
 	free(err);
 	free(x);
-	free(real_x);
 	free(airmass);
 	free(cstar);
 	free(kstar);
@@ -1135,7 +1152,7 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 	if (!use_photometry) {
 		GtkTreePath* path = gtk_tree_model_get_path(tree_model, iter);
 		if (!path) return;
-		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
+		const gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (index) {
 			if (!is_fwhm) {
 				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY ||
@@ -1463,11 +1480,13 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
+		free(aavso_ptr);
 		return;
 	}
 
 	if (aavso_ptr->c_idx == aavso_ptr->k_idx) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Wrong data"), _("The comparison star and the check star must be different."));
+		free(aavso_ptr);
 		return;
 	}
 
@@ -2126,7 +2145,7 @@ gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 	return TRUE;
 }
 
-static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event) {
+static void do_popup_singleframemenu(GtkWidget *my_widget, const GdkEventButton *event) {
 	if (!event) {
 		return;
 	}
@@ -2170,7 +2189,7 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event
 #endif
 }
 
-static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) {
+static void do_popup_selectionmenu(GtkWidget *my_widget, const GdkEventButton *event) {
 	if (!event) {
 		return;
 	}
