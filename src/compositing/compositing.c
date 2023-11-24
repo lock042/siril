@@ -273,7 +273,6 @@ layer *create_layer(int index) {
 		clear_pixel(&ret->color);
 	}
 	clear_pixel(&ret->saturated_color);
-//	clear_pixel(&ret->display_color);
 	return ret;
 }
 
@@ -1349,21 +1348,29 @@ void on_colordialog_response(GtkColorChooserDialog *chooser, gint response_id, g
 						  (float) layers[current_layer_color_choosing]->display_color.green,
 						  (float) layers[current_layer_color_choosing]->display_color.blue };
 		float img[3];
-		if (gfit.icc_profile) {
+		cmsHPROFILE image_profile = NULL;
+		if (gfit.icc_profile)
+			image_profile = copyICCProfile(gfit.icc_profile);
+		else if ((com.pref.icc.autoassignment & ICC_ASSIGN_ON_COMPOSITION) && com.icc.working_standard)
+			image_profile = copyICCProfile(com.icc.working_standard);
+		if (image_profile) {
 			// We use the NONEGATIVES flag to bound the transform, otherwise the
 			// negative components play havoc with the compositing.
 			cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
 															gui.icc.monitor,
 															TYPE_RGB_FLT_PLANAR,
-															gfit.icc_profile,
+															image_profile,
 															TYPE_RGB_FLT_PLANAR,
 															INTENT_RELATIVE_COLORIMETRIC,
 															cmsFLAGS_NONEGATIVES);
+			cmsCloseProfile(image_profile);
 			if (transform) {
 				cmsDoTransform(transform, disp, img, 1);
 				cmsDeleteTransform(transform);
+				siril_debug_print("Color picker transform (display to image): R: %f -> %f, G: %f -> %f, B: %f -> %f\n", disp[0], img[0], disp[1], img[1], disp[2], img[2]);
 			} else {
 				memcpy(&img, &disp, 3 * sizeof(float));
+				siril_debug_print("Unable to complete color picker transform\n");
 			}
 		} else {
 			memcpy(&img, &disp, 3 * sizeof(float));
@@ -1424,7 +1431,6 @@ gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventBut
 		if (layers[layer]->color_w == widget)
 			break;
 	if (!layers[layer]) return FALSE;
-
 	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		current_layer_color_choosing = layer;
 		gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &layers[layer]->color);
