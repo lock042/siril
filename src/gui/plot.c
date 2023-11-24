@@ -833,9 +833,13 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 
 	spl_data->revertY = TRUE;
 	siril_plot_set_xlabel(spl_data, label);
-	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+	double *date0 = malloc(nb_valid_images * sizeof(double));
+	for (int i = 0; i < nb_valid_images; i++)
+		date0[i] = x[i] - julian0;
+	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, date0, vmag, err, NULL);
 	splxyerrdata *lc = (splxyerrdata*) spl_data->plots->data;
 	lc->plots[0]->x_offset = (double) julian0;
+	free(date0);
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
 	int ret = 0;
