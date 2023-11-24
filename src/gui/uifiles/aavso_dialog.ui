@@ -81,10 +81,11 @@
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">The official AAVSO Observer Code for the observer which was previously assigned by the AAVSO.</property>
                 <property name="hexpand">True</property>
+                <property name="max-length">10</property>
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">10</property>
-                <property name="text" translatable="yes">na</property>
+                <property name="text" translatable="yes">n</property>
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
@@ -193,6 +194,7 @@
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Comparison star name or label such as the AUID (much preferred) or the chart label for the comparison star used. If not present, use "na". Limit: 20 characters.</property>
                 <property name="hexpand">True</property>
+                <property name="max-length">20</property>
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">20</property>
@@ -210,6 +212,7 @@
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Check star name or label such as the AUID (much preferred) or the chart label for the check star. If not present, use "na". Limit: 20 characters.</property>
                 <property name="hexpand">True</property>
+                <property name="max-length">20</property>
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">20</property>
@@ -239,6 +242,7 @@
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">The star's identifier. It can be the AAVSO Designation, the AAVSO Name, or the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 characters.</property>
                 <property name="hexpand">True</property>
+                <property name="max-length">30</property>
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">30</property>
@@ -349,9 +353,10 @@ where Vins is the instrumental magnitude of the variable, Cins is the instrument
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Please use the sequence ID you will find written in Bold print near the top of the photometry table in a sentence that reads "Report this sequence as [ID] in the chart field of your observation report." If you used your own comparison stars (e.g. in the case of time-sensitive alerts when the Sequence Team had no time to create a sequence), do not give a chart ID, even if you plotted the chart using VSP. Use the comment code K (non-AAVSO chart) and give a proper chart name like "APASS DR10". Then add information on the comp stars in the notes. Limit: 20 characters.</property>
+                <property name="max-length">20</property>
                 <property name="max-width-chars">20</property>
                 <property name="text" translatable="yes">na</property>
-                <property name="placeholder-text" translatable="yes">na</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
@@ -388,6 +393,7 @@ where Vins is the instrumental magnitude of the variable, Cins is the instrument
                 <property name="can-focus">True</property>
                 <property name="max-length">2000</property>
                 <property name="width-chars">30</property>
+                <property name="text" translatable="yes">na</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
