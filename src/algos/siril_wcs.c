@@ -32,7 +32,7 @@
 
 
 // Use this flag to print wcslib related verbose - not for production
-#define DEBUG_WCS 1
+#define DEBUG_WCS 0
 
 gboolean has_wcs(fits *fit) {
 	return fit->wcslib != NULL;
