@@ -293,9 +293,10 @@ void print_psf_error_summary(gint *code_sums) {
  * kplot data structure. It only uses data stored in the sequence, in seq->photometry, which is
  * populated by successive calls to seqpsf on the opened sequence;
  */
-int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs) {
+int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int i, j;
 	siril_plot_data *spl_data = NULL;
+	sequence *seq = lcargs->seq;
 
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -412,7 +413,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
 	gchar *titleimg = g_strdup_printf("%s %s%s",
-			_("Light curve of star"), target_descr, subtitleimg);
+			_("Light curve of star"), lcargs->target_descr, subtitleimg);
 	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
@@ -440,7 +441,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	} else {
 		// now saving the plot if required
 		siril_plot_set_title(spl_data, titleimg);
-		if (!display_graph) { // if not used for display we can free spl_data now
+		if (!lcargs->display_graph) { // if not used for display we can free spl_data now
 			gchar *image_name = replace_ext(filename, ".png");
 			siril_plot_save_png(spl_data, image_name, 0, 0);
 			free_siril_plot_data(spl_data);
@@ -454,7 +455,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	g_free(subtitledat);
 	g_free(titledat);
 
-	if (display_graph && spl_data)
+	if (lcargs->display_graph && spl_data)
 		lcargs->spl_data = spl_data;
 
 	free(date);
@@ -512,7 +513,7 @@ gpointer light_curve_worker(gpointer arg) {
 
 	/* analyse data and create the light curve */
 	if (!retval)
-		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, args->display_graph, args);
+		retval = new_light_curve("light_curve.dat", args);
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}
