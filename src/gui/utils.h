@@ -50,5 +50,6 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
 gboolean check_ok_if_cfa();
 point closest_point_on_line(point in, point p1, point p2);
+void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name);
 
 #endif /* SRC_GUI_UTILS_H_ */
