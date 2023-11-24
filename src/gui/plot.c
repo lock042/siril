@@ -64,7 +64,7 @@
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
-		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
+		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
 		*buttonNINA = NULL, *buttonCompStars = NULL;
 static pldata *plot_data;
@@ -1179,6 +1179,7 @@ static void fill_plot_statics() {
 		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
+		label_display_plot = lookup_widget("label_display_plot");
 		sourceCombo = lookup_widget("plotSourceCombo");
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
@@ -1208,6 +1209,7 @@ static void validate_combos() {
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
 	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
+	gtk_widget_set_visible(label_display_plot, !use_photometry && !gtk_widget_get_visible(arcsec));
 
 	g_signal_handlers_block_by_func(combo, on_plotCombo_changed, NULL);
 	g_signal_handlers_block_by_func(comboX, on_plotComboX_changed, NULL);
@@ -1349,6 +1351,7 @@ void drawPlot() {
 		// photometry data display
 		pldata *plot;
 		gtk_widget_set_visible(arcsec, current_selected_source == FWHM && arcsec_is_ok);
+		gtk_widget_set_visible(label_display_plot, !gtk_widget_get_visible(julianw) && !gtk_widget_get_visible(arcsec));
 		update_ylabel();
 
 		plot = alloc_plot_data(seq->number);
@@ -1376,6 +1379,7 @@ void drawPlot() {
 
 		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f);
 		gtk_widget_set_visible(arcsec, (current_selected_source == r_FWHM || current_selected_source == r_WFWHM || X_selected_source == r_FWHM || X_selected_source == r_WFWHM) && arcsec_is_ok);
+		gtk_widget_set_visible(label_display_plot, !gtk_widget_get_visible(julianw) && !gtk_widget_get_visible(arcsec));
 
 		update_ylabel();
 		/* building data array */
