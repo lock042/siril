@@ -19,9 +19,12 @@
  */
 
 #include <glib/gprintf.h>
+#include <math.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_date.h"
+#include "algos/PSF.h"
 #include "core/siril_log.h"
 #include "io/siril_plot.h"
 
@@ -115,8 +118,8 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data, const char *dat
             data[index++] = g_strdup_printf("%8.6lf", kplot->data[i].y); // KMAG
             data[index++] = g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
             data[index++] = g_strdup(_NA_); // GROUP
-            data[index++] = g_strdup(_NA_); // CHART
-            data[index++] = g_strdup(_NA_); // NOTE
+            data[index++] = g_strdup(adata->chart); // CHART
+            data[index++] = g_strdup(adata->notes); // NOTES
         }
 
         // Write data to the file
@@ -178,4 +181,167 @@ gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso_ptr, c
     siril_plot_save_aavso(data, datfilename, aavso_param, &adata);
 
 	return TRUE;
+}
+
+int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
+	int i, j, nbImages = 0, c_idx, k_idx;
+	aavso_dlg *aavso_ptr = NULL;
+	double c_std = 0.0;
+	double *vmag = NULL, *cstar = NULL, *kstar = NULL, *err = NULL, *x = NULL,
+			*airmass = NULL;
+	siril_plot_data *spl_data = NULL;
+	if (!seq->photometry[0]) {
+		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		return -1;
+	}
+
+	aavso_ptr = (aavso_dlg *)ptr;
+	/* define c_std */
+	c_std = aavso_ptr->c_std;
+	c_idx = aavso_ptr->c_idx + 1;
+	k_idx = aavso_ptr->k_idx + 1;
+
+	/* get number of valid frames for each star */
+	int ref_valid_count[MAX_SEQPSF] = { 0 };
+	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
+	for (i = 0; i < plot->nb; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+		++nbImages;
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+			if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid)
+				ref_valid_count[r]++;
+		}
+	}
+
+	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
+	if (nbImages < 1)
+		return -1;
+
+	int nb_ref_stars = 0;
+	// select reference stars that are only available at least 3/4 of the time
+	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+		ref_valid[r] = ref_valid_count[r] >= nbImages * 3 / 4;
+		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", r, ref_valid_count[r], nbImages, ref_valid[r] ? "including" : "discarding");
+		if (ref_valid[r])
+			nb_ref_stars++;
+	}
+
+	if (nb_ref_stars == 0) {
+		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		return -1;
+	}
+	if (nb_ref_stars == 1)
+		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
+	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
+
+	vmag = calloc(nbImages, sizeof(double));
+	err = calloc(nbImages, sizeof(double));
+	x = calloc(nbImages, sizeof(double));
+	cstar = calloc(nbImages, sizeof(double));
+	kstar = calloc(nbImages, sizeof(double));
+	airmass = calloc(nbImages, sizeof(double));
+	if (!vmag || !err || !x || !cstar || !kstar || !airmass) {
+		PRINT_ALLOC_ERR;
+		free(vmag);
+		free(err);
+		free(x);
+		free(airmass);
+		free(cstar);
+		free(kstar);
+		return -1;
+	}
+
+	double min_date = DBL_MAX;
+	// i is index in dataset, j is index in output
+	for (i = 0, j = 0; i < plot->nb; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+		double cmag = 0.0, cerr = 0.0, kmag = 0.0;
+
+		// X value: the date
+		if (seq->imgparam[i].date_obs) {
+			double julian;
+			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
+			if (seq->exposure > 0.0) {
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+				julian = date_time_to_Julian(new_dt);
+				g_date_time_unref(new_dt);
+			} else {
+				julian = date_time_to_Julian(tsi);
+			}
+			g_date_time_unref(tsi);
+			x[j] = julian;
+			if (julian < min_date)
+				min_date = julian;
+		} else {
+			x[j] = (double) i + 1; // should not happen.
+		}
+
+
+		// Y value: the magnitude and error and their calibration
+		double target_mag = seq->photometry[0][i]->mag;
+		double target_err = seq->photometry[0][i]->s_mag;
+		airmass[j] = seq->imgparam[i].airmass;
+
+		/* First data plotted are variable data, others are references
+		 * Variable is done above, now we compute references */
+		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
+				/* inversion of Pogson's law to get back to the flux
+				 * Flux = 10^(-0.4 * mag)
+				 */
+				if (r == c_idx) {
+					cmag = pow(10, -0.4 * seq->photometry[r][i]->mag);
+					cerr = seq->photometry[r][i]->s_mag;
+				} else if (r == k_idx) {
+					kmag = pow(10, -0.4 * seq->photometry[r][i]->mag);
+				}
+			}
+		}
+
+		/* Converting back to magnitude */
+
+		if (cmag != 0.0) {
+			cmag = -2.5 * log10(cmag);
+			vmag[j] = target_mag - cmag + c_std;
+			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
+		}
+
+		if (kmag != 0.0) {
+			kmag = -2.5 * log10(kmag);
+		}
+
+		cstar[j] = cmag;
+		kstar[j] = kmag;
+		j++;
+	}
+	int nb_valid_images = j;
+
+	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
+
+	/*  data are computed, now plot the graph. */
+
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+
+	spl_data->revertY = TRUE;
+	siril_plot_set_xlabel(spl_data, "Julian date");
+	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+
+	siril_plot_add_xydata(spl_data, "cmag", nb_valid_images, x, cstar, NULL, NULL);
+	siril_plot_add_xydata(spl_data, "kmag", nb_valid_images, x, kstar, NULL, NULL);
+	siril_plot_add_xydata(spl_data, "airmass", nb_valid_images, x, airmass, NULL, NULL);
+
+	int ret = export_to_aavso_extended(spl_data, aavso_ptr, filename);
+
+	free_siril_plot_data(spl_data);
+
+	free(vmag);
+	free(err);
+	free(x);
+	free(airmass);
+	free(cstar);
+	free(kstar);
+	return ret;
 }
