@@ -56,7 +56,7 @@
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=10 -->
+          <!-- n-columns=2 n-rows=11 -->
           <object class="GtkGrid" id="grid4">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -368,6 +368,30 @@ where Vins is the instrumental magnitude of the variable, Cins is the instrument
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label8">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Notes: </property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="notes_entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="max-length">2000</property>
+                <property name="width-chars">30</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
           </object>

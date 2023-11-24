@@ -69,6 +69,7 @@ typedef struct aavso_dlg_struct {
 	int k_idx;
 	double c_std;
 	const gchar *chart;
+	const gchar *notes;
 } aavso_dlg;
 
 gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso_ptr, const char *datfilename);

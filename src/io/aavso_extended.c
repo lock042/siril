@@ -173,6 +173,7 @@ gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso_ptr, c
     g_strlcpy(adata.cname, aavso_ptr->cname, 21);
     g_strlcpy(adata.kname, aavso_ptr->kname, 21);
     g_strlcpy(adata.chart, aavso_ptr->chart, 21);
+    g_strlcpy(adata.notes, aavso_ptr->notes, strlen(aavso_ptr->notes));
 
     siril_plot_save_aavso(data, datfilename, aavso_param, &adata);
 

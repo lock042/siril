@@ -1467,6 +1467,7 @@ void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
 }
 
+
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	// we want get some information from a dialog
 	/* temporary code */
@@ -1482,6 +1483,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	aavso_ptr->c_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("cstar_combo")));
 	aavso_ptr->k_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("kstar_combo")));
 	aavso_ptr->chart = gtk_entry_get_text(GTK_ENTRY(lookup_widget("chart_entry")));
+	aavso_ptr->notes = gtk_entry_get_text(GTK_ENTRY(lookup_widget("notes_entry")));
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
