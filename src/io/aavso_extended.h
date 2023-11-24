@@ -72,7 +72,6 @@ typedef struct aavso_dlg_struct {
 	const gchar *notes;
 } aavso_dlg;
 
-gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso_ptr, const char *datfilename);
 int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr);
 
 #endif /* SRC_IO_AAVSO_EXTENDED_H_ */

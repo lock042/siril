@@ -139,7 +139,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 }
 
 
-gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso_ptr, const char *datfilename) {
+static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso_ptr, const char *datfilename) {
 	aavso_parameters header;
 	aavso_data adata;
 	char aavso_param[MAX_HEADER_LENGTH];
