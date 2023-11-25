@@ -43,6 +43,7 @@ typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
 	int nb;		// number of points in the plot
 	gchar *label; // the name of the series
+	double x_offset; // the offset to be added to x (in most cases it's JD)
 } splxydata;
 
 typedef struct siril_plot_xyerrdata_struct {
@@ -97,5 +98,6 @@ cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int width, int height);
 gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int width, int height);
 gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename, gboolean add_title);
+gboolean siril_plot_save_JD_light_curve(siril_plot_data *spl_data, const char *datfilename, gboolean add_title);
 
 #endif /* SRC_IO_PLOT_H_ */

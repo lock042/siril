@@ -809,18 +809,28 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
+	gboolean is_julian = (julian0 > 0);
 	char add_title[128];
-	if (julian0) {
+	if (!is_julian) {
 		g_sprintf(add_title, "#JD_UT (+ %d)\n", julian0);
 		siril_plot_set_title(spl_data, add_title);
 	}
 	spl_data->revertY = TRUE;
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, x, vmag, err, NULL);
+	if (is_julian) {
+		splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
+		lc->plots[0]->x_offset = (double)julian0;
+	}
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
 	int ret = 0;
-	if (!siril_plot_save_dat(spl_data, filename, (julian0) ? TRUE : FALSE)) {
+	gboolean success = FALSE;
+	if (is_julian)
+		success = siril_plot_save_JD_light_curve(spl_data, filename, TRUE);
+	else
+		success = siril_plot_save_dat(spl_data, filename, FALSE);
+	if (!success) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on

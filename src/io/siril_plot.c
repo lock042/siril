@@ -717,7 +717,75 @@ clean_and_exit:
 	return retval;
 }
 
+// save the light curve to a dat file
+// with formatting compatible with ETD
+gboolean siril_plot_save_JD_light_curve(siril_plot_data *spl_data, const char *datfilename, gboolean add_title) {
+	GString *header = NULL;
+	FILE* fileout = NULL;
+	gboolean retval = TRUE;
+	double *data = NULL;
+	if (g_list_length(spl_data->plots) > 1) {
+		siril_debug_print("Light curve should not hold more than one data series, aborting\n");
+		return FALSE;
+	}
 
+	int nbpoints = 0, nbcols = 3;
+	if (add_title && spl_data->title) {
+		// spl_data->title is assumed to have the # signs at each line start as necessary
+		// and to finish by a \n character
+		header = g_string_new(spl_data->title);
+		g_string_append_printf(header, "# JD_UT V-C err");
+	} else
+		header = g_string_new("# JD_UT V-C err");
+
+	// xy points with y error bars
+	splxyerrdata *plots = (splxyerrdata *)spl_data->plots->data;
+	nbpoints = plots->nb;
+
+	// gathering all the data
+	data = malloc(nbpoints * nbcols * sizeof(double));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+
+	// writing JD
+	int index = 0;
+	for (int i = 0; i < nbpoints; i++) {
+		data[index] = plots->plots[0]->data[i].x + plots->plots[0]->x_offset; // adding JD
+		index += nbcols;
+	}
+
+	// writing V-C and error
+	index = 1;
+	for (int i = 0; i < nbpoints; i++) {
+		for (int k = 0; k < 2; k++)
+			data[index + k] = plots->plots[k]->data[i].y;
+		index += nbcols;
+	}
+
+	fileout = g_fopen(datfilename, "w");
+	if (fileout == NULL) {
+		siril_log_message(_("Could not create %s, aborting\n"));
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+	fprintf(fileout, "%s", header->str);
+	index = 0;
+	for (int r = 0 ; r < nbpoints ; r++) {
+		fprintf(fileout, "\n%f", data[index++]); // print newline and x
+		for (int c = 1 ; c < nbcols ; c++)
+			fprintf(fileout, " %g", data[index++]);
+	}
+	fclose(fileout);
+	siril_log_message(_("%s has been saved.\n"), datfilename);
+
+clean_and_exit:
+	g_string_free(header, TRUE);
+	free(data);
+	return retval;
+}
 
 
 
