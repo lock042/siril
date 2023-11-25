@@ -40,6 +40,7 @@ xx/xx/xx
 * Added SET-TEMP as valid FITS header to be saved (#1215)
 * Added configurable color for background extraction sample and standard annotations (#1230)
 * Fixed argument parsing error in makepsf (!593)
+* Fixed light_curve and csv export from plot when some images were unselected from the sequence (#1169)
 
 siril 1.2.0
 09/15/23

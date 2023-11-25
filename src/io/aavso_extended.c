@@ -188,7 +188,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	/* get number of valid frames for each star */
 	int ref_valid_count[MAX_SEQPSF] = { 0 };
 	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
-	for (i = 0; i < plot->nb; i++) {
+	for (i = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
@@ -238,7 +238,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 
 	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
-	for (i = 0, j = 0; i < plot->nb; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		double cmag = 0.0, cerr = 0.0, kmag = 0.0;
