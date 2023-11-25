@@ -27,6 +27,7 @@
 #include "algos/PSF.h"
 #include "core/siril_log.h"
 #include "io/siril_plot.h"
+#include "gui/siril_plot.h"
 
 #include "aavso_extended.h"
 
@@ -56,8 +57,8 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 	GString *header = g_string_new(head_data);
 	gboolean retval = TRUE;
 
-	if (g_list_length(spl_data->plots) > 1) {
-		siril_debug_print("AAVSO should not hold more than one data series, aborting\n");
+	if (g_list_length(spl_data->plots) != 1 && g_list_length(spl_data->plot) != 3) {
+		siril_debug_print("AAVSO data are not as expected, aborting\n");
 		g_string_free(header, TRUE);
 		return FALSE;
 	}
@@ -143,9 +144,9 @@ static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso
 	aavso_parameters header;
 	aavso_data adata;
 	char aavso_param[MAX_HEADER_LENGTH];
-    const char *data_header = "#NAME,DATE,MAG,MERR,FILT,TRANS,MTYPE,CNAME,CMAG,KNAME,KMAG,AMASS,GROUP,CHART,NOTES";
+	const char *data_header = "#NAME,DATE,MAG,MERR,FILT,TRANS,MTYPE,CNAME,CMAG,KNAME,KMAG,AMASS,GROUP,CHART,NOTES";
 
-    strcpy(header.type, "EXTENDED");
+	strcpy(header.type, "EXTENDED");
 	g_strlcpy(header.obscode, aavso_ptr->obscode, 12);
 	g_strlcpy(header.software, PACKAGE_STRING, 256);
 	header.delim = ',';
@@ -153,16 +154,16 @@ static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso
 	g_strlcpy(header.obstype, aavso_ptr->obstype, 5);
 	g_strlcpy(header.aavso_data_header, data_header, 512);
 
-    generate_aavso_header(&header, aavso_param);
+	generate_aavso_header(&header, aavso_param);
 
-    g_strlcpy(adata.starid, aavso_ptr->starid, 31);
-    g_strlcpy(adata.filter,aavso_ptr->filter, 6);
-    g_strlcpy(adata.cname, aavso_ptr->cname, 21);
-    g_strlcpy(adata.kname, aavso_ptr->kname, 21);
-    g_strlcpy(adata.chart, aavso_ptr->chart, 21);
-    g_strlcpy(adata.notes, aavso_ptr->notes, strlen(aavso_ptr->notes));
+	g_strlcpy(adata.starid, aavso_ptr->starid, 31);
+	g_strlcpy(adata.filter, aavso_ptr->filter, 6);
+	g_strlcpy(adata.cname, aavso_ptr->cname, 21);
+	g_strlcpy(adata.kname, aavso_ptr->kname, 21);
+	g_strlcpy(adata.chart, aavso_ptr->chart, 21);
+	g_strlcpy(adata.notes, aavso_ptr->notes, strlen(aavso_ptr->notes) + 1);
 
-    siril_plot_save_aavso(data, datfilename, aavso_param, &adata);
+	siril_plot_save_aavso(data, datfilename, aavso_param, &adata);
 
 	return TRUE;
 }
@@ -185,17 +186,20 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	c_idx = aavso_ptr->c_idx + 1;
 	k_idx = aavso_ptr->k_idx + 1;
 
-	/* get number of valid frames for each star */
+	/* get number of valid frames for c_star and k_star */
 	int ref_valid_count[MAX_SEQPSF] = { 0 };
 	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
 	for (i = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
-		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-			if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid)
-				ref_valid_count[r]++;
+		if (seq->photometry[c_idx][i] && seq->photometry[c_idx][i]->phot_is_valid) {
+			ref_valid_count[c_idx]++;
 		}
+		if (seq->photometry[k_idx][i] && seq->photometry[k_idx][i]->phot_is_valid) {
+			ref_valid_count[k_idx]++;
+		}
+
 	}
 
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
@@ -203,13 +207,16 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 		return -1;
 
 	int nb_ref_stars = 0;
-	// select reference stars that are only available at least 3/4 of the time
-	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-		ref_valid[r] = ref_valid_count[r] >= nbImages * 3 / 4;
-		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", r, ref_valid_count[r], nbImages, ref_valid[r] ? "including" : "discarding");
-		if (ref_valid[r])
-			nb_ref_stars++;
-	}
+
+	// select reference c_star and k_star that are only available at least 3/4 of the time
+	ref_valid[c_idx] = ref_valid_count[c_idx] >= nbImages * 3 / 4;
+	siril_debug_print("reference star %d has %d/%d valid measures, %s\n", c_idx, ref_valid_count[c_idx], nbImages, ref_valid[c_idx] ? "including" : "discarding");
+	if (ref_valid[c_idx])
+	    nb_ref_stars++;
+	ref_valid[k_idx] = ref_valid_count[k_idx] >= nbImages * 3 / 4;
+	siril_debug_print("reference star %d has %d/%d valid measures, %s\n", k_idx, ref_valid_count[k_idx], nbImages, ref_valid[k_idx] ? "including" : "discarding");
+	if (ref_valid[k_idx])
+	    nb_ref_stars++;
 
 	if (nb_ref_stars == 0) {
 		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
@@ -268,20 +275,16 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 		double target_err = seq->photometry[0][i]->s_mag;
 		airmass[j] = seq->imgparam[i].airmass;
 
-		/* First data plotted are variable data, others are references
-		 * Variable is done above, now we compute references */
-		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
-				/* inversion of Pogson's law to get back to the flux
-				 * Flux = 10^(-0.4 * mag)
-				 */
-				if (r == c_idx) {
-					cmag = pow(10, -0.4 * seq->photometry[r][i]->mag);
-					cerr = seq->photometry[r][i]->s_mag;
-				} else if (r == k_idx) {
-					kmag = pow(10, -0.4 * seq->photometry[r][i]->mag);
-				}
-			}
+		/* First data plotted are variable data, c_idx is comparison star
+		 * and k_dix stands for the check one */
+
+		if (ref_valid[c_idx] && seq->photometry[c_idx][i] && seq->photometry[c_idx][i]->phot_is_valid) {
+			cmag = pow(10, -0.4 * seq->photometry[c_idx][i]->mag);
+			cerr = seq->photometry[c_idx][i]->s_mag;
+		}
+
+		if (ref_valid[k_idx] && seq->photometry[k_idx][i] && seq->photometry[k_idx][i]->phot_is_valid) {
+			kmag = pow(10, -0.4 * seq->photometry[k_idx][i]->mag);
 		}
 
 		/* Converting back to magnitude */
@@ -319,7 +322,11 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 
 	int ret = export_to_aavso_extended(spl_data, aavso_ptr, filename);
 
+//	siril_plot_set_title(spl_data, "AAVSO data");
+//	create_new_siril_plot_window(spl_data);
+
 	free_siril_plot_data(spl_data);
+
 
 	free(vmag);
 	free(err);
