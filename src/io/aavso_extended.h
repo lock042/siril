@@ -22,14 +22,6 @@
 
 #include "io/siril_plot.h"
 
-#define MAX_FILTER_LIST 31 // Maximum number of filter options
-
-//const char *filter_list[MAX_FILTER_LIST] = {
-//    "U", "B", "V", "R", "I", "J", "H", "K", "TG", "TB", "TR", "CV", "CR", "SZ",
-//    "SU", "SG", "SR", "SI", "STU", "STV", "STB", "STY", "STHBW", "STHBN",
-//    "MA", "MB", "MI", "ZS", "Y", "HA", "HAC"
-//};
-
 typedef struct aavso_parameters_struct {
 	char type[9]; // TYPE: Should always say Extended for this format.
 	char obscode[12]; // The official AAVSO Observer Code for the observer which was previously assigned by the AAVSO. // FIXME: what is the size?
