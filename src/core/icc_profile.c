@@ -1670,8 +1670,7 @@ siril_close_dialog("icc_dialog");
 }
 
 void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
-	if (gui.roi.active)
-		on_clear_roi();
+	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile assignment"));
 
@@ -1713,8 +1712,7 @@ FINISH:
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
-	if (gui.roi.active)
-		on_clear_roi();
+	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile removal"));
 	if (gfit.icc_profile) {
