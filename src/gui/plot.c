@@ -703,159 +703,20 @@ static int get_number_of_stars(const sequence *seq) {
 // generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
 static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
-	int i, j, nbImages = 0;
-	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
-	siril_plot_data *spl_data = NULL;
-	if (!seq->photometry[0]) {
-		siril_log_color_message(_("No photometry data found, error\n"), "red");
-		return -1;
+	struct light_curve_args *lcargs = calloc(1, sizeof(struct light_curve_args));
+
+	lcargs->seq = seq;
+	lcargs->layer = 0;
+	lcargs->display_graph = TRUE;
+	lcargs->target_descr = NULL;
+
+	int retval = new_light_curve(filename, lcargs);
+	if (!retval && lcargs->spl_data) {
+		create_new_siril_plot_window(lcargs->spl_data);
 	}
+	free_light_curve_args(lcargs); // this will not free args->spl_data which is free by siril_plot window upon closing
 
-	/* get number of valid frames for each star */
-	int ref_valid_count[MAX_SEQPSF] = { 0 };
-	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
-	for (i = 0; i < seq->number; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
-			continue;
-		++nbImages;
-		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-			if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid)
-				ref_valid_count[r]++;
-		}
-	}
-	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
-	if (nbImages < 1)
-		return -1;
-
-	int nb_ref_stars = 0;
-	// select reference stars that are only available at least 3/4 of the time
-	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-		ref_valid[r] = ref_valid_count[r] >= nbImages * 3 / 4;
-		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", r, ref_valid_count[r], nbImages, ref_valid[r] ? "including" : "discarding");
-		if (ref_valid[r])
-			nb_ref_stars++;
-	}
-
-	if (nb_ref_stars == 0) {
-		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
-		return -1;
-	}
-	if (nb_ref_stars == 1)
-		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
-	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
-
-	vmag = calloc(nbImages, sizeof(double));
-	err = calloc(nbImages, sizeof(double));
-	x = calloc(nbImages, sizeof(double));
-	real_x = calloc(nbImages, sizeof(double));
-	if (!vmag || !err || !x || !real_x) {
-		PRINT_ALLOC_ERR;
-		free(vmag);
-		free(err);
-		free(x);
-		free(real_x);
-		return -1;
-	}
-
-	double min_date = DBL_MAX;
-	// i is index in dataset, j is index in output
-	for (i = 0, j = 0; i < seq->number; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
-			continue;
-
-		// X value: the date
-		if (seq->imgparam[i].date_obs) {
-			double julian;
-			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
-			if (seq->exposure > 0.0) {
-				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
-				julian = date_time_to_Julian(new_dt);
-				g_date_time_unref(new_dt);
-			} else {
-				julian = date_time_to_Julian(tsi);
-			}
-			g_date_time_unref(tsi);
-			x[j] = julian;
-			if (julian < min_date)
-				min_date = julian;
-		} else {
-			x[j] = (double) i + 1; // should not happen.
-		}
-
-		// Y value: the magnitude and error and their calibration
-		double target_mag = seq->photometry[0][i]->mag;
-		double target_err = seq->photometry[0][i]->s_mag;
-
-		double cmag = 0.0, cerr = 0.0;
-		int nb_ref = 0;
-		/* First data plotted are variable data, others are references
-		 * Variable is done above, now we compute references */
-		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (ref_valid[ref] && seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid) {
-				/* inversion of Pogson's law to get back to the flux
-				 * Flux = 10^(-0.4 * mag)
-				 */
-				cmag += pow(10, -0.4 * seq->photometry[ref][i]->mag);
-				cerr += seq->photometry[ref][i]->s_mag;
-				++nb_ref;
-			}
-		}
-		/* Converting back to magnitude */
-		if (nb_ref == nb_ref_stars) {
-			/* we consider an image to be invalid if all references are not valid,
-			 * because it changes the mean otherwise and makes nonsense data */
-			cmag = -2.5 * log10(cmag / nb_ref);
-			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
-
-			vmag[j] = target_mag - cmag;
-			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
-			j++;
-		}
-	}
-	int nb_valid_images = j;
-
-	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
-
-	/*  data are computed, now plot the graph. */
-
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
-	char add_title[128];
-	gchar *label = g_strdup_printf("JD_UT (+ %d)", julian0);
-	g_sprintf(add_title, "#%s\n", label);
-	siril_plot_set_title(spl_data, add_title);
-
-	spl_data->revertY = TRUE;
-	siril_plot_set_xlabel(spl_data, label);
-	double *date0 = malloc(nb_valid_images * sizeof(double));
-	for (int i = 0; i < nb_valid_images; i++)
-		date0[i] = x[i] - julian0;
-	siril_plot_add_xydata(spl_data, "V-C", nb_valid_images, date0, vmag, err, NULL);
-	splxyerrdata *lc = (splxyerrdata*) spl_data->plots->data;
-	lc->plots[0]->x_offset = (double) julian0;
-	free(date0);
-	siril_plot_set_savename(spl_data, "light_curve");
-	spl_data->forsequence = TRUE;
-	int ret = 0;
-
-	gboolean success = FALSE;
-	success = siril_plot_save_JD_light_curve(spl_data, filename, TRUE);
-
-	if (!success) {
-		ret = 1;
-		free_siril_plot_data(spl_data);
-		spl_data = NULL; // just in case we try to use it later on
-	} else {
-		siril_plot_set_title(spl_data, "Light Curve");
-		create_new_siril_plot_window(spl_data);
-	}
-	g_free(label);
-
-	free(vmag);
-	free(err);
-	free(x);
-	free(real_x);
-	return ret;
+	return retval;
 }
 
 static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {

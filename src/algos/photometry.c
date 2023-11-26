@@ -412,8 +412,12 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
-	gchar *titleimg = g_strdup_printf("%s %s%s",
-			_("Light curve of star"), lcargs->target_descr, subtitleimg);
+	gchar *titleimg;
+	if (!lcargs->target_descr) {
+		titleimg = g_strdup_printf("%s %s", _("Light curve of star"), subtitleimg);
+	} else {
+		titleimg = g_strdup_printf("%s %s%s", _("Light curve of star"), lcargs->target_descr, subtitleimg);
+	}
 	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
@@ -426,8 +430,8 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
 	double *date0 = malloc(nb_valid_images * sizeof(double));
-	for (int i = 0; i < nb_valid_images; i++)
-		date0[i] = date[i] - julian0;
+	for (int k = 0; k < nb_valid_images; k++)
+		date0[k] = date[k] - julian0;
 	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
 	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
 	lc->plots[0]->x_offset = (double)julian0;
