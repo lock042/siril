@@ -613,8 +613,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gboolean do_refresh_annotations = com.found_object != NULL;
 	if (!single_image_is_loaded())
 		save_stats_from_fit(&gfit, seq, seq->current);
-	if (gui.roi.active)
-		on_clear_roi(); // Always clear a ROI when changing images
+	on_clear_roi(); // Always clear a ROI when changing images
 	cleanup_annotation_catalogues(FALSE);
 	clear_stars_list(TRUE);
 	invalidate_gfit_histogram();

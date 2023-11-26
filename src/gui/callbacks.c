@@ -357,6 +357,9 @@ gpointer on_set_roi() {
 }
 
 gpointer on_clear_roi() {
+	if (!gui.roi.active)
+		return GINT_TO_POINTER(0);
+
 	gboolean val = g_mutex_trylock(&roi_mutex);
 	if (val) {
 		clearfits(&gui.roi.fit);
