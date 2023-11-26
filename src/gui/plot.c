@@ -43,7 +43,6 @@
 #include "gui/sequence_list.h"
 #include "gui/siril_plot.h"
 #include "registration/registration.h"
-#include "kplot.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "io/aavso_extended.h"
@@ -144,13 +143,11 @@ static const gchar *registration_labels[] = {
 pldata *alloc_plot_data(int size) {
 	pldata *plot = malloc(sizeof(pldata));
 	plot->frame = calloc(size, sizeof(double));
-	plot->julian = calloc(size, sizeof(double));
 	plot->data = calloc(size, sizeof(struct kpair));
 	plot->err = calloc(size, sizeof(struct kpair));
-	if (!plot->frame || !plot->julian || !plot->data || !plot->err) {
+	if (!plot->data || !plot->err) {
 		PRINT_ALLOC_ERR;
 		free(plot->frame);
-		free(plot->julian);
 		free(plot->data);
 		free(plot->err);
 		free(plot);
@@ -559,8 +556,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 }
 
 static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
+	double julian = 0.;
 	if (seq->imgparam[image_index].date_obs) {
-		double julian;
 		GDateTime *tsi = g_date_time_ref(seq->imgparam[image_index].date_obs);
 		if (seq->exposure > 0.0) {
 			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
@@ -570,21 +567,19 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 			julian = date_time_to_Julian(tsi);
 		}
 
-		plot->julian[point_index] = julian - (double)julian0;
-
+		julian -= (double)julian0;
 		g_date_time_unref(tsi);
 	} else {
-		plot->julian[point_index] = (double) image_index + 1; // should not happen
+		julian = (double) image_index + 1; // should not happen
 		siril_debug_print("no DATE-OBS information for frame %d\n", image_index);
 	}
 	plot->frame[point_index] = (double) image_index + 1;
 
 	if (julian0 && force_Julian) {
-		plot->data[point_index].x = plot->julian[point_index];
+		plot->data[point_index].x = julian;
 	} else {
-		plot->data[point_index].x = plot->frame[point_index];
+		plot->data[point_index].x = (double)image_index + 1;
 	}
-
 	plot->err[point_index].x = plot->data[point_index].x;
 }
 
@@ -964,7 +959,6 @@ void free_plot_data() {
 	pldata *plot = plot_data;
 	while (plot) {
 		pldata *next = plot->next;
-		free(plot->julian);
 		free(plot->frame);
 		free(plot->data);
 		free(plot->err);
@@ -1126,11 +1120,11 @@ void reset_plot() {
 }
 
 static int comparex(const void *a, const void *b) {
-	struct kpair datax_a = * ((struct kpair *) a);
-	struct kpair datax_b = * ((struct kpair *) b);
+	photdata_t data_a = *(photdata_t *) a;
+	photdata_t data_b = *(photdata_t *) b;
 
-	if (datax_a.x > datax_b.x) return 1;
-	if (datax_a.x < datax_b.x) return -1;
+	if (data_a.data.x > data_b.data.x) return 1;
+	if (data_a.data.x < data_b.data.x) return -1;
 	return 0;
 }
 
@@ -1154,6 +1148,24 @@ static int comparey_desc(const void *a, const void *b) {
 	if (datax_a.y > datax_b.y) return 1;
 	if (datax_a.y < datax_b.y) return -1;
 	return 0;
+}
+
+static void sort_photometry_dataset(pldata *plot) {
+	if (julian0 && force_Julian) {
+		photdata_t *photdata = calloc(plot->nb, sizeof(photdata_t));
+		for (int i = 0; i < plot->nb; i++) {
+			photdata[i].data = plot->data[i];
+			photdata[i].err = plot->err[i];
+			photdata[i].frame = (int)plot->frame[i];
+		}
+		qsort(photdata, plot->nb, sizeof(photdata_t), comparex);
+		for (int i = 0; i < plot->nb; i++) {
+			plot->data[i] = photdata[i].data;
+			plot->err[i] = photdata[i].err;
+			plot->frame[i] = (double)photdata[i].frame;
+		}
+		free(photdata);
+	}
 }
 
 void drawPlot() {
@@ -1202,7 +1214,7 @@ void drawPlot() {
 			}
 
 			build_photometry_dataset(seq, i, ref_image, plot);
-			qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
+			sort_photometry_dataset(plot);
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
 			update_seqlist(reglayer);
