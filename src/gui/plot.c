@@ -684,8 +684,8 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 		// caching the data range
 		if (pdd.datamin.x > plot->data[j].x) pdd.datamin.x = plot->data[j].x;
 		if (pdd.datamax.x < plot->data[j].x) pdd.datamax.x = plot->data[j].x;
-		if (pdd.datamin.y > plot->data[j].y) pdd.datamin.y = plot->data[j].y;
-		if (pdd.datamax.y < plot->data[j].y) pdd.datamax.y = plot->data[j].y;
+		if (pdd.datamin.y > plot->data[j].y - plot->err[j].y) pdd.datamin.y = plot->data[j].y - plot->err[j].y;
+		if (pdd.datamax.y < plot->data[j].y + plot->err[j].y) pdd.datamax.y = plot->data[j].y + plot->err[j].y;
 		j++;
 	}
 	plot->nb = j;
@@ -1396,7 +1396,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
-	struct kdata *d1 = NULL, *ref_d = NULL, *mean_d = NULL, *curr_d = NULL;
+	struct kdata *d1 = NULL, *ref_d = NULL, *mean_d = NULL, *curr_d = NULL, *d2[3];
 	struct kplotctx ctx = { 0 };
 
 	if (!plot_data || !widget)
@@ -1430,29 +1430,50 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cfgplot.extrema_ymin = pdd.pdatamin.y;
 	cfgplot.extrema_ymax = pdd.pdatamax.y;
 
+	gboolean use_mag_plot = use_photometry && photometry_selected_source == MAGNITUDE;
 	struct kplot *p = kplot_alloc(&cfgplot);
 
 	// data plots
 	int nb_graphs = 0;
+	double mean = 0.;
+	int min_data = 0, max_data = 0;
 
 	while (plot) {
-		d1 = kdata_array_alloc(plot->data, plot->nb);
-		if (X_selected_source == r_FRAME) {
-			kplot_attach_data(p, d1,
-					plot_data->nb <= 100 ? KPLOT_LINESPOINTS : KPLOT_LINES,
-					NULL);
+		if (!use_mag_plot) {
+			d1 = kdata_array_alloc(plot->data, plot->nb);
+			if (X_selected_source == r_FRAME) {
+				kplot_attach_data(p, d1,
+						plot_data->nb <= 100 ? KPLOT_LINESPOINTS : KPLOT_LINES,
+						NULL);
+			} else {
+				kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
+			}
+			/* mean and min/max */
+			mean = kdata_ymean(d1);
+			min_data = kdata_xmin(d1, NULL);
+			max_data = kdata_xmax(d1, NULL);
+			kdata_destroy(d1);
 		} else {
-			kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
+			const struct kdatacfg *cfgs[3];
+			enum kplottype plotstypes[3];
+			cfgdata.point.radius = 3;
+			for (int i = 0; i < 3; i++) {
+				d2[i] = kdata_array_alloc((!i) ? plot->data : plot->err, plot->nb);
+				cfgs[i] = &cfgdata;
+				plotstypes[i] = (!i) ?  KPLOT_POINTS : KPLOT_HYPHENS;
+			}
+			kplot_attach_datas(p, 3, d2, plotstypes, cfgs, KPLOTS_YERRORBAR);
+			/* mean and min/max */
+			mean = kdata_ymean(d2[0]);
+			min_data = kdata_xmin(d2[0], NULL);
+			max_data = kdata_xmax(d2[0], NULL);
+			for (int i = 0; i < 3; i++)
+				kdata_destroy(d2[i]);
 		}
-		kdata_destroy(d1);
 		plot = plot->next;
 		nb_graphs++;
 	}
 
-	/* mean and min/max */
-	double mean = kdata_ymean(d1);
-	int min_data = kdata_xmin(d1, NULL);
-	int max_data = kdata_xmax(d1, NULL);
 
 	if (nb_graphs == 1 && plot_data->nb > 0) {
 		if (!use_photometry && (registration_selected_source == r_FWHM || registration_selected_source == r_WFWHM ||
