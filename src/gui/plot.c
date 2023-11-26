@@ -706,7 +706,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 	struct light_curve_args *lcargs = calloc(1, sizeof(struct light_curve_args));
 
 	lcargs->seq = seq;
-	lcargs->layer = 0;
+	lcargs->layer = 0; // We don't care. This is not used in our case
 	lcargs->display_graph = TRUE;
 	lcargs->target_descr = NULL;
 
