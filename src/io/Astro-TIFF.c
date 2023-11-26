@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 
+#include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "core/siril_date.h"
 
@@ -277,13 +278,7 @@ gchar *AstroTiff_build_header(fits *fit) {
 	if (fit->siteelev != 0.0)
 		siril_string_append_double(str, fit->siteelev, "SITEELEV", "[m] Observation site elevation");
 
-	if (fit->wcsdata.equinox > 0.0) {
-		siril_string_append_str(str, "RA---TAN", "CTYPE1", "Coordinate type for the first axis");
-		siril_string_append_str(str, "DEC--TAN", "CTYPE2", "Coordinate type for the second axis");
-		siril_string_append_str(str, "deg", "CUNIT1", "Unit of coordinates");
-		siril_string_append_str(str, "deg", "CUNIT2", "Unit of coordinates");
-		siril_string_append_double(str, fit->wcsdata.equinox, "EQUINOX", "Equatorial equinox");
-	}
+
 	/* Needed for Aladin compatibility */
 	if (fit->naxes[2] == 3 && com.pref.rgb_aladin) {
 		siril_string_append_str(str, "RGB", "CTYPE3", "RGB image");
@@ -297,33 +292,28 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_double(str, fit->wcsdata.ra, "RA", "Image center Right Ascension (deg)");
 		siril_string_append_double(str, fit->wcsdata.dec, "DEC", "Image center Declination (deg)");
 	}
-	if (fit->wcsdata.crpix[0] != '\0') {
-		siril_string_append_double(str, fit->wcsdata.crpix[0], "CRPIX1", "Axis1 reference pixel");
-		siril_string_append_double(str, fit->wcsdata.crpix[1], "CRPIX2", "Axis2 reference pixel");
-	}
-	if (fit->wcsdata.crval[0] != '\0') {
-		siril_string_append_double(str, fit->wcsdata.crval[0], "CRVAL1", "Axis1 reference value (deg)");
-		siril_string_append_double(str, fit->wcsdata.crval[1], "CRVAL2", "Axis2 reference value (deg)");
-	}
-
-	/* check if pc matrix exists */
-	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) != 0.0) {
+	if (fit->wcslib) {
+		siril_string_append_str(str, "RA---TAN", "CTYPE1", "Coordinate type for the first axis");
+		siril_string_append_str(str, "DEC--TAN", "CTYPE2", "Coordinate type for the second axis");
+		siril_string_append_str(str, "deg", "CUNIT1", "Unit of coordinates");
+		siril_string_append_str(str, "deg", "CUNIT2", "Unit of coordinates");
+		siril_string_append_double(str, fit->wcslib->equinox, "EQUINOX", "Equatorial equinox");
+		siril_string_append_double(str, fit->wcslib->crpix[0], "CRPIX1", "Axis1 reference pixel");
+		siril_string_append_double(str, fit->wcslib->crpix[1], "CRPIX2", "Axis2 reference pixel");
+		siril_string_append_double(str, fit->wcslib->crval[0], "CRVAL1", "Axis1 reference value (deg)");
+		siril_string_append_double(str, fit->wcslib->crval[1], "CRVAL2", "Axis2 reference value (deg)");
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
-			siril_string_append_double(str, fit->wcsdata.cdelt[0], "CDELT1", "X pixel size (deg)");
-			siril_string_append_double(str, fit->wcsdata.cdelt[1], "CDELT2", "Y pixel size (deg)");
-			siril_string_append_double(str, fit->wcsdata.pc[0][0], "PC1_1", "Linear transformation matrix (1, 1)");
-			siril_string_append_double(str, fit->wcsdata.pc[0][1], "PC1_2", "Linear transformation matrix (1, 2)");
-			siril_string_append_double(str, fit->wcsdata.pc[1][0], "PC2_1", "Linear transformation matrix (2, 1)");
-			siril_string_append_double(str, fit->wcsdata.pc[1][1], "PC2_2", "Linear transformation matrix (2, 2)");
-
+			siril_string_append_double(str, fit->wcslib->cdelt[0], "CDELT1", "X pixel size (deg)");
+			siril_string_append_double(str, fit->wcslib->cdelt[1], "CDELT2", "Y pixel size (deg)");
+			siril_string_append_double(str, fit->wcslib->pc[0], "PC1_1", "Linear transformation matrix (1, 1)");
+			siril_string_append_double(str, fit->wcslib->pc[1], "PC1_2", "Linear transformation matrix (1, 2)");
+			siril_string_append_double(str, fit->wcslib->pc[2], "PC2_1", "Linear transformation matrix (2, 1)");
+			siril_string_append_double(str, fit->wcslib->pc[3], "PC2_2", "Linear transformation matrix (2, 2)");
 		} else {
-			double cd[2][2];
-
-			wcs_pc_to_cd(fit->wcsdata.pc, fit->wcsdata.cdelt, cd);
-			siril_string_append_double(str, cd[0][0], "CD1_1", "Scale matrix (1, 1)");
-			siril_string_append_double(str, cd[0][1], "CD1_2", "Scale matrix (1, 2)");
-			siril_string_append_double(str, cd[1][0], "CD2_1", "Scale matrix (2, 1)");
-			siril_string_append_double(str, cd[1][1], "CD2_2", "Scale matrix (2, 2)");
+			siril_string_append_double(str, fit->wcslib->cd[0], "CD1_1", "Scale matrix (1, 1)");
+			siril_string_append_double(str, fit->wcslib->cd[1], "CD1_2", "Scale matrix (1, 2)");
+			siril_string_append_double(str, fit->wcslib->cd[2], "CD2_1", "Scale matrix (2, 1)");
+			siril_string_append_double(str, fit->wcslib->cd[3], "CD2_2", "Scale matrix (2, 2)");
 		}
 	}
 	if (fit->wcsdata.pltsolvd) {

@@ -10,7 +10,7 @@ include_directories(${CFITSIO_INCLUDE_DIR})
 file(GLOB SRC_FILES *.c)
 #build a shared library
 ADD_LIBRARY(wcslib STATIC ${SRC_FILES})
-set_target_properties(wcslib PROPERTIES VERSION 7.3 SOVERSION 7)
+set_target_properties(wcslib PROPERTIES VERSION 8.2 SOVERSION 8)
 
 # Glob headers
 file(GLOB SRC_HEADERS *.h)

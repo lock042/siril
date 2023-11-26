@@ -30,6 +30,7 @@ Then, mandatory build dependencies:
 - **GTK+ 3**, (>= 3.20) as GUI toolkit
 - **lcms2** for color space management
 - **cfitsio** for FITS image read and write
+- **wcslib** (>=7.12) to handle astrometric data
 - **fftw3** for Fourier transforms
 - **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
 - **A C++ compiler** for opencv code and avi exporter
@@ -56,7 +57,6 @@ their support won't be included.
 - **libheif** for HEIF format files import
 - **libpng** (>= 1.6) for PNG format support
 - **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
-- **wcslib** for some astrometry utilities
 - **libgit2** for git integration to sync with the official siril-scripts repository
 - **criterion** for unit testing with meson (development)
 

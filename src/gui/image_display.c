@@ -51,10 +51,8 @@
 #include "opencv/opencv.h"
 #include "git-version.h"
 
-#ifdef HAVE_WCSLIB
 #include <wcslib.h>
 #include <wcsfix.h>
-#endif
 
 #include "image_display.h"
 
@@ -1197,7 +1195,7 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
-#ifdef HAVE_WCSLIB
+
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.gui.position_compass;
 	if (!pos) return; // User chose None
@@ -1314,11 +1312,9 @@ static gint border_compare(label_point *a, label_point *b) {
 
 static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3. / 4., 1.
 		/ 2., 1. / 4., 1. / 6., 1. / 8., 1. / 12., 1. / 16., 1. / 24., 1. / 40., 1. / 48. };
-#endif
 
 
 static void draw_wcs_grid(const draw_data_t* dd) {
-#ifdef HAVE_WCSLIB
 	if (!gui.show_wcs_grid) return;
 	fits *fit = &gfit;
 	if (!has_wcs(fit)) return;
@@ -1341,7 +1337,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	if (ra0 == -1.) return;
 	dec0 *= (M_PI / 180.0);
 	ra0  *= (M_PI / 180.0);
-	double range = fit->wcsdata.cdelt[1] * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
+	double range = get_wcs_image_resolution(fit) * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
 	double step;
 
 	/* Compute borders in pixel for tags*/
@@ -1537,7 +1533,6 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	g_slist_free_full(existingtags, (GDestroyNotify) g_free);
 
 	draw_compass(dd);
-#endif
 }
 
 static gdouble x_circle(gdouble x, gdouble radius, gdouble angle) {

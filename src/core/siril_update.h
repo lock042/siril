@@ -20,7 +20,7 @@
 #ifndef SRC_CORE_SIRIL_UPDATE_H_
 #define SRC_CORE_SIRIL_UPDATE_H_
 
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
+#if ( defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING) ) || defined(HAVE_LIBGIT2)
 
 typedef struct {
 	guint major_version;

@@ -20,9 +20,7 @@ struct starfinder_data {
 	int reference_image;	// index of the image in the sequence
 	gboolean save_eqcoords;	// save equatorial coordinates in it
 	Homography reference_H;	// homography for the plate solved frame
-#ifdef HAVE_WCSLIB
 	struct wcsprm *ref_wcs;	// reference astrometry
-#endif
 	/****************************************************************/
 	gchar *starfile;	// save to lst file if not NULL
 	gchar *startable;	// save to FITS table if not NULL

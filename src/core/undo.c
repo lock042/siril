@@ -117,12 +117,16 @@ static void undo_add_item(fits *fit, char *filename, char *histo) {
 		com.hist_current--;
 		undo_remove_item(com.history, com.hist_current);
 	}
+	int status = -1;
 	com.history[com.hist_current].filename = filename;
 	com.history[com.hist_current].rx = fit->rx;
 	com.history[com.hist_current].ry = fit->ry;
 	com.history[com.hist_current].nchans = fit->naxes[2];
 	com.history[com.hist_current].type = fit->type;
 	com.history[com.hist_current].wcsdata = fit->wcsdata;
+	com.history[com.hist_current].wcslib = wcs_deepcopy(fit->wcslib, &status);
+	if (status)
+		siril_debug_print("could not copy wcslib struct\n");
 	com.history[com.hist_current].focal_length = fit->focal_length;
 	com.history[com.hist_current].icc_profile = copyICCProfile(fit->icc_profile);
 	snprintf(com.history[com.hist_current].history, FLEN_VALUE, "%s", histo);
@@ -183,12 +187,16 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 		fit->pdata[GLAYER] = fit->pdata[BLAYER] = fit->pdata[RLAYER];
 	}
 	memcpy(&fit->wcsdata, &hist->wcsdata, sizeof(wcs_info));
-	fit->focal_length = hist->focal_length;
-	if (!has_wcsdata(fit)) {
-		free_wcs(fit, TRUE);
+	if (hist->wcslib) {
+		int status = -1;
+		fit->wcslib = wcs_deepcopy(hist->wcslib, &status);
+		if (status)
+			siril_debug_print("could not copy wcslib struct\n");
 	} else {
-		load_WCS_from_memory(fit);
+		free_wcs(fit);
+		reset_wcsdata(fit);
 	}
+	fit->focal_length = hist->focal_length;
 
 	full_stats_invalidation_from_fit(fit);
 	free(buf);
@@ -237,12 +245,16 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 		fit->fpdata[GLAYER] = fit->fpdata[BLAYER] = fit->fpdata[RLAYER];
 	}
 	memcpy(&fit->wcsdata, &hist->wcsdata, sizeof(wcs_info));
-	fit->focal_length = hist->focal_length;
-	if (!has_wcsdata(fit)) {
-		free_wcs(fit, TRUE);
+	if (hist->wcslib) {
+		int status = -1;
+		fit->wcslib = wcs_deepcopy(hist->wcslib, &status);
+		if (status)
+			siril_debug_print("could not copy wcslib struct\n");
 	} else {
-		load_WCS_from_memory(fit);
+		free_wcs(fit);
+		reset_wcsdata(fit);
 	}
+	fit->focal_length = hist->focal_length;
 
 	full_stats_invalidation_from_fit(fit);
 	free(buf);

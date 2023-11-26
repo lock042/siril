@@ -43,7 +43,7 @@ typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
 	int nb;		// number of points in the plot
 	gchar *label; // the name of the series
-	double x_offset; // the offset to be added to x (in most cases it's JD)
+	double x_offset;
 } splxydata;
 
 typedef struct siril_plot_xyerrdata_struct {

@@ -98,6 +98,7 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 				if (fitsKeyword.name == "SIMPLE") continue;
 				if (fitsKeyword.name == "COMMENT") continue;
 				if (fitsKeyword.name == "END") continue;
+				if (fitsKeyword.name.rfind("PV", 0) == 0) continue; // remove PV keywords as they mess up the WCS readout
 				fitsHeaderStream << std::setw(8) << std::left << fitsKeyword.name;
 				fitsHeaderStream << "= " << std::setw(20) << fitsKeyword.value;
 				fitsHeaderStream << " / " << fitsKeyword.comment << std::endl;

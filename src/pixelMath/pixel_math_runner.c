@@ -479,7 +479,6 @@ static void update_metadata(fits *fit) {
 		copy_fits_metadata(var_fit, fit);
 	else
 		merge_fits_headers_to_result2(fit, f);
-	load_WCS_from_memory(fit);
 	free(f);
 }
 

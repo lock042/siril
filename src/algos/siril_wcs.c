@@ -28,200 +28,144 @@
 #include "algos/astrometry_solver.h"
 #include "io/image_format_fits.h"
 
-#ifdef HAVE_WCSLIB
-#include <wcslib.h>
-#include <wcsfix.h>
-#endif
-
 #include "siril_wcs.h"
 
-#ifdef HAVE_WCSLIB
-static GMutex wcs_mutex;
-#endif
 
-/* we force naxis to 2 */
-#define NAXIS 2
+// Use this flag to print wcslib related verbose - not for production
+#define DEBUG_WCS 0
 
 gboolean has_wcs(fits *fit) {
-#ifdef HAVE_WCSLIB
 	return fit->wcslib != NULL;
-#endif
-	return FALSE;
 }
 
 // deal with cases where wcsdata is not NULL but members are set to 0
 gboolean has_wcsdata(fits *fit) {
-	if ((fit->wcsdata.crval[0] == 0.0 && fit->wcsdata.crval[1] == 0.0))
-		return FALSE;
-	return TRUE;
+	return fit->wcsdata.pltsolvd_comment[0] != '\0';
+}
+
+void reset_wcsdata(fits *fit) {
+	fit->wcsdata.pltsolvd = FALSE;
+	memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
 }
 
 
-void free_wcs(fits *fit, gboolean keep_RADEC) {
-#ifdef HAVE_WCSLIB
+void free_wcs(fits *fit) {
 	if (fit->wcslib) {
 		if (!wcsfree(fit->wcslib))
 			free(fit->wcslib);
 		fit->wcslib = NULL;
 	}
-#endif
-	if (keep_RADEC) {
-		memset(&fit->wcsdata.cdelt, 0, sizeof(fit->wcsdata.cdelt));
-		memset(&fit->wcsdata.crpix, 0, sizeof(fit->wcsdata.crpix));
-		memset(&fit->wcsdata.crval, 0, sizeof(fit->wcsdata.crval));
-		memset(&fit->wcsdata.pc, 0, sizeof(fit->wcsdata.pc));
-		memset(&fit->wcsdata.pltsolvd, 0, sizeof(fit->wcsdata.pltsolvd));
-		memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
-	} else {
-		memset(&fit->wcsdata, 0, sizeof(fit->wcsdata));
-	}
 }
 
-gboolean load_WCS_from_memory(fits *fit) {
-#ifdef HAVE_WCSLIB
-	int status;
-	if (!fit->wcslib) {
-		fit->wcslib = calloc(1, sizeof(struct wcsprm));
-		if(!fit->wcslib) {
-			PRINT_ALLOC_ERR;
-			return FALSE;
-		}
-		fit->wcslib->flag = -1;
+wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
+	wcsprm_t *wcsdst = NULL;
+	int axes[2], nsub;
+	nsub = 2;
+	axes[0] = WCSSUB_LONGITUDE;
+	axes[1] = WCSSUB_LATITUDE;
+	wcsdst = calloc(1, sizeof(wcsprm_t));
+	if (!wcsdst) {
+		PRINT_ALLOC_ERR;
+		*status = WCSERR_MEMORY;
+		return NULL;
 	}
-	wcsinit(1, NAXIS, fit->wcslib, 0, 0, 0);
-
-	const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
-	const char CUNIT[2][9] = { "deg", "deg" };
-
-	for (int i = 0; i < NAXIS; i++) {
-		strncpy(fit->wcslib->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+	wcsdst->flag = -1;
+	int statuscpy = wcssub(1, wcssrc, &nsub, axes, wcsdst);
+	if (statuscpy) {
+		*status = statuscpy;
+		wcsfree(wcsdst);
+		return NULL;
 	}
-
-	double *pcij = fit->wcslib->pc;
-	for (int i = 0; i < NAXIS; i++) {
-		for (int j = 0; j < NAXIS; j++) {
-			*(pcij++) = fit->wcsdata.pc[i][j];
-		}
-	}
-
-	for (int i = 0; i < NAXIS; i++) {
-		fit->wcslib->crval[i] = fit->wcsdata.crval[i];
-	}
-
-	for (int i = 0; i < NAXIS; i++) {
-		fit->wcslib->crpix[i] = fit->wcsdata.crpix[i];
-	}
-
-	for (int i = 0; i < NAXIS; i++) {
-		fit->wcslib->cdelt[i] = fit->wcsdata.cdelt[i];
-	}
-
-	for (int i = 0; i < NAXIS; i++) {
-		strncpy(fit->wcslib->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
-	}
-
-	fit->wcslib->equinox = fit->wcsdata.equinox;
-//	fit->wcslib->lonpole = 180;
-	fit->wcslib->latpole = fit->wcsdata.crval[1];
-
-	if ((status = wcsset(fit->wcslib)) != 0) {
-		/* here we do not want to use free_wcs because
-		 * we want to keep original header, just in case */
-		if (fit->wcslib) {
-			if (!wcsfree(fit->wcslib))
-				free(fit->wcslib);
-			fit->wcslib = NULL;
-		}
-		siril_debug_print("wcsset error %d: %s.\n", status, wcs_errmsg[status]);
-		return FALSE;
-	}
-	return TRUE;
-#else
-	return FALSE;
-#endif
+	wcsdst->flag = 0;
+	wcsset(wcsdst);
+	*status = 0;
+	return wcsdst;
 }
 
 
-gboolean load_WCS_from_file(fits* fit) {
-#ifdef HAVE_WCSLIB
-	int status = 0, wcs_status = 0;
+wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
+	wcsprm_t *data = NULL, *wcs = NULL;
+	int nreject, nwcs;
+	/** There was a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
+	 * We now force to have 7.12 at least */
+	int wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
+
+	if (wcs_status == 0) {
+		for (int i = 0; i < nwcs; i++) {
+			/* Find the master celestial WCS coordinates */
+			wcsprm_t *prm = data + i;
+			wcsset(prm); // is it necessary?
+			if (prm->lng >= 0 && prm->lat >= 0
+					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
+				int status = -1;
+				wcs = wcs_deepcopy(prm, &status);
+				if (!status) {
+					if (wcs->altlin & 2) { // header contains CD info
+						double cd[2][2];
+						// we copy cd to pc and set cdelt to unity
+						wcs_cd2mat(wcs, cd);
+						wcs_mat2pc(wcs, cd);
+						wcs_cdelt2unity(wcs);
+						wcs->altlin = 2;
+						wcspcx(wcs, 0, 0, NULL); // decompose CD to CDELT and PC
+						printf("contains CD\n");
+					} else if (wcs->altlin & 1) { // header contains PC info
+						double pc[2][2], cd[2][2];
+						wcs_pc2mat(wcs, pc);
+						wcs_pc_to_cd(pc, wcs->cdelt, cd);
+						wcs_mat2cd(wcs, cd);
+						wcs->flag = 0;
+						wcsset(wcs);
+						printf("contains PC\n");
+					} else { // contained some keywords but not enough to define at least a linear projection
+						siril_debug_print("wcs did not contain enough info\n");
+						free(wcs);
+						wcs = NULL;
+						break;
+					}
+					printf("at header readout\n");
+					wcs_print(wcs);
+					break;
+				} else {
+					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
+					wcsfree(wcs); 
+					wcs = NULL;
+				}
+			}
+		}
+		wcsvfree(&nwcs, &data);
+	}
+	return wcs;
+}
+
+
+gboolean load_WCS_from_fits(fits* fit) {
+	int status = 0;
 	char *header;
-	struct wcsprm *data = NULL;
-	int nkeyrec, nreject, nwcs;
-
-	/* sanity check to avoid error in some strange files */
-	if ((fit->wcsdata.crpix[0] == 0) && (fit->wcsdata.crpix[1] == 0)) {
-		return FALSE;
-	}
-	/* another sanity check, because at this stage we must have a valid pc matrix
-	 * hence this function must be called in load_wcs_keywords
-	 */
-	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
-		return FALSE;
-	}
-
+	struct wcsprm *wcs = NULL;
+	int nkeyrec;
 	if (fit->wcslib) {
-		free_wcs(fit, FALSE);
+		free_wcs(fit);
+		reset_wcsdata(fit);
 	}
-
 	ffhdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status);
 	if (status) {
 		report_fits_error(status);
 		return FALSE;
 	}
 
-	/** There is a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
-	 * We need to lock it.
-	 * TODO: check wcslib version ?*/
-	g_mutex_lock(&wcs_mutex);
-	wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
-
-	if (wcs_status == 0) {
-		for (int i = 0; i < nwcs; i++) {
-			/* Find the master celestial WCS coordinates */
-			struct wcsprm *prm = data + i;
-//			/* ctype3 = 'RGB' fix */
-//			if (prm->naxis == 3) {
-//				cdfix(prm);
-//			}
-			wcsset(prm);
-			if (prm->lng >= 0 && prm->lat >= 0
-					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
-				int axes[2], nsub;
-				nsub = 2;
-				axes[0] = WCSSUB_LONGITUDE;
-				axes[1] = WCSSUB_LATITUDE;
-				fit->wcslib = (struct wcsprm*) calloc(1, sizeof(struct wcsprm));
-				fit->wcslib->flag = -1;
-				status = wcssub(1, prm, &nsub, axes, fit->wcslib);
-				if (status == 0) {
-					break;
-				} else {
-					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
-					wcsvfree(&nwcs, &fit->wcslib);
-					fit->wcslib = NULL;
-				}
-			}
-		}
-	}
-	wcsvfree(&nwcs, &data);
-	g_mutex_unlock(&wcs_mutex);
+	wcs = load_WCS_from_hdr(header, nkeyrec);
 	free(header);
 
-	if (!fit->wcslib) {
+	if (!wcs) {
 		siril_debug_print("No world coordinate systems found.\n");
-		wcsvfree(&nwcs, &fit->wcslib);
-		fit->wcslib = NULL;
+		wcsfree(wcs);
 		return FALSE;
 	}
-
+	fit->wcslib = wcs;
 	return TRUE;
-#else
-	return FALSE;
-#endif
 }
 
-#ifdef HAVE_WCSLIB
 void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
 	*r = 0.0;
 	*d = 0.0;
@@ -238,24 +182,18 @@ void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
 	*r = world[0];
 	*d = world[1];
 }
-#endif
 
 void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 	*r = 0.0;
 	*d = 0.0;
-#ifdef HAVE_WCSLIB
 	if (fit->wcslib)
 		pix2wcs2(fit->wcslib, x, y, r, d);
-#endif
 }
 
 // ra in degrees
 int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (x) *x = -1.0;
 	if (y) *y = -1.0;
-#ifndef HAVE_WCSLIB
-	return 1;
-#else
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 	world[0] = ra;
@@ -276,11 +214,8 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 		}
 	}
 	return status;
-#endif
 }
 
-// TODO: see commented function at the end of siril_catalogues.c
-#if 0
 // same as wcs2pix except it takes a world array as input
 // world is an array with [ra1, dec1, ra2, dec2...ran, decn], i.e 2n elements (row major)
 // it returns an allocated array of statuses (instead of a single status), which must be freed
@@ -293,19 +228,15 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 		for (int i = 0; i < n; i++)
 			y[i] = -1.0;
 	}
-#ifndef HAVE_WCSLIB
-	return NULL;
-#else
 	// can't pass NULL to the values we don't want to retrieve (intcrd, phi, theta)
 	double *intcrd = malloc((2 * n) * sizeof(double));
 	double *pixcrd = malloc((2 * n) * sizeof(double));
 	double *phi = malloc(n * sizeof(double));
 	double *theta = malloc(n * sizeof(double));
 	int c = 0;
-	int *status = calloc(n , sizeof(int));
+	int *status = calloc((unsigned)n , sizeof(int));
 	int globstatus = wcss2p(fit->wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
-	c = 0;
-	if (globstatus == WCSERR_SUCCESS || WCSERR_BAD_WORLD) {// we accept BAD_WORLD has it does not mean all of the conversions failed
+	if (globstatus == WCSERR_SUCCESS || WCSERR_BAD_WORLD) {// we accept BAD_WORLD as it does not mean all of the conversions failed
 		for (int i = 0; i < n; i++) {
 			if (!status[i]) {
 				double xx = pixcrd[c++];
@@ -331,16 +262,13 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 	free(phi);
 	free(theta);
 	return status;
-#endif
 }
-#endif
 
 
 /* get image center celestial coordinates */
 void center2wcs(fits *fit, double *r, double *d) {
 	*r = -1.0;
 	*d = -1.0;
-#ifdef HAVE_WCSLIB
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
@@ -353,39 +281,120 @@ void center2wcs(fits *fit, double *r, double *d) {
 
 	*r = world[0];
 	*d = world[1];
-#endif
+}
+
+void wcs_cdelt2unity(wcsprm_t *prm) {
+	if (!prm || !prm->pc)
+		return;
+	double *cdelt = prm->cdelt;
+	for (int i = 0; i < NAXIS; i++) {
+		cdelt[i] = 1.;
+	}
+}
+
+void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]) {
+	if (!prm || !prm->pc)
+		return;
+	double *pcij = prm->pc;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			pc[i][j] = *(pcij++);
+		}
+	}
+}
+void wcs_cd2mat(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
+	if (!prm || !prm->cd)
+		return;
+	double *cdij = prm->cd;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			cd[i][j] = *(cdij++);
+		}
+	}
+}
+
+void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]) {
+	if (!prm || !prm->pc)
+		return;
+	double *pcij = prm->pc;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			*(pcij++) = pc[i][j];
+		}
+	}
+}
+void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
+	if (!prm || !prm->cd)
+		return;
+	double *cdij = prm->cd;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			*(cdij++) = cd[i][j];
+		}
+	}
 }
 
 /* get resolution in degree/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
-#ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		double cd[NAXIS][NAXIS], pc[NAXIS][NAXIS];
-		double cdelt[NAXIS];
-
-		double *pcij = fit->wcslib->pc;
-		for (int i = 0; i < NAXIS; i++) {
-			for (int j = 0; j < NAXIS; j++) {
-				pc[i][j] = *(pcij++);
-			}
-		}
-
-		for (int i = 0; i < NAXIS; i++) {
-			cdelt[i] = fit->wcslib->cdelt[i];
-		}
-
-		wcs_pc_to_cd(pc, cdelt, cd);
-
-		double res_x = sqrt(cd[0][0] * cd[0][0] + cd[1][0] * cd[1][0]);
-		double res_y = sqrt(cd[0][1] * cd[0][1] + cd[1][1] * cd[1][1]);
-		resolution = (res_x + res_y) * 0.5;
+		resolution = (fabs(fit->wcslib->cdelt[0]) + fabs(fit->wcslib->cdelt[1])) * 0.5;
 	}
-#endif
 	if (resolution <= 0.0) {
 		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
 			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600.0;
 		// what about pix size x != y?
 	}
 	return resolution;
+}
+
+void wcs_print(wcsprm_t *prm) {
+#if DEBUG_WCS
+	printf("CRPIX\n");
+	int c = 0;
+	for (int i = 0; i < NAXIS; i++) {
+			printf("%g ", prm->crpix[c++]);
+	}
+	printf("\n");
+	printf("CRVAL\n");
+	c = 0;
+	for (int i = 0; i < NAXIS; i++) {
+			printf("%g ", prm->crval[c++]);
+	}
+	printf("\n");
+	printf("PC\n");
+	c = 0;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			printf("%g ", prm->pc[c++]);
+		}
+		printf("\n");
+	}
+	printf("CDELT\n");
+	c = 0;
+	for (int i = 0; i < NAXIS; i++) {
+			printf("%g ", prm->cdelt[c++]);
+	}
+	printf("\n");
+	printf("CD\n");
+	c = 0;
+	for (int i = 0; i < NAXIS; i++) {
+		for (int j = 0; j < NAXIS; j++) {
+			printf("%g ", prm->cd[c++]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+	if (prm->lin.dispre) {
+		struct disprm *dis = prm->lin.dispre;
+		disset(dis);
+		for (int j = 0; j < dis->ndp; j++) {
+			printf("%s %d", dis->dp[j].field, dis->dp[j].j);
+			if (!dis->dp[j].type) //int
+				printf(" %d\n", dis->dp[j].value.i);
+			else //float
+				printf(" %g\n", dis->dp[j].value.f);
+		}
+	}
+#endif
 }

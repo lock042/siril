@@ -759,7 +759,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 
 	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
-	for (i = 0, j = 0; seq->number; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 
