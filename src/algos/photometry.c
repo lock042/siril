@@ -428,12 +428,10 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	for (int i = 0; i < nb_valid_images; i++)
 		date0[i] = date[i] - julian0;
 	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
-	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
-	lc->plots[0]->x_offset = (double)julian0;
 	free(date0);
 	// saving dat
 	int ret = 0;
-	if (!siril_plot_save_JD_light_curve(spl_data, filename, TRUE)) {
+	if (!siril_plot_save_dat(spl_data, filename, TRUE)) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on
