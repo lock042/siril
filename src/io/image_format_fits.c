@@ -44,6 +44,7 @@
 #include "gui/siril_preview.h"
 #include "algos/statistics.h"
 #include "algos/astrometry_solver.h"
+#include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "image_format_fits.h"
@@ -309,32 +310,8 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 	return status;
 }
 
-static void new_wcs_from_old(fits *fit, const double *crota) {
-	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
-		double cd[2][2];
-		int sign;
-
-		cd[0][0] = fit->wcsdata.cdelt[0] * cos(crota[1] * M_PI / 180.0);
-		if (fit->wcsdata.cdelt[0] >= 0)
-			sign = +1;
-		else
-			sign = -1;
-		cd[0][1] = fabs(fit->wcsdata.cdelt[1]) * sign * sin(crota[1] * M_PI / 180.0);
-		if (fit->wcsdata.cdelt[1] >= 0)
-			sign = +1;
-		else
-			sign = -1;
-		cd[1][0] = -fabs(fit->wcsdata.cdelt[0]) * sign * sin(crota[1] * M_PI / 180.0);
-		cd[1][1] = fit->wcsdata.cdelt[1] * cos(crota[1] * M_PI / 180.0);
-
-		wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
-	}
-}
-
 static void load_wcs_keywords(fits *fit) {
 	int status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcsdata.equinox), NULL, &status);
-
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra), NULL, &status);
 
@@ -367,75 +344,7 @@ static void load_wcs_keywords(fits *fit) {
 			else siril_debug_print("read DEC as DMS\n");
 		}
 	}
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcsdata.crpix[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcsdata.crpix[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcsdata.cdelt[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcsdata.cdelt[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->wcsdata.pc[0][0]), NULL, &status);
-
-	/* IF PC does not exist, check for CD */
-	if (status == KEY_NO_EXIST) {
-		double cd[2][2];
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD1_1", &cd[0][0], NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD1_2", &cd[0][1], NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD2_1", &cd[1][0], NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD2_2", &cd[1][1], NULL, &status);
-
-		if (status == 0) {
-			/* we compute PC and cdelt, but before check that CD is not singular */
-			if ((cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]) != 0.0) {
-				wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
-			}
-		}
-	} else {
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "PC1_2", &(fit->wcsdata.pc[0][1]), NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "PC2_1", &(fit->wcsdata.pc[1][0]), NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "PC2_2", &(fit->wcsdata.pc[1][1]), NULL, &status);
-	}
-
-	double crota[2] = { 0 };
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CROTA1", &crota[0], NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &crota[1], NULL, &status);
-
-	/* Test for pc matrix: in some cases (ekos?) data are written in old (deprecated) wcs formalism
-	 * So we need to test if the pc matrix is singular or not. If yes we compute cd from cdelt and crota
-	 * then we compute pc */
-	if (crota[0] != 0.0 && crota[1] != 0.0 &&
-			(fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
-
-		new_wcs_from_old(fit, crota);
-	}
+	// kewwords directly related to platesolve solution are loaded to fit->wcslib using load_WCS_from_fits
 
 	status = 0;
 	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->wcsdata.pltsolvd), fit->wcsdata.pltsolvd_comment, &status);
@@ -619,9 +528,8 @@ void read_fits_header(fits *fit) {
 	/* first fill wcsdata FITS structure */
 	load_wcs_keywords(fit);
 
-	/* so now, fill the wcslib structure.
-	 * Not the same because wcslib is not mandatory */
-	load_WCS_from_file(fit);
+	/* so now, fill the wcslib structure. */
+	load_WCS_from_fits(fit);
 
 	/**
 	 * Others
@@ -672,7 +580,6 @@ static void copy_string_key(char *to, char *from) {
 
 int fits_parse_header_string(fits *fit, gchar *header) {
 	int retval = 1;
-	double cd[2][2] = { { 0.0 } };
 	gchar **token = g_strsplit(header, "\n", -1);
 	guint nargs = g_strv_length(token);
 
@@ -680,16 +587,23 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 	fit->ccd_temp = -999.9;
 	fit->set_temp = -999.9;
 
+	// we will make a copy of the header tokens, aligned with FITS convention
+	// i.e. blocks of 80 chars
+	char *header2 = calloc(nargs * (FLEN_CARD - 1), sizeof(char));
+	char *curr = header2;
+
 	for (int i = 0; i < nargs; i++) {
 		int status = 0;
 		char card[FLEN_CARD] = { 0 };
 		char value[FLEN_VALUE] = { 0 };
 		char comment[FLEN_COMMENT] = { 0 };
 		int keytype;
-
 		char *tok = token[i];
 		/* in case of CR + LF, we remove \r */
 		if (tok[strlen(tok) - 1] == '\r') tok[strlen(tok) - 1] = '\0';
+		// and we copy for wcslib readout
+		strncpy(curr, token[i], FLEN_CARD - 1);
+		curr += FLEN_CARD - 1;
 		fits_parse_template(tok, card, &keytype, &status);
 		if (status) return status;
 		fits_parse_value(card, value, comment, &status);
@@ -764,8 +678,6 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->key_gain = g_ascii_strtoull(value, NULL, 10);
 		} else if (siril_str_has_prefix(card, OFFSETLEVEL)) {
 			fit->key_offset = g_ascii_strtoull(value, NULL, 10);
-		} else if (g_str_has_prefix(card, "EQUINOX =")) {
-			fit->wcsdata.equinox = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "OBJCTRA =")) {
 			copy_string_key(fit->wcsdata.objctra, value);
 		} else if (g_str_has_prefix(card, "RA      =")) {
@@ -784,34 +696,6 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			copy_string_key(fit->wcsdata.objctdec, value);
 		} else if (g_str_has_prefix(card, "DEC     =")) {
 			fit->wcsdata.dec = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CRPIX1  =")) {
-			fit->wcsdata.crpix[0] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CRPIX2  =")) {
-			fit->wcsdata.crpix[1] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CRVAL1  =")) {
-			fit->wcsdata.crval[0] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CRVAL2  =")) {
-			fit->wcsdata.crval[1] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CDELT1  =")) {
-			fit->wcsdata.cdelt[0] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CDELT2  =")) {
-			fit->wcsdata.cdelt[1] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "PC1_1   =")) {
-			fit->wcsdata.pc[0][0] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "PC1_2   =")) {
-			fit->wcsdata.pc[0][1] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "PC2_1   =")) {
-			fit->wcsdata.pc[1][0] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "PC2_2   =")) {
-			fit->wcsdata.pc[1][1] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CD1_1   =")) {
-			cd[0][0] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CD1_2   =")) {
-			cd[0][1] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CD2_1   =")) {
-			cd[1][0] = g_ascii_strtod(value, NULL);
-		} else if (g_str_has_prefix(card, "CD2_2   =")) {
-			cd[1][1] = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "PLTSOLVD=")) {
 			fit->wcsdata.pltsolvd = !g_strcmp0(value, "T") ? TRUE : FALSE;
 			strncpy(fit->wcsdata.pltsolvd_comment, comment, FLEN_COMMENT);
@@ -829,12 +713,9 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			copy_string_key(fit->dft.type, value);
 		}
 	}
-	/* we compute PC and cdelt, but before check that CD is not singular */
-	if ((cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]) != 0.0) {
-		wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
-	}
-	load_WCS_from_memory(fit);
-
+	wcsprm_t *wcs = load_WCS_from_hdr(header2, nargs);
+	fit->wcslib = wcs;
+	free(header2);
 	return retval;
 }
 
@@ -1408,20 +1289,6 @@ int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *statu
 
 static void save_wcs_keywords(fits *fit) {
 	int status = 0;
-
-	if (fit->wcsdata.equinox > 0.0) {
-		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg","Unit of coordinates", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcsdata.equinox),	"Equatorial equinox", &status);
-	}
-	status = 0;
-
 	/* Needed for Aladin compatibility */
 	if (fit->naxes[2] == 3 && com.pref.rgb_aladin) {
 		status = 0;
@@ -1440,48 +1307,49 @@ static void save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), "Image center Declination (deg)", &status);
 	}
-	if (fit->wcsdata.crpix[0] != '\0') {
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcsdata.crpix[0]), "Axis1 reference pixel", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcsdata.crpix[1]), "Axis2 reference pixel", &status);
-	}
-	if (fit->wcsdata.crval[0] != '\0') {
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), "Axis1 reference value (deg)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), "Axis2 reference value (deg)", &status);
-	}
+	status = 0;
 
-	/* check if pc matrix exists */
-	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) != 0.0) {
+	if (fit->wcslib) {
+		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg","Unit of coordinates", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcslib->equinox),	"Equatorial equinox", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcslib->crpix[0]), "Axis1 reference pixel", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcslib->crpix[1]), "Axis2 reference pixel", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcslib->crval[0]), "Axis1 reference value (deg)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcslib->crval[1]), "Axis2 reference value (deg)", &status);
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcsdata.cdelt[0]), "X pixel size (deg)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcslib->cdelt[0]), "X pixel size (deg)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcsdata.cdelt[1]), "Y pixel size (deg)", &status);
-
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcslib->cdelt[1]), "Y pixel size (deg)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->wcsdata.pc[0][0]), "Linear transformation matrix (1, 1)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->wcslib->pc[0]), "Linear transformation matrix (1, 1)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "PC1_2", &(fit->wcsdata.pc[0][1]), "Linear transformation matrix (1, 2)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "PC1_2", &(fit->wcslib->pc[1]), "Linear transformation matrix (1, 2)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "PC2_1", &(fit->wcsdata.pc[1][0]), "Linear transformation matrix (2, 1)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "PC2_1", &(fit->wcslib->pc[2]), "Linear transformation matrix (2, 1)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "PC2_2", &(fit->wcsdata.pc[1][1]), "Linear transformation matrix (2, 2)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "PC2_2", &(fit->wcslib->pc[3]), "Linear transformation matrix (2, 2)", &status);
 			status = 0;
 		} else {
-			double cd[2][2];
-
-			wcs_pc_to_cd(fit->wcsdata.pc, fit->wcsdata.cdelt, cd);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &cd[0][0], "Scale matrix (1, 1)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcslib->cd[0]), "Scale matrix (1, 1)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &cd[0][1], "Scale matrix (1, 2)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcslib->cd[1]), "Scale matrix (1, 2)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &cd[1][0], "Scale matrix (2, 1)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcslib->cd[2]), "Scale matrix (2, 1)", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &cd[1][1], "Scale matrix (2, 2)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcslib->cd[3]), "Scale matrix (2, 2)", &status);
 			status = 0;
 		}
 	}
@@ -2161,7 +2029,8 @@ void clearfits_header(fits *fit) {
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = NULL;
-	free_wcs(fit, FALSE);
+	free_wcs(fit);
+	reset_wcsdata(fit);
 	if (fit == &gfit && is_preview_active())
 		clear_backup();
 	memset(fit, 0, sizeof(fits));
@@ -2789,9 +2658,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->date_obs = NULL;
 		to->icc_profile = NULL;
 		to->color_managed = FALSE;
-#ifdef HAVE_WCSLIB
 		to->wcslib = NULL;
-#endif
 	}
 
 	if ((oper & CP_ALLOC)) {
@@ -2963,9 +2830,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	 */
 	color_manage(to, FALSE);
 	to->icc_profile = NULL;
-#ifdef HAVE_WCSLIB
 	to->wcslib = NULL;
-#endif
 
 	if (from->type == DATA_USHORT)
 		if (to_float) {
@@ -3084,9 +2949,13 @@ void copy_fits_metadata(fits *from, fits *to) {
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
 	// don't copy ICC profile, if that is needed it should be done separately
-#ifdef HAVE_WCSLIB
-	//wcssub()?
-#endif
+	int status = -1;
+	to->wcslib = wcs_deepcopy(from->wcslib, &status);
+	if (status) {
+		wcsfree(to->wcslib);
+		siril_debug_print("could not copy wcslib struct\n");
+	}
+
 	// copy from->history?
 }
 
@@ -3755,7 +3624,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 	copy_fits_metadata(f[0], result);
 
 	/* then refine the variable fields */
-	gboolean found_WCS = has_wcsdata(f[0]);
+	gboolean found_WCS = has_wcs(f[0]);
 	GDateTime *date_obs = result->date_obs;	// already referenced
 	double expstart = f[0]->expstart;
 	double expend = f[0]->expend;
@@ -3765,9 +3634,15 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 	fits *current;
 	while ((current = f[image_count])) {
 		// take the first WCS information we find
-		if (!found_WCS && has_wcsdata(current)) {
-			result->wcsdata = current->wcsdata;
-			found_WCS = TRUE;
+		if (!found_WCS && has_wcs(current)) {
+			int status = -1;
+			result->wcslib = wcs_deepcopy(current->wcslib, &status);
+			if (status)
+				siril_debug_print("could not copy wcslib struct\n");
+			else {
+				result->wcsdata = current->wcsdata;
+				found_WCS = TRUE;
+			}
 		}
 		// set date_obs, the date of obs start, to the earliest found
 		if (date_obs && current->date_obs && g_date_time_compare(date_obs, current->date_obs) == 1) {

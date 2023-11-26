@@ -346,6 +346,7 @@ gboolean end_plate_solver(gpointer p) {
 		set_GUI_CAMERA();
 		update_coordinates(args->new_center);
 		delete_selected_area();
+		refresh_annotations(FALSE);
 		/* ****** */
 
 		if (args->flip_image || args->for_photometry_cc)
@@ -721,7 +722,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 gboolean confirm_delete_wcs_keywords(fits *fit) {
 	gboolean erase = TRUE;
 
-	if (has_wcsdata(fit)) {
+	if (has_wcs(fit)) {
 		erase = siril_confirm_dialog(_("Astrometric solution detected"),
 				_("The astrometric solution contained in "
 				"the image will be erased by the geometric transformation and no undo "

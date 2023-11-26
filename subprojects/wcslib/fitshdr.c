@@ -1,6 +1,6 @@
-#line 2 "fitshdr.c"
+#line 1 "fitshdr.c"
 
-#line 4 "fitshdr.c"
+#line 3 "fitshdr.c"
 
 #define _POSIX_C_SOURCE 1
 #define  YY_INT_ALIGNED short int
@@ -10233,8 +10233,8 @@ static const yy_state_type yy_NUL_trans[551] =
 #define YY_RESTORE_YY_MORE_OFFSET
 #line 1 "fitshdr.l"
 /*============================================================================
-  WCSLIB 7.6 - an implementation of the FITS WCS standard.
-  Copyright (C) 1995-2021, Mark Calabretta
+  WCSLIB 8.2 - an implementation of the FITS WCS standard.
+  Copyright (C) 1995-2023, Mark Calabretta
 
   This file is part of WCSLIB.
 
@@ -10253,7 +10253,7 @@ static const yy_state_type yy_NUL_trans[551] =
 
   Author: Mark Calabretta, Australia Telescope National Facility, CSIRO.
   http://www.atnf.csiro.au/people/Mark.Calabretta
-  $Id: fitshdr.l,v 7.6 2021/04/13 12:57:01 mcalabre Exp $
+  $Id: fitshdr.l,v 8.2 2023/11/16 10:00:29 mcalabre Exp $
 *=============================================================================
 *
 * fitshdr.l is a Flex description file containing a lexical scanner
@@ -10323,8 +10323,8 @@ const char *fitshdr_errmsg[] = {
    "Memory allocation failed",
    "Fatal error returned by Flex parser"};
 
+#line 10326 "fitshdr.c"
 #line 10327 "fitshdr.c"
-#line 10328 "fitshdr.c"
 
 #define INITIAL 0
 #define VALUE 1
@@ -10633,7 +10633,7 @@ YY_DECL
 	
 	BEGIN(INITIAL);
 
-#line 10637 "fitshdr.c"
+#line 10636 "fitshdr.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -11186,7 +11186,7 @@ YY_RULE_SETUP
 #line 573 "fitshdr.l"
 ECHO;
 	YY_BREAK
-#line 11190 "fitshdr.c"
+#line 11189 "fitshdr.c"
 
 	case YY_END_OF_BUFFER:
 		{

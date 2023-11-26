@@ -4600,11 +4600,8 @@ int process_seq_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
-#ifdef HAVE_WCSLIB
 	args->save_eqcoords = TRUE;	// managed in apply_findstar_to_sequence()
-#else
-	args->save_eqcoords = FALSE;
-#endif
+
 	args->starfile = NULL;
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 
@@ -8035,9 +8032,6 @@ int process_capabilities(int nb) {
 #ifdef HAVE_JSON_GLIB
 	siril_log_message("Built with json-glib\n");
 #endif
-#ifdef HAVE_WCSLIB
-	siril_log_message("Built with wcslib\n");
-#endif
 #ifdef HAVE_EXIV2
 	siril_log_message("Built with exiv2\n");
 #endif
@@ -8451,13 +8445,8 @@ int process_pcc(int nb) {
 		else if (!pcc_command && !g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
 			if (cat != CAT_AUTO)
 				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
-#ifndef HAVE_WCSLIB
-			siril_log_color_message(_("Astrometry.net interaction relies on the missing WCSLIB software, cannot continue.\n"), "red");
-			return CMD_ARG_ERROR;
-#else
 			cat = CAT_ASNET;
 			local_cat = TRUE;
-#endif
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			if (target_coords)

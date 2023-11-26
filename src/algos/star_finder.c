@@ -42,10 +42,8 @@
 #include "gui/PSF_list.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
-#ifdef HAVE_WCSLIB
 #include <wcslib.h>
 #include <wcsfix.h>
-#endif
 
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 2.  // sigma of the gaussian smoothing kernel
@@ -1165,12 +1163,10 @@ gboolean end_findstar_sequence(gpointer p) {
 
 int findstar_finalize_hook (struct generic_seq_args *args) {
 	struct starfinder_data *data = (struct starfinder_data *) args->user;
-#ifdef HAVE_WCSLIB
 	if (data->ref_wcs) {
 		if (!wcsfree(data->ref_wcs))
 			free(data->ref_wcs);
 	}
-#endif
 	if (data->startable)
 		g_free(data->startable);
 	if (data->starfile)
@@ -1212,17 +1208,13 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 			findstar_args->save_eqcoords = FALSE;
 		else {
 			findstar_args->reference_image = refidx;
-#ifdef HAVE_WCSLIB
 			findstar_args->ref_wcs = ref.wcslib;
-#endif
 			if (args->seq->regparam[findstar_args->layer] &&
 					guess_transform_from_H(args->seq->regparam[findstar_args->layer][refidx].H) != NULL_TRANSFORMATION) {
 				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
 			}
 		}
-#ifdef HAVE_WCSLIB
 		ref.wcslib = NULL;	// don't free it
-#endif
 		clearfits(&ref);
 	}
 	if (findstar_args->already_in_thread) {
@@ -1262,12 +1254,10 @@ gpointer findstar_worker(gpointer p) {
 				double dx = stars[i]->xpos, dy = stars[i]->ypos;
 				if (has_wcs(args->im.fit)) {
 					double ra = 0.0, dec = 0.0;
-#ifdef HAVE_WCSLIB
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
 					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
-#endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
@@ -1279,12 +1269,10 @@ gpointer findstar_worker(gpointer p) {
 				else {
 					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
 					double ra = 0.0, dec = 0.0;
-#ifdef HAVE_WCSLIB
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
 					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
-#endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;

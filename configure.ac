@@ -135,6 +135,9 @@ PKG_CHECK_MODULES(LCMS2, lcms2 >= 2.14)
 dnl check cairo
 PKG_CHECK_MODULES(CAIRO, cairo)
 
+dnl check wcslib
+PKG_CHECK_MODULES(WCSLIB, wcslib >= 7.12)
+
 dnl check fftw3 and its threading capabilities
 m4_include([m4/fftw.m4])
 
@@ -309,10 +312,6 @@ else
 	AC_DEFINE(HAVE_NETWORKING, 1, [Using networking])
 fi
 
-dnl check wcslib
-PKG_CHECK_MODULES(WCSLIB, [wcslib],
-		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
-		  AC_MSG_WARN([wcslib not found. Not using astrometry.]))
 
 dnl Check for json-glib
 PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
