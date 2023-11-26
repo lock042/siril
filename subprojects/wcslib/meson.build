@@ -7,7 +7,7 @@
 
 project('wcslib', 
   ['c','cpp'],
-  version : '7.7.0',
+  version : '8.2.0',
   meson_version: '>=0.53.0',
   default_options : [
     'c_std=gnu11',
@@ -68,11 +68,11 @@ src_files = ['cel.c',
 ]
 
 ################################################################################
-# Build kplot library
+# Build wcslib library
 
 wcslib_lib = static_library('wcslib', src_files, dependencies : [cfitsio_dep], include_directories: '.')
 
 ################################################################################
-# Dependency kplot
+# Dependency wcslib
 
 wcslib_dep = declare_dependency(include_directories: '.', link_with : wcslib_lib)

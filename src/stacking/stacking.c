@@ -543,8 +543,6 @@ static gboolean end_stacking(gpointer p) {
 		/* copy result to gfit if success */
 		clearfits(&gfit);
 		memcpy(&gfit, &args->result, sizeof(fits));
-		if (has_wcsdata(&gfit))
-			load_WCS_from_memory(&gfit);
 		if (!com.script)
 			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);

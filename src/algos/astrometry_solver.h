@@ -68,12 +68,10 @@ struct astrometry_data {
 void open_astrometry_dialog();
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
-void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer plate_solver(gpointer p);
 double compute_mag_limit_from_fov(double fov_degrees);
 gboolean confirm_delete_wcs_keywords(fits *fit);
-void flip_bottom_up_astrometry_data(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 
 void set_focal_and_pixel_pitch();

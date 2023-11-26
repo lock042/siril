@@ -276,8 +276,8 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		fits_binning_float(fit, factor, mean);
 	}
 
-	free_wcs(fit, TRUE); // we keep RA/DEC to initialize platesolve
-	load_WCS_from_memory(fit);
+	free_wcs(fit);
+	reset_wcsdata(fit);
 	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
@@ -325,8 +325,8 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
-	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
-	load_WCS_from_memory(image);
+	free_wcs(image);
+	reset_wcsdata(image);
 	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
@@ -360,26 +360,21 @@ int verbose_rotate_fast(fits *image, int angle) {
 			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
 			_("No"), (double)angle);
 
-#ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	rectangle area = {0, 0, image->rx, image->ry};
 	GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H);
-#endif
 
 	if (cvRotateImage(image, angle)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-#ifdef HAVE_WCSLIB
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
-		load_WCS_from_memory(image);
 		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -416,9 +411,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 
-#ifdef HAVE_WCSLIB
 	int orig_ry = image->ry; // required to compute flips afterwards
-#endif
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
@@ -427,14 +420,11 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
-#ifdef HAVE_WCSLIB
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
-		load_WCS_from_memory(image);
 		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -520,17 +510,14 @@ void mirrorx(fits *fit, gboolean verbose) {
 		sprintf(fit->row_order, "BOTTOM-UP");
 	}
 	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
-#ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h11 = -1.;
 		H.h12 = (double)fit->ry - 1.;
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
 		refresh_annotations(FALSE);
 	}
-#endif
 }
 
 void mirrory(fits *fit, gboolean verbose) {
@@ -551,17 +538,14 @@ void mirrory(fits *fit, gboolean verbose) {
 	}
 
 	fit->history = g_slist_append(fit->history, strdup("Left-right mirror"));
-#ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h00 = -1.;
 		H.h02 = (double)fit->rx - 1.;
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
 		refresh_annotations(FALSE);
 	}
-#endif
 }
 
 /* inplace cropping of the image in fit
@@ -634,14 +618,12 @@ int crop(fits *fit, rectangle *bounds) {
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
-#ifdef HAVE_WCSLIB
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	gboolean wcs = has_wcs(fit);
 	if (wcs)
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
-#endif
 
 	if (fit->type == DATA_USHORT) {
 		if (crop_ushort(fit, bounds)) {
@@ -656,14 +638,11 @@ int crop(fits *fit, rectangle *bounds) {
 	}
 
 	invalidate_stats_from_fit(fit);
-#ifdef HAVE_WCSLIB
 	if (wcs) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
 		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
