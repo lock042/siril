@@ -434,7 +434,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
 
-	for (i = 0, j = 0; i < plot->nb; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl)
 			continue;
 		switch (X_selected_source) {
@@ -587,8 +587,7 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 	plot->err[point_index].x = plot->data[point_index].x;
 }
 
-static void build_photometry_dataset(sequence *seq, int dataset, int size,
-		int ref_image, pldata *plot) {
+static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, pldata *plot) {
 	int i, j;
 	double offset = -1001.0;
 	double fwhm;
@@ -596,7 +595,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	if (seq->reference_star >= 0 && !seq->photometry[seq->reference_star])
 		seq->reference_star = -1;
 
-	for (i = 0, j = 0; i < size; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !psfs[i])
 			continue;
 		if (!julian0 && !xlabel) {
@@ -721,7 +720,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	/* get number of valid frames for each star */
 	int ref_valid_count[MAX_SEQPSF] = { 0 };
 	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
-	for (i = 0; i < plot->nb; i++) {
+	for (i = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		++nbImages;
@@ -764,7 +763,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		return -1;
 	}
 	// i is index in dataset, j is index in output
-	for (i = 0, j = 0; i < plot->nb; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 		double cmag = 0.0, cerr = 0.0;
@@ -859,7 +858,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 
 	if (use_photometry) {
 		pldata *tmp_plot = plot;
-		for (int i = 0, j = 0; i < plot->nb; i++) {
+		for (int i = 0, j = 0; i < seq->number; i++) {
 			if (!seq->imgparam[i].incl)
 				continue;
 			int x = 0;
@@ -906,7 +905,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 			j++;
 		}
 	} else {
-		for (int i = 0, j = 0; i < plot->nb; i++) {
+		for (int i = 0, j = 0; i < seq->number; i++) {
 			if (!seq->imgparam[i].incl)
 				continue;
 			double date = plot->data[j].x;
@@ -1171,7 +1170,7 @@ void drawPlot() {
 				plot = plot->next;
 			}
 
-			build_photometry_dataset(seq, i, seq->number, ref_image, plot);
+			build_photometry_dataset(seq, i, ref_image, plot);
 			qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
