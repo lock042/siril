@@ -91,8 +91,7 @@ static void fallback_bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,
 
 // Reference: https://www.wikiwand.com/en/Color_index
 cmsFloat64Number bvToT(float bv) {
-	bv = min(max(bv, -0.4f), 2.f);
-	cmsFloat64Number t = 4600 * ((1. / ((0.92 * bv) + 1.7)) + (1. / ((0.92 * bv) + 0.62)));
+	cmsFloat64Number t = 4600. * ((1. / ((0.92 * bv) + 1.7)) + (1. / ((0.92 * bv) + 0.62)));
 	return t;
 }
 
@@ -100,6 +99,7 @@ cmsFloat64Number bvToT(float bv) {
 // transform is calculated in get_white_balance_coeff below
 // It provides the transform from XYZ to the required image colorspace
 static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
+	bv = min(max(bv, -0.4f), 2.f);
 	cmsFloat64Number TempK = bvToT(bv);
 	cmsCIExyY WhitePoint;
 	cmsCIEXYZ XYZ;
