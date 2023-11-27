@@ -44,50 +44,6 @@
 enum {
 	RED, GREEN, BLUE
 };
-/* This assumes a color space (linear sRGB?) Currently used only as a fallback.
- * Should be able to remove this once there is confidence that the new color
- * managed function has no corner cases where it could fail. */
-static void fallback_bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
-	float t;
-	*r = 0.f;
-	*g = 0.f;
-	*b = 0.f;
-	if (bv < -0.4f)
-		bv = -0.4f;
-	if (bv > 2.f)
-		bv = 2.f;
-	if ((bv >= -0.4f) && (bv < 0.0f)) {
-		t = (bv + 0.4f) / (0.f + 0.4f);
-		*r = 0.61f + (0.11f * t) + (0.1f * t * t);
-	} else if ((bv >= 0.f) && (bv < 0.4f)) {
-		t = (bv - 0.0f) / (0.4f - 0.f);
-		*r = 0.83f + (0.17f * t);
-	} else if ((bv >= 0.4f) && (bv < 2.1f)) {
-		*r = 1.f;
-	}
-	if ((bv >= -0.4f) && (bv < 0.f)) {
-		t = (bv + 0.4f) / (0.f + 0.4f);
-		*g = 0.7f + (0.07f * t) + (0.1f * t * t);
-	} else if ((bv >= 0.f) && (bv < 0.4f)) {
-		t = (bv - 0.f) / (0.4f - 0.f);
-		*g = 0.87f + (0.11f * t);
-	} else if ((bv >= 0.4f) && (bv < 1.6f)) {
-		t = (bv - 0.4f) / (1.6f - 0.4f);
-		*g = 0.98f - (0.16f * t);
-	} else if ((bv >= 1.6f) && (bv < 2.f)) {
-		t = (bv - 1.6f) / (2.f - 1.6f);
-		*g = 0.82f - (0.5f * t * t);
-	}
-	if ((bv >= -0.4f) && (bv < 0.4f)) {
-		*b = 1.f;
-	} else if ((bv >= 0.4f) && (bv < 1.5f)) {
-		t = (bv - 0.4f) / (1.5f - 0.4f);
-		*b = 1.f - (0.47f * t) + (0.1f * t * t);
-	} else if ((bv >= 1.5f) && (bv < 1.94f)) {
-		t = (bv - 1.5f) / (1.94f - 1.5f);
-		*b = 0.63f - (0.6f * t * t);
-	}
-}
 
 // Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
 // Uses Ballesteros' formula based on considering stars as black bodies
@@ -188,7 +144,10 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		cmsCloseProfile(profile);
 		cmsCloseProfile(xyzprofile);
 	}
-	gboolean used_fallback = FALSE;
+	if (!transform) {
+		siril_log_color_message(_("Error: failed to set up colorspace transform. This is a bug, please report it!\n"), "red");
+		return 1;
+	}
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
@@ -225,12 +184,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		/* get r g b coefficient from bv color index */
 		bv = stars[i].BV;
-		if (transform) {
-			bv2rgb(&r, &g, &b, bv, transform);
-		} else {
-			fallback_bv2rgb(&r, &g, &b, bv);
-			used_fallback = TRUE;
-		}
+		bv2rgb(&r, &g, &b, bv, transform);
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
@@ -243,9 +197,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			continue;
 		}
 		g_atomic_int_inc(&ngood);
-	}
-	if (used_fallback) {
-		siril_debug_print("Warning: something went wrong! Fallback bv2rgb calculation used!\n");
 	}
 	if (transform)
 		cmsDeleteTransform(transform);
@@ -375,9 +326,12 @@ static int apply_photometric_color_correction(fits *fit, const float *kw, const 
 
 	for (int chan = 0; chan < 3; chan++) {
 		scale[chan] = kw[chan] * invrange;
+		if (scale[chan] != scale[chan]) { // Check for NaN... If they are NaN the result image is junk
+			siril_log_color_message(_("Error computing coefficients: aborting...\n"), "red");
+			return 1;
+		}
 		offset[chan] = (-bg[chan].value * kw[chan] + bg[norm_channel].value  - minimum) * invrange;
 	}
-
 	siril_log_message("After renormalization, the following coefficients are applied\n");
 	siril_log_color_message(_("White balance factors:\n"), "green");
 	for (int chan = 0; chan < 3; chan++) {
@@ -446,7 +400,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel);
 
 	if (!ret) {
-		apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
+		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
