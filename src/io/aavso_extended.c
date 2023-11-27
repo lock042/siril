@@ -102,7 +102,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 			data[index++] = g_strdup_printf("%8.6lf", cplot->data[i].y); // CMAG
 			data[index++] = g_strdup(adata->kname); // KNAME
 			data[index++] = g_strdup_printf("%8.6lf", kplot->data[i].y); // KMAG
-			data[index++] = g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
+			data[index++] = airmass->data[i].y == 0 ? g_strdup(_NA_) :  g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
 			data[index++] = g_strdup(_NA_); // GROUP
 			data[index++] = g_strdup(adata->chart); // CHART
 			data[index++] = g_strdup(adata->notes); // NOTES
