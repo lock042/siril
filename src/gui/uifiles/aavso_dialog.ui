@@ -124,7 +124,7 @@
                 <property name="tooltip-text" translatable="yes">The filter used for the observation.</property>
                 <property name="active">0</property>
                 <items>
-                  <item translatable="yes">nc</item>
+                  <item translatable="yes">na</item>
                   <item translatable="yes">U</item>
                   <item translatable="yes">B</item>
                   <item translatable="yes">V</item>
