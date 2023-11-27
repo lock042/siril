@@ -21,6 +21,7 @@
 #include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/OS_utils.h"
@@ -43,8 +44,10 @@
 enum {
 	RED, GREEN, BLUE
 };
-
-static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
+/* This assumes linear sRGB. Currently used only as a fallback. Should be able
+ * to remove this once there is confidence that the new color managed function
+ * has no corner cases where it could fail. */
+static void fallback_bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
 	float t;
 	*r = 0.f;
 	*g = 0.f;
@@ -84,6 +87,32 @@ static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV 
 		t = (bv - 1.5f) / (1.94f - 1.5f);
 		*b = 0.63f - (0.6f * t * t);
 	}
+}
+
+// Reference: https://www.wikiwand.com/en/Color_index
+cmsFloat64Number bvToT(float bv) {
+	bv = min(max(bv, -0.4f), 2.f);
+	cmsFloat64Number t = 4600 * ((1. / ((0.92 * bv) + 1.7)) + (1. / ((0.92 * bv) + 0.62)));
+	return t;
+}
+
+// Makes use of lcms2 to get the RGB values correct
+// transform is calculated in get_white_balance_coeff below
+// It provides the transform from XYZ to the required image colorspace
+static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
+	cmsFloat64Number TempK = bvToT(bv);
+	cmsCIExyY WhitePoint;
+	cmsCIEXYZ XYZ;
+	float xyz[3], rgb[3] = { 0.f };
+	cmsWhitePointFromTemp(&WhitePoint, TempK);
+	cmsxyY2XYZ(&XYZ, &WhitePoint);
+	xyz[0] = (float) XYZ.X;
+	xyz[1] = (float) XYZ.Y;
+	xyz[2] = (float) XYZ.Z;
+	cmsDoTransform(transform, &xyz, &rgb, 1);
+	*r = rgb[0];
+	*g = rgb[1];
+	*b = rgb[2];
 }
 
 static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
@@ -132,6 +161,33 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
+	cmsHPROFILE xyzprofile = cmsCreateXYZProfile();
+	cmsHPROFILE profile = NULL;
+	if (fit->icc_profile) {
+		profile = copyICCProfile(fit->icc_profile);
+		if (!fit_icc_is_linear(fit)) {
+			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
+									  "apply photometric color calibration to linear images.\n"),
+									  "salmon");
+		}
+	} else {
+		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
+		fit->icc_profile = copyICCProfile(profile);
+		color_manage(fit, (fit->icc_profile != NULL));
+	}
+	cmsHTRANSFORM transform = NULL;
+	if (xyzprofile && profile) {
+		transform = cmsCreateTransformTHR(com.icc.context_single,
+												 xyzprofile,
+												 TYPE_XYZ_FLT,
+												 profile,
+												 TYPE_RGB_FLT,
+												 INTENT_RELATIVE_COLORIMETRIC,
+												 cmsFLAGS_NONEGATIVES);
+		cmsCloseProfile(profile);
+		cmsCloseProfile(xyzprofile);
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
@@ -168,7 +224,10 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		/* get r g b coefficient from bv color index */
 		bv = stars[i].BV;
-		bv2rgb(&r, &g, &b, bv);
+		if (transform)
+			bv2rgb(&r, &g, &b, bv, transform);
+		else
+			fallback_bv2rgb(&r, &g, &b, bv);
 
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
@@ -183,7 +242,8 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		g_atomic_int_inc(&ngood);
 	}
-
+	if (transform)
+		cmsDeleteTransform(transform);
 	free(ps);
 	if (!get_thread_run()) {
 		free(data[RED]);
@@ -453,7 +513,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	// preparing the catalogue query
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(args->fit, args->catalog, mag);
 	siril_cat->phot = TRUE;
-	
+
 	/* Fetching the catalog*/
 	if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;

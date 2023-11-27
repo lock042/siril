@@ -26,6 +26,7 @@ siril 1.4.0 xx xx, xx
 * Add file filters programmatically. This allows them to be removed from the UI files, making it easier to keep using glade (for now) (!595)
 * Refactored wcs usage, by removing redundant info stored in the fit structure (!591 and #1154::1)
 * Fix wavelets redraw. (#1236)
+* Add color management to photometric color calibration.
 
 siril 1.2.1
 xx/xx/xx
