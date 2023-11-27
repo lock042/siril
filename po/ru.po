@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-18 13:09+0100\n"
-"PO-Revision-Date: 2023-11-24 23:37+0000\n"
+"PO-Revision-Date: 2023-11-29 10:49+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -9292,7 +9292,7 @@ msgstr "Рабочие цветовые пространства"
 
 #: src/gui/uifiles/settings_window.ui:3831
 msgid "Custom monitor profile:"
-msgstr ""
+msgstr "Пользовательский профиль монитора:"
 
 #: src/gui/uifiles/settings_window.ui:3843
 msgid ""
@@ -9433,7 +9433,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4109
 msgid "Export 8-bit images using:"
-msgstr ""
+msgstr "Экспорт 8 битных изображений используя:"
 
 #: src/gui/uifiles/settings_window.ui:4120
 msgid ""
@@ -9510,7 +9510,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4341
 msgid "Export built-in profiles"
-msgstr ""
+msgstr "Экспорт встроенных профилей"
 
 #: src/gui/uifiles/settings_window.ui:4345
 msgid ""
@@ -18190,9 +18190,8 @@ msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
 msgstr "Ошибка: изображение не может быть загружено"
 
 #: src/core/icc_profile.c:1541
-#, fuzzy
 msgid "Error: no filename specfied for custom monitor profile.\n"
-msgstr "Ошибка: не указано имя файла, прерывание.\n"
+msgstr "Ошибка: не указано имя файла для пользовательского профиля монитора.\n"
 
 #: src/core/icc_profile.c:1547
 #, c-format
@@ -23671,10 +23670,9 @@ msgid "Contacting server\n"
 msgstr "Соединение с сервером\n"
 
 #: src/io/remote_catalogues.c:766 src/io/siril_catalogues.c:750
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create catalogue file %s (%s)\n"
-msgstr ""
-"Невозможно создать файл каталога %s для астрономического решения (%s)\n"
+msgstr "Невозможно создать файл каталога %s (%s)\n"
 
 #: src/io/seqfile.c:129
 msgid ""
@@ -24245,7 +24243,7 @@ msgstr "PGC"
 
 #: src/io/siril_catalogues.c:240
 msgid "Exoplanet archive"
-msgstr ""
+msgstr "Архив экзопланет"
 
 #: src/io/siril_catalogues.c:242
 msgid "IMCCE solar system"
