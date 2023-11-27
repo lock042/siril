@@ -2188,7 +2188,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
-	fprintf(stdout, _("Loaded partial FITS file %s\n"), filename);
+	siril_debug_print("Loaded partial FITS file %s\n", filename);
 	return 0;
 }
 

@@ -91,8 +91,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 		int index = 0;
 		for (int i = 0; i < nbpoints; i++) {
 			data[index++] = g_strdup(adata->starid); // NAME
-			data[index++] = g_strdup_printf("%12.6lf",
-					plots->plots[0]->data[i].x); // DATE
+			data[index++] = g_strdup_printf("%12.6lf", plots->plots[0]->data[i].x); // DATE
 			for (int k = 0; k < 2; k++) // MAG, MAGERR
 				data[index++] = g_strdup_printf("%.3lf", plots->plots[k]->data[i].y);
 			data[index++] = g_strdup(adata->filter); // FILT
