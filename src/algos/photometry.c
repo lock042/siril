@@ -359,8 +359,7 @@ clean_and_exit:
 }
 
 /****************** making a light curve from sequence-stored data ****************/
-/* contrary to light_curve() in gui/plot.c, this one does not use preprocessed data and the
- * kplot data structure. It only uses data stored in the sequence, in seq->photometry, which is
+/* It uses data stored in the sequence, in seq->photometry, which is
  * populated by successive calls to seqpsf on the opened sequence;
  */
 int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
@@ -506,6 +505,9 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
 	lc->plots[0]->x_offset = (double)julian0;
 	free(date0);
+
+	// now we sort to have all dates ascending
+	siril_plot_sort_x(spl_data);
 	// saving dat
 	int ret = 0;
 	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {

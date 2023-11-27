@@ -320,6 +320,9 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	siril_plot_add_xydata(spl_data, "kmag", nb_valid_images, x, kstar, NULL, NULL);
 	siril_plot_add_xydata(spl_data, "airmass", nb_valid_images, x, airmass, NULL, NULL);
 
+	// now we sort to have all dates ascending
+	siril_plot_sort_x(spl_data);
+
 
 	int ret = export_to_aavso_extended(spl_data, aavso_ptr, filename);
 

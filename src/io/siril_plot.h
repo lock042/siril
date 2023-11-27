@@ -84,6 +84,7 @@ typedef struct siril_plot_data_struct {
 
 void init_siril_plot_data(siril_plot_data *spl_data);
 void free_siril_plot_data(siril_plot_data *spl_data);
+void siril_plot_sort_x(siril_plot_data *spl_data);
 
 void siril_plot_set_title(siril_plot_data *spl_data, const gchar *title);
 void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
