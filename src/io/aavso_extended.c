@@ -94,14 +94,14 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 			data[index++] = g_strdup_printf("%12.6lf",
 					plots->plots[0]->data[i].x); // DATE
 			for (int k = 0; k < 2; k++) // MAG, MAGERR
-				data[index++] = g_strdup_printf("%8.6lf", plots->plots[k]->data[i].y);
+				data[index++] = g_strdup_printf("%.3lf", plots->plots[k]->data[i].y);
 			data[index++] = g_strdup(adata->filter); // FILT
 			data[index++] = g_strdup("NO"); // TRANS
 			data[index++] = g_strdup("STD"); // MTYPE
 			data[index++] = g_strdup(adata->cname); // CNAME
-			data[index++] = g_strdup_printf("%8.6lf", cplot->data[i].y); // CMAG
+			data[index++] = g_strdup_printf("%.3lf", cplot->data[i].y); // CMAG
 			data[index++] = g_strdup(adata->kname); // KNAME
-			data[index++] = g_strdup_printf("%8.6lf", kplot->data[i].y); // KMAG
+			data[index++] = g_strdup_printf("%.3lf", kplot->data[i].y); // KMAG
 			data[index++] = airmass->data[i].y == 0 ? g_strdup(_NA_) :  g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
 			data[index++] = g_strdup(_NA_); // GROUP
 			data[index++] = g_strdup(adata->chart); // CHART

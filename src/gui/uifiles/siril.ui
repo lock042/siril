@@ -7233,6 +7233,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">This is the button for outputting photometric data. To activate it, switch to magnitude display.</property>
+                                                    <property name="direction">right</property>
                                                     <property name="use-popover">False</property>
                                                     <property name="popover">photometry_menu</property>
                                                     <child>
