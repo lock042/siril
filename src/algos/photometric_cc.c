@@ -44,9 +44,9 @@
 enum {
 	RED, GREEN, BLUE
 };
-/* This assumes linear sRGB. Currently used only as a fallback. Should be able
- * to remove this once there is confidence that the new color managed function
- * has no corner cases where it could fail. */
+/* This assumes a color space (linear sRGB?) Currently used only as a fallback.
+ * Should be able to remove this once there is confidence that the new color
+ * managed function has no corner cases where it could fail. */
 static void fallback_bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
 	float t;
 	*r = 0.f;
@@ -89,7 +89,8 @@ static void fallback_bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,
 	}
 }
 
-// Reference: https://www.wikiwand.com/en/Color_index
+// Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
+// Uses Ballesteros' formula based on considering stars as black bodies
 cmsFloat64Number bvToT(float bv) {
 	cmsFloat64Number t = 4600. * ((1. / ((0.92 * bv) + 1.7)) + (1. / ((0.92 * bv) + 0.62)));
 	return t;
@@ -187,7 +188,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		cmsCloseProfile(profile);
 		cmsCloseProfile(xyzprofile);
 	}
-
+	gboolean used_fallback = FALSE;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
@@ -224,11 +225,12 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		/* get r g b coefficient from bv color index */
 		bv = stars[i].BV;
-		if (transform)
+		if (transform) {
 			bv2rgb(&r, &g, &b, bv, transform);
-		else
+		} else {
 			fallback_bv2rgb(&r, &g, &b, bv);
-
+			used_fallback = TRUE;
+		}
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
@@ -241,6 +243,9 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			continue;
 		}
 		g_atomic_int_inc(&ngood);
+	}
+	if (used_fallback) {
+		siril_debug_print("Warning: something went wrong! Fallback bv2rgb calculation used!\n");
 	}
 	if (transform)
 		cmsDeleteTransform(transform);
