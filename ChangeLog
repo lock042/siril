@@ -44,6 +44,7 @@ xx/xx/xx
 * Fixed argument parsing error in makepsf (!593)
 * Fixed light_curve and csv export from plot when some images were unselected from the sequence (#1169)
 * Added undo/redo when platesolving with astrometry.net (#1233)
+* Fixed using wcs info when using light_curve command (#1195)
 
 siril 1.2.0
 09/15/23
