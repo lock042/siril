@@ -8636,6 +8636,10 @@ int process_pcc(int nb) {
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
+		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
+			noflip = TRUE;
+			siril_debug_print("forced no flip for solving an image from a sequence");
+		} 
 		args->flip_image = !noflip;
 		args->manual = FALSE;
 		args->ref_stars = calloc(1, sizeof(siril_catalogue));
