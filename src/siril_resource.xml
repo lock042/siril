@@ -27,6 +27,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <gresource prefix="/org/siril/ui">
     <file compressed="true" alias="siril.css">gui/siril.css</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="siril-shortcuts.ui">gui/siril-shortcuts.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="aavso_dialog.ui">gui/uifiles/aavso_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="aberration_inspector.ui">gui/uifiles/aberration_inspector.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="asinh_dialog.ui">gui/uifiles/asinh_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="background_extraction_dialog.ui">gui/uifiles/background_extraction_dialog.ui</file>

@@ -22,6 +22,7 @@
 #define SRC_GUI_PLOT_H_
 
 #include "core/siril.h"
+#include "kplot.h"
 
 void clear_all_photometry_and_plot();
 void reset_plot();
@@ -31,13 +32,16 @@ void init_plot_colors();
 
 /* for one curve */
 typedef struct plot_data_struct {
-	double *julian, *frame;
+	double *frame;
 	struct kpair *data, *err;
 	int nb;		// number of points in the plot (= number of images)
-
 	struct plot_data_struct *next;
 } pldata;
 
+typedef struct phot_data_struct {
+	int frame;
+	struct kpair data, err;
+} photdata_t;
 
 /* has to be the same as in the glade file */
 enum photometry_source {
