@@ -275,6 +275,7 @@ typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	double airmass;     /* airmass of the image, used in photometry */
 	int rx, ry;
 } imgdata;
 

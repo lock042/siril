@@ -2091,6 +2091,10 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 
 	/* RGB or gray images */
 	draw_main_image(&dd);
+	/* detected stars and highlight the selected star */
+	g_mutex_lock(&com.mutex);
+	draw_stars(&dd);
+	g_mutex_unlock(&com.mutex);
 	/* wcs_grid */
 	draw_wcs_grid(&dd);
 	/* detected objects */
