@@ -1,6 +1,6 @@
 # List of source files containing translatable strings.
 # Please keep this file in alphabetical order; run ./sort-potfiles
-# after adding files here. two next line MUST always be here (it is not sorted)
+# after adding files here. the next lines of ui MUST always be here (it is not sorted)
 src/gui/uifiles/menus.ui
 src/gui/uifiles/cosmetic_dialog.ui
 src/gui/uifiles/binxy_dialog.ui
@@ -48,6 +48,7 @@ src/gui/uifiles/data_dialog.ui
 src/gui/uifiles/color_calibration.ui
 src/gui/uifiles/settings_window.ui
 src/gui/uifiles/aberration_inspector.ui
+src/gui/uifiles/aavso_dialog.ui
 src/gui/siril-shortcuts.ui
 src/main-cli.c
 src/main.c
@@ -148,6 +149,7 @@ src/gui/statistics_list.c
 src/gui/star_finder.c
 src/gui/starnetgui.c
 src/gui/utils.c
+src/io/aavso_extended.c
 src/io/annotation_catalogues.c
 src/io/Astro-TIFF.c
 src/io/conversion.c

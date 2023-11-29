@@ -21,6 +21,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/filefilters.ui",
 	"/org/siril/ui/siril-shortcuts.ui",
 // Dialogs (sorted)
+	"/org/siril/ui/aavso_dialog.ui",
 	"/org/siril/ui/asinh_dialog.ui",
 	"/org/siril/ui/background_extraction_dialog.ui",
 	"/org/siril/ui/bdeconv_dialog.ui",

@@ -189,6 +189,8 @@ void fit_get_photometry_data(fits *fit) {
 	int status = 0;
 	read_fits_date_obs_header(fit);
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "AIRMASS", &fit->airmass, NULL, &status);
 }
 
 static int fit_stats(fitsfile *fptr, float *mini, float *maxi) {
@@ -2186,7 +2188,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
-	fprintf(stdout, _("Loaded partial FITS file %s\n"), filename);
+	siril_debug_print("Loaded partial FITS file %s\n", filename);
 	return 0;
 }
 
