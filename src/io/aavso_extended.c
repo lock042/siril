@@ -281,7 +281,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 		/* First data plotted are variable data, c_idx is comparison star
 		 * and k_dix stands for the check one */
 
-		if (ref_valid[c_idx] && seq->photometry[c_idx][i] && seq->photometry[c_idx][i]->phot_is_valid) {
+		if (ref_valid[c_idx] && seq->photometry[c_idx][i]) {
 			/* if reference star is not good, we go out */
 			if (!seq->photometry[c_idx][i]->phot_is_valid) continue;
 			cmag = pow(10, -0.4 * seq->photometry[c_idx][i]->mag);
@@ -290,7 +290,6 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 
 		if (ref_valid[k_idx] && seq->photometry[k_idx][i] && seq->photometry[k_idx][i]->phot_is_valid) {
 			/* if non-valid, kmag is equal to 0. It will be "na" in the file */
-			if (seq->photometry[k_idx][i]->phot_is_valid)
 				kmag = pow(10, -0.4 * seq->photometry[k_idx][i]->mag);
 		}
 
