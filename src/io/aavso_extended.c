@@ -167,7 +167,7 @@ static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso
 	return TRUE;
 }
 
-int export_AAVSO(pldata *plot, const sequence *seq, gchar *filename, gchar **error, void *ptr) {
+int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, void *ptr) {
 	int i, j, nbImages = 0, c_idx, k_idx;
 	aavso_dlg *aavso_ptr = NULL;
 	double c_std = 0.0;
