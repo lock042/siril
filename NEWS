@@ -21,9 +21,9 @@ siril 1.4.0 xx xx, xx
 * Added command conesearch (replaces nomad and solsys), including support for new catalogues (vsx, gcvs, exo, aavso_chart) (!579, #1171)
 * Added more configurable colors for some overlays (#1230)
 * Fix incorrect datatype in proofing transform (#1232)
-* When carrying out ICC profile changes on the image, any ROI set is cleared.
-  This avoids excessively complex situations and makes the code more robust. (#1226)
-* Add file filters programmatically. This allows them to be removed from the UI files, making it easier to keep using glade (for now) (!595)
+* When carrying out ICC profile changes on the image, any ROI set is cleared. This avoids excessively complex situations and makes the code more robust. (#1226)
+* Added file filters programmatically. This allows them to be removed from the UI files, making it easier to keep using glade (for now) (!595)
+* Added AAVSO photometry file format output and improving photometry UI (#1234)
 * Refactored wcs usage, by removing redundant info stored in the fit structure (!591 and #1154::1)
 * Fix wavelets redraw. (#1236)
 * Add color management to photometric color calibration. (!598)

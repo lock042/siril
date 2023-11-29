@@ -41,14 +41,12 @@
 static void free_xyplot_data(splxydata *plot) {
 	free(plot->data);
 	g_free(plot->label);
-	plot = NULL;
 }
 
 static void free_xyerrplot_data(splxyerrdata *plots) {
 	g_free(plots->label);
 	for (int i = 0; i < 3; i++)
 		free_xyplot_data(plots->plots[i]);
-	plots = NULL;
 }
 
 static void free_list_plot(gpointer data) {
@@ -94,11 +92,20 @@ static splxyerrdata *alloc_xyerrplot_data(int nb) {
 }
 
 // allocate a legend entry
-static spllegend *new_legend_entry(spl_type type, double color[3]) {
+static spllegend *new_legend_entry(spl_type type, const double color[3]) {
 	spllegend *legend = g_slice_new(spllegend);
 	legend->type = type;
 	memcpy(legend->color, color, 3 * sizeof(double));
 	return legend;
+}
+
+// sort kpairs by ascending x
+static int comparex(const void *a, const void *b) {
+	struct kpair datax_a = *((struct kpair *) a);
+	struct kpair datax_b = *((struct kpair *) b);
+	if (datax_a.x > datax_b.x) return 1;
+	if (datax_a.x < datax_b.x) return -1;
+	return 0;
 }
 
 // init/free spl_data
@@ -169,7 +176,6 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	//freeing kplot cfg structures
 	free(spl_data->cfgplot.clrs);
 	free(spl_data);
-	spl_data = NULL;
 }
 
 // setters
@@ -295,6 +301,23 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t n
 	// and append to plots GList
 	spl_data->plots = g_list_append(spl_data->plots, plots);
 	return TRUE;
+}
+
+// sort all plots by ascending x
+void siril_plot_sort_x(siril_plot_data *spl_data) {
+	if (!spl_data)
+		return;
+	for (GList *list = spl_data->plot; list; list = list->next) {
+		splxydata *plot = (splxydata *)list->data;
+		qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
+	}
+	for (GList *list = spl_data->plots; list; list = list->next) {
+		splxyerrdata *plots = (splxyerrdata *)list->data;
+		for (int i = 0; i < 3; i++) {
+			splxydata *plot = plots->plots[i];
+			qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
+		}
+	}
 }
 
 // draw the data contained in spl_data to the cairo context cr
@@ -716,12 +739,3 @@ clean_and_exit:
 	free(data);
 	return retval;
 }
-
-
-
-
-
-
-
-
-

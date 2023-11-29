@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,6 +27,355 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
+  <object class="GtkImage" id="addfilter1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">list-add-symbolic</property>
+  </object>
+  <object class="GtkImage" id="addfilter2">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">list-add-symbolic</property>
+  </object>
+  <object class="GtkImage" id="addfilter3">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">list-add-symbolic</property>
+  </object>
+  <object class="GtkImage" id="addfilter4">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">list-add-symbolic</property>
+  </object>
+  <object class="GtkAdjustment" id="adjCPU">
+    <property name="lower">1</property>
+    <property name="upper">1024</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_highlights">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_iter_deconvolution">
+    <property name="lower">1</property>
+    <property name="upper">1000</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_kombat_percent">
+    <property name="lower">5</property>
+    <property name="upper">100</property>
+    <property name="value">25</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_midtones">
+    <property name="upper">1</property>
+    <property name="value">0.5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_shadows">
+    <property name="upper">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment-finalstretch">
+    <property name="upper">4</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment2">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment3">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment4">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment5">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment6">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_blue">
+    <property name="upper">10</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_brightness">
+    <property name="upper">10</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_colormap_angle">
+    <property name="upper">359</property>
+    <property name="value">300</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_edinit">
+    <property name="lower">0.001</property>
+    <property name="upper">1</property>
+    <property name="value">0.025</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.001</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_height_console">
+    <property name="lower">90</property>
+    <property name="upper">130</property>
+    <property name="value">90</property>
+    <property name="step-increment">10</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_red">
+    <property name="upper">10</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_remix_master">
+    <property name="upper">1</property>
+    <property name="value">0.5</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_shiftx">
+    <property name="lower">-3000</property>
+    <property name="upper">3000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_shifty">
+    <property name="lower">-3000</property>
+    <property name="upper">3000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_stack_filter">
+    <property name="lower">1</property>
+    <property name="upper">99</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_treshold">
+    <property name="upper">1</property>
+    <property name="value">0.80</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_unsharp_coeff">
+    <property name="upper">15</property>
+    <property name="value">5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_unsharp_sigma">
+    <property name="upper">15</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentqualscale">
+    <property name="lower">1</property>
+    <property name="upper">5</property>
+    <property name="value">2</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentscalemax">
+    <property name="lower">1</property>
+    <property name="upper">65535</property>
+    <property name="value">65535</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">1000</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentscalemin">
+    <property name="upper">65535</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">1000</property>
+  </object>
+  <object class="GtkImage" id="astrometry">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/astrometry_dark.svg</property>
+  </object>
+  <object class="GtkAdjustment" id="clamp_adjustment">
+    <property name="upper">1</property>
+    <property name="value">0.5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkPopover" id="display_plot_menu">
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkCheckButton" id="JulianPhotometry">
+            <property name="label" translatable="yes">Julian Date</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label_display_plot">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="margin-start">5</property>
+            <property name="margin-end">5</property>
+            <property name="margin-top">5</property>
+            <property name="margin-bottom">5</property>
+            <property name="label" translatable="yes">Nothing to change</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="arcsecPhotometry">
+            <property name="label" translatable="yes">arcsec</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_arcsecPhotometry_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/wcs-grid_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image4">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/chain.svg</property>
+  </object>
+  <object class="GtkImage" id="imageHelp">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">help-browser</property>
+  </object>
+  <object class="GtkImage" id="image_colormap">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/cm.svg</property>
+  </object>
+  <object class="GtkImage" id="image_cut">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/cut_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_mirrorx">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/mirrorx_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_mirrory">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/mirrory_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_neg">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/neg.svg</property>
+  </object>
+  <object class="GtkImage" id="image_seqlist">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/list.svg</property>
+  </object>
+  <object class="GtkImage" id="imagestop">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">gtk-cancel</property>
+  </object>
+  <object class="GtkListStore" id="liststore_bkg">
+    <columns>
+      <!-- column-name Box -->
+      <column type="gint"/>
+      <!-- column-name selected -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="liststore_convert">
+    <columns>
+      <!-- column-name Filename -->
+      <column type="gchararray"/>
+      <!-- column-name Filename_full -->
+      <column type="gchararray"/>
+      <!-- column-name Size -->
+      <column type="gchararray"/>
+      <!-- column-name Size_int64 -->
+      <column type="gint64"/>
+      <!-- column-name Date -->
+      <column type="gchararray"/>
+      <!-- column-name Date_Unix -->
+      <column type="guint64"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="liststore_scripts">
+    <columns>
+      <!-- column-name Path -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkPopoverMenu" id="main_menu">
     <property name="can-focus">False</property>
     <child>
@@ -313,28 +662,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
         <property name="submenu">image_information_menu</property>
         <property name="position">2</property>
       </packing>
-    </child>
-  </object>
-  <object class="GtkMenu" id="snapshot_menu">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <child>
-      <object class="GtkMenuItem" id="snapshot_unique_file">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.snapshot</property>
-        <property name="label" translatable="yes">Save as unique file</property>
-        <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="snapshot_clipboard">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.clipboard</property>
-        <property name="label" translatable="yes">Copy to clipboard</property>
-        <property name="use-underline">True</property>
-      </object>
     </child>
   </object>
   <object class="GtkMenu" id="menu_display">
@@ -929,6 +1256,93 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
               </object>
             </child>
           </object>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="output_plot_menu">
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkButton" id="ButtonSaveCSV">
+            <property name="label" translatable="yes">Export to CSV</property>
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Export displayed plot to a CSV file.</property>
+            <signal name="clicked" handler="on_ButtonSaveCSV_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="ButtonSavePlot">
+            <property name="label" translatable="yes">Save Plot</property>
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <signal name="clicked" handler="on_ButtonSavePlot_clicked" object="DrawingPlot" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkImage" id="photometry">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/photometry_dark.svg</property>
+  </object>
+  <object class="GtkPopover" id="photometry_menu">
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkButton" id="varCurvePhotometry">
+            <property name="label" translatable="yes">Light Curve (ETD format)</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="exportAAVSO_button">
+            <property name="label" translatable="yes">AAVSO file format</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <signal name="clicked" handler="on_exportAAVSO_button_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
         </child>
       </object>
     </child>
@@ -1868,301 +2282,6 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
     <property name="show-numbers">True</property>
     <signal name="item-activated" handler="on_open_recent_action_item_activated" swapped="no"/>
   </object>
-  <object class="GtkImage" id="addfilter1">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">list-add-symbolic</property>
-  </object>
-  <object class="GtkImage" id="addfilter2">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">list-add-symbolic</property>
-  </object>
-  <object class="GtkImage" id="addfilter3">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">list-add-symbolic</property>
-  </object>
-  <object class="GtkImage" id="addfilter4">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">list-add-symbolic</property>
-  </object>
-  <object class="GtkAdjustment" id="adjCPU">
-    <property name="lower">1</property>
-    <property name="upper">1024</property>
-    <property name="value">1</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_highlights">
-    <property name="upper">1</property>
-    <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_iter_deconvolution">
-    <property name="lower">1</property>
-    <property name="upper">1000</property>
-    <property name="value">10</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_kombat_percent">
-    <property name="lower">5</property>
-    <property name="upper">100</property>
-    <property name="value">25</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_midtones">
-    <property name="upper">1</property>
-    <property name="value">0.5</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">1</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_shadows">
-    <property name="upper">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment-finalstretch">
-    <property name="upper">4</property>
-    <property name="step-increment">0.05</property>
-    <property name="page-increment">0.10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment1">
-    <property name="upper">100</property>
-    <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment2">
-    <property name="upper">100</property>
-    <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment3">
-    <property name="upper">100</property>
-    <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment4">
-    <property name="upper">100</property>
-    <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment5">
-    <property name="upper">100</property>
-    <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment6">
-    <property name="upper">100</property>
-    <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_blue">
-    <property name="upper">10</property>
-    <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_brightness">
-    <property name="upper">10</property>
-    <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_colormap_angle">
-    <property name="upper">359</property>
-    <property name="value">300</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_edinit">
-    <property name="lower">0.001</property>
-    <property name="upper">1</property>
-    <property name="value">0.025</property>
-    <property name="step-increment">0.001</property>
-    <property name="page-increment">0.001</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_height_console">
-    <property name="lower">90</property>
-    <property name="upper">130</property>
-    <property name="value">90</property>
-    <property name="step-increment">10</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_red">
-    <property name="upper">10</property>
-    <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_remix_master">
-    <property name="upper">1</property>
-    <property name="value">0.5</property>
-    <property name="step-increment">0.05</property>
-    <property name="page-increment">0.10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_shiftx">
-    <property name="lower">-3000</property>
-    <property name="upper">3000</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_shifty">
-    <property name="lower">-3000</property>
-    <property name="upper">3000</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_stack_filter">
-    <property name="lower">1</property>
-    <property name="upper">99</property>
-    <property name="value">90</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_treshold">
-    <property name="upper">1</property>
-    <property name="value">0.80</property>
-    <property name="step-increment">0.10</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_unsharp_coeff">
-    <property name="upper">15</property>
-    <property name="value">5</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_unsharp_sigma">
-    <property name="upper">15</property>
-    <property name="value">1</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustmentqualscale">
-    <property name="lower">1</property>
-    <property name="upper">5</property>
-    <property name="value">2</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustmentscalemax">
-    <property name="lower">1</property>
-    <property name="upper">65535</property>
-    <property name="value">65535</property>
-    <property name="step-increment">20</property>
-    <property name="page-increment">1000</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustmentscalemin">
-    <property name="upper">65535</property>
-    <property name="step-increment">20</property>
-    <property name="page-increment">1000</property>
-  </object>
-  <object class="GtkImage" id="astrometry">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/astrometry_dark.svg</property>
-  </object>
-  <object class="GtkAdjustment" id="clamp_adjustment">
-    <property name="upper">1</property>
-    <property name="value">0.5</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.10</property>
-  </object>
-  <object class="GtkImage" id="image3">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/wcs-grid_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image4">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/chain.svg</property>
-  </object>
-  <object class="GtkImage" id="imageHelp">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">help-browser</property>
-  </object>
-  <object class="GtkImage" id="image_colormap">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/cm.svg</property>
-  </object>
-  <object class="GtkImage" id="image_cut">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/cut_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image_mirrorx">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/mirrorx_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image_mirrory">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/mirrory_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image_neg">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/neg.svg</property>
-  </object>
-  <object class="GtkImage" id="image_seqlist">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/list.svg</property>
-  </object>
-  <object class="GtkImage" id="imagestop">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">gtk-cancel</property>
-  </object>
-  <object class="GtkListStore" id="liststore_bkg">
-    <columns>
-      <!-- column-name Box -->
-      <column type="gint"/>
-      <!-- column-name selected -->
-      <column type="gboolean"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="liststore_convert">
-    <columns>
-      <!-- column-name Filename -->
-      <column type="gchararray"/>
-      <!-- column-name Filename_full -->
-      <column type="gchararray"/>
-      <!-- column-name Size -->
-      <column type="gchararray"/>
-      <!-- column-name Size_int64 -->
-      <column type="gint64"/>
-      <!-- column-name Date -->
-      <column type="gchararray"/>
-      <!-- column-name Date_Unix -->
-      <column type="guint64"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="liststore_scripts">
-    <columns>
-      <!-- column-name Path -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkImage" id="photometry">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/photometry_dark.svg</property>
-  </object>
   <object class="GtkAdjustment" id="register_minpairs">
     <property name="lower">4</property>
     <property name="upper">2000</property>
@@ -2199,6 +2318,28 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="resource">/org/siril/ui/pixmaps/rotate-cw_dark.svg</property>
+  </object>
+  <object class="GtkMenu" id="snapshot_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="snapshot_unique_file">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.snapshot</property>
+        <property name="label" translatable="yes">Save as unique file</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="snapshot_clipboard">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.clipboard</property>
+        <property name="label" translatable="yes">Copy to clipboard</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
   </object>
   <object class="GtkAdjustment" id="stack_sighigh_adjustment">
     <property name="upper">9.99</property>
@@ -4415,7 +4556,6 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="text">3,000</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjSigCosmeCold</property>
                                                             <property name="digits">3</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">3</property>
@@ -4483,7 +4623,6 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="text">3,000</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjSigCosmeHot</property>
                                                             <property name="digits">3</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">3</property>
@@ -6822,35 +6961,98 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkButton" id="ButtonSaveCSV">
-                                                    <property name="label" translatable="yes">Export to CSV</property>
+                                                  <object class="GtkMenuButton" id="output_plot_button">
                                                     <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Export displayed plot to a CSV file.</property>
-                                                    <signal name="clicked" handler="on_ButtonSaveCSV_clicked" swapped="no"/>
+                                                    <property name="tooltip-text" translatable="yes">This button opens a CSV export of the data, or a screenshot of the plot.</property>
+                                                    <property name="use-popover">False</property>
+                                                    <property name="popover">output_plot_menu</property>
+                                                    <child>
+                                                      <object class="GtkBox" id="export_box1">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <child>
+                                                          <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="label" translatable="yes">Output</property>
+                                                            <property name="use-underline">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkImage">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="icon-name">pan-down-symbolic</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
+                                                      </object>
+                                                    </child>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
-                                                    <property name="fill">False</property>
+                                                    <property name="fill">True</property>
                                                     <property name="position">2</property>
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkButton" id="ButtonSavePlot">
-                                                    <property name="label" translatable="yes">Save Plot</property>
+                                                  <object class="GtkMenuButton" id="display_plot_button">
                                                     <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
-                                                    <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_ButtonSavePlot_clicked" object="DrawingPlot" swapped="no"/>
+                                                    <property name="tooltip-text" translatable="yes">Modify x-axis units, or y-axis units if available.</property>
+                                                    <property name="use-popover">False</property>
+                                                    <property name="popover">display_plot_menu</property>
+                                                    <child>
+                                                      <object class="GtkBox" id="export_box3">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <child>
+                                                          <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="label" translatable="yes">Display</property>
+                                                            <property name="use-underline">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkImage">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="icon-name">pan-down-symbolic</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
+                                                      </object>
+                                                    </child>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
-                                                    <property name="fill">False</property>
+                                                    <property name="fill">True</property>
                                                     <property name="position">3</property>
                                                   </packing>
                                                 </child>
@@ -7007,37 +7209,6 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="spacing">5</property>
                                                 <child>
-                                                  <object class="GtkCheckButton" id="JulianPhotometry">
-                                                    <property name="label" translatable="yes">Julian Date</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_JulianPhotometry_toggled" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkCheckButton" id="arcsecPhotometry">
-                                                    <property name="label" translatable="yes">arcsec</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_arcsecPhotometry_toggled" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
                                                   <object class="GtkComboBoxText" id="plotSourceCombo">
                                                     <property name="visible">True</property>
                                                     <property name="sensitive">False</property>
@@ -7053,23 +7224,56 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">1</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkButton" id="varCurvePhotometry">
-                                                    <property name="label" translatable="yes" comments="This is the button for plotting variable star graph">Light Curve</property>
-                                                    <property name="sensitive">False</property>
+                                                  <object class="GtkMenuButton" id="export_photo_button">
+                                                    <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Plot a graph of the variable star. The variable star must be analysed in first, then other PSF are applied to references. A maximum of 6 references is allowed. To enable this function, choose 'Magnitude' in the type of displayed graph.</property>
-                                                    <property name="halign">start</property>
-                                                    <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
+                                                    <property name="tooltip-text" translatable="yes">This is the button for outputting photometric data. To activate it, switch to magnitude display.</property>
+                                                    <property name="direction">right</property>
+                                                    <property name="use-popover">False</property>
+                                                    <property name="popover">photometry_menu</property>
+                                                    <child>
+                                                      <object class="GtkBox" id="export_box2">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <child>
+                                                          <object class="GtkLabel" id="precision_button_name1">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="label" translatable="yes">Photometry output</property>
+                                                            <property name="use-underline">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkImage" id="precision_button_arrow1">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="icon-name">pan-down-symbolic</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
+                                                      </object>
+                                                    </child>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
-                                                    <property name="fill">False</property>
-                                                    <property name="position">2</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">5</property>
                                                   </packing>
                                                 </child>
                                               </object>
@@ -9682,7 +9886,7 @@ WARNING: This option should not be checked for master stacking.</property>
                 <property name="popup">snapshot_menu</property>
                 <property name="use-popover">False</property>
                 <child>
-                  <object class="GtkBox" id="precision_button_box1">
+                  <object class="GtkBox" id="snapshot_button_box">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
