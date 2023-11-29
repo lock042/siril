@@ -702,7 +702,7 @@ static int get_number_of_stars(const sequence *seq) {
 // call after having filled the plot data of the multiple stars with either
 // generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
-static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
+static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **error, void *ptr) {
 	struct light_curve_args *lcargs = calloc(1, sizeof(struct light_curve_args));
 
 	lcargs->seq = seq;
@@ -719,7 +719,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, void *ptr) 
 	return retval;
 }
 
-static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
+static int exportCSV(pldata *plot, sequence *seq, gchar *filename, gchar **err, void *ptr) {
 	if (!plot) {
 		fprintf(stderr, "exportCSV: Nothing to export\n");
 		return 1;
@@ -733,6 +733,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	if (output_stream == NULL) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
+			*err = g_strdup(error->message);
 			g_clear_error(&error);
 			fprintf(stderr, "exportCSV: Cannot export\n");
 		}
@@ -753,6 +754,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 			gchar *buffer = g_strdup_printf("%.10lf", date);
 			if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
+				*err = g_strdup(error->message);
 				g_free(buffer);
 				g_clear_error(&error);
 				g_object_unref(output_stream);
@@ -765,6 +767,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 				buffer = g_strdup_printf(", %g", tmp_plot->data[j].y);
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 					g_warning("%s\n", error->message);
+					*err = g_strdup(error->message);
 					g_free(buffer);
 					g_clear_error(&error);
 					g_object_unref(output_stream);
@@ -778,6 +781,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 			}
 			if (!g_output_stream_write_all(output_stream, "\n", 1, NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
+				*err = g_strdup(error->message);
 				g_free(buffer);
 				buffer = NULL;
 				g_clear_error(&error);
@@ -799,6 +803,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 			gchar *buffer = g_strdup_printf("%.10lf, %g\n", date, plot->data[j].y);
 			if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
+				*err = g_strdup(error->message);
 				g_free(buffer);
 				g_clear_error(&error);
 				g_object_unref(output_stream);
@@ -1116,7 +1121,7 @@ static void set_filter(GtkFileChooser *dialog, const gchar *format) {
 	g_free(pattern);
 }
 
-static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *, void *), void *ptr) {
+static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *, gchar **, void *), gchar **error, void *ptr) {
 	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	SirilWidget *widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
 	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
@@ -1131,7 +1136,7 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	gint res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = siril_file_chooser_get_filename(dialog);
-		export_function(plot_data, &com.seq, file, ptr);
+		export_function(plot_data, &com.seq, file, error, ptr);
 
 		g_free(file);
 	}
@@ -1167,8 +1172,13 @@ void on_ButtonCompStars_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
+	gchar *error = NULL;
 	set_cursor_waiting(TRUE);
-	save_dialog(".csv", exportCSV, NULL);
+	save_dialog(".csv", exportCSV, &error, NULL);
+	if (error) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot output data"), error);
+		g_free(error);
+	}
 	set_cursor_waiting(FALSE);
 }
 
@@ -1178,6 +1188,7 @@ void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
+	gchar *error = NULL;
 	// we want get some information from a dialog
 	/* temporary code */
 	aavso_dlg *aavso_ptr = calloc(1, sizeof(aavso_dlg));
@@ -1207,14 +1218,24 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	set_cursor_waiting(TRUE);
-	save_dialog(".csv", export_AAVSO, aavso_ptr);
+	save_dialog(".csv", export_AAVSO, &error, aavso_ptr);
+	if (error) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot output data"), error);
+		g_free(error);
+	}
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
+
 	set_cursor_waiting(FALSE);
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
+	gchar *error = NULL;
 	set_cursor_waiting(TRUE);
-	save_dialog(".dat", light_curve, NULL);
+	save_dialog(".dat", light_curve, &error, NULL);
+	if (error) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot output data"), error);
+		g_free(error);
+	}
 	set_cursor_waiting(FALSE);
 }
 

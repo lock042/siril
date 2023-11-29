@@ -167,7 +167,7 @@ static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso
 	return TRUE;
 }
 
-int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
+int export_AAVSO(pldata *plot, const sequence *seq, gchar *filename, gchar **error, void *ptr) {
 	int i, j, nbImages = 0, c_idx, k_idx;
 	aavso_dlg *aavso_ptr = NULL;
 	double c_std = 0.0;
@@ -175,7 +175,8 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 			*airmass = NULL;
 	siril_plot_data *spl_data = NULL;
 	if (!seq->photometry[0]) {
-		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		gchar *msg = siril_log_color_message(_("No photometry data found, error\n"), "red");
+		*error = g_strdup(msg);
 		return -1;
 	}
 
@@ -202,9 +203,11 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	}
 
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
-	if (nbImages < 1)
+	if (nbImages < 1) {
+		gchar *msg = siril_log_color_message(_("Number of is images is not enough\n"), "red");
+		*error = g_strdup(msg);
 		return -1;
-
+	}
 	int nb_ref_stars = 0;
 
 	// select reference c_star and k_star that are only available at least 3/4 of the time
@@ -218,7 +221,8 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	    nb_ref_stars++;
 
 	if (nb_ref_stars < 2) { // we want both c_idx and k_idx valid
-		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the data\n"), "red");
+		gchar *msg = siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the data\n"), "red");
+		*error = g_strdup(msg);
 		return -1;
 	}
 	else siril_log_message(_("Using %d stars to calibrate the data\n"), nb_ref_stars);
@@ -231,6 +235,8 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	airmass = calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !cstar || !kstar || !airmass) {
 		PRINT_ALLOC_ERR;
+		gchar *msg = siril_log_color_message(_("Out of memory\n"), "red");
+		*error = g_strdup(msg);
 		free(vmag);
 		free(err);
 		free(x);
@@ -306,7 +312,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	}
 	int nb_valid_images = j;
 
-	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
+	siril_log_message(_("Calibrated data for %d points of the output data, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
 
 	/*  data are computed, now plot the graph. */
 

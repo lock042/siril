@@ -64,6 +64,6 @@ typedef struct aavso_dlg_struct {
 	const gchar *notes;
 } aavso_dlg;
 
-int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr);
+int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar ** error, void *ptr);
 
 #endif /* SRC_IO_AAVSO_EXTENDED_H_ */
