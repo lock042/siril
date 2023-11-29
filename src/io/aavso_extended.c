@@ -100,7 +100,7 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 			data[index++] = g_strdup(adata->cname); // CNAME
 			data[index++] = g_strdup_printf("%.3lf", cplot->data[i].y); // CMAG
 			data[index++] = g_strdup(adata->kname); // KNAME
-			data[index++] = g_strdup_printf("%.3lf", kplot->data[i].y); // KMAG
+			data[index++] = kplot->data[i].y == 0 ? g_strdup(_NA_) : g_strdup_printf("%.3lf", kplot->data[i].y); // KMAG
 			data[index++] = airmass->data[i].y == 0 ? g_strdup(_NA_) :  g_strdup_printf("%.3lf", airmass->data[i].y); // AMASS
 			data[index++] = g_strdup(_NA_); // GROUP
 			data[index++] = g_strdup(adata->chart); // CHART
@@ -218,7 +218,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 	    nb_ref_stars++;
 
 	if (nb_ref_stars < 2) { // we want both c_idx and k_idx valid
-		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the data\n"), "red");
 		return -1;
 	}
 	else siril_log_message(_("Using %d stars to calibrate the data\n"), nb_ref_stars);
@@ -276,12 +276,16 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, void *ptr) {
 		 * and k_dix stands for the check one */
 
 		if (ref_valid[c_idx] && seq->photometry[c_idx][i] && seq->photometry[c_idx][i]->phot_is_valid) {
+			/* if reference star is not good, we go out */
+			if (!seq->photometry[c_idx][i]->phot_is_valid) continue;
 			cmag = pow(10, -0.4 * seq->photometry[c_idx][i]->mag);
 			cerr = seq->photometry[c_idx][i]->s_mag;
 		}
 
 		if (ref_valid[k_idx] && seq->photometry[k_idx][i] && seq->photometry[k_idx][i]->phot_is_valid) {
-			kmag = pow(10, -0.4 * seq->photometry[k_idx][i]->mag);
+			/* if non-valid, kmag is equal to 0. It will be "na" in the file */
+			if (seq->photometry[k_idx][i]->phot_is_valid)
+				kmag = pow(10, -0.4 * seq->photometry[k_idx][i]->mag);
 		}
 
 		/* Converting back to magnitude */
