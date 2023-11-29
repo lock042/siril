@@ -565,9 +565,6 @@ gpointer plate_solver(gpointer p) {
 	if (args->for_photometry_cc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
-		siril_log_color_message(_("This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"), "red");
-		args->ret = ERROR_PLATESOLVE;
-		goto clearup;
 		// We relaunch the conesearch with phot flag set to TRUE
 		// For local catalogue, we fetch a whole new set at updated center and res
 		// For online catalogue, we re-read the same catalogue from cache with the new phot flag
