@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-18 13:09+0100\n"
-"PO-Revision-Date: 2023-11-29 10:49+0000\n"
+"PO-Revision-Date: 2023-11-29 11:23+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -6258,7 +6258,7 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:83
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr ""
+msgstr "Удаляет профиль ICC из изображения и прекращает управление его цветом"
 
 #: src/gui/uifiles/icc_dialog.ui:94 src/core/icc_profile.c:1254
 msgid "Assign"
@@ -6313,9 +6313,8 @@ msgid "None selected"
 msgstr "Не выбрано"
 
 #: src/gui/uifiles/icc_dialog.ui:358
-#, fuzzy
 msgid "sRGB (linear TRC)"
-msgstr "Выравнивание RGB (DFT)"
+msgstr "sRGB (линейная TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:359
 msgid "sRGB (standard sRGB TRC)"
@@ -6331,15 +6330,15 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:362
 msgid "Gray (linear TRC)"
-msgstr ""
+msgstr "Серый (линейная TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:363
 msgid "Gray (sRGB TRC)"
-msgstr ""
+msgstr "Серый (sRGB TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:364
 msgid "Gray (Rec709 TRC)"
-msgstr ""
+msgstr "Серый (Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Load profile from file"
@@ -9133,9 +9132,8 @@ msgid "Image Display"
 msgstr "Экран"
 
 #: src/gui/uifiles/settings_window.ui:3332
-#, fuzzy
 msgid "Default display mode:"
-msgstr "Режим показа"
+msgstr "Режим показа по умолчанию:"
 
 #: src/gui/uifiles/settings_window.ui:3362
 msgid "Histogram Display"
@@ -9230,7 +9228,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3695
 msgid "Rec2020"
-msgstr ""
+msgstr "Rec2020"
 
 #: src/gui/uifiles/settings_window.ui:3696
 msgid "From files"
@@ -9250,7 +9248,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3726
 msgid "External color profiles:"
-msgstr ""
+msgstr "Внешние цветовые профили:"
 
 #: src/gui/uifiles/settings_window.ui:3738
 msgid ""
@@ -9335,7 +9333,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:3928
 #: src/gui/uifiles/settings_window.ui:4075
 msgid "Relative Colorimetric"
-msgstr ""
+msgstr "Относительная колориметрическая"
 
 #: src/gui/uifiles/settings_window.ui:3929
 #: src/gui/uifiles/settings_window.ui:4076
@@ -9445,7 +9443,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4143
 msgid "File Import / Export Options"
-msgstr ""
+msgstr "Опции импорта / экспорта файлов"
 
 #: src/gui/uifiles/settings_window.ui:4177
 msgid "Auto assign working color space:"
@@ -10671,7 +10669,7 @@ msgstr "%s: извлечь канал LAB"
 
 #: src/algos/colors.c:775 src/algos/colors.c:910
 msgid "Image is not color managed. Assuming sRGB.\n"
-msgstr ""
+msgstr "Управления цветом изображения не происходит. Предполагаем sRGB.\n"
 
 #: src/algos/colors.c:794 src/algos/colors.c:932
 #, c-format
@@ -15220,7 +15218,7 @@ msgstr ""
 
 #: src/core/command_def.h:71
 msgid "Removes the ICC profile from the current image, if it has one"
-msgstr ""
+msgstr "Удаляет профиль ICC из текущего изображения если оно уже имеет таковой"
 
 #: src/core/command_def.h:72
 msgid ""
@@ -18071,12 +18069,14 @@ msgstr "Управление цветом активно.\n"
 
 #: src/core/icc_profile.c:498
 msgid "JPEG ICC profiles supported.\n"
-msgstr ""
+msgstr "Поддерживаются профили JPEG ICC.\n"
 
 #: src/core/icc_profile.c:500
 msgid ""
 "JPEG ICC profiles unsupported: libjpeg-turbo 2.0.0 or higher is required.\n"
 msgstr ""
+"Профили JPEG ICC не поддерживаются: необходима библиотека libjpeg-turbo "
+"версии 2.0.0 или выше.\n"
 
 #: src/core/icc_profile.c:886
 msgid ""
@@ -18110,6 +18110,7 @@ msgstr ""
 #: src/core/icc_profile.c:1069
 msgid "Image is not color managed. Will not write an ICC profile."
 msgstr ""
+"Управления цветом изображения не происходит. Профиль ICC не будет записан."
 
 #: src/core/icc_profile.c:1118
 msgid "ICC profile removed"
@@ -18263,7 +18264,7 @@ msgstr ""
 #. We save the undo state as dealing with gfit
 #: src/core/icc_profile.c:1716
 msgid "Color profile removal"
-msgstr ""
+msgstr "Удаление цветового профиля"
 
 #: src/core/icc_profile.c:1732
 msgid "No color profile set"
@@ -18277,7 +18278,7 @@ msgstr ""
 #. We save the undo state if dealing with gfit
 #: src/core/icc_profile.c:1745
 msgid "Color profile conversion"
-msgstr ""
+msgstr "Конвертация цветового профиля"
 
 #: src/core/icc_profile.c:1821 src/core/icc_profile.c:1826
 msgid "Could not load file"
@@ -19360,7 +19361,7 @@ msgstr ""
 
 #: src/core/settings.c:440
 msgid "custom monitor profile active"
-msgstr ""
+msgstr "активен пользовательский профиль монитора"
 
 #: src/core/settings.c:441
 msgid "output proofing profile active"
@@ -23307,7 +23308,7 @@ msgstr "Извините, но Siril не может открыть файл: %s
 
 #: src/io/image_formats_libraries.c:1158
 msgid "Read ICC profile from JPEG.\n"
-msgstr ""
+msgstr "Прочитать профиль ICC из JPEG.\n"
 
 #: src/io/image_formats_libraries.c:1161
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
