@@ -545,8 +545,9 @@ typedef struct {
 	double spinbutton_y_value;
 	double spinbutton_r_value;
 	/* useful data */
-	GdkRGBA color;					// real color of the layer
-	GdkRGBA saturated_color;		// saturated color of the layer
+	GdkRGBA color;					// real color of the layer in the image colorspace
+	GdkRGBA saturated_color;		// saturated color of the layer in the image colorspace
+	GdkRGBA display_color;			// color of the layer in the display colorspace
 	fits the_fit;					// the fits for layers
 	point center;
 } layer;
