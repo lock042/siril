@@ -249,8 +249,14 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < seq->number; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+		if (!seq->imgparam[i].incl)
 			continue;
+		// if target or compstar are invalid, we won't log the point
+		if (!seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid ||
+			!seq->photometry[c_idx][i] || !seq->photometry[c_idx][i]->phot_is_valid) {
+				siril_debug_print("Image %d discarded because of invalid calibration data\n", i + 1);
+				continue;
+		}
 		double cmag = 0.0, cerr = 0.0, kmag = 0.0;
 
 		// X value: the date
@@ -279,27 +285,19 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 		airmass[j] = seq->imgparam[i].airmass;
 
 		/* First data plotted are variable data, c_idx is comparison star
-		 * and k_dix stands for the check one */
+		 * and k_idx stands for the check one */
+		cmag = pow(10, -0.4 * seq->photometry[c_idx][i]->mag);
+		cerr = seq->photometry[c_idx][i]->s_mag;
 
-		if (ref_valid[c_idx] && seq->photometry[c_idx][i]) {
-			/* if reference star is not good, we go out */
-			if (!seq->photometry[c_idx][i]->phot_is_valid) continue;
-			cmag = pow(10, -0.4 * seq->photometry[c_idx][i]->mag);
-			cerr = seq->photometry[c_idx][i]->s_mag;
-		}
-
-		if (ref_valid[k_idx] && seq->photometry[k_idx][i] && seq->photometry[k_idx][i]->phot_is_valid) {
+		if (seq->photometry[k_idx][i] && seq->photometry[k_idx][i]->phot_is_valid) {
 			/* if non-valid, kmag is equal to 0. It will be "na" in the file */
 				kmag = pow(10, -0.4 * seq->photometry[k_idx][i]->mag);
 		}
 
 		/* Converting back to magnitude */
-
-		if (cmag != 0.0) {
-			cmag = -2.5 * log10(cmag);
-			vmag[j] = target_mag - cmag + c_std;
-			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
-		}
+		cmag = -2.5 * log10(cmag);
+		vmag[j] = target_mag - cmag + c_std;
+		err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
 
 		if (kmag != 0.0) {
 			kmag = -2.5 * log10(kmag);
