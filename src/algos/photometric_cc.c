@@ -124,8 +124,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		profile = copyICCProfile(fit->icc_profile);
 		if (!fit_icc_is_linear(fit)) {
 			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
-									  "apply photometric color calibration to linear images.\n"),
-									  "salmon");
+					"apply photometric color calibration to linear images.\n"), "salmon");
 		}
 	} else {
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
@@ -135,12 +134,12 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	cmsHTRANSFORM transform = NULL;
 	if (xyzprofile && profile) {
 		transform = cmsCreateTransformTHR(com.icc.context_single,
-												 xyzprofile,
-												 TYPE_XYZ_FLT,
-												 profile,
-												 TYPE_RGB_FLT,
-												 INTENT_RELATIVE_COLORIMETRIC,
-												 cmsFLAGS_NONEGATIVES);
+					xyzprofile,
+					TYPE_XYZ_FLT,
+					profile,
+					TYPE_RGB_FLT,
+					INTENT_RELATIVE_COLORIMETRIC,
+					cmsFLAGS_NONEGATIVES);
 		cmsCloseProfile(profile);
 		cmsCloseProfile(xyzprofile);
 	}
