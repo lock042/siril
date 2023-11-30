@@ -46,8 +46,7 @@ src/siril-cli
 stamp-h1
 src/tests/compare_fits
 src/tests/sorting
-src/gui/siril3.glade~
-src/gui/#siril3.glade#
+src/siril_resource.h
 git-version.h
 GTAGS
 GRTAGS

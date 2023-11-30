@@ -43,6 +43,7 @@ typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
 	int nb;		// number of points in the plot
 	gchar *label; // the name of the series
+	double x_offset;
 } splxydata;
 
 typedef struct siril_plot_xyerrdata_struct {
@@ -83,6 +84,7 @@ typedef struct siril_plot_data_struct {
 
 void init_siril_plot_data(siril_plot_data *spl_data);
 void free_siril_plot_data(siril_plot_data *spl_data);
+void siril_plot_sort_x(siril_plot_data *spl_data);
 
 void siril_plot_set_title(siril_plot_data *spl_data, const gchar *title);
 void siril_plot_set_xlabel(siril_plot_data *spl_data, const gchar *xlabel);
