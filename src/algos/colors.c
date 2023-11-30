@@ -1163,4 +1163,3 @@ int pos_to_neg(fits *fit) {
 
 	return 0;
 }
-

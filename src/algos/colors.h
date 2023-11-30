@@ -38,7 +38,6 @@ void xyz_to_linrgbf(float x, float y, float z, float *r, float *g, float *b, gbo
 void rgb_to_yuvf(float red, float green, float blue, float *y, float *u, float *v);
 void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blue);
 
-
 double BV_to_T(double BV);
 
 int pos_to_neg(fits *fit);
