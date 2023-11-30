@@ -62,6 +62,8 @@ cmsHPROFILE rec2020_linear();
 cmsHPROFILE gray_rec709trc();
 
 void color_manage(fits *fit, gboolean active);
+void lock_display_transform();
+void unlock_display_transform();
 void display_index_transform(BYTE* index, int vport);
 gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c);
 void reset_icc_transforms();

@@ -1686,8 +1686,12 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	if (gfit.color_managed && gui.icc.proofing_transform) {
+	if (gfit.color_managed) {
+		lock_display_transform();
+		if (gui.icc.proofing_transform)
+			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
+		unlock_display_transform();
 	}
 	redraw(REMAP_ALL);
 	redraw_previews();

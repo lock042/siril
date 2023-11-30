@@ -54,6 +54,7 @@
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;
+static GMutex display_transform_mutex;
 
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
@@ -273,11 +274,21 @@ static gboolean siril_color_profile_is_rgb(cmsHPROFILE profile) {
 	return (cmsGetColorSpace (profile) == cmsSigRgbData);
 }
 
+void lock_display_transform() {
+	g_mutex_lock(&display_transform_mutex);
+}
+void unlock_display_transform() {
+	g_mutex_unlock(&display_transform_mutex);
+}
+
+// This must be locked by the display_transform_mutex, but it is done from
+// remap_all_vports() so the mutex lock covers all 3 calls to this function
 void display_index_transform(BYTE* index, int vport) {
 	BYTE buf[3 * (USHRT_MAX + 1)] = { 0 };
 	BYTE* chan = &buf[0] + (vport * (USHRT_MAX + 1));
 	memcpy(chan, index, USHRT_MAX + 1);
 	cmsDoTransformLineStride(gui.icc.proofing_transform, &buf, &buf, USHRT_MAX + 1, 1, (USHRT_MAX + 1) * 3, (USHRT_MAX + 1) * 3, USHRT_MAX + 1, USHRT_MAX + 1);
+	g_mutex_unlock(&display_transform_mutex);
 	memcpy(index, chan, USHRT_MAX + 1);
 }
 
@@ -341,6 +352,7 @@ gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c) {
 }
 
 void reset_icc_transforms() {
+	g_mutex_lock(&display_transform_mutex);
 	if (gfit.color_managed) {
 		if (gui.icc.proofing_transform) {
 			cmsDeleteTransform(gui.icc.proofing_transform);
@@ -349,6 +361,7 @@ void reset_icc_transforms() {
 	}
 	gui.icc.same_primaries = FALSE;
 	gui.icc.profile_changed = TRUE;
+	g_mutex_unlock(&display_transform_mutex);
 }
 
 void validate_custom_profiles() {
@@ -606,9 +619,11 @@ cmsHTRANSFORM initialize_proofing_transform() {
 void refresh_icc_transforms() {
 	if (!com.headless) {
 		gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+		g_mutex_lock(&display_transform_mutex);
 		if (gui.icc.proofing_transform)
 			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
+		g_mutex_unlock(&display_transform_mutex);
 		gui.icc.profile_changed = TRUE;
 
 	}

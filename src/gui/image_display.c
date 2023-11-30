@@ -358,10 +358,12 @@ static void remap_all_vports() {
 
 	if (gfit.color_managed) {
 		// Set the transform in case it is missing
+		lock_display_transform();
 		if (!gui.icc.proofing_transform) {
 			gui.icc.proofing_transform = initialize_proofing_transform();
 			gui.icc.profile_changed = TRUE;
 		}
+		unlock_display_transform();
 		if (gui.icc.profile_changed) {
 			gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
 //			gui.icc.same_primaries = FALSE;
@@ -373,6 +375,7 @@ static void remap_all_vports() {
 		}
 	}
 
+	lock_display_transform();
 	make_index_for_current_display(0);
 	index[0] = gui.remap_index[0];
 	if (gfit.color_managed) {
@@ -381,6 +384,7 @@ static void remap_all_vports() {
 			index[i] = gui.remap_index[i];
 		}
 	}
+	unlock_display_transform();
 
 	gui.icc.profile_changed = FALSE;
 	set_viewer_mode_widgets_sensitive(TRUE);

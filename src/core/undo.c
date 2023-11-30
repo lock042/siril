@@ -341,9 +341,11 @@ int undo_display_data(int dir) {
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
 			update_MenuItem();
+			lock_display_transform();
 			if (gui.icc.proofing_transform)
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
+			unlock_display_transform();
 			refresh_annotations(TRUE);
 			if (is_preview_active())
 				copy_gfit_to_backup();
@@ -367,9 +369,11 @@ int undo_display_data(int dir) {
 			refresh_annotations(TRUE);
 			gboolean tmp_roi_active = gui.roi.active;
 			gui.roi.active = FALSE;
+			lock_display_transform();
 			if (gui.icc.proofing_transform)
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
+			unlock_display_transform();
 			close_tab(); // These 2 lines account for possible change from mono to RGB
 			init_right_tab();
 			redraw(REMAP_ALL);
