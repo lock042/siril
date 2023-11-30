@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-30 10:20+0100\n"
+"POT-Creation-Date: 2023-11-30 10:39+0100\n"
 "PO-Revision-Date: 2023-08-11 20:37+0000\n"
 "Last-Translator: Fabio Sirna <fabio@fabiosirna.com>\n"
 "Language-Team: Italian <https://weblate.pixls.us/projects/siril/siril-"
@@ -22703,7 +22703,7 @@ msgstr ""
 
 #: src/io/aavso_extended.c:207
 #, fuzzy
-msgid "Number of is images is not enough\n"
+msgid "Number of images is not enough\n"
 msgstr "Numero di immagini"
 
 #. we want both c_idx and k_idx valid

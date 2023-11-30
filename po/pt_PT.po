@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-30 10:20+0100\n"
+"POT-Creation-Date: 2023-11-30 10:39+0100\n"
 "PO-Revision-Date: 2018-01-18 00:22+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -19505,7 +19505,7 @@ msgstr ""
 
 #: src/io/aavso_extended.c:207
 #, fuzzy
-msgid "Number of is images is not enough\n"
+msgid "Number of images is not enough\n"
 msgstr "Normalizar imagens"
 
 #. we want both c_idx and k_idx valid

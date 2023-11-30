@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-30 10:20+0100\n"
+"POT-Creation-Date: 2023-11-30 10:39+0100\n"
 "PO-Revision-Date: 2023-05-08 19:41+0000\n"
 "Last-Translator: kostas <kookoo_gr@yahoo.com>\n"
 "Language-Team: Greek <https://weblate.pixls.us/projects/siril/siril-"
@@ -21514,7 +21514,7 @@ msgstr ""
 
 #: src/io/aavso_extended.c:207
 #, fuzzy
-msgid "Number of is images is not enough\n"
+msgid "Number of images is not enough\n"
 msgstr "Κανόνας των τρίτων"
 
 #. we want both c_idx and k_idx valid

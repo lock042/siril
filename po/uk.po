@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-30 10:20+0100\n"
+"POT-Creation-Date: 2023-11-30 10:39+0100\n"
 "PO-Revision-Date: 2018-09-12 11:00+0300\n"
 "Last-Translator: Maksym Pyatnytskyy <mpyat2@gmail.com>\n"
 "Language-Team: Maksym Pyatnytskyy, Oleh Malyi. mpyat2@gmail.com\n"
@@ -19907,7 +19907,7 @@ msgstr ""
 
 #: src/io/aavso_extended.c:207
 #, fuzzy
-msgid "Number of is images is not enough\n"
+msgid "Number of images is not enough\n"
 msgstr "Кількість ітерацій."
 
 #. we want both c_idx and k_idx valid

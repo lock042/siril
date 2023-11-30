@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-30 10:20+0100\n"
+"POT-Creation-Date: 2023-11-30 10:39+0100\n"
 "PO-Revision-Date: 2023-06-06 08:18+0000\n"
 "Last-Translator: Victor Boesen Gandløse <victorboesen@hotmail.com>\n"
 "Language-Team: Danish <https://weblate.pixls.us/projects/siril/siril-"
@@ -18958,7 +18958,7 @@ msgid ""
 msgstr ""
 
 #: src/io/aavso_extended.c:207
-msgid "Number of is images is not enough\n"
+msgid "Number of images is not enough\n"
 msgstr ""
 
 #. we want both c_idx and k_idx valid

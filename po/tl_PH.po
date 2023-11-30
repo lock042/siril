@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-30 10:20+0100\n"
+"POT-Creation-Date: 2023-11-30 10:39+0100\n"
 "PO-Revision-Date: 2016-07-08 16:10+0800\n"
 "Last-Translator: Bamm Gabriana <bamm@distroastro.org>\n"
 "Language-Team: \n"
@@ -19170,7 +19170,7 @@ msgid ""
 msgstr ""
 
 #: src/io/aavso_extended.c:207
-msgid "Number of is images is not enough\n"
+msgid "Number of images is not enough\n"
 msgstr ""
 
 #. we want both c_idx and k_idx valid

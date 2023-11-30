@@ -204,7 +204,7 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1) {
-		gchar *msg = siril_log_color_message(_("Number of is images is not enough\n"), "red");
+		gchar *msg = siril_log_color_message(_("Number of images is not enough\n"), "red");
 		*error = g_strdup(msg);
 		return -1;
 	}
