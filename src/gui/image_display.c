@@ -402,6 +402,8 @@ static void remap_all_vports() {
 	int norm = (int) get_normalized_value(&gfit);
 	{
 		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
+		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
+			lock_display_transform();
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -437,10 +439,6 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 			}
-/*			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
-				cmsDoTransformLineStride(gui.icc.proofing_transform,
-								pixelbuf, pixelbuf, gfit.rx, 1, gfit.rx * 6, gfit.rx * 6, gfit.rx * 2, gfit.rx * 2);
-			}*/
 			if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
@@ -493,6 +491,8 @@ static void remap_all_vports() {
 			free(pixelbuf);
 			free(pixelbuf_byte);
 		}
+		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
+			unlock_display_transform();
 	}
 	// flush to ensure all writing to the image was done and redraw the surface
 	for (int vport = 0 ; vport < 3 ; vport++) {
