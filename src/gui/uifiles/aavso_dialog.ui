@@ -124,38 +124,38 @@
                 <property name="tooltip-text" translatable="yes">The filter used for the observation.</property>
                 <property name="active">0</property>
                 <items>
-                  <item translatable="yes">na</item>
-                  <item translatable="yes">U</item>
-                  <item translatable="yes">B</item>
-                  <item translatable="yes">V</item>
-                  <item translatable="yes">R</item>
-                  <item translatable="yes">I</item>
-                  <item translatable="yes">J</item>
-                  <item translatable="yes">H</item>
-                  <item translatable="yes">K</item>
-                  <item translatable="yes">TG</item>
-                  <item translatable="yes">TB</item>
-                  <item translatable="yes">TR</item>
-                  <item translatable="yes">CV</item>
-                  <item translatable="yes">CR</item>
-                  <item translatable="yes">SZ</item>
-                  <item translatable="yes">SU</item>
-                  <item translatable="yes">SG</item>
-                  <item translatable="yes">SR</item>
-                  <item translatable="yes">SI</item>
-                  <item translatable="yes">STU</item>
-                  <item translatable="yes">STV</item>
-                  <item translatable="yes">STB</item>
-                  <item translatable="yes">STY</item>
-                  <item translatable="yes">STHBW</item>
-                  <item translatable="yes">STHBN</item>
-                  <item translatable="yes">MA</item>
-                  <item translatable="yes">MB</item>
-                  <item translatable="yes">MI</item>
-                  <item translatable="yes">ZS</item>
-                  <item translatable="yes">Y</item>
-                  <item translatable="yes">HA</item>
-                  <item translatable="yes">HAC</item>
+                  <item>na</item>
+                  <item>U</item>
+                  <item>B</item>
+                  <item>V</item>
+                  <item>R</item>
+                  <item>I</item>
+                  <item>J</item>
+                  <item>H</item>
+                  <item>K</item>
+                  <item>TG</item>
+                  <item>TB</item>
+                  <item>TR</item>
+                  <item>CV</item>
+                  <item>CR</item>
+                  <item>SZ</item>
+                  <item>SU</item>
+                  <item>SG</item>
+                  <item>SR</item>
+                  <item>SI</item>
+                  <item>STU</item>
+                  <item>STV</item>
+                  <item>STB</item>
+                  <item>STY</item>
+                  <item>STHBW</item>
+                  <item>STHBN</item>
+                  <item>MA</item>
+                  <item>MB</item>
+                  <item>MI</item>
+                  <item>ZS</item>
+                  <item>Y</item>
+                  <item>HA</item>
+                  <item>HAC</item>
                 </items>
               </object>
               <packing>
@@ -258,8 +258,8 @@
                 <property name="tooltip-text" translatable="yes">The type of observation in the data file. It can be CCD, DSLR, PEP (for Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a CMOS camera please report it as CCD.</property>
                 <property name="active">0</property>
                 <items>
-                  <item translatable="yes">CCD</item>
-                  <item translatable="yes">DSLR</item>
+                  <item>CCD</item>
+                  <item>DSLR</item>
                 </items>
               </object>
               <packing>
