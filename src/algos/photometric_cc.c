@@ -259,8 +259,8 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 }
 
 static int cmp_coeff(const void *a, const void *b) {
-	coeff *a1 = (coeff *) a;
-	coeff *a2 = (coeff *) b;
+	const coeff *a1 = (const coeff *) a;
+	const coeff *a2 = (const coeff *) b;
 	if (a1->value > a2->value)
 		return 1;
 	if (a1->value < a2->value)
@@ -299,7 +299,7 @@ static int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *
 
 	// otherwise, we compute image min/max
 	for (int chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_MINMAX, MULTI_THREADED);
+		const imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_MINMAX, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
