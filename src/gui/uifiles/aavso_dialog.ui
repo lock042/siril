@@ -84,7 +84,7 @@
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">10</property>
-                <property name="text" translatable="yes">na</property>
+                <property name="text">na</property>
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
@@ -196,7 +196,7 @@
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">20</property>
-                <property name="text" translatable="yes">na</property>
+                <property name="text">na</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>
@@ -213,7 +213,7 @@
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">20</property>
-                <property name="text" translatable="yes">na</property>
+                <property name="text">na</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>
@@ -242,7 +242,7 @@
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">30</property>
-                <property name="text" translatable="yes">na</property>
+                <property name="text">na</property>
                 <property name="input-purpose">number</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
@@ -351,7 +351,7 @@ where Vins is the instrumental magnitude of the variable, Cins is the instrument
                 <property name="tooltip-text" translatable="yes">Please use the sequence ID you will find written in Bold print near the top of the photometry table in a sentence that reads "Report this sequence as [ID] in the chart field of your observation report." If you used your own comparison stars (e.g. in the case of time-sensitive alerts when the Sequence Team had no time to create a sequence), do not give a chart ID, even if you plotted the chart using VSP. Use the comment code K (non-AAVSO chart) and give a proper chart name like "APASS DR10". Then add information on the comp stars in the notes. Limit: 20 characters.</property>
                 <property name="max-length">20</property>
                 <property name="max-width-chars">20</property>
-                <property name="text" translatable="yes">na</property>
+                <property name="text">na</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>
@@ -390,7 +390,7 @@ where Vins is the instrumental magnitude of the variable, Cins is the instrument
                 <property name="tooltip-text" translatable="yes">Comments or notes about the observation. If no comments, use "na".</property>
                 <property name="max-length">2000</property>
                 <property name="width-chars">30</property>
-                <property name="text" translatable="yes">na</property>
+                <property name="text">na</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>
