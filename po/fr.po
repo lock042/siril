@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-30 10:20+0100\n"
-"PO-Revision-Date: 2023-11-24 23:37+0000\n"
+"PO-Revision-Date: 2023-11-30 09:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10249,14 +10249,12 @@ msgid "The filter used for the observation."
 msgstr "Le filtre utilisé pour l'observation."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
-#, fuzzy
 msgid "Cname: "
-msgstr "Nom de fichier :"
+msgstr "Cname : "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
-#, fuzzy
 msgid "Kname: "
-msgstr "Nom de fichier :"
+msgstr "Kname : "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
@@ -10264,17 +10262,22 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"Nom de l'étoile de comparaison ou étiquette telle que l'AUID (de préférence) "
+"ou l'étiquette de la carte pour l'étoile de comparaison utilisée. S'il n'y "
+"en a pas, utilisez \"na\". Limite : 20 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"Nom de l'étoile de contrôle ou étiquette telle que l'AUID (de préférence) ou "
+"l'étiquette de la carte pour l'étoile de contrôle. S'il n'y en a pas, "
+"utilisez \"na\". Limite : 20 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
-#, fuzzy
 msgid "Starid: "
-msgstr "Étoile #1 :"
+msgstr "Starid : "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -10282,6 +10285,9 @@ msgid ""
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
 msgstr ""
+"L'identifiant de l'étoile. Il peut s'agir de la désignation de l'AAVSO, du "
+"nom de l'AAVSO ou de l'identifiant unique de l'AAVSO, mais PAS plus d'un de "
+"ces éléments. Limite : 30 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -10289,20 +10295,22 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"Le type d'observation dans le fichier de données. Il peut s'agir de CCD, de "
+"DSLR (pour les appareils photos) ou de PEP (pour la photométrie "
+"photoélectrique). En cas d'absence, on suppose qu'il s'agit d'une caméra "
+"CCD.  Si vous utilisez une caméra CMOS, veuillez l'indiquer comme CCD."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparaison star: "
-msgstr "Étoiles de comparaison"
+msgstr "Étoile de comparaison : "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "Saisir le nom de l'étoile cible"
+msgstr "Le numéro de l'étoile de comparaison."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr ""
+msgstr "Cstd : "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -10314,15 +10322,21 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for "
 "the comparison."
 msgstr ""
+"La magnitude standardisée de la variable est donnée par la formule suivante\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"où Vins est l'amplitude instrumentale de la variable, Cins est la valeur "
+"instrumentale de la comparaison et Cstd est la magnitude réelle pour la "
+"comparaison."
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr ""
+msgstr "Étoile de contrôle : "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "Saisir le nom de l'étoile cible"
+msgstr "Le numéro de l'étoile de contrôle."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -10335,18 +10349,30 @@ msgid ""
 "chart) and give a proper chart name like \"APASS DR10\". Then add "
 "information on the comp stars in the notes. Limit: 20 characters."
 msgstr ""
+"Veuillez utiliser l'identifiant de la séquence que vous trouverez en "
+"caractères gras en haut de la table de photométrie dans une phrase qui dit "
+"\"Reportez cette séquence comme [ID] dans le champ 'chart' de votre rapport "
+"d'observation\". Si vous avez utilisé vos propres étoiles de comparaison ("
+"par exemple dans le cas d'alertes urgentes lorsque l'équipe de la séquence "
+"n'a pas eu le temps de créer une séquence), ne donnez pas d'identifiant "
+"'chart', même si vous avez tracé le graphique à l'aide de VSP. Utilisez le "
+"code de commentaire K (carte non-AAVSO) et donnez un nom de carte approprié "
+"comme \"APASS DR10\". Ajoutez ensuite des informations sur les étoiles de "
+"comparaison dans les notes. Limite : 20 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "Chart : "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "Notes : "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"Commentaires ou notes sur l'observation. S'il n'y a pas de commentaires, "
+"utilisez \"na\"."
 
 #: src/gui/siril-shortcuts.ui:14
 msgctxt "shortcut window"
@@ -22423,27 +22449,26 @@ msgid "Output files (*%s)"
 msgstr "Fichiers de sortie (*%s)"
 
 #: src/gui/plot.c:1179 src/gui/plot.c:1223 src/gui/plot.c:1236
-#, fuzzy
 msgid "Cannot output data"
-msgstr "Impossible de créer le dossier de sortie : %s\n"
+msgstr "Impossible de produire des données"
 
 #: src/gui/plot.c:1209
-#, fuzzy
 msgid "Incomplete data"
-msgstr "Alignement incomplet"
+msgstr "Données incomplètes"
 
 #: src/gui/plot.c:1209
 msgid "You must select a comparison star and a check star."
 msgstr ""
+"Vous devez sélectionner une étoile de comparaison et une étoile de contrôle."
 
 #: src/gui/plot.c:1215
-#, fuzzy
 msgid "Wrong data"
-msgstr "Mauvaise date : "
+msgstr "Données erronées"
 
 #: src/gui/plot.c:1215
 msgid "The comparison star and the check star must be different."
 msgstr ""
+"L'étoile de comparaison et l'étoile de contrôle doivent être différentes."
 
 #: src/gui/plot.c:1446
 #, c-format
@@ -23395,39 +23420,36 @@ msgstr ""
 "continuer ?"
 
 #: src/io/aavso_extended.c:207
-#, fuzzy
 msgid "Number of is images is not enough\n"
-msgstr "Nombre d'image"
+msgstr "Nombre d'images insuffisant\n"
 
 #. we want both c_idx and k_idx valid
 #: src/io/aavso_extended.c:224
-#, fuzzy
 msgid ""
 "The reference stars are not good enough, probably out of the configured "
 "valid pixel range, cannot calibrate the data\n"
 msgstr ""
 "Les étoiles de référence ne sont pas assez bonnes, probablement en dehors de "
-"la plage de pixels valides configurés, et ne peuvent pas étalonner la courbe "
-"de lumière.\n"
+"la plage de pixels valides configurée, et ne peuvent pas calibrer les "
+"données.\n"
 
 #: src/io/aavso_extended.c:228
-#, fuzzy, c-format
+#, c-format
 msgid "Using %d stars to calibrate the data\n"
-msgstr "Utilisation de %d étoiles pour étalonner la courbe de lumière\n"
+msgstr "Utilisation de %d étoiles pour calibrer les données\n"
 
 #: src/io/aavso_extended.c:238
-#, fuzzy
 msgid "Out of memory\n"
-msgstr "Mémoire insuffisante - abandon"
+msgstr "Mémoire insuffisante\n"
 
 #: src/io/aavso_extended.c:312
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Calibrated data for %d points of the output data, %d excluded because of "
 "invalid calibration\n"
 msgstr ""
-"Données étalonnées pour %d points de la courbe de lumière, %d exclus à cause "
-"d'un étalonnage invalide.\n"
+"Données calibrées pour %d points des données de sortie, %d exclus en raison "
+"d'un calibrage non valide\n"
 
 #: src/io/annotation_catalogues.c:393
 #, c-format
@@ -27063,9 +27085,8 @@ msgstr ""
 "L'empilement se fera sans mise à l'échelle (désactivation du 'drizzle')\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:135
-#, fuzzy
 msgid "K"
-msgstr "4K"
+msgstr "K"
 
 #: src/gui/uifiles/aavso_dialog.ui:136
 #, fuzzy
