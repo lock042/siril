@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-29 22:21+0100\n"
-"PO-Revision-Date: 2023-11-24 23:37+0000\n"
+"POT-Creation-Date: 2023-11-30 10:39+0100\n"
+"PO-Revision-Date: 2023-11-30 09:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
 "application/fr/>\n"
@@ -221,9 +221,8 @@ msgid "Julian Date"
 msgstr "Jour julien"
 
 #: src/gui/uifiles/siril.ui:272
-#, fuzzy
 msgid "Nothing to change"
-msgstr "Rien à annuler"
+msgstr "Rien à changer"
 
 #: src/gui/uifiles/siril.ui:282
 msgid "arcsec"
@@ -515,14 +514,12 @@ msgid "Save current plot to png file"
 msgstr "Enregistrer le graphique suivant dans un fichier png"
 
 #: src/gui/uifiles/siril.ui:1321
-#, fuzzy
 msgid "Light Curve (ETD format)"
-msgstr "Courbe de luminosité"
+msgstr "Courbe de lumière (format ETD)"
 
 #: src/gui/uifiles/siril.ui:1335
-#, fuzzy
 msgid "AAVSO file format"
-msgstr "Format"
+msgstr "Format de fichier AAVSO"
 
 #: src/gui/uifiles/siril.ui:1357 src/gui/callbacks.c:1030
 msgid "16 bits"
@@ -894,7 +891,7 @@ msgid "current red file"
 msgstr "fichier rouge courrant"
 
 #: src/gui/uifiles/siril.ui:2540 src/gui/uifiles/StatWindow.ui:200
-#: src/gui/uifiles/color_calibration.ui:389 src/compositing/compositing.c:666
+#: src/gui/uifiles/color_calibration.ui:389 src/compositing/compositing.c:669
 #: src/gui/callbacks.c:854 src/gui/callbacks.c:1232
 msgid "Red"
 msgstr "Rouge"
@@ -2432,7 +2429,7 @@ msgstr ""
 msgid "Set second preview"
 msgstr "Définir 2d aperçu"
 
-#: src/gui/uifiles/siril.ui:6842 src/compositing/compositing.c:1946
+#: src/gui/uifiles/siril.ui:6842 src/compositing/compositing.c:1986
 msgid "Manual registration"
 msgstr "Alignement manuel"
 
@@ -2476,6 +2473,8 @@ msgstr "Effacer la dernière courbe de photométrie ajoutée."
 msgid ""
 "This button opens a CSV export of the data, or a screenshot of the plot."
 msgstr ""
+"Ce bouton permet d'exporter les données au format CSV ou d'effectuer une "
+"capture d'écran du tracé."
 
 #: src/gui/uifiles/siril.ui:6980 src/gui/uifiles/pixelmath.ui:708
 msgid "Output"
@@ -2484,11 +2483,12 @@ msgstr "Sortie"
 #: src/gui/uifiles/siril.ui:7016
 msgid "Modify x-axis units, or y-axis units if available."
 msgstr ""
+"Modifier les unités de l'axe des x, ou les unités de l'axe des y si elles "
+"sont disponibles."
 
 #: src/gui/uifiles/siril.ui:7028
-#, fuzzy
 msgid "Display"
-msgstr "Affichage de l'image"
+msgstr "Affichage"
 
 #: src/gui/uifiles/siril.ui:7067
 msgid "legend"
@@ -2586,11 +2586,12 @@ msgid ""
 "This is the button for outputting photometric data. To activate it, switch "
 "to magnitude display."
 msgstr ""
+"Il s'agit du bouton de sortie des données photométriques. Pour l'activer, "
+"passez en vue \"magnitude\"."
 
 #: src/gui/uifiles/siril.ui:7248
-#, fuzzy
 msgid "Photometry output"
-msgstr "Photométrie"
+msgstr "Résultats photométriques"
 
 #: src/gui/uifiles/siril.ui:7299
 msgid "Show all relevant graphs using registration and / or photometry data."
@@ -5612,8 +5613,8 @@ msgstr "Composition d'image multi-canaux"
 
 #. don't destroy it on removal from grid
 #: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:224
-#: src/compositing/compositing.c:225 src/compositing/compositing.c:518
-#: src/compositing/compositing.c:1503 src/compositing/compositing.c:1504
+#: src/compositing/compositing.c:225 src/compositing/compositing.c:521
+#: src/compositing/compositing.c:1543 src/compositing/compositing.c:1544
 msgid "not loaded"
 msgstr "non chargée"
 
@@ -6509,7 +6510,7 @@ msgstr "Fichier"
 msgid "X"
 msgstr "X"
 
-#: src/gui/uifiles/seqlist_dialog.ui:136 src/gui/uifiles/aavso_dialog.ui:156
+#: src/gui/uifiles/seqlist_dialog.ui:136
 msgid "Y"
 msgstr "Y"
 
@@ -7078,7 +7079,6 @@ msgid "Ch."
 msgstr "Ca."
 
 #: src/gui/uifiles/stars_list_window.ui:229 src/gui/uifiles/pixelmath.ui:279
-#: src/gui/uifiles/aavso_dialog.ui:129
 msgid "B"
 msgstr "B"
 
@@ -10217,182 +10217,40 @@ msgid "Update"
 msgstr "Mise à jour"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
-#, fuzzy
 msgid "AAVSO parameters"
-msgstr "AAVSO Étoiles variables"
+msgstr "Paramètres AAVSO"
 
 #: src/gui/uifiles/aavso_dialog.ui:71
-#, fuzzy
 msgid "Obstype: "
-msgstr "Type : "
+msgstr "Obstype : "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
 msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:87 src/gui/uifiles/aavso_dialog.ui:127
-#: src/gui/uifiles/aavso_dialog.ui:199 src/gui/uifiles/aavso_dialog.ui:216
-#: src/gui/uifiles/aavso_dialog.ui:245 src/gui/uifiles/aavso_dialog.ui:354
-#: src/gui/uifiles/aavso_dialog.ui:393
-msgid "na"
-msgstr ""
+"Le code officiel de l'observateur de l'AAVSO qui a été précédemment attribué "
+"par l'AAVSO."
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "Obscode : "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "Filter : "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
-#, fuzzy
 msgid "The filter used for the observation."
-msgstr "Type d'algorithme utilisé pour la rotation"
-
-#: src/gui/uifiles/aavso_dialog.ui:128
-msgid "U"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:130
-msgid "V"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:131 src/pixelMath/pixel_math_runner.c:351
-msgid "R"
-msgstr "R"
-
-#: src/gui/uifiles/aavso_dialog.ui:132
-msgid "I"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:133
-msgid "J"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:134
-msgid "H"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:135
-#, fuzzy
-msgid "K"
-msgstr "4K"
-
-#: src/gui/uifiles/aavso_dialog.ui:136
-#, fuzzy
-msgid "TG"
-msgstr "V"
-
-#: src/gui/uifiles/aavso_dialog.ui:137
-#, fuzzy
-msgid "TB"
-msgstr "B"
-
-#: src/gui/uifiles/aavso_dialog.ui:138
-#, fuzzy
-msgid "TR"
-msgstr "R"
-
-#: src/gui/uifiles/aavso_dialog.ui:139
-#, fuzzy
-msgid "CV"
-msgstr "GCVS"
-
-#: src/gui/uifiles/aavso_dialog.ui:140
-#, fuzzy
-msgid "CR"
-msgstr "R"
-
-#: src/gui/uifiles/aavso_dialog.ui:141
-#, fuzzy
-msgid "SZ"
-msgstr "S"
-
-#: src/gui/uifiles/aavso_dialog.ui:142
-#, fuzzy
-msgid "SU"
-msgstr "S"
-
-#: src/gui/uifiles/aavso_dialog.ui:143
-#, fuzzy
-msgid "SG"
-msgstr "S"
-
-#: src/gui/uifiles/aavso_dialog.ui:144
-#, fuzzy
-msgid "SR"
-msgstr "SNR"
-
-#: src/gui/uifiles/aavso_dialog.ui:145
-#, fuzzy
-msgid "SI"
-msgstr "S"
-
-#: src/gui/uifiles/aavso_dialog.ui:146
-msgid "STU"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:147
-#, fuzzy
-msgid "STV"
-msgstr "TSV"
-
-#: src/gui/uifiles/aavso_dialog.ui:148
-msgid "STB"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:149
-msgid "STY"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:150
-msgid "STHBW"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:151
-msgid "STHBN"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:152
-#, fuzzy
-msgid "MA"
-msgstr "MAD"
-
-#: src/gui/uifiles/aavso_dialog.ui:153
-#, fuzzy
-msgid "MB"
-msgstr "B"
-
-#: src/gui/uifiles/aavso_dialog.ui:154
-msgid "MI"
-msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:155
-#, fuzzy
-msgid "ZS"
-msgstr "S"
-
-#: src/gui/uifiles/aavso_dialog.ui:157
-#, fuzzy
-msgid "HA"
-msgstr "A"
-
-#: src/gui/uifiles/aavso_dialog.ui:158
-msgid "HAC"
-msgstr ""
+msgstr "Le filtre utilisé pour l'observation."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
-#, fuzzy
 msgid "Cname: "
-msgstr "Nom de fichier :"
+msgstr "Cname : "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
-#, fuzzy
 msgid "Kname: "
-msgstr "Nom de fichier :"
+msgstr "Kname : "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
@@ -10400,17 +10258,22 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"Nom de l'étoile de comparaison ou étiquette telle que l'AUID (de préférence) "
+"ou l'étiquette de la carte pour l'étoile de comparaison utilisée. S'il n'y "
+"en a pas, utilisez \"na\". Limite : 20 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"Nom de l'étoile de contrôle ou étiquette telle que l'AUID (de préférence) ou "
+"l'étiquette de la carte pour l'étoile de contrôle. S'il n'y en a pas, "
+"utilisez \"na\". Limite : 20 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
-#, fuzzy
 msgid "Starid: "
-msgstr "Étoile #1 :"
+msgstr "Starid : "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -10418,6 +10281,9 @@ msgid ""
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
 msgstr ""
+"L'identifiant de l'étoile. Il peut s'agir de la désignation de l'AAVSO, du "
+"nom de l'AAVSO ou de l'identifiant unique de l'AAVSO, mais PAS plus d'un de "
+"ces éléments. Limite : 30 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -10425,29 +10291,22 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
-
-#: src/gui/uifiles/aavso_dialog.ui:261
-#, fuzzy
-msgid "CCD"
-msgstr "CDS"
-
-#: src/gui/uifiles/aavso_dialog.ui:262
-msgid "DSLR"
-msgstr ""
+"Le type d'observation dans le fichier de données. Il peut s'agir de CCD, de "
+"DSLR (pour les appareils photos) ou de PEP (pour la photométrie "
+"photoélectrique). En cas d'absence, on suppose qu'il s'agit d'une caméra "
+"CCD.  Si vous utilisez une caméra CMOS, veuillez l'indiquer comme CCD."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparaison star: "
-msgstr "Étoiles de comparaison"
+msgstr "Étoile de comparaison : "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "Saisir le nom de l'étoile cible"
+msgstr "Le numéro de l'étoile de comparaison."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr ""
+msgstr "Cstd : "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -10459,15 +10318,21 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for "
 "the comparison."
 msgstr ""
+"La magnitude standardisée de la variable est donnée par la formule suivante\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"où Vins est l'amplitude instrumentale de la variable, Cins est la valeur "
+"instrumentale de la comparaison et Cstd est la magnitude réelle pour la "
+"comparaison."
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr ""
+msgstr "Étoile de contrôle : "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "Saisir le nom de l'étoile cible"
+msgstr "Le numéro de l'étoile de contrôle."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -10480,18 +10345,30 @@ msgid ""
 "chart) and give a proper chart name like \"APASS DR10\". Then add "
 "information on the comp stars in the notes. Limit: 20 characters."
 msgstr ""
+"Veuillez utiliser l'identifiant de la séquence que vous trouverez en "
+"caractères gras en haut de la table de photométrie dans une phrase qui dit "
+"\"Reportez cette séquence comme [ID] dans le champ 'chart' de votre rapport "
+"d'observation\". Si vous avez utilisé vos propres étoiles de comparaison "
+"(par exemple dans le cas d'alertes urgentes lorsque l'équipe de la séquence "
+"n'a pas eu le temps de créer une séquence), ne donnez pas d'identifiant "
+"'chart', même si vous avez tracé le graphique à l'aide de VSP. Utilisez le "
+"code de commentaire K (carte non-AAVSO) et donnez un nom de carte approprié "
+"comme \"APASS DR10\". Ajoutez ensuite des informations sur les étoiles de "
+"comparaison dans les notes. Limite : 20 caractères."
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "Chart : "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "Notes : "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"Commentaires ou notes sur l'observation. S'il n'y a pas de commentaires, "
+"utilisez \"na\"."
 
 #: src/gui/siril-shortcuts.ui:14
 msgctxt "shortcut window"
@@ -10920,21 +10797,13 @@ msgstr ""
 "Enregistrement de la longueur focale %.2f et de la taille de pixel %.2f "
 "comme valeurs par défaut\n"
 
-#: src/algos/astrometry_solver.c:568
-msgid ""
-"This operation (PCC) relies on the missing WCSLIB software, cannot "
-"continue.\n"
-msgstr ""
-"Cette opération (PCC) repose sur le logiciel WCSLIB manquant, ne peut pas "
-"continuer.\n"
-
-#: src/algos/astrometry_solver.c:585
+#: src/algos/astrometry_solver.c:582
 #, c-format
 msgid "Getting stars from local catalogues for PCC, limit magnitude %.2f\n"
 msgstr ""
 "Obtenir des étoiles des catalogues locaux pour PCC, magnitude limite %.2f\n"
 
-#: src/algos/astrometry_solver.c:596
+#: src/algos/astrometry_solver.c:593
 msgid ""
 "Using plate solving to identify catalogue stars in the image failed, is "
 "plate solving wrong?\n"
@@ -10942,7 +10811,7 @@ msgstr ""
 "L'utilisation de l'astrométrie pour identifier les étoiles du catalogue dans "
 "l'image a échoué, la résolution astrométrique est-elle erronée ?\n"
 
-#: src/algos/astrometry_solver.c:614
+#: src/algos/astrometry_solver.c:611
 #, c-format
 msgid ""
 "An astrometric solution was found but photometry analysis of the %d stars "
@@ -10954,59 +10823,59 @@ msgstr ""
 "l'image ou si elles sont trop faibles pour avoir des informations sur "
 "l'indice B-V (mag > 18).\n"
 
-#: src/algos/astrometry_solver.c:619 src/algos/photometric_cc.c:482
+#: src/algos/astrometry_solver.c:616 src/algos/photometric_cc.c:482
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "L'étalonnage photométrique des couleurs a réussi\n"
 
-#: src/algos/astrometry_solver.c:627
+#: src/algos/astrometry_solver.c:624
 msgid "Flipping image and updating astrometry data.\n"
 msgstr "Retournement de l'image et mise à jour des données astrométriques.\n"
 
-#: src/algos/astrometry_solver.c:655
+#: src/algos/astrometry_solver.c:652
 #, c-format
 msgid "Photometry failed: %s\n"
 msgstr "La photométrie a échoué : %s\n"
 
-#: src/algos/astrometry_solver.c:657
+#: src/algos/astrometry_solver.c:654
 #, c-format
 msgid "Plate solving failed: %s\n"
 msgstr "L'astrométrie a échoué : %s\n"
 
-#: src/algos/astrometry_solver.c:706
+#: src/algos/astrometry_solver.c:703
 msgid "Could not match stars from the catalogue"
 msgstr "Impossible de faire correspondre les étoiles du catalogue"
 
-#: src/algos/astrometry_solver.c:717
+#: src/algos/astrometry_solver.c:714
 msgid "Transformation matrix is invalid, solve failed"
 msgstr "La matrice de transformation n'est pas valide, la résolution a échoué"
 
-#: src/algos/astrometry_solver.c:759
+#: src/algos/astrometry_solver.c:756
 msgid "Updating homography failed."
 msgstr "Échec de la mise à jour de l'homographie."
 
-#: src/algos/astrometry_solver.c:835 src/algos/photometric_cc.c:470
+#: src/algos/astrometry_solver.c:832 src/algos/photometric_cc.c:470
 msgid "Photometric CC"
 msgstr "Photométrie"
 
-#: src/algos/astrometry_solver.c:835 src/algos/astrometry_solver.c:1173
+#: src/algos/astrometry_solver.c:832 src/algos/astrometry_solver.c:1170
 msgid "Plate Solve"
 msgstr "Résolution astrométrique"
 
-#: src/algos/astrometry_solver.c:922 src/algos/astrometry_solver.c:938
+#: src/algos/astrometry_solver.c:919 src/algos/astrometry_solver.c:935
 #, c-format
 msgid "cygwin/bin was not found at %s - ignoring\n"
 msgstr "cygwin/bin n'a pas été trouvé à %s - ignorer\n"
 
-#: src/algos/astrometry_solver.c:988
+#: src/algos/astrometry_solver.c:985
 msgid "solve-field was not found, set its path in the preferences\n"
 msgstr ""
 "solve-field n'a pas été trouvé, définissez son chemin dans les préférences\n"
 
-#: src/algos/astrometry_solver.c:1006
+#: src/algos/astrometry_solver.c:1003
 msgid "Failed to create the input data for solve-field\n"
 msgstr "Échec de la création des données d'entrée pour solve-field\n"
 
-#: src/algos/astrometry_solver.c:1053
+#: src/algos/astrometry_solver.c:1050
 #, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
@@ -11015,37 +10884,37 @@ msgstr ""
 "Résolution d'Astrometry.net avec un champ de recherche à RA : %s, Dec : %s, "
 "dans un rayon de %s degrés pour les échelles [%s, %s].\n"
 
-#: src/algos/astrometry_solver.c:1057
+#: src/algos/astrometry_solver.c:1054
 #, c-format
 msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
 msgstr "Astrometry.net résout aveuglément pour les échelles [%s, %s].\n"
 
-#: src/algos/astrometry_solver.c:1135
+#: src/algos/astrometry_solver.c:1132
 msgid "No astrometric solution found\n"
 msgstr "Aucune solution astrométrique trouvée\n"
 
-#: src/algos/astrometry_solver.c:1167
+#: src/algos/astrometry_solver.c:1164
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr ""
 "Impossible de lire la solution depuis solve-field (attendu dans le fichier "
 "%s)\n"
 
-#: src/algos/astrometry_solver.c:1208
+#: src/algos/astrometry_solver.c:1205
 msgid "Local astrometry.net solve succeeded.\n"
 msgstr "La résolution locale de astrometry.net a réussi.\n"
 
-#: src/algos/astrometry_solver.c:1233
+#: src/algos/astrometry_solver.c:1230
 msgid "Warning: using the current selection to detect stars\n"
 msgstr "Attention : utiliser la sélection actuelle pour détecter les étoiles\n"
 
-#: src/algos/astrometry_solver.c:1277
+#: src/algos/astrometry_solver.c:1274
 msgid "Selection is not used in manual star selection mode\n"
 msgstr ""
 "La sélection n'est pas utilisée en mode de sélection des étoiles manuelle "
 "des étoiles\n"
 
-#: src/algos/astrometry_solver.c:1313 src/core/command.c:8519
+#: src/algos/astrometry_solver.c:1310 src/core/command.c:8519
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
@@ -11053,24 +10922,24 @@ msgstr ""
 "Impossible de faire la résolution astrométrique, aucune coordonnée de la "
 "cible n'est passée et l'en-tête de l'image n'en contient pas non plus.\n"
 
-#: src/algos/astrometry_solver.c:1321 src/core/command.c:8566
+#: src/algos/astrometry_solver.c:1318 src/core/command.c:8566
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
 "Taille de pixel non trouvée dans l'image ou dans les paramètres, impossible "
 "de poursuivre.\n"
 
-#: src/algos/astrometry_solver.c:1331 src/core/command.c:8590
+#: src/algos/astrometry_solver.c:1328 src/core/command.c:8590
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
 "La longueur focale n'a pas été trouvée dans l'image ou dans les paramètres, "
 "impossible de poursuivre.\n"
 
-#: src/algos/astrometry_solver.c:1365
+#: src/algos/astrometry_solver.c:1362
 #, c-format
 msgid "Image %s did not solve\n"
 msgstr "L'image %s n'a pas été résolue\n"
 
-#: src/algos/astrometry_solver.c:1405
+#: src/algos/astrometry_solver.c:1402
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
@@ -12166,7 +12035,7 @@ msgstr "Le fichier %s a été créé.\n"
 msgid "FindStar"
 msgstr "FindStar"
 
-#: src/algos/star_finder.c:1203 src/compositing/compositing.c:1774
+#: src/algos/star_finder.c:1203 src/compositing/compositing.c:1814
 #: src/registration/applyreg.c:241 src/registration/comet.c:240
 #: src/registration/global.c:139
 msgid "Could not load reference image\n"
@@ -12227,12 +12096,12 @@ msgstr "MAD est nulle. Les statistiques ne peuvent être calculées.\n"
 msgid "wavelet_transform_data: bad plane number\n"
 msgstr "wavelet_transform_data : mauvais nombre de plans\n"
 
-#: src/compositing/align_rgb.c:151 src/compositing/compositing.c:919
-#: src/compositing/compositing.c:956
+#: src/compositing/align_rgb.c:151 src/compositing/compositing.c:922
+#: src/compositing/compositing.c:959
 msgid "Error in layers alignment."
 msgstr "Erreur dans l'alignement des canaux."
 
-#: src/compositing/align_rgb.c:153 src/compositing/compositing.c:964
+#: src/compositing/align_rgb.c:153 src/compositing/compositing.c:967
 #: src/registration/registration.c:1599
 msgid "Registration complete."
 msgstr "Alignement terminé."
@@ -12270,40 +12139,40 @@ msgstr ""
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
 #. * woud be easier if the two glades are merged.
-#: src/compositing/compositing.c:446
+#: src/compositing/compositing.c:449
 msgid "Deep Sky (two-step global star registration)"
 msgstr "Ciel profond (alignement global des étoiles en deux étapes)"
 
-#: src/compositing/compositing.c:447
+#: src/compositing/compositing.c:450
 msgid "Planetary (DFT image pattern alignment)"
 msgstr "Planétaire (alignement par motif de l'image)"
 
-#: src/compositing/compositing.c:448
+#: src/compositing/compositing.c:451
 msgid "Planetary (KOMBAT image pattern alignment)"
 msgstr "Planétaire (KOMBAT : alignement par motif de l'image)"
 
-#: src/compositing/compositing.c:449
+#: src/compositing/compositing.c:452
 msgid "Manual alignment"
 msgstr "Alignement manuel"
 
-#: src/compositing/compositing.c:557
+#: src/compositing/compositing.c:560
 msgid "Could not display image, unloading it\n"
 msgstr "Impossible d'afficher l'image, déchargement de celle-ci\n"
 
-#: src/compositing/compositing.c:565
+#: src/compositing/compositing.c:568
 msgid "Unsaved compositing result"
 msgstr "Résultat non enregistré"
 
-#: src/compositing/compositing.c:567
+#: src/compositing/compositing.c:570
 msgid "Compositing result image"
 msgstr "Image résultant de la composition"
 
-#: src/compositing/compositing.c:643 src/gui/remixer.c:1124
+#: src/compositing/compositing.c:646 src/gui/remixer.c:1124
 #: src/gui/remixer.c:1216
 msgid "Error: image could not be loaded"
 msgstr "Erreur : l'image n'a pas pu être chargée"
 
-#: src/compositing/compositing.c:643
+#: src/compositing/compositing.c:646
 msgid ""
 "The maximum number of images of this size has been reached based on "
 "available memory limits."
@@ -12311,22 +12180,22 @@ msgstr ""
 "Le nombre maximum d'images de cette taille a été atteint en fonction des "
 "limites de mémoire disponibles."
 
-#: src/compositing/compositing.c:654 src/compositing/compositing.c:659
+#: src/compositing/compositing.c:657 src/compositing/compositing.c:662
 #: src/core/preprocess.c:1007 src/core/preprocess.c:1008
 #, c-format
 msgid "<span foreground=\"red\">ERROR</span>"
 msgstr "<span foreground=\"red\">ERREUR</span>"
 
-#: src/compositing/compositing.c:655
+#: src/compositing/compositing.c:658
 msgid "Cannot load the file, See the log for more information."
 msgstr ""
 "Impossible de charger le fichier, Voir les logs pour plus d'informations."
 
-#: src/compositing/compositing.c:660
+#: src/compositing/compositing.c:663
 msgid "Only single channel images can be loaded"
 msgstr "Seules les images à un seul canal peuvent être chargées"
 
-#: src/compositing/compositing.c:683
+#: src/compositing/compositing.c:686
 msgid ""
 "ICC profile differs to that of the first image loaded. Converting this image "
 "to match the first one loaded.\n"
@@ -12334,7 +12203,7 @@ msgstr ""
 "Le profil ICC diffère de celui de la première image chargée. Convertir cette "
 "image pour qu'elle corresponde à la première image chargée.\n"
 
-#: src/compositing/compositing.c:687
+#: src/compositing/compositing.c:690
 msgid ""
 "Input images have inconsistent ICC profiles. First image had no ICC profile. "
 "All input layers will be treated as raw data.\n"
@@ -12343,61 +12212,61 @@ msgstr ""
 "n'avait pas de profil ICC. Toutes les couches d'entrée seront traitées comme "
 "des données brutes.\n"
 
-#: src/compositing/compositing.c:699
+#: src/compositing/compositing.c:702
 msgid "The first loaded image should have the greatest sizes for now\n"
 msgstr ""
 "La première image chargée doit avoir la plus grande taille pour l'instant\n"
 
-#: src/compositing/compositing.c:700
+#: src/compositing/compositing.c:703
 #, c-format
 msgid "NOT OK %ux%u"
 msgstr "NON OK %ux%u"
 
-#: src/compositing/compositing.c:702
+#: src/compositing/compositing.c:705
 msgid "The first loaded image should have the greatest sizes for now"
 msgstr ""
 "La première image chargée doit avoir la plus grande taille pour l'instant"
 
-#: src/compositing/compositing.c:705
+#: src/compositing/compositing.c:708
 #, c-format
 msgid "Resizing the loaded image from %dx%d to %dx%d\n"
 msgstr "Redimensionnement des images chargées de %dx%d à %dx%d\n"
 
-#: src/compositing/compositing.c:708
+#: src/compositing/compositing.c:711
 #, c-format
 msgid "OK upscaled from %ux%u"
 msgstr "OK mise à la taille de %ux%u"
 
-#: src/compositing/compositing.c:714
+#: src/compositing/compositing.c:717
 msgid "Image loaded, and upscaled"
 msgstr "Image chargée et mise à l'échelle"
 
-#: src/compositing/compositing.c:720
+#: src/compositing/compositing.c:723
 #, c-format
 msgid "OK %ux%u"
 msgstr "OK %ux%u"
 
-#: src/compositing/compositing.c:722
+#: src/compositing/compositing.c:725
 msgid "Image loaded"
 msgstr "Image chargée"
 
-#: src/compositing/compositing.c:769
+#: src/compositing/compositing.c:772
 msgid "You must at least load two layers before!\n"
 msgstr "Vous devez au moins charger 2 canaux\n"
 
-#: src/compositing/compositing.c:770 src/filters/wavelets.c:258
+#: src/compositing/compositing.c:773 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328
 #: src/gui/nina_light_curve.c:127 src/registration/registration.c:1417
 #: src/registration/registration.c:1511
 msgid "Warning"
 msgstr "Attention"
 
-#: src/compositing/compositing.c:864
+#: src/compositing/compositing.c:867
 #, c-format
 msgid "NOT OK: %ux%u"
 msgstr "ERROR : %ux%u"
 
-#: src/compositing/compositing.c:870
+#: src/compositing/compositing.c:873
 msgid ""
 "The image sizes are not consistent. This may happen as the result of "
 "previous alignment operations. Please reload the input images.\n"
@@ -12406,16 +12275,16 @@ msgstr ""
 "d'opérations d'alignement antérieures. Veuillez recharger les images "
 "d'entrée.\n"
 
-#: src/compositing/compositing.c:909
+#: src/compositing/compositing.c:912
 #, c-format
 msgid "Starting registration using method: %s\n"
 msgstr "Début de l'alignement avec la méthode : %s\n"
 
-#: src/compositing/compositing.c:935
+#: src/compositing/compositing.c:938
 msgid "Incomplete alignment"
 msgstr "Alignement incomplet"
 
-#: src/compositing/compositing.c:936
+#: src/compositing/compositing.c:939
 msgid ""
 "Some images did not align correctly. Proceed to see the partially aligned "
 "result? (This may alter image dimensions in which case the images must be re-"
@@ -12426,43 +12295,43 @@ msgstr ""
 "l'image, auquel cas les images doivent être rechargées pour réessayer "
 "l'alignement.)"
 
-#: src/compositing/compositing.c:939 src/core/siril_actions.c:347
+#: src/compositing/compositing.c:942 src/core/siril_actions.c:347
 #: src/gui/utils.c:269
 msgid "Proceed"
 msgstr "Procéder"
 
-#: src/compositing/compositing.c:948
+#: src/compositing/compositing.c:951
 msgid "Using Luminance channel as reference.\n"
 msgstr "En utilisant le canal Luminance comme référence.\n"
 
 #. DFT shift ad KOMBAT require a selection to be made
-#: src/compositing/compositing.c:1074
+#: src/compositing/compositing.c:1077
 msgid "An image area must be selected for align"
 msgstr "Une sélection doit être faite pour l'alignement"
 
-#: src/compositing/compositing.c:1080
+#: src/compositing/compositing.c:1083
 msgid "At least 2 channels must be loaded for align"
 msgstr "Au moins 2 canaux doivent être chargé pour l'alignement"
 
-#: src/compositing/compositing.c:1549
+#: src/compositing/compositing.c:1589
 msgid "No overflow with the current colours, redrawing only\n"
 msgstr "Aucun débordement avec les couleurs actuelles\n"
 
-#: src/compositing/compositing.c:1552
+#: src/compositing/compositing.c:1592
 msgid "Nothing to adjust, no overflow\n"
 msgstr "Rien à ajuster, aucun débordement\n"
 
-#: src/compositing/compositing.c:1585
+#: src/compositing/compositing.c:1625
 #, c-format
 msgid "Readjusting layer %d to %g times bright\n"
 msgstr "Réajustement du canal %d (x%g)\n"
 
-#: src/compositing/compositing.c:1667
+#: src/compositing/compositing.c:1707
 msgid "All images reloaded successfully.\n"
 msgstr "Toutes les images ont été rechargées avec succès.\n"
 
 #. fail
-#: src/compositing/compositing.c:1673 src/compositing/compositing.c:1698
+#: src/compositing/compositing.c:1713 src/compositing/compositing.c:1738
 #: src/core/icc_profile.c:1144 src/core/icc_profile.c:1154
 #: src/core/icc_profile.c:1185 src/filters/fft.c:600 src/filters/fft.c:606
 #: src/filters/fft.c:625 src/gui/compstars.c:147 src/gui/compstars.c:156
@@ -12475,15 +12344,15 @@ msgstr "Toutes les images ont été rechargées avec succès.\n"
 msgid "Error"
 msgstr "Erreur"
 
-#: src/compositing/compositing.c:1673
+#: src/compositing/compositing.c:1713
 msgid "No layers loaded: no files to save"
 msgstr "Pas de canaux chargés : pas de fichiers à sauvegarder"
 
-#: src/compositing/compositing.c:1689
+#: src/compositing/compositing.c:1729
 msgid "All layer images saved correctly.\n"
 msgstr "Toutes les images des canaux ont été enregistrées correctement.\n"
 
-#: src/compositing/compositing.c:1691
+#: src/compositing/compositing.c:1731
 msgid ""
 "Error encountered in saving one or more files. Check previous log messages "
 "for details.\n"
@@ -12491,48 +12360,48 @@ msgstr ""
 "Erreur rencontrée lors de l'enregistrement d'un ou plusieurs fichiers. "
 "Vérifier les messages précédents pour plus de détails.\n"
 
-#: src/compositing/compositing.c:1698
+#: src/compositing/compositing.c:1738
 msgid "At least 2 images must be loaded to perform linear matching."
 msgstr ""
 "Au moins deux images doivent être chargées pour effectuer un linear match."
 
-#: src/compositing/compositing.c:1720
+#: src/compositing/compositing.c:1760
 #, c-format
 msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
 msgstr ""
 "Impossible de trouver les coefficients de correspondance linéaire pour la "
 "couche %d. Sauter...\n"
 
-#: src/compositing/compositing.c:1724
+#: src/compositing/compositing.c:1764
 msgid "Linear match layers"
 msgstr "Linear match par canal"
 
-#: src/compositing/compositing.c:1726
+#: src/compositing/compositing.c:1766
 msgid "Linear match layers complete"
 msgstr "Linear match par canal terminé"
 
-#: src/compositing/compositing.c:1728
+#: src/compositing/compositing.c:1768
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
 msgstr ""
 "Erreur : la correspondance entre le canal %d et le canal de référence a "
 "échoué.\n"
 
-#: src/compositing/compositing.c:1780 src/registration/global.c:145
+#: src/compositing/compositing.c:1820 src/registration/global.c:145
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
 msgstr "Aligner une séquence ouverte comme CFA est une mauvaise idée.\n"
 
-#: src/compositing/compositing.c:1782 src/registration/global.c:147
+#: src/compositing/compositing.c:1822 src/registration/global.c:147
 msgid "Reference Image:\n"
 msgstr "Image de Référence :\n"
 
-#: src/compositing/compositing.c:1912 src/registration/3stars.c:719
+#: src/compositing/compositing.c:1952 src/registration/3stars.c:719
 #: src/registration/global.c:481 src/registration/registration.c:477
 #: src/registration/registration.c:666 src/registration/registration.c:771
 msgid "Registration finished.\n"
 msgstr "Alignement fini.\n"
 
-#: src/compositing/compositing.c:1913 src/registration/applyreg.c:356
+#: src/compositing/compositing.c:1953 src/registration/applyreg.c:356
 #: src/registration/global.c:482
 #, c-format
 msgid "%d image processed.\n"
@@ -12540,13 +12409,13 @@ msgid_plural "%d images processed.\n"
 msgstr[0] "%d image traitée\n"
 msgstr[1] "%d images traitées\n"
 
-#: src/compositing/compositing.c:1916 src/registration/3stars.c:720
+#: src/compositing/compositing.c:1956 src/registration/3stars.c:720
 #: src/registration/global.c:485 src/registration/global.c:1063
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "Total : %d en échec, %d alignées.\n"
 
-#: src/compositing/compositing.c:1921 src/registration/global.c:496
+#: src/compositing/compositing.c:1961 src/registration/global.c:496
 msgid "Registration aborted.\n"
 msgstr "Alignement interrompu.\n"
 
@@ -22562,27 +22431,26 @@ msgid "Output files (*%s)"
 msgstr "Fichiers de sortie (*%s)"
 
 #: src/gui/plot.c:1179 src/gui/plot.c:1223 src/gui/plot.c:1236
-#, fuzzy
 msgid "Cannot output data"
-msgstr "Impossible de créer le dossier de sortie : %s\n"
+msgstr "Impossible de produire des données"
 
 #: src/gui/plot.c:1209
-#, fuzzy
 msgid "Incomplete data"
-msgstr "Alignement incomplet"
+msgstr "Données incomplètes"
 
 #: src/gui/plot.c:1209
 msgid "You must select a comparison star and a check star."
 msgstr ""
+"Vous devez sélectionner une étoile de comparaison et une étoile de contrôle."
 
 #: src/gui/plot.c:1215
-#, fuzzy
 msgid "Wrong data"
-msgstr "Mauvaise date : "
+msgstr "Données erronées"
 
 #: src/gui/plot.c:1215
 msgid "The comparison star and the check star must be different."
 msgstr ""
+"L'étoile de comparaison et l'étoile de contrôle doivent être différentes."
 
 #: src/gui/plot.c:1446
 #, c-format
@@ -23535,38 +23403,36 @@ msgstr ""
 
 #: src/io/aavso_extended.c:207
 #, fuzzy
-msgid "Number of is images is not enough\n"
-msgstr "Nombre d'image"
+msgid "Number of images is not enough\n"
+msgstr "Nombre d'images insuffisant\n"
 
 #. we want both c_idx and k_idx valid
 #: src/io/aavso_extended.c:224
-#, fuzzy
 msgid ""
 "The reference stars are not good enough, probably out of the configured "
 "valid pixel range, cannot calibrate the data\n"
 msgstr ""
 "Les étoiles de référence ne sont pas assez bonnes, probablement en dehors de "
-"la plage de pixels valides configurés, et ne peuvent pas étalonner la courbe "
-"de lumière.\n"
+"la plage de pixels valides configurée, et ne peuvent pas calibrer les "
+"données.\n"
 
 #: src/io/aavso_extended.c:228
-#, fuzzy, c-format
+#, c-format
 msgid "Using %d stars to calibrate the data\n"
-msgstr "Utilisation de %d étoiles pour étalonner la courbe de lumière\n"
+msgstr "Utilisation de %d étoiles pour calibrer les données\n"
 
 #: src/io/aavso_extended.c:238
-#, fuzzy
 msgid "Out of memory\n"
-msgstr "Mémoire insuffisante - abandon"
+msgstr "Mémoire insuffisante\n"
 
 #: src/io/aavso_extended.c:312
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Calibrated data for %d points of the output data, %d excluded because of "
 "invalid calibration\n"
 msgstr ""
-"Données étalonnées pour %d points de la courbe de lumière, %d exclus à cause "
-"d'un étalonnage invalide.\n"
+"Données calibrées pour %d points des données de sortie, %d exclus en raison "
+"d'un calibrage non valide\n"
 
 #: src/io/annotation_catalogues.c:393
 #, c-format
@@ -25820,6 +25686,10 @@ msgstr[1] "%d x %d pixels (%d canaux)"
 msgid "Pixel Math result"
 msgstr "Résultat du Pixel Math"
 
+#: src/pixelMath/pixel_math_runner.c:351
+msgid "R"
+msgstr "R"
+
 #: src/pixelMath/pixel_math_runner.c:657 src/pixelMath/pixel_math_runner.c:668
 #: src/pixelMath/pixel_math_runner.c:678
 #, c-format
@@ -27196,6 +27066,83 @@ msgstr "Mise à l'échelle de la séquence pour l’empilement"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "L'empilement se fera sans mise à l'échelle (désactivation du 'drizzle')\n"
+
+#~ msgid "K"
+#~ msgstr "K"
+
+#, fuzzy
+#~ msgid "TG"
+#~ msgstr "V"
+
+#, fuzzy
+#~ msgid "TB"
+#~ msgstr "B"
+
+#, fuzzy
+#~ msgid "TR"
+#~ msgstr "R"
+
+#, fuzzy
+#~ msgid "CV"
+#~ msgstr "GCVS"
+
+#, fuzzy
+#~ msgid "CR"
+#~ msgstr "R"
+
+#, fuzzy
+#~ msgid "SZ"
+#~ msgstr "S"
+
+#, fuzzy
+#~ msgid "SU"
+#~ msgstr "S"
+
+#, fuzzy
+#~ msgid "SG"
+#~ msgstr "S"
+
+#, fuzzy
+#~ msgid "SR"
+#~ msgstr "SNR"
+
+#, fuzzy
+#~ msgid "SI"
+#~ msgstr "S"
+
+#, fuzzy
+#~ msgid "STV"
+#~ msgstr "TSV"
+
+#, fuzzy
+#~ msgid "MA"
+#~ msgstr "MAD"
+
+#, fuzzy
+#~ msgid "MB"
+#~ msgstr "B"
+
+#, fuzzy
+#~ msgid "ZS"
+#~ msgstr "S"
+
+#, fuzzy
+#~ msgid "HA"
+#~ msgstr "A"
+
+#, fuzzy
+#~ msgid "CCD"
+#~ msgstr "CDS"
+
+#~ msgid ""
+#~ "This operation (PCC) relies on the missing WCSLIB software, cannot "
+#~ "continue.\n"
+#~ msgstr ""
+#~ "Cette opération (PCC) repose sur le logiciel WCSLIB manquant, ne peut pas "
+#~ "continuer.\n"
+
+#~ msgid "na"
+#~ msgstr "na"
 
 #~ msgid "Search Object"
 #~ msgstr "Chercher Objet"
