@@ -847,8 +847,6 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			index, dest->naxes[2], seq->nb_layers);
 		return 1;
 	}
-//	check_profile_correct(dest);
-	color_manage(dest, FALSE);
 
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
