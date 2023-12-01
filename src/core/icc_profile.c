@@ -288,7 +288,6 @@ void display_index_transform(BYTE* index, int vport) {
 	BYTE* chan = &buf[0] + (vport * (USHRT_MAX + 1));
 	memcpy(chan, index, USHRT_MAX + 1);
 	cmsDoTransformLineStride(gui.icc.proofing_transform, &buf, &buf, USHRT_MAX + 1, 1, (USHRT_MAX + 1) * 3, (USHRT_MAX + 1) * 3, USHRT_MAX + 1, USHRT_MAX + 1);
-	g_mutex_unlock(&display_transform_mutex);
 	memcpy(index, chan, USHRT_MAX + 1);
 }
 
