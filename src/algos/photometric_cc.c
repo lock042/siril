@@ -52,6 +52,37 @@ cmsFloat64Number bvToT(float bv) {
 	return t;
 }
 
+// Returns a valid xyY for 1667K <= t <= 25000K, otherwise xyY = { 0.0 }
+static void temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
+	// Calculate x
+	if (t < 1667.0)
+		xyY->x = 0.0;
+	else if (t < 4000.0)
+		xyY->x = (-0.2661239e9 / (t * t * t)) - (0.2343589e6 / (t * t)) +( 0.8776956e3 / t) + 0.179910;
+	else if (t < 25000.0)
+		xyY->x = (-3.0258469e9 / (t * t * t)) + (2.1070379e6 / (t * t)) + (0.2226347e3 / t) + 0.240390;
+	else
+		xyY->x = 0.0;
+
+	cmsFloat64Number x = xyY->x;
+	// Calculate y
+	if (t < 1667)
+		xyY->y = 0.0;
+	else if (t < 2222.0)
+		xyY->y = (-1.1063814 * x * x * x) - (1.34811020 * x * x) + (2.18555832 * x) - 0.20219683;
+	else if (t < 4000.0)
+		xyY->y = (-0.9549476 * x * x * x) - (1.37418593 * x * x) + (2.09137015 * x) - 0.16748867;
+	else if (t < 25000.0)
+		xyY->y = (3.0817580 * x * x * x) - (5.87338670 * x * x) + (3.75112997 * x) - 0.37001483;
+	else
+		xyY->y = 0.0;
+
+	if (!(xyY->x == 0.0 && xyY->y == 0.0))
+		xyY->Y = 1.0;
+	else
+		xyY->Y = 0.0;
+}
+
 // Makes use of lcms2 to get the RGB values correct
 // transform is calculated in get_white_balance_coeff below
 // It provides the transform from XYZ to the required image colorspace
@@ -62,9 +93,9 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 	bv = min(max(bv, -0.4f), 2.f);
 	cmsFloat64Number TempK = bvToT(bv);
 //	siril_debug_print("TempK bv = -0.4: %f\nTempK bv = 0.0: %f\nTempK bv = 0.5: %f\nTempK bv = 2.0: %f\n", bvToT(-0.4), bvToT(0.), bvToT(0.5), bvToT(2.0));
-	// Test code
-/*	{
-		cmsWhitePointFromTemp(&WhitePoint, 4000);
+/*	// Test code
+	{
+		temp_to_xyY(&WhitePoint, 4000);
 		cmsxyY2XYZ(&XYZ, &WhitePoint);
 		siril_debug_print("4000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
 		xyz[0] = (float) XYZ.X;
@@ -75,7 +106,7 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 		*g = rgb[1];
 		*b = rgb[2];
 		siril_debug_print("4000K R: %f, G: %f, B: %f\n", *r, *g, *b);
-		cmsWhitePointFromTemp(&WhitePoint, 8000);
+		temp_to_xyY(&WhitePoint, 8000);
 		cmsxyY2XYZ(&XYZ, &WhitePoint);
 		siril_debug_print("8000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
 		xyz[0] = (float) XYZ.X;
@@ -86,7 +117,7 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 		*g = rgb[1];
 		*b = rgb[2];
 		siril_debug_print("8000K R: %f, G: %f, B: %f\n", *r, *g, *b);
-		cmsWhitePointFromTemp(&WhitePoint, 16000);
+		temp_to_xyY(&WhitePoint, 16000);
 		cmsxyY2XYZ(&XYZ, &WhitePoint);
 		siril_debug_print("16000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
 		xyz[0] = (float) XYZ.X;
@@ -99,7 +130,8 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 		siril_debug_print("16000K R: %f, G: %f, B: %f\n", *r, *g, *b);
 	}
 */	// end of test code
-	cmsWhitePointFromTemp(&WhitePoint, TempK);
+//	cmsWhitePointFromTemp(&WhitePoint, TempK);
+	temp_to_xyY(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
 	xyz[0] = (float) XYZ.X;
 	xyz[1] = (float) XYZ.Y;
