@@ -64,6 +64,8 @@ cmsHPROFILE rec2020_linear();
 cmsHPROFILE gray_rec709trc();
 
 void color_manage(fits *fit, gboolean active);
+void lock_display_transform();
+void unlock_display_transform();
 void display_index_transform(BYTE* index, int vport);
 gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c);
 void reset_icc_transforms();
@@ -91,6 +93,6 @@ void update_profiles_after_gamut_change();
 void initialize_icc_preferences_widgets();
 gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event, gpointer userdata);
 void enable_iso12646_conditions();
-void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel);
+void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gboolean revert_rendering_mode);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

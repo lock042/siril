@@ -80,6 +80,7 @@ static int update_wavelets() {
 		}
 		g_free(dir[i]);
 	}
+	redraw(REMAP_ALL);
 	return 0;
 }
 

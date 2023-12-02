@@ -264,11 +264,14 @@ layer *create_layer(int index) {
 	}
 	memset(&ret->the_fit, 0, sizeof(fits));
 	assert(index >= 2);	// 1 is luminance
-	if (index <= 7)		// copy default RGB colours
+	if (index <= 7) {		// copy default RGB colours
 		memcpy(&ret->color,
 				&list_of_12_palette_colors[(index-2)*2],
 				sizeof(GdkRGBA));
-	else clear_pixel(&ret->color);
+		memcpy(&ret->display_color, &ret->color, sizeof(GdkRGBA));
+	} else {
+		clear_pixel(&ret->color);
+	}
 	clear_pixel(&ret->saturated_color);
 	return ret;
 }
@@ -408,6 +411,7 @@ void open_compositing_window() {
 		register_selection_update_callback(update_compositing_registration_interface);
 
 		gtk_builder_connect_signals(gui.builder, NULL);
+		siril_set_file_filter("filechooser_lum", "filefilter1");
 
 		/* parse the default palette */
 		for (i=0; i<sizeof(list_of_12_color_names)/sizeof(const char*); i++)
@@ -466,15 +470,15 @@ void open_compositing_window() {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
 
-		close_sequence(FALSE);
-		close_single_image();
+//		close_sequence(FALSE);
+//		close_single_image();
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
 			if (!reference)
 				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
 		} while (layers[i]);
-		update_result(1);
+//		update_result(1);
 		update_MenuItem();
 	}
 	if (compositing_loaded == 1)
@@ -597,8 +601,6 @@ static void update_metadata() {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	if (firstlayer >= 0)
-		load_WCS_from_memory(&layers[firstlayer]->the_fit);
 	free(f);
 }
 
@@ -613,7 +615,6 @@ static void update_comp_metadata(fits *fit) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(fit);
 	free(f);
 }
 
@@ -1337,7 +1338,45 @@ void on_colordialog_response(GtkColorChooserDialog *chooser, gint response_id, g
 	}
 
 	if (current_layer_color_choosing > 0 && layers[current_layer_color_choosing]) {
-		gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(chooser), &layers[current_layer_color_choosing]->color);
+		gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(chooser), &layers[current_layer_color_choosing]->display_color);
+
+		// The color chooser returns a RGBA in the monitor color profile. We need to change this to
+		// the image color profile to set it accurately for the composition
+		float disp[3] = { (float) layers[current_layer_color_choosing]->display_color.red,
+						  (float) layers[current_layer_color_choosing]->display_color.green,
+						  (float) layers[current_layer_color_choosing]->display_color.blue };
+		float img[3];
+		cmsHPROFILE image_profile = NULL;
+		if (gfit.icc_profile)
+			image_profile = copyICCProfile(gfit.icc_profile);
+		else if ((com.pref.icc.autoassignment & ICC_ASSIGN_ON_COMPOSITION) && com.icc.working_standard)
+			image_profile = copyICCProfile(com.icc.working_standard);
+		if (image_profile) {
+			// We use the NONEGATIVES flag to bound the transform, otherwise the
+			// negative components play havoc with the compositing.
+			cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
+															gui.icc.monitor,
+															TYPE_RGB_FLT_PLANAR,
+															image_profile,
+															TYPE_RGB_FLT_PLANAR,
+															INTENT_RELATIVE_COLORIMETRIC,
+															cmsFLAGS_NONEGATIVES);
+			cmsCloseProfile(image_profile);
+			if (transform) {
+				cmsDoTransform(transform, disp, img, 1);
+				cmsDeleteTransform(transform);
+				siril_debug_print("Color picker transform (display to image): R: %f -> %f, G: %f -> %f, B: %f -> %f\n", disp[0], img[0], disp[1], img[1], disp[2], img[2]);
+			} else {
+				memcpy(&img, &disp, 3 * sizeof(float));
+				siril_debug_print("Unable to complete color picker transform\n");
+			}
+		} else {
+			memcpy(&img, &disp, 3 * sizeof(float));
+		}
+		layers[current_layer_color_choosing]->color.red = img[0];
+		layers[current_layer_color_choosing]->color.green = img[1];
+		layers[current_layer_color_choosing]->color.blue = img[2];
+
 		color_has_been_updated(current_layer_color_choosing);
 		gtk_widget_queue_draw(GTK_WIDGET(layers[current_layer_color_choosing]->color_w));
 		gtk_widget_hide(GTK_WIDGET(chooser));
@@ -1358,8 +1397,8 @@ gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data) {
 
 	w = gtk_widget_get_allocated_width(GTK_WIDGET(widget));
 	h = gtk_widget_get_allocated_height(GTK_WIDGET(widget));
-	cairo_set_source_rgb(cr, layers[layer]->color.red,
-			layers[layer]->color.green, layers[layer]->color.blue);
+	cairo_set_source_rgb(cr, layers[layer]->display_color.red,
+			layers[layer]->display_color.green, layers[layer]->display_color.blue);
 	//cairo_rectangle(cr, (double)w*0.33, 1, (double)w*0.33, (double)h-2.0);
 	cairo_rectangle(cr, 1, 1, w-2.0, h-2.0);
 	cairo_fill(cr);
@@ -1390,7 +1429,6 @@ gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventBut
 		if (layers[layer]->color_w == widget)
 			break;
 	if (!layers[layer]) return FALSE;
-
 	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		current_layer_color_choosing = layer;
 		gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &layers[layer]->color);
@@ -1454,7 +1492,7 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 	GdkRGBA color;
 	double wavelength = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
 	if (wavelength < 380.0 || wavelength > 780.0) return;
-	wavelength_to_RGB(wavelength, &color);
+	wavelength_to_display_RGB(wavelength, &color);
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &color);
 }
 

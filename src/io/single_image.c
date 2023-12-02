@@ -76,6 +76,7 @@ void close_single_image() {
 
 static gboolean free_image_data_idle(gpointer p) {
 	siril_debug_print("free_image_data_gui_idle() called\n");
+	disable_iso12646_conditions(TRUE, TRUE, FALSE);
 	//reset_compositing_module();
 	delete_selected_area();
 	reset_plot(); // clear existing plot if any
@@ -158,7 +159,6 @@ void free_image_data() {
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
 	reset_icc_transforms();
-	disable_iso12646_conditions(TRUE, TRUE);
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 

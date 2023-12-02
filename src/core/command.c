@@ -1256,7 +1256,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -1308,7 +1308,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -1459,7 +1459,7 @@ int process_makepsf(int nb) {
 						siril_log_message(_("Error: no filename specified, aborting.\n"));
 						goto terminate_makepsf;
 					} else {
-						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
+						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
 							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 							goto terminate_makepsf;
 						}
@@ -4706,11 +4706,8 @@ int process_seq_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
-#ifdef HAVE_WCSLIB
 	args->save_eqcoords = TRUE;	// managed in apply_findstar_to_sequence()
-#else
-	args->save_eqcoords = FALSE;
-#endif
+
 	args->starfile = NULL;
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 
@@ -8141,9 +8138,6 @@ int process_capabilities(int nb) {
 #ifdef HAVE_JSON_GLIB
 	siril_log_message("Built with json-glib\n");
 #endif
-#ifdef HAVE_WCSLIB
-	siril_log_message("Built with wcslib\n");
-#endif
 #ifdef HAVE_EXIV2
 	siril_log_message("Built with exiv2\n");
 #endif
@@ -8560,13 +8554,8 @@ int process_pcc(int nb) {
 		else if (!pcc_command && !g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
 			if (cat != CAT_AUTO)
 				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
-#ifndef HAVE_WCSLIB
-			siril_log_color_message(_("Astrometry.net interaction relies on the missing WCSLIB software, cannot continue.\n"), "red");
-			return CMD_ARG_ERROR;
-#else
 			cat = CAT_ASNET;
 			local_cat = TRUE;
-#endif
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			if (target_coords)
@@ -9438,6 +9427,7 @@ int process_seq_profile(int nb) {
 }
 
 int process_icc_assign(int nb) {
+	if(!com.headless) on_clear_roi();
 	char *arg = word[1];
 	cmsHPROFILE profile = NULL;
 	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
@@ -9481,6 +9471,7 @@ int process_icc_assign(int nb) {
 }
 
 int process_icc_convert_to(int nb) {
+	if (!com.headless) on_clear_roi();
 	char *arg = word[1];
 	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
 	com.pref.icc.processing_intent = com.pref.icc.export_intent;
@@ -9549,6 +9540,7 @@ int process_icc_convert_to(int nb) {
 }
 
 int process_icc_remove(int nb) {
+	if (!com.headless) on_clear_roi();
 	siril_colorspace_transform(&gfit, NULL);
 	refresh_icc_transforms();
 	if (!com.headless)

@@ -277,6 +277,7 @@ typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	double airmass;     /* airmass of the image, used in photometry */
 	int rx, ry;
 } imgdata;
 
@@ -378,11 +379,6 @@ typedef struct {
 } single;
 
 typedef struct {
-	double equinox;
-	double crpix[2];
-	double crval[2];
-	double cdelt[2];
-	double pc[2][2];
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];
 	double ra;
@@ -452,9 +448,7 @@ struct ffit {
 
 	/* Plate Solving data */
 	wcs_info wcsdata;		// data from the header
-#ifdef HAVE_WCSLIB
 	struct wcsprm *wcslib;		// struct of the lib
-#endif
 
 	/* data used in the Fourier space */
 	dft_info dft;
@@ -532,6 +526,7 @@ struct historic_struct {
 	int rx, ry, nchans;
 	data_type type;
 	wcs_info wcsdata;
+	struct wcsprm *wcslib;
 	double focal_length;
 	cmsHPROFILE icc_profile;
 };
@@ -552,8 +547,9 @@ typedef struct {
 	double spinbutton_y_value;
 	double spinbutton_r_value;
 	/* useful data */
-	GdkRGBA color;					// real color of the layer
-	GdkRGBA saturated_color;		// saturated color of the layer
+	GdkRGBA color;					// real color of the layer in the image colorspace
+	GdkRGBA saturated_color;		// saturated color of the layer in the image colorspace
+	GdkRGBA display_color;			// color of the layer in the display colorspace
 	fits the_fit;					// the fits for layers
 	point center;
 } layer;
@@ -705,6 +701,7 @@ struct common_icc {
 
 /* The global data structure of siril core */
 struct cominf {
+	GResource *resource; // resources
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings

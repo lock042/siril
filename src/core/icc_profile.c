@@ -54,6 +54,7 @@
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;
+static GMutex display_transform_mutex;
 
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
@@ -284,6 +285,15 @@ static gboolean siril_color_profile_is_rgb(cmsHPROFILE profile) {
 	return (cmsGetColorSpace (profile) == cmsSigRgbData);
 }
 
+void lock_display_transform() {
+	g_mutex_lock(&display_transform_mutex);
+}
+void unlock_display_transform() {
+	g_mutex_unlock(&display_transform_mutex);
+}
+
+// This must be locked by the display_transform_mutex, but it is done from
+// remap_all_vports() so the mutex lock covers all 3 calls to this function
 void display_index_transform(BYTE* index, int vport) {
 	BYTE buf[3 * (USHRT_MAX + 1)] = { 0 };
 	BYTE* chan = &buf[0] + (vport * (USHRT_MAX + 1));
@@ -352,6 +362,7 @@ gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c) {
 }
 
 void reset_icc_transforms() {
+	g_mutex_lock(&display_transform_mutex);
 	if (gfit.color_managed) {
 		if (gui.icc.proofing_transform) {
 			cmsDeleteTransform(gui.icc.proofing_transform);
@@ -360,6 +371,7 @@ void reset_icc_transforms() {
 	}
 	gui.icc.same_primaries = FALSE;
 	gui.icc.profile_changed = TRUE;
+	g_mutex_unlock(&display_transform_mutex);
 }
 
 void validate_custom_profiles() {
@@ -603,7 +615,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 						gfit.icc_profile,
 						type,
 						gui.icc.monitor,
-						type,
+						TYPE_RGB_8_PLANAR,
 						(gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : gui.icc.monitor,
 						com.pref.icc.rendering_intent,
 						com.pref.icc.proofing_intent,
@@ -617,9 +629,11 @@ cmsHTRANSFORM initialize_proofing_transform() {
 void refresh_icc_transforms() {
 	if (!com.headless) {
 		gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+		g_mutex_lock(&display_transform_mutex);
 		if (gui.icc.proofing_transform)
 			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
+		g_mutex_unlock(&display_transform_mutex);
 		gui.icc.profile_changed = TRUE;
 
 	}
@@ -1681,7 +1695,7 @@ siril_close_dialog("icc_dialog");
 }
 
 void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
-
+	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile assignment"));
 
@@ -1723,6 +1737,7 @@ FINISH:
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
+	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile removal"));
 	if (gfit.icc_profile) {
@@ -1739,6 +1754,7 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
+	on_clear_roi();
 	if (!gfit.color_managed || !gfit.icc_profile) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
 		return;
@@ -1857,7 +1873,7 @@ gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event
 		// Right mouse button press
         if (gui.icc.iso12646) {
 			siril_debug_print("Disabling approximate ISO12646 viewing conditions\n");
-			disable_iso12646_conditions(TRUE, TRUE);
+			disable_iso12646_conditions(TRUE, TRUE, TRUE);
 		} else {
 			siril_debug_print("Enabling approximate ISO12646 viewing conditions\n");
 			enable_iso12646_conditions();
@@ -1913,15 +1929,13 @@ void on_icc_gamut_visualisation_clicked() {
 	GtkWidget *win = lookup_widget("icc_gamut_dialog");
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
 	if (!colorspace_comparison_image_set) {
-		gchar *image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "CIE1931.svg", NULL);
 		GError *error = NULL;
-		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(image, &error);
+		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_resource("/org/siril/ui/pixmaps/CIE1931.svg", &error);
 		if (error) {
 			siril_debug_print("Error: %s\n", error->message);
 			g_error_free(error);
 		}
 		gtk_image_set_from_pixbuf(GTK_IMAGE(lookup_widget("colorspace_comparison")), pixbuf);
-		g_free(image);
 		colorspace_comparison_image_set = TRUE;
 	}
 	/* Here this is wanted that we do not use siril_open_dialog */
@@ -2076,7 +2090,7 @@ void enable_iso12646_conditions() {
 	g_idle_add((GSourceFunc)on_iso12646_panel_hide_completed, &remap);
 }
 
-void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel) {
+void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gboolean revert_rendering_mode) {
 	GtkWidget *parent_widget = lookup_widget("vbox_rgb");
 	if (gui.icc.sh_rgb)
 		g_signal_handler_disconnect(G_OBJECT(parent_widget), gui.icc.sh_rgb);
@@ -2128,8 +2142,10 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel) {
 	else if (gui.sliders == MIPSLOHI)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_hilo")), TRUE);
 	set_cutoff_sliders_values();
-	gui.rendering_mode = prior_rendering_mode;
-	set_display_mode();
+	if (revert_rendering_mode) {
+		gui.rendering_mode = prior_rendering_mode;
+		set_display_mode();
+	}
 	if (mode_changed)
 		redraw(REMAP_ALL);
 	gtk_widget_queue_draw(lookup_widget("control_window"));

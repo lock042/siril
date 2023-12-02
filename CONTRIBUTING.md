@@ -35,12 +35,8 @@ When you are creating a bug report, please include as many details as possible. 
 
 ### Getting Your Code Changes Merged
 
-If you would like to fix any bug or add a new feature then follow below steps:
-
-1. Fork this project in your own repo
-2. Create a branch and make your changes
-3. Create a Merge Request from your branch to master
-4. Once approved, it can be merged
+If you would like to fix any bug or add a new feature, you can refer to our [contributor guidelines](https://siril-contrib-doc.readthedocs.io/en/latest/).  
+In particular, you will need to have a look at the section about [submitting your work](https://siril-contrib-doc.readthedocs.io/en/latest/SubmitingWork.html).
 
 ### Translation
 

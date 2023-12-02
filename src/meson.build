@@ -138,6 +138,7 @@ src_files = [
   'filters/deconvolution/utils.hpp',
   'filters/deconvolution/vec2.hpp',
 
+  'io/aavso_extended.c',
   'io/annotation_catalogues.c',
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
@@ -257,8 +258,15 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
+# Define the resource file
+gnome = import('gnome')
+siril_resources = gnome.compile_resources(
+  'siril_resource', 'siril_resource.xml',
+  source_dir : [ '..', '.' ],
+  c_name : 'siril_resource')
+
 siril_lib = static_library('siril',
-                           src_files,
+                           siril_resources[0], src_files,
                            dependencies: externals_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
@@ -268,11 +276,12 @@ siril_dep = declare_dependency(link_with: siril_lib,
                                dependencies: externals_dep,
                                include_directories: siril_inc_dir)
 
+# Custom target for glib-compile-resources
 
 ################################################################################
 # Build gui executable
 
-siril_gui = executable('siril', 'main.c', win_res,
+siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
                        link_args : siril_link_arg,
@@ -293,62 +302,6 @@ siril_cli = executable('siril-cli', 'main-cli.c', win_res,
                        cpp_args : siril_cpp_flag,
                        install : true
                       )
-
-################################################################################
-# Install GUI files
-
-install_data(['gui/siril.css',
-              'gui/uifiles/filefilters.ui',
-              'gui/uifiles/menus.ui',
-              'gui/uifiles/cosmetic_dialog.ui',
-              'gui/uifiles/binxy_dialog.ui',
-              'gui/uifiles/siril.ui',
-              'gui/uifiles/CLAHE_dialog.ui',
-              'gui/uifiles/cut_dialog.ui',
-              'gui/uifiles/cut_coords_dialog.ui',
-              'gui/uifiles/extract_wavelet_layers_dialog.ui',
-              'gui/uifiles/canon_fixbanding_dialog.ui',
-              'gui/uifiles/Median_dialog.ui',
-              'gui/uifiles/rgradient_dialog.ui',
-              'gui/uifiles/starnet_dialog.ui',
-              'gui/uifiles/wavelets_dialog.ui',
-              'gui/uifiles/asinh_dialog.ui',
-              'gui/uifiles/background_extraction_dialog.ui',
-              'gui/uifiles/savepopup.ui',
-              'gui/uifiles/satu_dialog.ui',
-              'gui/uifiles/SCNR_dialog.ui',
-              'gui/uifiles/bdeconv_dialog.ui',
-              'gui/uifiles/crop_dialog.ui',
-              'gui/uifiles/cut_spectroscopy_dialog.ui',
-              'gui/uifiles/colorchooserdialog.ui',
-              'gui/uifiles/denoise_dialog.ui',
-              'gui/uifiles/extract_channel_dialog.ui',
-              'gui/uifiles/file_information_dialog.ui',
-              'gui/uifiles/composition_dialog.ui',
-              'gui/uifiles/dialog_FFT.ui',
-              'gui/uifiles/dialog_star_remix.ui',
-              'gui/uifiles/linearmatch_dialog.ui',
-              'gui/uifiles/icc_dialog.ui',
-              'gui/uifiles/icc_gamut_dialog.ui',
-              'gui/uifiles/seqlist_dialog.ui',
-              'gui/uifiles/IPS_dialog.ui',
-              'gui/uifiles/StatWindow.ui',
-              'gui/uifiles/stars_list_window.ui',
-              'gui/uifiles/livestacking_player.ui',
-              'gui/uifiles/merge_cfa_dialog.ui',
-              'gui/uifiles/histogram_dialog.ui',
-              'gui/uifiles/pixelmath.ui',
-              'gui/uifiles/resample_dialog.ui',
-              'gui/uifiles/rotation_dialog.ui',
-              'gui/uifiles/script_contents_dialog.ui',
-              'gui/uifiles/split_cfa_dialog.ui',
-              'gui/uifiles/data_dialog.ui',
-              'gui/uifiles/color_calibration.ui',
-              'gui/uifiles/settings_window.ui',
-              'gui/uifiles/aberration_inspector.ui',
-              'gui/siril-shortcuts.ui'],
-             install_dir : siril_datadir)
-
 
 ################################################################################
 # Tests

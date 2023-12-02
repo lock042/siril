@@ -245,7 +245,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	}
 	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
-	free_wcs(&fit, FALSE);
+	free_wcs(&fit);
+	reset_wcsdata(&fit);
 	return apply_reg_prepare_results(args);
 }
 
@@ -285,7 +286,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	regargs->imgparam[out_index].rx = rx_out;
 	regargs->imgparam[out_index].ry = ry_out;
-	regargs->imgparam[out_index].date_obs = args->seq->imgparam[in_index].date_obs;
 	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;

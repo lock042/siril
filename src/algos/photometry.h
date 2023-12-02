@@ -61,7 +61,7 @@ void free_light_curve_args(struct light_curve_args *args);
 
 gpointer light_curve_worker(gpointer arg);
 
-int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs);
+int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

@@ -94,8 +94,8 @@ static void update_theme_button(const gchar *button_name, const gchar *path) {
 	gchar *image;
 	GtkWidget *w_image;
 
-	image = g_build_filename(siril_get_system_data_dir(), "pixmaps", path, NULL);
-	w_image = gtk_image_new_from_file(image);
+	image = g_strdup_printf("/org/siril/ui/pixmaps/%s", path);
+	w_image = gtk_image_new_from_resource(image);
 	gtk_widget_show(w_image);
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget(button_name)), w_image);
 	gtk_widget_show(lookup_widget(button_name));
@@ -333,30 +333,43 @@ void roi_supported(gboolean state) {
 	redraw(REDRAW_OVERLAY);
 }
 
+static GMutex roi_mutex;
+
 gpointer on_set_roi() {
-	if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
-		roi_info_message_if_needed();
-	// Ensure any pending ROI changes are overwritten by the backup
-	// Must copy the whole backup to gfit and gui.roi.fit to account
-	// for switching between full image and ROI
-	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
-	gui.roi.active = TRUE;
-	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
-		copy_backup_to_gfit();
-	populate_roi();
-	backup_roi();
-	// Call any callbacks that need calling
-	call_roi_callbacks();
-	return GINT_TO_POINTER(0);
+	gboolean val = g_mutex_trylock(&roi_mutex);
+	if (val) {
+		if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
+			roi_info_message_if_needed();
+		// Ensure any pending ROI changes are overwritten by the backup
+		// Must copy the whole backup to gfit and gui.roi.fit to account
+		// for switching between full image and ROI
+		memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+		gui.roi.active = TRUE;
+		if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
+			copy_backup_to_gfit();
+		populate_roi();
+		backup_roi();
+		// Call any callbacks that need calling
+		call_roi_callbacks();
+		g_mutex_unlock(&roi_mutex);
+	}
+	return GINT_TO_POINTER((int) ~val);
 }
 
 gpointer on_clear_roi() {
-	clearfits(&gui.roi.fit);
-	memset(&gui.roi, 0, sizeof(roi_t));
-	// Call any callbacks that need calling
-	call_roi_callbacks();
-	redraw(REDRAW_OVERLAY);
-	return GINT_TO_POINTER(0);
+	if (!gui.roi.active)
+		return GINT_TO_POINTER(0);
+
+	gboolean val = g_mutex_trylock(&roi_mutex);
+	if (val) {
+		clearfits(&gui.roi.fit);
+		memset(&gui.roi, 0, sizeof(roi_t));
+		// Call any callbacks that need calling
+		call_roi_callbacks();
+		queue_redraw(REDRAW_OVERLAY);
+		g_mutex_unlock(&roi_mutex);
+	}
+	return GINT_TO_POINTER((int) ~val);
 }
 
 static void initialize_theme_GUI() {
@@ -1673,8 +1686,12 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	if (gfit.color_managed && gui.icc.proofing_transform) {
+	if (gfit.color_managed) {
+		lock_display_transform();
+		if (gui.icc.proofing_transform)
+			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
+		unlock_display_transform();
 	}
 	redraw(REMAP_ALL);
 	redraw_previews();

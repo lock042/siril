@@ -184,7 +184,7 @@ void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	if (!is_visible) {
 		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
 		if (gui.icc.iso12646)
-			disable_iso12646_conditions(TRUE, FALSE);
+			disable_iso12646_conditions(TRUE, FALSE, TRUE);
 	} else {
 		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 	}
@@ -239,7 +239,7 @@ void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user
 	if (g_variant_get_boolean(state)) {
 		gui.zoom_value = ZOOM_FIT;
 		if (gui.icc.iso12646)
-			disable_iso12646_conditions(FALSE, TRUE);
+			disable_iso12646_conditions(FALSE, TRUE, TRUE);
 		reset_display_offset();
 		redraw(REDRAW_IMAGE);
 	} else {
@@ -261,14 +261,14 @@ void zoom_in_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_IN);
 	if (gui.icc.iso12646)
-		disable_iso12646_conditions(FALSE, TRUE);
+		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 }
 
 void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_OUT);
 	if (gui.icc.iso12646)
-		disable_iso12646_conditions(FALSE, TRUE);
+		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 }
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -624,6 +624,7 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_set_file_filter("reference_filechooser_linearmatch", "filefilter_fits");
 	siril_open_dialog("linearmatch_dialog");
 }
 
@@ -634,6 +635,8 @@ void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	phasebutton = GTK_FILE_CHOOSER_BUTTON(lookup_widget("filechooser_phase"));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(magbutton), com.wd);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(phasebutton), com.wd);
+	siril_set_file_filter("filechooser_mag", "filefilter_fits");
+	siril_set_file_filter("filechooser_phase", "filefilter_fits");
 	siril_open_dialog("dialog_FFT");
 }
 

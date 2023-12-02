@@ -429,7 +429,7 @@ void on_treeview1_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 		if (idx != com.seq.current) {
 			fprintf(stdout, "loading image %d\n", idx);
 			if (seq_load_image(&com.seq, idx, TRUE)) // if loading fails, we fall back reloading the reference image
-				seq_load_image(&com.seq, com.seq.reference_image, TRUE); 
+				seq_load_image(&com.seq, com.seq.reference_image, TRUE);
 		}
 		g_value_unset(&value);
 	}
@@ -851,23 +851,19 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 
 	if (do_load_image) {
 		if (seq_load_image(&com.seq, index, TRUE)) // if loading fails, we fall back reloading the reference image
-			seq_load_image(&com.seq, com.seq.reference_image, TRUE); 
+			seq_load_image(&com.seq, com.seq.reference_image, TRUE);
 		update_reg_interface(FALSE);
 		redraw(REDRAW_OVERLAY);
 	}
 }
 
 void update_icons_sequence_list(gboolean is_dark) {
-	gchar *image;
 	GtkWidget *w;
 	if (is_dark) {
-		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame_dark.svg", NULL);
-		w = gtk_image_new_from_file(image);
+		w = gtk_image_new_from_resource("/org/siril/ui/frame_dark.svg");
 	} else {
-		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame.svg", NULL);
-		w = gtk_image_new_from_file(image);
+		w = gtk_image_new_from_file("/org/siril/ui/frame.svg");
 	}
-	g_free(image);
 	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
 	gtk_widget_show(w);
 }

@@ -58,7 +58,6 @@ enable_libXISF   = get_option('libXISF')
 enable_ffms2     = get_option('ffms2')
 enable_ffmpeg    = get_option('ffmpeg')
 enable_criterion = get_option('criterion')
-enable_wcslib    = get_option('wcslib')
 enable_libjxl    = get_option('libjxl')
 enable_libgit2    = get_option('libgit2')
 
@@ -244,6 +243,8 @@ gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
+# wcslib mandatory - uses subproject fallback to build if not found
+wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -430,11 +431,6 @@ if enable_criterion
   criterion_dep = dependency('criterion', required : true)
 endif
 
-wcslib_dep = no_dep
-if enable_wcslib
-  wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true)
-endif
-
 ################################################################################
 # Configuration
 
@@ -610,19 +606,6 @@ if libcurl_dep.found()
   conf_data.set('HAVE_LIBCURL', true, description : 'Using Curl.')
 else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
-endif
-
-if wcslib_dep.found()
-  conf_data.set('HAVE_WCSLIB', true, description : 'Using wcslib.')
-  if wcslib_dep.version().version_compare('< 7.7')
-  wcslib_warning = '''
-        wcslib lower than version 7.7 is known to crash when
-        updating wcsdata in files. Please update
-  '''
-  warnings += wcslib_warning
-endif
-else
-  conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
 endif
 
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
@@ -801,7 +784,6 @@ summary(
     'ffmpeg'            : ffmpeg_found,
     'libcurl'           : libcurl_dep.found(),
     'glib-networking'   : glib_networking_works,
-    'wcslib'            : wcslib_dep.found(),
     'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
