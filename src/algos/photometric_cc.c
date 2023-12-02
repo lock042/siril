@@ -56,20 +56,59 @@ cmsFloat64Number bvToT(float bv) {
 // transform is calculated in get_white_balance_coeff below
 // It provides the transform from XYZ to the required image colorspace
 static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
-	bv = min(max(bv, -0.4f), 2.f);
-	cmsFloat64Number TempK = bvToT(bv);
 	cmsCIExyY WhitePoint;
 	cmsCIEXYZ XYZ;
 	float xyz[3], rgb[3] = { 0.f };
+	bv = min(max(bv, -0.4f), 2.f);
+	cmsFloat64Number TempK = bvToT(bv);
+//	siril_debug_print("TempK bv = -0.4: %f\nTempK bv = 0.0: %f\nTempK bv = 0.5: %f\nTempK bv = 2.0: %f\n", bvToT(-0.4), bvToT(0.), bvToT(0.5), bvToT(2.0));
+	// Test code
+/*	{
+		cmsWhitePointFromTemp(&WhitePoint, 4000);
+		cmsxyY2XYZ(&XYZ, &WhitePoint);
+		siril_debug_print("4000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
+		xyz[0] = (float) XYZ.X;
+		xyz[1] = (float) XYZ.Y;
+		xyz[2] = (float) XYZ.Z;
+		cmsDoTransform(transform, &xyz, &rgb, 1);
+		*r = rgb[0];
+		*g = rgb[1];
+		*b = rgb[2];
+		siril_debug_print("4000K R: %f, G: %f, B: %f\n", *r, *g, *b);
+		cmsWhitePointFromTemp(&WhitePoint, 8000);
+		cmsxyY2XYZ(&XYZ, &WhitePoint);
+		siril_debug_print("8000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
+		xyz[0] = (float) XYZ.X;
+		xyz[1] = (float) XYZ.Y;
+		xyz[2] = (float) XYZ.Z;
+		cmsDoTransform(transform, &xyz, &rgb, 1);
+		*r = rgb[0];
+		*g = rgb[1];
+		*b = rgb[2];
+		siril_debug_print("8000K R: %f, G: %f, B: %f\n", *r, *g, *b);
+		cmsWhitePointFromTemp(&WhitePoint, 16000);
+		cmsxyY2XYZ(&XYZ, &WhitePoint);
+		siril_debug_print("16000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
+		xyz[0] = (float) XYZ.X;
+		xyz[1] = (float) XYZ.Y;
+		xyz[2] = (float) XYZ.Z;
+		cmsDoTransform(transform, &xyz, &rgb, 1);
+		*r = rgb[0];
+		*g = rgb[1];
+		*b = rgb[2];
+		siril_debug_print("16000K R: %f, G: %f, B: %f\n", *r, *g, *b);
+	}
+*/	// end of test code
 	cmsWhitePointFromTemp(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
 	xyz[0] = (float) XYZ.X;
 	xyz[1] = (float) XYZ.Y;
 	xyz[2] = (float) XYZ.Z;
 	cmsDoTransform(transform, &xyz, &rgb, 1);
-	*r = rgb[0];
-	*g = rgb[1];
-	*b = rgb[2];
+	cmsFloat64Number maxval = max(max(rgb[0], rgb[1]), rgb[2]);
+	*r = rgb[0] / maxval;
+	*g = rgb[1] / maxval;
+	*b = rgb[2] / maxval;
 }
 
 static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
