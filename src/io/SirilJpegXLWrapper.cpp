@@ -181,6 +181,7 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
       return false;
     }
   }
+  return false; // should not happen
 }
 
 extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
