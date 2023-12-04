@@ -6,16 +6,16 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-30 10:39+0100\n"
-"PO-Revision-Date: 2023-11-29 11:23+0000\n"
+"PO-Revision-Date: 2023-12-03 02:05+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:53 src/gui/uifiles/denoise_dialog.ui:148
@@ -219,9 +219,8 @@ msgid "Julian Date"
 msgstr "Юлианская дата"
 
 #: src/gui/uifiles/siril.ui:272
-#, fuzzy
 msgid "Nothing to change"
-msgstr "Список отмены пуст"
+msgstr "Нечего не изменилось"
 
 #: src/gui/uifiles/siril.ui:282
 msgid "arcsec"
@@ -514,9 +513,8 @@ msgid "Save current plot to png file"
 msgstr "Сохранить текущий график в файл png"
 
 #: src/gui/uifiles/siril.ui:1321
-#, fuzzy
 msgid "Light Curve (ETD format)"
-msgstr "Световая кривая"
+msgstr "Световая кривая (формат ETD)"
 
 #: src/gui/uifiles/siril.ui:1335
 #, fuzzy
@@ -2572,9 +2570,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:7248
-#, fuzzy
 msgid "Photometry output"
-msgstr "Фотометрия"
+msgstr "Вывод фотометрии"
 
 #: src/gui/uifiles/siril.ui:7299
 msgid "Show all relevant graphs using registration and / or photometry data."
@@ -9170,32 +9167,28 @@ msgid "Region of Interest"
 msgstr "Область интереса"
 
 #: src/gui/uifiles/settings_window.ui:3472
-#, fuzzy
 msgid "Background extraction samples:"
-msgstr "Извлечение фона"
+msgstr "Образцы для извлечения фона:"
 
 #: src/gui/uifiles/settings_window.ui:3484
 msgid "Standard annotations:"
 msgstr "Стандартные аннотации:"
 
 #: src/gui/uifiles/settings_window.ui:3496
-#, fuzzy
 msgid "Deep Sky Object (user) annotations:"
-msgstr "показывать объекты каталога SH2 в аннотациях"
+msgstr "Пользовательские аннотации объектов глубокого космоса:"
 
 #: src/gui/uifiles/settings_window.ui:3508
-#, fuzzy
 msgid "Solar System Object (user) annotations:"
-msgstr "Поиск объектов Солнечной системы на дату %s\n"
+msgstr "Пользовательские аннотации объектов Солнечной системы:"
 
 #: src/gui/uifiles/settings_window.ui:3520
-#, fuzzy
 msgid "Temporary Object (user) annotations:"
-msgstr "показать пользовательские объекты в аннотациях"
+msgstr "Пользовательские аннотации временных объектов:"
 
 #: src/gui/uifiles/settings_window.ui:3591
 msgid "Overlay Colors"
-msgstr ""
+msgstr "Наложение цвета"
 
 #: src/gui/uifiles/settings_window.ui:3658
 msgid "This section contains options relating to working color spaces"
@@ -9451,7 +9444,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4182
 msgid "Convert other color profiles to the working profile?"
-msgstr ""
+msgstr "Преобразовать другие цветовые профили в рабочий профиль?"
 
 #: src/gui/uifiles/settings_window.ui:4193
 msgid ""
@@ -9482,7 +9475,7 @@ msgstr "При укладке"
 
 #: src/gui/uifiles/settings_window.ui:4236
 msgid "On stretching"
-msgstr ""
+msgstr "При растягивании"
 
 #: src/gui/uifiles/settings_window.ui:4265
 msgid "Output of RGB composition / PixelMath"
@@ -10006,12 +9999,11 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "Фильтр: "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
-#, fuzzy
 msgid "The filter used for the observation."
-msgstr "Алгоритм вращения"
+msgstr "Фильтр, использованный для наблюдения."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 #, fuzzy
@@ -10056,14 +10048,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparaison star: "
-msgstr "Звёзды сравнения"
+msgstr "Звезда сравнения: "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "Введите номер целевой звезды"
+msgstr "Номер звезды сравнения."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
@@ -10082,12 +10072,11 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr ""
+msgstr "Контрольная звезда: "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "Введите номер целевой звезды"
+msgstr "Номер контрольной звезды."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -14281,7 +14270,7 @@ msgstr "Ошибка открытия целевого профиля ICC.\n"
 
 #: src/core/command.c:9350
 msgid "Color profile assignment complete.\n"
-msgstr ""
+msgstr "Цветовой профиль назначен.\n"
 
 #: src/core/command.c:9353 src/core/command.c:9417
 msgid "Error opening ICC profile.\n"
@@ -18263,9 +18252,8 @@ msgid "Converted to ICC profile: %s"
 msgstr "Преобразовано в профиль ICC: %s"
 
 #: src/core/icc_profile.c:1185
-#, fuzzy
 msgid "Failed to create colorspace transform."
-msgstr "Не удалось создать конфигурационную директорию %s\n"
+msgstr "Не удалось создать преобразование цветового пространства."
 
 #: src/core/icc_profile.c:1208
 msgid ""
@@ -18306,13 +18294,12 @@ msgstr "Обновление рабочих профилей.\n"
 
 #: src/core/icc_profile.c:1490
 msgid "Monitor ICC profile set to sRGB\n"
-msgstr ""
+msgstr "Профиль ICC монитора установлен в sRGB\n"
 
 #: src/core/icc_profile.c:1492 src/core/icc_profile.c:1559
 #: src/core/icc_profile.c:1568
-#, fuzzy
 msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
-msgstr "Ошибка: изображение не может быть загружено"
+msgstr "Фатальная ошибка: не удалось загрузить стандартный профиль ICC sRGB.\n"
 
 #: src/core/icc_profile.c:1541
 msgid "Error: no filename specfied for custom monitor profile.\n"
@@ -18361,9 +18348,8 @@ msgstr ""
 
 #. We save the undo state as dealing with gfit
 #: src/core/icc_profile.c:1675
-#, fuzzy
 msgid "Color profile assignment"
-msgstr "Ошибка в выравнивании слоёв."
+msgstr "Назначение цветового профиля"
 
 #: src/core/icc_profile.c:1692 src/core/icc_profile.c:1741
 msgid "Color space not supported"
@@ -18409,9 +18395,8 @@ msgid "Could not load file"
 msgstr "Не удалось загрузить файл"
 
 #: src/core/icc_profile.c:1823
-#, fuzzy
 msgid "Error getting filename from widget."
-msgstr "Ошибка в выравнивании слоёв."
+msgstr "Ошибка получения имени файла от виджета."
 
 #: src/core/icc_profile.c:1828
 msgid "Error loading selected file or it does not contain a valid ICC profile."
@@ -19464,8 +19449,9 @@ msgid "configure standard annotation color"
 msgstr ""
 
 #: src/core/settings.c:435
+#, fuzzy
 msgid "configure dso annotation color"
-msgstr ""
+msgstr "уст"
 
 #: src/core/settings.c:436
 msgid "configure sso annotation color"
@@ -19530,6 +19516,8 @@ msgstr ""
 #: src/core/settings.c:451
 msgid "autoconvert images with an ICC profile to the working color space"
 msgstr ""
+"автоматическое преобразование изображений с профилем ICC в рабочее цветовое "
+"пространство"
 
 #: src/core/settings.c:452
 msgid "encodes ICC profile auto-assignment options"
@@ -21860,18 +21848,16 @@ msgid "Cannot output data"
 msgstr "Не удалось создать каталог для вывода: %s\n"
 
 #: src/gui/plot.c:1209
-#, fuzzy
 msgid "Incomplete data"
-msgstr "Неполное выравнивание"
+msgstr "Неполные данные"
 
 #: src/gui/plot.c:1209
 msgid "You must select a comparison star and a check star."
 msgstr ""
 
 #: src/gui/plot.c:1215
-#, fuzzy
 msgid "Wrong data"
-msgstr "Неверная дата: "
+msgstr "Неверные данные"
 
 #: src/gui/plot.c:1215
 msgid "The comparison star and the check star must be different."
@@ -22796,38 +22782,35 @@ msgstr ""
 "недебайеризованным изображением CFA. Вы уверены, что хотите продолжить?"
 
 #: src/io/aavso_extended.c:207
-#, fuzzy
 msgid "Number of images is not enough\n"
-msgstr "Кол-во изображений"
+msgstr "Недостаточное кол-во изображений\n"
 
 #. we want both c_idx and k_idx valid
 #: src/io/aavso_extended.c:224
-#, fuzzy
 msgid ""
 "The reference stars are not good enough, probably out of the configured "
 "valid pixel range, cannot calibrate the data\n"
 msgstr ""
 "Опорные звёзды недостаточно хороши, возможно за приделами заданного "
-"допустимого диапазона пикселей, не удалось откалибровать световую кривую\n"
+"допустимого диапазона пикселей, не удалось откалибровать данные\n"
 
 #: src/io/aavso_extended.c:228
-#, fuzzy, c-format
+#, c-format
 msgid "Using %d stars to calibrate the data\n"
-msgstr "Используется %d звёзд для калибровки световой кривой\n"
+msgstr "Используется %d звёзд для калибровки данных\n"
 
 #: src/io/aavso_extended.c:238
-#, fuzzy
 msgid "Out of memory\n"
-msgstr "Закончилась память, отмена"
+msgstr "Недостаточно памяти\n"
 
 #: src/io/aavso_extended.c:312
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Calibrated data for %d points of the output data, %d excluded because of "
 "invalid calibration\n"
 msgstr ""
-"Откалиброваны данные для %d точек кривой блеска, исключено %d из-за "
-"неправильной фотометрии\n"
+"Откалиброваны данные для %d точек исходящих данных, исключено %d из-за "
+"неверной калибровки\n"
 
 #: src/io/annotation_catalogues.c:393
 #, c-format
@@ -24391,9 +24374,8 @@ msgid "bright stars"
 msgstr "яркие звёзды"
 
 #: src/io/siril_catalogues.c:232
-#, fuzzy
 msgid "AAVSO Variable stars"
-msgstr "Переменная звезда не выбрана\n"
+msgstr "Переменные звёзды AAVSO"
 
 #: src/io/siril_catalogues.c:234
 msgid "GCVS"
@@ -24498,9 +24480,8 @@ msgstr "Каталог %s успешно загружен.\n"
 
 #. the projection was successful but no item was found in the frame
 #: src/io/siril_catalogues.c:1014
-#, fuzzy
 msgid "No item found in the image\n"
-msgstr "На изображении звёзды не найдены.\n"
+msgstr "Элементы на изображении не найдены\n"
 
 #: src/livestacking/gui.c:88
 #, c-format

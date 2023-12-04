@@ -2864,29 +2864,28 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		switch (bitdepth) {
 			case 8:
 				error = heif_image_create (width, height,
-										heif_colorspace_RGB,
-										heif_chroma_interleaved_RGB,
-										&image);
+											heif_colorspace_RGB,
+											heif_chroma_interleaved_RGB,
+											&image);
 			break;
 #if LIBHEIF_HAVE_VERSION(1,8,0)
 			case 10:
 			case 12:
 #if ( G_BYTE_ORDER == G_LITTLE_ENDIAN )
-				error = heif_image_create (width, height,
-										heif_colorspace_RGB,
-										heif_chroma_interleaved_RRGGBB_LE,
-										&image);
+		error = heif_image_create (width, height,
+									heif_colorspace_RGB,
+									heif_chroma_interleaved_RRGGBB_LE,
+									&image);
 #else
 				error = heif_image_create (width, height,
-										heif_colorspace_RGB,
-										heif_chroma_interleaved_RRGGBB_BE,
-										&image);
+											heif_colorspace_RGB,
+											heif_chroma_interleaved_RRGGBB_BE,
+											&image);
 #endif
 			break;
 #endif
 			default:
-				siril_log_color_message(_("Unsupported bit depth: %d"), "red",
-										bitdepth);
+				siril_log_color_message(_("Unsupported bit depth: %d"), "red", bitdepth);
 				heif_context_free (ctx);
 				return 1;
 			break;
@@ -3103,7 +3102,10 @@ int readjxl(const char* name, fits *fit) {
 	size_t xsize = 0, ysize = 0, zsize = 0, extra_channels = 0;
 	uint8_t bitdepth = 0;
 	float* pixels = NULL;
-	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize, &zsize, &extra_channels, &bitdepth, &icc_profile, &icc_profile_length, &internal_icc_profile, &internal_icc_profile_length)) {
+	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize,
+			&zsize, &extra_channels, &bitdepth, &icc_profile,
+			&icc_profile_length, &internal_icc_profile,
+			&internal_icc_profile_length)) {
 		siril_debug_print("Error while decoding the jxl file\n");
 		return 1;
 	}
