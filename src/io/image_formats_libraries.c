@@ -3214,7 +3214,9 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 	size_t compressed_length;
 
 	uint32_t icc_profile_length = 0;
-	uint8_t *icc_profile = get_icc_profile_data(fit->icc_profile, &icc_profile_length);
+	uint8_t *icc_profile = NULL;
+	if (fit->icc_profile)
+		icc_profile = get_icc_profile_data(fit->icc_profile, &icc_profile_length);
 
 	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
                       fit->ry, fit->naxes[2], bitdepth,
