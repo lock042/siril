@@ -84,7 +84,7 @@ int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_fl
 
 void fix_selnum(sequence *seq, gboolean warn);
 
-gboolean sequence_has_wcs(sequence *seq, int *index);
+gboolean sequence_ref_has_wcs(sequence *seq);
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
 
