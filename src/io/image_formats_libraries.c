@@ -1450,13 +1450,13 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 
 	int ret = siril_libraw_open_file(raw, name);
 	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
+		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
 	ret = libraw_unpack(raw);
 	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
+		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
