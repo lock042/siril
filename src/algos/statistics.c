@@ -682,6 +682,7 @@ void allocate_stats(imstats **stat) {
 			*stat = malloc(sizeof(imstats));
 		if (!*stat) { PRINT_ALLOC_ERR; return; } // OOM
 		stats_set_default_values(*stat);
+		(*stat)->_nb_refs = 1;
 		siril_debug_print("- stats %p allocated\n", *stat);
 	}
 }
