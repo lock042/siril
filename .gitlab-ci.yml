@@ -270,7 +270,7 @@ macos:
     - if: $RUNNER == "macosarm"
       variables:
         ARCHITECTURE: arm64
-        SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
+        SDKROOT: /opt/sdks/MacOSX11.3.sdk
     - if: $RUNNER == "macosintel"
       variables:
         ARCHITECTURE: x86_64
@@ -278,11 +278,12 @@ macos:
   tags:
     - ${RUNNER}
   variables:
-    REP_DIR: /Users/Shared/data
+    REP_DIR: /Users/Shared/build/dmgs
+    WRK_DIR: /Users/Shared/work
     SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.33_$ARCHITECTURE.dmg
-    RELEASE_TAG: r11
-    RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
+    RELEASE_ARCHIVE: jhb-0.41_$ARCHITECTURE.dmg
+    RELEASE_TAG: r12
+    RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/dependencies/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
     - |
