@@ -2822,7 +2822,9 @@ static void show_list_of_encoders(const struct heif_encoder_descriptor*const* en
 
 int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, int max_bitdepth) {
 	int retval = 0;
+#ifdef _OPENMP
 	gboolean threaded = !get_thread_run();
+#endif
 	int width = fit->rx;
 	int height = fit->ry;
 	if (width % 2) width--;
