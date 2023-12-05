@@ -138,6 +138,7 @@ src_files = [
   'filters/deconvolution/utils.hpp',
   'filters/deconvolution/vec2.hpp',
 
+  'io/aavso_extended.c',
   'io/annotation_catalogues.c',
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',

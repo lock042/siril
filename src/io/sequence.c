@@ -847,8 +847,6 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			index, dest->naxes[2], seq->nb_layers);
 		return 1;
 	}
-//	check_profile_correct(dest);
-	color_manage(dest, FALSE);
 
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
@@ -1718,6 +1716,8 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 		if (!args->seq->imgparam[index].date_obs && fit->date_obs)
 			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
 		data->exposure = fit->exposure;
+
+		args->seq->imgparam[index].airmass = fit->airmass;
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
@@ -1811,10 +1811,10 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 				psf_star *psf = seq->photometry[photometry_index][j];
 				if (first) {
 					siril_log_message(_("Photometry for star at %.1f, %.1f in image %d\n"), psf->xpos, psf->ypos, j);
-					siril_log_message("image_index magnitude error fwhm amplitude background\n");
+					siril_debug_print("image_index magnitude error fwhm amplitude background\n");
 					first = FALSE;
 				}
-				siril_log_message("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
+				siril_debug_print("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
 			}
 		}
 

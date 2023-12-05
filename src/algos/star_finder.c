@@ -489,19 +489,18 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				int Rc = (int) ceil(s_factor * Sc);
 				int Rm = max(Rr, Rc);
 				Rm = min(Rm, MAX_BOX_RADIUS);
-				if (Rm > r) {
-					// avoid enlarging outside frame width
-					if (xx - Rm < 0)
-						Rm = xx;
-					if (xx + Rm >= nx)
-						Rm = nx - xx - 1;
-					// avoid enlarging outside frame height
-					if (yy - Rm < 0)
-						Rm = yy;
-					if (yy + Rm >= ny)
-						Rm = ny - yy - 1;
-				}
 				int R = max(Rm, r);
+
+				// avoid enlarging outside frame width
+				if (xx - R < 0)
+					R = xx;
+				if (xx + R >= nx)
+					R = nx - xx - 1;
+				// avoid enlarging outside frame height
+				if (yy - R < 0)
+					R = yy;
+				if (yy + R >= ny)
+					R = ny - yy - 1;
 
 				// Quality checks
 				float dA = max(Ar,Ac)/min(Ar,Ac);
