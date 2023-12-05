@@ -1265,10 +1265,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		}
 	}
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-	ser_file->frame_count++;
+	g_atomic_int_inc(&ser_file->frame_count);
 
 	if (fit->date_obs && !ser_alloc_ts(ser_file, frame_no)) {
 		guint64 utc;

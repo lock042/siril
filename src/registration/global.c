@@ -726,10 +726,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
 					sf_args->nb_stars[i], regargs, filenum, &H);
 			if (not_matched) {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				nbfail++;
+				g_atomic_int_inc(&nbfail);
 				included[i] = FALSE;
 				continue;
 			}
@@ -739,10 +736,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 			if (verbose) print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
 
 		}
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-		nb_aligned++;
+		g_atomic_int_inc(&nb_aligned);
 		current_regdata[i].roundness = roundness[i];
 		current_regdata[i].fwhm = fwhm[i];
 		current_regdata[i].weighted_fwhm = 2 * fwhm[i]

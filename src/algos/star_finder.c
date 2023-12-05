@@ -677,10 +677,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 #if DEBUG_STAR_DETECTION
 				siril_debug_print("Candidate #%5d: X: %5d, Y: %5d - PSF fit failed with error %d\n", candidate, x, y, error);
 #endif
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				psf_failure++;
+				g_atomic_int_inc(&psf_failure);
 			}
 		}
 		if (threads > 1) {
