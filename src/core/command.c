@@ -4014,6 +4014,7 @@ int process_light_curve(int nb) {
 	} else { // we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
 		siril_debug_print("reference image in seqfile is %d\n", refimage);
 		seq_has_wcs = sequence_ref_has_wcs(seq);
+		seq->current = refimage;
 	}
 
 	gchar *end;
