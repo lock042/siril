@@ -191,46 +191,47 @@ static int wait_for_file_to_be_written(const gchar *filename) {
 
 static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data) {
-	if (evtype == G_FILE_MONITOR_EVENT_CREATED) {
-		gchar *filename = g_file_get_basename(file);
-		siril_debug_print("File %s created\n", filename);
-		if (filename[0] == '.' || // hidden files
-				paused)	{ // manage in https://gitlab.com/free-astro/siril/-/issues/786
-			g_free(filename);
-			return;
-		}
+	if (evtype != G_FILE_MONITOR_EVENT_CREATED && evtype != G_FILE_MONITOR_EVENT_MOVED_IN) {
+		return;
+	}
+	gchar *filename = g_file_get_basename(file);
+	siril_debug_print("File %s added\n", filename);
+	if (filename[0] == '.' || // hidden files
+			paused)	{ // manage in https://gitlab.com/free-astro/siril/-/issues/786
+		g_free(filename);
+		return;
+	}
 
-		image_type type;
-		if (stat_file(filename, &type, NULL)) {
-			siril_debug_print("Filename is not canonical\n");
-		}
-		if (type != TYPEFITS) {
-			if (type == TYPERAW) {
-				if (!wait_for_file_to_be_written(filename)) {
-					fits dest = { 0 };
-					gchar *new = replace_ext(filename, com.pref.ext);
-					any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit, FALSE);
-					savefits(new, &dest);
-					clearfits(&dest);
-				}
-			}  else {
-				siril_log_message(_("File not supported for live stacking: %s\n"), filename);
+	image_type type;
+	if (stat_file(filename, &type, NULL)) {
+		siril_debug_print("Filename is not canonical\n");
+	}
+	if (type != TYPEFITS) {
+		if (type == TYPERAW) {
+			if (!wait_for_file_to_be_written(filename)) {
+				fits dest = { 0 };
+				gchar *new = replace_ext(filename, com.pref.ext);
+				any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit, FALSE);
+				savefits(new, &dest);
+				clearfits(&dest);
 			}
-			g_free(filename);
-		} else {
-			if (strncmp(filename, "live_stack", 10) &&
-					strncmp(filename, "r_live_stack", 12) &&
-					strncmp(filename, "result_live_stack", 17)) {
-				if (wait_for_file_to_be_written(filename)) {
-					gchar *str = g_strdup_printf(_("Could not open file: %s"), filename);
-					livestacking_display(str, TRUE);
-					g_free(filename);
-					return;
-				}
-				g_async_queue_push(new_files_queue, filename);
-			}
-			else g_free(filename);
+		}  else {
+			siril_log_message(_("File not supported for live stacking: %s\n"), filename);
 		}
+		g_free(filename);
+	} else {
+		if (strncmp(filename, "live_stack", 10) &&
+				strncmp(filename, "r_live_stack", 12) &&
+				strncmp(filename, "result_live_stack", 17)) {
+			if (wait_for_file_to_be_written(filename)) {
+				gchar *str = g_strdup_printf(_("Could not open file: %s"), filename);
+				livestacking_display(str, TRUE);
+				g_free(filename);
+				return;
+			}
+			g_async_queue_push(new_files_queue, filename);
+		}
+		else g_free(filename);
 	}
 }
 
