@@ -2651,6 +2651,8 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		heif_context_free (ctx);
 
 		return OPEN_IMAGE_ERROR;
+	} else {
+		siril_debug_print("HEIF reports bit depth: %d has_alpha: %d\n", bit_depth, has_alpha);
 	}
 #endif
 
@@ -2823,6 +2825,8 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	gboolean threaded = !get_thread_run();
 	int width = fit->rx;
 	int height = fit->ry;
+	if (width % 2) width--;
+	if (height % 2) height--;
 	int nchans = fit->naxes[2];
 	if (nchans == 1 && max_bitdepth > 8) {
 		max_bitdepth = 8;
@@ -2842,7 +2846,7 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		}
 	}
 
-	if (interleave(fit, max_bitdepth, &buffer, &bitdepth)) {
+	if (interleave(fit, max_bitdepth, &buffer, &bitdepth, TRUE)) {
 		siril_log_color_message(_("Error interleaving image\n"), "red");
 	}
 
@@ -2867,20 +2871,24 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 											heif_colorspace_RGB,
 											heif_chroma_interleaved_RGB,
 											&image);
+				siril_debug_print("RGB HEIF image created\n");
 			break;
 #if LIBHEIF_HAVE_VERSION(1,8,0)
 			case 10:
 			case 12:
 #if ( G_BYTE_ORDER == G_LITTLE_ENDIAN )
-		error = heif_image_create (width, height,
-									heif_colorspace_RGB,
-									heif_chroma_interleaved_RRGGBB_LE,
-									&image);
-#else
 				error = heif_image_create (width, height,
 											heif_colorspace_RGB,
-											heif_chroma_interleaved_RRGGBB_BE,
+											heif_chroma_interleaved_RRGGBB_LE,
 											&image);
+				siril_debug_print("RRGGBB_LE HEIF image created\n");
+#else
+				error = heif_image_create (width, height,
+													heif_colorspace_RGB,
+													heif_chroma_interleaved_RRGGBB_BE,
+													&image);
+				siril_debug_print("RRGGBB_BE HEIF image created\n");
+
 #endif
 			break;
 #endif
@@ -2900,15 +2908,17 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 
 	// Set color profile
 	uint32_t icc_length = 0;
-	const char* fourcc = cmsIsMatrixShaper(fit->icc_profile) ? "rICC" : "prof";
-	uint8_t* icc_buffer = get_icc_profile_data(fit->icc_profile, &icc_length);
-	error = heif_image_set_raw_color_profile(image, fourcc, icc_buffer, icc_length);
-	if (error.code) {
-		siril_log_color_message(_("Error embedding ICC profile in HEIF file.\n"), "red");
-	} else {
-		siril_debug_print("ICC profile of type %s embedded in HEIF file.\n", fourcc);
+	if (fit->icc_profile) {
+		const char* fourcc = cmsIsMatrixShaper(fit->icc_profile) ? "rICC" : "prof";
+		uint8_t* icc_buffer = get_icc_profile_data(fit->icc_profile, &icc_length);
+		error = heif_image_set_raw_color_profile(image, fourcc, icc_buffer, icc_length);
+		if (error.code) {
+			siril_log_color_message(_("Error embedding ICC profile in HEIF file.\n"), "red");
+		} else {
+			siril_debug_print("ICC profile of type %s embedded in HEIF file.\n", fourcc);
+		}
+		free(icc_buffer);
 	}
-	free(icc_buffer);
 
 	if (bitdepth > 8) {
 		uint16_t		*data16;
@@ -2999,9 +3009,11 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		show_list_of_encoders(encoder_descriptors, count);
 	}
 
-	const char* encoderId = NULL;
+//	const char* encoderId = NULL;
 	if (count > 0) {
 		int idx = 0;
+/*
+ * For now we just use the default encoder
 		if (encoderId != NULL) {
 			for (int i = 0; i <= count; i++) {
 				if (i==count) {
@@ -3018,6 +3030,7 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 				}
 			}
 		}
+*/
 
 		error = heif_context_get_encoder(ctx, encoder_descriptors[idx], &encoder);
 
@@ -3208,7 +3221,7 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 
 	void *buffer = NULL;
 	int bitdepth;
-	if (interleave(fit, max_bitdepth, &buffer, &bitdepth)) {
+	if (interleave(fit, max_bitdepth, &buffer, &bitdepth, FALSE)) {
 		siril_log_color_message(_("Error interleaving image\n"), "red");
 	}
 

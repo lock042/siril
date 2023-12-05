@@ -1644,8 +1644,8 @@ GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
 
 // This function turns planar data into interleaved RGB or RRGGBB depending on the max_bitdepth passed.
 // It returns 0 on success and a non-zero value on failure.
-int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth) {
-	if (max_bitdepth < 8 || (fit->type == DATA_USHORT && max_bitdepth > 16) || (fit->type == DATA_USHORT && (!(max_bitdepth == 32 || max_bitdepth < 17)))) {
+int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even) {
+	if (max_bitdepth < 8 || (fit->type == DATA_USHORT && max_bitdepth > 16) || (fit->type == DATA_FLOAT && (!(max_bitdepth == 32 || max_bitdepth < 17)))) {
 		siril_debug_print("Error: inappropriate max_bitdepth. Setting max_bitdepth to 8 for safety. Report this as a bug.\n");
 		max_bitdepth = 8;
 	}
@@ -1657,10 +1657,15 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 	int bitdepth;
 	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+	size_t width = fit->rx, height = fit->ry;
+	if (force_even) {
+		if (width % 2) width--;
+		if (height % 2) height--;
+	}
 
 	if (fit->type == DATA_USHORT) {
 		if (fit->orig_bitpix == BYTE_IMG || max_bitdepth == 8) {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(BYTE);
+			datalength = width * height * fit->naxes[2] * sizeof(BYTE);
 			buffer = malloc(datalength);
 			image_buffer = (uint8_t*) buffer;
 			if (!image_buffer) {
@@ -1668,9 +1673,9 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 				return 1;
 			}
 			int rshift = fit->orig_bitpix == BYTE_IMG ? 0 : 8;
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2]; // fit->rx is correct here, it refers to original data full width
 					WORD red = *gbuf[RLAYER]++;
 					image_buffer[pixelIdx + 0] = truncate_to_BYTE(red >> rshift); // r |-- Set r,g,b components to
 					if (fit->naxes[2] == 3) {
@@ -1683,16 +1688,16 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 			}
 			bitdepth = 8;
 		} else {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD);
+			datalength = width * height * fit->naxes[2] * sizeof(WORD);
 			buffer = malloc(datalength);
 			image_bufferW = (uint16_t*) buffer;
 			if (!image_bufferW) {
 				PRINT_ALLOC_ERR;
 				return 1;
 			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
-					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2]; // fit->rx correct here as above
 					WORD red = *gbuf[RLAYER]++;
 					image_bufferW[pixelIdx + 0] = red; // r |-- Set r,g,b components to
 					if (fit->naxes[2] == 3) {
@@ -1707,15 +1712,15 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 		}
 	} else {
 		if (max_bitdepth == 8) {
-			datalength = fit->rx * fit->ry * fit->naxes[2];
+			datalength = width * height * fit->naxes[2];
 			buffer = malloc(datalength);
 			image_buffer = (uint8_t*) buffer;
 			if (!image_buffer) {
 				PRINT_ALLOC_ERR;
 				return 1;
 			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
 					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
 					float red = *gbuff[RLAYER]++;
 					image_buffer[pixelIdx + 0] = roundf_to_BYTE(red * UCHAR_MAX_SINGLE); // r |-- Set r,g,b components to
@@ -1729,15 +1734,15 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 			}
 			bitdepth = 8;
 		} else if (max_bitdepth < 17) {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * 2;
+			datalength = width * height * fit->naxes[2] * 2;
 			buffer = malloc(datalength);
 			image_bufferW = (uint16_t*) buffer;
 			if (!image_bufferW) {
 				PRINT_ALLOC_ERR;
 				return 1;
 			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
 					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
 					float red = *gbuff[RLAYER]++;
 					image_bufferW[pixelIdx + 0] = roundf_to_WORD(red * USHRT_MAX_SINGLE); // r |-- Set r,g,b components to
@@ -1751,15 +1756,15 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 			}
 			bitdepth = max_bitdepth;
 		} else {
-			datalength = fit->rx * fit->ry * fit->naxes[2] * sizeof(float);
+			datalength = width * height * fit->naxes[2] * sizeof(float);
 			buffer = malloc(datalength);
 			image_bufferf = (float*) buffer;
 			if (!image_bufferf) {
 				PRINT_ALLOC_ERR;
 				return 1;
 			}
-			for (int i = (fit->ry - 1); i >= 0; i--) {
-				for (int j = 0; j < fit->rx; j++) {
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
 					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
 					float red = *gbuff[RLAYER]++;
 					image_bufferf[pixelIdx + 0] = red; // r |-- Set r,g,b components to
