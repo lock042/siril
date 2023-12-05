@@ -163,7 +163,9 @@ void stop_live_stacking_engine() {
 
 static int wait_for_file_to_be_written(const gchar *filename) {
 	int iter;
+#ifndef _WIN32
 	guint64 last_size = 0;
+#endif
 	GFile *fd = g_file_new_for_path(filename);
 	for (iter = 1; iter < WAIT_FILE_WRITTEN_ITERS; iter++) {
 		g_usleep(WAIT_FILE_WRITTEN_US);
