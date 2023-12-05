@@ -1197,7 +1197,6 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		 * transformation matrices H from registration are available */
 		fits ref = { 0 };
 		int refidx = sequence_find_refimage(args->seq);
-		// or use sequence_has_wcs(args->seq
 		if (seq_read_frame_metadata(args->seq, refidx, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
 			free(args);
