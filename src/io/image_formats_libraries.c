@@ -3156,7 +3156,7 @@ int readjxl(const char* name, fits *fit) {
 
 	if (fit->naxes[2] == 1) {
 		if (fit->type == DATA_FLOAT) {
-			fit->fdata = pixels;
+			memcpy(fit->fdata, pixels, xsize * ysize * zsize * sizeof(float));
 		} else {
 			for (int i = 0 ; i < xsize * ysize ; i++) {
 				fit->data[i] = roundf_to_WORD(pixels[i] * USHRT_MAX);
@@ -3181,7 +3181,7 @@ int readjxl(const char* name, fits *fit) {
 			}
 		}
 	}
-
+	free(pixels);
 	cmsHPROFILE internal = cmsOpenProfileFromMem(internal_icc_profile, internal_icc_profile_length);
 	cmsHPROFILE original = cmsOpenProfileFromMem(icc_profile, icc_profile_length);
 	if (internal && original) {
@@ -3212,6 +3212,16 @@ int readjxl(const char* name, fits *fit) {
 	g_free(basename);
 
 	return zsize;
+}
+
+static void jxl_icc_vercheck(cmsHPROFILE profile) {
+	cmsFloat64Number version = cmsGetProfileVersion(profile);
+	if (version < 4.0)
+		siril_log_color_message(_("Warning: saving a JPEG XL file with a "
+				"v2 ICC profile will result in libjxl recreating the "
+				"profile. The result is functionally equivalent but the "
+				"profile name will be different when the file is opened.\n"),
+				"salmon");
 }
 
 int savejxl(const char *name, fits *fit, int effort, double distance, gboolean force_8bit) {
@@ -3250,11 +3260,13 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 						cmsCloseProfile(srgb_mono_out);
 						break;
 					case EXPORT_WORKING:
-						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
-						profile = get_icc_profile_data(com.icc.mono_out, &profile_len);
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.mono_standard, &profile_len);
+						jxl_icc_vercheck(com.icc.mono_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						jxl_icc_vercheck(fit->icc_profile);
 						break;
 					default:
 						free(filename);
@@ -3263,15 +3275,18 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 			} else { // rgb
 				switch (com.pref.icc.export_8bit_method) {
 					case EXPORT_SRGB:
-						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
-						profile = get_icc_profile_data(com.icc.srgb_out, &profile_len);
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_profile, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.srgb_profile, &profile_len);
+						jxl_icc_vercheck(com.icc.srgb_profile);
 						break;
 					case EXPORT_WORKING:
-						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
-						profile = get_icc_profile_data(com.icc.working_out, &profile_len);
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.working_standard, &profile_len);
+						jxl_icc_vercheck(com.icc.working_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						jxl_icc_vercheck(fit->icc_profile);
 						break;
 					default:
 						free(filename);
@@ -3293,11 +3308,13 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 						cmsCloseProfile(srgb_mono_out);
 						break;
 					case EXPORT_WORKING:
-						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
-						profile = get_icc_profile_data(com.icc.mono_out, &profile_len);
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.mono_standard, &profile_len);
+						jxl_icc_vercheck(com.icc.mono_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						jxl_icc_vercheck(fit->icc_profile);
 						break;
 					default:
 						free(filename);
@@ -3306,15 +3323,18 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 			} else { // rgb
 				switch (com.pref.icc.export_16bit_method) {
 					case EXPORT_SRGB:
-						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
-						profile = get_icc_profile_data(com.icc.srgb_out, &profile_len);
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_profile, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.srgb_profile, &profile_len);
+						jxl_icc_vercheck(com.icc.srgb_profile);
 						break;
 					case EXPORT_WORKING:
-						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
-						profile = get_icc_profile_data(com.icc.working_out, &profile_len);
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.working_standard, &profile_len);
+						jxl_icc_vercheck(com.icc.working_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						jxl_icc_vercheck(fit->icc_profile);
 						break;
 					default:
 						free(filename);
@@ -3323,7 +3343,7 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 			}
 		}
 	} else if(com.pref.icc.default_to_srgb) {
-		profile = get_icc_profile_data((fit->naxes[2] == 1 ? com.icc.mono_out : com.icc.srgb_out), &profile_len);
+		profile = get_icc_profile_data((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_profile), &profile_len);
 	}
 
 	cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);

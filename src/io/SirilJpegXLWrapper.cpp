@@ -92,6 +92,7 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
 
   JxlDecoderSetInput(dec.get(), jxl, size);
   JxlDecoderCloseInput(dec.get());
+  // We default to 3 channels but update this based on basic_info later
   JxlPixelFormat format = {3, JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN, 0};
 
   for (;;) {
@@ -108,11 +109,11 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
         fprintf(stderr, "JxlDecoderGetBasicInfo failed\n");
         return false;
       }
-      format = {info.num_color_channels, JXL_TYPE_FLOAT, JXL_NATIVE_ENDIAN, 0};
       *xsize = info.xsize;
       *ysize = info.ysize;
       *zsize = info.num_color_channels;
       *extra_channels = info.num_extra_channels;
+      format.num_channels = info.num_color_channels + info.num_extra_channels;
       *bitdepth = info.bits_per_sample;
       JxlResizableParallelRunnerSetThreads(
           runner.get(),
@@ -121,28 +122,46 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
       // Get the ICC color profile of the pixel data
       size_t icc_size_original, icc_size_data;
       if (JXL_DEC_SUCCESS !=
-          JxlDecoderGetICCProfileSize(dec.get(), &format, JXL_COLOR_PROFILE_TARGET_DATA,
+          JxlDecoderGetICCProfileSize(dec.get(),
+#if JPEGXL_NUMERIC_VERSION < JPEGXL_COMPUTE_NUMERIC_VERSION(0,9,0)
+                                      &format,
+#endif
+                                      JXL_COLOR_PROFILE_TARGET_DATA,
                                       &icc_size_data)) {
         fprintf(stderr, "JxlDecoderGetICCProfileSize failed\n");
         return false;
       }
       internal_icc_profile->resize(icc_size_data);
       if (JXL_DEC_SUCCESS != JxlDecoderGetColorAsICCProfile(
-                                 dec.get(), &format, JXL_COLOR_PROFILE_TARGET_DATA,
-                                 internal_icc_profile->data(), internal_icc_profile->size())) {
+                                dec.get(),
+#if JPEGXL_NUMERIC_VERSION < JPEGXL_COMPUTE_NUMERIC_VERSION(0,9,0)
+                                &format,
+#endif
+                                JXL_COLOR_PROFILE_TARGET_DATA,
+                                internal_icc_profile->data(),
+                                internal_icc_profile->size())) {
         fprintf(stderr, "JxlDecoderGetColorAsICCProfile failed\n");
         return false;
       }
       if (JXL_DEC_SUCCESS !=
-          JxlDecoderGetICCProfileSize(dec.get(), &format, JXL_COLOR_PROFILE_TARGET_ORIGINAL,
+          JxlDecoderGetICCProfileSize(dec.get(),
+#if JPEGXL_NUMERIC_VERSION < JPEGXL_COMPUTE_NUMERIC_VERSION(0,9,0)
+                                      &format,
+#endif
+                                      JXL_COLOR_PROFILE_TARGET_ORIGINAL,
                                       &icc_size_original)) {
         fprintf(stderr, "JxlDecoderGetICCProfileSize failed\n");
         return false;
       }
       orig_icc_profile->resize(icc_size_original);
       if (JXL_DEC_SUCCESS != JxlDecoderGetColorAsICCProfile(
-                                 dec.get(), &format, JXL_COLOR_PROFILE_TARGET_ORIGINAL,
-                                 orig_icc_profile->data(), orig_icc_profile->size())) {
+                                  dec.get(),
+#if JPEGXL_NUMERIC_VERSION < JPEGXL_COMPUTE_NUMERIC_VERSION(0,9,0)
+                                  &format,
+#endif
+                                  JXL_COLOR_PROFILE_TARGET_ORIGINAL,
+                                  orig_icc_profile->data(),
+                                  orig_icc_profile->size())) {
         fprintf(stderr, "JxlDecoderGetColorAsICCProfile failed\n");
         return false;
       }
@@ -153,10 +172,10 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
         fprintf(stderr, "JxlDecoderImageOutBufferSize failed\n");
         return false;
       }
-      if (buffer_size != *xsize * *ysize * 12) {
+      if (buffer_size != *xsize * *ysize * 4 * *zsize) {
         fprintf(stderr, "Invalid out buffer size %" PRIu64 " %" PRIu64 "\n",
                 static_cast<uint64_t>(buffer_size),
-                static_cast<uint64_t>(*xsize * *ysize * 12));
+                static_cast<uint64_t>(*xsize * *ysize * 4 * *zsize));
         return false;
       }
       pixels->resize(*xsize * *ysize * *zsize);
@@ -254,6 +273,7 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
   JxlEncoderInitBasicInfo(&basic_info);
   basic_info.xsize = xsize;
   basic_info.ysize = ysize;
+  basic_info.num_color_channels = zsize;
   basic_info.bits_per_sample = bitdepth;
   if (bitdepth == 32)
     basic_info.exponent_bits_per_sample = 8;
