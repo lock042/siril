@@ -3327,8 +3327,8 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 	}
 
 	cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	cmsUInt32Number bytesperline = fit->rx * datasize * 3;
-	cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize * 3;
+	cmsUInt32Number bytesperline = fit->rx * datasize * fit->naxes[2];
+	cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize * fit->naxes[2];
 	if (save_transform) { // For "use image ICC profile" save_transform will be NULL, no need to transform the data
 		cmsDoTransformLineStride(save_transform, buffer, buffer, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
