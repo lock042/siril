@@ -3012,8 +3012,8 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	}
 
 //	const char* encoderId = NULL;
+	int idx = 0;
 	if (count > 0) {
-		int idx = 0;
 /*
  * For now we just use the default encoder
 		if (encoderId != NULL) {
@@ -3044,11 +3044,13 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		}
 	}
 
-	error = heif_encoder_set_lossless(encoder, lossless);
-	if (error.code != heif_error_Ok) {
-		fprintf(stderr, "Error setting lossless output. Will fall back to lossy compression with quality 100\n");
-		lossless = FALSE;
-		quality = 100;
+	if (lossless && heif_encoder_descriptor_supports_lossless_compression(encoder_descriptors[idx])) {
+		error = heif_encoder_set_lossless(encoder, lossless);
+		if (error.code != heif_error_Ok) {
+			fprintf(stderr, "Error setting lossless output. Will fall back to lossy compression with quality 100\n");
+			lossless = FALSE;
+			quality = 100;
+		}
 	}
 	if (!lossless)
 		heif_encoder_set_lossy_quality(encoder, quality);
@@ -3117,9 +3119,9 @@ int readjxl(const char* name, fits *fit) {
 	size_t xsize = 0, ysize = 0, zsize = 0, extra_channels = 0;
 	uint8_t bitdepth = 0;
 	float* pixels = NULL;
-	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels, &xsize, &ysize,
-			&zsize, &extra_channels, &bitdepth, &icc_profile,
-			&icc_profile_length, &internal_icc_profile,
+	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels,
+			&xsize, &ysize, &zsize, &extra_channels, &bitdepth,
+			&icc_profile, &icc_profile_length, &internal_icc_profile,
 			&internal_icc_profile_length)) {
 		siril_debug_print("Error while decoding the jxl file\n");
 		return 1;
@@ -3213,6 +3215,7 @@ int readjxl(const char* name, fits *fit) {
 }
 
 int savejxl(const char *name, fits *fit, int effort, double distance, gboolean force_8bit) {
+	gboolean threaded = !get_thread_run();
 
 	char *filename = strdup(name);
 	if (!g_str_has_suffix(filename, ".jxl")) {
@@ -3227,17 +3230,117 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 		siril_log_color_message(_("Error interleaving image\n"), "red");
 	}
 
+	uint32_t profile_len = 0;
+	uint8_t *profile = NULL;
+	cmsUInt32Number trans_type;
+	cmsHTRANSFORM save_transform = NULL;
+
+	if (fit->color_managed && fit->icc_profile) {
+		// Check what is the appropriate color space to save in
+		// Covers 8- and high-bitdepth files
+		if (max_bitdepth == 8) { // 8-bit
+			trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8);
+			if (fit->naxes[2] == 1) { // mono
+				cmsHPROFILE srgb_mono_out = NULL;
+				switch (com.pref.icc.export_8bit_method) {
+					case EXPORT_SRGB:
+						srgb_mono_out = gray_srgbtrc();
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, srgb_mono_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(srgb_mono_out, &profile_len);
+						cmsCloseProfile(srgb_mono_out);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.mono_out, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			} else { // rgb
+				switch (com.pref.icc.export_8bit_method) {
+					case EXPORT_SRGB:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.srgb_out, &profile_len);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.working_out, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			}
+		} else { // high bitdepth
+			if (fit->type == DATA_USHORT)
+				trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16);
+			else // fit->type == DATA_FLOAT
+				trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT);
+			if (fit->naxes[2] == 1) { // mono
+				cmsHPROFILE srgb_mono_out = NULL;
+				switch (com.pref.icc.export_16bit_method) {
+					case EXPORT_SRGB:
+						srgb_mono_out = gray_srgbtrc();
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, srgb_mono_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(srgb_mono_out, &profile_len);
+						cmsCloseProfile(srgb_mono_out);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.mono_out, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			} else { // rgb
+				switch (com.pref.icc.export_16bit_method) {
+					case EXPORT_SRGB:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.srgb_out, &profile_len);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.working_out, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			}
+		}
+	} else if(com.pref.icc.default_to_srgb) {
+		profile = get_icc_profile_data((fit->naxes[2] == 1 ? com.icc.mono_out : com.icc.srgb_out), &profile_len);
+	}
+
+	cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	cmsUInt32Number bytesperline = fit->rx * datasize * 3;
+	cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize * 3;
+	if (save_transform) { // For "use image ICC profile" save_transform will be NULL, no need to transform the data
+		cmsDoTransformLineStride(save_transform, buffer, buffer, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+	}
+	siril_debug_print("Saving JXL with ICC profile length %u\n", profile_len);
 	uint8_t *compressed = NULL;
 	size_t compressed_length;
 
-	uint32_t icc_profile_length = 0;
-	uint8_t *icc_profile = NULL;
-	if (fit->icc_profile)
-		icc_profile = get_icc_profile_data(fit->icc_profile, &icc_profile_length);
-
 	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
-                      fit->ry, fit->naxes[2], bitdepth,
-                      &compressed, &compressed_length, effort, distance, icc_profile, icc_profile_length);
+					fit->ry, fit->naxes[2], bitdepth,
+					&compressed, &compressed_length, effort,
+					distance, profile, profile_len);
 
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
