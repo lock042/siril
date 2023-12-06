@@ -2029,35 +2029,16 @@ void fix_selnum(sequence *seq, gboolean warn) {
 	}
 }
 
-gboolean sequence_has_wcs(sequence *seq, int *index) {
-	int refimage = sequence_find_refimage(seq);
-	int indices[3];
-	indices[0] = refimage;
-	indices[1] = 0;
-	int first_included_image = -1;
-	for (int i = 0; i < seq->number; i++)
-		if (seq->imgparam[i].incl) {
-			first_included_image = i;
-			break;
-		}
-	if (first_included_image == 0 || first_included_image == refimage)
-		indices[2] = -1;
-	else indices[2] = first_included_image;
-
-	for (int i = 0; i < 3; i++) {
-		fits fit = { 0 };
-		if (indices[i] >= 0 && seq->imgparam[indices[i]].incl &&
-				!seq_read_frame_metadata(seq, indices[i], &fit)) {
-			if (has_wcs(&fit)) {
-				if (index)
-					*index = indices[i];
-				clearfits(&fit);
-				return TRUE;
-			}
-			clearfits(&fit);
-		}
+gboolean sequence_ref_has_wcs(sequence *seq) {
+	int refidx = sequence_find_refimage(seq);
+	fits ref = { 0 };
+	if (seq_read_frame_metadata(seq, refidx, &ref)) {
+		siril_log_message(_("Could not load reference image\n"));
+		return FALSE;
 	}
-	return FALSE;
+	gboolean ret = has_wcs(&ref);
+	clearfits(&ref);
+	return ret;
 }
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {

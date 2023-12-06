@@ -16,6 +16,8 @@ xx/xx/xx
 * Fixed light_curve and csv export from plot when some images were unselected from the sequence (#1169)
 * Added undo/redo when platesolving with astrometry.net (#1233)
 * Fixed crash in findstar when detecting stars close to the border (#1237)
+* Fixed using wcs info when using light_curve command (#1195)
+* Allowed moving file into workdir to be picked up for livestacking (#1223)
 
 siril 1.2.0
 09/15/23
