@@ -233,7 +233,8 @@ int register_shift_dft(struct registration_args *args) {
 	fftwf_plan p, q;
 	int ret;
 	int abort = 0;
-	float nb_frames, cur_nb;
+	float nb_frames;
+	int cur_nb = 0;
 	int ref_image;
 	regdata *current_regdata;
 	double q_max = 0, q_min = DBL_MAX;
@@ -347,8 +348,6 @@ int register_shift_dft(struct registration_args *args) {
 	q_min = q_max = current_regdata[ref_image].quality;
 	q_index = ref_image;
 
-	cur_nb = 0.f;
-
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
 	if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
@@ -448,11 +447,8 @@ int register_shift_dft(struct registration_args *args) {
 					current_regdata[frame].shiftx, current_regdata[frame].shifty,
 					current_regdata[frame].quality);
 #endif
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb += 1.f;
-			set_progress_bar_data(NULL, cur_nb / nb_frames);
+			g_atomic_int_inc(&cur_nb);
+			set_progress_bar_data(NULL, (float)cur_nb / nb_frames);
 			fftwf_free(img);
 			fftwf_free(out2);
 		} else {
@@ -490,10 +486,7 @@ int register_shift_dft(struct registration_args *args) {
 void _register_kombat_disable_frame(struct registration_args *args, regdata *current_regdata, int frame) {
 	args->seq->imgparam[frame].incl = FALSE;
 	current_regdata[frame].quality = -1;
-	#ifdef _OPENMP
-	#pragma omp atomic
-	#endif
-	args->seq->selnum--;
+	g_atomic_int_dec_and_test(&args->seq->selnum);
 }
 
 /* register images using KOMBAT algorithm: calculate shift in images to be
@@ -514,7 +507,8 @@ int register_kombat(struct registration_args *args) {
 
 	regdata *current_regdata;
 	struct timeval t_start, t_end;
-	float nb_frames, cur_nb = 0;
+	float nb_frames;
+	int cur_nb = 0;
 	double q_max = 0, q_min = DBL_MAX;
 	double qual;
 	int frame;
@@ -653,11 +647,8 @@ int register_kombat(struct registration_args *args) {
 						(ref_align.dy - cur_align.dy), cur_fit.top_down);
 			}
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb += 1.f;
-			set_progress_bar_data(NULL, cur_nb / nb_frames);
+			g_atomic_int_inc(&cur_nb);
+			set_progress_bar_data(NULL, (float)cur_nb / nb_frames);
 
 			// We don't need fit anymore, we can destroy it.
 			clearfits(&cur_fit);
