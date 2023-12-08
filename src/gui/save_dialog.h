@@ -10,6 +10,7 @@ struct savedial_data {
 	char *copyright;
 	gint quality;
 	gint jxl_effort;
+	gdouble heif_quality;
 	gdouble jxl_quality;
 	gboolean jxl_force_8bit;
 	gboolean lossless;

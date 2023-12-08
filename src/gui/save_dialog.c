@@ -491,7 +491,7 @@ static gboolean initialize_data(gpointer p) {
 #endif
 #ifdef HAVE_LIBHEIF
 	GtkSpinButton *avif_quality_spin_button = GTK_SPIN_BUTTON(lookup_widget("avif_quality_spinbutton"));
-	args->quality = gtk_spin_button_get_value_as_int(avif_quality_spin_button);
+	args->heif_quality = gtk_spin_button_get_value_as_int(avif_quality_spin_button);
 	GtkComboBox *avif_bitdepth = GTK_COMBO_BOX(lookup_widget("avif_bitdepth"));
 	int depth = gtk_combo_box_get_active(avif_bitdepth);
 	args->avif_bitdepth = depth == 0 ? 8 : depth == 1 ? 10 : 12;
@@ -546,10 +546,10 @@ static gpointer mini_save_dialog(gpointer p) {
 #endif
 #ifdef HAVE_LIBHEIF
 		case TYPEAVIF:
-			args->retval = saveheifavif(args->filename, &gfit, args->quality, args->lossless, TRUE, args->avif_bitdepth);
+			args->retval = saveheifavif(args->filename, &gfit, args->heif_quality, args->lossless, TRUE, args->avif_bitdepth);
 			break;
 		case TYPEHEIF:
-			args->retval = saveheifavif(args->filename, &gfit, args->quality, args->lossless, FALSE, args->avif_bitdepth);
+			args->retval = saveheifavif(args->filename, &gfit, args->heif_quality, args->lossless, FALSE, args->avif_bitdepth);
 			break;
 #endif
 			#ifdef HAVE_LIBTIFF
