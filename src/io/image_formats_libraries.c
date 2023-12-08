@@ -3214,16 +3214,6 @@ int readjxl(const char* name, fits *fit) {
 	return zsize;
 }
 
-static void jxl_icc_vercheck(cmsHPROFILE profile) {
-	cmsFloat64Number version = cmsGetProfileVersion(profile);
-	if (version < 4.0)
-		siril_log_color_message(_("Warning: saving a JPEG XL file with a "
-				"v2 ICC profile will result in libjxl recreating the "
-				"profile. The result is functionally equivalent but the "
-				"profile name will be different when the file is opened.\n"),
-				"salmon");
-}
-
 int savejxl(const char *name, fits *fit, int effort, double quality, gboolean force_8bit) {
 	gboolean threaded = !get_thread_run();
 
@@ -3262,11 +3252,10 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 					case EXPORT_WORKING:
 						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_standard, trans_type, com.pref.icc.export_intent, 0);
 						profile = get_icc_profile_data(com.icc.mono_standard, &profile_len);
-						jxl_icc_vercheck(com.icc.mono_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
-						jxl_icc_vercheck(fit->icc_profile);
+						(fit->icc_profile);
 						break;
 					default:
 						free(filename);
@@ -3277,16 +3266,13 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 					case EXPORT_SRGB:
 						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_profile, trans_type, com.pref.icc.export_intent, 0);
 						profile = get_icc_profile_data(com.icc.srgb_profile, &profile_len);
-						jxl_icc_vercheck(com.icc.srgb_profile);
 						break;
 					case EXPORT_WORKING:
 						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_standard, trans_type, com.pref.icc.export_intent, 0);
 						profile = get_icc_profile_data(com.icc.working_standard, &profile_len);
-						jxl_icc_vercheck(com.icc.working_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
-						jxl_icc_vercheck(fit->icc_profile);
 						break;
 					default:
 						free(filename);
@@ -3310,11 +3296,9 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 					case EXPORT_WORKING:
 						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_standard, trans_type, com.pref.icc.export_intent, 0);
 						profile = get_icc_profile_data(com.icc.mono_standard, &profile_len);
-						jxl_icc_vercheck(com.icc.mono_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
-						jxl_icc_vercheck(fit->icc_profile);
 						break;
 					default:
 						free(filename);
@@ -3325,16 +3309,13 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 					case EXPORT_SRGB:
 						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_profile, trans_type, com.pref.icc.export_intent, 0);
 						profile = get_icc_profile_data(com.icc.srgb_profile, &profile_len);
-						jxl_icc_vercheck(com.icc.srgb_profile);
 						break;
 					case EXPORT_WORKING:
 						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_standard, trans_type, com.pref.icc.export_intent, 0);
 						profile = get_icc_profile_data(com.icc.working_standard, &profile_len);
-						jxl_icc_vercheck(com.icc.working_standard);
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
-						jxl_icc_vercheck(fit->icc_profile);
 						break;
 					default:
 						free(filename);
