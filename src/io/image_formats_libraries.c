@@ -3224,7 +3224,7 @@ static void jxl_icc_vercheck(cmsHPROFILE profile) {
 				"salmon");
 }
 
-int savejxl(const char *name, fits *fit, int effort, double distance, gboolean force_8bit) {
+int savejxl(const char *name, fits *fit, int effort, double quality, gboolean force_8bit) {
 	gboolean threaded = !get_thread_run();
 
 	char *filename = strdup(name);
@@ -3353,25 +3353,26 @@ int savejxl(const char *name, fits *fit, int effort, double distance, gboolean f
 		cmsDoTransformLineStride(save_transform, buffer, buffer, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 	}
-	siril_debug_print("Saving JXL with ICC profile length %u\n", profile_len);
 	uint8_t *compressed = NULL;
 	size_t compressed_length;
+
+	if (quality == 100.0)
+		siril_log_message(_("Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),
+						filename, effort, fit->naxes[2], fit->rx, fit->ry, bitdepth);
+	else
+		siril_log_message(_("Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),
+						filename, quality, effort, fit->naxes[2], fit->rx, fit->ry, bitdepth);
 
 	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
 					fit->ry, fit->naxes[2], bitdepth,
 					&compressed, &compressed_length, effort,
-					distance, profile, profile_len);
+					quality, profile, profile_len);
 
+	siril_log_color_message(_("Save complete.\n"), "green");
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
 	free(buffer);
 	free(compressed);
-	if (distance == 0.0)
-		siril_log_message(_("Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),
-						filename, effort, fit->naxes[2], fit->rx, fit->ry, bitdepth);
-	else
-		siril_log_message(_("Saving JPEG XL: file %s, distance=%.3f, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),
-						filename, distance, effort, fit->naxes[2], fit->rx, fit->ry, bitdepth);
 	free(filename);
 	return OPEN_IMAGE_OK;
 }

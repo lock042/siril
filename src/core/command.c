@@ -743,7 +743,7 @@ int process_savejpg(int nb){
 #ifdef HAVE_LIBJXL
 int process_savejxl(int nb){
 	int effort = 7;
-	double distance = 1.0;
+	double quality = 94.0;
 	gboolean force_8bit = FALSE;
 	for (int i = 2; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -755,16 +755,15 @@ int process_savejxl(int nb){
 		else if (g_str_has_prefix(arg, "-quality=")) {
 			arg += 9;
 			double quality = g_ascii_strtod(arg, &end);
-			distance = 10.0 - quality;
-			if (distance <= 0.f || distance > 10.f) {
-				siril_log_message(_("Error: distance must be >= 0.0 and <= 10.0.\n"));
+			if (quality <= 0.0 || quality > 100.0) {
+				siril_log_message(_("Error: quality must be >= 0.0 and <= 100.0.\n"));
 				return CMD_ARG_ERROR;
 			}
 		}
 		else if (g_str_has_prefix(arg, "-effort=")) {
 			arg += 8;
 			effort = (int) g_ascii_strtod(arg, &end);
-			if (distance < 1 || distance > 9) {
+			if (effort < 1.0 || effort > 9.0) {
 				siril_log_message(_("Error: effort must be an integer between 1 and 9.\n"));
 				return CMD_ARG_ERROR;
 			}
@@ -778,7 +777,7 @@ int process_savejxl(int nb){
 		retval = CMD_GENERIC_ERROR;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savejxl(savename, &gfit, effort, distance, force_8bit);
+		retval = savejxl(savename, &gfit, effort, quality, force_8bit);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);

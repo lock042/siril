@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,11 +27,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkAdjustment" id="adjustment_quality">
-    <property name="lower">10</property>
+  <object class="GtkAdjustment" id="adj_avif_quality">
+    <property name="lower">1</property>
     <property name="upper">100</property>
-    <property name="value">100</property>
-    <property name="step-increment">3</property>
+    <property name="value">80</property>
+    <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_jxl_effort">
@@ -42,16 +42,17 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">1</property>
   </object>
   <object class="GtkAdjustment" id="adj_jxl_quality">
-    <property name="upper">10</property>
-    <property name="value">8</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.10</property>
-  </object>
-  <object class="GtkAdjustment" id="adj_avif_quality">
-    <property name="lower">1</property>
+    <property name="lower">10</property>
     <property name="upper">100</property>
-    <property name="value">80</property>
-    <property name="step-increment">1</property>
+    <property name="value">94</property>
+    <property name="step-increment">3</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_quality">
+    <property name="lower">10</property>
+    <property name="upper">100</property>
+    <property name="value">100</property>
+    <property name="step-increment">3</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkDialog" id="savepopup">
@@ -99,6 +100,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can-default">True</property>
                 <property name="has-default">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Note: when embedding ICC profiles libjxl will check if it recognises the profile. If it does, it will set a reference value rather than store the entire profile. This means that when you re-open the file the ICC profile description may be different, although it will be functionally equivalent.</property>
                 <signal name="clicked" handler="on_button_savepopup_clicked" swapped="no"/>
                 <style>
                   <class name="suggested-action"/>
@@ -874,7 +876,9 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                                   <object class="GtkSpinButton" id="jxl_quality_spinbutton">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Distance is a measure of quality, the lower the better quality but the larger the file size. It represents a measure of the maximum permissible distance between the original and compressed data. 0.0 is mathematically lossless; 1.0 is visually lossless.</property>
+                                    <property name="tooltip-text" translatable="yes">Quality. Setting quality = 100 gives lossless compression (note that this can be quite slow). Other quality values work in the same way as JPEG quality, but there is no direct read-across (the same quality value will not give exactly the same visual quality or file size as it would for a JPEG file).
+
+NOTE: lossy compression gives bad results when saving linear data owing to the very high dynamic range, however lossless compression offers a smaller filesize than TIFF compression at the expense of being slower and not providing the metadata that is available with TIFF.</property>
                                     <property name="invisible-char">•</property>
                                     <property name="text" translatable="yes">100</property>
                                     <property name="adjustment">adj_jxl_quality</property>
@@ -1141,5 +1145,4 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <action-widget response="0">button_savepopup</action-widget>
     </action-widgets>
   </object>
-
 </interface>

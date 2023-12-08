@@ -37,7 +37,7 @@ int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
 
 int EncodeJpegXlOneshotWrapper(const void* pixels, const uint32_t xsize,
 						const uint32_t ysize, const uint32_t zsize, const uint8_t bitdepth,
-						uint8_t** compressed, size_t* compressed_length, uint32_t effort, const double distance,
+						uint8_t** compressed, size_t* compressed_length, uint32_t effort, const double quality,
 						uint8_t *icc_profile, uint32_t icc_profile_length);
 #ifdef __cplusplus
 }

@@ -241,9 +241,24 @@ extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
  * @param ysize height of the input image
  * @param compressed will be populated with the compressed bytes
  */
+
+// This is exactly the same as JxlEncoderDistanceFromQuality
+// however the function is not available in older versions of the API and it's
+// so trivial that it's easier just to reproduce it with a modified name.
+
+float sirilEncoderDistanceFromQuality(float quality) {
+  float distance = quality >= 100.0 ? 0.0
+         : quality >= 30
+             ? 0.1 + (100 - quality) * 0.09
+             : 53.0 / 3000.0 * quality * quality - 23.0 / 20.0 * quality + 25.0;
+  fprintf(stderr, "Distance: %f\n", distance);
+  return distance;
+}
+
 bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
                       const uint32_t ysize, const uint32_t zsize, const uint8_t bitdepth,
-                      std::vector<uint8_t>* compressed, const uint32_t effort, const float distance, std::vector<uint8_t>* icc_profile) {
+                      std::vector<uint8_t>* compressed, const uint32_t effort, const float quality, std::vector<uint8_t>* icc_profile) {
+  const float distance = sirilEncoderDistanceFromQuality(quality);
   auto enc = JxlEncoderMake(/*memory_manager=*/nullptr);
 #ifdef HAVE_LIBJXL_THREADS
   auto runner = JxlThreadParallelRunnerMake(
@@ -311,6 +326,13 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
   if (JXL_ENC_SUCCESS != JxlEncoderSetFrameDistance(frame_settings, distance))
     fprintf(stderr, "Error setting permissible distance: continuing with default.\n");
 
+  if (distance == 0.0) {
+    if (JXL_ENC_SUCCESS != JxlEncoderSetFrameLossless(frame_settings, JXL_TRUE)) {
+      fprintf(stderr, "JxlEncoderSetFrameLossless failed\n");
+      return false;
+    }
+  }
+
   if (JXL_ENC_SUCCESS !=
       JxlEncoderAddImageFrame(frame_settings, &pixel_format,
                               static_cast<const void*>(pixels.data()),
@@ -345,7 +367,7 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
 extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t xsize,
                       const uint32_t ysize, const uint32_t zsize, const uint8_t bitdepth,
                       void** compressed, size_t* compressed_length, uint32_t effort,
-                      const double distance, uint8_t* icc_profile, uint32_t icc_profile_length) {
+                      const double quality, uint8_t* icc_profile, uint32_t icc_profile_length) {
     std::vector<uint8_t> vec_icc_profile(icc_profile, icc_profile + icc_profile_length);
     int datasize = bitdepth / 8;
     std::vector<uint8_t> vec_pixels(pixels, pixels + xsize * ysize * zsize * datasize);
@@ -353,7 +375,7 @@ extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t 
 
     int retval = (!EncodeJxlOneshot(vec_pixels, xsize,
                       ysize, zsize, bitdepth,
-                      &vec_compressed, effort, distance, &vec_icc_profile)) ? 1 : 0;
+                      &vec_compressed, effort, quality, &vec_icc_profile)) ? 1 : 0;
     void* array = (void*) malloc(vec_compressed.size() * datasize);
     *compressed = array;
     memcpy(*compressed, vec_compressed.data(), vec_compressed.size() * sizeof(uint8_t));
