@@ -70,7 +70,6 @@ src_files = [
   'compositing/filters.c',
 
   'core/arithm.c',
-  'core/atomic.cpp',
   'core/command.c',
   'core/command_line_processor.c',
   'core/exif.cpp',

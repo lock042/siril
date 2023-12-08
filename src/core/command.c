@@ -4106,18 +4106,21 @@ int process_light_curve(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
-	if (check_seq_is_comseq(seq)) {
+	gboolean has_GUI = FALSE;
+	gboolean seq_has_wcs = FALSE;
+	int refimage = sequence_find_refimage(seq);
+	if (check_seq_is_comseq(seq)) { // we are in GUI
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
 		init_plot_colors();
+		has_GUI = TRUE;
+		seq_has_wcs = has_wcs(&gfit);
+	} else { // we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
+		siril_debug_print("reference image in seqfile is %d\n", refimage);
+		seq_has_wcs = sequence_ref_has_wcs(seq);
+		seq->current = refimage;
 	}
-	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
-	int refimage = 0;
-	gboolean seq_has_wcs;
-	if ((seq_has_wcs = sequence_has_wcs(seq, &refimage)))
-		seq->reference_image = refimage;
-	seq->current = refimage;	// seqpsf computes transformations from current
 
 	gchar *end;
 	int layer = g_ascii_strtoull(word[2], &end, 10);
@@ -4137,24 +4140,26 @@ int process_light_curve(int nb) {
 		autoring = TRUE;
 		if (nb == 3) {
 			siril_log_message(_("Missing argument to command\n"));
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			return CMD_ARG_ERROR;
 		}
 		argidx++;
 	}
 
-	fits first = { 0 };
-	if (autoring) {
-		if (seq_read_frame(seq, refimage, &first, FALSE, -1)) {
+	fits reffit = { 0 };
+	if (autoring) { // we detect the stars in the reference frame
+		if (seq_read_frame(seq, refimage, &reffit, FALSE, -1)) {
 			if (seq != &com.seq)
 				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
-		float fwhm = measure_image_FWHM(&first, layer);
+		float fwhm = measure_image_FWHM(&reffit, layer);
 		if (fwhm <= 0.0f) {
-			siril_log_color_message(_("Could not find stars in the first image, aborting.\n"), "red");
+			siril_log_color_message(_("Could not find stars in the reference image, aborting.\n"), "red");
 			if (seq != &com.seq)
 				free_sequence(seq, TRUE);
-			clearfits(&first);
+			clearfits(&reffit);
 			return CMD_GENERIC_ERROR;
 		}
 		/* automatic aperture is 2 times each star's FWHM, which can be
@@ -4163,8 +4168,9 @@ int process_light_curve(int nb) {
 		com.pref.phot_set.outer = com.pref.phot_set.auto_outer_factor * fwhm;
 		siril_log_message(_("Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"),
 				com.pref.phot_set.inner, com.pref.phot_set.outer, fwhm);
+		clearfits(&reffit);
 	} else {
-		if (seq_read_frame_metadata(seq, refimage, &first)) {
+		if (seq_read_frame_metadata(seq, refimage, &reffit)) {
 			if (seq != &com.seq)
 				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
@@ -4177,7 +4183,8 @@ int process_light_curve(int nb) {
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
-		clearfits(&first);
+		if (seq != &com.seq)
+			free_sequence(seq, TRUE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -4187,36 +4194,38 @@ int process_light_curve(int nb) {
 		if (file[0] == '\0') {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), word[argidx]);
 			free(args);
-			clearfits(&first);
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
 		if (!seq_has_wcs) {
-			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
+			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the current\n"));
 			free(args);
-			clearfits(&first);
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			return CMD_FOR_PLATE_SOLVED;
 		}
-		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, &first)) {
+		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, has_GUI ? &gfit : &reffit)) {
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			free_light_curve_args(args);
-			clearfits(&first);
 			return CMD_GENERIC_ERROR;
 		}
 	} else {
 		args->areas = malloc((nb - argidx) * sizeof(rectangle));
 		for (int arg_index = argidx; arg_index < nb; arg_index++) {
-			if (parse_star_position_arg(word[arg_index], seq, &first,
+			if (parse_star_position_arg(word[arg_index], seq, has_GUI ? &gfit : &reffit,
 						&args->areas[arg_index - argidx], &args->target_descr)) {
 				free_light_curve_args(args);
-				clearfits(&first);
 				return CMD_ARG_ERROR;;
 			}
 		}
 		args->nb = nb - argidx;
 	}
-	clearfits(&first);
+	clearfits(&reffit);
 	args->seq = seq;
 	args->layer = layer;
-	args->display_graph = FALSE;
+	args->display_graph = has_GUI;
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
 	start_in_new_thread(light_curve_worker, args);
@@ -8744,6 +8753,10 @@ int process_pcc(int nb) {
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
+		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
+			noflip = TRUE;
+			siril_debug_print("forced no flip for solving an image from a sequence");
+		} 
 		args->flip_image = !noflip;
 		args->manual = FALSE;
 		args->ref_stars = calloc(1, sizeof(siril_catalogue));

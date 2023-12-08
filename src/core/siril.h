@@ -17,7 +17,6 @@
 #include <fitsio.h>	// fitsfile
 
 #include "core/settings.h"
-#include "core/atomic.h"
 
 #define _(String) gettext (String)
 #define gettext_noop(String) String
@@ -287,7 +286,7 @@ typedef struct {
 	     ngoodpix;	// number of non-zero pixels
 	double mean, median, sigma, avgDev, mad, sqrtbwmv,
 	       location, scale, min, max, normValue, bgnoise;
-	atomic_int* _nb_refs;	// reference counting for data management
+	gint _nb_refs;	// reference counting for data management
 } imstats;
 
 typedef struct {

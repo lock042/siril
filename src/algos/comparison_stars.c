@@ -306,7 +306,7 @@ int sort_compstars(struct compstars_arg *args) {
 		// preparing the output catalog
 		args->comp_stars = calloc(1, sizeof(siril_catalogue));
 		args->comp_stars->cat_index = CAT_COMPSTARS;
-		args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS);
+		args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS) | (1 << CAT_FIELD_MAG); // we add mag to write it in the output file (it is not a mandatory field at readout)
 		// allocating final sorted list to the required size
 		cat_item *result = calloc(nb_phot_stars + 1, sizeof(cat_item));
 		// write the target star

@@ -237,10 +237,7 @@ gpointer generic_sequence_worker(gpointer p) {
 				if (args->stop_on_error)
 					abort = 1;
 				else {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-					excluded_frames++;
+					g_atomic_int_inc(&excluded_frames);
 				}
 				clearfits(fit);
 				g_free(fit);
@@ -273,14 +270,8 @@ gpointer generic_sequence_worker(gpointer p) {
 			if (args->stop_on_error)
 				abort = 1;
 			else {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				excluded_frames++;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				progress++;
+				g_atomic_int_inc(&excluded_frames);
+				g_atomic_int_inc(&progress);
 				set_progress_bar_data(NULL, (float)progress / nb_framesf);
 			}
 			if (args->seq->type == SEQ_INTERNAL) {
@@ -330,10 +321,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			}
 		}
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-		progress++;
+		g_atomic_int_inc(&progress);
 		gchar *msg = g_strdup_printf(_("%s. Processing image %d (%s)"), args->description, input_idx + 1, filename);
 		set_progress_bar_data(msg, (float)progress / nb_framesf);
 		g_free(msg);
