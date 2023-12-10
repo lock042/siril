@@ -786,65 +786,6 @@ int process_savejxl(int nb){
 }
 #endif
 
-#ifdef HAVE_LIBHEIF
-int process_saveheifavif(int nb, gboolean is_avif){
-	int quality = 80;
-	gboolean lossless = FALSE;
-	int max_bitdepth = 8;
-	for (int i = 2; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		else if (g_str_has_prefix(arg, "-hdr10")) {
-			max_bitdepth = 10;
-		}
-		else if (g_str_has_prefix(arg, "-hdr12")) {
-			max_bitdepth = 12;
-		}
-		else if (g_str_has_prefix(arg, "-lossless")) {
-			lossless = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-quality=")) {
-			arg += 9;
-			quality = (int) g_ascii_strtod(arg, &end);
-			if (quality <= 1 || quality > 100) {
-				siril_log_message(_("Error: quality must be > 0 and <= 100.\n"));
-				return CMD_ARG_ERROR;
-			}
-		}
-	}
-	gchar *filename = NULL;
-	if (is_avif) {
-		filename = g_strdup_printf("%s.avif", word[1]);
-	} else {
-		filename = g_strdup_printf("%s.heif", word[1]);
-	}
-	int status, retval = CMD_OK;
-	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
-	if (status > 0) {
-		retval = CMD_GENERIC_ERROR;
-	} else {
-		set_cursor_waiting(TRUE);
-		retval = saveheifavif(savename, &gfit, quality, lossless, is_avif, max_bitdepth);
-		set_cursor_waiting(FALSE);
-	}
-	g_free(filename);
-	g_free(savename);
-	return retval;
-}
-
-int process_saveavif(int nb) {
-	int retval = process_saveheifavif(nb, TRUE);
-	return retval;
-}
-
-int process_saveheif(int nb) {
-	int retval = process_saveheifavif(nb, FALSE);
-	return retval;
-}
-
-#endif
-
 #ifdef HAVE_LIBPNG
 int process_savepng(int nb){
 	gchar *filename = g_strdup_printf("%s.png", word[1]);
@@ -8756,7 +8697,7 @@ int process_pcc(int nb) {
 		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 			noflip = TRUE;
 			siril_debug_print("forced no flip for solving an image from a sequence");
-		} 
+		}
 		args->flip_image = !noflip;
 		args->manual = FALSE;
 		args->ref_stars = calloc(1, sizeof(siril_catalogue));

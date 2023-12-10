@@ -94,13 +94,6 @@ static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	all_filter = g_string_append(all_filter, ";");
 	all_filter = g_string_append(all_filter, jxl_filter);
 #endif
-#ifdef HAVE_LIBHEIF
-	const gchar *heifavif_filter = "*.heif;*.HEIF;*.heic;*.HEIC;*.avif;*.AVIF";
-
-	gtk_filter_add(chooser, _("AVIF & HEIF Files (*.avif, *.heif, *.heic)"), heifavif_filter, FALSE);
-	all_filter = g_string_append(all_filter, ";");
-	all_filter = g_string_append(all_filter, heifavif_filter);
-#endif
 
 #ifdef HAVE_LIBPNG
 	const gchar *png_filter = "*.png;*.PNG";
@@ -151,12 +144,6 @@ static image_type get_filetype(const gchar *filter) {
 			break;
 		} else if (!g_strcmp0(string[i], "jxl")) {
 			type = TYPEJXL;
-			break;
-		} else if (!g_strcmp0(string[i], "heif") || !g_strcmp0(string[i], "heic")) {
-			type = TYPEHEIF;
-			break;
-		} else if (!g_strcmp0(string[i], "avif")) {
-			type = TYPEAVIF;
 			break;
 		} else if (!g_strcmp0(string[i], "ppm")) {
 			type = TYPEPNM;
@@ -273,11 +260,6 @@ static void prepare_savepopup() {
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving JPEG XL"));
 		tab = PAGE_JXL;
 		break;
-	case TYPEAVIF:
-	case TYPEHEIF:
-		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving AVIF / HEIF"));
-		tab = PAGE_AVIF;
-		break;
 	case TYPETIFF:
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving TIFF"));
 		set_copyright_in_TIFF();
@@ -375,14 +357,6 @@ static void filter_changed(gpointer user_data) {
 #ifdef HAVE_LIBJXL
 	case TYPEJXL:
 		new_filename = g_strdup_printf("%s.jxl", file_no_ext);
-		break;
-#endif
-#ifdef HAVE_LIBHEIF
-	case TYPEAVIF:
-		new_filename = g_strdup_printf("%s.avif", file_no_ext);
-		break;
-	case TYPEHEIF:
-		new_filename = g_strdup_printf("%s.heif", file_no_ext);
 		break;
 #endif
 #ifdef HAVE_LIBPNG
@@ -489,15 +463,6 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *toggle_button_8bit = GTK_TOGGLE_BUTTON(lookup_widget("jxl_force_8bit"));
 	args->jxl_force_8bit = gtk_toggle_button_get_active(toggle_button_8bit);
 #endif
-#ifdef HAVE_LIBHEIF
-	GtkSpinButton *avif_quality_spin_button = GTK_SPIN_BUTTON(lookup_widget("avif_quality_spinbutton"));
-	args->heif_quality = gtk_spin_button_get_value_as_int(avif_quality_spin_button);
-	GtkComboBox *avif_bitdepth = GTK_COMBO_BOX(lookup_widget("avif_bitdepth"));
-	int depth = gtk_combo_box_get_active(avif_bitdepth);
-	args->avif_bitdepth = depth == 0 ? 8 : depth == 1 ? 10 : 12;
-	GtkToggleButton *toggle_button_lossless = GTK_TOGGLE_BUTTON(lookup_widget("avif_lossless"));
-	args->lossless = gtk_toggle_button_get_active(toggle_button_lossless);
-#endif
 #ifdef HAVE_LIBTIFF
 	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
@@ -544,15 +509,7 @@ static gpointer mini_save_dialog(gpointer p) {
 			args->retval = savejxl(args->filename, &gfit, args->jxl_effort, args->jxl_quality, args->jxl_force_8bit);
 			break;
 #endif
-#ifdef HAVE_LIBHEIF
-		case TYPEAVIF:
-			args->retval = saveheifavif(args->filename, &gfit, args->heif_quality, args->lossless, TRUE, args->avif_bitdepth);
-			break;
-		case TYPEHEIF:
-			args->retval = saveheifavif(args->filename, &gfit, args->heif_quality, args->lossless, FALSE, args->avif_bitdepth);
-			break;
-#endif
-			#ifdef HAVE_LIBTIFF
+#ifdef HAVE_LIBTIFF
 		case TYPETIFF:
 			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->tiff_compression, TRUE, TRUE);
 			break;

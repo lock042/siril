@@ -173,7 +173,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkNotebook" id="notebookFormat">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="show-tabs">False</property>
                 <property name="show-border">False</property>
                 <child>
                   <!-- n-columns=2 n-rows=2 -->
@@ -827,7 +826,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel" id="label82">
+                  <object class="GtkLabel" id="FITSlabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">FITS</property>
@@ -983,141 +982,13 @@ NOTE: lossy compression gives bad results when saving linear data owing to the v
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="jpegXLlabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">JPEG XL</property>
                   </object>
                   <packing>
                     <property name="position">3</property>
-                    <property name="tab-fill">False</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkFrame" id="frame19">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label-xalign">0</property>
-                    <property name="shadow-type">none</property>
-                    <child>
-                      <object class="GtkAlignment" id="alignment2">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="left-padding">12</property>
-                        <child>
-                          <!-- n-columns=3 n-rows=3 -->
-                          <object class="GtkGrid" id="grid9">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="column-spacing">5</property>
-                            <child>
-                              <object class="GtkScale" id="distance_scale1">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="hexpand">True</property>
-                                <property name="adjustment">adj_avif_quality</property>
-                                <property name="draw-value">False</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="avif_quality_spinbutton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Distance is a measure of quality, the lower the better quality but the larger the file size. It represents a measure of the maximum permissible distance between the original and compressed data. 0.0 is mathematically lossless; 1.0 is visually lossless.</property>
-                                <property name="invisible-char">•</property>
-                                <property name="text" translatable="yes">1.00</property>
-                                <property name="adjustment">adj_avif_quality</property>
-                                <property name="numeric">True</property>
-                                <property name="value">80</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label40">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Quality:</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="avif_lossless">
-                                <property name="label" translatable="yes">Lossless</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">If checked, output will be lossless if the encoder supports it. Availability depends on your libheif version and which codecs are compiled in / available as modules. If lossless encoding is not available the process will fall back to the highest quality lossy encoding and a message will be printed in the log.</property>
-                                <property name="draw-indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                                <property name="width">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkComboBoxText" id="avif_bitdepth">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="active">0</property>
-                                <items>
-                                  <item translatable="yes">8 bit</item>
-                                  <item translatable="yes">10 bit (HDR10)</item>
-                                  <item translatable="yes">12 bit (HDR12)</item>
-                                </items>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">2</property>
-                                <property name="width">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Bit depth</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                    <child type="label">
-                      <object class="GtkLabel" id="label43">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Compression&lt;/b&gt;</property>
-                        <property name="use-markup">True</property>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child type="tab">
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">AVIF / HEIF</property>
-                  </object>
-                  <packing>
-                    <property name="position">4</property>
                     <property name="tab-fill">False</property>
                   </packing>
                 </child>
