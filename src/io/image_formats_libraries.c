@@ -2851,7 +2851,7 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 	if (interleave(fit, max_bitdepth, &buffer, &bitdepth, TRUE)) {
 		siril_log_color_message(_("Error interleaving image\n"), "red");
 	}
-
+	siril_debug_print("Bit depth: %d; max bit depth: %d\n", bitdepth, max_bitdepth);
 	// Initialize and configure a heif context
 #if LIBHEIF_HAVE_VERSION(1,13,0)
 	heif_init(NULL);
@@ -2933,10 +2933,10 @@ int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gb
 		data16 = (uint16_t*) buffer;
 		src16 = data16;
 
-		heif_image_add_plane (image, nchans == 1 ? heif_channel_Y : heif_channel_interleaved,
+		heif_image_add_plane (image, heif_channel_interleaved,
 								width, height, bitdepth);
 
-		uint8_t* data = heif_image_get_plane (image, nchans == 1 ? heif_channel_Y : heif_channel_interleaved, &stride);
+		uint8_t* data = heif_image_get_plane (image, heif_channel_interleaved, &stride);
 		switch (bitdepth) {
 			case 10:
 #ifdef _OPENMP
@@ -3255,7 +3255,6 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 						break;
 					case EXPORT_IMAGE_ICC:
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
-						(fit->icc_profile);
 						break;
 					default:
 						free(filename);
