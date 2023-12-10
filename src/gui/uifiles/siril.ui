@@ -386,31 +386,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
-          <object class="GtkModelButton" id="info_image">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="text" translatable="yes">Image Information</property>
-            <property name="menu-name">image_information_menu</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkModelButton" id="main_menu_preferences">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -509,158 +484,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <packing>
         <property name="submenu">main</property>
         <property name="position">1</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="border-width">4</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child>
-          <object class="GtkModelButton" id="info_menu_back_to_main">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="text" translatable="yes">Image Information</property>
-            <property name="menu-name">main</property>
-            <property name="inverted">True</property>
-            <property name="centered">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_astrometry">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.astrometry</property>
-            <property name="text" translatable="yes">Image Plate Solver...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_statistics">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.statistics</property>
-            <property name="text" translatable="yes">Statistics...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_noise_estimation">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.evaluate-noise</property>
-            <property name="text" translatable="yes">Noise Estimation</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_ccd_inspector">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.ccd-inspector</property>
-            <property name="text" translatable="yes">Aberration Inspector</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_informations">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.image-information</property>
-            <property name="text" translatable="yes">Information...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_icc">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.icc-tool</property>
-            <property name="text" translatable="yes">Color Management...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">7</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_headers">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.fits-header</property>
-            <property name="text" translatable="yes">FITS Header...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">8</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_dynamic_psf">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.dyn-psf</property>
-            <property name="text" translatable="yes">Dynamic PSF...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">9</property>
-          </packing>
-        </child>
-      </object>
-      <packing>
-        <property name="submenu">image_information_menu</property>
-        <property name="position">2</property>
       </packing>
     </child>
   </object>
@@ -912,39 +735,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
 This research has made use of IMCCE's SkyBoT VO tool.</property>
         <property name="action-name">win.search-solar</property>
         <property name="label" translatable="yes">Solar System Objects</property>
-        <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkSeparatorMenuItem" id="&lt;séparateur&gt;">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_gray_header">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.fits-header</property>
-        <property name="label" translatable="yes">FITS Header...</property>
-        <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_gray_stat">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.statistics</property>
-        <property name="label" translatable="yes">Statistics...</property>
-        <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_gray_ccd_inspector">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.ccd-inspector</property>
-        <property name="label" translatable="yes">Aberration Inspector</property>
         <property name="use-underline">True</property>
       </object>
     </child>
@@ -1269,35 +1059,33 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkButton" id="ButtonSaveCSV">
-            <property name="label" translatable="yes">Export to CSV</property>
+          <object class="GtkModelButton" id="ButtonSaveCSV">
             <property name="visible">True</property>
-            <property name="sensitive">False</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Export displayed plot to a CSV file.</property>
+            <property name="text" translatable="yes">Export to CSV</property>
             <signal name="clicked" handler="on_ButtonSaveCSV_clicked" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="ButtonSavePlot">
-            <property name="label" translatable="yes">Save Plot</property>
+          <object class="GtkModelButton" id="ButtonSavePlot">
             <property name="visible">True</property>
-            <property name="sensitive">False</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
-            <signal name="clicked" handler="on_ButtonSavePlot_clicked" object="DrawingPlot" swapped="no"/>
+            <property name="text" translatable="yes">Save Plot</property>
+            <signal name="clicked" handler="on_ButtonSavePlot_clicked" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">1</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
@@ -1317,31 +1105,33 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkButton" id="varCurvePhotometry">
-            <property name="label" translatable="yes">Light Curve (ETD format)</property>
+          <object class="GtkModelButton" id="varCurvePhotometry">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <property name="text" translatable="yes">Light Curve (ETD format)</property>
             <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">0</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="exportAAVSO_button">
-            <property name="label" translatable="yes">AAVSO file format</property>
+          <object class="GtkModelButton" id="exportAAVSO_button">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <property name="text" translatable="yes">AAVSO file format</property>
             <signal name="clicked" handler="on_exportAAVSO_button_clicked" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
@@ -2352,6 +2142,326 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
     <property name="value">4</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkPopoverMenu" id="tools_menu">
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkModelButton" id="proc_image_analysis">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Image Analysis</property>
+            <property name="menu-name">menu_image_analysis</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_image_photometry">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Photometry</property>
+            <property name="menu-name">menu_image_photometry</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_image_astrometry">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Astrometry</property>
+            <property name="menu-name">menu_image_astrometry</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_icc">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.icc-tool</property>
+            <property name="text" translatable="yes">Color Management...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_headers">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.fits-header</property>
+            <property name="text" translatable="yes">FITS Header...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_informations">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.image-information</property>
+            <property name="text" translatable="yes">Information...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">main</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Astrometry</property>
+            <property name="menu-name">main</property>
+            <property name="inverted">True</property>
+            <property name="centered">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_astrometry">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.astrometry</property>
+            <property name="text" translatable="yes">Image Plate Solver...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">menu_image_astrometry</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="border-width">4</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Image Analysis</property>
+            <property name="menu-name">main</property>
+            <property name="inverted">True</property>
+            <property name="centered">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_statistics">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.statistics</property>
+            <property name="text" translatable="yes">Statistics...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_noise_estimation">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.evaluate-noise</property>
+            <property name="text" translatable="yes">Noise Estimation</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_ccd_inspector">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.ccd-inspector</property>
+            <property name="text" translatable="yes">Aberration Inspector</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_tilt">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.show-tilt</property>
+            <property name="text" translatable="yes">Show tilt</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_dynamic_psf">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.dyn-psf</property>
+            <property name="text" translatable="yes">Dynamic PSF...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">menu_image_analysis</property>
+        <property name="position">2</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
+Output is a csv file compatible with NINA Exoplanet</property>
+            <property name="text" translatable="yes">Photometry</property>
+            <property name="menu-name">main</property>
+            <property name="inverted">True</property>
+            <property name="centered">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="comp_stars_button">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
+Output is a csv file compatible with NINA Exoplanet</property>
+            <property name="action-name">win.compstars</property>
+            <property name="text" translatable="yes">Comparison stars</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="nina_button">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
+            <property name="action-name">win.nina_light_curve</property>
+            <property name="text" translatable="yes">NINA exoplanet</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">menu_image_photometry</property>
+        <property name="position">3</property>
+      </packing>
+    </child>
   </object>
   <object class="GtkApplicationWindow" id="control_window">
     <property name="visible">True</property>
@@ -3377,7 +3487,7 @@ SER files are directly handled as a sequence, and are not yet available for conv
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
                                                 <child>
-                                                  <!-- n-columns=4 n-rows=3 -->
+                                                  <!-- n-columns=4 n-rows=2 -->
                                                   <object class="GtkGrid" id="grid16">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
@@ -3538,18 +3648,6 @@ Colour image target also applies to the debayer result for conversion.</property
                                                         <property name="left-attach">0</property>
                                                         <property name="top-attach">0</property>
                                                       </packing>
-                                                    </child>
-                                                    <child>
-                                                      <placeholder/>
-                                                    </child>
-                                                    <child>
-                                                      <placeholder/>
-                                                    </child>
-                                                    <child>
-                                                      <placeholder/>
-                                                    </child>
-                                                    <child>
-                                                      <placeholder/>
                                                     </child>
                                                   </object>
                                                 </child>
@@ -7162,40 +7260,6 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="position">3</property>
                                                   </packing>
                                                 </child>
-                                                <child>
-                                                  <object class="GtkButton" id="nina_button">
-                                                    <property name="label" translatable="yes">NINA exoplanet</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Process a light curve using the list of stars from the NINA exoplanet plugin</property>
-                                                    <property name="halign">end</property>
-                                                    <property name="action-name">win.nina_light_curve</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">4</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkButton" id="comp_stars_button">
-                                                    <property name="label" translatable="yes">Comparison stars</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
-Output is a csv file compatible with NINA Exoplanet</property>
-                                                    <property name="action-name">win.compstars</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="pack-type">end</property>
-                                                    <property name="position">5</property>
-                                                  </packing>
-                                                </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -7273,7 +7337,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">5</property>
+                                                    <property name="position">1</property>
                                                   </packing>
                                                 </child>
                                               </object>
@@ -9717,6 +9781,53 @@ WARNING: This option should not be checked for master stacking.</property>
           </packing>
         </child>
         <child>
+          <object class="GtkMenuButton" id="header_tools_button">
+            <property name="name">processing-button</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Menu of the image processing tools. It contains all suitable functions for image enhancement.</property>
+            <property name="popover">tools_menu</property>
+            <child>
+              <object class="GtkBox" id="image_tools_button_box">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkLabel" id="image_tools_button_name">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="valign">baseline</property>
+                    <property name="label" translatable="yes">Tools</property>
+                    <property name="use-underline">True</property>
+                    <property name="ellipsize">end</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkImage" id="image_processing_button_arrow1">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="valign">baseline</property>
+                    <property name="icon-name">pan-down-symbolic</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkMenuButton" id="header_scripts_button">
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
@@ -9761,7 +9872,7 @@ WARNING: This option should not be checked for master stacking.</property>
             </style>
           </object>
           <packing>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -9782,7 +9893,7 @@ WARNING: This option should not be checked for master stacking.</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
         <child>
@@ -9830,7 +9941,7 @@ WARNING: This option should not be checked for master stacking.</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">7</property>
+            <property name="position">8</property>
           </packing>
         </child>
         <child>
@@ -9926,7 +10037,7 @@ WARNING: This option should not be checked for master stacking.</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">8</property>
+            <property name="position">9</property>
           </packing>
         </child>
         <child>
@@ -9954,7 +10065,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">9</property>
+            <property name="position">10</property>
           </packing>
         </child>
         <child>
@@ -10009,7 +10120,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
           </object>
           <packing>
             <property name="pack-type">end</property>
-            <property name="position">10</property>
+            <property name="position">11</property>
           </packing>
         </child>
       </object>

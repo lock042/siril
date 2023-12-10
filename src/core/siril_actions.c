@@ -501,6 +501,12 @@ void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer
 	compute_aberration_inspector();
 }
 
+void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+	draw_sensor_tilt(&gfit);
+	set_cursor_waiting(FALSE);
+}
+
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("file_information");
 }
