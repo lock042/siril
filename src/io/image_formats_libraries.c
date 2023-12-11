@@ -2924,7 +2924,7 @@ int readjxl(const char* name, fits *fit) {
 	free(internal_icc_profile);
 
 	mirrorx(fit, FALSE);
-	fill_date_obs_if_any(fit, name);
+//	fill_date_obs_if_any(fit, name);
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"),
 						basename, fit->naxes[2], fit->rx, fit->ry);

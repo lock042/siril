@@ -203,36 +203,6 @@ bool DecodeJpegXlOneShot(const uint8_t* jxl, size_t size,
   return false; // should not happen
 }
 
-extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
-                         float** pixels, size_t* xsize,
-                         size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth,
-                         uint8_t** icc_profile, size_t *icc_profile_length,
-                         uint8_t** internal_icc_profile, size_t *internal_icc_profile_length) {
-    std::vector<float> vec_pixels;
-    std::vector<uint8_t> original_vec_icc_profile;
-    std::vector<uint8_t> internal_vec_icc_profile;
-    if (!DecodeJpegXlOneShot(jxl, size,
-                         &vec_pixels, xsize,
-                         ysize, zsize, extra_channels, bitdepth,
-                         &original_vec_icc_profile, &internal_vec_icc_profile))
-        return -1;
-    float *array = (float*) malloc(vec_pixels.size() * sizeof(float));
-    *pixels = array;
-    memcpy(*pixels, vec_pixels.data(), vec_pixels.size() * sizeof(float));
-    uint8_t *icc_array = (uint8_t*) malloc(original_vec_icc_profile.size() * sizeof(uint8_t));
-    *icc_profile = icc_array;
-    memcpy(*icc_profile, original_vec_icc_profile.data(), original_vec_icc_profile.size() * sizeof(uint8_t));
-    *icc_profile_length = original_vec_icc_profile.size();
-
-    uint8_t *internal_icc_array = (uint8_t*) malloc(internal_vec_icc_profile.size() * sizeof(uint8_t));
-    *internal_icc_profile = internal_icc_array;
-    memcpy(*internal_icc_profile, internal_vec_icc_profile.data(), internal_vec_icc_profile.size() * sizeof(uint8_t));
-    *internal_icc_profile_length = internal_vec_icc_profile.size();
-
-
-    return 0;
-}
-
 /**
  * Compresses the provided pixels.
  *
@@ -362,6 +332,40 @@ bool EncodeJxlOneshot(const std::vector<uint8_t>& pixels, const uint32_t xsize,
   }
 
   return true;
+}
+
+/*******************************************************************************
+ *                                C Wrappers                                   *
+ ******************************************************************************/
+
+extern "C" int DecodeJpegXlOneShotWrapper(const uint8_t* jxl, size_t size,
+                         float** pixels, size_t* xsize,
+                         size_t* ysize, size_t* zsize, size_t* extra_channels, uint8_t* bitdepth,
+                         uint8_t** icc_profile, size_t *icc_profile_length,
+                         uint8_t** internal_icc_profile, size_t *internal_icc_profile_length) {
+    std::vector<float> vec_pixels;
+    std::vector<uint8_t> original_vec_icc_profile;
+    std::vector<uint8_t> internal_vec_icc_profile;
+    if (!DecodeJpegXlOneShot(jxl, size,
+                         &vec_pixels, xsize,
+                         ysize, zsize, extra_channels, bitdepth,
+                         &original_vec_icc_profile, &internal_vec_icc_profile))
+        return -1;
+    float *array = (float*) malloc(vec_pixels.size() * sizeof(float));
+    *pixels = array;
+    memcpy(*pixels, vec_pixels.data(), vec_pixels.size() * sizeof(float));
+    uint8_t *icc_array = (uint8_t*) malloc(original_vec_icc_profile.size() * sizeof(uint8_t));
+    *icc_profile = icc_array;
+    memcpy(*icc_profile, original_vec_icc_profile.data(), original_vec_icc_profile.size() * sizeof(uint8_t));
+    *icc_profile_length = original_vec_icc_profile.size();
+
+    uint8_t *internal_icc_array = (uint8_t*) malloc(internal_vec_icc_profile.size() * sizeof(uint8_t));
+    *internal_icc_profile = internal_icc_array;
+    memcpy(*internal_icc_profile, internal_vec_icc_profile.data(), internal_vec_icc_profile.size() * sizeof(uint8_t));
+    *internal_icc_profile_length = internal_vec_icc_profile.size();
+
+
+    return 0;
 }
 
 extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t xsize,
