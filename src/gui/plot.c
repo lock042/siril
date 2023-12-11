@@ -62,7 +62,7 @@
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*photometry_output = NULL, *buttonClearAll = NULL,
+		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
 		*buttonNINA = NULL, *buttonCompStars = NULL;
@@ -870,13 +870,15 @@ static void fill_plot_statics() {
 		drawingPlot = lookup_widget("DrawingPlot");
 		combo = lookup_widget("plotCombo");
 		comboX = lookup_widget("plotComboX");
-		photometry_output = lookup_widget("export_photo_button");
+		photometry_output1 = lookup_widget("varCurvePhotometry");
+		photometry_output2 = lookup_widget("exportAAVSO_button");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
 		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
 		label_display_plot = lookup_widget("label_display_plot");
 		sourceCombo = lookup_widget("plotSourceCombo");
+		photo_clear_button = lookup_widget("photo_clear_button");
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
@@ -888,15 +890,13 @@ static void fill_plot_statics() {
 static void validate_combos() {
 	fill_plot_statics();
 	use_photometry = gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
-	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	if (!use_photometry) {
 		reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(layer_selector));
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
-	gtk_widget_set_visible(photometry_output, TRUE);
-	gtk_widget_set_sensitive(photometry_output, use_photometry && current_selected_source == MAGNITUDE);
-	gtk_widget_set_visible(buttonNINA, TRUE);
+	gtk_widget_set_sensitive(photometry_output1, use_photometry);
+	gtk_widget_set_sensitive(photometry_output2, use_photometry);
 	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonCompStars, TRUE);
 	gtk_widget_set_sensitive(buttonCompStars, sequence_is_loaded());
@@ -972,14 +972,12 @@ void reset_plot() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
-		gtk_widget_set_visible(photometry_output, FALSE);
-		gtk_widget_set_visible(buttonNINA, FALSE);
-		gtk_widget_set_visible(buttonCompStars, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
 		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
 		gtk_widget_set_sensitive(buttonClearAll, FALSE);
+		gtk_widget_set_sensitive(photo_clear_button, FALSE);
 		layer = get_registration_layer(&com.seq);
 		update_seqlist(layer);
 	}
@@ -1523,7 +1521,6 @@ static void update_ylabel() {
 	gtk_widget_set_sensitive(buttonSavePrt, TRUE);
 	if (use_photometry) {
 		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
-		gtk_widget_set_sensitive(photometry_output, current_selected_source == MAGNITUDE);
 		switch (current_selected_source) {
 			case ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
@@ -1642,6 +1639,7 @@ void notify_new_photometry() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 1);
 	gtk_widget_set_sensitive(buttonClearLatest, TRUE);
 	gtk_widget_set_sensitive(buttonClearAll, TRUE);
+	gtk_widget_set_sensitive(photo_clear_button, TRUE);
 	gtk_widget_set_sensitive(comboX, FALSE);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 }
