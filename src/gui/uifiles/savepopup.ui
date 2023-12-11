@@ -27,13 +27,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkAdjustment" id="adj_avif_quality">
-    <property name="lower">1</property>
-    <property name="upper">100</property>
-    <property name="value">80</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="adj_jxl_effort">
     <property name="lower">1</property>
     <property name="upper">9</property>
@@ -173,6 +166,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkNotebook" id="notebookFormat">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="show-tabs">False</property>
                 <property name="show-border">False</property>
                 <child>
                   <!-- n-columns=2 n-rows=2 -->
@@ -883,7 +877,7 @@ NOTE: lossy compression gives bad results when saving linear data owing to the v
                                     <property name="adjustment">adj_jxl_quality</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
-                                    <property name="value">8</property>
+                                    <property name="value">94</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">2</property>
