@@ -719,26 +719,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_gray_search">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="action-name">win.search-object</property>
-        <property name="label" translatable="yes">Search Object...</property>
-        <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_search_sso">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="tooltip-text" translatable="yes">Search and display solar system objects with mag&lt;20.0.
-This research has made use of IMCCE's SkyBoT VO tool.</property>
-        <property name="action-name">win.search-solar</property>
-        <property name="label" translatable="yes">Solar System Objects</property>
-        <property name="use-underline">True</property>
-      </object>
-    </child>
-    <child>
       <object class="GtkSeparatorMenuItem" id="menu_gray_separator">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -2283,6 +2263,34 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_search">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.search-object</property>
+            <property name="text" translatable="yes">Search Object...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="info_menu_search_sso">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.search-solar</property>
+            <property name="text" translatable="yes">Solar System Objects</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
