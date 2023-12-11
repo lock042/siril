@@ -171,6 +171,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"statistics",
 		"evaluate-noise",
 		"ccd-inspector",
+		"show-tilt",
 		"astrometry",
 		"photometry",
 		"image-information",
