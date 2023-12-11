@@ -237,6 +237,48 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
+  <object class="GtkPopover" id="clear_menu">
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkModelButton" id="clearAllPhotometry">
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Clear all curves displayed in photometry.</property>
+            <property name="text" translatable="yes">Clear all</property>
+            <signal name="clicked" handler="on_clearAllPhotometry_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="clearLastPhotometry">
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Clear the last curve added in photometry.</property>
+            <property name="text" translatable="yes">Clear latest</property>
+            <signal name="clicked" handler="on_clearLatestPhotometry_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkPopover" id="display_plot_menu">
     <property name="can-focus">False</property>
     <child>
@@ -7035,49 +7077,15 @@ Circle marker: the value for the reference frame.
 Cross marker: the value for the currently loaded frame.</property>
                                                 <property name="spacing">5</property>
                                                 <child>
-                                                  <object class="GtkButton" id="clearAllPhotometry">
-                                                    <property name="label" translatable="yes">Clear all</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Clear all curves displayed in photometry.</property>
-                                                    <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_clearAllPhotometry_clicked" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkButton" id="clearLastPhotometry">
-                                                    <property name="label" translatable="yes">Clear latest</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Clear the last curve added in photometry.</property>
-                                                    <property name="halign">center</property>
-                                                    <signal name="clicked" handler="on_clearLatestPhotometry_clicked" swapped="no"/>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">1</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkMenuButton" id="output_plot_button">
+                                                  <object class="GtkMenuButton">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">This button opens a CSV export of the data, or a screenshot of the plot.</property>
+                                                    <property name="tooltip-text" translatable="yes">Deletes plots displayed in the graphics area.</property>
                                                     <property name="use-popover">False</property>
-                                                    <property name="popover">output_plot_menu</property>
+                                                    <property name="popover">clear_menu</property>
                                                     <child>
-                                                      <object class="GtkBox" id="export_box1">
+                                                      <object class="GtkBox" id="export_box4">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <child>
@@ -7085,7 +7093,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">baseline</property>
-                                                            <property name="label" translatable="yes">Output</property>
+                                                            <property name="label" translatable="yes">Clear plots</property>
                                                             <property name="use-underline">True</property>
                                                           </object>
                                                           <packing>
@@ -7113,7 +7121,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">2</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -7161,7 +7169,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">3</property>
+                                                    <property name="position">1</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -7172,7 +7180,7 @@ Cross marker: the value for the currently loaded frame.</property>
 Green curve: sorted values by order of decreasing quality.
 Circle marker: the value for the reference frame.
 Cross marker: the value for the currently loaded frame.</property>
-                                                    <property name="label" translatable="yes">legend</property>
+                                                    <property name="label" translatable="yes">Hovering for the legend</property>
                                                     <property name="single-line-mode">True</property>
                                                     <attributes>
                                                       <attribute name="style" value="italic"/>
@@ -7183,7 +7191,56 @@ Cross marker: the value for the currently loaded frame.</property>
                                                     <property name="fill">True</property>
                                                     <property name="padding">6</property>
                                                     <property name="pack-type">end</property>
-                                                    <property name="position">4</property>
+                                                    <property name="position">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkMenuButton" id="output_plot_button">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <property name="tooltip-text" translatable="yes">This button opens a CSV export of the data, or a screenshot of the plot.</property>
+                                                    <property name="use-popover">False</property>
+                                                    <property name="popover">output_plot_menu</property>
+                                                    <child>
+                                                      <object class="GtkBox" id="export_box1">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <child>
+                                                          <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="label" translatable="yes">Output</property>
+                                                            <property name="use-underline">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkImage">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">baseline</property>
+                                                            <property name="icon-name">pan-down-symbolic</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="pack-type">end</property>
+                                                    <property name="position">5</property>
                                                   </packing>
                                                 </child>
                                               </object>
