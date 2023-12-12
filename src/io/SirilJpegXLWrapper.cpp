@@ -428,7 +428,7 @@ static GdkPixbuf* createPixbufFromRGB(const std::vector<uint8_t>& rgbData, int w
     }
     guchar *pixels = (guchar*) malloc(rgbData.size());
     memcpy(pixels, rgbData.data(), rgbData.size());
-    GdkPixbuf* pixbuf = gdk_pixbuf_new_from_data(pixels, GDK_COLORSPACE_RGB, FALSE, 8, width, height, width * 3, (GdkPixbufDestroyNotify) free, NULL);
+    GdkPixbuf* pixbuf = gdk_pixbuf_new_from_data(pixels, GDK_COLORSPACE_RGB, FALSE, 8, width, height, width * 3, (GdkPixbufDestroyNotify) free, pixels);
 
     return pixbuf;
 }
