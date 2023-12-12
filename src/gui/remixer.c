@@ -839,7 +839,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 
 void on_remix_close_clicked(GtkButton *button, gpointer user_data) {
 	close_histograms(TRUE, TRUE);
-	apply_remix_cancel();
+	remixer_close();
 	set_cursor_waiting(FALSE);
 }
 
