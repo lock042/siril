@@ -25,6 +25,7 @@ siril 1.4.0 xx xx, xx
 * Added file filters programmatically. This allows them to be removed from the UI files, making it easier to keep using glade (for now) (!595)
 * Added AAVSO photometry file format output and improving photometry UI (#1234)
 * Refactored wcs usage, by removing redundant info stored in the fit structure (!591 and #1154::1)
+* Fix a crash when carrying out sequence geometry operations, caused by ROI (#1235)
 * Fix wavelets redraw. (#1236)
 * Add color management to photometric color calibration. (!598)
 
@@ -44,6 +45,10 @@ xx/xx/xx
 * Fixed argument parsing error in makepsf (!593)
 * Fixed light_curve and csv export from plot when some images were unselected from the sequence (#1169)
 * Added undo/redo when platesolving with astrometry.net (#1233)
+* Fixed crash in findstar when detecting stars close to the border (#1237)
+* Fixed using wcs info when using light_curve command (#1195)
+* Allowed moving file into workdir to be picked up for livestacking (#1223)
+* Fixed the way we check if there is enough space to use quick photometry (#1238)
 
 siril 1.2.0 September 15, 2023
 

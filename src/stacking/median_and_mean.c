@@ -1283,10 +1283,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			if (retval) break;
 
 			// update progress bar
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb++;
+			g_atomic_int_inc(&cur_nb);
 
 			if (!get_thread_run()) {
 				retval = ST_CANCEL;
