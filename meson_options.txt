@@ -48,6 +48,12 @@ option('libjpeg',
  description: 'build with JPEG support'
 )
 
+option('libjxl',
+ type : 'boolean',
+ value : 'true',
+ description: 'build with JPEG XL support'
+)
+
 option('libpng',
  type : 'boolean',
  value : true,

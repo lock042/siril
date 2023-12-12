@@ -740,6 +740,52 @@ int process_savejpg(int nb){
 }
 #endif
 
+#ifdef HAVE_LIBJXL
+int process_savejxl(int nb){
+	int effort = 7;
+	double quality = 94.0;
+	gboolean force_8bit = FALSE;
+	for (int i = 2; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-8bit")) {
+			force_8bit = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-quality=")) {
+			arg += 9;
+			double quality = g_ascii_strtod(arg, &end);
+			if (quality <= 0.0 || quality > 100.0) {
+				siril_log_message(_("Error: quality must be >= 0.0 and <= 100.0.\n"));
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-effort=")) {
+			arg += 8;
+			effort = (int) g_ascii_strtod(arg, &end);
+			if (effort < 1.0 || effort > 9.0) {
+				siril_log_message(_("Error: effort must be an integer between 1 and 9.\n"));
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+
+	gchar *filename = g_strdup_printf("%s.jxl", word[1]);
+	int status, retval = CMD_OK;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
+	if (status > 0) {
+		retval = CMD_GENERIC_ERROR;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savejxl(savename, &gfit, effort, quality, force_8bit);
+		set_cursor_waiting(FALSE);
+	}
+	g_free(filename);
+	g_free(savename);
+	return retval;
+}
+#endif
+
 #ifdef HAVE_LIBPNG
 int process_savepng(int nb){
 	gchar *filename = g_strdup_printf("%s.png", word[1]);
@@ -8055,6 +8101,9 @@ int process_capabilities(int nb) {
 #ifdef HAVE_LIBJPEG
 	siril_log_message("Can read and write JPEG files\n");
 #endif
+#ifdef HAVE_LIBJXL
+	siril_log_message("Can read and write JPEG XL files\n");
+#endif
 #ifdef HAVE_LIBPNG
 	siril_log_message("Can read and write PNG files\n");
 #endif
@@ -8065,7 +8114,7 @@ int process_capabilities(int nb) {
 	siril_log_message("Can read XISF files\n");
 #endif
 #ifdef HAVE_LIBHEIF
-	siril_log_message("Can read HEIF files\n");
+	siril_log_message("Can read and write HEIF and AVIF files\n");
 #endif
 	siril_log_message("Can read IRIS PIC files\n");
 #ifdef HAVE_FFMS2
@@ -8648,7 +8697,7 @@ int process_pcc(int nb) {
 		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 			noflip = TRUE;
 			siril_debug_print("forced no flip for solving an image from a sequence");
-		} 
+		}
 		args->flip_image = !noflip;
 		args->manual = FALSE;
 		args->ref_stars = calloc(1, sizeof(siril_catalogue));
