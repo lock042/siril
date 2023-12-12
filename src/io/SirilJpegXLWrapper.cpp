@@ -399,7 +399,8 @@ static GdkPixbuf* createPixbufFromMono(const std::vector<uint8_t>& rgbData, int 
 
     // Create a GdkPixbuf with the specified dimensions and format
     GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, width, height);
-
+  int rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+  fprintf(stderr, "width: %d rowstride: %d\n", width, rowstride);
     // Get the pixel buffer from the GdkPixbuf
     guchar* pixels = gdk_pixbuf_get_pixels(pixbuf);
 
@@ -408,11 +409,11 @@ static GdkPixbuf* createPixbufFromMono(const std::vector<uint8_t>& rgbData, int 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             // Copy Red channel
-            pixels[(y * width + x) * 3] = rgbData[index];
+            pixels[(y * rowstride + 3 * x)] = rgbData[index];
             // Copy Green channel
-            pixels[(y * width + x) * 3 + 1] = rgbData[index];
+            pixels[(y * rowstride + 3 * x) + 1] = rgbData[index];
             // Copy Blue channel
-            pixels[(y * width + x) * 3 + 2] = rgbData[index++];
+            pixels[(y * rowstride + 3 * x) + 2] = rgbData[index++];
         }
     }
 
@@ -425,25 +426,9 @@ static GdkPixbuf* createPixbufFromRGB(const std::vector<uint8_t>& rgbData, int w
         fprintf(stderr, "Invalid preview data size.\n");
         return nullptr;
     }
-
-    // Create a GdkPixbuf with the specified dimensions and format
-    GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, width, height);
-
-    // Get the pixel buffer from the GdkPixbuf
-    guchar* pixels = gdk_pixbuf_get_pixels(pixbuf);
-
-    // Iterate over the RGB data and copy it to the GdkPixbuf
-    size_t index = 0;
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            // Copy Red channel
-            pixels[(y * width + x) * 3] = rgbData[index++];
-            // Copy Green channel
-            pixels[(y * width + x) * 3 + 1] = rgbData[index++];
-            // Copy Blue channel
-            pixels[(y * width + x) * 3 + 2] = rgbData[index++];
-        }
-    }
+    guchar *pixels = (guchar*) malloc(rgbData.size());
+    memcpy(pixels, rgbData.data(), rgbData.size());
+    GdkPixbuf* pixbuf = gdk_pixbuf_new_from_data(pixels, GDK_COLORSPACE_RGB, FALSE, 8, width, height, width * 3, (GdkPixbufDestroyNotify) free, NULL);
 
     return pixbuf;
 }
@@ -499,7 +484,6 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       xsize = info.xsize;
       ysize = info.ysize;
       zsize = info.num_color_channels;
-      format.num_channels = zsize;
       description = g_strdup_printf("%lu x %lu %s\n%lu %s (%d bits)",
 						xsize, ysize, ngettext("pixel", "pixels", ysize), zsize,
 						ngettext("channel", "channels", zsize), info.bits_per_sample);
@@ -531,6 +515,7 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       return pixbuf;
     } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
       if (got_preview) continue;
+      format.num_channels = zsize; // Update for RGB images (not previews)
       size_t buffer_size;
       if (JXL_DEC_SUCCESS !=
           JxlDecoderImageOutBufferSize(dec.get(), &format, &buffer_size)) {

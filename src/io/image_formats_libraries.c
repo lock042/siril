@@ -3043,7 +3043,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 		profile = get_icc_profile_data((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_profile), &profile_len);
 	}
 
-	cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	cmsUInt32Number datasize = max_bitdepth == 8 ? 1 : fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	cmsUInt32Number bytesperline = fit->rx * datasize * fit->naxes[2];
 	cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize * fit->naxes[2];
 	if (save_transform) { // For "use image ICC profile" save_transform will be NULL, no need to transform the data
