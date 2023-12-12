@@ -202,7 +202,7 @@ static gpointer update_preview(gpointer p) {
 		siril_debug_print("Generating JXL preview, filesize %lu\n", jxl_size);
 		GdkPixbuf *pixtmp = get_thumbnail_from_jxl(jxl_data, &args->description, jxl_size);
 		if (pixtmp) {
-		/* The size of the XISF thumbnails is different. We want to resize it */
+		/* The size of the JXL thumbnails is different. We want to resize it */
 			const int MAX_SIZE = com.pref.gui.thumbnail_size;
 
 			int w = gdk_pixbuf_get_width(pixtmp);

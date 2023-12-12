@@ -390,10 +390,39 @@ extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t 
 
 #endif
 
+static GdkPixbuf* createPixbufFromMono(const std::vector<uint8_t>& rgbData, int width, int height) {
+    // Ensure the size of the vector matches the expected size (1 channel per pixel, 8 bits per channel)
+    if (rgbData.size() != static_cast<size_t>(width * height)) {
+        fprintf(stderr, "Invalid preview data size.\n");
+        return nullptr;
+    }
+
+    // Create a GdkPixbuf with the specified dimensions and format
+    GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, width, height);
+
+    // Get the pixel buffer from the GdkPixbuf
+    guchar* pixels = gdk_pixbuf_get_pixels(pixbuf);
+
+    // Iterate over the RGB data and copy it to the GdkPixbuf
+    size_t index = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            // Copy Red channel
+            pixels[(y * width + x) * 3] = rgbData[index];
+            // Copy Green channel
+            pixels[(y * width + x) * 3 + 1] = rgbData[index];
+            // Copy Blue channel
+            pixels[(y * width + x) * 3 + 2] = rgbData[index++];
+        }
+    }
+
+    return pixbuf;
+}
+
 static GdkPixbuf* createPixbufFromRGB(const std::vector<uint8_t>& rgbData, int width, int height) {
     // Ensure the size of the vector matches the expected size (3 channels per pixel, 8 bits per channel)
     if (rgbData.size() != static_cast<size_t>(width * height * 3)) {
-        fprintf(stderr, "Invalid RGB data size.\n");
+        fprintf(stderr, "Invalid preview data size.\n");
         return nullptr;
     }
 
@@ -450,8 +479,8 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
 
   JxlDecoderSetInput(dec.get(), jxl, size);
   JxlDecoderCloseInput(dec.get());
-  // We default to 3 channels but update this based on basic_info later
-  JxlPixelFormat format = {3, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
+  // We default to 1 channel for the preview
+  JxlPixelFormat format = {1, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
 
   for (;;) {
     JxlDecoderStatus status = JxlDecoderProcessInput(dec.get());
@@ -470,6 +499,7 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       xsize = info.xsize;
       ysize = info.ysize;
       zsize = info.num_color_channels;
+      format.num_channels = zsize;
       description = g_strdup_printf("%lu x %lu %s\n%lu %s (%d bits)",
 						xsize, ysize, ngettext("pixel", "pixels", ysize), zsize,
 						ngettext("channel", "channels", zsize), info.bits_per_sample);
@@ -497,7 +527,7 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       if (info.have_preview == false) continue;
       // Return whichever comes first: preview image complete, full image complete
       // or decoder success.
-      pixbuf = createPixbufFromRGB(pixels, info.preview.xsize, info.preview.ysize);
+      pixbuf = createPixbufFromMono(pixels, info.preview.xsize, info.preview.ysize);
       return pixbuf;
     } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
       if (got_preview) continue;
@@ -513,9 +543,9 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
                 static_cast<uint64_t>(xsize * ysize * zsize));
         return NULL;
       }
-      pixels.resize(xsize * ysize * zsize);
+      pixels.resize(buffer_size);
       void* pixels_buffer = (void*)pixels.data();
-      size_t pixels_buffer_size = pixels.size() * sizeof(float);
+      size_t pixels_buffer_size = pixels.size();
       if (JXL_DEC_SUCCESS != JxlDecoderSetImageOutBuffer(dec.get(), &format,
                                                          pixels_buffer,
                                                          pixels_buffer_size)) {
@@ -523,13 +553,13 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
         return NULL;
       }
     } else if (status == JXL_DEC_FULL_IMAGE) {
-      pixbuf = createPixbufFromRGB(pixels, xsize, ysize);
+      pixbuf = zsize == 1 ? createPixbufFromMono(pixels, xsize, ysize) : createPixbufFromRGB(pixels, xsize, ysize);
       return pixbuf;
     } else if (status == JXL_DEC_SUCCESS) {
       // All decoding successfully finished.
       // It's not required to call JxlDecoderReleaseInput(dec.get()) here since
       // the decoder will be destroyed.
-      pixbuf = createPixbufFromRGB(pixels, xsize, ysize);
+      pixbuf = zsize == 1 ? createPixbufFromMono(pixels, xsize, ysize) : createPixbufFromRGB(pixels, xsize, ysize);
       return pixbuf;
     } else {
       fprintf(stderr, "Unknown decoder status\n");

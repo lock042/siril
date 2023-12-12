@@ -2643,7 +2643,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 
 	enum heif_chroma chroma = heif_chroma_interleaved_RGB;
 
-#if LIBHEIF_HAVE_VERSION(1,8,0)
 	bit_depth = heif_image_handle_get_luma_bits_per_pixel (handle);
 	if (bit_depth < 0) {
 		siril_log_color_message(_("Input image has undefined bit-depth.\n"), "red");
@@ -2654,7 +2653,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	} else {
 		siril_debug_print("HEIF reports bit depth: %d has_alpha: %d\n", bit_depth, has_alpha);
 	}
-#endif
 
 	if (bit_depth == 8) {
 		if (has_alpha) {
