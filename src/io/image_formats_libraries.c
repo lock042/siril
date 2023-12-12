@@ -2848,7 +2848,8 @@ int readjxl(const char* name, fits *fit) {
 	siril_debug_print("Image decoded as %d bits per pixel\n", bitdepth);
 	fclose(f);
 	clearfits(fit);
-	fit->bitpix = fit->orig_bitpix = bitdepth == 8 ? BYTE_IMG : bitdepth == 16 ? USHORT_IMG : FLOAT_IMG;
+	fit->bitpix = (bitdepth == 16 || com.pref.force_16bit) ? USHORT_IMG : FLOAT_IMG;
+	fit->type = fit->bitpix == FLOAT_IMG ? DATA_FLOAT : DATA_USHORT;
 	if (zsize == 1)
 		fit->naxis = 2;
 	else
@@ -2871,7 +2872,6 @@ int readjxl(const char* name, fits *fit) {
 		fit->pdata[BLAYER] = zsize == 3 ? fit->data + npixels * 2 : fit->data;
 	}
 	fit->binning_x = fit->binning_y = 1;
-	fit->type = fit->bitpix == FLOAT_IMG ? DATA_FLOAT : DATA_USHORT;
 
 	if (fit->naxes[2] == 1) {
 		if (fit->type == DATA_FLOAT) {
