@@ -106,6 +106,17 @@ static gchar *
 	return string;
 }
 
+void icc_profile_set_tag (cmsHPROFILE profile,
+                                  cmsTagSignature sig,
+                                  const gchar *tag) {
+	cmsMLU *mlu;
+
+	mlu = cmsMLUalloc (NULL, 1);
+	cmsMLUsetASCII (mlu, "en", "US", tag);
+	cmsWriteTag (profile, sig, mlu);
+	cmsMLUfree (mlu);
+}
+
 cmsHPROFILE srgb_linear() {
 	return cmsOpenProfileFromMem(sRGB_elle_V4_g10_icc, sRGB_elle_V4_g10_icc_len);
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,6 +27,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
+  <object class="GtkAdjustment" id="adj_jxl_effort">
+    <property name="lower">1</property>
+    <property name="upper">9</property>
+    <property name="value">7</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_jxl_quality">
+    <property name="lower">10</property>
+    <property name="upper">100</property>
+    <property name="value">94</property>
+    <property name="step-increment">3</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_quality">
     <property name="lower">10</property>
     <property name="upper">100</property>
@@ -79,6 +93,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can-default">True</property>
                 <property name="has-default">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Note: when embedding ICC profiles libjxl will check if it recognises the profile. If it does, it will set a reference value rather than store the entire profile. This means that when you re-open the file the ICC profile description may be different, although it will be functionally equivalent.</property>
                 <signal name="clicked" handler="on_button_savepopup_clicked" swapped="no"/>
                 <style>
                   <class name="suggested-action"/>
@@ -805,7 +820,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel" id="label82">
+                  <object class="GtkLabel" id="FITSlabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">FITS</property>
@@ -816,29 +831,144 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkFrame" id="frame40">
+                  <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label-xalign">0</property>
-                    <property name="shadow-type">none</property>
+                    <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkAlignment" id="alignment44">
+                      <object class="GtkFrame" id="frame4">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="left-padding">12</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
                         <child>
-                          <placeholder/>
+                          <object class="GtkAlignment" id="alignment1">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <!-- n-columns=3 n-rows=3 -->
+                              <object class="GtkGrid" id="grid8">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="column-spacing">5</property>
+                                <child>
+                                  <object class="GtkScale" id="distance_scale">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="adjustment">adj_jxl_quality</property>
+                                    <property name="draw-value">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="jxl_quality_spinbutton">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Quality. Setting quality = 100 gives lossless compression (note that this can be quite slow). Other quality values work in the same way as JPEG quality, but there is no direct read-across (the same quality value will not give exactly the same visual quality or file size as it would for a JPEG file).
+
+NOTE: lossy compression gives bad results when saving linear data owing to the very high dynamic range, however lossless compression offers a smaller filesize than TIFF compression at the expense of being slower and not providing the metadata that is available with TIFF.</property>
+                                    <property name="invisible-char">•</property>
+                                    <property name="text" translatable="yes">100</property>
+                                    <property name="adjustment">adj_jxl_quality</property>
+                                    <property name="digits">2</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">94</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label27">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Quality: </property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label36">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Effort:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkScale" id="effort_scale">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="adjustment">adj_jxl_effort</property>
+                                    <property name="draw-value">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="jxl_effort_spinbutton">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Effort represents the work done by the encoder to optimize the output. 7 is the default: values higher than this are not recommended as they become very slow and may not result in an improvement in file size.</property>
+                                    <property name="invisible-char">•</property>
+                                    <property name="text" translatable="yes">1</property>
+                                    <property name="adjustment">adj_jxl_effort</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">7</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="jxl_force_8bit">
+                                    <property name="label" translatable="yes">8 bit output</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">If checked, output will be 8 bit. If unchecked, the image will be saved in its native bit depth (32 bit images will be stored as 32 bit; 16 bit images will be stored as 16 bit unless they originated as 8 bit images)</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                    <property name="width">3</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel" id="label31">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Compression&lt;/b&gt;</property>
+                            <property name="use-markup">True</property>
+                          </object>
                         </child>
                       </object>
-                    </child>
-                    <child type="label">
-                      <object class="GtkLabel" id="label159">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                        </attributes>
-                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="padding">5</property>
+                        <property name="position">0</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
@@ -846,6 +976,17 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child type="tab">
+                  <object class="GtkLabel" id="jpegXLlabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">JPEG XL</property>
+                  </object>
+                  <packing>
+                    <property name="position">3</property>
+                    <property name="tab-fill">False</property>
+                  </packing>
+                </child>
+                <child>
                   <placeholder/>
                 </child>
               </object>
@@ -869,5 +1010,4 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <action-widget response="0">button_savepopup</action-widget>
     </action-widgets>
   </object>
-
 </interface>

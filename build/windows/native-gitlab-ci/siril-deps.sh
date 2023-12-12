@@ -5,6 +5,7 @@ git \
 automake \
 mingw-w64-x86_64-autotools \
 mingw-w64-x86_64-lcms2 \
+mingw-w64-x86_64-libjxl \
 mingw-w64-x86_64-curl \
 mingw-w64-x86_64-json-glib \
 mingw-w64-x86_64-meson \

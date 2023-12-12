@@ -5,6 +5,7 @@ mkdir _deps && cd _deps
 crossroad install lcms2 \
                   gtk3 \
                   fftw \
+                  libjxl \
                   exiv2 \
                   gsl \
                   opencv\

@@ -147,9 +147,18 @@ int	process_rotatepi(int nb);
 
 int	process_satu(int nb);
 int	process_save(int nb);
+#ifdef HAVE_LIBHEIF
+int process_saveavif(int nb);
+#endif
 int	process_savebmp(int nb);
+#ifdef HAVE_LIBHEIF
+int process_saveheif(int nb);
+#endif
 #ifdef HAVE_LIBJPEG
 int	process_savejpg(int nb);
+#endif
+#ifdef HAVE_LIBJXL
+int	process_savejxl(int nb);
 #endif
 #ifdef HAVE_LIBPNG
 int	process_savepng(int nb);
