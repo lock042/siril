@@ -55,10 +55,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <lcms2.h>
-
 #include <vector>
+#include <libintl.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+
 
 /** Decodes JPEG XL image to floating point pixels and ICC Profile. Pixel are
  * stored as floating point, as interleaved RGB (3 floating point values per
@@ -388,3 +389,152 @@ extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t 
 }
 
 #endif
+
+static GdkPixbuf* createPixbufFromRGB(const std::vector<uint8_t>& rgbData, int width, int height) {
+    // Ensure the size of the vector matches the expected size (3 channels per pixel, 8 bits per channel)
+    if (rgbData.size() != static_cast<size_t>(width * height * 3)) {
+        fprintf(stderr, "Invalid RGB data size.\n");
+        return nullptr;
+    }
+
+    // Create a GdkPixbuf with the specified dimensions and format
+    GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, width, height);
+
+    // Get the pixel buffer from the GdkPixbuf
+    guchar* pixels = gdk_pixbuf_get_pixels(pixbuf);
+
+    // Iterate over the RGB data and copy it to the GdkPixbuf
+    size_t index = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            // Copy Red channel
+            pixels[(y * width + x) * 3] = rgbData[index++];
+            // Copy Green channel
+            pixels[(y * width + x) * 3 + 1] = rgbData[index++];
+            // Copy Blue channel
+            pixels[(y * width + x) * 3 + 2] = rgbData[index++];
+        }
+    }
+
+    return pixbuf;
+}
+
+extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t size) {
+  GdkPixbuf *pixbuf = NULL;
+  gchar *description = NULL;
+  std::vector<uint8_t> pixels;
+  size_t xsize, ysize, zsize;
+  xsize = ysize = zsize = 0;
+  bool got_preview = FALSE;
+
+  // Multi-threaded parallel runner.
+  auto runner = JxlResizableParallelRunnerMake(nullptr);
+
+  auto dec = JxlDecoderMake(nullptr);
+  if (JXL_DEC_SUCCESS !=
+      JxlDecoderSubscribeEvents(dec.get(), JXL_DEC_BASIC_INFO |
+                                               JXL_DEC_PREVIEW_IMAGE |
+                                               JXL_DEC_FULL_IMAGE)) {
+    fprintf(stderr, "JxlDecoderSubscribeEvents failed\n");
+    return NULL;
+  }
+
+  if (JXL_DEC_SUCCESS != JxlDecoderSetParallelRunner(dec.get(),
+                                                     JxlResizableParallelRunner,
+                                                     runner.get())) {
+    fprintf(stderr, "JxlDecoderSetParallelRunner failed\n");
+    return NULL;
+  }
+
+  JxlBasicInfo info;
+
+  JxlDecoderSetInput(dec.get(), jxl, size);
+  JxlDecoderCloseInput(dec.get());
+  // We default to 3 channels but update this based on basic_info later
+  JxlPixelFormat format = {3, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
+
+  for (;;) {
+    JxlDecoderStatus status = JxlDecoderProcessInput(dec.get());
+
+    if (status == JXL_DEC_ERROR) {
+      fprintf(stderr, "Decoder error\n");
+      return NULL;
+    } else if (status == JXL_DEC_NEED_MORE_INPUT) {
+      fprintf(stderr, "Error, already provided all input\n");
+      return NULL;
+    } else if (status == JXL_DEC_BASIC_INFO) {
+      if (JXL_DEC_SUCCESS != JxlDecoderGetBasicInfo(dec.get(), &info)) {
+        fprintf(stderr, "JxlDecoderGetBasicInfo failed\n");
+        return NULL;
+      }
+      xsize = info.xsize;
+      ysize = info.ysize;
+      zsize = info.num_color_channels;
+      description = g_strdup_printf("%lu x %lu %s\n%lu %s (%d bits)",
+						xsize, ysize, ngettext("pixel", "pixels", ysize), zsize,
+						ngettext("channel", "channels", zsize), info.bits_per_sample);
+      *descr = description;
+      JxlResizableParallelRunnerSetThreads(
+          runner.get(),
+          JxlResizableParallelRunnerSuggestThreads(info.xsize, info.ysize));
+    } else if (status == JXL_DEC_NEED_PREVIEW_OUT_BUFFER) {
+      size_t buffer_size;
+      if (JXL_DEC_SUCCESS !=
+          JxlDecoderPreviewOutBufferSize(dec.get(), &format, &buffer_size)) {
+        fprintf(stderr, "JxlDecoderPreviewOutBufferSize failed\n");
+        return NULL;
+      }
+      pixels.resize(buffer_size);
+      void* pixels_buffer = (void*)pixels.data();
+      size_t pixels_buffer_size = pixels.size();
+      if (JXL_DEC_SUCCESS != JxlDecoderSetPreviewOutBuffer(dec.get(), &format,
+                                                         pixels_buffer,
+                                                         pixels_buffer_size)) {
+        fprintf(stderr, "JxlDecoderSetImageOutBuffer failed\n");
+        return NULL;
+      }
+    } else if (status == JXL_DEC_PREVIEW_IMAGE) {
+      if (info.have_preview == false) continue;
+      // Return whichever comes first: preview image complete, full image complete
+      // or decoder success.
+      pixbuf = createPixbufFromRGB(pixels, info.preview.xsize, info.preview.ysize);
+      return pixbuf;
+    } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
+      if (got_preview) continue;
+      size_t buffer_size;
+      if (JXL_DEC_SUCCESS !=
+          JxlDecoderImageOutBufferSize(dec.get(), &format, &buffer_size)) {
+        fprintf(stderr, "JxlDecoderImageOutBufferSize failed\n");
+        return NULL;
+      }
+      if (buffer_size != xsize * ysize * zsize) {
+        fprintf(stderr, "Invalid out buffer size %" PRIu64 " %" PRIu64 "\n",
+                static_cast<uint64_t>(buffer_size),
+                static_cast<uint64_t>(xsize * ysize * zsize));
+        return NULL;
+      }
+      pixels.resize(xsize * ysize * zsize);
+      void* pixels_buffer = (void*)pixels.data();
+      size_t pixels_buffer_size = pixels.size() * sizeof(float);
+      if (JXL_DEC_SUCCESS != JxlDecoderSetImageOutBuffer(dec.get(), &format,
+                                                         pixels_buffer,
+                                                         pixels_buffer_size)) {
+        fprintf(stderr, "JxlDecoderSetImageOutBuffer failed\n");
+        return NULL;
+      }
+    } else if (status == JXL_DEC_FULL_IMAGE) {
+      pixbuf = createPixbufFromRGB(pixels, xsize, ysize);
+      return pixbuf;
+    } else if (status == JXL_DEC_SUCCESS) {
+      // All decoding successfully finished.
+      // It's not required to call JxlDecoderReleaseInput(dec.get()) here since
+      // the decoder will be destroyed.
+      pixbuf = createPixbufFromRGB(pixels, xsize, ysize);
+      return pixbuf;
+    } else {
+      fprintf(stderr, "Unknown decoder status\n");
+      return NULL;
+    }
+  }
+  return NULL; // should not happen
+}
