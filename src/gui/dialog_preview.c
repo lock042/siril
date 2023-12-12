@@ -213,7 +213,6 @@ static gpointer update_preview(gpointer p) {
 			const int pixScale = (x > y) ? x : y;	// picture scale factor
 			const int Ws = w / pixScale; 			// picture width in pixScale blocks
 			const int Hs = h / pixScale; 			// -//- height pixScale
-			gdk_pixbuf_save(pixtmp, "debug_preview_pixbuf_orig.jpeg", "jpeg", NULL, "quality", "100", NULL);
 
 			pixbuf = gdk_pixbuf_scale_simple(pixtmp, Ws, Hs, GDK_INTERP_BILINEAR);
 
@@ -260,7 +259,6 @@ static gpointer update_preview(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 		}
 	}
-	gdk_pixbuf_save(pixbuf, "debug_preview_pixbuf_scaled.jpeg", "jpeg", NULL, "quality", "100", NULL);
 	cleanup2:
 	free(mime_type);
 	args->pixbuf = pixbuf;
