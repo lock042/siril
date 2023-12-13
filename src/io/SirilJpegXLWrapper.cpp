@@ -40,7 +40,18 @@
 #include <config.h>
 #endif
 
+
 #ifdef HAVE_LIBJXL
+
+#include <glib.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <limits.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <lcms2.h>
+#include <vector>
+#include <libintl.h>
 
 #include <inttypes.h>
 #include <jxl/decode.h>
@@ -51,14 +62,7 @@
 #include <jxl/thread_parallel_runner_cxx.h>
 #include <jxl/resizable_parallel_runner.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <lcms2.h>
-#include <vector>
-#include <libintl.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
+
 
 
 /** Decodes JPEG XL image to floating point pixels and ICC Profile. Pixel are
@@ -388,7 +392,6 @@ extern "C" int EncodeJpegXlOneshotWrapper(const uint8_t* pixels, const uint32_t 
      return retval;
 }
 
-#endif
 
 static GdkPixbuf* createPixbufFromMono(const std::vector<uint8_t>& rgbData, int width, int height) {
     // Ensure the size of the vector matches the expected size (1 channel per pixel, 8 bits per channel)
@@ -484,7 +487,7 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       xsize = info.xsize;
       ysize = info.ysize;
       zsize = info.num_color_channels;
-      description = g_strdup_printf("%lu x %lu %s\n%lu %s (%d bits)",
+      description = g_strdup_printf("%" G_GSIZE_FORMAT " x %" G_GSIZE_FORMAT " %s\n%" G_GSIZE_FORMAT " %s (%d bits)",
 						xsize, ysize, ngettext("pixel", "pixels", ysize), zsize,
 						ngettext("channel", "channels", zsize), info.bits_per_sample);
       *descr = description;
@@ -553,3 +556,4 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
   }
   return NULL; // should not happen
 }
+#endif
