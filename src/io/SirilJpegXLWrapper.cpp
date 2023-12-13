@@ -40,6 +40,8 @@
 #include <config.h>
 #endif
 
+#include <glib.h>
+
 #ifdef HAVE_LIBJXL
 
 #include <inttypes.h>
@@ -484,7 +486,7 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       xsize = info.xsize;
       ysize = info.ysize;
       zsize = info.num_color_channels;
-      description = g_strdup_printf("%lu x %lu %s\n%lu %s (%d bits)",
+      description = g_strdup_printf("%" G_GSIZE_FORMAT " x %" G_GSIZE_FORMAT " %s\n%lu %s (%d bits)",
 						xsize, ysize, ngettext("pixel", "pixels", ysize), zsize,
 						ngettext("channel", "channels", zsize), info.bits_per_sample);
       *descr = description;
