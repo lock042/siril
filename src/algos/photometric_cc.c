@@ -56,6 +56,31 @@ cmsFloat64Number bvToT(float bv) {
 	return t;
 }
 
+// Returns a valid xyY for 1000K and up, otherwise xyY = { 0.0 }
+// Uses Mitchell Charity's tabulation of black body xy values from
+// http://www.vendian.org/mncharity/dir3/blackbody/UnstableURLs/bbr_color.html
+// Linear interpolation is used between each value.
+static void charity_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
+	int i = 0;
+	if (t < 1000.0) {
+		memset(xyY, 0.0, sizeof(cmsCIExyY));
+		return;
+	} else if (t > 40000.0)
+		t = 40000.0;
+	while (t > tK[i+1]) {
+		i++;
+	}
+	float t1 = tK[i];
+	float t2 = tK[i+1];
+	float x1 = x_1931_2deg_jv[i];
+	float x2 = x_1931_2deg_jv[i+1];
+	float y1 = y_1931_2deg_jv[i];
+	float y2 = y_1931_2deg_jv[i+1];
+	xyY->x = (cmsFloat64Number) x1 + ((t - t1) / (t2 - t1)) * (x2 - x1);
+	xyY->y = (cmsFloat64Number) y1 + ((t - t1) / (t2 - t1)) * (y2 - y1);
+	xyY->Y = 1.0;
+}
+
 // Returns a valid xyY for 1667K <= t <= 25000K, otherwise xyY = { 0.0 }
 // Uses Kim et al's cubic spline Planckian locus (https://en.wikipedia.org/wiki/Planckian_locus)
 static void temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
@@ -113,7 +138,8 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 	float xyz[3], rgb[3] = { 0.f };
 	bv = min(max(bv, -0.4f), 2.f);
 	cmsFloat64Number TempK = bvToT(bv);
-	temp_to_xyY(&WhitePoint, TempK);
+//	temp_to_xyY(&WhitePoint, TempK);
+	charity_temp_to_xyY(&WhitePoint, TempK);
 //	BQ_temp_to_xyY(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
 	// Adapt the source (temperature XYZ) to the destination (image profile) white point
