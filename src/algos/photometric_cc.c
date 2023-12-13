@@ -41,7 +41,8 @@
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
-static const cmsCIEXYZ D50 = {0.964295676, 1.0, 0.825104603};
+//#define DEBUG_PCC
+
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
 
 enum {
@@ -125,8 +126,9 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 	*r = rgb[0] / maxval;
 	*g = rgb[1] / maxval;
 	*b = rgb[2] / maxval;
+#ifdef DEBUG_PCC
 	fprintf(stderr,"%f %f %f %f %f %f %f\n", bv, TempK, WhitePoint.x, WhitePoint.y, *r, *g, *b);
-
+#endif
 }
 
 static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
@@ -207,7 +209,9 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		siril_log_color_message(_("Error: failed to set up colorspace transform. This is a bug, please report it!\n"), "red");
 		return 1;
 	}
+#ifdef DEBUG_PCC
 	fprintf(stderr,"BV tempK x y r g b\n");
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
