@@ -1525,11 +1525,7 @@ void append_elements_to_array(char **array, char **elements) {
  * Returns: The UTF-8 string as described above.
  **/
 
-gchar *
-	siril_any_to_utf8 (const gchar  *str,
-						gssize        len,
-						const gchar  *warning_format,
-						...) {
+gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_format, ...) {
 	const gchar *start_invalid;
 	gchar *utf8;
 

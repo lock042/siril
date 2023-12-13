@@ -906,7 +906,6 @@ cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) 
  */
 void check_profile_correct(fits* fit) {
 	if (!fit->icc_profile) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
 		if (com.icc.srgb_hint) {
 			siril_log_message(_("FITS did not contain an ICC profile but is declared to be stretched. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
@@ -930,7 +929,6 @@ void check_profile_correct(fits* fit) {
 			cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = NULL;
 			color_manage(fit, FALSE);
-			control_window_switch_to_tab(OUTPUT_LOGS);
 			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"), "salmon");
 		}
 	}
