@@ -41,6 +41,9 @@
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
+static const cmsCIEXYZ D50 = {0.964295676, 1.0, 0.825104603};
+static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
+
 enum {
 	RED, GREEN, BLUE
 };
@@ -53,6 +56,7 @@ cmsFloat64Number bvToT(float bv) {
 }
 
 // Returns a valid xyY for 1667K <= t <= 25000K, otherwise xyY = { 0.0 }
+// Uses Kim et al's cubic spline Planckian locus (https://en.wikipedia.org/wiki/Planckian_locus)
 static void temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 	// Calculate x
 	if (t < 1667.0)
@@ -83,64 +87,46 @@ static void temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 		xyY->Y = 0.0;
 }
 
+// Returns a valid xyY for 2000K <= t, otherwise xyY = { 0.0 }
+// Uses BQ Octantis's 6th order best fit for D65 values down to 2000K
+// (https://www.cloudynights.com/topic/849382-generating-a-planckian-ccm/)
+static void BQ_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
+	if (t < 2000.0) {
+		xyY->x = xyY->y = xyY->Y = 0.0;
+	} else {
+		xyY->x = -1.3737e-25 * pow(t,6.0) + 3.0985e-22 * pow(t, 5.0) + 1.5842e-16 * pow(t, 4.0)
+				- 4.0138e-12 * pow(t, 3.0) + 4.3777e-08 * pow(t, 2.0) - 2.4363e-04 * t + 8.7309e-01;
+		cmsFloat64Number x = xyY->x;
+		xyY->y =  2.5110e+01 * pow(x, 5.0) - 5.9883e+01 * pow(x, 4.0) + 5.5545e+01 * pow(x, 3.0)
+				- 2.7667e+01 * pow(x, 2.0) + 8.1167e+00 * x - 7.0462e-01;
+		xyY->Y = 1.0;
+	}
+}
+
 // Makes use of lcms2 to get the RGB values correct
 // transform is calculated in get_white_balance_coeff below
 // It provides the transform from XYZ to the required image colorspace
-static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
+static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform, cmsCIEXYZ *profile_whitepoint) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
 	cmsCIExyY WhitePoint;
-	cmsCIEXYZ XYZ;
+	cmsCIEXYZ XYZ, XYZ_adapted;
 	float xyz[3], rgb[3] = { 0.f };
 	bv = min(max(bv, -0.4f), 2.f);
 	cmsFloat64Number TempK = bvToT(bv);
-//	siril_debug_print("TempK bv = -0.4: %f\nTempK bv = 0.0: %f\nTempK bv = 0.5: %f\nTempK bv = 2.0: %f\n", bvToT(-0.4), bvToT(0.), bvToT(0.5), bvToT(2.0));
-/*	// Test code
-	{
-		temp_to_xyY(&WhitePoint, 4000);
-		cmsxyY2XYZ(&XYZ, &WhitePoint);
-		siril_debug_print("4000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
-		xyz[0] = (float) XYZ.X;
-		xyz[1] = (float) XYZ.Y;
-		xyz[2] = (float) XYZ.Z;
-		cmsDoTransform(transform, &xyz, &rgb, 1);
-		*r = rgb[0];
-		*g = rgb[1];
-		*b = rgb[2];
-		siril_debug_print("4000K R: %f, G: %f, B: %f\n", *r, *g, *b);
-		temp_to_xyY(&WhitePoint, 8000);
-		cmsxyY2XYZ(&XYZ, &WhitePoint);
-		siril_debug_print("8000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
-		xyz[0] = (float) XYZ.X;
-		xyz[1] = (float) XYZ.Y;
-		xyz[2] = (float) XYZ.Z;
-		cmsDoTransform(transform, &xyz, &rgb, 1);
-		*r = rgb[0];
-		*g = rgb[1];
-		*b = rgb[2];
-		siril_debug_print("8000K R: %f, G: %f, B: %f\n", *r, *g, *b);
-		temp_to_xyY(&WhitePoint, 16000);
-		cmsxyY2XYZ(&XYZ, &WhitePoint);
-		siril_debug_print("16000K xyY: %f / %f / %f\n", WhitePoint.x, WhitePoint.y, WhitePoint.Y);
-		xyz[0] = (float) XYZ.X;
-		xyz[1] = (float) XYZ.Y;
-		xyz[2] = (float) XYZ.Z;
-		cmsDoTransform(transform, &xyz, &rgb, 1);
-		*r = rgb[0];
-		*g = rgb[1];
-		*b = rgb[2];
-		siril_debug_print("16000K R: %f, G: %f, B: %f\n", *r, *g, *b);
-	}
-*/	// end of test code
-//	cmsWhitePointFromTemp(&WhitePoint, TempK);
 	temp_to_xyY(&WhitePoint, TempK);
+//	BQ_temp_to_xyY(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
-	xyz[0] = (float) XYZ.X;
-	xyz[1] = (float) XYZ.Y;
-	xyz[2] = (float) XYZ.Z;
+	// Adapt the source (temperature XYZ) to the destination (image profile) white point
+	cmsAdaptToIlluminant(&XYZ_adapted, &D65, profile_whitepoint, &XYZ);
+	xyz[0] = (float) XYZ_adapted.X;
+	xyz[1] = (float) XYZ_adapted.Y;
+	xyz[2] = (float) XYZ_adapted.Z;
 	cmsDoTransform(transform, &xyz, &rgb, 1);
 	cmsFloat64Number maxval = max(max(rgb[0], rgb[1]), rgb[2]);
 	*r = rgb[0] / maxval;
 	*g = rgb[1] / maxval;
 	*b = rgb[2] / maxval;
+	fprintf(stderr,"%f %f %f %f %f %f %f\n", bv, TempK, WhitePoint.x, WhitePoint.y, *r, *g, *b);
+
 }
 
 static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
@@ -190,14 +176,17 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
 	cmsHPROFILE xyzprofile = cmsCreateXYZProfile();
+	cmsCIEXYZ* profile_whitepoint;
 	cmsHPROFILE profile = NULL;
 	if (fit->icc_profile) {
+		profile_whitepoint = cmsReadTag(fit->icc_profile, cmsSigMediaWhitePointTag);
 		profile = copyICCProfile(fit->icc_profile);
 		if (!fit_icc_is_linear(fit)) {
 			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
 					"apply photometric color calibration to linear images.\n"), "salmon");
 		}
 	} else {
+		profile_whitepoint = cmsReadTag(com.icc.working_standard, cmsSigMediaWhitePointTag);
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
 		fit->icc_profile = copyICCProfile(profile);
 		color_manage(fit, (fit->icc_profile != NULL));
@@ -218,6 +207,8 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		siril_log_color_message(_("Error: failed to set up colorspace transform. This is a bug, please report it!\n"), "red");
 		return 1;
 	}
+	fprintf(stderr,"BV tempK x y r g b\n");
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
@@ -254,7 +245,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		/* get r g b coefficient from bv color index */
 		bv = stars[i].BV;
-		bv2rgb(&r, &g, &b, bv, transform);
+		bv2rgb(&r, &g, &b, bv, transform, profile_whitepoint);
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
