@@ -44,6 +44,7 @@
 //#define DEBUG_PCC
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
+static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
 
 enum {
 	RED, GREEN, BLUE
@@ -132,7 +133,7 @@ static void BQ_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 // Makes use of lcms2 to get the RGB values correct
 // transform is calculated in get_white_balance_coeff below
 // It provides the transform from XYZ to the required image colorspace
-static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform, cmsCIEXYZ *profile_whitepoint) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
+static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform) { //, cmsCIEXYZ *profile_whitepoint) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
 	cmsCIExyY WhitePoint;
 	cmsCIEXYZ XYZ, XYZ_adapted;
 	float xyz[3], rgb[3] = { 0.f };
@@ -142,8 +143,9 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 	charity_temp_to_xyY(&WhitePoint, TempK);
 //	BQ_temp_to_xyY(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
-	// Adapt the source (temperature XYZ) to the destination (image profile) white point
-	cmsAdaptToIlluminant(&XYZ_adapted, &D65, profile_whitepoint, &XYZ);
+	// Adapt the source D65 Planckian locus) to the destination (lcms2 xyz profile with D50 whitepoint)
+//	cmsAdaptToIlluminant(&XYZ_adapted, &D65, profile_whitepoint, &XYZ);
+	cmsAdaptToIlluminant(&XYZ_adapted, &D65, &D50, &XYZ);
 	xyz[0] = (float) XYZ_adapted.X;
 	xyz[1] = (float) XYZ_adapted.Y;
 	xyz[2] = (float) XYZ_adapted.Z;
@@ -204,17 +206,17 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
 	cmsHPROFILE xyzprofile = cmsCreateXYZProfile();
-	cmsCIEXYZ* profile_whitepoint;
+//	cmsCIEXYZ* profile_whitepoint;
 	cmsHPROFILE profile = NULL;
 	if (fit->icc_profile) {
-		profile_whitepoint = cmsReadTag(fit->icc_profile, cmsSigMediaWhitePointTag);
+//		profile_whitepoint = cmsReadTag(fit->icc_profile, cmsSigMediaWhitePointTag);
 		profile = copyICCProfile(fit->icc_profile);
 		if (!fit_icc_is_linear(fit)) {
 			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
 					"apply photometric color calibration to linear images.\n"), "salmon");
 		}
 	} else {
-		profile_whitepoint = cmsReadTag(com.icc.working_standard, cmsSigMediaWhitePointTag);
+//		profile_whitepoint = cmsReadTag(com.icc.working_standard, cmsSigMediaWhitePointTag);
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
 		fit->icc_profile = copyICCProfile(profile);
 		color_manage(fit, (fit->icc_profile != NULL));
@@ -275,7 +277,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		/* get r g b coefficient from bv color index */
 		bv = stars[i].BV;
-		bv2rgb(&r, &g, &b, bv, transform, profile_whitepoint);
+		bv2rgb(&r, &g, &b, bv, transform); //, profile_whitepoint);
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
