@@ -904,7 +904,6 @@ void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 	remove_all_stars();
-	clear_sensor_tilt();
 }
 
 void on_export_button_clicked(GtkButton *button, gpointer user_data) {
