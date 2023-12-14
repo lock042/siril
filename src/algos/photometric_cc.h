@@ -35,6 +35,7 @@ struct photometric_cc_data {
 	pcc_star *stars;		// the list of stars with BV index in the image
 	int nb_stars;			// the number of stars in the array
 	float fwhm;			// representative FWHM for stars
+	gboolean plot_result; // whether or not to plot the result
 };
 
 int photometric_cc(struct photometric_cc_data *args);
