@@ -61,7 +61,7 @@ static GActionEntry image_entries[] = {
 	{ "statistics", statistics_activate },
 	{ "evaluate-noise", noise_activate },
 	{ "ccd-inspector", ccd_inspector_activate },
-	{ "show-tilt", show_tilt_activate },
+	{ "show-tilt", show_tilt_activate, NULL, "false", show_tilt_state },
 	{ "astrometry", astrometry_activate },
 	{ "photometry", photometry_activate, NULL, "false", photometry_state },
 	{ "cut", cut_activate },
