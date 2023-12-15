@@ -837,8 +837,7 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 	pldata *plot = plot_data;
 	int nb_plot = 0;
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-    const gchar *title = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo));
-
+	const gchar *title = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo));
 
 	if (!plot) {
 		fprintf(stderr, "Siril plot: Nothing to export\n");
@@ -858,17 +857,17 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 
 		pldata *tmp_plot = plot;
 
-	    double **x = malloc(MAX_SEQPSF * sizeof(double *));
-	    double **y = malloc(MAX_SEQPSF * sizeof(double *));
-	    double **yerr = malloc(MAX_SEQPSF * sizeof(double *));
-	    double **real_x = malloc(MAX_SEQPSF * sizeof(double *));
+		double **x = malloc(MAX_SEQPSF * sizeof(double*));
+		double **y = malloc(MAX_SEQPSF * sizeof(double*));
+		double **yerr = malloc(MAX_SEQPSF * sizeof(double*));
+		double **real_x = malloc(MAX_SEQPSF * sizeof(double*));
 
-	    for (int i = 0; i < MAX_SEQPSF; i++) {
-	        x[i] = calloc(seq->number, sizeof(double));
-	        y[i] = calloc(seq->number, sizeof(double));
-	        yerr[i] = calloc(seq->number, sizeof(double));
-	        real_x[i] = calloc(seq->number, sizeof(double));
-	    }
+		for (int i = 0; i < MAX_SEQPSF; i++) {
+			x[i] = calloc(seq->number, sizeof(double));
+			y[i] = calloc(seq->number, sizeof(double));
+			yerr[i] = calloc(seq->number, sizeof(double));
+			real_x[i] = calloc(seq->number, sizeof(double));
+		}
 
 		for (int i = 0, j = 0; i < seq->number; i++) {
 			if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
@@ -877,10 +876,11 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			x[0][j] = tmp_plot->data[j].x;			// relative date
 			real_x[0][j] = x[0][j];
 			if (force_Julian)
-				real_x[0][j] +=(double)julian0;	// absolute date
+				real_x[0][j] += (double) julian0;	// absolute date
 
 			for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-				if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
+				if (seq->photometry[r][i]
+						&& seq->photometry[r][i]->phot_is_valid) {
 					y[r][j] = tmp_plot->data[j].y;
 					yerr[r][j] += get_error_for_time(plot, x[r][j]);
 					nb_plot = r;
@@ -892,18 +892,20 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 		}
 		for (int r = 0; r < nb_plot + 1; r++) {
 			gchar *label = (r == 0) ? g_strdup("v") : g_strdup_printf("%d", r);
-		    if (current_selected_source == MAGNITUDE) {
-		    	siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r], yerr[r], NULL);
-		    } else {
-		    	siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r], NULL, NULL);
-		    }
+			if (current_selected_source == MAGNITUDE) {
+				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r],
+						yerr[r], NULL);
+			} else {
+				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r],
+						NULL, NULL);
+			}
 			free(label);
 		}
 		for (int i = 0; i < MAX_SEQPSF; i++) {
-		    free(x[i]);
-		    free(y[i]);
-		    free(yerr[i]);
-		    free(real_x[i]);
+			free(x[i]);
+			free(y[i]);
+			free(yerr[i]);
+			free(real_x[i]);
 		}
 
 		free(x);
@@ -914,8 +916,8 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		siril_plot_set_title(spl_data, _("Registration"));
 
-	    double *x = calloc(seq->number, sizeof(double));
-	    double *y = calloc(seq->number, sizeof(double));
+		double *x = calloc(seq->number, sizeof(double));
+		double *y = calloc(seq->number, sizeof(double));
 
 		if (X_selected_source != r_FRAME) {
 			spl_data->plottype = KPLOT_POINTS;
