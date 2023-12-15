@@ -836,7 +836,6 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 	sequence *seq = &com.seq;
 	pldata *plot = plot_data;
 	int nb_plot = 0;
-	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	const gchar *title = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo));
 
 	if (!plot) {
@@ -851,7 +850,7 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 
 	if (use_photometry) {
 		siril_plot_set_title(spl_data, title);
-		if (current_selected_source == MAGNITUDE) {
+		if (photometry_selected_source == MAGNITUDE) {
 			spl_data->revertY = TRUE;
 		}
 
@@ -879,8 +878,7 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 				real_x[0][j] += (double) julian0;	// absolute date
 
 			for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-				if (seq->photometry[r][i]
-						&& seq->photometry[r][i]->phot_is_valid) {
+				if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
 					y[r][j] = tmp_plot->data[j].y;
 					yerr[r][j] += get_error_for_time(plot, x[r][j]);
 					nb_plot = r;
@@ -892,12 +890,10 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 		}
 		for (int r = 0; r < nb_plot + 1; r++) {
 			gchar *label = (r == 0) ? g_strdup("v") : g_strdup_printf("%d", r);
-			if (current_selected_source == MAGNITUDE) {
-				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r],
-						yerr[r], NULL);
+			if (photometry_selected_source == MAGNITUDE) {
+				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r], yerr[r], NULL);
 			} else {
-				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r],
-						NULL, NULL);
+				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r], NULL, NULL);
 			}
 			free(label);
 		}
