@@ -1093,6 +1093,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
+          <object class="GtkModelButton" id="ButtonSwitch_Siril_plot">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open a new Siril Plot window to show data.</property>
+            <property name="text" translatable="yes">Show in Siril Plot</property>
+            <signal name="clicked" handler="on_ButtonSwitch_Siril_plot_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="ButtonSaveCSV">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -1112,7 +1127,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <property name="tooltip-text" translatable="yes">Save current plot to png file.</property>
             <property name="text" translatable="yes">Save Plot</property>
             <signal name="clicked" handler="on_ButtonSavePlot_clicked" swapped="no"/>
           </object>

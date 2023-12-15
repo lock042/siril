@@ -250,7 +250,7 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 }
 
 // data assignment
-gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm) {
+gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, size_t nb, double *x, double *y, double *errp, double *errm) {
 	// single plot case
 	if (!errp) {
 		// allocate data
