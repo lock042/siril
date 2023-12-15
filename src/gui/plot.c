@@ -64,7 +64,7 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
+		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL,
 		*buttonNINA = NULL, *buttonCompStars = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
@@ -991,7 +991,6 @@ static void fill_plot_statics() {
 		photometry_output1 = lookup_widget("varCurvePhotometry");
 		photometry_output2 = lookup_widget("exportAAVSO_button");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
-		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
 		label_display_plot = lookup_widget("label_display_plot");
@@ -1019,7 +1018,6 @@ static void validate_combos() {
 	gtk_widget_set_visible(buttonCompStars, TRUE);
 	gtk_widget_set_sensitive(buttonCompStars, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
-	gtk_widget_set_visible(buttonSavePrt, !(plot_data == NULL));
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
 	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
@@ -1091,7 +1089,6 @@ void reset_plot() {
 		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
-		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
 		gtk_widget_set_sensitive(buttonClearAll, FALSE);
@@ -1402,7 +1399,7 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	clear_all_photometry_and_plot();
 }
 
-void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
+void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
@@ -1539,71 +1536,50 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	height = gtk_widget_get_allocated_height(widget);
 	pdd.surf_w = (double)width;
 	pdd.surf_h = (double)height;
-	cairo_surface_t *surface = NULL;
-
-	if (for_saving) {
-		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-		cr = cairo_create(surface);
-	}
 
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_rectangle(cr, 0.0, 0.0, width, height);
 	cairo_fill(cr);
 	kplot_draw(p, width, height, cr, &ctx);
 
-	if (for_saving) {
-		gchar *timestamp, *filename;
-		timestamp = build_timestamp_filename();
-		filename = g_strdup_printf("%s.png", timestamp);
-		g_free(timestamp);
+	// caching more data
+	pdd.range = (point){ ctx.dims.x, ctx.dims.y};
+	pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
+	pdd.offset = (point){ ctx.offs.x, ctx.offs.y};
+	// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
+	if (pdd.selected) free(pdd.selected);
+	pdd.selected = calloc(com.seq.number, sizeof(gboolean));
+	if (selection_is_active()) {
+		double xmin, ymin, xmax, ymax;
+		int n = 0;
+		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
 
-		cairo_surface_write_to_png(surface, filename);
-		cairo_surface_destroy(surface);
-		siril_log_message(_("Saved plot to image %s\n"), filename);
-		g_free(filename);
-	} else {
-		// caching more data
-		pdd.range = (point){ ctx.dims.x, ctx.dims.y};
-		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
-		pdd.offset = (point){ ctx.offs.x, ctx.offs.y};
-		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
-		if (pdd.selected) free(pdd.selected);
-		pdd.selected = calloc(com.seq.number, sizeof(gboolean));
-		if (selection_is_active()) {
-			double xmin, ymin, xmax, ymax;
-			int n = 0;
-			convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
-			convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
-			int i, j;
-			for (i = 0, j = 0; i < com.seq.number; i++) {
-				if (!com.seq.imgparam[i].incl) continue;
-				if (plot_data->data[j].x >= xmin && plot_data->data[j].x <= xmax && plot_data->data[j].y >= ymin && plot_data->data[j].y <= ymax) {
-					n++;
-					pdd.selected[i] = TRUE;
-				}
-				j++;
+		for (int i = 0, j = 0; i < com.seq.number; i++) {
+			if (!com.seq.imgparam[i].incl) continue;
+			if (plot_data->data[j].x >= xmin && plot_data->data[j].x <= xmax && plot_data->data[j].y >= ymin && plot_data->data[j].y <= ymax) {
+				n++;
+				pdd.selected[i] = TRUE;
 			}
-			pdd.nbselected = n;
-		} else {
-			pdd.nbselected = 0;
+			j++;
 		}
-		//drawing the sliders and markers
-		plot_draw_all_sliders(cr);
-		plot_draw_all_sliders_fill(cr);
-		plot_draw_all_markers(cr);
-		plot_draw_selection(cr);
+		pdd.nbselected = n;
+	} else {
+		pdd.nbselected = 0;
 	}
+	//drawing the sliders and markers
+	plot_draw_all_sliders(cr);
+	plot_draw_all_sliders_fill(cr);
+	plot_draw_all_markers(cr);
+	plot_draw_selection(cr);
+
 	free_colors(&cfgplot);
 	kplot_free(p);
 }
 
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	drawing_the_graph(widget, cr, FALSE);
+	drawing_the_graph(widget, cr);
 	return FALSE;
-}
-
-void on_ButtonSavePlot_clicked(GtkButton *button, gpointer user_data) {
-	drawing_the_graph((GtkWidget *)user_data, NULL, TRUE);
 }
 
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
@@ -1636,7 +1612,6 @@ void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
 
 static void update_ylabel() {
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-	gtk_widget_set_sensitive(buttonSavePrt, TRUE);
 	if (use_photometry) {
 		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
 		switch (current_selected_source) {

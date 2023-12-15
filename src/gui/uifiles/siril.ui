@@ -1122,21 +1122,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="position">2</property>
           </packing>
         </child>
-        <child>
-          <object class="GtkModelButton" id="ButtonSavePlot">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Save current plot to png file.</property>
-            <property name="text" translatable="yes">Save Plot</property>
-            <signal name="clicked" handler="on_ButtonSavePlot_clicked" swapped="no"/>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
       </object>
     </child>
   </object>
