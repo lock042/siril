@@ -2472,12 +2472,12 @@ Output is a csv file compatible with NINA Exoplanet</property>
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="proc_image_photometry">
+          <object class="GtkModelButton" id="proc_image_astrometry">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="text" translatable="yes">Photometry</property>
-            <property name="menu-name">menu_image_photometry</property>
+            <property name="text" translatable="yes">Astrometry</property>
+            <property name="menu-name">menu_image_astrometry</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -2486,12 +2486,12 @@ Output is a csv file compatible with NINA Exoplanet</property>
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="proc_image_astrometry">
+          <object class="GtkModelButton" id="proc_image_photometry">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="text" translatable="yes">Astrometry</property>
-            <property name="menu-name">menu_image_astrometry</property>
+            <property name="text" translatable="yes">Photometry</property>
+            <property name="menu-name">menu_image_photometry</property>
           </object>
           <packing>
             <property name="expand">False</property>
