@@ -1097,8 +1097,10 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open a new Siril Plot window to show data.</property>
-            <property name="text" translatable="yes">Show in Siril Plot</property>
+            <property name="tooltip-markup" translatable="yes">Open a new Siril Plot window to show data.
+
+&lt;b&gt;WARNING&lt;/b&gt;: if the data do not have a valid photometry, they will not be displayed, contrary of what you can see in the plot tab.</property>
+            <property name="text" translatable="yes">Show valid data in Siril Plot</property>
             <signal name="clicked" handler="on_ButtonSwitch_Siril_plot_clicked" swapped="no"/>
           </object>
           <packing>

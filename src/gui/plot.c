@@ -713,6 +713,9 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **err
 	int retval = new_light_curve(filename, lcargs);
 	if (!retval && lcargs->spl_data) {
 		create_new_siril_plot_window(lcargs->spl_data);
+	} else {
+		if (retval)
+			control_window_switch_to_tab(OUTPUT_LOGS);
 	}
 	free_light_curve_args(lcargs); // this will not free args->spl_data which is free by siril_plot window upon closing
 
@@ -1339,6 +1342,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (error) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot output data"), error);
 		g_free(error);
+		control_window_switch_to_tab(OUTPUT_LOGS);
 	}
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
 
