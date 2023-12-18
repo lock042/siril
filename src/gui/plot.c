@@ -869,8 +869,8 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			yerr[i] = calloc(seq->number, sizeof(double));
 			real_x[i] = calloc(seq->number, sizeof(double));
 		}
-
-		for (int i = 0, j = 0; i < seq->number; i++) {
+		int j = 0;
+		for (int i = 0; i < seq->number; i++) {
 			if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 				continue;
 
@@ -893,9 +893,9 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 		for (int r = 0; r < nb_plot + 1; r++) {
 			gchar *label = (r == 0) ? g_strdup("v") : g_strdup_printf("%d", r);
 			if (photometry_selected_source == MAGNITUDE) {
-				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r], yerr[r], NULL);
+				siril_plot_add_xydata(spl_data, label, j, x[0], y[r], yerr[r], NULL);
 			} else {
-				siril_plot_add_xydata(spl_data, label, seq->number, x[0], y[r], NULL, NULL);
+				siril_plot_add_xydata(spl_data, label, j, x[0], y[r], NULL, NULL);
 			}
 			free(label);
 		}
@@ -922,7 +922,8 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			spl_data->plottype = KPLOT_POINTS;
 		}
 
-		for (int i = 0, j = 0; i < seq->number; i++) {
+		int j = 0;
+		for (int i = 0; i < seq->number; i++) {
 			if (!seq->imgparam[i].incl)
 				continue;
 			x[j] = plot->data[j].x;
@@ -932,7 +933,7 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			y[j] = plot->data[j].y;
 			j++;
 		}
-		siril_plot_add_xydata(spl_data, title, seq->number, x, y, NULL, NULL);
+		siril_plot_add_xydata(spl_data, title, j, x, y, NULL, NULL);
 
 		free(x);
 		free(y);
