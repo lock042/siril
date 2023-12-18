@@ -718,7 +718,11 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 		}
 		j += 3;
 	}
-	fileout = g_fopen(datfilename, "w");
+	char *newfilename = strdup(datfilename);
+	if (!g_str_has_suffix(newfilename, ".dat")) {
+		str_append(&newfilename, ".dat");
+	}
+	fileout = g_fopen(newfilename, "w");
 	if (fileout == NULL) {
 		siril_log_message(_("Could not create %s, aborting\n"));
 		retval = FALSE;
@@ -732,7 +736,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 			fprintf(fileout, " %g", data[index++]);
 	}
 	fclose(fileout);
-	siril_log_message(_("%s has been saved.\n"), datfilename);
+	siril_log_message(_("%s has been saved.\n"), newfilename);
 
 clean_and_exit:
 	g_string_free(header, TRUE);

@@ -850,6 +850,8 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 
 	if (use_photometry) {
 		siril_plot_set_title(spl_data, title);
+		siril_plot_set_savename(spl_data, title);
+
 		if (photometry_selected_source == MAGNITUDE) {
 			spl_data->revertY = TRUE;
 		}
@@ -911,6 +913,7 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 
 	} else {
 		siril_plot_set_title(spl_data, _("Registration"));
+		siril_plot_set_savename(spl_data, _("Registration"));
 
 		double *x = calloc(seq->number, sizeof(double));
 		double *y = calloc(seq->number, sizeof(double));
