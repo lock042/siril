@@ -11,7 +11,7 @@ rm -rf .git .gitlab subprojects/librtprocess/.git build/flatpak/shared-modules/.
 
 # add commands reference from the website
 echo 'getting command reference'
-wget -nv 'https://free-astro.org/index.php?title=Siril:Commands' -O - | perl -0777 -pe 's/<script.*?script>//gs' | perl -pe 's/<link .*?\/>//gs' > commands_reference.html
+wget -nv 'https://siril.readthedocs.io/en/stable/Commands.html' -O - | perl -0777 -pe 's/<script.*?script>//gs' | perl -pe 's/<link .*?\/>//gs' > commands_reference.html
 
 cd ..
 
