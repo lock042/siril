@@ -31,7 +31,6 @@ xx/xx/xx
 * Fix wavelets redraw. (#1236)
 
 siril 1.2.1
-* Fixed HEIF import (#1198)
 * Fixed Anscombe VST noise reduction option for mono images
 * Fixed HEIF import (#1198)
 * Fixed Noise Reduction Anscombe VST bug with mono images (#1200)
