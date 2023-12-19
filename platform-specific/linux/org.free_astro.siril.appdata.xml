@@ -90,7 +90,30 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-    <release version="1.2.0" date="2023-09-15">
+    <release version="1.2.1" type="stable" date="2023-12-xx">
+      <url type="details">https://siril.org/download/1.2.1</url>
+      <description>
+        <p>
+          Siril 1.2.1 is a bug fix release, containing dozens of fixes.
+          The most important fixes are:
+        </p>
+        <ul>
+          <li>
+          Added configurable color for background extraction sample and standard annotations
+          </li>
+          <li>
+          Fixed Noise Reduction Anscombe VST bug with mono images
+          </li>
+          <li>
+          Fixed HEIF import
+          </li>
+          <li>
+          Fixed crash in findstar when detecting stars close to the border
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.0" type="stable" date="2023-09-15">
       <url type="details">https://siril.org/download/1.2.0</url>
       <description>
         <p>
