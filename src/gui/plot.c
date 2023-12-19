@@ -836,10 +836,9 @@ static double get_error_for_time(pldata *plot, double time) {
 }
 
 void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
-	sequence *seq = &com.seq;
+	const sequence *seq = &com.seq;
 	pldata *plot = plot_data;
 	int nb_plot = 0;
-	const gchar *title = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo));
 
 	if (!plot) {
 		fprintf(stderr, "Siril plot: Nothing to export\n");
@@ -852,6 +851,7 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 	siril_plot_set_ylabel(spl_data, ylabel);
 
 	if (use_photometry) {
+		const gchar *title = photometry_labels[photometry_selected_source];
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_savename(spl_data, title);
 
@@ -894,6 +894,24 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			j++;
 		}
 		for (int r = 0; r < nb_plot + 1; r++) {
+			if (j != seq->number) {
+				double *xtmp = realloc(x[r], j * sizeof(double));
+				if (xtmp) {
+					x[r] = xtmp;
+				}
+				double *ytmp = realloc(y[r], j * sizeof(double));
+				if (ytmp) {
+					y[r] = ytmp;
+				}
+				double *yerrtmp = realloc(yerr[r], j * sizeof(double));
+				if (yerrtmp) {
+					yerr[r] = yerrtmp;
+				}
+				double *real_xtmp = realloc(real_x[r], j * sizeof(double));
+				if (real_xtmp) {
+					real_x[r] = real_xtmp;
+				}
+			}
 			gchar *label = (r == 0) ? g_strdup("v") : g_strdup_printf("%d", r);
 			if (photometry_selected_source == MAGNITUDE) {
 				siril_plot_add_xydata(spl_data, label, j, x[0], y[r], yerr[r], NULL);
@@ -915,6 +933,7 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 		free(real_x);
 
 	} else {
+		const gchar *title = registration_labels[registration_selected_source];
 		siril_plot_set_title(spl_data, _("Registration"));
 		siril_plot_set_savename(spl_data, _("Registration"));
 
@@ -935,6 +954,16 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			}
 			y[j] = plot->data[j].y;
 			j++;
+		}
+		if (j != seq->number) {
+			double *xtmp = realloc(x, j * sizeof(double));
+			if (xtmp) {
+				x = xtmp;
+			}
+			double *ytmp = realloc(y, j * sizeof(double));
+			if (ytmp) {
+				y = ytmp;
+			}
 		}
 		siril_plot_add_xydata(spl_data, title, j, x, y, NULL, NULL);
 
