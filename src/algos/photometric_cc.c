@@ -50,6 +50,42 @@ enum {
 	RED, GREEN, BLUE
 };
 
+// CIE XYZ Color Matching Functions
+// CIE 1931 2-degree CMF using multi-lobe piecewise Gaussian
+float xFit_1931(float wave) {
+	float t1 = (wave-442.0f)*((wave<442.0f)?0.0624f:0.0374f);
+	float t2 = (wave-599.8f)*((wave<599.8f)?0.0264f:0.0323f);
+	float t3 = (wave-501.1f)*((wave<501.1f)?0.0490f:0.0382f);
+	return 0.362f*expf(-0.5f*t1*t1) + 1.056f*expf(-0.5f*t2*t2)
+	- 0.065f*expf(-0.5f*t3*t3);
+}
+
+float yFit_1931( float wave) {
+	float t1 = (wave-568.8f)*((wave<568.8f)?0.0213f:0.0247f);
+	float t2 = (wave-530.9f)*((wave<530.9f)?0.0613f:0.0322f);
+	return 0.821f*exp(-0.5f*t1*t1) + 0.286f*expf(-0.5f*t2*t2);
+}
+
+float zFit_1931(float wave) {
+	float t1 = (wave-437.0f)*((wave<437.0f)?0.0845f:0.0278f);
+	float t2 = (wave-459.0f)*((wave<459.0f)?0.0385f:0.0725f);
+	return 1.217f*exp(-0.5f*t1*t1) + 0.681f*expf(-0.5f*t2*t2);
+}
+
+// CIE 1964 10-degree CMF using single-lobe fit
+float xFit_1964(float wave) {
+	float t1 = 1250.f * powf(logf((wave+570.1f)/1014.f), 2.f);
+	float t2 = 234.f * powf(logf((1338.f-wave)/743.5f), 2.f);
+	return 0.398f*expf(-t1) + 1.132f*expf(-t2);
+}
+
+float yFit_1964(float wave) {
+	return 1.011f * expf(-0.5f*powf((wave-265.8f)/46.14f, 2.f);
+}
+float zFit_1964(float wave) {
+	return 2.06f * expf(-32.f*powf(logf((wave-265.8f)/180.4f), 2.f));
+}
+
 // Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
 // Uses Ballesteros' formula based on considering stars as black bodies
 cmsFloat64Number bvToT(float bv) {
@@ -139,12 +175,11 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 	float xyz[3], rgb[3] = { 0.f };
 	bv = min(max(bv, -0.4f), 2.f);
 	cmsFloat64Number TempK = bvToT(bv);
-//	temp_to_xyY(&WhitePoint, TempK);
-	charity_temp_to_xyY(&WhitePoint, TempK);
+	temp_to_xyY(&WhitePoint, TempK);
+//	charity_temp_to_xyY(&WhitePoint, TempK);
 //	BQ_temp_to_xyY(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
-	// Adapt the source D65 Planckian locus) to the destination (lcms2 xyz profile with D50 whitepoint)
-//	cmsAdaptToIlluminant(&XYZ_adapted, &D65, profile_whitepoint, &XYZ);
+	// Adapt the source (D65 Planckian locus) to the destination (lcms2 xyz profile with D50 whitepoint)
 	cmsAdaptToIlluminant(&XYZ_adapted, &D65, &D50, &XYZ);
 	xyz[0] = (float) XYZ_adapted.X;
 	xyz[1] = (float) XYZ_adapted.Y;
@@ -206,17 +241,14 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
 	cmsHPROFILE xyzprofile = cmsCreateXYZProfile();
-//	cmsCIEXYZ* profile_whitepoint;
 	cmsHPROFILE profile = NULL;
 	if (fit->icc_profile) {
-//		profile_whitepoint = cmsReadTag(fit->icc_profile, cmsSigMediaWhitePointTag);
 		profile = copyICCProfile(fit->icc_profile);
 		if (!fit_icc_is_linear(fit)) {
 			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
 					"apply photometric color calibration to linear images.\n"), "salmon");
 		}
 	} else {
-//		profile_whitepoint = cmsReadTag(com.icc.working_standard, cmsSigMediaWhitePointTag);
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
 		fit->icc_profile = copyICCProfile(profile);
 		color_manage(fit, (fit->icc_profile != NULL));
@@ -277,7 +309,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		/* get r g b coefficient from bv color index */
 		bv = stars[i].BV;
-		bv2rgb(&r, &g, &b, bv, transform); //, profile_whitepoint);
+		bv2rgb(&r, &g, &b, bv, transform);
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
