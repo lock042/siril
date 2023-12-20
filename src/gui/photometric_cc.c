@@ -34,31 +34,10 @@
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
-#include "gui/siril_plot.h"
 #include "gui/registration_preview.h"
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "photometric_cc.h"
-
-gpointer plot_pcc_results(double* x_pre, double* y_pre, double* x_post, double* y_post, double* x_ref, double* y_ref, uint32_t nbr_points) {
-	siril_plot_data* spl_data = malloc(sizeof(siril_plot_data));
-//	spl_data->background = gdk_pixbuf_new_from_file("mypixbuf.png", NULL);
-	init_siril_plot_data(spl_data);
-	siril_plot_set_title(spl_data, "Photometric Color Calibration Results");
-	siril_plot_set_xlabel(spl_data, "CIE x");
-	siril_plot_set_ylabel(spl_data, "CIE y");
-	siril_plot_set_savename(spl_data, "pcc");
-	spl_data->plottype = KPLOT_POINTS;
-	if (x_pre && y_pre)
-		siril_plot_add_xydata(spl_data, "Pre-calibration", nbr_points, x_pre, y_pre, NULL, NULL);
-	if (x_post && y_post)
-		siril_plot_add_xydata(spl_data, "Post-calibration", nbr_points, x_post, y_post, NULL, NULL);
-	if (x_ref && y_ref)
-		siril_plot_add_xydata(spl_data, "Reference stars", nbr_points, x_ref, y_ref, NULL, NULL);
-	siril_add_idle(create_new_siril_plot_window, spl_data);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
-}
 
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);

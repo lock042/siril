@@ -38,7 +38,6 @@
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
@@ -134,7 +133,7 @@ static void BQ_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 // Makes use of lcms2 to get the RGB values correct
 // transform is calculated in get_white_balance_coeff below
 // It provides the transform from XYZ to the required image colorspace
-static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform, double* x_ref, double* y_ref, int i) { //, cmsCIEXYZ *profile_whitepoint) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
+static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform) { //, cmsCIEXYZ *profile_whitepoint) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
 	cmsCIExyY WhitePoint;
 	cmsCIEXYZ XYZ, XYZ_adapted;
 	float xyz[3], rgb[3] = { 0.f };
@@ -145,16 +144,11 @@ static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transfo
 //	BQ_temp_to_xyY(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
 	// Adapt the source D65 Planckian locus) to the destination (lcms2 xyz profile with D50 whitepoint)
+//	cmsAdaptToIlluminant(&XYZ_adapted, &D65, profile_whitepoint, &XYZ);
 	cmsAdaptToIlluminant(&XYZ_adapted, &D65, &D50, &XYZ);
 	xyz[0] = (float) XYZ_adapted.X;
 	xyz[1] = (float) XYZ_adapted.Y;
 	xyz[2] = (float) XYZ_adapted.Z;
-	// If we will be plotting, x_ref will be non-NULL so we populate the ref stars XY data
-	if (x_ref) {
-		cmsXYZ2xyY(&WhitePoint, &XYZ);
-		x_ref[i] = WhitePoint.x;
-		y_ref[i] = WhitePoint.y;
-	}
 	cmsDoTransform(transform, &xyz, &rgb, 1);
 	cmsFloat64Number maxval = max(max(rgb[0], rgb[1]), rgb[2]);
 	*r = rgb[0] / maxval;
@@ -185,21 +179,11 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
-static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float *kw, int norm_channel, gboolean plot_result) {
+static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float *kw, int norm_channel) {
 	float *data[3];
 	data[RED] = malloc(sizeof(float) * nb_stars);
 	data[GREEN] = malloc(sizeof(float) * nb_stars);
 	data[BLUE] = malloc(sizeof(float) * nb_stars);
-	double *x_pre = NULL, *y_pre = NULL, *x_post = NULL, *y_post = NULL, *x_ref = NULL, *y_ref = NULL;
-	// If we will be plotting, set up the plotting data
-	if (plot_result) {
-		x_pre = calloc(sizeof(double), nb_stars);
-		y_pre = calloc(sizeof(double), nb_stars);
-		x_post = calloc(sizeof(double), nb_stars);
-		y_post = calloc(sizeof(double), nb_stars);
-		x_ref = calloc(sizeof(double), nb_stars);
-		y_ref = calloc(sizeof(double), nb_stars);
-	}
 	if (!data[RED] || !data[GREEN] || !data[BLUE]) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -222,19 +206,22 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
 	cmsHPROFILE xyzprofile = cmsCreateXYZProfile();
+//	cmsCIEXYZ* profile_whitepoint;
 	cmsHPROFILE profile = NULL;
 	if (fit->icc_profile) {
+//		profile_whitepoint = cmsReadTag(fit->icc_profile, cmsSigMediaWhitePointTag);
 		profile = copyICCProfile(fit->icc_profile);
 		if (!fit_icc_is_linear(fit)) {
 			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
 					"apply photometric color calibration to linear images.\n"), "salmon");
 		}
 	} else {
+//		profile_whitepoint = cmsReadTag(com.icc.working_standard, cmsSigMediaWhitePointTag);
 		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
 		fit->icc_profile = copyICCProfile(profile);
 		color_manage(fit, (fit->icc_profile != NULL));
 	}
-	cmsHTRANSFORM transform = NULL, invtransform = NULL;
+	cmsHTRANSFORM transform = NULL;
 	if (xyzprofile && profile) {
 		transform = cmsCreateTransformTHR(com.icc.context_single,
 					xyzprofile,
@@ -243,13 +230,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 					TYPE_RGB_FLT,
 					INTENT_RELATIVE_COLORIMETRIC,
 					cmsFLAGS_NONEGATIVES);
-		invtransform = cmsCreateTransformTHR(com.icc.context_single,
-					profile,
-					TYPE_RGB_FLT,
-					xyzprofile,
-					TYPE_XYZ_FLT,
-					INTENT_RELATIVE_COLORIMETRIC,
-					0);
 		cmsCloseProfile(profile);
 		cmsCloseProfile(xyzprofile);
 	}
@@ -297,7 +277,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		}
 		/* get r g b coefficient from bv color index */
 		bv = stars[i].BV;
-		bv2rgb(&r, &g, &b, bv, transform, x_ref, y_ref, i);
+		bv2rgb(&r, &g, &b, bv, transform); //, profile_whitepoint);
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
@@ -309,31 +289,10 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			data[BLUE][i] = FLT_MAX;
 			continue;
 		}
-		if (plot_result) {
-			float max = max(max(flux[RED], flux[GREEN]), flux[BLUE]);
-			float xyz[3] = { 0.0 }, rgb[3] = { flux[RED] / max, flux[GREEN] / max, flux[BLUE] /max };
-			cmsDoTransform(invtransform, &rgb, &xyz, 1);
-			cmsCIEXYZ XYZ = { xyz[0], xyz[1], xyz[2] };
-			cmsCIExyY xyY;
-			cmsXYZ2xyY(&xyY, &XYZ);
-			x_pre[i] = xyY.x;
-			y_pre[i] = xyY.y;
-			max = max(max(data[RED][i], data[GREEN][i]), data[BLUE][i]);
-			rgb[0] = data[RED][i] / max; rgb[1] = data[GREEN][i]/ max; rgb[2] = data[BLUE][i] / max;
-			cmsDoTransform(invtransform, &rgb, &xyz, 1);
-			XYZ.X = xyz[0]; XYZ.Y = xyz[1]; XYZ.Z = xyz[2];
-			cmsXYZ2xyY(&xyY, &XYZ);
-			x_post[i] = xyY.x;
-			y_post[i] = xyY.y;
-		}
 		g_atomic_int_inc(&ngood);
 	}
-	if (plot_result)
-		plot_pcc_results(x_pre, y_pre, x_post, y_post, x_ref, y_ref, nb_stars);
 	if (transform)
 		cmsDeleteTransform(transform);
-	if (invtransform)
-		cmsDeleteTransform(invtransform);
 	free(ps);
 	if (!get_thread_run()) {
 		free(data[RED]);
@@ -531,8 +490,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
 	set_progress_bar_data(_("Photometric color calibration in progress..."), PROGRESS_RESET);
-	args->plot_result = TRUE;
-	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel, args->plot_result);
+	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel);
 
 	if (!ret) {
 		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
@@ -625,7 +583,6 @@ gpointer photometric_cc_standalone(gpointer p) {
 		}
 		args->stars = stars;
 		args->nb_stars = nb_stars;
-		args->plot_result = TRUE;
 		retval = photometric_cc(args);	// args is freed from here
 	}
 	free(stars);

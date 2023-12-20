@@ -119,7 +119,6 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->xfmt = NULL;
 	spl_data->yfmt = NULL;
 	spl_data->savename = NULL;
-	spl_data->background = NULL;
 	spl_data->forsequence = FALSE;
 	spl_data->plottype = KPLOT_LINES;
 	spl_data->plotstype = KPLOTS_YERRORBAR;
@@ -490,10 +489,6 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	struct kplotctx ctx = { 0 };
 	cairo_t *draw_cr = cairo_create(draw_surface);
 	kplot_draw(p, drawwidth, drawheight, draw_cr, &ctx);
-	if (spl_data->background) {
-		gdk_cairo_set_source_pixbuf(cr, spl_data->background, ctx.offs.x, ctx.offs.y + top);
-		cairo_paint(cr);
-	}
 	cairo_set_source_surface(cr, draw_surface, 0., (int)top);
 	cairo_paint(cr);
 	cairo_destroy(draw_cr);
