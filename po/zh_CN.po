@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-12 08:08+0100\n"
-"PO-Revision-Date: 2023-11-29 21:19+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2023-12-21 10:21+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -3558,7 +3558,7 @@ msgstr "裁切"
 
 #: src/gui/siril3.glade:15025
 msgid "Crop Sequence..."
-msgstr "裁切整个序列..."
+msgstr "裁减整个序列..."
 
 #: src/gui/siril3.glade:15034 src/gui/siril3.glade:18262
 #: src/gui/siril3.glade:18741
