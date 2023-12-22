@@ -2611,11 +2611,11 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="photometry_force_radius_button">
-                                <property name="label" translatable="yes">Automatically Calculated with Radius/FWHM ratio:</property>
+                                <property name="label" translatable="yes">Automatically Calculated with Radius/half-FWHM ratio of:</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius with the specified radius/FWHM ratio. When unchecked, you can set the radius value in the box below.</property>
+                                <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius with the specified radius/half-FWHM ratio. When unchecked, you can set a fixed radius value in the box below.</property>
                                 <property name="halign">start</property>
                                 <property name="draw-indicator">True</property>
                                 <signal name="toggled" handler="on_photometry_force_radius_button_toggled" object="spinAperture" swapped="no"/>
