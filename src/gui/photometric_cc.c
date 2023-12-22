@@ -62,6 +62,7 @@ static void start_photometric_cc() {
 	pcc_args->catalog = get_photometry_catalog_from_GUI();
 	if (local_catalogues_available()) {
 		if (pcc_args->catalog == CAT_NOMAD) {
+			pcc_args->catalog = CAT_LOCAL;
 			siril_debug_print("using local star catalogues\n");
 		}
 		else siril_log_message(_("Using remote APASS instead of local NOMAD catalogue\n"));

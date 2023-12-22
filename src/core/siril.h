@@ -17,7 +17,6 @@
 #include <fitsio.h>	// fitsfile
 
 #include "core/settings.h"
-#include "core/atomic.h"
 
 #define _(String) gettext (String)
 #define gettext_noop(String) String
@@ -131,8 +130,10 @@ typedef enum {
 	TYPEPIC = (1 << 9),
 	TYPERAW = (1 << 10),
 	TYPEXISF = (1 << 11),
+	TYPEJXL = (1 << 12),
+	TYPEAVIF = (1 << 13),
 	TYPEAVI = (1 << 20),
-	TYPESER = (1 << 21),
+	TYPESER = (1 << 21)
 } image_type;
 
 /* indices of the image data layers */
@@ -285,7 +286,7 @@ typedef struct {
 	     ngoodpix;	// number of non-zero pixels
 	double mean, median, sigma, avgDev, mad, sqrtbwmv,
 	       location, scale, min, max, normValue, bgnoise;
-	atomic_int* _nb_refs;	// reference counting for data management
+	gint _nb_refs;	// reference counting for data management
 } imstats;
 
 typedef struct {

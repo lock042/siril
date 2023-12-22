@@ -467,8 +467,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					area.y = zoomed.y - s;
 					area.w = s * 2;
 					area.h = s * 2;
-					if (area.x - area.w > 0 && area.x + area.w < gfit.rx
-							&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
+					if (zoomed.x - area.w > 0 && zoomed.x + area.w < gfit.rx
+							&& zoomed.y - area.h > 0 && zoomed.y + area.h < gfit.ry) {
 						ps = phot_set_adjusted_for_image(&gfit);
 						gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 						free(ps);
@@ -534,8 +534,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				if (sequence_is_loaded()) {
 					int s = com.pref.phot_set.outer * 1.2;
 					rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
-					if (area.x - area.w > 0 && area.x + area.w < gfit.rx
-							&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
+					if (zoomed.x - area.w > 0 && zoomed.x + area.w < gfit.rx
+							&& zoomed.y - area.h > 0 && zoomed.y + area.h < gfit.ry) {
 						memcpy(&com.selection, &area, sizeof(rectangle));
 						process_seq_psf(0);
 						delete_selected_area();

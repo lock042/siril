@@ -70,7 +70,6 @@ src_files = [
   'compositing/filters.c',
 
   'core/arithm.c',
-  'core/atomic.cpp',
   'core/command.c',
   'core/command_line_processor.c',
   'core/exif.cpp',
@@ -173,6 +172,7 @@ src_files = [
   'io/siril_catalogues.c',
   'io/siril_plot.c',
   'io/SirilXISFReader.cpp',
+  'io/SirilJpegXLWrapper.cpp',
 
   'livestacking/gui.c',
   'livestacking/livestacking.c',

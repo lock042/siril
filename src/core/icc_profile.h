@@ -53,6 +53,8 @@ typedef struct SirilMatrix3_d {
 	gdouble coeff[3][3];
 } SirilMatrix3_d;
 
+void icc_profile_set_tag (cmsHPROFILE profile, cmsTagSignature sig, const gchar *tag);
+
 cmsHPROFILE srgb_linear();
 cmsHPROFILE gray_srgbtrc();
 cmsHPROFILE srgb_trc();
@@ -62,6 +64,8 @@ cmsHPROFILE rec2020_linear();
 cmsHPROFILE gray_rec709trc();
 
 void color_manage(fits *fit, gboolean active);
+void lock_display_transform();
+void unlock_display_transform();
 void display_index_transform(BYTE* index, int vport);
 gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c);
 void reset_icc_transforms();

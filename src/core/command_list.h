@@ -124,7 +124,7 @@ static command commands[] = {
 
 	{"parse", 1, "parse str [-r]", process_parse, STR_PARSE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
-	{"platesolve", 0, "platesolve [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale]", process_pcc, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"platesolve", 0, "platesolve [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale]", process_pcc, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-all] [-prefix=] [-fitseq]", process_preprocess, STR_CALIBRATE, TRUE, REQ_CMD_NONE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
@@ -148,6 +148,9 @@ static command commands[] = {
 	{"savebmp", 1, "savebmp filename", process_savebmp, STR_SAVEBMP, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef HAVE_LIBJPEG
 	{"savejpg", 1, "savejpg filename [quality]", process_savejpg, STR_SAVEJPG, TRUE, REQ_CMD_SINGLE_IMAGE},
+#endif
+#ifdef HAVE_LIBJXL
+	{"savejxl", 1, "savejxl filename [-effort=] [-quality=] [-8bit]", process_savejxl, STR_SAVEJXL, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 #ifdef HAVE_LIBPNG
 	{"savepng", 1, "savepng filename", process_savepng, STR_SAVEPNG, TRUE, REQ_CMD_SINGLE_IMAGE},

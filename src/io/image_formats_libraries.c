@@ -53,9 +53,13 @@
 #ifdef HAVE_LIBXISF
 #include "io/SirilXISFWraper.h"
 #endif
+#ifdef HAVE_LIBJXL
+#include "io/SirilJpegXLWrapper.h"
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -1971,13 +1975,13 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 
 	int ret = siril_libraw_open_file(raw, name);
 	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
+		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
 	ret = libraw_unpack(raw);
 	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
+		siril_log_color_message("Error in libraw %s\n", "red", libraw_strerror(ret));
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -2204,7 +2208,7 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 
 		struct heif_image *thumbnail_img;
 		err = heif_decode_image(thumbnail_handle, &thumbnail_img,
-				heif_colorspace_RGB, heif_chroma_interleaved_24bit,
+				heif_colorspace_RGB, heif_chroma_interleaved_RGB,
 				NULL);
 		if (err.code) {
 			g_printf("%s\n", err.message);
@@ -2378,6 +2382,158 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 	return run;
 }
 
+static cmsHPROFILE nclx_to_icc_profile (const struct heif_color_profile_nclx *nclx) {
+	const gchar *primaries_name = "";
+	const gchar *trc_name = "";
+	cmsHPROFILE profile = NULL;
+	cmsCIExyY whitepoint;
+	cmsCIExyYTRIPLE primaries;
+	cmsToneCurve *curve[3];
+
+	cmsFloat64Number srgb_parameters[5] =
+	{ 2.4, 1.0 / 1.055,  0.055 / 1.055, 1.0 / 12.92, 0.04045 };
+
+	cmsFloat64Number rec709_parameters[5] =
+	{ 2.2, 1.0 / 1.099,  0.099 / 1.099, 1.0 / 4.5, 0.081 };
+
+	if (nclx == NULL) {
+		return NULL;
+	}
+
+	if (nclx->color_primaries == heif_color_primaries_unspecified) {
+		return NULL;
+	}
+
+	if (nclx->color_primaries == heif_color_primaries_ITU_R_BT_709_5) {
+		if (nclx->transfer_characteristics == heif_transfer_characteristic_IEC_61966_2_1) {
+			return srgb_trc();
+		}
+
+		if (nclx->transfer_characteristics == heif_transfer_characteristic_linear) {
+			return srgb_linear();
+		}
+	}
+
+	whitepoint.x = nclx->color_primary_white_x;
+	whitepoint.y = nclx->color_primary_white_y;
+	whitepoint.Y = 1.0f;
+
+	primaries.Red.x = nclx->color_primary_red_x;
+	primaries.Red.y = nclx->color_primary_red_y;
+	primaries.Red.Y = 1.0f;
+
+	primaries.Green.x = nclx->color_primary_green_x;
+	primaries.Green.y = nclx->color_primary_green_y;
+	primaries.Green.Y = 1.0f;
+
+	primaries.Blue.x = nclx->color_primary_blue_x;
+	primaries.Blue.y = nclx->color_primary_blue_y;
+	primaries.Blue.Y = 1.0f;
+
+	switch (nclx->color_primaries) {
+		case heif_color_primaries_ITU_R_BT_709_5:
+			primaries_name = "BT.709";
+			break;
+		case   heif_color_primaries_ITU_R_BT_470_6_System_M:
+			primaries_name = "BT.470-6 System M";
+			break;
+		case heif_color_primaries_ITU_R_BT_470_6_System_B_G:
+			primaries_name = "BT.470-6 System BG";
+			break;
+		case heif_color_primaries_ITU_R_BT_601_6:
+			primaries_name = "BT.601";
+			break;
+		case heif_color_primaries_SMPTE_240M:
+			primaries_name = "SMPTE 240M";
+			break;
+		case 8:
+			primaries_name = "Generic film";
+			break;
+		case 9:
+			primaries_name = "BT.2020";
+			break;
+		case 10:
+			primaries_name = "XYZ";
+			break;
+		case 11:
+			primaries_name = "SMPTE RP 431-2";
+			break;
+		case 12:
+			primaries_name = "SMPTE EG 432-1 (DCI P3)";
+			break;
+		case 22:
+			primaries_name = "EBU Tech. 3213-E";
+			break;
+		default:
+			g_warning ("%s: Unsupported color_primaries value %d.",
+					G_STRFUNC, nclx->color_primaries);
+			return NULL;
+		break;
+	}
+
+	switch (nclx->transfer_characteristics) {
+		case heif_transfer_characteristic_ITU_R_BT_709_5:
+			curve[0] = curve[1] = curve[2] = cmsBuildParametricToneCurve (NULL, 4,
+											rec709_parameters);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "Rec709 RGB";
+			break;
+		case heif_transfer_characteristic_ITU_R_BT_470_6_System_M:
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 2.2f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "Gamma2.2 RGB";
+			break;
+		case heif_transfer_characteristic_ITU_R_BT_470_6_System_B_G:
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 2.8f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "Gamma2.8 RGB";
+			break;
+		case heif_transfer_characteristic_linear:
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 1.0f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "linear RGB";
+			break;
+		case heif_transfer_characteristic_IEC_61966_2_1:
+			/* same as default */
+			curve[0] = curve[1] = curve[2] = cmsBuildParametricToneCurve (NULL, 4,
+											srgb_parameters);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "sRGB-TRC RGB";
+			break;
+		default:
+			siril_log_color_message(_("Error: the specified NCLX TRC is not yet supported in Siril. "
+										"A linear TRC will be used: you may need to fix this file "
+										"up manually.\n"), "red");
+			curve[0] = curve[1] = curve[2] = cmsBuildGamma (NULL, 1.0f);
+			profile = cmsCreateRGBProfile (&whitepoint, &primaries, curve);
+			cmsFreeToneCurve (curve[0]);
+			trc_name = "linear RGB";
+			break;
+	}
+
+	if (profile) {
+		gchar *description = g_strdup_printf ("%s %s", primaries_name, trc_name);
+
+		icc_profile_set_tag (profile, cmsSigProfileDescriptionTag,
+											description);
+		icc_profile_set_tag (profile, cmsSigDeviceMfgDescTag,
+											"GIMP");
+		icc_profile_set_tag (profile, cmsSigDeviceModelDescTag,
+											description);
+		icc_profile_set_tag (profile, cmsSigCopyrightTag,
+											"Public Domain");
+		g_free (description);
+		return profile;
+	}
+
+	return NULL;
+}
+
 int readheif(const char* name, fits *fit, gboolean interactive){
 	struct heif_error err;
 #if LIBHEIF_HAVE_VERSION(1,13,0)
@@ -2455,15 +2611,78 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 #endif
 		return OPEN_IMAGE_ERROR;
 	}
+	uint8_t* icc_buffer = NULL;
+	uint32_t icc_length = 0;
+	// Get the ICC profile, if there is one
+	enum heif_color_profile_type cp_type = heif_image_handle_get_color_profile_type(handle);
+	const char* fourcc = cp_type == heif_color_profile_type_rICC ? "rICC" : cp_type == heif_color_profile_type_prof ? "prof" : cp_type == heif_color_profile_type_nclx ? "nclx" : "none";
+	if (cp_type == heif_color_profile_type_rICC || cp_type == heif_color_profile_type_prof) {
+		icc_length = heif_image_handle_get_raw_color_profile_size(handle);
+		if (icc_length > 0) {
+			icc_buffer = malloc(icc_length);
+			err = heif_image_handle_get_raw_color_profile(handle, icc_buffer);
+			if (err.code) {
+				siril_log_color_message(_("Error getting ICC profile from HEIF file. Continuing: you will need to manually assign an ICC profile\n"), "red");
+			}
+		}
+	} else if (cp_type == heif_color_profile_type_nclx) {
+		struct heif_color_profile_nclx *nclx = NULL;
+		err = heif_image_handle_get_nclx_color_profile(handle, &nclx);
+		cmsHPROFILE profile = nclx_to_icc_profile(nclx);
+		heif_nclx_color_profile_free(nclx);
+		icc_buffer = get_icc_profile_data(profile, &icc_length);
+		cmsCloseProfile(profile);
+	} else if (cp_type == heif_color_profile_type_not_present) {
+		siril_debug_print("HEIF does not contain any color profile. Assuming sRGB.\n");
+		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
+	}
+	siril_debug_print("ICC profile type %s, length %u read from HEIF file.\n", fourcc, icc_length);
 
 	int has_alpha = heif_image_handle_has_alpha_channel(handle);
+	int bit_depth;
+
+	enum heif_chroma chroma = heif_chroma_interleaved_RGB;
+
+	bit_depth = heif_image_handle_get_luma_bits_per_pixel (handle);
+	if (bit_depth < 0) {
+		siril_log_color_message(_("Input image has undefined bit-depth.\n"), "red");
+		heif_image_handle_release (handle);
+		heif_context_free (ctx);
+
+		return OPEN_IMAGE_ERROR;
+	} else {
+		siril_debug_print("HEIF reports bit depth: %d has_alpha: %d\n", bit_depth, has_alpha);
+	}
+
+	if (bit_depth == 8) {
+		if (has_alpha) {
+			chroma = heif_chroma_interleaved_RGBA;
+		} else {
+			chroma = heif_chroma_interleaved_RGB;
+		}
+	} else { /* high bit depth */
+#if LIBHEIF_HAVE_VERSION(1,8,0)
+#if ( G_BYTE_ORDER == G_LITTLE_ENDIAN )
+		if (has_alpha) {
+			chroma = heif_chroma_interleaved_RRGGBBAA_LE;
+		} else {
+			chroma = heif_chroma_interleaved_RRGGBB_LE;
+		}
+#else
+		if (has_alpha) {
+			chroma = heif_chroma_interleaved_RRGGBBAA_BE;
+		} else {
+			chroma = heif_chroma_interleaved_RRGGBB_BE;
+		}
+#endif
+#endif
+	}
 
 	// Note: the HEIF library does not appear to provide good grayscale support at present
 	// so imported HEIF images will always be 3-channel
 	struct heif_image *img = 0;
 	err = heif_decode_image(handle, &img, heif_colorspace_RGB,
-			has_alpha ? heif_chroma_interleaved_32bit :
-			heif_chroma_interleaved_24bit, NULL);
+			chroma, NULL);
 	if (err.code) {
 		g_printf("%s\n", err.message);
 		heif_image_handle_release(handle);
@@ -2479,8 +2698,11 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	const int height = heif_image_get_height(img, heif_channel_interleaved);
 
 	size_t npixels = width * height;
+	gboolean mono = TRUE;
+	WORD *data = NULL;
+	unsigned int nchannels = has_alpha ? 4 : 3;
 
-	WORD *data = malloc(npixels * sizeof(WORD) * 3);
+	data = malloc(height * width * 3 * sizeof(WORD));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		heif_image_handle_release(handle);
@@ -2490,33 +2712,90 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 #endif
 		return OPEN_IMAGE_ERROR;
 	}
-	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
 
-	unsigned int nchannels = has_alpha ? 4 : 3;
-	for (int row = 0; row < height; row += stride) {
-		int nrow = (row + stride > height ? height - row : stride);
-		for (int i = 0; i < width * nrow; i++) {
-			*buf[RLAYER]++ = udata[i * nchannels + RLAYER];
-			*buf[GLAYER]++ = udata[i * nchannels + GLAYER];
-			*buf[BLAYER]++ = udata[i * nchannels + BLAYER];
+	gboolean threaded = !get_thread_run();
+
+	if (bit_depth > 8) { /* high bit depth */
+		const float scale = bit_depth == 10 ? 1023.f : bit_depth == 12 ? 4095.f : 65535.f;
+		WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
+		const uint16_t *src = (const uint16_t*) udata;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threaded)
+#endif
+		for (int row = 0; row < height; row += stride) {
+			int nrow = (row + stride > height ? height - row : stride);
+			WORD r, g, b;
+#ifdef _OPENMP
+#pragma omp simd
+#endif
+			for (int i = 0; i < width * nrow; i++) {
+				r = (int) ( ( (float) (0x0fff & (src[i * nchannels + RLAYER]))  / scale) * 65535.0f + 0.5f);
+				g = (int) ( ( (float) (0x0fff & (src[i * nchannels + GLAYER]))  / scale) * 65535.0f + 0.5f);
+				b = (int) ( ( (float) (0x0fff & (src[i * nchannels + BLAYER]))  / scale) * 65535.0f + 0.5f);
+				*buf[RLAYER]++ = r;
+				*buf[GLAYER]++ = g;
+				*buf[BLAYER]++ = b;
+				if (mono && !(r == g && r == b && r == b))
+					mono = FALSE;
+			}
+		}
+	} else {
+		WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
+		unsigned int nchannels = has_alpha ? 4 : 3;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threaded)
+#endif
+		for (int row = 0; row < height; row += stride) {
+			int nrow = (row + stride > height ? height - row : stride);
+			WORD r, g, b;
+#ifdef _OPENMP
+#pragma omp simd
+#endif
+			for (int i = 0; i < width * nrow; i++) {
+				r = udata[i * nchannels + RLAYER];
+				g = udata[i * nchannels + GLAYER];
+				b = udata[i * nchannels + BLAYER];
+				*buf[RLAYER]++ = r;
+				*buf[GLAYER]++ = g;
+				*buf[BLAYER]++ = b;
+				if (mono && !(r == g && r == b && r == b))
+					mono = FALSE;
+			}
 		}
 	}
 
+	if (mono) {
+		WORD *tmp = realloc(data, npixels* sizeof(WORD));
+		if (tmp) {
+			data = tmp;
+		} else {
+			PRINT_ALLOC_ERR;
+			return OPEN_IMAGE_ERROR;
+		}
+		nchannels = 1;
+	} else {
+		nchannels = 3;
+	}
+
 	clearfits(fit);
-	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
+	fit->bitpix = fit->orig_bitpix = bit_depth == 8 ? BYTE_IMG : USHORT_IMG;
 	fit->type = DATA_USHORT;
-	fit->naxis = 3;
+	fit->naxis = nchannels == 1 ? 2 : 3;
 	fit->rx = width;
 	fit->ry = height;
 	fit->naxes[0] = fit->rx;
 	fit->naxes[1] = fit->ry;
-	fit->naxes[2] = 3;
+	fit->naxes[2] = nchannels;
 	fit->data = data;
 	fit->pdata[RLAYER] = fit->data;
-	fit->pdata[GLAYER] = fit->data + npixels;
-	fit->pdata[BLAYER] = fit->data + npixels * 2;
+	fit->pdata[GLAYER] = fit->data + npixels * (nchannels == 3);
+	fit->pdata[BLAYER] = fit->data + npixels * 2 * (nchannels == 3);
 	fit->binning_x = fit->binning_y = 1;
 	mirrorx(fit, FALSE);
+
+	fits_initialize_icc(fit, icc_buffer, icc_length);
+	color_manage(fit, (fit->icc_profile != NULL));
+	free(icc_buffer);
 
 	heif_image_handle_release(handle);
 	heif_context_free(ctx);
@@ -2525,14 +2804,274 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	heif_deinit();
 #endif
 	gchar *basename = g_path_get_basename(name);
-	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels\n"),
-			basename, fit->naxes[2], fit->rx, fit->ry);
+	siril_log_message(_("Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"),
+			basename, fit->naxes[2], fit->rx, fit->ry, bit_depth);
 	g_free(basename);
-
-	// Initialize ICC profile. As the buffer is set to NULL, this sets the
-	// profile as sRGB which is the target colorspace set in heif_decode_image()
-	fits_initialize_icc(fit, NULL, 0);
 
 	return OPEN_IMAGE_OK;
 }
+#endif
+
+#ifdef HAVE_LIBJXL
+
+int readjxl(const char* name, fits *fit) {
+
+	FILE *f = g_fopen(name, "rb");
+	if (f == NULL) {
+		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		return OPEN_IMAGE_ERROR;
+	}
+	GError* error = NULL;
+	gsize jxl_size;
+	uint8_t* jxl_data = NULL;
+	gboolean success = g_file_get_contents(name, (gchar**) &jxl_data, &jxl_size, &error);
+	if (!success) {
+		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		return OPEN_IMAGE_ERROR;
+	}
+	uint8_t* icc_profile = NULL;
+	size_t icc_profile_length = 0;
+	uint8_t* internal_icc_profile = NULL;
+	size_t internal_icc_profile_length = 0;
+	size_t xsize = 0, ysize = 0, zsize = 0, extra_channels = 0;
+	uint8_t bitdepth = 0;
+	float* pixels = NULL;
+	if (DecodeJpegXlOneShotWrapper(jxl_data, jxl_size, &pixels,
+			&xsize, &ysize, &zsize, &extra_channels, &bitdepth,
+			&icc_profile, &icc_profile_length, &internal_icc_profile,
+			&internal_icc_profile_length)) {
+		siril_debug_print("Error while decoding the jxl file\n");
+		return 1;
+	}
+	siril_debug_print("Image decoded as %d bits per pixel\n", bitdepth);
+	fclose(f);
+	clearfits(fit);
+	fit->bitpix = (bitdepth == 16 || com.pref.force_16bit) ? USHORT_IMG : FLOAT_IMG;
+	fit->type = fit->bitpix == FLOAT_IMG ? DATA_FLOAT : DATA_USHORT;
+	if (zsize == 1)
+		fit->naxis = 2;
+	else
+		fit->naxis = 3;
+	fit->rx = xsize;
+	fit->ry = ysize;
+	fit->naxes[0] = xsize;
+	fit->naxes[1] = ysize;
+	fit->naxes[2] = zsize;
+	size_t npixels = xsize * ysize;
+	if (fit->bitpix == FLOAT_IMG) {
+		fit->fdata = malloc(xsize * ysize * zsize * sizeof(float));
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = zsize == 3 ? fit->fdata + npixels : fit->fdata;
+		fit->fpdata[BLAYER] = zsize == 3 ? fit->fdata + npixels * 2 : fit->fdata;
+	} else {
+		fit->data = malloc(xsize * ysize * zsize * sizeof(WORD));
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = zsize == 3 ? fit->data + npixels : fit->data;
+		fit->pdata[BLAYER] = zsize == 3 ? fit->data + npixels * 2 : fit->data;
+	}
+	fit->binning_x = fit->binning_y = 1;
+
+	if (fit->naxes[2] == 1) {
+		if (fit->type == DATA_FLOAT) {
+			memcpy(fit->fdata, pixels, xsize * ysize * zsize * sizeof(float));
+		} else {
+			for (int i = 0 ; i < xsize * ysize ; i++) {
+				fit->data[i] = roundf_to_WORD(pixels[i] * USHRT_MAX);
+			}
+		}
+	} else {
+		const uint32_t totchans = zsize + extra_channels;
+		siril_debug_print("Channels: total %u, extra %lu\n", totchans, extra_channels);
+		if (fit->type == DATA_FLOAT) {
+			for (size_t i = 0 ; i < xsize * ysize ; i++) {
+				size_t pixel = i * totchans;
+				for (int j = 0 ; j < 3 ; j++) {
+					fit->fpdata[j][i] = pixels[pixel + j];
+				}
+			}
+		} else {
+			for (size_t i = 0 ; i < xsize * ysize ; i++) {
+				size_t pixel = i * totchans;
+				for (int j = 0 ; j < 3 ; j++) {
+					fit->pdata[j][i] = roundf_to_WORD(pixels[pixel + j] * USHRT_MAX);
+				}
+			}
+		}
+	}
+	free(pixels);
+	cmsHPROFILE internal = cmsOpenProfileFromMem(internal_icc_profile, internal_icc_profile_length);
+	cmsHPROFILE original = cmsOpenProfileFromMem(icc_profile, icc_profile_length);
+	if (internal && original) {
+		fit->icc_profile = copyICCProfile(internal);
+		fit->color_managed = TRUE; // Don't use color_manage() here as we don't want the GUI updated yet
+		gchar* orig_desc = siril_color_profile_get_description(original);
+		gchar* int_desc = siril_color_profile_get_description(internal);
+		siril_debug_print("Transforming from %s to %s\n", int_desc, orig_desc);
+		g_free(orig_desc);
+		g_free(int_desc);
+		siril_colorspace_transform(fit, original);
+		if (fit->icc_profile) cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(original);
+	} else if (internal) {
+		fit->icc_profile = copyICCProfile(internal);
+	}
+	color_manage(fit, (fit->icc_profile != NULL));
+	if (original) cmsCloseProfile(original);
+	if (internal) cmsCloseProfile(internal);
+	free(icc_profile);
+	free(internal_icc_profile);
+
+	mirrorx(fit, FALSE);
+//	fill_date_obs_if_any(fit, name);
+	gchar *basename = g_path_get_basename(name);
+	siril_log_message(_("Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"),
+						basename, fit->naxes[2], fit->rx, fit->ry);
+	g_free(basename);
+
+	return zsize;
+}
+
+int savejxl(const char *name, fits *fit, int effort, double quality, gboolean force_8bit) {
+	gboolean threaded = !get_thread_run();
+
+	char *filename = strdup(name);
+	if (!g_str_has_suffix(filename, ".jxl")) {
+		filename = str_append(&filename, ".jxl");
+	}
+
+	int max_bitdepth = force_8bit ? 8 : fit->type == DATA_USHORT ? 16 : 32;
+
+	void *buffer = NULL;
+	int bitdepth;
+	if (interleave(fit, max_bitdepth, &buffer, &bitdepth, FALSE)) {
+		siril_log_color_message(_("Error interleaving image\n"), "red");
+	}
+
+	uint32_t profile_len = 0;
+	uint8_t *profile = NULL;
+	cmsUInt32Number trans_type;
+	cmsHTRANSFORM save_transform = NULL;
+
+	if (fit->color_managed && fit->icc_profile) {
+		// Check what is the appropriate color space to save in
+		// Covers 8- and high-bitdepth files
+		if (max_bitdepth == 8) { // 8-bit
+			trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8);
+			if (fit->naxes[2] == 1) { // mono
+				cmsHPROFILE srgb_mono_out = NULL;
+				switch (com.pref.icc.export_8bit_method) {
+					case EXPORT_SRGB:
+						srgb_mono_out = gray_srgbtrc();
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, srgb_mono_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(srgb_mono_out, &profile_len);
+						cmsCloseProfile(srgb_mono_out);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.mono_standard, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			} else { // rgb
+				switch (com.pref.icc.export_8bit_method) {
+					case EXPORT_SRGB:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_profile, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.srgb_profile, &profile_len);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.working_standard, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			}
+		} else { // high bitdepth
+			if (fit->type == DATA_USHORT)
+				trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_16 : TYPE_RGB_16);
+			else // fit->type == DATA_FLOAT
+				trans_type = (fit->naxes[2] == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT);
+			if (fit->naxes[2] == 1) { // mono
+				cmsHPROFILE srgb_mono_out = NULL;
+				switch (com.pref.icc.export_16bit_method) {
+					case EXPORT_SRGB:
+						srgb_mono_out = gray_srgbtrc();
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, srgb_mono_out, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(srgb_mono_out, &profile_len);
+						cmsCloseProfile(srgb_mono_out);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.mono_standard, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			} else { // rgb
+				switch (com.pref.icc.export_16bit_method) {
+					case EXPORT_SRGB:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_profile, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.srgb_profile, &profile_len);
+						break;
+					case EXPORT_WORKING:
+						save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.working_standard, trans_type, com.pref.icc.export_intent, 0);
+						profile = get_icc_profile_data(com.icc.working_standard, &profile_len);
+						break;
+					case EXPORT_IMAGE_ICC:
+						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
+						break;
+					default:
+						free(filename);
+						return 1;
+				}
+			}
+		}
+	} else if(com.pref.icc.default_to_srgb) {
+		profile = get_icc_profile_data((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.srgb_profile), &profile_len);
+	}
+
+	cmsUInt32Number datasize = max_bitdepth == 8 ? 1 : fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	cmsUInt32Number bytesperline = fit->rx * datasize * fit->naxes[2];
+	cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize * fit->naxes[2];
+	if (save_transform) { // For "use image ICC profile" save_transform will be NULL, no need to transform the data
+		cmsDoTransformLineStride(save_transform, buffer, buffer, fit->rx, fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+	}
+	uint8_t *compressed = NULL;
+	size_t compressed_length;
+
+	if (quality == 100.0)
+		siril_log_message(_("Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),
+						filename, effort, fit->naxes[2], fit->rx, fit->ry, bitdepth);
+	else
+		siril_log_message(_("Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, bit depth: %d\n"),
+						filename, quality, effort, fit->naxes[2], fit->rx, fit->ry, bitdepth);
+
+	EncodeJpegXlOneshotWrapper(buffer, fit->rx,
+					fit->ry, fit->naxes[2], bitdepth,
+					&compressed, &compressed_length, effort,
+					quality, profile, profile_len);
+
+	siril_log_color_message(_("Save complete.\n"), "green");
+	GError *error = NULL;
+	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
+	free(buffer);
+	free(compressed);
+	free(filename);
+	return OPEN_IMAGE_OK;
+}
+
 #endif

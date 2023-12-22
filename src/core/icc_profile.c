@@ -54,6 +54,7 @@
 static GMutex monitor_profile_mutex;
 static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;
+static GMutex display_transform_mutex;
 
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
@@ -103,6 +104,17 @@ static gchar *
 	siril_color_profile_get_model (cmsHPROFILE profile) {
 	gchar *string = siril_color_profile_get_info (profile, cmsInfoModel);
 	return string;
+}
+
+void icc_profile_set_tag (cmsHPROFILE profile,
+                                  cmsTagSignature sig,
+                                  const gchar *tag) {
+	cmsMLU *mlu;
+
+	mlu = cmsMLUalloc (NULL, 1);
+	cmsMLUsetASCII (mlu, "en", "US", tag);
+	cmsWriteTag (profile, sig, mlu);
+	cmsMLUfree (mlu);
 }
 
 cmsHPROFILE srgb_linear() {
@@ -273,6 +285,15 @@ static gboolean siril_color_profile_is_rgb(cmsHPROFILE profile) {
 	return (cmsGetColorSpace (profile) == cmsSigRgbData);
 }
 
+void lock_display_transform() {
+	g_mutex_lock(&display_transform_mutex);
+}
+void unlock_display_transform() {
+	g_mutex_unlock(&display_transform_mutex);
+}
+
+// This must be locked by the display_transform_mutex, but it is done from
+// remap_all_vports() so the mutex lock covers all 3 calls to this function
 void display_index_transform(BYTE* index, int vport) {
 	BYTE buf[3 * (USHRT_MAX + 1)] = { 0 };
 	BYTE* chan = &buf[0] + (vport * (USHRT_MAX + 1));
@@ -341,6 +362,7 @@ gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c) {
 }
 
 void reset_icc_transforms() {
+	g_mutex_lock(&display_transform_mutex);
 	if (gfit.color_managed) {
 		if (gui.icc.proofing_transform) {
 			cmsDeleteTransform(gui.icc.proofing_transform);
@@ -349,6 +371,7 @@ void reset_icc_transforms() {
 	}
 	gui.icc.same_primaries = FALSE;
 	gui.icc.profile_changed = TRUE;
+	g_mutex_unlock(&display_transform_mutex);
 }
 
 void validate_custom_profiles() {
@@ -606,9 +629,11 @@ cmsHTRANSFORM initialize_proofing_transform() {
 void refresh_icc_transforms() {
 	if (!com.headless) {
 		gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+		g_mutex_lock(&display_transform_mutex);
 		if (gui.icc.proofing_transform)
 			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
+		g_mutex_unlock(&display_transform_mutex);
 		gui.icc.profile_changed = TRUE;
 
 	}
@@ -881,7 +906,6 @@ cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) 
  */
 void check_profile_correct(fits* fit) {
 	if (!fit->icc_profile) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
 		if (com.icc.srgb_hint) {
 			siril_log_message(_("FITS did not contain an ICC profile but is declared to be stretched. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
@@ -905,7 +929,6 @@ void check_profile_correct(fits* fit) {
 			cmsCloseProfile(fit->icc_profile);
 			fit->icc_profile = NULL;
 			color_manage(fit, FALSE);
-			control_window_switch_to_tab(OUTPUT_LOGS);
 			siril_log_color_message(_("Warning: embedded ICC profile channel count does not match image channel count. Color management is disabled for this image. To re-enable it, an ICC profile must be assigned using the Color Management menu item.\n"), "salmon");
 		}
 	}

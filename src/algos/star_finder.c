@@ -489,19 +489,18 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				int Rc = (int) ceil(s_factor * Sc);
 				int Rm = max(Rr, Rc);
 				Rm = min(Rm, MAX_BOX_RADIUS);
-				if (Rm > r) {
-					// avoid enlarging outside frame width
-					if (xx - Rm < 0)
-						Rm = xx;
-					if (xx + Rm >= nx)
-						Rm = nx - xx - 1;
-					// avoid enlarging outside frame height
-					if (yy - Rm < 0)
-						Rm = yy;
-					if (yy + Rm >= ny)
-						Rm = ny - yy - 1;
-				}
 				int R = max(Rm, r);
+
+				// avoid enlarging outside frame width
+				if (xx - R < 0)
+					R = xx;
+				if (xx + R >= nx)
+					R = nx - xx - 1;
+				// avoid enlarging outside frame height
+				if (yy - R < 0)
+					R = yy;
+				if (yy + R >= ny)
+					R = ny - yy - 1;
 
 				// Quality checks
 				float dA = max(Ar,Ac)/min(Ar,Ac);
@@ -678,10 +677,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 #if DEBUG_STAR_DETECTION
 				siril_debug_print("Candidate #%5d: X: %5d, Y: %5d - PSF fit failed with error %d\n", candidate, x, y, error);
 #endif
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				psf_failure++;
+				g_atomic_int_inc(&psf_failure);
 			}
 		}
 		if (threads > 1) {
@@ -1198,7 +1194,6 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		 * transformation matrices H from registration are available */
 		fits ref = { 0 };
 		int refidx = sequence_find_refimage(args->seq);
-		// or use sequence_has_wcs(args->seq
 		if (seq_read_frame_metadata(args->seq, refidx, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
 			free(args);

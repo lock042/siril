@@ -119,8 +119,6 @@ siril_common_SOURCES = \
 	compositing/filters.h \
 	core/arithm.c \
 	core/arithm.h \
-	core/atomic.cpp \
-	core/atomic.h \
 	core/command.c \
 	core/command.h \
 	core/command_def.h \
@@ -313,6 +311,8 @@ siril_common_SOURCES = \
 	gui/utils.h \
 	io/annotation_catalogues.c \
 	io/annotation_catalogues.h \
+	io/aavso_extended.c \
+	io/aavso_extended.h \
 	io/Astro-TIFF.c \
 	io/Astro-TIFF.h \
 	io/kstars/binfile.h \
