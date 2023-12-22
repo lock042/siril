@@ -20,6 +20,8 @@
 
 #include <math.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_sort.h>
+#include <gsl/gsl_statistics.h>
 #include <string.h>
 
 #include "core/siril.h"
@@ -108,7 +110,8 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
 
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
-	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
+//	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
+	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -231,6 +234,7 @@ void initialize_photometric_param() {
 	com.pref.phot_set.force_radius = FALSE;
 	com.pref.phot_set.auto_inner_factor = 4.2;
 	com.pref.phot_set.auto_outer_factor = 6.3;
+	com.pref.phot_set.auto_aperture_factor = 4.0;
 	com.pref.phot_set.gain = 2.3;
 	com.pref.phot_set.minval = -1000;
 	com.pref.phot_set.maxval = 60000;
@@ -475,6 +479,20 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	}
 	int nb_valid_images = j;
 	int julian0 = 0;
+
+	if (!com.pref.phot_set.force_radius) {		// Additionnal information on the error bars distributionif the auto aperture option is set
+		double median_err, largest_err, smallest_err;
+		gsl_sort (err, 1, nb_valid_images);
+		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
+		largest_err = gsl_stats_max (err, 1, nb_valid_images);
+		smallest_err = gsl_stats_min (err, 1, nb_valid_images);
+		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
+			nb_valid_images,
+			1000 * median_err,
+			1000 * largest_err,
+			1000 * smallest_err);
+	}
+
 	if (min_date != DBL_MAX)
 		julian0 = (int)min_date;
 
