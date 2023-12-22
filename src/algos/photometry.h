@@ -22,9 +22,9 @@ typedef struct {
 	float BV;	// B magnitude - V magnitude, -99.9 if not available
 } pcc_star;
 
-struct phot_config *phot_set_adjusted_for_image(fits *fit);
+struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
+photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error);
 
 void initialize_photometric_param();

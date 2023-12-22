@@ -80,7 +80,7 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 	return threshold;
 }
 
-static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, double dynrange, double minA, double maxA, gchar *errmsg) {
+static sf_errors reject_star(psf_star *result, const star_finder_params *sf, starc *se, double dynrange, double minA, double maxA, gchar *errmsg) {
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
 		return SF_NO_FWHM; //crit 11
 	if (isnan(result->x0) || isnan(result->y0))
@@ -707,8 +707,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 }
 
 int compare_stars_by_mag(const void* star1, const void* star2) {
-	psf_star *s1 = *(psf_star**) star1;
-	psf_star *s2 = *(psf_star**) star2;
+	const psf_star *s1 = *(psf_star**) star1;
+	const psf_star *s2 = *(psf_star**) star2;
 	if (s1->mag < s2->mag)
 		return -1;
 	if (s1->mag > s2->mag)
@@ -822,7 +822,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	siril_debug_print("star list file %s found, checking...\n", filename);
 	char buffer[300];
 	gboolean params_ok = FALSE, read_failure = FALSE;
-	star_finder_params *sf = &com.pref.starfinder_conf;
+	const star_finder_params *sf = &com.pref.starfinder_conf;
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
 		if (buffer[0] != '#' && !params_ok) {
@@ -921,7 +921,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	g_object_unref(file); \
 	return 1
 
-int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose) {
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, const star_finder_params *sf, int layer, gboolean verbose) {
 	int i = 0;
 	GError *error = NULL;
 
@@ -1104,7 +1104,7 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 }
 
 int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
+	const struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
 	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));

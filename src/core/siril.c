@@ -195,7 +195,7 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
  * sigma value, and when it is given, the entropy will only be computed for
  * pixels with values above background + 1 * sigma. It must be NULL otherwise.
  */
-float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
+float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats) {
 	float e = 0.f;
 	double threshold = 0.0;
 	gsl_histogram *histo;
@@ -316,7 +316,7 @@ int visu(fits *fit, int low, int high) {
 }
 
 /* fill an image or selection with the value 'level' */
-int fill(fits *fit, int level, rectangle *arearg) {
+int fill(fits *fit, int level, const rectangle *arearg) {
 	rectangle area;
 
 	if (arearg) {

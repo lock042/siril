@@ -91,9 +91,9 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 			} else {
 				printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
 				if (naxes[2] != ref_naxes[2]) {
-					char extname[FLEN_VALUE], comment[FLEN_COMMENT];
-					fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status);
-					if (!g_str_has_prefix(extname, "ICCProfile"))
+					char extension[FLEN_VALUE], comment[FLEN_COMMENT];
+					fits_read_key(fptr, TSTRING, "EXTNAME", &extension, comment, &status);
+					if (!g_str_has_prefix(extension, "ICCProfile"))
 						continue;
 					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
 					status = 1;

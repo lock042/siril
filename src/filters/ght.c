@@ -26,7 +26,7 @@
 #include "algos/colors.h"
 #include "core/siril_log.h"
 
-float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *c) {
+float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, const ght_compute_params *c) {
 	float out;
 	if (stretchtype != STRETCH_LINEAR) {
 		BP = 0.0f;
@@ -153,7 +153,7 @@ float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, in
 	return out;
 }
 
-float GHTp(float in, ght_params *params, ght_compute_params *compute_params) {
+float GHTp(float in, const ght_params *params, const ght_compute_params *compute_params) {
 	return GHT(in, params->B, params->D, params->LP, params->SP, params->HP, params->BP, params->stretchtype, compute_params);
 }
 

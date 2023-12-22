@@ -60,7 +60,7 @@ static double getMagErr(double intensity, double area, int nsky, double skysig, 
 	return fmin(9.999, 1.0857 * noise / intensity);
 }
 
-struct phot_config *phot_set_adjusted_for_image(fits *fit) {
+struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	struct phot_config *retval = malloc(sizeof(struct phot_config));
 	if (!retval) {
 		PRINT_ALLOC_ERR;
@@ -81,7 +81,7 @@ struct phot_config *phot_set_adjusted_for_image(fits *fit) {
 }
 
 /* Function that compute all photometric data. The result must be freed */
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
+photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error) {
 	int width = z->size2;
 	int height = z->size1;
