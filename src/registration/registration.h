@@ -121,14 +121,13 @@ gboolean _3stars_check_selection();
 pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
-void get_the_registration_area(struct registration_args *reg_args,
-		struct registration_method *method); // for compositing
+void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method); // for compositing
 void fill_comboboxregmethod();
 gpointer register_thread_func(gpointer p);
 
 /** getter */
-int get_registration_layer(sequence *seq);
-int seq_has_any_regdata(sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
+int get_registration_layer(const sequence *seq);
+int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
 
 /**** star alignment (global and 3-star) registration ****/
 
@@ -153,7 +152,7 @@ void guess_transform_from_seq(sequence *seq, int layer,
 		transformation_type *min, transformation_type *max, gboolean excludenull);
 transformation_type guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
-gboolean layer_has_registration(sequence *seq, int layer);
+gboolean layer_has_registration(const sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
 int get_first_selected(sequence *seq);
 

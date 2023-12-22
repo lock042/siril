@@ -14,6 +14,6 @@ int IKSSlite(float *data, size_t n, const float median, float mad, double *locat
 float siril_stats_robust_mean(const float sorted_data[],
 		const size_t stride, const size_t size, double *deviation);
 
-int robustmean(int n, double *x, double *mean, double *stdev);
+int robustmean(int n, const double *x, double *mean, double *stdev);
 
 #endif

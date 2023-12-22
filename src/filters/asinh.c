@@ -110,8 +110,8 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 		for (i = 0; i < n; i++) {
 			blend_data data;
 #pragma omp simd
-			for (int i = 0 ; i < 3 ; i++)
-				data.do_channel[i] = TRUE;
+			for (int ii = 0; ii < 3; ii++)
+				data.do_channel[ii] = TRUE;
 			float r = buf[RLAYER][i] * invnorm;
 			float g = buf[GLAYER][i] * invnorm;
 			float b = buf[BLAYER][i] * invnorm;
@@ -167,7 +167,7 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 		for (i = 0; i < n; i++) {
 			blend_data data;
 #pragma omp simd
-			for (int i = 0 ; i < 3 ; i++)
+			for (int ii = 0; ii < 3; ii++)
 				data.do_channel[i] = TRUE;
 			float r = buf[RLAYER][i];
 			float g = buf[GLAYER][i];

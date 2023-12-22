@@ -750,6 +750,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 					remove_file = TRUE;
 					goto download_error;
 				}
+				break;
 			default:
 				break;
 		}

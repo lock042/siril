@@ -203,7 +203,7 @@ static guint64 get_used_RAM_memory() {
  * @param the path of the folder to be checked
  * @return TRUE if free space disk is available, FALSE otherwise
  */
-gboolean is_space_disk_available(gchar *disk) {
+gboolean is_space_disk_available(const gchar *disk) {
 	return (!(find_space(disk) < 1L));
 }
 

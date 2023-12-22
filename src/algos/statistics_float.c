@@ -55,10 +55,10 @@
 #define siril_debug_print(fmt, ...) { }
 
 // copies the area of an image into the memory buffer data
-static void select_area_float(fits *fit, float *data, int layer, rectangle *bounds) {
+static void select_area_float(fits *fit, float *data, int layer, const rectangle *bounds) {
 	int i, j, k = 0;
 
-	float *from = fit->fpdata[layer] +
+	const float *from = fit->fpdata[layer] +
 		(fit->ry - bounds->y - bounds->h) * fit->rx + bounds->x;
 	int stridefrom = fit->rx - bounds->w;
 
@@ -492,7 +492,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	return stat;
 }
 
-int compute_means_from_flat_cfa_float(fits *fit, double mean[36]) {
+int compute_means_from_flat_cfa_float(const fits *fit, double mean[36]) {
 	int row, col, c, i[36] = {0};
 	float *data;
 	unsigned int width, height;
@@ -683,7 +683,7 @@ float siril_stats_robust_mean(const float sorted_data[],
 
 /************* another robust mean ***************/
 
-int robustmean(int n, double *x, double *mean, double *stdev)
+int robustmean(int n, const double *x, double *mean, double *stdev)
 	/* Newton's iterations */
 {
 	int i, it;

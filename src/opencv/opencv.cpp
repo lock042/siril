@@ -52,7 +52,7 @@ extern "C" {
 
 using namespace cv;
 
-static void convert_H_to_MatH(Homography *from, Mat &to);
+static void convert_H_to_MatH(const Homography *from, Mat &to);
 static void convert_MatH_to_H(Mat from, Homography *to);
 
 /* TODO:
@@ -318,7 +318,7 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	refpointout->y = refptout.at<double>(0, 1);
 }
 
-static void convert_H_to_MatH(Homography *from, Mat &to) {
+static void convert_H_to_MatH(const Homography *from, Mat &to) {
 	to.at<double>(0, 0) = from->h00;
 	to.at<double>(0, 1) = from->h01;
 	to.at<double>(0, 2) = from->h02;
