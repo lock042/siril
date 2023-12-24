@@ -104,7 +104,7 @@ static int undo_remove_item(historic *histo, int index) {
 	return 0;
 }
 
-static void undo_add_item(fits *fit, char *filename, char *histo) {
+static void undo_add_item(fits *fit, char *filename, const char *histo) {
 
 	if (!com.history) {
 		com.hist_size = HISTORY_SIZE;

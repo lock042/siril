@@ -542,10 +542,11 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		if (!args->has_output || (!is_scaled && !is_color)) {
 			required = MB_per_orig_image + MB_per_float_channel;
 		}
-		else if (args->has_output && !is_color && is_scaled) {
+		// here args->has_output is TRUE
+		else if (!is_color && is_scaled) {
 			required = MB_per_orig_image + 4 * MB_per_orig_channel;
 		}
-		else if (args->has_output && is_color && !is_scaled) {
+		else if (is_color && !is_scaled) {
 			required = 2 * MB_per_orig_image;
 		}
 		else {
@@ -706,7 +707,7 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
-static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, const float *B, gboolean verbose) {
+static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, const float *fwhm, const float *roundness, const float *B, gboolean verbose) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
