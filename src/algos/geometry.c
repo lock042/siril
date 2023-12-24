@@ -203,7 +203,7 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 	}
 
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		float *buf = fit->fdata + (width * height) * channel;
+		const float *buf = fit->fdata + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
@@ -242,7 +242,7 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 	}
 
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		WORD *buf = fit->data + (width * height) * channel;
+		const WORD *buf = fit->data + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
@@ -626,13 +626,9 @@ int crop(fits *fit, rectangle *bounds) {
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 
 	if (fit->type == DATA_USHORT) {
-		if (crop_ushort(fit, bounds)) {
-			return -1;
-		}
+		crop_ushort(fit, bounds);
 	} else if (fit->type == DATA_FLOAT) {
-		if (crop_float(fit, bounds)) {
-			return -1;
-		}
+		crop_float(fit, bounds);
 	} else {
 		return -1;
 	}

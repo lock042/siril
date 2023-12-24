@@ -818,7 +818,7 @@ void on_comboreg_sel_all_combobox_changed(GtkComboBox *box, gpointer user_data) 
 	update_reg_interface(TRUE);
 }
 
-int get_registration_layer(sequence *seq) {
+int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
 		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		int reglayer = gtk_combo_box_get_active(registbox);
@@ -846,7 +846,7 @@ int get_first_selected(sequence *seq) {
 	return -1;
 }
 
-gboolean layer_has_registration(sequence *seq, int layer) {
+gboolean layer_has_registration(const sequence *seq, int layer) {
 	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || layer >= seq->nb_layers || !seq->regparam[layer] ) return FALSE;
 	return TRUE;
 }
@@ -858,7 +858,7 @@ gboolean layer_has_usable_registration(sequence *seq, int layer) {
 	return TRUE;
 }
 
-int seq_has_any_regdata(sequence *seq) {
+int seq_has_any_regdata(const sequence *seq) {
 	if (!seq || !seq->regparam || seq->nb_layers < 0)
 		return -1;
 	int i;
@@ -1317,8 +1317,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 	return compute_fitting_selection(area, hsteps, vsteps, preserve_square);
 }
 
-void get_the_registration_area(struct registration_args *reg_args,
-		struct registration_method *method) {
+void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method) {
 	int max;
 	switch (method->sel) {
 		/* even in the case of REQUIRES_NO_SELECTION selection is needed for MatchSelection of starAlignment */

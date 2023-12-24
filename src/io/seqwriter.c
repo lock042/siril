@@ -28,7 +28,7 @@ typedef enum {
 	SEQ_INCOMPLETE
 } seq_error;
 
-static void init_images(struct seqwriter_data *writer, fits *example) {
+static void init_images(struct seqwriter_data *writer, const fits *example) {
 	writer->bitpix = example->bitpix;
 	memcpy(writer->naxes, example->naxes, sizeof writer->naxes);
 }
