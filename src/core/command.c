@@ -3325,11 +3325,9 @@ int process_set_photometry(int nb) {
 			com.pref.phot_set.auto_aperture_factor = (double)force;
 		} else {
 			com.pref.phot_set.force_radius = FALSE;
-//			siril_log_message(_("The ratio between the aperture radius and the half-FWHM must be in the range [1.0 , 5.0]. Please change the value.\n"));
 			error = TRUE;
 		}
-//		else if (force == 1)
-//			com.pref.phot_set.force_radius = TRUE;
+
 		if (gain > 0.0)
 			com.pref.phot_set.gain = gain;
 		if (min >= -65536) {
