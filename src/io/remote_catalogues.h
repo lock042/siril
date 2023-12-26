@@ -31,7 +31,7 @@
 
 // only the first MAX_TAP_QUERY_COLUMNS columns are valid TAP queries
 // fields after this are used in other catalogues
-#define MAX_TAP_QUERY_COLUMNS 11
+#define MAX_TAP_QUERY_COLUMNS 14
 
 // The structure used to declare the columns to be queried from the tables
 // for TAP queries only!

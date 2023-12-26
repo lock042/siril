@@ -30,6 +30,7 @@
 #include "algos/statistics.h"
 #include "algos/statistics_float.h"
 #include "algos/photometry.h"
+#include "algos/spcc_filters.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
 #include "algos/star_finder.h"
@@ -50,40 +51,196 @@ enum {
 	RED, GREEN, BLUE
 };
 
+void init_filters() {
+	Optolong_Blue.wl = Optolong_Blue_wl;
+	Optolong_Blue.si = Optolong_Blue_sr;
+	Optolong_Blue.n = 71;
+	Optolong_Green.wl = Optolong_Green_wl;
+	Optolong_Green.si = Optolong_Green_sr;
+	Optolong_Green.n = 50;
+	Optolong_Red.wl = Optolong_Red_wl;
+	Optolong_Red.si = Optolong_Red_sr;
+	Optolong_Red.n = 65;
+	Sony_IMX571M.wl = Sony_IMX571_wl;
+	Sony_IMX571M.si = Sony_IMX571_qe;
+	Sony_IMX571M.n = 29;
+}
+
 // CIE XYZ Color Matching Functions
+// Ref: Wylie / Sloan / Shirley, Simple Analytic Approximations to the CIE XYZ
+// Color Matching Functions, Journal of Computer Graphics Techniques, Vol. 2,
+// No. 2, 2013.
+
 // CIE 1931 2-degree CMF using multi-lobe piecewise Gaussian
-float xFit_1931(float wave) {
-	float t1 = (wave-442.0f)*((wave<442.0f)?0.0624f:0.0374f);
-	float t2 = (wave-599.8f)*((wave<599.8f)?0.0264f:0.0323f);
-	float t3 = (wave-501.1f)*((wave<501.1f)?0.0490f:0.0382f);
+float x1931(float w) {
+	float t1 = (w-442.0f)*((w<442.0f)?0.0624f:0.0374f);
+	float t2 = (w-599.8f)*((w<599.8f)?0.0264f:0.0323f);
+	float t3 = (w-501.1f)*((w<501.1f)?0.0490f:0.0382f);
 	return 0.362f*expf(-0.5f*t1*t1) + 1.056f*expf(-0.5f*t2*t2)
 	- 0.065f*expf(-0.5f*t3*t3);
 }
 
-float yFit_1931( float wave) {
-	float t1 = (wave-568.8f)*((wave<568.8f)?0.0213f:0.0247f);
-	float t2 = (wave-530.9f)*((wave<530.9f)?0.0613f:0.0322f);
-	return 0.821f*exp(-0.5f*t1*t1) + 0.286f*expf(-0.5f*t2*t2);
+float y1931( float w) {
+	float t1 = (w-568.8f)*((w<568.8f)?0.0213f:0.0247f);
+	float t2 = (w-530.9f)*((w<530.9f)?0.0613f:0.0322f);
+	return 0.821f*expf(-0.5f*t1*t1) + 0.286f*expf(-0.5f*t2*t2);
 }
 
-float zFit_1931(float wave) {
-	float t1 = (wave-437.0f)*((wave<437.0f)?0.0845f:0.0278f);
-	float t2 = (wave-459.0f)*((wave<459.0f)?0.0385f:0.0725f);
-	return 1.217f*exp(-0.5f*t1*t1) + 0.681f*expf(-0.5f*t2*t2);
+float z1931(float w) {
+	float t1 = (w-437.0f)*((w<437.0f)?0.0845f:0.0278f);
+	float t2 = (w-459.0f)*((w<459.0f)?0.0385f:0.0725f);
+	return 1.217f*expf(-0.5f*t1*t1) + 0.681f*expf(-0.5f*t2*t2);
 }
 
 // CIE 1964 10-degree CMF using single-lobe fit
-float xFit_1964(float wave) {
-	float t1 = 1250.f * powf(logf((wave+570.1f)/1014.f), 2.f);
-	float t2 = 234.f * powf(logf((1338.f-wave)/743.5f), 2.f);
-	return 0.398f*expf(-t1) + 1.132f*expf(-t2);
+float x1964(float wavelen) {
+	float val[4] = { 0.4f, 1014.0f, -0.02f, -570.f };
+	float smallLobe = val[0]*expf( -1250* pow( logf( (wavelen - val[3])/val[1] ), 2.f ) );
+
+	float val2[4] = { 1.13f, 234.f, -0.001345f, -1.799f };
+	float bigLobe = val2[0]*expf( -val2[1] * pow( logf( (1338.0f - wavelen)/743.5f ), 2.f ) );
+
+	return smallLobe + bigLobe;
 }
 
-float yFit_1964(float wave) {
-	return 1.011f * expf(-0.5f*powf((wave-265.8f)/46.14f, 2.f);
+float y1964(float wavelen) {
+	float val[4] = { 1.011f, 556.1f, 46.14f, 0.0f };
+	return val[0]*expf( -0.5f* pow( (wavelen-val[1])/val[2], 2.f ) ) + val[3];
 }
-float zFit_1964(float wave) {
-	return 2.06f * expf(-32.f*powf(logf((wave-265.8f)/180.4f), 2.f));
+float z1964(float wavelen) {
+	float val[4] = { 2.06f, 180.4f, 0.125f, 266.0f };
+	return val[0]*expf( -32.0f* pow( logf( (wavelen-val[3])/val[1] ), 2.f ) );
+}
+
+/* Returns the spectral response of a filter (or QE of a sensor) at wavelength wl.
+ * wavelengths and filter are float* arrays defined in spcc_filters.h
+ * They MUST have the same length and all arrays must be terminated by FLT_MAX */
+
+float sr(const float wl, const float *wavelengths, const float *filter) {
+	if (wl < wavelengths[0]) // Provided wl is lower than the min wavelengths range
+		return 0.f;
+	int i = 0;
+	while (wl > wavelengths[i+1]) // Advance to the required values
+		i++;
+	if (wavelengths[i+1] == FLT_MAX) // Provided wl is greater than the max wavelengths range
+		return 0.f;
+
+	float wl1 = wavelengths[i], wl2 = wavelengths[i+1], t1, t2, sr;
+	t1 = filter[i];
+	t2 = filter[i+1];
+	sr = t1 + ((wl - wl1) / (wl2 - wl1)) * (t2 - t1);
+	return (sr);
+}
+
+// Returns the emittance of a Planckian black body spectrum at wavelength
+// wl and temperature bbTemp
+// from "Colour Rendering of Spectra", John Walker, Fourmilab. Public domain code, last updated March 9 2003
+float bb_spectrum(float wl, float bbTemp)
+{
+    float wlm = wl * 1e-9;   /* Wavelength in meters */
+
+    return (3.74183e-16f * pow(wlm, -5.f)) /
+           (expf(1.4388e-2f / (wlm * bbTemp)) - 1.f);
+}
+
+// Convert a spectrum to CIE xy
+/* spec_intens is a float buffer containing spectral intensities, terminated by
+ * -FLT_MAX
+ * wavelength is a float buffer  containing wavelengths such that spec_intens[i]
+ * is the intensity at wavelength[i]
+ * wavelengths should be evenly spaced.
+ */
+enum {
+	CMF_1931,
+	CMF_1964
+};
+
+void spectrum_to_XYZ(const pointf *data, uint32_t n,
+					 cmsCIEXYZ *xyz, const int cmf)
+{
+    double X = 0., Y = 0., Z = 0.;//, XYZ;
+
+	if (cmf == CMF_1931) {
+		for (uint32_t i = 0 ; i < n ; i++) {
+			X += data[i].y * x1931(data[i].x);
+			Y += data[i].y * y1931(data[i].x);
+			Z += data[i].y * z1931(data[i].x);
+		}
+	} else {
+		for (uint32_t i = 0 ; i < n ; i++) {
+			X += data[i].y * x1964(data[i].x);
+			Y += data[i].y * y1964(data[i].x);
+			Z += data[i].y * z1964(data[i].x);
+		}
+	}
+//    XYZ = (X + Y + Z);
+    xyz->X = X;
+	xyz->Y = Y;
+    xyz->Z = Z;
+}
+
+// Covers 400nm to 700nm at 1nm resolution
+// Takes a NULL-terminated list of spectral_intensity structs
+cmsCIExyY pipeline_to_xyY(spectral_intensity** pipeline, const int cmf) {
+	cmsCIEXYZ XYZ;
+	cmsCIExyY xyY;
+	pointf* data = malloc(301 * sizeof(pointf));
+	for (int i = 0 ; i < 301 ; i++) {
+		float wl = 400.f + (float) i;
+		pointf p = {wl, 1.f};
+		int filter = 0;
+		while (pipeline[filter] != NULL) {
+			p.y *= sr(wl, pipeline[filter]->wl, pipeline[filter]->si);
+			filter++;
+		}
+		memcpy(&data[i], &p, sizeof(pointf));
+	}
+	spectrum_to_XYZ(data, 301, &XYZ, cmf);
+	cmsXYZ2xyY(&xyY, &XYZ);
+	xyY.Y = 1.f;
+	return xyY;
+}
+
+// Test code for my gear: IMX571MM and Optolong RGB filters
+void calc_transform_for_my_gear() {
+	init_filters();
+	const int cmf = CMF_1931;
+	spectral_intensity** pipeline = calloc(3, sizeof(spectral_intensity));
+	pipeline[0] = &Optolong_Blue;
+	pipeline[1] = &Sony_IMX571M;
+
+	cmsCIExyY blue_primary = pipeline_to_xyY(pipeline, cmf);
+	printf("Blue primary: x = %f, y = %f\n", blue_primary.x, blue_primary.y);
+
+	pipeline[0] = &Optolong_Green;
+	cmsCIExyY green_primary = pipeline_to_xyY(pipeline, cmf);
+	printf("Green primary: x = %f, y = %f\n", green_primary.x, green_primary.y);
+
+	pipeline[0] = &Optolong_Red;
+	cmsCIExyY red_primary = pipeline_to_xyY(pipeline, cmf);
+	printf("Red primary: x = %f, y = %f\n", red_primary.x, red_primary.y);
+
+	cmsCIExyY whitepoint;
+	memcpy(&whitepoint, &Whitepoint_D58, sizeof(cmsCIExyY));
+
+	cmsToneCurve *curve[3], *tonecurve;
+	tonecurve = cmsBuildGamma (NULL, 1.00);
+	curve[0] = curve[1] = curve[2] = tonecurve;
+	cmsCIExyYTRIPLE primaries = {
+									{ red_primary.x, red_primary.y, red_primary.Y },
+									{ green_primary.x, green_primary.y, green_primary.Y },
+									{ blue_primary.x, blue_primary.y, blue_primary.Y }
+	};
+	cmsHPROFILE source_profile = cmsCreateRGBProfile(&whitepoint, &primaries, curve);
+/*
+	cmsHTRANSFORM source_to_working = cmsCreateTransformTHR(com.icc.context_threaded,
+															source_profile,
+															Format, // Needs to be defined
+															dest_profile, // Needs to be defined (fit->icc_profile or linearised working profile
+															Format, // Needs to be defined
+															INTENT_ABSOLUTE_COLORIMETRIC, // So as to enforce the white point conversion
+															0); // should this be NONEGATIVES?
+*/
 }
 
 // Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
@@ -169,12 +326,10 @@ static void BQ_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 // Makes use of lcms2 to get the RGB values correct
 // transform is calculated in get_white_balance_coeff below
 // It provides the transform from XYZ to the required image colorspace
-static void bv2rgb(float *r, float *g, float *b, float bv, cmsHTRANSFORM transform) { //, cmsCIEXYZ *profile_whitepoint) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
+static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM transform) { //, cmsCIEXYZ *profile_whitepoint) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
 	cmsCIExyY WhitePoint;
 	cmsCIEXYZ XYZ, XYZ_adapted;
 	float xyz[3], rgb[3] = { 0.f };
-	bv = min(max(bv, -0.4f), 2.f);
-	cmsFloat64Number TempK = bvToT(bv);
 	temp_to_xyY(&WhitePoint, TempK);
 //	charity_temp_to_xyY(&WhitePoint, TempK);
 //	BQ_temp_to_xyY(&WhitePoint, TempK);
@@ -229,7 +384,8 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		data[GREEN][k] = FLT_MAX;
 		data[BLUE][k] = FLT_MAX;
 	}
-
+	// Test code
+	calc_transform_for_my_gear();
 	gchar *str = ngettext("Applying aperture photometry to %d star.\n", "Applying aperture photometry to %d stars.\n", nb_stars);
 	str = g_strdup_printf(str, nb_stars);
 	siril_log_message(str);
@@ -272,13 +428,17 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 #ifdef DEBUG_PCC
 	fprintf(stderr,"BV tempK x y r g b\n");
 #endif
-
+	int gaia_xpsamp = 0, gaia_teff = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
 	for (int i = 0; i < nb_stars; i++) {
 		if (!get_thread_run())
 			continue;
+		if (stars[i].teff)
+			gaia_teff++;
+		if (stars[i].xpsamp)
+			gaia_xpsamp++;
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
@@ -307,9 +467,17 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
-		/* get r g b coefficient from bv color index */
-		bv = stars[i].BV;
-		bv2rgb(&r, &g, &b, bv, transform);
+		printf("Gaia source ID: %lu\n", stars[i].gaiasourceid);
+		// get r g b coefficient
+		// If the Gaia Teff field is populated, use that as it is more accurate.
+		// Otherwise, we convert from Johnson B-V
+		if (stars[i].teff == 0.f) {
+			bv = min(max(stars[i].BV, -0.4f), 2.f);
+			cmsFloat64Number TempK = bvToT(bv);
+			stars[i].teff = (float) TempK;
+		}
+		// TempK2rgb converts the temperature to RGB values in the working colorspace
+		TempK2rgb(&r, &g, &b, stars[i].teff, transform);
 		/* get Color calibration factors for current star */
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
@@ -332,6 +500,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		free(data[BLUE]);
 		return 1;
 	}
+	printf("nb good stars %d, nb with Gaia TempK %d, nb with Gaia sampled spectrum %d\n", ngood, gaia_teff, gaia_xpsamp);
 	int excl = nb_stars - ngood;
 	str = ngettext("%d star excluded from the calculation\n", "%d stars excluded from the calculation\n", excl);
 	str = g_strdup_printf(str, excl);
@@ -582,6 +751,9 @@ gpointer photometric_cc_standalone(gpointer p) {
 		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
 	} else {
 		switch (args->catalog) {
+			case CAT_GAIADR3:
+				mag = min(mag, 18.0);
+				break;
 			case CAT_APASS:
 				mag = min(mag, 17.0);	// in APASS, B is available for V < 17
 				break;
@@ -654,7 +826,10 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 			results[n].y = siril_cat->cat_items[i].y;
 			results[n].mag = siril_cat->cat_items[i].mag;
 			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
+			results[n].teff = siril_cat->cat_items[i].teff; // Gaia Teff / K, computed from the sampled spectrum (better than from B-V)
+			results[n].xpsamp = siril_cat->cat_items[i].xpsamp; // Is sampled spectrum data available?
 			n++;
+			results[n].gaiasourceid = siril_cat->cat_items[i].gaiasourceid; // Not duplicated, this is just a pointer
 		}
 	}
 	if (n != siril_cat->nbincluded) {

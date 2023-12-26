@@ -20,6 +20,9 @@ typedef struct {
 	float x, y;	// in FITS/WCS coordinates
 	float mag;	// visible magnitude (V filter), for sorting and debug
 	float BV;	// B magnitude - V magnitude, -99.9 if not available
+	float teff; // Gaia Teff
+	int xpsamp; // Is Gaia sampled spectrum data available?
+	uint64_t gaiasourceid; // Gaia source ID
 } pcc_star;
 
 struct phot_config *phot_set_adjusted_for_image(fits *fit);

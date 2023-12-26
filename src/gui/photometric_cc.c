@@ -182,7 +182,9 @@ void initialize_photometric_cc_dialog() {
 
 int get_photometry_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
-	if (gtk_combo_box_get_active(box) == 1)
+	if (gtk_combo_box_get_active(box) == 2)
+		return CAT_GAIADR3;
+	else if (gtk_combo_box_get_active(box) == 1)
 		return CAT_APASS;
 	return CAT_NOMAD;
 }

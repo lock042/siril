@@ -53,7 +53,7 @@
 #include "gui/utils.h"
 
 // This list defines the columns that can possibly be found in any catalogue
-const gchar *cat_columns[] = { 
+const gchar *cat_columns[] = {
 	[CAT_FIELD_RA] = "ra",
 	[CAT_FIELD_DEC] = "dec",
 	[CAT_FIELD_PMRA] = "pmra",
@@ -71,7 +71,10 @@ const gchar *cat_columns[] = {
 	[CAT_FIELD_SITEELEV] = "siteelev",
 	[CAT_FIELD_VRA] = "vra",
 	[CAT_FIELD_VDEC] = "vdec",
-	[CAT_FIELD_TYPE] = "type"
+	[CAT_FIELD_TYPE] = "type",
+	[CAT_FIELD_TEFF] = "teff",
+	[CAT_FIELD_XPSAMP] = "xpsamp",
+	[CAT_FIELD_GAIASOURCEID] = "source_id"
 };
 
 const gchar **get_cat_colums_names() {
@@ -125,6 +128,12 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 			return (item->alias) ? g_strdup(item->alias) : "";
 		case CAT_FIELD_TYPE:
 			return (item->type) ? g_strdup(item->type) : "";
+		case CAT_FIELD_TEFF:
+			return (item->teff) ? g_strdup_printf("%.6f", item->teff) : "";
+		case CAT_FIELD_XPSAMP:
+			return (item->xpsamp) ? g_strdup_printf("%d", item->xpsamp) : "";
+		case CAT_FIELD_GAIASOURCEID:
+			return (item->gaiasourceid) ? g_strdup_printf("%lu", item->gaiasourceid) : "";
 		default:
 			return NULL;
 	}
@@ -136,7 +145,7 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 		case CAT_TYCHO2:
 		case CAT_NOMAD:
 		case CAT_GAIADR3:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF) | (1 << CAT_FIELD_XPSAMP) | (1 << CAT_FIELD_GAIASOURCEID);
 		case CAT_PPMXL:
 		case CAT_BSC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
@@ -192,7 +201,7 @@ static int compare_items_by_mag(const void* item1, const void* item2) {
 	return 0;
 }
 
-// This function sorts the *cat_item list of a siril_catalogue by magnitude 
+// This function sorts the *cat_item list of a siril_catalogue by magnitude
 void sort_cat_items_by_mag(siril_catalogue *siril_cat) {
 	if (siril_cat && siril_cat->nbitems > 0 && (siril_cat->columns&(1 << CAT_FIELD_MAG)))
 		qsort(siril_cat->cat_items, siril_cat->nbitems, sizeof(cat_item), compare_items_by_mag);
@@ -315,7 +324,7 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, siril_cat
 		if (val < 0) {
 			siril_debug_print("Unknown column %s found in the catalog, ignoring\n", fields[i]);
 			continue;
-		} 
+		}
 		indexes[i] = val;
 		res |= (1 << val);
 	}
@@ -396,6 +405,15 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 			break;
 		case CAT_FIELD_TYPE:
 			item->type = g_strdup(input);
+			break;
+		case CAT_FIELD_TEFF:
+			item->teff = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_XPSAMP:
+			item->xpsamp = g_ascii_strtoll(input, NULL, 10);
+			break;
+		case CAT_FIELD_GAIASOURCEID:
+			item->gaiasourceid = g_ascii_strtoull(input, NULL, 10);
 			break;
 		case CAT_FIELD_UNDEF: // columns with unknown headers
 		default:
@@ -483,7 +501,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 }
 
 /* This is the entry point to query the catalogues
- * It will call the necessary functions whether the query 
+ * It will call the necessary functions whether the query
  * is for a local catalogue or an online one
  *
  * Then these raw catalogues can be used in different ways:
@@ -669,8 +687,8 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		g_clear_error(&error);
 		return FALSE;
 	}
-	
-	
+
+
 	// we write the line containing the columns names based on catalog spec
 	GString *columns = NULL;
 	int nbcols = 0;
@@ -768,7 +786,7 @@ gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item) {
 	siril_catalogue_copy_item(item, &siril_cat->cat_items[siril_cat->nbitems]);
 	siril_cat->nbitems++;
 	// we can't have a catalogue only partially projected so we reset its projection if any
-	if (siril_cat->projected > CAT_PROJ_NONE) 
+	if (siril_cat->projected > CAT_PROJ_NONE)
 		siril_catalog_reset_projection(siril_cat);
 	return TRUE;
 }

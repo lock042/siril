@@ -25,7 +25,7 @@
 #include "core/siril_world_cs.h"
 
 // number of columns that can be defined in a catalogue
-#define MAX_CAT_COLUMNS 18
+#define MAX_CAT_COLUMNS 21
 #define CAT_AN_INDEX_OFFSET 60
 
 // all catalogues that can be used
@@ -89,6 +89,9 @@ typedef enum {
 	CAT_FIELD_E_MAG,
 	CAT_FIELD_E_BMAG,
 	CAT_FIELD_DIAMETER,
+	CAT_FIELD_TEFF,
+	CAT_FIELD_XPSAMP,
+	CAT_FIELD_GAIASOURCEID,
 	CAT_FIELD_ALIAS,
 	CAT_FIELD_DATEOBS,
 	CAT_FIELD_SITELAT,
@@ -118,6 +121,9 @@ typedef struct {
 	gchar *name;  // name of the object
 	gchar *alias; // aliases given in annotation catalogues, '/'-separated
 	gchar *type; // type of the object, for solsys and compstars
+	float teff; // GAIA Teff term
+	int xpsamp; // GAIA xpsamp term
+	uint64_t gaiasourceid; // GAIA source ID, for constructing Datalink queries
 
 	// computed
 	float x, y;	// image coordinates

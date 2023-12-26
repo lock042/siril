@@ -53,7 +53,7 @@
 #include "registration/matching/misc.h"
 
 // These statics define the formatting for some fields used when writing catalog names
-static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f", 
+static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
 					*radiusfmt = "%3.2f", *limitmagfmt = "%3.1f";
 
 // this function returns a heap-allocated structure cat_tap_query_fields
@@ -95,6 +95,9 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Gmag");
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("BPmag");
+			tap->tap_columns[CAT_FIELD_TEFF] = g_strdup("Teff");
+			tap->tap_columns[CAT_FIELD_XPSAMP] = g_strdup("XPsamp");
+			tap->tap_columns[CAT_FIELD_GAIASOURCEID] = g_strdup("Source");
 			break;
 		case CAT_PPMXL:
 			tap->catcode = g_strdup("%22I/317/sample%22");
@@ -784,7 +787,7 @@ download_error:
 /* This function is the main interface to collect an online catalogue
    It sends a conesearch around given center, within given radius and for stars below limit_mag
    Internally, it uses download_catalog to search cache and download catalog as required
-   The cache folder (named download_cache) stores all downloaded queries in the form 
+   The cache folder (named download_cache) stores all downloaded queries in the form
    of csv files, named as 'cat-cat_index-ra-dec-radius[-mag].csv' or
    'cat-cat_index-ra-dec-radius-date-obscode.csv' for solar syatem queries (IMCCE)
    It fills the siril_catalogue given in input

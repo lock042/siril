@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,11 +27,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkImage" id="image1">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">edit-find</property>
-  </object>
   <object class="GtkAdjustment" id="AdjIPS_Dec_deg">
     <property name="upper">90</property>
     <property name="step-increment">1</property>
@@ -91,6 +86,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkAdjustment" id="adjustment_cc_bkg_y">
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">edit-find</property>
   </object>
   <object class="GtkListStore" id="liststoreIPS">
     <columns>
@@ -819,6 +819,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <items>
                           <item>NOMAD</item>
                           <item translatable="yes">APASS</item>
+                          <item translatable="yes">GAIA DR3</item>
                         </items>
                         <signal name="changed" handler="on_combophoto_catalog_changed" swapped="no"/>
                       </object>
@@ -1120,5 +1121,4 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       </object>
     </child>
   </object>
-
 </interface>
