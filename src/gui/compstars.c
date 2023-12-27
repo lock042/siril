@@ -34,6 +34,7 @@ static GtkWidget *emag_entry = NULL;
 static GtkWidget *target_entry = NULL;
 static GtkWidget *apass_radio = NULL;
 static GtkWidget *check_narrow = NULL;
+static GtkWidget *dscd_vsx = NULL;
 
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data);
 
@@ -115,6 +116,13 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(radiobox), radio2);
 	g_object_set(G_OBJECT(radiobox), "margin", 15, NULL);
 
+	dscd_vsx = gtk_check_button_new_with_label(_("Discard VSX stars"));
+	gtk_widget_set_tooltip_text(dscd_vsx, _("Tick this box to discard any variable star (VSX source) from the selected catalog\nThis implies a double request to Simbad"));
+	gtk_widget_set_halign(dscd_vsx, GTK_ALIGN_START);
+	g_object_set(G_OBJECT(dscd_vsx), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(dscd_vsx), "margin-top", 5, NULL);
+	g_object_set(G_OBJECT(dscd_vsx), "margin-bottom", 0, NULL);
+
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_set_spacing(GTK_BOX(content_area), 15);
 	gtk_container_add(GTK_CONTAINER(content_area), label);
@@ -127,6 +135,7 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), labelemag);
 	gtk_container_add(GTK_CONTAINER(content_area), emag_entry);
 	gtk_container_add(GTK_CONTAINER(content_area), radiobox);
+	gtk_container_add(GTK_CONTAINER(content_area), dscd_vsx);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
 }
 
@@ -179,6 +188,7 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 
 	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
 	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
+	gboolean vsx = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dscd_vsx));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
@@ -190,6 +200,7 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 	args->delta_BV = delta_BV;
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
+	args->discarded_vsx = vsx;
 
 	start_in_new_thread(compstars_worker, args);
 }

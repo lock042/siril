@@ -355,7 +355,7 @@ static int get_catstars(struct compstars_arg *args) {
 	}
 	g_assert(args->cat == CAT_APASS || args->cat == CAT_NOMAD);
 
-	double ra, dec;
+		double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
 
 	double resolution = get_wcs_image_resolution(&gfit);
@@ -370,6 +370,24 @@ static int get_catstars(struct compstars_arg *args) {
 		sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
 		radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	}
+
+// Case if the VSX stars have to be discarder
+	if (args->discarded_vsx){
+		siril_log_color_message(_("Discarded VSX: %i\n"), "red", args->discarded_vsx);
+		// preparing the query
+		siril_catalogue *siril_cat_vsx = siril_catalog_fill_from_fit(&gfit, CAT_VSX, max(args->target_star->mag + 6.0, 17.0));
+		siril_cat_vsx->radius = radius * 60.; // overwriting to account for narrow argument
+		siril_cat_vsx->phot = TRUE;
+
+		// and retrieving its results
+		int nbr_vsx = siril_catalog_conesearch(siril_cat_vsx);
+		if (nbr_vsx <= 0) {// returns the nb of stars
+			siril_log_color_message(_("%i comparison stars retrieved from the catalog %s, aborting\n"), "red", nbr_vsx, catalog_to_str(CAT_VSX));
+			siril_catalog_free(siril_cat_vsx);
+			//return 1;
+		}
+	}
+
 
 	// preparing the query
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, args->cat, max(args->target_star->mag + 6.0, 17.0));
