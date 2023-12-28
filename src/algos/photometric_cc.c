@@ -467,7 +467,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
-		printf("Gaia source ID: %lu\n", stars[i].gaiasourceid);
 		// get r g b coefficient
 		// If the Gaia Teff field is populated, use that as it is more accurate.
 		// Otherwise, we convert from Johnson B-V
@@ -752,6 +751,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
+			case CAT_GAIADR3_DIRECT:
 				mag = min(mag, 18.0);
 				break;
 			case CAT_APASS:
@@ -766,9 +766,11 @@ gpointer photometric_cc_standalone(gpointer p) {
 		}
 		siril_log_message(_("Getting stars from online catalogue %s for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog),radius * 2.0,  mag);
 	}
+
 	// preparing the catalogue query
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(args->fit, args->catalog, mag);
 	siril_cat->phot = TRUE;
+	siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED);
 
 	/* Fetching the catalog*/
 	if (siril_catalog_conesearch(siril_cat) <= 0) {
@@ -806,6 +808,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 // This interface enables for now to use new catalogues and pcc_star where required
 pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars) {
 	*nbstars = 0;
+
+
 	if (!siril_cat || !siril_cat->nbincluded)
 		return NULL;
 	if (siril_cat->projected == CAT_PROJ_NONE) {
@@ -828,8 +832,8 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
 			results[n].teff = siril_cat->cat_items[i].teff; // Gaia Teff / K, computed from the sampled spectrum (better than from B-V)
 			results[n].xpsamp = siril_cat->cat_items[i].xpsamp; // Is sampled spectrum data available?
+			results[n].gaiasourceid = siril_cat->cat_items[i].gaiasourceid; // For building a Gaia DR3 Datalink query
 			n++;
-			results[n].gaiasourceid = siril_cat->cat_items[i].gaiasourceid; // Not duplicated, this is just a pointer
 		}
 	}
 	if (n != siril_cat->nbincluded) {

@@ -54,6 +54,7 @@ typedef enum {
 	CAT_PGC = 20,
 // Other TAP Queries
 	CAT_EXOPLANETARCHIVE = 30,
+	CAT_GAIADR3_DIRECT = 31, // For direct queries to Gaia rather than using Vizier
 // Non TAP Queries (stars)
 	CAT_AAVSO_CHART = 40,
 // Non TAP Queries (others)

@@ -28,6 +28,7 @@
 #define SIMBAD_TAP_QUERY "https://simbad.u-strasbg.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
 #define IMCCE_QUERY "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?&-mime=text&-output=basic&-filter=0&-objFilter=111&-refsys=EQJ2000&-from=Siril"
 #define AAVSOCHART_QUERY "https://app.aavso.org/vsp/api/chart/?format=json"
+#define GAIA_DR3_QUERY "https://gea.esac.esa.int/tap-server/tap/async"
 
 // only the first MAX_TAP_QUERY_COLUMNS columns are valid TAP queries
 // fields after this are used in other catalogues
@@ -41,9 +42,24 @@ typedef struct {
 	gchar *tap_server;
 } cat_tap_query_fields;
 
-gchar *fetch_url(const gchar *url);
+gchar *fetch_url(const gchar *url, gsize *length);
 void free_fetch_result(gchar *result);
 
 int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat);
+
+typedef enum _retrieval_type { // For use with Gaia DR3 Datalink query URLs
+	NO_DATALINK_RETRIEVAL,
+	EPOCH_PHOTOMETRY,
+	XP_SAMPLED,
+	XP_CONTINUOUS,
+	MCMC_GSPPHOT,
+	MCMC_MSC,
+	RVS,
+	ALL
+} retrieval_type;
+
+#define ASYNC_JOB_TIMEOUT 60000000
+
+int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type);
 
 #endif
