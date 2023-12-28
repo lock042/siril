@@ -3275,12 +3275,7 @@ int process_set_photometry(int nb) {
 				force = g_ascii_strtod(arg, &end);
 				if (arg == end) error = TRUE;
 				else if (force < 1.0 || force > 5.0) error = TRUE;
-/*				if (*arg == 'y')
-					force = 1;
-				else if (*arg == 'n')
-					force = 0;
-				else error = TRUE;
-*/
+
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
@@ -3320,7 +3315,7 @@ int process_set_photometry(int nb) {
 		}
 		if (aperture > 0.0)
 			com.pref.phot_set.aperture = aperture;
-		if (force >= 1.0 && force <= 5.0) {
+		if (force && force >= 1.0 && force <= 5.0) {
 			com.pref.phot_set.force_radius = TRUE;
 			com.pref.phot_set.auto_aperture_factor = (double)force;
 		} else {
