@@ -216,6 +216,8 @@ cmsFloat64Number bvToT(float bv) {
 // Uses Mitchell Charity's tabulation of black body xy values from
 // http://www.vendian.org/mncharity/dir3/blackbody/UnstableURLs/bbr_color.html
 // Linear interpolation is used between each value.
+// Commented out until / unless needed
+/*
 static void charity_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 	int i = 0;
 	if (t < 1000.0) {
@@ -236,6 +238,7 @@ static void charity_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 	xyY->y = (cmsFloat64Number) y1 + ((t - t1) / (t2 - t1)) * (y2 - y1);
 	xyY->Y = 1.0;
 }
+*/
 
 // Returns a valid xyY for 1667K <= t <= 25000K, otherwise xyY = { 0.0 }
 // Uses Kim et al's cubic spline Planckian locus (https://en.wikipedia.org/wiki/Planckian_locus)
@@ -272,6 +275,8 @@ static void temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 // Returns a valid xyY for 2000K <= t, otherwise xyY = { 0.0 }
 // Uses BQ Octantis's 6th order best fit for D65 values down to 2000K
 // (https://www.cloudynights.com/topic/849382-generating-a-planckian-ccm/)
+// Commented out until / unless needed
+/*
 static void BQ_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 	if (t < 2000.0) {
 		xyY->x = xyY->y = xyY->Y = 0.0;
@@ -284,6 +289,7 @@ static void BQ_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 		xyY->Y = 1.0;
 	}
 }
+*/
 
 // Makes use of lcms2 to get the RGB values correct
 // transform is calculated in get_white_balance_coeff below
@@ -311,9 +317,8 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 #endif
 }
 
-static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
+static int make_selection_around_a_star(double fx, double fy, rectangle *area, fits *fit) {
 	/* make a selection around the star, coordinates are in display reference frame */
-	double fx = star.x, fy = star.y;
 	double dx, dy;
 	fits_to_display(fx, fy, &dx, &dy, fit->ry);
 
@@ -406,7 +411,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
-		if (make_selection_around_a_star(stars[i], &area, fit)) {
+		if (make_selection_around_a_star(stars[i].x, stars[i].y, &area, fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -853,7 +858,7 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 		// Measure actual flux by running peaker around ref star coordinates
 		rectangle area = { 0 };
 		float flux[3] = { 0.f };
-		if (make_selection_around_a_star(args->ref_stars[i], &area, args->fit)) {
+		if (make_selection_around_a_star(args->ref_stars->cat_items[i].x, args->ref_stars->cat_items[i].y, &area, args->fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
