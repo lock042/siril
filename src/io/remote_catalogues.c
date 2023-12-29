@@ -1123,6 +1123,9 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 	}
 	// Populate the siril_catalog with the data from the initial query
 	int retval = siril_catalog_load_from_file(siril_cat, csvfilepath);
+	if (retval) {
+		goto tap_error_and_cleanup;
+	}
 	// Finished with the CSV filepath
 	g_free(csvfilepath);
 

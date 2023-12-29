@@ -123,7 +123,6 @@ typedef struct {
 	gchar *alias; // aliases given in annotation catalogues, '/'-separated
 	gchar *type; // type of the object, for solsys and compstars
 	float teff; // GAIA Teff term
-	int xpsamp; // GAIA xpsamp term
 	uint64_t gaiasourceid; // GAIA source ID, for constructing Datalink queries
 
 	// computed

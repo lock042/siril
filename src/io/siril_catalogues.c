@@ -130,8 +130,6 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 			return (item->type) ? g_strdup(item->type) : "";
 		case CAT_FIELD_TEFF:
 			return (item->teff) ? g_strdup_printf("%.6f", item->teff) : "";
-		case CAT_FIELD_XPSAMP:
-			return (item->xpsamp) ? g_strdup_printf("%d", item->xpsamp) : "";
 		case CAT_FIELD_GAIASOURCEID:
 			return (item->gaiasourceid) ? g_strdup_printf("%lu", item->gaiasourceid) : "";
 		default:
@@ -408,9 +406,6 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 			break;
 		case CAT_FIELD_TEFF:
 			item->teff = g_ascii_strtod(input, NULL);
-			break;
-		case CAT_FIELD_XPSAMP:
-			item->xpsamp = g_ascii_strtoll(input, NULL, 10);
 			break;
 		case CAT_FIELD_GAIASOURCEID:
 			item->gaiasourceid = g_ascii_strtoull(input, NULL, 10);

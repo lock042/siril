@@ -402,8 +402,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			continue;
 		if (stars[i].teff)
 			gaia_teff++;
-		if (stars[i].xpsamp)
-			gaia_xpsamp++;
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
@@ -950,7 +948,6 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 			results[n].mag = siril_cat->cat_items[i].mag;
 			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
 			results[n].teff = siril_cat->cat_items[i].teff; // Gaia Teff / K, computed from the sampled spectrum (better than from B-V)
-			results[n].xpsamp = siril_cat->cat_items[i].xpsamp; // Is sampled spectrum data available?
 			results[n].gaiasourceid = siril_cat->cat_items[i].gaiasourceid; // For building a Gaia DR3 Datalink query
 			n++;
 		}
