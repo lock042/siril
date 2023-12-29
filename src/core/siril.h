@@ -474,6 +474,19 @@ struct ffit {
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
 
+/* Filter spectral responses are defined by evenly spaced frequency samples
+ * and accompanying spectral responses corresponding to the sampling points. */
+typedef struct _spectral_intensity {
+	float* wl; // Wavelength array
+	float* si; // Intensity array
+	int n; // Number of data points
+} spectral_intensity;
+
+typedef struct _spectral_pipeline {
+	spectral_intensity *si; // Array of spectral intensities
+	int n; // Number of spectra in the pipeline
+} spectral_pipeline;
+
 typedef struct {
 	double x, y;
 } point;

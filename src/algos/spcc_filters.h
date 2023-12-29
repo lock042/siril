@@ -21,16 +21,6 @@
 #ifndef SPCC_FILTERS_H
 #define SPCC_FILTERS_H
 
-/* Filter spectral responses are defined by evenly spaced frequency samples
- * and accompanying spectral responses corresponding to the sampling points.
- * Each array MUST end with -FLT_MAX. */
-
-typedef struct _spectral_intensity {
-	float* wl;
-	float* si;
-	int n;
-} spectral_intensity;
-
 // Define the filters
 spectral_intensity Johnson_B, Johnson_V, Optolong_Blue, Optolong_Green, Optolong_Red;
 

@@ -323,6 +323,54 @@ void free_fetch_result(char *result) {
 	free(result);
 }
 
+static void submit_post_request(const char *url, const char *post_data, char **post_response) {
+	CURL *curl;
+	CURLcode res;
+	struct ucontent chunk;
+
+	chunk.data = malloc(1);  /* will be grown as needed by realloc above */
+	chunk.len = 0;    /* no data at this point */
+
+	curl_global_init(CURL_GLOBAL_ALL);
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+
+		// send all data to this function
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
+
+		// we pass our 'chunk' struct to the callback function
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+
+		// some servers do not like requests that are made without a user-agent
+		// field, so we provide one
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
+
+		// if we do not provide POSTFIELDSIZE, libcurl will strlen() by itself
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
+
+		// Perform the request, res will get the return code
+		res = curl_easy_perform(curl);
+
+		// Check for errors
+		if(res != CURLE_OK) {
+			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+		} else {
+			// Set the response data
+			*post_response = g_strdup(chunk.data);
+		}
+
+		// always cleanup
+		curl_easy_cleanup(curl);
+	}
+
+	free(chunk.data);
+	curl_global_cleanup();
+    return;
+}
+
 #elif defined HAVE_NETWORKING
 
 gchar *fetch_url(const gchar *url, gsize *length) {
@@ -615,10 +663,10 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 	gchar *filename = NULL;
 	gchar *dt = NULL, *fmtstr = NULL;
 	gchar *ext = NULL;
-	if (datalink_product == NO_DATALINK_RETRIEVAL || siril_cat->cat_index != CAT_GAIADR3) {
+	if (datalink_product == NO_DATALINK_RETRIEVAL || siril_cat->cat_index != CAT_GAIADR3_DIRECT) {
 		ext = g_strdup(".csv");
 	} else {
-		ext = g_strdup_printf("%d.fit", datalink_product);
+		ext = g_strdup_printf("_%d.fit", datalink_product);
 	}
 	switch (siril_cat->cat_index) {
 		case CAT_TYCHO2 ... CAT_AAVSO_CHART:
@@ -832,6 +880,25 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	return 0;
 }
 
+#ifdef HAVE_LIBCURL
+
+static void submit_async_request(const char *url, const char *post_data, char **job_id) {
+	gchar *post_response = NULL;
+	submit_post_request(url, post_data, &post_response);
+	gchar *location_header = strstr(post_response, "Location: ");
+	if (location_header != NULL) {
+		gchar *start = strrchr(location_header, '/') + 1;
+		gchar *end = strchr(start, '\n');
+		if (end != NULL) {
+			*end = '\0';
+			*job_id = g_strdup(start);
+			siril_debug_print("Job ID: %s\n", *job_id);
+		}
+	}
+}
+
+#else
+
 // Gets the job ID from the response from posting a Gaia DR3 job
 static void get_job_id(GInputStream *input_stream, gchar **job_id) {
     gsize bytes_read;
@@ -853,140 +920,10 @@ static void get_job_id(GInputStream *input_stream, gchar **job_id) {
     }
 }
 
-#ifdef HAVE_LIBCURL
-
-struct MemoryStruct {
-  char *memory;
-  size_t size;
-};
-
-static size_t
-WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-  size_t realsize = size * nmemb;
-  struct MemoryStruct *mem = (struct MemoryStruct *)userp;
-
-  char *ptr = realloc(mem->memory, mem->size + realsize + 1);
-  if(!ptr) {
-    /* out of memory! */
-    printf("not enough memory (realloc returned NULL)\n");
-    return 0;
-  }
-
-  mem->memory = ptr;
-  memcpy(&(mem->memory[mem->size]), contents, realsize);
-  mem->size += realsize;
-  mem->memory[mem->size] = 0;
-
-  return realsize;
-}
-
-static void submit_async_request(const char *url, const char *data, char **job_id) {
-	CURL *curl;
-	CURLcode res;
-	struct MemoryStruct chunk;
-
-	chunk.memory = malloc(1);  /* will be grown as needed by realloc above */
-	chunk.size = 0;    /* no data at this point */
-
-	curl_global_init(CURL_GLOBAL_ALL);
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-
-		/* send all data to this function  */
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-
-		/* we pass our 'chunk' struct to the callback function */
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-
-		/* some servers do not like requests that are made without a user-agent
-		field, so we provide one */
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
-
-		/* if we do not provide POSTFIELDSIZE, libcurl will strlen() by
-		itself */
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(data));
-
-		/* Perform the request, res will get the return code */
-		res = curl_easy_perform(curl);
-		/* Check for errors */
-		if(res != CURLE_OK) {
-			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-		} else {
-			/*
-			* Now, our chunk.memory points to a memory block that is chunk.size
-			* bytes big and contains the remote file.
-			*
-			* Do something nice with it!
-			*/
-			printf("%s\n",chunk.memory);
-			gchar *location_header = strstr(chunk.memory, "Location: ");
-			if (location_header != NULL) {
-				gchar *start = strrchr(location_header, '/') + 1;
-				gchar *end = strchr(start, '\n');
-				if (end != NULL) {
-					*end = '\0';
-					*job_id = g_strdup(start);
-					siril_debug_print("Job ID: %s\n", *job_id);
-				}
-			}
-		}
-
-		/* always cleanup */
-		curl_easy_cleanup(curl);
-	}
-
-	free(chunk.memory);
-	curl_global_cleanup();
-    return;
-}
-
-#else
-
 static void submit_async_request(const gchar *url, const gchar *data, gchar **job_id) {
-/*	GError *error = NULL;
-	GSocketClient *socket_client = g_socket_client_new();
-	g_socket_client_set_tls(socket_client, TRUE);
-	char* response_data = NULL;
-	GSocketConnection *socket_connection = g_socket_client_connect_to_uri(socket_client, url, 443, NULL, &error);
-	if (!socket_connection) {
-		siril_debug_print("Error creating HTTPS connection: %s\n", error->message);
-		return;
-	}
-	GInputStream *post_stream = g_memory_input_stream_new_from_data(data, -1, NULL);
-	GOutputStream *output_stream = g_io_stream_get_output_stream(G_IO_STREAM(socket_connection));
-	GInputStream *input_stream = g_io_stream_get_input_stream(G_IO_STREAM(socket_connection));
-	g_output_stream_splice(output_stream, G_INPUT_STREAM(post_stream), G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE, NULL, &error);
-	if (error != NULL) {
-		siril_debug_print("Error splicing connection: %s\n", error->message);
-		return;
-	}
-
-	// Read the response into a GString
-	GString *response_string = g_string_new(NULL);
-	char buffer[4096];
-	gssize bytes_read;
-
-	do {
-		bytes_read = g_input_stream_read(input_stream, buffer, sizeof(buffer), NULL, &error);
-		if (bytes_read > 0) {
-			g_string_append_len(response_string, buffer, bytes_read);
-		} else if (bytes_read == 0) {
-			// End of the response
-			break;
-		} else if (bytes_read < 0) {
-			g_error("Error reading from input stream: %s", g_strerror(errno));
-			break;
-		}
-	} while (TRUE);
-*/
-
     GError *error = NULL;
     GSocketClient *client = NULL;
-    GTlsConnection *tls_conn = NULL;
+//    GTlsConnection *tls_conn = NULL;
     GSocketConnection *conn = NULL;
     GIOStream *iostream = NULL;
     GInputStream *input_stream = NULL;
@@ -997,6 +934,7 @@ static void submit_async_request(const gchar *url, const gchar *data, gchar **jo
     // Create a GSocketClient for HTTPS
     client = g_socket_client_new();
     g_socket_client_set_tls(client, TRUE);
+	g_socket_client_set_timeout(client, 15);
 
     // Connect to the server
     conn = g_socket_client_connect_to_uri(client, url, 443, NULL, &error);
@@ -1010,6 +948,8 @@ static void submit_async_request(const gchar *url, const gchar *data, gchar **jo
     input_stream = g_io_stream_get_input_stream(G_IO_STREAM(conn));
     output_stream = g_io_stream_get_output_stream(G_IO_STREAM(conn));
 
+	siril_debug_print("Socket connection state: %d\n", g_socket_connection_is_connected(conn));
+
     // Send the POST request
     g_output_stream_write(output_stream, data, strlen(data), NULL, &error);
     if (error) {
@@ -1022,12 +962,11 @@ static void submit_async_request(const gchar *url, const gchar *data, gchar **jo
     gchar response_data[4096];
     while ((bytes_read = g_input_stream_read(input_stream, &response_data, 4096, NULL, &error)) > 0) {
         response_length += bytes_read;
-    }
-
-    if (error) {
-        g_error("Failed to read response: %s", error->message);
-        g_clear_error(&error);
-//        goto cleanup;
+		if (error) {
+			g_error("Failed to read response: %s", error->message);
+			g_clear_error(&error);
+	//        goto cleanup;
+		}
     }
 
     response_data[response_length] = '\0';  // Null-terminate the response
@@ -1039,7 +978,6 @@ cleanup:
     return error ? -1 : 0;
 */
 	// Copy the response data to the output parameter
-//	response_data = g_string_free(response_string, FALSE);
 	siril_debug_print("Response:\n%s\n", response_data);
 	gchar *location_header = strstr(response_data, "Location: ");
 	if (location_header != NULL) {
@@ -1051,18 +989,21 @@ cleanup:
 		}
 	}
 
-	// Receive and print the response
+	// Extract the job ID from the response
 	get_job_id(input_stream, job_id);
 }
 #endif
+
 // Returns url to be submitted as a Gaia DR3 job. This allows the job ID to be used as
 // the source of source_ids for a subsequent datalink query. This is intended for use
 // with SPCC but may be useful in the future for other types of datalink query.
-int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type) {
+// The path to the datalink FITS is set and the catalogue is populated
+int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type, gchar** datalink_path) {
 #ifndef HAVE_NETWORKING
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 	return -1;
 #endif
+	GError *error = NULL;
 	gsize length;
     const gchar *host = "https://gea.esac.esa.int";
 	GString *querystring = NULL;
@@ -1084,7 +1025,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		}
 	}
 	g_string_append_printf(querystring,"+FROM+%s", fields->catcode);
-	g_string_append_printf(querystring,"+WHERE+CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
+	g_string_append_printf(querystring,"+WHERE+has_xp_sampled+=+'True'&CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
 	fmtstr = g_strdup_printf("CIRCLE('ICRS',%s,%s,%s))=1", rafmt, decfmt, radiusfmt);
 	g_string_append_printf(querystring, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
 	g_free(fmtstr);
@@ -1152,7 +1093,38 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 	gchar *buffer = fetch_url(job_retrieval, &length);
 	siril_debug_print("Length: %lu\n", length);
 	g_free(job_retrieval);
-	// buffer is the CSV data for the standard Gaia DR3 TAP+ query, it needs saving or otherwise using as per the standard function.
+
+	// buffer is the CSV data for the standard Gaia DR3 TAP+ query, it gets saved to the usual catalogue location
+	/* check if catalogue already exists in cache */
+	gboolean catalog_is_in_cache;
+	GOutputStream *csvoutput_stream = NULL;
+	GFile *csvfile = NULL;
+
+	gchar *csvfilepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
+/*	if (catalog_is_in_cache) {	// TODO: Need to improve the check (cat must be the Gaia one and
+								// the FITS must be present!) Until then, always re-download it.
+		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cat_index));
+		return 2;
+	}*/
+	if (!csvfilepath) { // if the path is NULL, an error was caught earlier, just free and abort
+		return -1;
+	}
+
+	// the catalog needs to be downloaded, prepare the output stream
+	csvfile = g_file_new_for_path(csvfilepath);
+	csvoutput_stream = (GOutputStream*) g_file_create(csvfile, G_FILE_CREATE_NONE, NULL, &error);
+	if (!csvoutput_stream) {
+		goto tap_error_and_cleanup;
+	}
+	if (!g_output_stream_write_all(csvoutput_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
+		g_warning("%s\n", error->message);
+//		remove_file = TRUE;
+		goto tap_error_and_cleanup;
+	}
+	// Populate the siril_catalog with the data from the initial query
+	int retval = siril_catalog_load_from_file(siril_cat, csvfilepath);
+	// Finished with the CSV filepath
+	g_free(csvfilepath);
 
 	// Now we can use the job ID to provide the source_ids for a Datalink query
 	GString *datalink_url = g_string_new("https://gea.esac.esa.int/data-server/data?RETRIEVAL_TYPE=");
@@ -1182,40 +1154,37 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		default:
 			siril_debug_print("Error: siril_gaiadr3_datalink_query called with unsupported retrieval type, cannot proceed\n");
 			goto datalink_download_error;
-
 	}
 
-	// Set the format. Siril will always consume the data as FITS, as we already
-	// use libcfitsio and it's easier than adding support for VOTables
-	g_string_append(datalink_url, "&FORMAT=FITS&ID=job:");
+	// Set the data structure and format. Siril will always consume the data as FITS,
+	// as we already use libcfitsio and it's easier than adding support for VOTables
+	g_string_append(datalink_url, "&DATA_STRUCTURE=COMBINED&FORMAT=FITS");
 
 	// Append the source IDs (using the job number)
+	g_string_append(datalink_url, "&ID=job:");
 	g_string_append(datalink_url,job_id);
 	g_string_append(datalink_url, ".source_id");
 
-	// Append the data structure. Siril will always request data as combined, as it's more efficient.
-	g_string_append(datalink_url,"&DATA_STRUCTURE=COMBINED");
-
 	siril_debug_print("Datalink url: %s\n", datalink_url->str);
-
 	gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
 	siril_debug_print("Length: %lu\n", length);
 	g_string_free(datalink_url, TRUE);
 	datalink_url = NULL;
 
 	gchar *str = NULL, *filepath = NULL;
-	GError *error = NULL;
 	GOutputStream *output_stream = NULL;
 	GFile *file = NULL;
 	gboolean remove_file = FALSE, retrieval_product_is_in_cache = FALSE;
 
 	/* check if catalogue already exists in cache */
 	filepath = get_remote_catalogue_cached_path(siril_cat, &retrieval_product_is_in_cache, type);
+	*datalink_path = g_strdup(filepath);
 	g_free(str);
 
 	if (retrieval_product_is_in_cache) {
 		siril_log_message(_("Using already downloaded datalink product\n"));
-		return 0; // TODO: Needs to jump to the point where the cached file is actually opened and used.
+
+		return 0;
 	}
 	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
 		g_free(str);
@@ -1228,14 +1197,13 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 	if (!output_stream) {
 		goto datalink_download_error;
 	}
-	if (!g_output_stream_write_all(output_stream, datalink_buffer, strlen(datalink_buffer), NULL, NULL, &error)) {
+	if (!g_output_stream_write_all(output_stream, datalink_buffer, length, NULL, NULL, &error)) {
 		g_warning("%s\n", error->message);
 		remove_file = TRUE;
 		goto datalink_download_error;
 	}
 	siril_log_message(_("Datalink query succeeded: cached as %s\n"), filepath);
 	// TODO: Need to use the file now. Return the filename and use from the calling function?
-	return 0;
 	return 0;
 
 tap_error_and_cleanup:

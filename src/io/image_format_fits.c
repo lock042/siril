@@ -3702,3 +3702,68 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 	merge_fits_headers_to_result2(result, array);
 	free(array);
 }
+
+/*****************************************************************
+ *
+ * Functions to operate on special non-image FITS
+ * such as the data retrieval products provided by Gaia datalink
+ *
+ * **************************************************************/
+
+spectral_intensity* get_xpsampled(gchar *filename, int i, int min_wl, int max_wl) {
+	// The wavelength range is always the same for all xpsampled spectra
+#define WAVESTAR 336
+#define WAVEEND 1020
+    int status, num_hdus, anynul, wlcol, fluxcol;
+    long nrows, firstrow, nelements;
+	// We open a separate fptr so that multiple threads can operate on the file
+	// simultaneously, reading data from different HDUs corresponding to different sources.
+	fitsfile *fptr = NULL;
+    siril_fits_open_diskfile(&fptr, filename, READONLY, &status);
+    spectral_intensity *xpsampled = calloc(1, sizeof(spectral_intensity));
+    // HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
+    // so the first useful HDU (corresponding to the source at
+    // position 0 in the catalog) is HDU 2.
+    int hdu = i + 2;
+    fits_get_num_hdus(fptr, &num_hdus, &status);
+    if (hdu < 2 || hdu > num_hdus) {
+        siril_debug_print("HDU out of range: hdu = %d, num_hdus = %d\n", hdu, num_hdus);
+        goto error;
+    }
+    if (fits_movabs_hdu(fptr, hdu, NULL, &status)) {
+        fits_report_error(stderr, status);
+        goto error;
+    }
+    fits_get_num_rows(fptr, &nrows, &status);
+    nelements = ((max_wl - min_wl) / 2) + 1;
+    firstrow = ((min_wl - WAVESTAR) / 2) + 1;
+    if ((firstrow + nelements) > nrows) {
+        siril_debug_print("Row error in get_xpsampled!\n");
+        goto error;
+    }
+    xpsampled->wl = malloc(nelements * sizeof(float));
+    xpsampled->si = malloc(nelements * sizeof(float));
+    xpsampled->n = nelements;
+
+    if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
+        fits_report_error(stderr, status);
+        goto error;
+    }
+    if (fits_get_colnum(fptr, CASEINSEN, "flux", &fluxcol, &status)) {
+        fits_report_error(stderr, status);
+        goto error;
+    }
+    if (fits_read_col(fptr, TFLOAT, wlcol, firstrow, 0, nelements, NULL, xpsampled->wl, &anynul, &status)) {
+        fits_report_error(stderr, status);
+        goto error;
+    }
+    if (fits_read_col(fptr, TFLOAT, fluxcol, firstrow, 0, nelements, NULL, xpsampled->si, &anynul, &status)) {
+        fits_report_error(stderr, status);
+        goto error;
+    }
+    return xpsampled;
+
+error:
+    si_free(xpsampled);
+    return NULL;
+}
