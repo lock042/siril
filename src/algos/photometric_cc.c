@@ -19,6 +19,7 @@
  */
 
 #include <gsl/gsl_statistics.h>
+#include <gsl/gsl_interp.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -117,23 +118,39 @@ void si_free(spectral_intensity *foo) {
 	return;
 }
 
+static float integrate_pipeline(spectral_pipeline *pipeline) {
+	float result = 0.f;
+// TODO
+	return result;
+}
+
 /* Returns the spectral response of a filter (or QE of a sensor) at wavelength wl.
  * wavelengths and filter are float* arrays defined in spcc_filters.h
  * They MUST have the same length and all arrays must be terminated by FLT_MAX */
 
-float sr(const float wl, const float *wavelengths, const float *filter) {
-	if (wl < wavelengths[0]) // Provided wl is lower than the min wavelengths range
+float sr(const float wl, const spectral_intensity *filter) {
+	if (wl < filter->wl[0] || wl > filter->wl[filter->n-1]) // Provided wl is lower than the min wavelengths range
 		return 0.f;
-	int i = 0;
-	while (wl > wavelengths[i+1]) // Advance to the required values
-		i++;
-	if (wavelengths[i+1] == FLT_MAX) // Provided wl is greater than the max wavelengths range
-		return 0.f;
-
-	float wl1 = wavelengths[i], wl2 = wavelengths[i+1], t1, t2, sr;
-	t1 = filter[i];
-	t2 = filter[i+1];
-	sr = t1 + ((wl - wl1) / (wl2 - wl1)) * (t2 - t1);
+	const int n = filter->n;
+	// libgsl interpolation operates on double arrays so we have to convert (don't want to store all the
+	// filter arrays in memory as double* as the precision is not required).
+	// There doesn't appear to be any quicker way of converting float to double, at least on AMD64, as the
+	// arch can convert as quickly as it can store values in a vector to use SIMD.
+	double *dbl_wl = malloc(n * sizeof(double)), *dbl_si = malloc(n * sizeof(double));
+	for (int i = 0 ; i < n ; i++) {
+		dbl_wl[i] = filter->wl[i];
+	}
+	for (int i = 0 ; i < n ; i++) {
+		dbl_si[i] = filter->si[i];
+	}
+	gsl_interp *interp = gsl_interp_alloc(gsl_interp_akima, (size_t) n);
+	gsl_interp_init(interp, dbl_wl, dbl_si, n);
+	gsl_interp_accel *acc = gsl_interp_accel_alloc();
+	float sr = (float) gsl_interp_eval(interp, dbl_wl, dbl_si, wl, acc);
+	free(dbl_wl);
+	free(dbl_si);
+	gsl_interp_free(interp);
+	gsl_interp_accel_free(acc);
 	return (sr);
 }
 
@@ -194,7 +211,7 @@ cmsCIExyY pipeline_to_xyY(spectral_pipeline* pipeline, const int cmf) {
 		float wl = 400.f + (float) i;
 		pointf p = {wl, 1.f};
 		for (int filter = 0 ; filter < pipeline->n ; filter++) {
-			p.y *= sr(wl, pipeline->si[filter].wl, pipeline->si[filter].si);
+			p.y *= sr(wl, &pipeline->si[filter]);
 			filter++;
 		}
 		memcpy(&data[i], &p, sizeof(pointf));
@@ -811,9 +828,9 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 	//	Calculate filter responses at 2nm spacing from 380nm to 700nm
 	//	Either look up the responses (for OSC) or calculate as a product of filter_resp * QE
 	spectral_pipeline *pipeline[3] = { NULL };
-	for (int chan = 0 ; chan < 3 ; chan++) {
+/*	for (int chan = 0 ; chan < 3 ; chan++) {
 		pipeline[chan] = get_pipeline_from_ui(chan, 380, 700);
-	}
+	}*/
 
 	// Calculate effective primaries (and get the desired white point while we're
 	// at it) for later
@@ -821,7 +838,9 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 	primaries.Red = pipeline_to_xyY(pipeline[RED], CMF_1931);
 	primaries.Green = pipeline_to_xyY(pipeline[GREEN], CMF_1931);
 	primaries.Blue = pipeline_to_xyY(pipeline[BLUE], CMF_1931);
-	cmsCIExyY spcc_whitepoint = get_spcc_whitepoint_from_UI();
+	cmsCIExyY spcc_whitepoint;
+//	spcc_whitepoint = get_spcc_whitepoint_from_UI();
+
 
 	//	Do a Gaia DR3 cone search and retrieve the reference stars CSV and the
 	//	xp_sampled FITS

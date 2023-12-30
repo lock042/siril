@@ -530,6 +530,12 @@ void pcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data)
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 }
 
+void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
+	initialize_spectrophotometric_cc_dialog();
+	siril_open_dialog("ImagePlateSolver_Dial");
+	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
+}
+
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	siril_open_dialog("extract_channel_dialog");
 }

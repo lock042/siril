@@ -38,6 +38,7 @@
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "photometric_cc.h"
+#include "io/image_format_fits.h"
 
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
@@ -125,15 +126,20 @@ static gboolean is_selection_ok() {
  */
 
 void initialize_photometric_cc_dialog() {
-	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
-			*catalog_label_pcc, *force_platesolve, *lasnet;
+	GtkWidget *button_ips_ok, *button_cc_ok, *button_spcc_ok, *catalog_label,
+			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
+			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
+			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
+			*labelIPScatparams;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
 	button_cc_ok = lookup_widget("button_cc_ok");
+	button_spcc_ok = lookup_widget("button_spcc_ok");
 	catalog_label = lookup_widget("GtkLabelCatalog");
+	astrometry_catalog_label = lookup_widget("astrometry_catalog_label");
+	pcc_catalog_label = lookup_widget("photometric_catalog_label");
 	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
 	catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
@@ -141,6 +147,9 @@ void initialize_photometric_cc_dialog() {
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	force_platesolve = lookup_widget("force_astrometry_button");
 	lasnet = lookup_widget("localasnet_check_button");
+	spcc_options = lookup_widget("spcc_options");
+	stardet = lookup_widget("Frame_IPS_star_detection");
+	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -151,8 +160,12 @@ void initialize_photometric_cc_dialog() {
 
 	gtk_widget_set_visible(button_ips_ok, FALSE);
 	gtk_widget_set_visible(button_cc_ok, TRUE);
+	gtk_widget_set_visible(button_spcc_ok, FALSE);
 	gtk_widget_set_visible(catalog_label, FALSE);
+	gtk_widget_set_visible(astrometry_catalog_label, TRUE);
+	gtk_widget_set_visible(pcc_catalog_label, TRUE);
 	gtk_widget_set_visible(catalog_label_pcc, TRUE);
+	gtk_widget_set_visible(stardet, TRUE);
 	gtk_widget_set_visible(catalog_box_ips, FALSE);
 	gtk_widget_set_visible(catalog_box_pcc, TRUE);
 	gtk_widget_set_visible(catalog_auto, FALSE);
@@ -160,7 +173,9 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(force_platesolve, TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
 	gtk_widget_set_visible(lasnet, FALSE);
+	gtk_widget_set_visible(spcc_options, FALSE);
 	gtk_widget_grab_focus(button_cc_ok);
+	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), TRUE);
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));
 
@@ -180,10 +195,79 @@ void initialize_photometric_cc_dialog() {
 	//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
 }
 
+void initialize_spectrophotometric_cc_dialog() {
+	GtkWidget *button_ips_ok, *button_cc_ok, *button_spcc_ok, *catalog_label,
+			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
+			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
+			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
+			*labelIPScatparams;
+	GtkWindow *parent;
+	GtkAdjustment *selection_cc_black_adjustment[4];
+
+	button_ips_ok = lookup_widget("buttonIPS_ok");
+	button_cc_ok = lookup_widget("button_cc_ok");
+	button_spcc_ok = lookup_widget("button_spcc_ok");
+	catalog_label = lookup_widget("GtkLabelCatalog");
+	astrometry_catalog_label = lookup_widget("astrometry_catalog_label");
+	pcc_catalog_label = lookup_widget("photometric_catalog_label");
+	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
+	catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
+	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
+	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
+	frame_cc_bkg = lookup_widget("frame_cc_background");
+	force_platesolve = lookup_widget("force_astrometry_button");
+	lasnet = lookup_widget("localasnet_check_button");
+	spcc_options = lookup_widget("spcc_options");
+	stardet = lookup_widget("Frame_IPS_star_detection");
+	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
+
+	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
+
+	selection_cc_black_adjustment[0] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_x"));
+	selection_cc_black_adjustment[1] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_y"));
+	selection_cc_black_adjustment[2] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_w"));
+	selection_cc_black_adjustment[3] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_h"));
+
+	gtk_widget_set_visible(button_ips_ok, FALSE);
+	gtk_widget_set_visible(button_cc_ok, FALSE);
+	gtk_widget_set_visible(button_spcc_ok, TRUE);
+	gtk_widget_set_visible(catalog_label, FALSE);
+	gtk_widget_set_visible(astrometry_catalog_label, FALSE);
+	gtk_widget_set_visible(pcc_catalog_label, FALSE);
+	gtk_widget_set_visible(catalog_label_pcc, FALSE);
+	gtk_widget_set_visible(stardet, FALSE);
+	gtk_widget_set_visible(catalog_box_ips, FALSE);
+	gtk_widget_set_visible(catalog_box_pcc, FALSE);
+	gtk_widget_set_visible(catalog_auto, FALSE);
+	gtk_widget_set_visible(frame_cc_bkg, TRUE);
+	gtk_widget_set_visible(force_platesolve, TRUE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
+	gtk_widget_set_visible(lasnet, FALSE);
+	gtk_widget_set_visible(spcc_options, TRUE);
+	gtk_widget_grab_focus(button_cc_ok);
+	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), FALSE);
+	gtk_expander_set_expanded(GTK_EXPANDER(spcc_options), TRUE);
+
+	gtk_window_set_title(parent, _("Spectrophotometric Color Calibration"));
+
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[0], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[1], gfit.ry);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[2], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[3], gfit.ry);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[0], 0);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[1], 0);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
+
+	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
+}
+
+
 int get_photometry_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
 	if (gtk_combo_box_get_active(box) == 2)
-		return CAT_GAIADR3_DIRECT;
+		return CAT_GAIADR3;
 	else if (gtk_combo_box_get_active(box) == 1)
 		return CAT_APASS;
 	return CAT_NOMAD;
@@ -194,6 +278,18 @@ int get_photometry_catalog_from_GUI() {
  */
 
 void on_button_cc_ok_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *auto_bkg;
+
+	auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
+
+	if ((!gtk_toggle_button_get_active(auto_bkg)) && (!is_selection_ok())) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the background area"));
+	}
+	else start_photometric_cc();
+}
+
+void on_button_spcc_ok_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *auto_bkg;
 
 	auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
@@ -244,7 +340,7 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
 		have_local_cat = local_catalogues_available();
 	}
-	if (gtk_combo_box_get_active(combo) == 1 || !have_local_cat) // 1 = APASS
+	if (gtk_combo_box_get_active(combo) > 0 || !have_local_cat) // 1 = APASS
 		gtk_label_set_text(photocat_label, _("(online catalogue)"));
 	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
 }

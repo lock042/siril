@@ -48,6 +48,8 @@ broad_filter broad_band_filters[] = {
 	{ "#2 (blue)", "#0000ff" },
 };
 
+// TODO: this function should be replaced by the CIE cmfs from algos/photometric_cc.c for consistency
+// Still need to decide on CIE 1931 2 degree or 1964 10 degree
 void wavelength_to_XYZ(float wavelength, float *X, float *Y, float *Z) {
     float Xt1 = (wavelength - 442.0f) *
                 ((wavelength < 442.0f) ? 0.0624f : 0.0374f);

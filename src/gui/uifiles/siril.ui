@@ -1985,6 +1985,21 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="position">2</property>
           </packing>
         </child>
+        <child>
+          <object class="GtkModelButton" id="proc_spcc">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
+            <property name="action-name">win.spcc-processing</property>
+            <property name="text" translatable="yes">Spectrophotometric Color Calibration...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
       </object>
       <packing>
         <property name="submenu">menu_cc</property>

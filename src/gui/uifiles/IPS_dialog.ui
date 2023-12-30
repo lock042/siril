@@ -71,6 +71,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_spcc_max_stars">
+    <property name="lower">100</property>
+    <property name="upper">5000</property>
+    <property name="value">1000</property>
+    <property name="step-increment">100</property>
+    <property name="page-increment">1000</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_cc_bkg_h">
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -166,6 +173,23 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_spcc_ok">
+                <property name="label" translatable="yes">OK</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_button_spcc_ok_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -699,7 +723,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=4 n-rows=3 -->
+                  <!-- n-columns=4 n-rows=4 -->
                   <object class="GtkGrid" id="GtkGridIPS2">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -814,7 +838,8 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Choose the online catalogue against one want to compare the image and compute photometry.
 * NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
-* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.</property>
+* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.
+* Gaia Data Release 3 was released on 13 June 2022. Photometry is given for around 1.46 billion sources, with a limiting magnitude of G = 21. It uses different filters from Johnson B and V, however it provides measures of source effective temperature based on the source's spectrum, and Siril uses this Teff for PCC.</property>
                         <property name="active">0</property>
                         <items>
                           <item>NOMAD</item>
@@ -864,6 +889,38 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="left-attach">3</property>
                         <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="name">spcc_max_stars_label</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">SPCC Max Stars:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="SPCC_max_stars">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Maximum number of stars processed for SPCC. Up to a point, more stars may give a more accurate result, but will be slower to retrieve from the catalog and to process. The absolute maximum is 5000 as this is the maximum number of sources in a single Gaia DR3 datalink request.</property>
+                        <property name="adjustment">adj_spcc_max_stars</property>
+                        <property name="value">1000</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
@@ -1109,6 +1166,175 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkExpander" id="spcc_options">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <child>
+                  <!-- n-columns=3 n-rows=4 -->
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="column-homogeneous">True</property>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_wp">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">White Point Reference</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_sensor_mono">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Mono Sensor</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">RGB Filters</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_sensor_mono">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item id="&lt;Enter ID&gt;" translatable="yes">Sony IMX571 (ZWO ASI2600MM etc.)</item>
+                        </items>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_whitepoint">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item translatable="yes">D58 (Solar black body temperature)</item>
+                          <item translatable="yes">Average Elliptical Galaxy</item>
+                          <item translatable="yes">Average Spiral Galaxy</item>
+                          <item translatable="yes">D50 (sun low in the sky)</item>
+                          <item translatable="yes">D65 (midday sun)</item>
+                        </items>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_filters">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">5</property>
+                        <items>
+                          <item translatable="yes">Antlia RGB</item>
+                          <item translatable="yes">Astrodon RGB</item>
+                          <item translatable="yes">Astronomik RGB</item>
+                          <item translatable="yes">Baader RGB</item>
+                          <item translatable="yes">Chroma RGB</item>
+                          <item translatable="yes">Optolong RGB</item>
+                          <item translatable="yes">ZWO RGB</item>
+                        </items>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton">
+                        <property name="label" translatable="yes">Mono sensor</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_sensor_rgb">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">RGB Sensor</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_sensor_rgb">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item translatable="yes">Canon EOS 600D (Rebel T3i)</item>
+                        </items>
+                        <style>
+                          <class name="Canon EOS 600D / Rebel T3i"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">SPCC Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>

@@ -91,6 +91,7 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "saturation-processing", saturation_activate },
 	{ "color-calib-processing", color_calib_activate },
 	{ "pcc-processing", pcc_activate },
+	{ "spcc-processing", spcc_activate },
 	{ "align-dft", align_dft_activate },
 	{ "align-psf", align_psf_activate },
 	{ "split-channel-processing", split_channel_activate }
@@ -195,6 +196,7 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		"saturation-processing",
 		"color-calib-processing",
 		"pcc-processing",
+		"spcc-processing",
 		"split-channel-processing",
 		NULL,
 	};

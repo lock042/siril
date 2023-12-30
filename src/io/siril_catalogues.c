@@ -143,7 +143,10 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 		case CAT_TYCHO2:
 		case CAT_NOMAD:
 		case CAT_GAIADR3:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF) | (1 << CAT_FIELD_XPSAMP) | (1 << CAT_FIELD_GAIASOURCEID);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF);
+		case CAT_GAIADR3_DIRECT:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF) |
+			(1 << CAT_FIELD_GAIASOURCEID);
 		case CAT_PPMXL:
 		case CAT_BSC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
@@ -228,7 +231,9 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_NOMAD:
 			return _("NOMAD");
 		case CAT_GAIADR3:
-			return _("Gaia DR3");
+			return _("Gaia DR3 (via Vizier)");
+		case CAT_GAIADR3_DIRECT:
+			return _("Gaia DR3 (direct)");
 		case CAT_PPMXL:
 			return _("PPMXL");
 		case CAT_BSC:

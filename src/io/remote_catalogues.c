@@ -96,8 +96,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Gmag");
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("BPmag");
 			tap->tap_columns[CAT_FIELD_TEFF] = g_strdup("Teff");
-			tap->tap_columns[CAT_FIELD_XPSAMP] = g_strdup("XPsamp");
-			tap->tap_columns[CAT_FIELD_GAIASOURCEID] = g_strdup("Source");
 			break;
 		case CAT_GAIADR3_DIRECT:
 			tap->catcode = g_strdup("gaiadr3.gaia_source");
@@ -109,7 +107,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("phot_g_mean_flux");
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("phot_bp_mean_flux");
 			tap->tap_columns[CAT_FIELD_TEFF] = g_strdup("teff_gspphot");
-			tap->tap_columns[CAT_FIELD_XPSAMP] = g_strdup("has_xp_sampled");
 			tap->tap_columns[CAT_FIELD_GAIASOURCEID] = g_strdup("source_id");
 			break;
 		case CAT_PPMXL:

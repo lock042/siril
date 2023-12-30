@@ -3714,7 +3714,7 @@ spectral_intensity* get_xpsampled(gchar *filename, int i, int min_wl, int max_wl
 	// The wavelength range is always the same for all xpsampled spectra
 #define WAVESTAR 336
 #define WAVEEND 1020
-    int status, num_hdus, anynul, wlcol, fluxcol;
+    int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
     long nrows, firstrow, nelements;
 	// We open a separate fptr so that multiple threads can operate on the file
 	// simultaneously, reading data from different HDUs corresponding to different sources.
@@ -3753,11 +3753,21 @@ spectral_intensity* get_xpsampled(gchar *filename, int i, int min_wl, int max_wl
         fits_report_error(stderr, status);
         goto error;
     }
-    if (fits_read_col(fptr, TFLOAT, wlcol, firstrow, 0, nelements, NULL, xpsampled->wl, &anynul, &status)) {
+
+    // Test code, can be reoved once happy with the data content
+    int typecode;
+	long repeat, width;
+    fits_get_coltype(fptr, wlcol, &typecode, &repeat, &width, &status);
+	printf("Wavelength col typecode: %d, width in bytes: %ld\n", typecode, width);
+    fits_get_coltype(fptr, fluxcol, &typecode, &repeat, &width, &status);
+	printf("Flux col typecode: %d, width in bytes: %ld\n", typecode, width);
+	// End of test code
+
+	if (fits_read_col(fptr, TFLOAT, wlcol, firstrow, 1, nelements, NULL, xpsampled->wl, &anynul, &status)) {
         fits_report_error(stderr, status);
         goto error;
     }
-    if (fits_read_col(fptr, TFLOAT, fluxcol, firstrow, 0, nelements, NULL, xpsampled->si, &anynul, &status)) {
+    if (fits_read_col(fptr, TFLOAT, fluxcol, firstrow, 1, nelements, NULL, xpsampled->si, &anynul, &status)) {
         fits_report_error(stderr, status);
         goto error;
     }
