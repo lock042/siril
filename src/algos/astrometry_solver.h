@@ -45,6 +45,7 @@ struct astrometry_data {
 	double scalefactor;	// scale factor accounting for downscale if any
 
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
+	gboolean for_photometry_spcc; // proceed to SPCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration
 
 	/* program-processed input, by process_plate_solver_input() */

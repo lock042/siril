@@ -73,6 +73,7 @@ static void start_photometric_cc() {
 		args->fit = &gfit;
 
 		args->for_photometry_cc = TRUE;
+		args->for_photometry_spcc = FALSE;
 
 		args->pcc = pcc_args;
 		args->pcc->fit = &gfit;
@@ -96,6 +97,59 @@ static void start_photometric_cc() {
 		get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
+	}
+}
+
+static void start_spectrophotometric_cc() {
+	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
+	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
+	gboolean plate_solve;
+
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("There is no valid WCS information in the header. Let's make a plate solving.\n"), "salmon");
+		plate_solve = TRUE;
+	} else {
+		plate_solve = gtk_toggle_button_get_active(force_platesolve_button);
+		if (plate_solve)
+			siril_log_message(_("Plate solving will be recomputed for image\n"));
+		else siril_log_message(_("Existing plate solve (WCS information) will be resused for image\n"));
+	}
+
+	struct astrometry_data *args = NULL;
+	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+
+	// No choice of catalog for SPCC, Gaia DR3 is always used
+	pcc_args->catalog = CAT_GAIADR3_DIRECT;
+
+	if (plate_solve) {
+		args = calloc(1, sizeof(struct astrometry_data));
+		args->fit = &gfit;
+
+		args->for_photometry_cc = FALSE;
+		args->for_photometry_spcc = TRUE;
+
+		args->pcc = pcc_args;
+		args->pcc->fit = &gfit;
+		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
+		args->pcc->bg_area = get_bkg_selection();
+	}
+
+	pcc_args->fit = &gfit;
+	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
+	pcc_args->mag_mode = LIMIT_MAG_AUTO;
+
+	set_cursor_waiting(TRUE);
+
+	if (plate_solve) {
+		if (!fill_plate_solver_structure_from_GUI(args)) {
+			pcc_args->mag_mode = args->mag_mode;
+			pcc_args->magnitude_arg = args->magnitude_arg;
+			start_in_new_thread(plate_solver, args);
+		}
+	} else {
+		get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		start_in_new_thread(spectrophotometric_cc_standalone, pcc_args);
 	}
 }
 
@@ -263,7 +317,6 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 }
 
-
 int get_photometry_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
 	if (gtk_combo_box_get_active(box) == 2)
@@ -272,6 +325,87 @@ int get_photometry_catalog_from_GUI() {
 		return CAT_APASS;
 	return CAT_NOMAD;
 }
+
+void get_pipeline_from_ui(spectral_pipeline* pipeline, int chan, int min_wl, int max_wl) {
+	if (!pipeline) {
+		siril_debug_print("Error: pipeline not allocated!\n");
+		return;
+	}
+	mono_sensor_t selected_sensor_m;
+	rgb_sensor_t selected_sensor_rgb;
+	GtkWidget *mono_sensor_check = lookup_widget("mono_sensor_check");
+	gboolean sensor_is_mono = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
+	GtkWidget *sensor = sensor_is_mono ? lookup_widget("combo_spcc_sensor_mono") : lookup_widget("combo_spcc_sensor_rgb");
+	GtkWidget *filters = lookup_widget("combo_spcc_filters");
+	filter_t selected_filters = gtk_combo_box_get_active(GTK_COMBO_BOX(filters));
+	if (!sensor_is_mono && selected_filters > MAX_OSC_FILTER) {
+		gchar* msg = _("Warning: chosen filter is not an OSC filter!\n");
+		siril_log_color_message(msg, "salmon");
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), msg);
+	}
+
+	if (selected_filters == FILTER_NONE)
+		pipeline->n = 1;
+	else
+		pipeline->n = 2;
+	pipeline->si = calloc(pipeline->n, sizeof(spectral_intensity));
+
+	if (sensor_is_mono) {
+		selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(sensor));
+		switch (selected_sensor_m) {
+			case IMX571M:
+				memcpy(&pipeline->si[0], &Sony_IMX571M, sizeof(spectral_intensity));
+				break;
+			// Add other mono sensors here
+		}
+		switch (selected_filters) {
+			case FILTER_NONE:
+				break;
+			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
+			case FILTER_L_ENHANCE:
+			case FILTER_DUAL:
+			case FILTER_QUAD:
+			case ANTLIA:
+			case ASTRODON:
+			case ASTRONOMIK:
+			case BAADER:
+			case CHROMA:
+			case OPTOLONG:
+			case ZWO:
+				memcpy(&pipeline->si[1], chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue, sizeof(spectral_intensity));
+				break;
+		}
+	} else {
+		selected_sensor_rgb = gtk_combo_box_get_active(GTK_COMBO_BOX(sensor));
+		switch (selected_sensor_rgb) {
+			case CANONT3I:
+				// TODO: Obviously wrong, need to populate with the correct data once OSC camera response curves are scanned in
+				memcpy(&pipeline->si[0], chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue, sizeof(spectral_intensity));
+				break;
+			// Add other RGB sensors here
+		}
+		switch (selected_filters) {
+			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
+			case FILTER_L_ENHANCE:
+			case FILTER_DUAL:
+			case FILTER_QUAD:
+				// TODO: Obviously wrong, need to populate with the correct data once I have obtained it
+				memcpy(&pipeline->si[1], chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue, sizeof(spectral_intensity));
+				break;
+			case ANTLIA:
+			case ASTRODON:
+			case ASTRONOMIK:
+			case BAADER:
+			case CHROMA:
+			case OPTOLONG:
+			case ZWO:
+			default:
+				// Do nothing for FILTER_NONE
+				break;
+		}
+	}
+}
+
 
 /*****
  * CALLBACKS FUNCTIONS
@@ -298,7 +432,7 @@ void on_button_spcc_ok_clicked(GtkButton *button, gpointer user_data) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the background area"));
 	}
-	else start_photometric_cc();
+	else start_spectrophotometric_cc();
 }
 
 void on_button_cc_bkg_auto_toggled(GtkToggleButton *button,

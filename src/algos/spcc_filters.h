@@ -21,12 +21,6 @@
 #ifndef SPCC_FILTERS_H
 #define SPCC_FILTERS_H
 
-// Define the filters
-spectral_intensity Johnson_B, Johnson_V, Optolong_Blue, Optolong_Green, Optolong_Red;
-
-// Define the sensors
-spectral_intensity Sony_IMX571M;
-
 // Sensor transmittance data
 float Johnson_UBVI_wl[] = {	360.f, 370.f, 380.f, 390.f, 400.f, 410.f, 420.f, 430.f, 440.f, 450.f, 460.f, 470.f,
 									480.f, 490.f, 500.f, 510.f, 520.f, 530.f, 540.f, 550.f, 560.f, 570.f, 580.f, 590.f,

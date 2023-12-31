@@ -211,6 +211,10 @@ static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
  */
 
 /* TODO: fetch_url is also defined in siril update checking, can we merge them? */
+/* NOTE: checked while writing SPCC code, the two fetch_urls look mergeable
+ * with a little extra code added to check_updates. We should probably split
+ * all the networking code out into a new file core/siril_networking.[ch]
+ */
 
 #ifdef HAVE_LIBCURL // the alternative is glib-networking, see the else below
 
@@ -267,7 +271,7 @@ retrieve:
 	content->len = 0;
 
 	CURLcode ret = curl_easy_setopt(curl, CURLOPT_URL, url);
-	ret |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
+	ret |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	ret |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
 	ret |= curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE_STRING);
@@ -1005,206 +1009,216 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
     const gchar *host = "https://gea.esac.esa.int";
 	GString *querystring = NULL;
     const gchar *pathinfo = "/tap-server/tap/async/";
+	gchar *str = NULL, *url = NULL, *data = NULL, *buffer = NULL;
+	GString *datalink_url = NULL;
+	GOutputStream *output_stream = NULL;
+	GFile *file = NULL;
+	gboolean remove_file = FALSE;
 
-	// Set up query
-	gchar *fmtstr;
-	const gchar **cat_columns = get_cat_colums_names();
-	cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index);
-	uint32_t catcols = siril_catalog_columns(siril_cat->cat_index);
-	querystring = g_string_new("LANG=ADQL&FORMAT=csv&QUERY=SELECT+TOP+1000+"); // We ignore the cat_server as the URL is dealt with elsewhere
-	// Maximum 1000 stars. This is plenty, and should keep things manageable and below the maximum Datalink sources number of 5000.
-	gboolean first = TRUE;
-	for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
-		if (fields->tap_columns[i]) {
-			g_string_append_printf(querystring, "%s%s+as+%s", (first) ? "" : ",", fields->tap_columns[i], cat_columns[i]);
-			if (first)
-				first = FALSE;
-		}
-	}
-	g_string_append_printf(querystring,"+FROM+%s", fields->catcode);
-	g_string_append_printf(querystring,"+WHERE+has_xp_sampled+=+'True'&CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
-	fmtstr = g_strdup_printf("CIRCLE('ICRS',%s,%s,%s))=1", rafmt, decfmt, radiusfmt);
-	g_string_append_printf(querystring, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
-	g_free(fmtstr);
-	if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG)) {
-		fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
-		g_string_append_printf(querystring, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
-		g_free(fmtstr);
-	}
-	free_cat_tap_query_fields(fields);
-
-	// Create job
-    gchar *url = g_strdup_printf("%s%s", host, pathinfo);
-    gchar *data = g_strdup_printf(
-        "PHASE=run&"
-        "LANG=ADQL&"
-        "FORMAT=csv&"
-		"REQUEST=doQuery&"
-        "%s", querystring->str
-    );
-	siril_debug_print("Query data: %s\n", data);
-    gchar *job_id = NULL;
-    submit_async_request(url, data, &job_id);
-
-    // Print job id
-    if (job_id == NULL) {
-        g_print("Job id not found in the response.\n");
-		goto tap_error_and_cleanup;
-    }
-
-    // Wait until the job is finished
-    // Possible IVOA UWS statuses are: PENDING, QUEUED, EXECUTING, COMPLETED, ERROR, ABORTED
-	//Timeout 1 minute in us
-    gchar* job_check = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s", job_id);
-	uint64_t timer = 0;
-	gboolean success = FALSE;
-    while (1) {
-		if (timer > ASYNC_JOB_TIMEOUT) { // Avoid infinite loop
-			siril_log_color_message(_("Timeout on Gaia DR3 query\n"), "red");
-			break;
-		}
-		gchar* buffer = fetch_url(job_check, &length);
-		gboolean error = (g_strrstr(buffer, "ERROR") != NULL);
-		if (!error)
-			error = (g_strrstr(buffer, "ABORTED") != NULL);
-		if (error) {
-			siril_log_color_message(_("Gaia DR3 async query failed, unable to continue.\n"), "red");
-			break;
-		}
-		gboolean completed = (g_strrstr(buffer,"COMPLETED") != NULL);
-		g_free(buffer);
-		if (completed) {
-			success = TRUE;
-			break;
-		}
-		g_usleep(200000);
-		timer += 200000;
-	}
-	g_free(job_check);
-
-	if (!success) // ERROR, ABORTED or timed out
-		goto tap_error_and_cleanup;
-
-	// Retrieve the TAP+ query result
-	gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
-	gchar *buffer = fetch_url(job_retrieval, &length);
-	siril_debug_print("Length: %lu\n", length);
-	g_free(job_retrieval);
-
-	// buffer is the CSV data for the standard Gaia DR3 TAP+ query, it gets saved to the usual catalogue location
-	/* check if catalogue already exists in cache */
-	gboolean catalog_is_in_cache;
-	GOutputStream *csvoutput_stream = NULL;
-	GFile *csvfile = NULL;
-
+	gboolean catalog_is_in_cache, retrieval_product_is_in_cache;
 	gchar *csvfilepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
-/*	if (catalog_is_in_cache) {	// TODO: Need to improve the check (cat must be the Gaia one and
-								// the FITS must be present!) Until then, always re-download it.
-		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cat_index));
-		return 2;
-	}*/
 	if (!csvfilepath) { // if the path is NULL, an error was caught earlier, just free and abort
 		return -1;
 	}
-
-	// the catalog needs to be downloaded, prepare the output stream
-	csvfile = g_file_new_for_path(csvfilepath);
-	csvoutput_stream = (GOutputStream*) g_file_create(csvfile, G_FILE_CREATE_NONE, NULL, &error);
-	if (!csvoutput_stream) {
-		goto tap_error_and_cleanup;
-	}
-	if (!g_output_stream_write_all(csvoutput_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
-		g_warning("%s\n", error->message);
-//		remove_file = TRUE;
-		goto tap_error_and_cleanup;
-	}
-	// Populate the siril_catalog with the data from the initial query
-	int retval = siril_catalog_load_from_file(siril_cat, csvfilepath);
-	if (retval) {
-		goto tap_error_and_cleanup;
-	}
-	// Finished with the CSV filepath
-	g_free(csvfilepath);
-
-	// Now we can use the job ID to provide the source_ids for a Datalink query
-	GString *datalink_url = g_string_new("https://gea.esac.esa.int/data-server/data?RETRIEVAL_TYPE=");
-	// Append the retrieval type string
-	switch (type) {
-		case EPOCH_PHOTOMETRY:
-			g_string_append(datalink_url, "EPOCH_PHOTOMETRY");
-			break;
-		case XP_SAMPLED:
-			g_string_append(datalink_url, "XP_SAMPLED");
-			break;
-		case XP_CONTINUOUS:
-			g_string_append(datalink_url, "XP_CONTINUOUS");
-			break;
-		case MCMC_GSPPHOT:
-			g_string_append(datalink_url, "MCMC_GSPPHOT");
-			break;
-		case MCMC_MSC:
-			g_string_append(datalink_url, "MCMC_MSC");
-			break;
-		case RVS:
-			g_string_append(datalink_url, "RVS");
-			break;
-		case ALL:
-			g_string_append(datalink_url, "ALL");
-			break;
-		default:
-			siril_debug_print("Error: siril_gaiadr3_datalink_query called with unsupported retrieval type, cannot proceed\n");
-			goto datalink_download_error;
-	}
-
-	// Set the data structure and format. Siril will always consume the data as FITS,
-	// as we already use libcfitsio and it's easier than adding support for VOTables
-	g_string_append(datalink_url, "&DATA_STRUCTURE=COMBINED&FORMAT=FITS");
-
-	// Append the source IDs (using the job number)
-	g_string_append(datalink_url, "&ID=job:");
-	g_string_append(datalink_url,job_id);
-	g_string_append(datalink_url, ".source_id");
-
-	siril_debug_print("Datalink url: %s\n", datalink_url->str);
-	gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
-	siril_debug_print("Length: %lu\n", length);
-	g_string_free(datalink_url, TRUE);
-	datalink_url = NULL;
-
-	gchar *str = NULL, *filepath = NULL;
-	GOutputStream *output_stream = NULL;
-	GFile *file = NULL;
-	gboolean remove_file = FALSE, retrieval_product_is_in_cache = FALSE;
-
-	/* check if catalogue already exists in cache */
-	filepath = get_remote_catalogue_cached_path(siril_cat, &retrieval_product_is_in_cache, type);
-	*datalink_path = g_strdup(filepath);
-	g_free(str);
-
-	if (retrieval_product_is_in_cache) {
-		siril_log_message(_("Using already downloaded datalink product\n"));
-
-		return 0;
-	}
+	gchar *filepath = get_remote_catalogue_cached_path(siril_cat, &retrieval_product_is_in_cache, type);
 	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
+		return -1;
+	}
+	if (!(catalog_is_in_cache && retrieval_product_is_in_cache)) {
+
+		// Set up query
+		gchar *fmtstr;
+		const gchar **cat_columns = get_cat_colums_names();
+		cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index);
+		uint32_t catcols = siril_catalog_columns(siril_cat->cat_index);
+		querystring = g_string_new("LANG=ADQL&FORMAT=csv&QUERY=SELECT+TOP+1000+"); // We ignore the cat_server as the URL is dealt with elsewhere
+		// Maximum 1000 stars. This is plenty, and should keep things manageable and below the maximum Datalink sources number of 5000.
+		// TODO: make the max stars configurable in the UI, up to 5000
+		gboolean first = TRUE;
+		for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
+			if (fields->tap_columns[i]) {
+				g_string_append_printf(querystring, "%s%s+as+%s", (first) ? "" : ",", fields->tap_columns[i], cat_columns[i]);
+				if (first)
+					first = FALSE;
+			}
+		}
+		g_string_append_printf(querystring,"+FROM+%s", fields->catcode);
+		g_string_append_printf(querystring,"+WHERE+has_xp_sampled+=+'True'&CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
+		fmtstr = g_strdup_printf("CIRCLE('ICRS',%s,%s,%s))=1", rafmt, decfmt, radiusfmt);
+		g_string_append_printf(querystring, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
+		g_free(fmtstr);
+		if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG)) {
+			fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
+			g_string_append_printf(querystring, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
+			g_free(fmtstr);
+		}
+		free_cat_tap_query_fields(fields);
+
+		// Create job
+		url = g_strdup_printf("%s%s", host, pathinfo);
+		data = g_strdup_printf(
+			"PHASE=run&"
+			"LANG=ADQL&"
+			"FORMAT=csv&"
+			"REQUEST=doQuery&"
+			"%s", querystring->str
+		);
+		siril_debug_print("Query data: %s\n", data);
+		gchar *job_id = NULL;
+		submit_async_request(url, data, &job_id);
+
+		// Print job id
+		if (job_id == NULL) {
+			g_print("Job id not found in the response.\n");
+			goto tap_error_and_cleanup;
+		}
+
+		// Wait until the job is finished
+		// Possible IVOA UWS statuses are: PENDING, QUEUED, EXECUTING, COMPLETED, ERROR, ABORTED
+		//Timeout 1 minute in us
+		gchar* job_check = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s", job_id);
+		uint64_t timer = 0;
+		gboolean success = FALSE;
+		while (1) {
+			if (timer > ASYNC_JOB_TIMEOUT) { // Avoid infinite loop
+				siril_log_color_message(_("Timeout on Gaia DR3 query\n"), "red");
+				break;
+			}
+			buffer = fetch_url(job_check, &length);
+			gboolean error = (g_strrstr(buffer, "ERROR") != NULL);
+			if (!error)
+				error = (g_strrstr(buffer, "ABORTED") != NULL);
+			if (error) {
+				siril_log_color_message(_("Gaia DR3 async query failed, unable to continue.\n"), "red");
+				break;
+			}
+			gboolean completed = (g_strrstr(buffer,"COMPLETED") != NULL);
+			g_free(buffer);
+			if (completed) {
+				success = TRUE;
+				break;
+			}
+			g_usleep(200000);
+			timer += 200000;
+		}
+		g_free(job_check);
+
+		if (!success) // ERROR, ABORTED or timed out
+			goto tap_error_and_cleanup;
+
+		// Retrieve the TAP+ query result
+		gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
+		gchar *buffer = fetch_url(job_retrieval, &length);
+		siril_debug_print("Length: %lu\n", length);
+		g_free(job_retrieval);
+
+		// buffer is the CSV data for the standard Gaia DR3 TAP+ query, it gets saved to the usual catalogue location
+		/* check if catalogue already exists in cache */
+		GOutputStream *csvoutput_stream = NULL;
+		GFile *csvfile = NULL;
+
+		// the catalog needs to be downloaded, prepare the output stream
+		csvfile = g_file_new_for_path(csvfilepath);
+		csvoutput_stream = (GOutputStream*) g_file_create(csvfile, G_FILE_CREATE_NONE, NULL, &error);
+		if (!csvoutput_stream) {
+			goto tap_error_and_cleanup;
+		}
+		if (!g_output_stream_write_all(csvoutput_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
+			g_warning("%s\n", error->message);
+	//		remove_file = TRUE;
+			goto tap_error_and_cleanup;
+		}
+		// Populate the siril_catalog with the data from the initial query
+		int retval = siril_catalog_load_from_file(siril_cat, csvfilepath);
+		if (retval) {
+			goto tap_error_and_cleanup;
+		}
+		// Finished with the CSV filepath
+		g_free(csvfilepath);
+
+		// Now we can use the job ID to provide the source_ids for a Datalink query
+		datalink_url = g_string_new("https://gea.esac.esa.int/data-server/data?RETRIEVAL_TYPE=");
+		// Append the retrieval type string
+		switch (type) {
+			case EPOCH_PHOTOMETRY:
+				g_string_append(datalink_url, "EPOCH_PHOTOMETRY");
+				break;
+			case XP_SAMPLED:
+				g_string_append(datalink_url, "XP_SAMPLED");
+				break;
+			case XP_CONTINUOUS:
+				g_string_append(datalink_url, "XP_CONTINUOUS");
+				break;
+			case MCMC_GSPPHOT:
+				g_string_append(datalink_url, "MCMC_GSPPHOT");
+				break;
+			case MCMC_MSC:
+				g_string_append(datalink_url, "MCMC_MSC");
+				break;
+			case RVS:
+				g_string_append(datalink_url, "RVS");
+				break;
+			case ALL:
+				g_string_append(datalink_url, "ALL");
+				break;
+			default:
+				siril_debug_print("Error: siril_gaiadr3_datalink_query called with unsupported retrieval type, cannot proceed\n");
+				goto datalink_download_error;
+		}
+
+		// Set the data structure and format. Siril will always consume the data as FITS,
+		// as we already use libcfitsio and it's easier than adding support for VOTables
+		g_string_append(datalink_url, "&DATA_STRUCTURE=COMBINED&FORMAT=FITS");
+
+		// Append the source IDs (using the job number)
+		g_string_append(datalink_url, "&ID=job:");
+		g_string_append(datalink_url,job_id);
+		g_string_append(datalink_url, ".source_id");
+
+		siril_debug_print("Datalink url: %s\n", datalink_url->str);
+		gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
+		siril_debug_print("Length: %lu\n", length);
+		g_string_free(datalink_url, TRUE);
+		datalink_url = NULL;
+
+
+
+		if (retrieval_product_is_in_cache) {
+			siril_log_message(_("Using already downloaded datalink product\n"));
+
+			return 0;
+		}
+		if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
+			g_free(str);
+			return 0;
+		}
+
+		// the catalog needs to be downloaded, prepare the output stream
+		file = g_file_new_for_path(filepath);
+		output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
+		if (!output_stream) {
+			goto datalink_download_error;
+		}
+		if (!g_output_stream_write_all(output_stream, datalink_buffer, length, NULL, NULL, &error)) {
+			g_warning("%s\n", error->message);
+			remove_file = TRUE;
+			goto datalink_download_error;
+		}
+		siril_log_message(_("Datalink query succeeded: cached as %s\n"), filepath);
+		*datalink_path = g_strdup(filepath);
 		g_free(str);
 		return 0;
+	} else {
+		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cat_index));
+		// Populate the siril_catalog with the data from the initial query
+		int retval = siril_catalog_load_from_file(siril_cat, csvfilepath);
+		*datalink_path = g_strdup(filepath);
+		if (retval) {
+			goto tap_error_and_cleanup;
+		}
+		g_free(csvfilepath);
+		return 0;
 	}
-
-	// the catalog needs to be downloaded, prepare the output stream
-	file = g_file_new_for_path(filepath);
-	output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
-	if (!output_stream) {
-		goto datalink_download_error;
-	}
-	if (!g_output_stream_write_all(output_stream, datalink_buffer, length, NULL, NULL, &error)) {
-		g_warning("%s\n", error->message);
-		remove_file = TRUE;
-		goto datalink_download_error;
-	}
-	siril_log_message(_("Datalink query succeeded: cached as %s\n"), filepath);
-	// TODO: Need to use the file now. Return the filename and use from the calling function?
-	return 0;
 
 tap_error_and_cleanup:
 	// Cleanup

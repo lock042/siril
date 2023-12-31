@@ -423,6 +423,9 @@ gpointer plate_solver(gpointer p) {
 	args->message = NULL;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
+	if (args->for_photometry_spcc) {
+		args->ref_stars->cat_index = CAT_GAIADR3;
+	}
 	if (args->verbose) {
 		if (args->ref_stars->cat_index == CAT_ASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
@@ -615,6 +618,16 @@ gpointer plate_solver(gpointer p) {
 				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 				siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
 			}
+		}
+	} else if (args->for_photometry_spcc) {
+		args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
+		args->ref_stars->phot = TRUE;
+		siril_catalog_free_items(args->ref_stars);
+		args->pcc->fwhm = filtered_FWHM_average(stars, nb_stars);
+		if (args->downsample)
+			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
+		if (spectrophotometric_cc_standalone(args->pcc)) {
+			args->ret = ERROR_PHOTOMETRY;
 		}
 	}
 

@@ -41,6 +41,7 @@
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "gui/progress_and_log.h"
+#include "gui/photometric_cc.h"
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
@@ -111,10 +112,11 @@ float z1964(float w) {
 	return 2.06f*expf( -32.0f*powf(logf((w-266.0f)/180.4f),2.f));
 }
 
-void si_free(spectral_intensity *foo) {
+void si_free(spectral_intensity *foo, gboolean free_struct) {
 	free(foo->wl);
 	free(foo->si);
-	free(foo);
+	if (free_struct)
+		free(foo);
 	return;
 }
 
@@ -784,7 +786,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 }
 
 /* run the SPCC using the existing star list of the image from the provided file */
-int spectrophotometric_cc(struct photometric_cc_data *args) {
+gpointer spectrophotometric_cc_standalone(gpointer p) {
+	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
 	float kw[3];
 	coeff bg[3];
 	float mins[3];
@@ -811,7 +814,7 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 	if (get_stats_coefficients(args->fit, bkg_sel, bg, mins, maxs, &norm_channel)) {
 		siril_log_message(_("failed to compute statistics on image, aborting\n"));
 		free(args);
-		return 1;
+		return GINT_TO_POINTER(1);
 	}
 	siril_log_message(_("Normalizing on %s channel.\n"), (norm_channel == 0) ? _("red") : ((norm_channel == 1) ? _("green") : _("blue")));
 
@@ -827,10 +830,11 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 
 	//	Calculate filter responses at 2nm spacing from 380nm to 700nm
 	//	Either look up the responses (for OSC) or calculate as a product of filter_resp * QE
-	spectral_pipeline *pipeline[3] = { NULL };
-/*	for (int chan = 0 ; chan < 3 ; chan++) {
-		pipeline[chan] = get_pipeline_from_ui(chan, 380, 700);
-	}*/
+	spectral_pipeline *pipeline[3];
+	for (int chan = 0 ; chan < 3 ; chan++) {
+		pipeline[chan] = calloc(1, sizeof(spectral_pipeline));
+		get_pipeline_from_ui(pipeline[chan], chan, 380, 700);
+	}
 
 	// Calculate effective primaries (and get the desired white point while we're
 	// at it) for later
@@ -845,6 +849,10 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 	//	Do a Gaia DR3 cone search and retrieve the reference stars CSV and the
 	//	xp_sampled FITS
 	gchar *datalink_path = NULL;
+	if (!args->ref_stars) {
+		args->ref_stars = calloc(1, sizeof(siril_catalogue));
+		args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
+	}
 	siril_gaiadr3_datalink_query(args->ref_stars, XP_SAMPLED, &datalink_path);
 
 	struct phot_config *ps = phot_set_adjusted_for_image(args->fit);
@@ -860,12 +868,15 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 		spectral_intensity *xp_sampled = get_xpsampled(datalink_path, i, 380.f, 700.f);
 		float ref_flux[3] = { 0.f };
 		for (int chan = 0 ; chan < 3 ; chan++) {
+			// TODO: errors here. Reconsider the pipeline structure
+			// (preallocated for sensor + filter + spectrum?)
 			pipeline[chan]->si = realloc(pipeline[chan]->si, pipeline[chan]->n+1);
 			pipeline[chan]->si[pipeline[chan]->n] = *xp_sampled;
 			pipeline[chan]->n++;
 			// Multiply by the filter responses
 			ref_flux[chan] = integrate_pipeline(pipeline[chan]);
-			si_free(&pipeline[chan]->si[pipeline[chan]->n--]);
+			pipeline[chan]->n--;
+			si_free(&pipeline[chan]->si[pipeline[chan]->n], FALSE);
 		}
 		// Obtain the expected ratios of R, G and B
 		float max_flux = max(max(ref_flux[0], ref_flux[1]), ref_flux[2]);
@@ -937,7 +948,7 @@ int spectrophotometric_cc(struct photometric_cc_data *args) {
 
 	com.pref.phot_set = backup;
 	free(args);
-	return ret;
+	return GINT_TO_POINTER(ret);
 }
 
 // TODO: remove pcc_star?
