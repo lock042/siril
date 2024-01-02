@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-30 10:39+0100\n"
-"PO-Revision-Date: 2024-01-01 13:17+0000\n"
+"PO-Revision-Date: 2024-01-04 08:41+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -9117,9 +9117,8 @@ msgid "Image Thumbnails"
 msgstr "Миниатюры изображений"
 
 #: src/gui/uifiles/settings_window.ui:3259
-#, fuzzy
 msgid "Default screen transfer function:"
-msgstr "Режим показа по умолчанию"
+msgstr "Режим просмотра по умолчанию:"
 
 #: src/gui/uifiles/settings_window.ui:3277
 msgid "Autostretch"
@@ -9530,7 +9529,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4430
 msgid "<b>Scripts Storage Directories</b>"
-msgstr "<b>Каталоги хранения сценариев</b>"
+msgstr "<b>Директории хранения сценариев</b>"
 
 #: src/gui/uifiles/settings_window.ui:4447
 msgid "Rescans the scripts folders and updates scripts menu."
@@ -9708,7 +9707,7 @@ msgid ""
 "the button to the right."
 msgstr ""
 "Устанавливает разрядность по умолчанию для расширенного режима "
-"авторастягивания. Бо́льшая разрядность требует экспоненциально бо́льшего "
+"авторастягивания. Бо́льшая разрядность требует экспоненциально бо́льших "
 "объёма памяти для LUT и времени для повторного вычисления, но гораздо лучше "
 "сглаживает артефакты квантования на изображениях с очень узкими пиками "
 "гистограммы. Разрядность по умолчанию будет применена следующем переключении "
@@ -19449,7 +19448,7 @@ msgstr "Не удалось создать образцы фона для изо
 
 #: src/core/settings.c:434
 msgid "configure standard annotation color"
-msgstr ""
+msgstr "настроить цвет стандартных аннотаций"
 
 #: src/core/settings.c:435
 msgid "configure dso annotation color"
