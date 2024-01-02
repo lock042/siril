@@ -73,6 +73,7 @@
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-8
+#define PLATESOLVE_STEP 100. // step made on CRPIX axes to compute the CD matrix
 
 #undef DEBUG		/* get some of diagnostic output */
 
@@ -789,27 +790,40 @@ static void extract_cdelt_from_cd(double cd1_1, double cd1_2, double cd2_1,
 }
 
 static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
-	double rotationa, rotationb, rotation;
+	double rotation1, rotation2, rotation;
 	char field_x[256] = "";
 	char field_y[256] = "";
+	gboolean report_flip = FALSE;
 
 	double cd[2][2];
 	wcs_pc_to_cd(args->fit->wcsdata.pc, args->fit->wcsdata.cdelt, cd);
-	rotationa = atan2(-args->fit->wcsdata.pc[1][0], args->fit->wcsdata.pc[0][0]);
-	rotationb = atan2(args->fit->wcsdata.pc[0][1], args->fit->wcsdata.pc[1][1]);
-	rotation = 0.5 * (rotationa + rotationb) * RADTODEG;
-
 	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
-	/* If the determinant of the top-left 2x2 rotation matrix is < 0
-	 * the transformation is orientation-preserving. */
+	/* 	If the determinant of the top-left 2x2 rotation matrix is < 0
+		the transformation is orientation-preserving.
+		i.e. the step in x must be made to the left
+	*/
+	double flip = (det < 0) ? 1. : -1.;
+	rotation1 = atan2(-flip * cd[0][1] / args->fit->wcsdata.cdelt[0], cd[0][0] / args->fit->wcsdata.cdelt[0]);
+	rotation2 = atan2( flip * cd[1][0] / args->fit->wcsdata.cdelt[1], cd[1][1] / args->fit->wcsdata.cdelt[1]);
+	siril_debug_print("rota1: %0.2f, rota2: %0.2f\n", rotation1 * RADTODEG, rotation2 * RADTODEG);
+	rotation = -0.5 * (rotation1 + rotation2) * RADTODEG; // we need to report clockwise directions
 
-	if (det > 0 && args->flip_image)
-		rotation = 180.0 - rotation;
+	if (det > 0) {
+		if (args->flip_image) {
+			rotation -= 180.0;
+		} else {
+			rotation *= -1.;
+			report_flip = TRUE; // we only report a flip if the image is not flipped afterwards
+		}
+	}
 	if (rotation < -180.0)
 		rotation += 360.0;
 	if (rotation > 180.0)
 		rotation -= 360.0;
-	siril_log_message(_("Up is %+.2lf deg ClockWise wrt. N%s\n"), rotation, det > 0.0 ? _(" (flipped)") : "");
+	if (90. - fabs(args->fit->wcsdata.dec) < 2.78e-3) // center is less than 10"off from a pole
+		siril_log_message(_("Up position wrt. N is undetermined (too close to a Pole)\n"));
+	else
+		siril_log_message(_("Up is %+.2lf deg ClockWise wrt. N%s\n"), rotation, report_flip ? _(" (flipped)") : "");
 
 	/* Plate Solving */
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
@@ -1619,7 +1633,7 @@ clearup:
 	if (!args->for_sequence) {
 		com.child_is_running = EXT_NONE;
 		if (g_unlink("stop"))
-			siril_debug_print("g_unlink() failed");
+			siril_debug_print("g_unlink() failed\n");
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
@@ -1748,44 +1762,62 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		solution->focal_length *= args->scalefactor;
 
 	solution->image_is_flipped = image_is_flipped(H);
+	double flip = (solution->image_is_flipped) ? -1. : 1.; // when the image is not flipped, x positive in native coords is to the left (East)
 
 	/* compute cd matrix */
-	double ra7, dec7, delta_ra;
+	double ra1, dec1, ra2, dec2, cd[2][2];
 
 	/* first, convert center coordinates from deg to rad: */
 	dec0 *= DEGTORAD;
 	ra0 *= DEGTORAD;
 
-	/* make 1 step in direction crpix1 */
-	double crpix1[] = { solution->crpix[0] + 1.0 / args->scalefactor, solution->crpix[1] };
-	apply_match(solution->px_cat_center, crpix1, &trans, &ra7, &dec7);
+	// We will use 2 points at -flip*dx and -dy from the computed center away from the image center
+	// to define the left(point1)  and the up (point2) directions
+	// (the -flip factor is used to make the step towards increasing ra,
+	// the -dy is because findstar has returned the y- coord flipped wrt. to FITS standard)
+	// We use Appendix B.1 from WCS paper II (http://www.atnf.csiro.au/people/mcalabre/WCS/ccs.pdf):
+	// - we compute l', m', n' of each point (the 3D coordinates of the point on the unit sphere)
+	// - we then compute its l and m (the coordinates of the point on the unit sphere shifted to the native pole)
+	// l is the N coordinate (increasing dec, pointing to NCP), m is the E coordinate (increasing ra)
+	// we can then compute the 2 rotations wrt. N
 
-	dec7 *= DEGTORAD;
-	ra7 *= DEGTORAD;
+	// Note: the reason for all this is that close to Celestial poles, ra varies largely for small angular distances
+	// it's even undetermined (see https://www.atnf.csiro.au/people/mcalabre/WCS/notes_20040211.pdf) when exactly at poles
+	// So that if dec0 ≈ ±90deg, ra0 returned can take any value and this will go into the header as CRVAL1,
+	// which will in turn determine the first Euler angle of the spherical rotation to the native pole (that is ra0+90)
+	// We therefore need to have a CD matrix consistant with this ra0 value
+	// hence why we express the left and up vectors at the native pole though their (l,m) coordinates
 
-	delta_ra = ra7 - ra0;
-	if (delta_ra > +M_PI)
-		delta_ra = 2.0 * M_PI - delta_ra;
-	if (delta_ra < -M_PI)
-		delta_ra = delta_ra - 2.0 * M_PI;
-	double cd1_1 = (delta_ra) * cos(dec0) * RADTODEG;
-	double cd2_1 = (dec7 - dec0) * RADTODEG;
+	/* make a step in direction crpix1 accounting for flip or not*/
+	double crpix1[] = {solution->crpix[0] - flip * PLATESOLVE_STEP, solution->crpix[1]};
+	apply_match(solution->px_cat_center, crpix1, &trans, &ra1, &dec1);
+	siril_debug_print("alpha1: %0.8f, delta1: %0.8f\n", ra1, dec1);
+	dec1 *= DEGTORAD;
+	ra1 *= DEGTORAD;
+	double l1 = sin(dec1) * cos(dec0) - cos(dec1) * sin(dec0) * cos(ra1 - ra0);
+	double m1 = cos(dec1) * sin(ra1 - ra0);
+	siril_debug_print("l1: %0.8f, m1: %0.8f\n", l1, m1);
+	double crota1 = -atan2(l1, m1);
 
-	/* make 1 step in direction crpix2
-	 * WARNING: we use -1 because of the Y axis reversing */
-	double crpix2[] = { solution->crpix[0], solution->crpix[1] - 1.0 / args->scalefactor };
-	apply_match(solution->px_cat_center, crpix2, &trans, &ra7, &dec7);
+	/* make a step in direction crpix2 - negative because of the y flip*/
+	double crpix2[] = { solution->crpix[0], solution->crpix[1] - PLATESOLVE_STEP};
+	apply_match(solution->px_cat_center, crpix2, &trans, &ra2, &dec2);
+	siril_debug_print("alpha2: %0.8f, delta2: %0.8f\n", ra2, dec2);
+	dec2 *= DEGTORAD;
+	ra2 *= DEGTORAD;
+	double l2 = sin(dec2) * cos(dec0) - cos(dec2) * sin(dec0) * cos(ra2 - ra0);
+	double m2 = cos(dec2) * sin(ra2 - ra0);
+	siril_debug_print("l2: %0.8f, m2: %0.8f\n", l2, m2);
+	double crota2 = atan2(m2, l2);
+	siril_debug_print("crota1: %0.2f, crota2: %0.2f\n", crota1 * RADTODEG, crota2 * RADTODEG);
 
-	dec7 *= DEGTORAD;
-	ra7 *= DEGTORAD;
+	double cdelt1 = sqrt(trans.b * trans.b + trans.c * trans.c) / 3600 * -flip; // cdelt1 is < 0 when the image is not flipped
+	double cdelt2 = sqrt(trans.e * trans.e + trans.f * trans.f) / 3600;
 
-	delta_ra = ra7 - ra0;
-	if (delta_ra > +M_PI)
-		delta_ra = 2.0 * M_PI - delta_ra;
-	if (delta_ra < -M_PI)
-		delta_ra = delta_ra - 2.0 * M_PI;
-	double cd1_2 = (delta_ra) * cos(dec0) * RADTODEG;
-	double cd2_2 = (dec7 - dec0) * RADTODEG;
+	cd[0][0] =  cdelt1*cos(crota1);
+	cd[0][1] = -cdelt1*sin(crota1) * flip;
+	cd[1][0] =  cdelt2*sin(crota2) * flip;
+	cd[1][1] =  cdelt2*cos(crota2);
 
 	CHECK_FOR_CANCELLATION;
 
@@ -1825,9 +1857,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	g_free(dec);
 
 	CHECK_FOR_CANCELLATION;
-	double cdelt1, cdelt2;
-
-	extract_cdelt_from_cd(cd1_1, cd1_2, cd2_1, cd2_2, &cdelt1, &cdelt2);
 
 	args->fit->wcsdata.cdelt[0] = cdelt1;
 	args->fit->wcsdata.cdelt[1] = cdelt2;
@@ -1839,10 +1868,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	 *    |cd21 cd22|    |0      cdelt2|   |pc21 pc22|
 	 */
 
-	args->fit->wcsdata.pc[0][0] = cd1_1 / cdelt1;
-	args->fit->wcsdata.pc[0][1] = cd1_2 / cdelt1;
-	args->fit->wcsdata.pc[1][0] = cd2_1 / cdelt2;
-	args->fit->wcsdata.pc[1][1] = cd2_2 / cdelt2;
+	args->fit->wcsdata.pc[0][0] = cd[0][0] / cdelt1;
+	args->fit->wcsdata.pc[0][1] = cd[0][1] / cdelt1;
+	args->fit->wcsdata.pc[1][0] = cd[1][0] / cdelt2;
+	args->fit->wcsdata.pc[1][1] = cd[1][1] / cdelt2;
 
 	siril_debug_print("****Solution found: WCS data*************\n");
 	siril_debug_print("crpix1 = %*.12e\n", 20, solution->crpix[0]);
