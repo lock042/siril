@@ -47,6 +47,7 @@ have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
+enable_libcurl     = get_option('libcurl')
 enable_json_glib = get_option('json_glib')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
@@ -212,18 +213,6 @@ else # == 'platform-default'
       relocatable_bundle = true
   else
       relocatable_bundle = false
-  endif
-endif
-
-if get_option('enable-libcurl') == 'yes'
-  enable_libcurl= true
-elif get_option('enable-libcurl') == 'no'
-  enable_libcurl = false
-else # == 'platform-default'
-  if platform_windows or platform_osx
-      enable_libcurl = true
-  else
-      enable_libcurl = false
   endif
 endif
 
