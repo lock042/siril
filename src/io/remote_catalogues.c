@@ -22,6 +22,9 @@
 #include <config.h>
 #endif
 
+/* useful if no libcurl */
+#include <stdlib.h>
+
 #ifdef HAVE_LIBCURL
 #include <curl/curl.h>
 #ifdef _WIN32
@@ -30,9 +33,8 @@
 #else
 #include <unistd.h>
 #endif
-#endif
 
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
+#if defined(HAVE_JSON_GLIB)
 #include <json-glib/json-glib.h>
 #endif
 
@@ -199,8 +201,6 @@ static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
 
 /* TODO: fetch_url is also defined in siril update checking, can we merge them? */
 
-#ifdef HAVE_LIBCURL // the alternative is glib-networking, see the else below
-
 static CURL *curl;
 static const int DEFAULT_FETCH_RETRIES = 3;
 
@@ -303,38 +303,8 @@ retrieve:
 	return result;
 }
 
-void free_fetch_result(char *result) {
-	free(result);
-}
-
-#elif defined HAVE_NETWORKING
-
-gchar *fetch_url(const gchar *url) {
-	GFile *file = g_file_new_for_uri(url);
-	GError *error = NULL;
-	gchar *content = NULL;
-
-	siril_debug_print("fetch_url(): %s\n", url);
-
-	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
-		siril_log_color_message(_("Server unreachable or unresponsive. (%s)\n"), "salmon", error->message);
-		g_clear_error(&error);
-	}
-	g_object_unref(file);
-	return content;
-}
-
-void free_fetch_result(gchar *result) {
-	g_free(result);
-}
-#endif
-
 // Returns url to be queried based on catalog type and query
 static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
-#ifndef HAVE_NETWORKING
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-	return NULL;
-#endif
 	GString *url;
 	gchar *fmtstr, *dt;
 	const gchar **cat_columns = get_cat_colums_names();
@@ -481,11 +451,9 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 }
 
 // AAVSO chart - json input read with json-glib parsed to csv
+#ifdef HAVE_JSON_GLIB
 static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
-#ifndef HAVE_JSON_GLIB
-	siril_log_color_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"), "red");
-	return FALSE;
-#else
+
 	GError *error = NULL;
 	JsonParser *parser = json_parser_new();
 	if (!json_parser_load_from_data(parser, buffer, -1, &error)) {
@@ -592,8 +560,8 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	gboolean ret = siril_catalog_write_to_output_stream(siril_cat, output_stream);
 	siril_catalog_free(siril_cat);
 	return ret;
-#endif
 }
+#endif
 
 static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat) {
 	gchar *filename = NULL;
@@ -690,9 +658,6 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
    Returns the path to the file (whether already cached or downloaded)
 */
 static gchar *download_catalog(siril_catalogue *siril_cat) {
-#ifndef HAVE_NETWORKING
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-#else
 	gchar *str = NULL, *filepath = NULL, *url = NULL, *buffer = NULL;
 	GError *error = NULL;
 	GOutputStream *output_stream = NULL;
@@ -778,7 +743,6 @@ download_error:
 	}
 	if (filepath)
 		g_free(filepath);
-#endif
 	return NULL;
 }
 
@@ -807,5 +771,11 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	if (retval == -1)
 		return -1; // empty but not failed
 	return 0;
+}
+
+#endif // HAVE_LIBCURL
+
+void free_fetch_result(char *result) {
+	free(result);
 }
 
