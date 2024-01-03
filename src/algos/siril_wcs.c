@@ -101,7 +101,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 				wcs = wcs_deepcopy(prm, &status);
 				if (!status) {
 					if (wcs->altlin & 2) { // header contains CD info
-						double cd[2][2];
+						double cd[2][2] = {{ 0. }};
 						// we copy cd to pc and set cdelt to unity
 						wcs_cd2mat(wcs, cd);
 						wcs_mat2pc(wcs, cd);
@@ -110,7 +110,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcspcx(wcs, 0, 0, NULL); // decompose CD to CDELT and PC
 						printf("contains CD\n");
 					} else if (wcs->altlin & 1) { // header contains PC info
-						double pc[2][2], cd[2][2];
+						double pc[2][2] = {{ 0. }}, cd[2][2] = {{ 0. }};
 						wcs_pc2mat(wcs, pc);
 						wcs_pc_to_cd(pc, wcs->cdelt, cd);
 						wcs_mat2cd(wcs, cd);
@@ -172,8 +172,9 @@ void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
-	pixcrd[0] = x;
-	pixcrd[1] = y;
+	// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
+	pixcrd[0] = x + 0.5;
+	pixcrd[1] = y + 0.5;
 
 	status = wcsp2s(wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
 	if (status != 0)
@@ -205,8 +206,9 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 		double xx = pixcrd[0];
 		double yy = pixcrd[1];
 		// return values even if outside (required for celestial grid display)
-		if (x) *x = xx;
-		if (y) *y = yy;
+		// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
+		if (x) *x = xx - 0.5;
+		if (y) *y = yy - 0.5;
 		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
 			//siril_debug_print("outside image but valid return\n");
 			// wcss2p returns values between 0 and 9, picking a new one
@@ -242,8 +244,9 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 				double xx = pixcrd[c++];
 				double yy = pixcrd[c++];
 				// return values even if outside (required for celestial grid display)
-				if (x) x[i] = xx;
-				if (y) y[i] = yy;
+				// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
+				if (x) x[i] = xx - 0.5;
+				if (y) y[i] = yy - 0.5;
 				if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
 					//siril_debug_print("outside image but valid return\n");
 					// wcss2p returns values between 0 and 9, picking a new one
@@ -272,8 +275,9 @@ void center2wcs(fits *fit, double *r, double *d) {
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
-	pixcrd[0] = (double)(fit->rx) / 2.;
-	pixcrd[1] = (double)(fit->ry) / 2.;
+	// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
+	pixcrd[0] = (double)(fit->rx) * 0.5 + 0.5;
+	pixcrd[1] = (double)(fit->ry) * 0.5 + 0.5;
 
 	status = wcsp2s(fit->wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
 	if (status != 0)

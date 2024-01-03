@@ -189,8 +189,8 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 		// We move 10" to the North and we'll figure out the angle from there....
 		double xN, yN, rotation;
 		int status = wcs2pix(args->fit, args->fit->wcslib->crval[0], args->fit->wcslib->crval[1] + 2.78e-3, &xN, &yN);
-		xN -= args->fit->wcslib->crpix[0];
-		yN -= args->fit->wcslib->crpix[1];
+		xN -= args->fit->rx * 0.5;
+		yN -= args->fit->ry * 0.5;
 		if (!status) {
 			rotation = -atan2(xN, yN) * RADTODEG; // we measure clockwise wrt. +y axis
 			if (det > 0) {
@@ -736,9 +736,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	}
 
 	double ra0, dec0;
-	// using siril convention as were set by the peaker
-	solution->crpix[0] = args->rx_solver * 0.5;
-	solution->crpix[1] = args->ry_solver * 0.5;
+	// star coordinates were set with the origin at the grid center and y upwards
 	double center[2] = {0., 0.};
 
 	apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
@@ -778,7 +776,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 			break;
 		}
 		trans = H_to_linear_TRANS(H);
-		apply_match(solution->px_cat_center, solution->crpix, &trans, &ra0, &dec0);
+		apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
 
 		conv = fabs((dec0 - orig_dec0) / args->used_fov / 60.) + fabs((ra0 - orig_ra0) / args->used_fov / 60.);
 
@@ -874,6 +872,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	solution->crpix[1] = args->ry_solver * 0.5;
 	solution->crpix[0] *= args->scalefactor;
 	solution->crpix[1] *= args->scalefactor;
+	// we now go back to FITS convention (from siril)
+	solution->crpix[0] += 0.5;
+	solution->crpix[1] += 0.5;
 
 	/**** Fill wcsdata fit structure ***/
 	args->fit->wcsdata.ra = siril_world_cs_get_alpha(solution->image_center);
@@ -1217,9 +1218,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	solution->image_is_flipped = image_is_flipped_from_wcs(args->fit);
 
-	// we go back to siril convention
-	args->fit->wcslib->crpix[0] = (double)args->rx_solver * 0.5;
-	args->fit->wcslib->crpix[1] = (double)args->ry_solver * 0.5;
 	args->fit->wcsdata.ra  = args->fit->wcslib->crval[0];
 	args->fit->wcsdata.dec = args->fit->wcslib->crval[1];
 

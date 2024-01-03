@@ -1251,7 +1251,7 @@ gpointer findstar_worker(gpointer p) {
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
-					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
@@ -1266,7 +1266,7 @@ gpointer findstar_worker(gpointer p) {
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
-					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
