@@ -104,8 +104,8 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("dec");
 			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmra");
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmdec");
-			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("phot_g_mean_flux");
-			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("phot_bp_mean_flux");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("phot_g_mean_mag");
+			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("phot_bp_mean_mag");
 			tap->tap_columns[CAT_FIELD_TEFF] = g_strdup("teff_gspphot");
 			tap->tap_columns[CAT_FIELD_GAIASOURCEID] = g_strdup("source_id");
 			break;
@@ -1047,13 +1047,12 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		fmtstr = g_strdup_printf("CIRCLE('ICRS',%s,%s,%s))=1", rafmt, decfmt, radiusfmt);
 		g_string_append_printf(querystring, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
 		g_free(fmtstr);
-/*
 		if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG)) {
 			fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
 			g_string_append_printf(querystring, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
 			g_free(fmtstr);
 		}
-*/
+		g_string_append_printf(querystring, "+ORDER+BY+random_index"); // Avoids bias in the results by ordering by random_index
 		free_cat_tap_query_fields(fields);
 
 		// Create job
@@ -1100,8 +1099,8 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 				success = TRUE;
 				break;
 			}
-			g_usleep(200000);
-			timer += 200000;
+			g_usleep(500000);
+			timer += 500000;
 		}
 		g_free(job_check);
 
@@ -1182,8 +1181,6 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		siril_debug_print("Length: %lu\n", length);
 		g_string_free(datalink_url, TRUE);
 		datalink_url = NULL;
-
-
 
 		if (retrieval_product_is_in_cache) {
 			siril_log_message(_("Using already downloaded datalink product\n"));
