@@ -229,8 +229,9 @@ static void write_nina_file(struct compstars_arg *args) {
 #define ONE_ARCSEC 0.000277778
 /* determines if two stars are the same based on their coordinates */
 static gboolean is_same_star(cat_item *s1, cat_item *s2, double ratio) {
-	return (fabs(s1->ra - s2->ra) < ratio * ONE_ARCSEC) &&
-			(fabs(s1->dec - s2->dec) < ratio * ONE_ARCSEC);
+	double resolution = get_wcs_image_resolution(&gfit);
+	return (fabs(s1->ra - s2->ra) < ratio * resolution) &&
+			(fabs(s1->dec - s2->dec) < ratio * resolution);
 }
 
 static void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
@@ -256,7 +257,7 @@ static int compare_items_by_dist(const void* item1, const void* item2) {
 
 // Creates the catalogue of stars to be discarded
 siril_catalogue *vsx_to_discard(struct compstars_arg *args){
-	siril_log_color_message(_("Discarding the variable stars from your compstars list\n"), "salmon");
+	siril_log_color_message(_("Discarding the variable stars from %s\n"), "salmon", catalog_to_str(args->cat));
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
 
@@ -291,7 +292,7 @@ static int is_vsx (cat_item *item, siril_catalogue *siril_cat_vsx){
 	if (!siril_cat_vsx) return 0;	// Does the catalog-to-be-discarded exist?
 	if (siril_cat_vsx->nbitems > 0){
 		for (int i = 0; i < siril_cat_vsx->nbitems; i++)
-				if(is_same_star(&siril_cat_vsx->cat_items[i], item, 10.0)) return 1;	
+				if(is_same_star(&siril_cat_vsx->cat_items[i], item, 14.0)) return 1;	
 	} else {
 		siril_log_color_message(_("No variable stars from the catalog %s to discard\n"), "red", catalog_to_str(CAT_VSX));
 		return 0;
@@ -332,7 +333,7 @@ int sort_compstars(struct compstars_arg *args) {
 
 	for (int i = 0; i < args->cat_stars->nbitems; i++) {
 		cat_item *item = &siril_cat->cat_items[i];
-		if (!item->included || is_same_star(args->target_star, item, 2.0)) // included means inside the image after wcs projection
+		if (!item->included || is_same_star(args->target_star, item, 3.0)) // included means inside the image after wcs projection
 			continue;
 		double d_mag = fabs(item->mag - args->target_star->mag);
 		double BVi = item->bmag - item->mag; // B-V index
