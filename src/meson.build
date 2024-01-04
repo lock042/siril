@@ -34,6 +34,7 @@ src_files = [
   'algos/pave.c',
   'algos/photometry.c',
   'algos/photometric_cc.c',
+  'algos/spcc.c',
   'algos/PSF.c',
   'algos/quality.c',
   'algos/quality_float.c',

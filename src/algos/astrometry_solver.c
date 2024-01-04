@@ -46,6 +46,7 @@
 #include "io/annotation_catalogues.h"
 #include "algos/photometry.h"
 #include "algos/photometric_cc.h"
+#include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
@@ -585,6 +586,7 @@ gpointer plate_solver(gpointer p) {
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->ref_stars->limitmag);
 		}
 		siril_catalog_free_items(args->ref_stars);
+		// TODO: handle SPCC
 		siril_catalog_conesearch(args->ref_stars);
 		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
@@ -618,16 +620,6 @@ gpointer plate_solver(gpointer p) {
 				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 				siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
 			}
-		}
-	} else if (args->for_photometry_spcc) {
-		args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
-		args->ref_stars->phot = TRUE;
-		siril_catalog_free_items(args->ref_stars);
-		args->pcc->fwhm = filtered_FWHM_average(stars, nb_stars);
-		if (args->downsample)
-			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
-		if (spectrophotometric_cc_standalone(args->pcc)) {
-			args->ret = ERROR_PHOTOMETRY;
 		}
 	}
 

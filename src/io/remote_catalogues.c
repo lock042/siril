@@ -1043,15 +1043,17 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 			}
 		}
 		g_string_append_printf(querystring,"+FROM+%s", fields->catcode);
-		g_string_append_printf(querystring,"+WHERE+has_xp_sampled+=+'True'&CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
+		g_string_append_printf(querystring,"+WHERE+has_xp_sampled+=+'True'+AND+CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
 		fmtstr = g_strdup_printf("CIRCLE('ICRS',%s,%s,%s))=1", rafmt, decfmt, radiusfmt);
 		g_string_append_printf(querystring, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
 		g_free(fmtstr);
+/*
 		if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG)) {
 			fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
 			g_string_append_printf(querystring, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
 			g_free(fmtstr);
 		}
+*/
 		free_cat_tap_query_fields(fields);
 
 		// Create job

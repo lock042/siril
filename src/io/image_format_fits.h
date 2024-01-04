@@ -77,7 +77,7 @@ int check_loaded_fits_params(fits *ref, ...);
 
 void merge_fits_headers_to_result2(fits *result, fits **f);
 void merge_fits_headers_to_result(fits *result, fits *f1, ...);
-spectral_intensity* get_xpsampled(gchar *filename, int i, int min_wl, int max_wl);
+int get_xpsampled(xpsampled* xps, gchar *filename, int i);
 
 
 #endif

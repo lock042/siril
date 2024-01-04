@@ -474,18 +474,22 @@ struct ffit {
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
 
-/* Filter spectral responses are defined by evenly spaced frequency samples
+/* Filter spectral responses are defined by unevenly spaced frequency samples
  * and accompanying spectral responses corresponding to the sampling points. */
 typedef struct _spectral_intensity {
-	float* wl; // Wavelength array
-	float* si; // Intensity array
+	float* x; // Wavelength array
+	float* y; // Intensity array
 	int n; // Number of data points
 } spectral_intensity;
 
-typedef struct _spectral_pipeline {
-	spectral_intensity *si; // Array of spectral intensities
-	int n; // Number of spectra in the pipeline
-} spectral_pipeline;
+/* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
+ * 378nm and 702nm, allowing one extra value either side of the real range we care
+ * about integrating over (380-700nm). */
+#define XPSAMPLED_LEN 163
+typedef struct _xpsampdata {
+	const double *x;
+	double y[XPSAMPLED_LEN];
+} xpsampled;
 
 typedef struct {
 	double x, y;

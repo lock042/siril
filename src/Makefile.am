@@ -85,6 +85,8 @@ siril_common_SOURCES = \
 	algos/siril_wcs.c \
 	algos/sorting.c \
 	algos/sorting.h \
+	algos/spcc.c \
+	algos/spcc.h \
 	algos/star_finder.c \
 	algos/star_finder.h \
 	algos/statistics.c \

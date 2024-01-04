@@ -21,7 +21,8 @@ typedef struct {
 	float mag;	// visible magnitude (V filter), for sorting and debug
 	float BV;	// B magnitude - V magnitude, -99.9 if not available
 	float teff; // Gaia Teff
-	uint64_t gaiasourceid; // Gaia source ID
+	uint64_t index; // Order in the Gaia results table. This is used to match
+					// HDUs in the FITS, in case of excluded stars
 } pcc_star;
 
 struct phot_config *phot_set_adjusted_for_image(fits *fit);

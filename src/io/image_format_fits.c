@@ -44,6 +44,7 @@
 #include "gui/siril_preview.h"
 #include "algos/statistics.h"
 #include "algos/astrometry_solver.h"
+#include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -3710,17 +3711,19 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
  *
  * **************************************************************/
 
-spectral_intensity* get_xpsampled(gchar *filename, int i, int min_wl, int max_wl) {
-	// The wavelength range is always the same for all xpsampled spectra
+int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
+	// The dataset wavelength range is always the same for all xpsampled spectra
+	// The spacing is always 2nm iaw the dataset
 #define WAVESTAR 336
 #define WAVEEND 1020
+#define FIRST_WL 378
+#define LAST_WL 702
     int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
     long nrows, firstrow, nelements;
 	// We open a separate fptr so that multiple threads can operate on the file
 	// simultaneously, reading data from different HDUs corresponding to different sources.
 	fitsfile *fptr = NULL;
     siril_fits_open_diskfile(&fptr, filename, READONLY, &status);
-    spectral_intensity *xpsampled = calloc(1, sizeof(spectral_intensity));
     // HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
     // so the first useful HDU (corresponding to the source at
     // position 0 in the catalog) is HDU 2.
@@ -3735,15 +3738,12 @@ spectral_intensity* get_xpsampled(gchar *filename, int i, int min_wl, int max_wl
         goto error;
     }
     fits_get_num_rows(fptr, &nrows, &status);
-    nelements = ((max_wl - min_wl) / 2) + 1;
-    firstrow = ((min_wl - WAVESTAR) / 2) + 1;
+    nelements = ((LAST_WL - FIRST_WL) / 2) + 1;
+    firstrow = ((FIRST_WL - WAVESTAR) / 2) + 1;
     if ((firstrow + nelements) > nrows) {
         siril_debug_print("Row error in get_xpsampled!\n");
         goto error;
     }
-    xpsampled->wl = malloc(nelements * sizeof(float));
-    xpsampled->si = malloc(nelements * sizeof(float));
-    xpsampled->n = nelements;
 
     if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
         fits_report_error(stderr, status);
@@ -3753,27 +3753,17 @@ spectral_intensity* get_xpsampled(gchar *filename, int i, int min_wl, int max_wl
         fits_report_error(stderr, status);
         goto error;
     }
-
-    // Test code, can be reoved once happy with the data content
-    int typecode;
-	long repeat, width;
-    fits_get_coltype(fptr, wlcol, &typecode, &repeat, &width, &status);
-	printf("Wavelength col typecode: %d, width in bytes: %ld\n", typecode, width);
-    fits_get_coltype(fptr, fluxcol, &typecode, &repeat, &width, &status);
-	printf("Flux col typecode: %d, width in bytes: %ld\n", typecode, width);
-	// End of test code
-
-	if (fits_read_col(fptr, TFLOAT, wlcol, firstrow, 1, nelements, NULL, xpsampled->wl, &anynul, &status)) {
+/*
+	if (fits_read_col(fptr, TDOUBLE, wlcol, firstrow, 1, nelements, NULL, xps->x, &anynul, &status)) {
         fits_report_error(stderr, status);
         goto error;
     }
-    if (fits_read_col(fptr, TFLOAT, fluxcol, firstrow, 1, nelements, NULL, xpsampled->si, &anynul, &status)) {
+*/
+    if (fits_read_col(fptr, TDOUBLE, fluxcol, firstrow, 1, nelements, NULL, xps->y, &anynul, &status)) {
         fits_report_error(stderr, status);
         goto error;
     }
-    return xpsampled;
-
+	return 0;
 error:
-    si_free(xpsampled);
-    return NULL;
+    return 1;
 }

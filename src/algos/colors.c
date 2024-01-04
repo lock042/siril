@@ -635,7 +635,8 @@ void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
 	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
-// color index to temperature in kelvin
+// Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
+// Uses Ballesteros' formula based on considering stars as black bodies
 double BV_to_T(double BV) {
 	double T;
 
@@ -651,6 +652,60 @@ double BV_to_T(double BV) {
 
 	return T;
 }
+
+// CIE XYZ Color Matching Functions
+// Ref: Wylie / Sloan / Shirley, Simple Analytic Approximations to the CIE XYZ
+// Color Matching Functions, Journal of Computer Graphics Techniques, Vol. 2,
+// No. 2, 2013.
+
+// CIE 1931 2-degree CMF using multi-lobe piecewise Gaussian
+float x1931(float w) {
+	float t1 = (w-442.0f)*((w<442.0f)?0.0624f:0.0374f);
+	float t2 = (w-599.8f)*((w<599.8f)?0.0264f:0.0323f);
+	float t3 = (w-501.1f)*((w<501.1f)?0.0490f:0.0382f);
+	return 0.362f*expf(-0.5f*t1*t1) + 1.056f*expf(-0.5f*t2*t2)
+	- 0.065f*expf(-0.5f*t3*t3);
+}
+
+float y1931( float w) {
+	float t1 = (w-568.8f)*((w<568.8f)?0.0213f:0.0247f);
+	float t2 = (w-530.9f)*((w<530.9f)?0.0613f:0.0322f);
+	return 0.821f*expf(-0.5f*t1*t1) + 0.286f*expf(-0.5f*t2*t2);
+}
+
+float z1931(float w) {
+	float t1 = (w-437.0f)*((w<437.0f)?0.0845f:0.0278f);
+	float t2 = (w-459.0f)*((w<459.0f)?0.0385f:0.0725f);
+	return 1.217f*expf(-0.5f*t1*t1) + 0.681f*expf(-0.5f*t2*t2);
+}
+
+// CIE 1964 10-degree CMF using single-lobe fit
+float x1964(float w) {
+	float i1 = 0.4f*expf(-1250.f*powf(logf((w+570.f)/1014.0f),2.f));
+	float i2 = 1.13f*expf(-234.0f*powf(logf((1338.0f-w)/743.5f),2.f));
+	return i1+i2;
+}
+
+float y1964(float w) {
+	return 1.011f*expf(-0.5f*pow((w-556.1f)/46.14f, 2.f));
+}
+
+float z1964(float w) {
+	return 2.06f*expf( -32.0f*powf(logf((w-266.0f)/180.4f),2.f));
+}
+
+// Returns the emittance of a Planckian black body spectrum at wavelength
+// wl and temperature bbTemp
+// from "Colour Rendering of Spectra", John Walker, Fourmilab. Public domain code, last updated March 9 2003
+/*
+float bb_spectrum(float wl, float bbTemp)
+{
+    float wlm = wl * 1e-9;   // Wavelength in meters
+
+    return (3.74183e-16f * pow(wlm, -5.f)) /
+           (expf(1.4388e-2f / (wlm * bbTemp)) - 1.f);
+}
+*/
 
 int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string) {
 	unsigned int row, col, pat_cell;

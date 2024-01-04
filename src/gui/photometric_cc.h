@@ -28,7 +28,7 @@ typedef enum {
 
 #define MAX_OSC_FILTER FILTER_QUAD
 
-void get_pipeline_from_ui(spectral_pipeline* pipeline, int chan, int min_wl, int max_wl);
+void get_spectrum_from_ui(xpsampled *spectrum, int chan);
 void initialize_photometric_cc_dialog();
 void initialize_spectrophotometric_cc_dialog();
 int get_photometry_catalog_from_GUI();
