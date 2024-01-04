@@ -16,8 +16,7 @@ PREFIX=/usr
 meson ${BUILDDIR} \
     --prefix=${PREFIX} \
     --buildtype=release \
-    -Drelocatable-bundle=yes \
-    -Denable-libcurl=yes
+    -Drelocatable-bundle=yes
 
 
 ninja -C ${BUILDDIR} -j$(nproc)

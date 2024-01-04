@@ -8078,9 +8078,6 @@ int process_capabilities(int nb) {
 #ifndef HAVE_CV44
 	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
 #endif
-#ifdef HAVE_NETWORKING
-	siril_log_message("Build with networking capabilities\n");
-#endif
 #ifdef HAVE_LIBCURL
 	siril_log_message("Built with libcurl\n");
 #endif
