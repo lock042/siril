@@ -3763,7 +3763,10 @@ int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
         fits_report_error(stderr, status);
         goto error;
     }
+	if (fits_close_file(fptr, &status))
+        fits_report_error(stderr, status);
 	return 0;
 error:
+	fits_close_file(fptr, &status);
     return 1;
 }

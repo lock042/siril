@@ -1126,7 +1126,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		}
 		if (!g_output_stream_write_all(csvoutput_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 			g_warning("%s\n", error->message);
-	//		remove_file = TRUE;
+			remove_file = TRUE;
 			goto tap_error_and_cleanup;
 		}
 		// Populate the siril_catalog with the data from the initial query

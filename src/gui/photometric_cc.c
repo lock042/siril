@@ -41,26 +41,13 @@
 #include "photometric_cc.h"
 #include "io/image_format_fits.h"
 
+static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
+static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
+
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
-
-void set_spcc_args(struct photometric_cc_data *args) {
-	GtkWidget *mono_sensor_check = lookup_widget("mono_sensor_check");
-	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
-	GtkWidget *monosensor = lookup_widget("combo_spcc_sensor_mono");
-	GtkWidget *rgbsensor = lookup_widget("combo_spcc_sensor_rgb");
-	GtkWidget *filters = lookup_widget("combo_spcc_filters");
-
-	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
-	args->selected_sensor_rgb = gtk_combo_box_get_active(GTK_COMBO_BOX(rgbsensor));
-	args->selected_filters = gtk_combo_box_get_active(GTK_COMBO_BOX(filters));
-
-	if (!args->spcc_mono_sensor && args->selected_filters > MAX_OSC_FILTER) {
-		gchar* msg = _("Warning: chosen filter is not an OSC filter!\n");
-		siril_log_color_message(msg, "salmon");
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), msg);
-	}
-}
+void set_spcc_args(struct photometric_cc_data *args);
+void get_whitepoint_from_ui(struct photometric_cc_data *args);
 
 static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
@@ -84,6 +71,7 @@ static void start_photometric_cc(gboolean spcc) {
 		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
 		set_spcc_args(pcc_args);
+		get_whitepoint_from_ui(pcc_args);
 	} else {
 		pcc_args->catalog = get_photometry_catalog_from_GUI();
 		pcc_args->spcc = FALSE;
@@ -126,59 +114,6 @@ static void start_photometric_cc(gboolean spcc) {
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
 }
-
-/*static void start_spectrophotometric_cc() {
-	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
-	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
-	gboolean plate_solve;
-
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("There is no valid WCS information in the header. Let's make a plate solving.\n"), "salmon");
-		plate_solve = TRUE;
-	} else {
-		plate_solve = gtk_toggle_button_get_active(force_platesolve_button);
-		if (plate_solve)
-			siril_log_message(_("Plate solving will be recomputed for image\n"));
-		else siril_log_message(_("Existing plate solve (WCS information) will be resused for image\n"));
-	}
-
-	struct astrometry_data *args = NULL;
-	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
-
-	// No choice of catalog for SPCC, Gaia DR3 is always used
-	pcc_args->catalog = CAT_GAIADR3_DIRECT;
-
-	if (plate_solve) {
-		args = calloc(1, sizeof(struct astrometry_data));
-		args->fit = &gfit;
-
-		args->for_photometry_cc = FALSE;
-		args->for_photometry_spcc = TRUE;
-
-		args->pcc = pcc_args;
-		args->pcc->fit = &gfit;
-		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-		args->pcc->bg_area = get_bkg_selection();
-	}
-
-	pcc_args->fit = &gfit;
-	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-	pcc_args->mag_mode = LIMIT_MAG_AUTO;
-
-	set_cursor_waiting(TRUE);
-
-	if (plate_solve) {
-		if (!fill_plate_solver_structure_from_GUI(args)) {
-			pcc_args->mag_mode = args->mag_mode;
-			pcc_args->magnitude_arg = args->magnitude_arg;
-			start_in_new_thread(plate_solver, args);
-		}
-	} else {
-		get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		start_in_new_thread(spectrophotometric_cc_standalone, pcc_args);
-	}
-}*/
 
 static rectangle get_bkg_selection() {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
@@ -425,3 +360,39 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
 }
 
+void set_spcc_args(struct photometric_cc_data *args) {
+	GtkWidget *mono_sensor_check = lookup_widget("mono_sensor_check");
+	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
+	GtkWidget *monosensor = lookup_widget("combo_spcc_sensor_mono");
+	GtkWidget *rgbsensor = lookup_widget("combo_spcc_sensor_rgb");
+	GtkWidget *filters = lookup_widget("combo_spcc_filters");
+
+	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
+	args->selected_sensor_rgb = gtk_combo_box_get_active(GTK_COMBO_BOX(rgbsensor));
+	args->selected_filters = gtk_combo_box_get_active(GTK_COMBO_BOX(filters));
+
+	if (!args->spcc_mono_sensor && args->selected_filters > MAX_OSC_FILTER) {
+		gchar* msg = _("Warning: chosen filter is not an OSC filter!\n");
+		siril_log_color_message(msg, "salmon");
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), msg);
+	}
+}
+
+void get_whitepoint_from_ui(struct photometric_cc_data *args) {
+	GtkWidget *wp = lookup_widget("combo_spcc_whitepoint");
+	wp_t wp_index = gtk_combo_box_get_active(GTK_COMBO_BOX(wp));
+	switch (wp_index) {
+		case WP_D50:
+			memcpy(&args->whitepoint, &D50, sizeof(cmsCIExyY));
+			break;
+		case WP_D65:
+			memcpy(&args->whitepoint, &D65, sizeof(cmsCIExyY));
+			break;
+		case WP_SOL:
+		case WP_GAL_AVGSPIRAL:
+		case WP_GAL_AVGELLIPTICAL:
+			// TODO: This currently just returns D50, update this based on data
+			memcpy(&args->whitepoint, &D50, sizeof(cmsCIExyY));
+			break;
+	}
+}

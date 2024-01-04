@@ -1234,11 +1234,11 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="can-focus">False</property>
                         <property name="active">2</property>
                         <items>
-                          <item translatable="yes">D58 (Solar black body temperature)</item>
-                          <item translatable="yes">Average Elliptical Galaxy</item>
-                          <item translatable="yes">Average Spiral Galaxy</item>
                           <item translatable="yes">D50 (sun low in the sky)</item>
                           <item translatable="yes">D65 (midday sun)</item>
+                          <item translatable="yes">D58 (Solar black body temperature)</item>
+                          <item translatable="yes">Average Spiral Galaxy</item>
+                          <item translatable="yes">Average Elliptical Galaxy</item>
                         </items>
                       </object>
                       <packing>

@@ -33,7 +33,6 @@
 #include "algos/statistics_float.h"
 #include "algos/photometry.h"
 #include "algos/spcc.h"
-#include "algos/spcc_filters.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
 #include "algos/star_finder.h"
@@ -53,73 +52,8 @@ const double xpsampled_wl[163] = {378, 380, 382, 384, 386, 388, 390, 392, 394, 3
   554, 556, 558, 560, 562, 564, 566, 568, 570, 572, 574, 576, 578, 580, 582, 584, 586, 588, 590, 592, 594, 596, 598, 600, 602, 604, 606, 608, 610, 612, 614, 616, 618, 620, 622, 624, 626, 628, 630, 632, 634, 636, 638, 640, 642, 644,
   646, 648, 650, 652, 654, 656, 658, 660, 662, 664, 666, 668, 670, 672, 674, 676, 678, 680, 682, 684, 686, 688, 690, 692, 694, 696, 698, 700, 702};
 
-enum {
-	RED, GREEN, BLUE
-};
-
-enum {
-	CMF_1931, CMF_1964
-};
-
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
 static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
-
-static void init_spcc_filters() {
-	Optolong_Blue.x = Optolong_Blue_wl;
-	Optolong_Blue.y = Optolong_Blue_sr;
-	Optolong_Blue.n = 72;
-	Optolong_Green.x = Optolong_Green_wl;
-	Optolong_Green.y = Optolong_Green_sr;
-	Optolong_Green.n = 52;
-	Optolong_Red.x = Optolong_Red_wl;
-	Optolong_Red.y = Optolong_Red_sr;
-	Optolong_Red.n = 66;
-	Sony_IMX571M.x = Sony_IMX571_wl;
-	Sony_IMX571M.y = Sony_IMX571_qe;
-	Sony_IMX571M.n = 32;
-}
-
-cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
-	cmsCIEXYZ XYZ;
-	cmsCIExyY xyY;
-	double	*dbl_si_x = malloc(XPSAMPLED_LEN * sizeof(double)),
-			*dbl_si_y = malloc(XPSAMPLED_LEN * sizeof(double)),
-			*dbl_si_z = malloc(XPSAMPLED_LEN * sizeof(double));
-
-	if (cmf == CMF_1931) {
-		for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
-			dbl_si_x[i] = xps->y[i] * x1931(xps->y[i]);
-			dbl_si_y[i] = xps->y[i] * y1931(xps->y[i]);
-			dbl_si_z[i] = xps->y[i] * z1931(xps->y[i]);
-		}
-	} else {
-		for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
-			dbl_si_x[i] = xps->y[i] * x1964(xps->y[i]);
-			dbl_si_y[i] = xps->y[i] * y1964(xps->y[i]);
-			dbl_si_z[i] = xps->y[i] * z1964(xps->y[i]);
-		}
-	}
-	gsl_interp *interp = gsl_interp_alloc(gsl_interp_akima, XPSAMPLED_LEN);
-	gsl_interp_init(interp, xps->x, dbl_si_x, XPSAMPLED_LEN);
-	gsl_interp_accel *acc = gsl_interp_accel_alloc();
-	XYZ.X = gsl_interp_eval_integ(interp, xps->x, dbl_si_x, 380.0, 700.0, acc);
-	gsl_interp_accel_reset(acc);
-	free(dbl_si_x);
-
-	gsl_interp_init(interp, xps->x, dbl_si_y, XPSAMPLED_LEN);
-	XYZ.Y = gsl_interp_eval_integ(interp, xps->x, dbl_si_y, 380.0, 700.0, acc);
-	gsl_interp_accel_reset(acc);
-	free(dbl_si_y);
-
-	gsl_interp_init(interp, xps->x, dbl_si_z, XPSAMPLED_LEN);
-	XYZ.Z = gsl_interp_eval_integ(interp, xps->x, dbl_si_z, 380.0, 700.0, acc);
-	free(dbl_si_z);
-	gsl_interp_free(interp);
-	gsl_interp_accel_free(acc);
-	cmsXYZ2xyY(&xyY, &XYZ);
-	xyY.Y = 1.f;
-	return xyY;
-}
 
 // Returns a valid xyY for 1667K <= t <= 25000K, otherwise xyY = { 0.0 }
 // Uses Kim et al's cubic spline Planckian locus (https://en.wikipedia.org/wiki/Planckian_locus)
@@ -246,68 +180,6 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
-void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectrum, int chan) {
-	xpsampled spectrum2 = { spectrum->x, { 0.0 } };
-	mono_sensor_t selected_sensor_m = (mono_sensor_t) args->selected_sensor_m;
-	rgb_sensor_t selected_sensor_rgb = (rgb_sensor_t) args->selected_sensor_rgb;
-	filter_t selected_filters = (filter_t) args->selected_filters;
-
-	if (args->spcc_mono_sensor) {
-		switch (selected_sensor_m) {
-			case IMX571M:
-				init_xpsampled_from_library(spectrum, &Sony_IMX571M);
-				break;
-			// Add other mono sensors here
-		}
-		switch (selected_filters) {
-			case FILTER_NONE:
-				break;
-			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
-			case FILTER_L_ENHANCE:
-			case FILTER_DUAL:
-			case FILTER_QUAD:
-			case ANTLIA:
-			case ASTRODON:
-			case ASTRONOMIK:
-			case BAADER:
-			case CHROMA:
-			case OPTOLONG:
-			case ZWO:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-		}
-	} else {
-		switch (selected_sensor_rgb) {
-			case CANONT3I:
-				// TODO: Obviously wrong, need to populate with the correct data once OSC camera response curves are scanned in
-				init_xpsampled_from_library(spectrum, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				break;
-			// Add other RGB sensors here
-		}
-		switch (selected_filters) {
-			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
-			case FILTER_L_ENHANCE:
-			case FILTER_DUAL:
-			case FILTER_QUAD:
-				// TODO: Obviously wrong, need to populate with the correct data once I have obtained it
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ANTLIA:
-			case ASTRODON:
-			case ASTRONOMIK:
-			case BAADER:
-			case CHROMA:
-			case OPTOLONG:
-			case ZWO:
-			default:
-				// Do nothing for FILTER_NONE
-				break;
-		}
-	}
-}
-
 static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float *kw, int norm_channel, struct photometric_cc_data *args) {
 	float *data[3];
 	data[RED] = malloc(sizeof(float) * nb_stars);
@@ -334,25 +206,23 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
 	xpsampled response[3] = { { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } } };
-	cmsCIExyYTRIPLE primaries;
-	if (args->spcc) {
-		for (int chan = 0 ; chan < 3 ; chan++) {
-			get_spectrum_from_args(args, &response[chan], chan);
-		}
-		// Calculate effective primaries (and get the desired white point while we're
-		// at it) for later
-		primaries.Red = xpsampled_to_xyY(&response[RED], CMF_1931);
-		primaries.Green = xpsampled_to_xyY(&response[GREEN], CMF_1931);
-		primaries.Blue = xpsampled_to_xyY(&response[BLUE], CMF_1931);
-	}
 
 	cmsHPROFILE xyzprofile = NULL;
 	cmsHPROFILE profile = NULL;
 	cmsHTRANSFORM transform = NULL;
 
-	// This transform is for normal PCC to transform the reference star XYZ to RGB:
-	// the SPCC source->working transform is dealt with later
-	if (!args->spcc) {
+	if (args->spcc) {
+		for (int chan = 0 ; chan < 3 ; chan++) {
+			get_spectrum_from_args(args, &response[chan], chan);
+		}
+		// Calculate effective primaries for later
+		args->primaries.Red = xpsampled_to_xyY(&response[RED], CMF_1931);
+		args->primaries.Green = xpsampled_to_xyY(&response[GREEN], CMF_1931);
+		args->primaries.Blue = xpsampled_to_xyY(&response[BLUE], CMF_1931);
+	} else {
+	// This transform is for normal PCC to transform the reference
+	//star XYZ to RGB: the SPCC source->working transform is dealt
+	//with later.
 		xyzprofile = cmsCreateXYZProfile();
 		if (fit->icc_profile) {
 			profile = copyICCProfile(fit->icc_profile);
@@ -498,9 +368,10 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	}
 
 	/* normalize factors */
-	kw[RED] /= (kw[norm_channel]);
-	kw[GREEN] /= (kw[norm_channel]);
-	kw[BLUE] /= (kw[norm_channel]);
+	float norm = kw[norm_channel];
+	kw[RED] /= norm;
+	kw[GREEN] /= norm;
+	kw[BLUE] /= norm;
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
@@ -664,6 +535,10 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	if (!ret) {
 		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
+		if (args->spcc && !ret) {
+			ret = spcc_colorspace_transform(args);
+			invalidate_stats_from_fit(args->fit);
+		}
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
@@ -728,8 +603,10 @@ gpointer photometric_cc_standalone(gpointer p) {
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
-			case CAT_GAIADR3_DIRECT:
 				mag = min(mag, 18.0);
+				break;
+			case CAT_GAIADR3_DIRECT:
+				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
 				break;
 			case CAT_APASS:
 				mag = min(mag, 17.0);	// in APASS, B is available for V < 17

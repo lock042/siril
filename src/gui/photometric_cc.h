@@ -26,6 +26,14 @@ typedef enum {
 	ZWO
 } filter_t;
 
+typedef enum {
+	WP_D50,
+	WP_D65,
+	WP_SOL,
+	WP_GAL_AVGSPIRAL,
+	WP_GAL_AVGELLIPTICAL
+} wp_t;
+
 #define MAX_OSC_FILTER FILTER_QUAD
 
 void get_spectrum_from_ui(xpsampled *spectrum, int chan);

@@ -43,10 +43,10 @@
 #include "gui/progress_and_log.h"
 #include "gui/photometric_cc.h"
 #include "registration/matching/misc.h" // for catalogue parsing helpers
-#include "photometric_cc.h"
-#include "spcc.h"
+#include "algos/photometric_cc.h"
+#include "algos/spcc.h"
+#include "algos/spcc_filters.h"
 
-static gboolean spcc_filters_initialized = FALSE;
 
 // SPCC White Points
 const cmsCIExyY Whitepoint_D58 = {0.32598, 0.33532, 1.0}; // Sun as white point, modelled as D58 black body
@@ -54,22 +54,8 @@ const cmsCIExyY Whitepoint_D58 = {0.32598, 0.33532, 1.0}; // Sun as white point,
 
 const cmsCIExyY Whitepoint_average_galaxy = {0.345702915, 0.358538597, 1.0}; // D50
 // TODO: for testing, D50 is used. Needs replacing with a value computed from real galactic spectra.
-/*
-const double xpsampled_wl[163] = {378, 380, 382, 384, 386, 388, 390, 392, 394, 396, 398, 400, 402, 404, 406, 408, 410, 412, 414, 416, 418, 420, 422, 424, 426, 428, 430, 432, 434, 436, 438, 440, 442, 444, 446, 448, 450, 452, 454, 456, 458, 460,
-  462, 464, 466, 468, 470, 472, 474, 476, 478, 480, 482, 484, 486, 488, 490, 492, 494, 496, 498, 500, 502, 504, 506, 508, 510, 512, 514, 516, 518, 520, 522, 524, 526, 528, 530, 532, 534, 536, 538, 540, 542, 544, 546, 548, 550, 552,
-  554, 556, 558, 560, 562, 564, 566, 568, 570, 572, 574, 576, 578, 580, 582, 584, 586, 588, 590, 592, 594, 596, 598, 600, 602, 604, 606, 608, 610, 612, 614, 616, 618, 620, 622, 624, 626, 628, 630, 632, 634, 636, 638, 640, 642, 644,
-  646, 648, 650, 652, 654, 656, 658, 660, 662, 664, 666, 668, 670, 672, 674, 676, 678, 680, 682, 684, 686, 688, 690, 692, 694, 696, 698, 700, 702};
-*/
-enum {
-	RED, GREEN, BLUE
-};
 
-enum {
-	CMF_1931,
-	CMF_1964
-};
-/*
-static void init_spcc_filters() {
+void init_spcc_filters() {
 	Optolong_Blue.x = Optolong_Blue_wl;
 	Optolong_Blue.y = Optolong_Blue_sr;
 	Optolong_Blue.n = 72;
@@ -83,7 +69,49 @@ static void init_spcc_filters() {
 	Sony_IMX571M.y = Sony_IMX571_qe;
 	Sony_IMX571M.n = 32;
 }
-*/
+
+cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
+	cmsCIEXYZ XYZ;
+	cmsCIExyY xyY;
+	double	*dbl_si_x = malloc(XPSAMPLED_LEN * sizeof(double)),
+			*dbl_si_y = malloc(XPSAMPLED_LEN * sizeof(double)),
+			*dbl_si_z = malloc(XPSAMPLED_LEN * sizeof(double));
+
+	if (cmf == CMF_1931) {
+		for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
+			dbl_si_x[i] = xps->y[i] * x1931(xps->x[i]);
+			dbl_si_y[i] = xps->y[i] * y1931(xps->x[i]);
+			dbl_si_z[i] = xps->y[i] * z1931(xps->x[i]);
+		}
+	} else {
+		for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
+			dbl_si_x[i] = xps->y[i] * x1964(xps->x[i]);
+			dbl_si_y[i] = xps->y[i] * y1964(xps->x[i]);
+			dbl_si_z[i] = xps->y[i] * z1964(xps->x[i]);
+		}
+	}
+	gsl_interp *interp = gsl_interp_alloc(gsl_interp_akima, XPSAMPLED_LEN);
+	gsl_interp_init(interp, xps->x, dbl_si_x, XPSAMPLED_LEN);
+	gsl_interp_accel *acc = gsl_interp_accel_alloc();
+	XYZ.X = gsl_interp_eval_integ(interp, xps->x, dbl_si_x, 380.0, 700.0, acc);
+	gsl_interp_accel_reset(acc);
+	free(dbl_si_x);
+
+	gsl_interp_init(interp, xps->x, dbl_si_y, XPSAMPLED_LEN);
+	XYZ.Y = gsl_interp_eval_integ(interp, xps->x, dbl_si_y, 380.0, 700.0, acc);
+	gsl_interp_accel_reset(acc);
+	free(dbl_si_y);
+
+	gsl_interp_init(interp, xps->x, dbl_si_z, XPSAMPLED_LEN);
+	XYZ.Z = gsl_interp_eval_integ(interp, xps->x, dbl_si_z, 380.0, 700.0, acc);
+	free(dbl_si_z);
+	gsl_interp_free(interp);
+	gsl_interp_accel_free(acc);
+	cmsXYZ2xyY(&xyY, &XYZ);
+	xyY.Y = 1.f;
+	return xyY;
+}
+
 void si_free(spectral_intensity *foo, gboolean free_struct) {
 	free(foo->x);
 	free(foo->y);
@@ -151,5 +179,105 @@ double integrate_xpsampled(const xpsampled *xps) {
 	return result;
 }
 
+void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectrum, int chan) {
+	xpsampled spectrum2 = { spectrum->x, { 0.0 } };
+	mono_sensor_t selected_sensor_m = (mono_sensor_t) args->selected_sensor_m;
+	rgb_sensor_t selected_sensor_rgb = (rgb_sensor_t) args->selected_sensor_rgb;
+	filter_t selected_filters = (filter_t) args->selected_filters;
 
+	if (args->spcc_mono_sensor) {
+		switch (selected_sensor_m) {
+			case IMX571M:
+				init_xpsampled_from_library(spectrum, &Sony_IMX571M);
+				break;
+			// Add other mono sensors here
+		}
+		switch (selected_filters) {
+			case FILTER_NONE:
+				break;
+			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
+			case FILTER_L_ENHANCE:
+			case FILTER_DUAL:
+			case FILTER_QUAD:
+			case ANTLIA:
+			case ASTRODON:
+			case ASTRONOMIK:
+			case BAADER:
+			case CHROMA:
+			case OPTOLONG:
+			case ZWO:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
+		}
+	} else {
+		switch (selected_sensor_rgb) {
+			case CANONT3I:
+				// TODO: populate with the correct data once OSC camera response curves are scanned in
+				init_xpsampled_from_library(spectrum, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
+				break;
+			// Add other RGB sensors here
+		}
+		switch (selected_filters) {
+			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
+			case FILTER_L_ENHANCE:
+			case FILTER_DUAL:
+			case FILTER_QUAD:
+				// TODO: populate with the correct data once I have obtained it
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
+			case ANTLIA:
+			case ASTRODON:
+			case ASTRONOMIK:
+			case BAADER:
+			case CHROMA:
+			case OPTOLONG:
+			case ZWO:
+			default:
+				// Do nothing for FILTER_NONE
+				break;
+		}
+	}
+}
 
+// SPCC color space transform from a source profile constructed from the
+// computed primaries of the sensor / filter setup and the chosen white point
+// to a linear version of the working colorspace
+int spcc_colorspace_transform(struct photometric_cc_data *args) {
+	cmsToneCurve *curve[3], *tonecurve;
+	tonecurve = cmsBuildGamma(NULL, 1.00);
+	curve[0] = curve[1] = curve[2] = tonecurve;
+	cmsHPROFILE source_profile = cmsCreateRGBProfile(&args->whitepoint, &args->primaries, curve);
+	if (!source_profile)
+		return 1;
+	cmsHPROFILE dest_profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
+	if (!dest_profile) {
+		cmsCloseProfile(source_profile);
+		return 1;
+	}
+
+	uint32_t npixels = args->fit->rx * args->fit->ry;
+	gboolean threaded = !get_thread_run();
+	cmsUInt32Number fit_colorspace = cmsSigRgbData;
+	cmsUInt32Number type = get_planar_formatter_type(fit_colorspace, args->fit->type, FALSE);
+
+	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), source_profile, type, dest_profile, type, INTENT_ABSOLUTE_COLORIMETRIC, com.icc.rendering_flags);
+	cmsCloseProfile(dest_profile);
+	if (!transform) {
+		cmsCloseProfile(source_profile);
+		return 1;
+	}
+	if (args->fit->icc_profile)
+		cmsCloseProfile(args->fit->icc_profile);
+	args->fit->icc_profile = copyICCProfile(source_profile);
+	cmsCloseProfile(source_profile);
+
+	void *data = (args->fit->type == DATA_FLOAT) ? (void *) args->fit->fdata : (void *) args->fit->data;
+	cmsUInt32Number datasize = args->fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	cmsUInt32Number bytesperline = args->fit->rx * datasize;
+	cmsUInt32Number bytesperplane = npixels * datasize;
+	cmsDoTransformLineStride(transform, data, data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+	cmsDeleteTransform(transform);
+	return 0;
+}
