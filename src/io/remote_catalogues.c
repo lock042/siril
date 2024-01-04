@@ -451,9 +451,11 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 }
 
 // AAVSO chart - json input read with json-glib parsed to csv
-#ifdef HAVE_JSON_GLIB
 static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
-
+#ifndef HAVE_JSON_GLIB
+	siril_log_color_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"), "red");
+	return FALSE;
+#else
 	GError *error = NULL;
 	JsonParser *parser = json_parser_new();
 	if (!json_parser_load_from_data(parser, buffer, -1, &error)) {
@@ -560,8 +562,8 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	gboolean ret = siril_catalog_write_to_output_stream(siril_cat, output_stream);
 	siril_catalog_free(siril_cat);
 	return ret;
-}
 #endif
+}
 
 static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat) {
 	gchar *filename = NULL;
