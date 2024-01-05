@@ -389,7 +389,7 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	fit->wcslib->crpix[0] = refpointout.x + 0.5;
 	fit->wcslib->crpix[1] = refpointout.y + 0.5;
 	fit->wcslib->flag = 0; // to update the structure
-	wcs_set(fit->wcslib);
+	wcsset(fit->wcslib);
 
 	print_updated_wcs_data(fit);
 }
