@@ -944,6 +944,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		);
 		siril_debug_print("Query data: %s\n", data);
 		gchar *job_id = NULL;
+		siril_log_message(_("Submitting conesearch request to ESA Gaia DR3 catalog. This may take a few seconds to complete...\n"));
 		submit_async_request(url, data, &job_id);
 
 		// Print job id
@@ -984,6 +985,8 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		if (!success) // ERROR, ABORTED or timed out
 			goto tap_error_and_cleanup;
+
+		siril_log_message(_("Gaia DR3 conesearch query succeeded: cached as %s\n"), filepath);
 
 		// Retrieve the TAP+ query result
 		gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
@@ -1055,6 +1058,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		g_string_append(datalink_url, ".source_id");
 
 		siril_debug_print("Datalink url: %s\n", datalink_url->str);
+		siril_log_message(_("Submitting spectral data request to ESA Gaia DR3 catalog. This may take several seconds to complete...\n"));
 		gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
 		siril_debug_print("Length: %lu\n", length);
 		g_string_free(datalink_url, TRUE);
@@ -1081,7 +1085,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 			remove_file = TRUE;
 			goto datalink_download_error;
 		}
-		siril_log_message(_("Datalink query succeeded: cached as %s\n"), filepath);
+		siril_log_message(_("Gaia DR3 datalink query succeeded: cached as %s\n"), filepath);
 		*datalink_path = g_strdup(filepath);
 		g_free(str);
 		return 0;
