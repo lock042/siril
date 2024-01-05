@@ -489,7 +489,7 @@ gpointer plate_solver(gpointer p) {
 		// capping the detection to max usable number of stars
 		if (args->n_cat == 0)
 				args->n_cat = BRIGHTEST_STARS;
-		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
+		int max_stars = (args->for_photometry_cc || args->for_photometry_spcc) ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
 
 #ifdef _WIN32
 		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
@@ -566,7 +566,7 @@ gpointer plate_solver(gpointer p) {
 	print_image_center(&solution);
 
 	/* 5. Run photometric color correction, if enabled */
-	if (args->for_photometry_cc) {
+	if (args->for_photometry_cc || args->for_photometry_spcc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
 		// We relaunch the conesearch with phot flag set to TRUE
@@ -586,8 +586,12 @@ gpointer plate_solver(gpointer p) {
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->ref_stars->limitmag);
 		}
 		siril_catalog_free_items(args->ref_stars);
-		// TODO: handle SPCC
-		siril_catalog_conesearch(args->ref_stars);
+		if (args->for_photometry_spcc) {
+			args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
+			siril_gaiadr3_datalink_query(args->ref_stars, XP_SAMPLED, &args->pcc->datalink_path);
+		} else {
+			siril_catalog_conesearch(args->ref_stars);
+		}
 		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
 		args->ret = nb_pcc_stars == 0;
