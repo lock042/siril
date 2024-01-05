@@ -69,6 +69,15 @@ void init_spcc_filters() {
 	Sony_IMX571M.x = Sony_IMX571_wl;
 	Sony_IMX571M.y = Sony_IMX571_qe;
 	Sony_IMX571M.n = 32;
+	Chroma_Red.x = Chroma_wl;
+	Chroma_Red.y = Chroma_Red_sr;
+	Chroma_Red.n = 163;
+	Chroma_Green.x = Chroma_wl;
+	Chroma_Green.y = Chroma_Green_sr;
+	Chroma_Green.n = 163;
+	Chroma_Blue.x = Chroma_wl;
+	Chroma_Blue.y = Chroma_Blue_sr;
+	Chroma_Blue.n = 163;
 }
 
 cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
@@ -196,7 +205,7 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		switch (selected_filters) {
 			case FILTER_NONE:
 				break;
-			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
+			// TODO: Add filter data
 			case FILTER_L_ENHANCE:
 			case FILTER_DUAL:
 			case FILTER_QUAD:
@@ -205,8 +214,15 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 			case ASTRONOMIK:
 			case BAADER:
 			case CHROMA:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Chroma_Red : chan == 1 ? &Chroma_Green : &Chroma_Blue);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
 			case OPTOLONG:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
 			case ZWO:
+				// TODO: populate with the correct data once OSC camera response curves are scanned in
 				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
 				multiply_xpsampled(spectrum, spectrum, &spectrum2);
 				break;
@@ -233,8 +249,18 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 			case ASTRONOMIK:
 			case BAADER:
 			case CHROMA:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Chroma_Red : chan == 1 ? &Chroma_Green : &Chroma_Blue);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
 			case OPTOLONG:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
 			case ZWO:
+				// TODO: populate with the correct data once OSC camera response curves are scanned in
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
 			default:
 				// Do nothing for FILTER_NONE
 				break;
