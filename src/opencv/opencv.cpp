@@ -978,3 +978,17 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	H = F2.inv() * H * F1;
 	convert_MatH_to_H(H, Hom);
 }
+
+// Used to convert a H matrix written in display convention to opencv convention
+void cvdisplay2ocv(Homography *Hom) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+
+	/* modify matrix to go to opencv convention */
+	Mat S1 = Mat::eye(3, 3, CV_64FC1);
+	S1.at<double>(0,2) = 0.5;
+	S1.at<double>(1,2) = 0.5;
+
+	H = S1.inv() * H * S1;
+	convert_MatH_to_H(H, Hom);
+}

@@ -413,9 +413,14 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
-	Homography H = { 0 };
+	Homography H = { 0 }, Hocv = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp)) return 1;
+	// The matrix has been written in display convention (i.e, siril flipped)
+	// We need to convert to opencv convention (pixel-based) before applying to the image
+	// The original matrix will still be used to reframe astrometry data
+	Hocv = H;
+	cvdisplay2ocv(&Hocv);
+	if (cvTransformImage(image, target_rx, target_ry, Hocv, FALSE, interpolation, clamp)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
