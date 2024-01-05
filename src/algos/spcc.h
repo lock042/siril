@@ -2,7 +2,10 @@
 #define SRC_ALGOS_SPCC_H
 
 // Define the SPCC filters
-spectral_intensity Johnson_B, Johnson_V, Optolong_Blue, Optolong_Green, Optolong_Red, Chroma_Red, Chroma_Green, Chroma_Blue;
+spectral_intensity	Johnson_B, Johnson_V,
+					Optolong_Blue, Optolong_Green, Optolong_Red,
+					Chroma_Red, Chroma_Green, Chroma_Blue,
+					Astrodon_RE, Astrodon_RI, Astrodon_GE, Astrodon_GI, Astrodon_B;
 
 // Define the SPCC sensors
 spectral_intensity Sony_IMX571M;

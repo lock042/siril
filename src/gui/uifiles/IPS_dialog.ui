@@ -1266,7 +1266,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="can-focus">False</property>
                         <property name="active">0</property>
                         <items>
-                          <item id="&lt;Enter ID&gt;" translatable="yes">Sony IMX571 (ZWO ASI2600MM etc.)</item>
+                          <item id="&lt;Enter ID&gt;" translatable="yes">Sony IMX411/455/461/533/571</item>
                         </items>
                       </object>
                       <packing>
@@ -1278,14 +1278,15 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBoxText" id="combo_spcc_filters">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="active">9</property>
+                        <property name="active">8</property>
                         <items>
                           <item translatable="yes">None</item>
                           <item translatable="yes">Optolong L-Enhance</item>
                           <item translatable="yes">Dual Narrowband (Optlong L-Extreme etc.)</item>
                           <item translatable="yes">Quad band filter (eg OPT Triad Ultra)</item>
                           <item translatable="yes">Antlia RGB</item>
-                          <item translatable="yes">Astrodon RGB</item>
+                          <item translatable="yes">Astrodon E-series RGB</item>
+                          <item translatable="yes">Astrodon I-series RGB</item>
                           <item translatable="yes">Astronomik RGB</item>
                           <item translatable="yes">Baader RGB</item>
                           <item translatable="yes">Chroma RGB</item>

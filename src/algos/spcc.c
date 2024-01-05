@@ -69,13 +69,28 @@ void init_spcc_filters() {
 	Sony_IMX571M.x = Sony_IMX571_wl;
 	Sony_IMX571M.y = Sony_IMX571_qe;
 	Sony_IMX571M.n = 32;
-	Chroma_Red.x = Chroma_wl;
+	Astrodon_RE.x = full_2nm_wl;
+	Astrodon_RE.y = Astrodon_Red_E_sr;
+	Astrodon_RE.n = 163;
+	Astrodon_RI.x = full_2nm_wl;
+	Astrodon_RI.y = Astrodon_Red_I_sr;
+	Astrodon_RI.n = 163;
+	Astrodon_GE.x = full_2nm_wl;
+	Astrodon_GE.y = Astrodon_Green_E_sr;
+	Astrodon_GE.n = 163;
+	Astrodon_GI.x = full_2nm_wl;
+	Astrodon_GI.y = Astrodon_Green_I_sr;
+	Astrodon_GI.n = 163;
+	Astrodon_B.x = full_2nm_wl;
+	Astrodon_B.y = Astrodon_Blue_sr;
+	Astrodon_B.n = 163;
+	Chroma_Red.x = full_2nm_wl;
 	Chroma_Red.y = Chroma_Red_sr;
 	Chroma_Red.n = 163;
-	Chroma_Green.x = Chroma_wl;
+	Chroma_Green.x = full_2nm_wl;
 	Chroma_Green.y = Chroma_Green_sr;
 	Chroma_Green.n = 163;
-	Chroma_Blue.x = Chroma_wl;
+	Chroma_Blue.x = full_2nm_wl;
 	Chroma_Blue.y = Chroma_Blue_sr;
 	Chroma_Blue.n = 163;
 }
@@ -210,7 +225,14 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 			case FILTER_DUAL:
 			case FILTER_QUAD:
 			case ANTLIA:
-			case ASTRODON:
+			case ASTRODON_E:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RE : chan == 1 ? &Astrodon_GE : &Astrodon_B);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
+			case ASTRODON_I:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RI : chan == 1 ? &Astrodon_GI : &Astrodon_B);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
 			case ASTRONOMIK:
 			case BAADER:
 			case CHROMA:
@@ -245,7 +267,14 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 				multiply_xpsampled(spectrum, spectrum, &spectrum2);
 				break;
 			case ANTLIA:
-			case ASTRODON:
+			case ASTRODON_E:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RE : chan == 1 ? &Astrodon_GE : &Astrodon_B);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
+			case ASTRODON_I:
+				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RI : chan == 1 ? &Astrodon_GI : &Astrodon_B);
+				multiply_xpsampled(spectrum, spectrum, &spectrum2);
+				break;
 			case ASTRONOMIK:
 			case BAADER:
 			case CHROMA:
