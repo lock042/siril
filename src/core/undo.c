@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -104,7 +104,7 @@ static int undo_remove_item(historic *histo, int index) {
 	return 0;
 }
 
-static void undo_add_item(fits *fit, char *filename, char *histo) {
+static void undo_add_item(fits *fit, char *filename, const char *histo) {
 
 	if (!com.history) {
 		com.hist_size = HISTORY_SIZE;

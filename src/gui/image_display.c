@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -427,7 +427,7 @@ static void remap_all_vports() {
 			} else if (norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
-					WORD *source = src[c];
+					const WORD *source = src[c];
 #pragma omp simd
 					for (x = 0 ; x < gfit.rx ; x++)
 						line[x] = source[src_i + x] << 8;
@@ -1306,7 +1306,7 @@ static gboolean get_line_intersection(double p0_x, double p0_y, double p1_x,
 	return FALSE; // No collision
 }
 
-static gint border_compare(label_point *a, label_point *b) {
+static gint border_compare(const label_point *a, const label_point *b) {
 	if (a->border > b->border) return 1;
 	if (a->border < b->border) return -1;
 	return 0;
@@ -1343,7 +1343,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	double step;
 
 	/* Compute borders in pixel for tags*/
-	double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
+	const double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
 	const double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
 	int pixtype[4] = { 1, 0, 1, 0 }; // y, x, y, x
 	int polesign = has_pole(fit);
@@ -1896,7 +1896,7 @@ void copy_roi_into_gfit() {
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				const float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
 				float *destindex = gfit.fdata + (c * npixels_gfit) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
 			}
@@ -1907,7 +1907,7 @@ void copy_roi_into_gfit() {
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				const WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
 				WORD *destindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
 			}

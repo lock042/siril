@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ typedef enum {
 	SEQ_INCOMPLETE
 } seq_error;
 
-static void init_images(struct seqwriter_data *writer, fits *example) {
+static void init_images(struct seqwriter_data *writer, const fits *example) {
 	writer->bitpix = example->bitpix;
 	memcpy(writer->naxes, example->naxes, sizeof writer->naxes);
 }

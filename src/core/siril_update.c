@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,12 +21,9 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
+#if defined(HAVE_JSON_GLIB) && defined(HAVE_LIBCURL)
 #include <json-glib/json-glib.h>
-
-#ifdef HAVE_LIBCURL
 #include <curl/curl.h>
-#endif
 
 #include <string.h>
 
@@ -365,9 +362,6 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 	return msg;
 }
 
-// TODO: For now, to fix this bug https://gitlab.com/free-astro/siril/-/issues/604 we need to use GIO for Windows
-#if defined HAVE_LIBCURL
-
 struct _update_data {
 	gchar *url;
 	long code;
@@ -641,96 +635,4 @@ void siril_check_updates(gboolean verbose) {
 	g_thread_new("siril-update", fetch_url, args);
 }
 
-#else // libcurl above, glib-networking below
-
-static gchar *get_changelog(gchar *str) {
-	GError *error = NULL;
-	gchar *result = NULL;
-
-	GString *url = g_string_new(GITLAB_URL);
-	url = g_string_append(url, "/");
-	url = g_string_append(url, str);
-	url = g_string_append(url, "/ChangeLog");
-
-	gchar *changelog_url = g_string_free(url, FALSE);
-	GFile *file = g_file_new_for_uri(changelog_url);
-
-	if (!g_file_load_contents(file, NULL, &result, NULL, NULL, &error)) {
-		siril_log_message(_("Error loading url: [%s] - %s\n"), changelog_url, error->message);
-		g_clear_error(&error);
-	}
-
-	g_free(changelog_url);
-	g_object_unref(file);
-
-	return result;
-}
-
-static void siril_check_updates_callback(GObject *source, GAsyncResult *result,
-		gpointer user_data) {
-	gboolean verbose = GPOINTER_TO_INT(user_data);
-	gchar *file_contents = NULL;
-	gsize file_length = 0;
-	GError *error = NULL;
-	gchar *msg = NULL;
-	gchar *data = NULL;
-	GtkMessageType message_type = GTK_MESSAGE_ERROR;
-
-	if (g_file_load_contents_finish(G_FILE(source), result, &file_contents, &file_length, NULL, &error)) {
-		JsonParser *parser;
-		gchar *last_version = NULL;
-		gchar *build_comment = NULL;
-		gint64 release_timestamp = 0;
-		gint build_revision = 0;
-
-		parser = json_parser_new();
-		if (!json_parser_load_from_data(parser, file_contents, file_length, &error)) {
-			g_printerr("%s: parsing of %s failed: %s\n", G_STRFUNC, g_file_get_uri(G_FILE(source)), error->message);
-			g_free(file_contents);
-			g_clear_object(&parser);
-			g_clear_error(&error);
-
-			return;
-		}
-
-		siril_update_get_highest(parser, &last_version, &release_timestamp,	&build_revision, &build_comment);
-
-		if (last_version) {
-			g_fprintf(stdout, "Last available version: %s\n", last_version);
-
-			msg = check_version(last_version, &verbose, &data);
-			message_type = GTK_MESSAGE_INFO;
-		} else {
-			msg = siril_log_message(_("Cannot fetch version file\n"));
-		}
-
-		g_clear_pointer(&last_version, g_free);
-		g_clear_pointer(&build_comment, g_free);
-		g_object_unref(parser);
-		g_free(file_contents);
-	} else {
-		g_printerr("%s: loading of %s failed: %s\n", G_STRFUNC,
-				g_file_get_uri(G_FILE(source)), error->message);
-		g_clear_error(&error);
-		msg = siril_log_message(_("Cannot fetch version file\n"));
-	}
-	if (verbose) {
-		set_cursor_waiting(FALSE);
-		if (msg) {
-			siril_data_dialog(message_type, _("Software Update"), msg, data);
-		}
-	}
-	/* free data */
-	g_free(data);
-}
-
-void siril_check_updates(gboolean verbose) {
-	GFile *siril_versions;
-
-	siril_versions = g_file_new_for_uri(SIRIL_VERSIONS);
-
-	g_file_load_contents_async(siril_versions, NULL, siril_check_updates_callback, GINT_TO_POINTER(verbose));
-	g_object_unref(siril_versions);
-}
 #endif
-#endif // HAVE_JSON_GLIB

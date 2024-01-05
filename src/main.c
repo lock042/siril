@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -341,7 +341,7 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
+#if defined(HAVE_JSON_GLIB) && defined(HAVE_LIBCURL)
 		/* Check for update */
 		if (com.pref.check_update) {
 			siril_check_updates(FALSE);

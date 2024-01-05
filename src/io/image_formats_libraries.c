@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1474,7 +1474,7 @@ int readpng(const char *name, fits* fit) {
 	cmsUInt8Number *embed = NULL;
 	cmsUInt32Number len = 0;
 	{
-		png_charp name;
+		png_charp name_str;
 		int comp_type;
 #if ((PNG_LIBPNG_VER_MAJOR << 8) | PNG_LIBPNG_VER_MINOR << 0) < \
     ((1 << 8) | (5 << 0))
@@ -1483,7 +1483,7 @@ int readpng(const char *name, fits* fit) {
 		png_bytep profile;
 #endif
 		if (png_get_iCCP(png, info,
-						&name, &comp_type, &profile, &len) ==
+						&name_str, &comp_type, &profile, &len) ==
 						PNG_INFO_iCCP) {
 			embed = malloc(len * sizeof(cmsUInt8Number));
 			memcpy(embed, profile, len * sizeof(cmsUInt8Number));
@@ -1499,7 +1499,7 @@ int readpng(const char *name, fits* fit) {
 		for (int y = height - 1; y > -1; y--) {
 			png_byte* row = row_pointers[y];
 			for (int x = 0; x < width; x++) {
-				png_byte* ptr = &(row[x * 8]);
+				const png_byte* ptr = &(row[x * 8]);
 				*buf[RLAYER]++ = (ptr[0] << 8) + ptr[1];
 				*buf[GLAYER]++ = (ptr[2] << 8) + ptr[3];
 				*buf[BLAYER]++ = (ptr[4] << 8) + ptr[5];
@@ -1509,7 +1509,7 @@ int readpng(const char *name, fits* fit) {
 		for (int y = height - 1; y > -1; y--) {
 			png_byte* row = row_pointers[y];
 			for (int x = 0; x < width; x++) {
-				png_byte* ptr = &(row[x * 4]);
+				const png_byte* ptr = &(row[x * 4]);
 				*buf[RLAYER]++ = ptr[0] << 8;
 				*buf[GLAYER]++ = ptr[1] << 8;
 				*buf[BLAYER]++ = ptr[2] << 8;
@@ -2360,7 +2360,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 
 		if (selected_items) {
 			GtkTreePath *path = (GtkTreePath*) (selected_items->data);
-			gint *indices = gtk_tree_path_get_indices(path);
+			const gint *indices = gtk_tree_path_get_indices(path);
 
 			*selected_image = heif_images[indices[0]].ID;
 
@@ -2681,8 +2681,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	// Note: the HEIF library does not appear to provide good grayscale support at present
 	// so imported HEIF images will always be 3-channel
 	struct heif_image *img = 0;
-	err = heif_decode_image(handle, &img, heif_colorspace_RGB,
-			chroma, NULL);
+	err = heif_decode_image(handle, &img, heif_colorspace_RGB, chroma, NULL);
 	if (err.code) {
 		g_printf("%s\n", err.message);
 		heif_image_handle_release(handle);
@@ -2735,7 +2734,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 				*buf[RLAYER]++ = r;
 				*buf[GLAYER]++ = g;
 				*buf[BLAYER]++ = b;
-				if (mono && !(r == g && r == b && r == b))
+				if (mono && !(r == g && r == b && g == b))
 					mono = FALSE;
 			}
 		}
@@ -2758,7 +2757,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 				*buf[RLAYER]++ = r;
 				*buf[GLAYER]++ = g;
 				*buf[BLAYER]++ = b;
-				if (mono && !(r == g && r == b && r == b))
+				if (mono && !(r == g && r == b && g == b))
 					mono = FALSE;
 			}
 		}

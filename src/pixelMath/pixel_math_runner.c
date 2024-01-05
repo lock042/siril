@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -598,7 +598,7 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 		}
 	}
 	for (int j = 0; j < nb_images; j++) {
-		gchar *test =  g_strrstr(expression, image[j]);
+		const gchar *test =  g_strrstr(expression, image[j]);
 		if (test) {
 			var_fit_mask[j] = TRUE;
 			siril_debug_print("found image name %s in the expression %s\n", image[j], expression);
@@ -1260,7 +1260,7 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	GtkEntry *entry = get_entry_with_focus();
 
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_pixel_math_var_name(i[0]);
 
 	if (str) {
@@ -1384,7 +1384,7 @@ void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
 	GtkEntry *entry = get_entry_with_focus();
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_function_name(i[0]);
 
 	if (str) {
@@ -1401,7 +1401,7 @@ void on_pixel_math_treeview_operators_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
 	GtkEntry *entry = get_entry_with_focus();
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_operator_name(i[0]);
 
 	if (str) {
@@ -1546,7 +1546,7 @@ void on_pixel_math_treeview_presets_row_activated(GtkTreeView *tree_view,
 	GtkEntry *entry = get_entry_with_focus();
 
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_preset_expr(i[0]);
 
 	if (str) {

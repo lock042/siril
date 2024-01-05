@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -565,7 +565,7 @@ typedef struct {
 static void pool_worker(gpointer data, gpointer user_data);
 static void open_next_input_seq(convert_status *conv);
 static seqread_status open_next_input_sequence(const char *src_filename, convert_status *convert, gboolean test_only);
-static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv);
+static seqwrite_status open_next_output_seq(const struct _convert_data *args, convert_status *conv);
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader);
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
@@ -1166,7 +1166,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	return GOT_WRITE_ERROR;
 }
 
-static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv) {
+static seqwrite_status open_next_output_seq(const struct _convert_data *args, convert_status *conv) {
 	if (args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -297,8 +297,8 @@ BYTE float_to_uchar_range(float f) {
  * @param fit the image the data is from
  * @return a float [0, 1] value for the given integer value
  */
-float ushort_to_float_bitpix(fits *fit, WORD value) {
-	float fval = (float)value;
+float ushort_to_float_bitpix(const fits *fit,const WORD value) {
+	const float fval = (float)value;
 	return fit->orig_bitpix == BYTE_IMG ?
 		fval * INV_UCHAR_MAX_SINGLE :
 		fval * INV_USHRT_MAX_SINGLE;
@@ -310,7 +310,7 @@ float ushort_to_float_bitpix(fits *fit, WORD value) {
  * @param ndata
  * @return
  */
-WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
+WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	WORD *buf = malloc(ndata * sizeof(WORD));
 	if (!buf) {
@@ -329,7 +329,7 @@ WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
  * @param ndata
  * @return
  */
-signed short *float_buffer_to_short(float *buffer, size_t ndata) {
+signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
@@ -482,7 +482,7 @@ uint16_t be16_to_cpu(uint16_t x) {
     return cpu_to_be16(x);
 }
 
-uint32_t be24_to_cpu(BYTE x[3]) {
+uint32_t be24_to_cpu(const BYTE x[3]) {
 #ifdef __BIG_ENDIAN__
 	uint32_t r = ((x[2] << 16) | (x[1] << 8) | x[0]);
 #else
@@ -610,7 +610,7 @@ uint64_t be64_to_cpu(uint64_t x) {
  * @param fit input FITS image
  * @return TRUE if fit image has 3 channels
  */
-gboolean isrgb(fits *fit) {
+gboolean isrgb(const fits *fit) {
 	return (fit->naxis == 3);
 }
 
@@ -686,10 +686,10 @@ const char *get_filename_ext(const char *filename) {
  * @return the type of the file from its filename
  */
 image_type get_type_from_filename(const gchar *filename) {
-	const char *ext = get_filename_ext(filename);
-	if (!ext)
+	const char *extension = get_filename_ext(filename);
+	if (!extension)
 		return TYPEUNDEF;
-	return get_type_for_extension(ext);
+	return get_type_for_extension(extension);
 }
 
 /**
@@ -809,20 +809,20 @@ void replace_invalid_chars(char *name, char repl) {
  */
 int stat_file(const char *filename, image_type *type, char **realname) {
 	int k;
-	const char *ext;
+	const char *extension;
 	*type = TYPEUNDEF;	// default value
 
 	/* check for an extension in filename and isolate it, including the . */
 	if (filename[0] == '\0')
 		return 1;
 
-	ext = get_filename_ext(filename);
+	extension = get_filename_ext(filename);
 	/* if filename has an extension, we only test for it */
-	if (ext) {
+	if (extension) {
 		if (is_readable_file(filename)) {
 			if (realname)
 				*realname = strdup(filename);
-			*type = get_type_for_extension(ext);
+			*type = get_type_for_extension(extension);
 			return 0;
 		}
 		return 1;
@@ -1185,8 +1185,7 @@ gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 	int width, height;
 	int n_channel = 0;
 
-	GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename,
-			&width, &height);
+	const GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename, &width, &height);
 
 	if (pixbuf) {
 		n_channel = gdk_pixbuf_get_n_channels(pixbuf);
@@ -1215,7 +1214,7 @@ gchar *siril_truncate_str(gchar *str, gint size) {
 	if (len > size) {
 		gint pos = len - size;
 		/* locate first "/" */
-		char *ptr = strchr(str + pos, G_DIR_SEPARATOR);
+		const char *ptr = strchr(str + pos, G_DIR_SEPARATOR);
 		if (ptr != NULL) {
 			pos = ptr - str;
 		}
@@ -1405,7 +1404,7 @@ g_string_replace (GString     *string,
  * function to free.
  */
 
-char *str_replace(char *orig, char *rep, char *with) {
+char *str_replace(char *orig, const char *rep, char *with) {
     char *result; // the return string
     char *ins;    // the next insert point
     char *tmp;    // varies

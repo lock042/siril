@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -110,8 +110,8 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 		for (i = 0; i < n; i++) {
 			blend_data data;
 #pragma omp simd
-			for (int i = 0 ; i < 3 ; i++)
-				data.do_channel[i] = TRUE;
+			for (int ii = 0; ii < 3; ii++)
+				data.do_channel[ii] = TRUE;
 			float r = buf[RLAYER][i] * invnorm;
 			float g = buf[GLAYER][i] * invnorm;
 			float b = buf[BLAYER][i] * invnorm;
@@ -167,7 +167,7 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 		for (i = 0; i < n; i++) {
 			blend_data data;
 #pragma omp simd
-			for (int i = 0 ; i < 3 ; i++)
+			for (int ii = 0; ii < 3; ii++)
 				data.do_channel[i] = TRUE;
 			float r = buf[RLAYER][i];
 			float g = buf[GLAYER][i];
