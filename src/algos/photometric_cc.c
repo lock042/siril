@@ -37,7 +37,6 @@
 #include "algos/astrometry_solver.h"
 #include "algos/star_finder.h"
 #include "algos/siril_wcs.h"
-#include "gui/message_dialog.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h" // For the datalink FITS functions
 #include "io/local_catalogues.h"
@@ -499,28 +498,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 	float maxs[3];
 	int norm_channel;
 
-	// Check SPCC hasn't been applied already
-	GSList* entry = NULL;
-	if (args->spcc && args->fit->history) {
-		entry = args->fit->history;
-		while (entry) {
-			if (strstr(entry->data, "SPCC")) {
-				gchar *msg = g_strdup("Spectrophotometric Color Correction "
-							"has already been applied to this image. Re-applying it will "
-							"result in incorrect results!");
-				if (!com.script) {
-					if (!siril_confirm_dialog(_("Warning!"), _(msg), _("Continue"))) {
-						g_free(msg);
-						return 1;
-					}
-				} else {
-					siril_log_color_message(_("Warning! %s\n"), "red", msg);
-					g_free(msg);
-				}
-			}
-			entry = entry->next;
-		}
-	}
 	// Initialize filters if required
 	if (args->spcc && !spcc_filters_initialized) {
 		init_spcc_filters();
@@ -562,11 +539,12 @@ int photometric_cc(struct photometric_cc_data *args) {
 			ret = spcc_colorspace_transform(args);
 		}
 		if (args->spcc && !ret) {
-			// WARNING: Do not make this string translatable: it is used to
-			// check whether SPCC has previously been applied
-			args->fit->history = g_slist_append(args->fit->history, strdup("SPCC"));
-
 			invalidate_stats_from_fit(args->fit);
+			if (!ret) {
+				if (args->spcc) {
+					args->fit->spcc_applied = TRUE;
+				}
+			}
 		}
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
@@ -596,6 +574,9 @@ gpointer photometric_cc_standalone(gpointer p) {
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
+
+	if (check_prior_spcc(args->fit))
+		return GINT_TO_POINTER(1);
 
 	/* run peaker to measure FWHM of the image to adjust photometry settings */
 	args->fwhm = measure_image_FWHM(args->fit, -1);
@@ -670,7 +651,10 @@ gpointer photometric_cc_standalone(gpointer p) {
 
 	if (!retval) {
 		if (!com.script) {
-			undo_save_state(args->fit, _("Photometric CC"));
+			// WARNING: Do not make this "algo" string translatable: it is used to
+			// check whether SPCC has previously been applied
+			const gchar *algo = args->spcc ? "SPCC" : "PCC";
+			undo_save_state(args->fit, _("Photometric CC (algorithm: %s)"), algo);
 		}
 		args->stars = stars;
 		args->nb_stars = nb_stars;

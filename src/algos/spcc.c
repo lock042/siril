@@ -41,6 +41,7 @@
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "gui/photometric_cc.h"
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "algos/photometric_cc.h"
@@ -279,5 +280,34 @@ int spcc_colorspace_transform(struct photometric_cc_data *args) {
 	cmsUInt32Number bytesperplane = npixels * datasize;
 	cmsDoTransformLineStride(transform, data, data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 	cmsDeleteTransform(transform);
+	return 0;
+}
+
+int check_prior_spcc(fits *fit) {
+	// Check SPCC hasn't been applied already
+	GSList* entry = NULL;
+	if (fit->spcc_applied)
+		return 1;
+	if (fit->history) {
+		entry = fit->history;
+		while (entry) {
+			if (strstr(entry->data, "SPCC")) {
+				gchar *msg = g_strdup("Spectrophotometric Color Correction "
+							"has already been applied to this image. Re-applying it will "
+							"result in incorrect results!");
+				if (!com.script) {
+					if (!siril_confirm_dialog(_("Warning!"), _(msg), _("Continue"))) {
+						g_free(msg);
+						return 1;
+					}
+					break;
+				} else {
+					siril_log_color_message(_("Warning! %s\n"), "red", msg);
+					g_free(msg);
+				}
+			}
+			entry = entry->next;
+		}
+	}
 	return 0;
 }

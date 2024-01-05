@@ -469,6 +469,8 @@ struct ffit {
 
 	GSList *history;	// Former HISTORY comments of FITS file
 
+	gboolean spcc_applied;	// Tracks if SPCC has been applied
+
 	/* ICC Color Management data */
 	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
@@ -545,6 +547,7 @@ struct historic_struct {
 	struct wcsprm *wcslib;
 	double focal_length;
 	cmsHPROFILE icc_profile;
+	gboolean spcc_applied;
 };
 
 /* the structure storing information for each layer to be composed
