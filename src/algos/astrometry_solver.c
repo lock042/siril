@@ -1046,7 +1046,7 @@ gboolean asnet_is_available() {
 		solvefield_is_in_path = TRUE;
 		siril_debug_print("solve-field found in PATH\n");
 		if (!asnet_version)
-			siril_get_asnet_bin("solve_field");
+			get_asnet_version("solve_field");
 		return TRUE;
 	}
 	siril_debug_print("solve-field not found in PATH\n");
