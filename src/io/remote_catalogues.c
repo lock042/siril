@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -53,7 +53,7 @@
 #include "registration/matching/misc.h"
 
 // These statics define the formatting for some fields used when writing catalog names
-static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
+static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f", 
 					*radiusfmt = "%3.2f", *limitmagfmt = "%3.1f";
 
 // this function returns a heap-allocated structure cat_tap_query_fields
@@ -95,19 +95,6 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmDE");
 			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Gmag");
 			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("BPmag");
-			tap->tap_columns[CAT_FIELD_TEFF] = g_strdup("Teff");
-			break;
-		case CAT_GAIADR3_DIRECT:
-			tap->catcode = g_strdup("gaiadr3.gaia_source");
-			tap->tap_server = g_strdup(GAIA_DR3_QUERY);
-			tap->tap_columns[CAT_FIELD_RA] = g_strdup("ra");
-			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("dec");
-			tap->tap_columns[CAT_FIELD_PMRA] = g_strdup("pmra");
-			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmdec");
-			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("phot_g_mean_mag");
-			tap->tap_columns[CAT_FIELD_BMAG] = g_strdup("phot_bp_mean_mag");
-			tap->tap_columns[CAT_FIELD_TEFF] = g_strdup("teff_gspphot");
-			tap->tap_columns[CAT_FIELD_GAIASOURCEID] = g_strdup("source_id");
 			break;
 		case CAT_PPMXL:
 			tap->catcode = g_strdup("%22I/317/sample%22");
@@ -211,10 +198,6 @@ static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
  */
 
 /* TODO: fetch_url is also defined in siril update checking, can we merge them? */
-/* NOTE: checked while writing SPCC code, the two fetch_urls look mergeable
- * with a little extra code added to check_updates. We should probably split
- * all the networking code out into a new file core/siril_networking.[ch]
- */
 
 #ifdef HAVE_LIBCURL // the alternative is glib-networking, see the else below
 
@@ -255,7 +238,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	return realsize;
 }
 
-char *fetch_url(const gchar *url, gsize *length) {
+char *fetch_url(const gchar *url) {
 	struct ucontent *content = malloc(sizeof(struct ucontent));
 	char *result = NULL;
 	long code;
@@ -271,7 +254,7 @@ retrieve:
 	content->len = 0;
 
 	CURLcode ret = curl_easy_setopt(curl, CURLOPT_URL, url);
-	ret |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	ret |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
 	ret |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
 	ret |= curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE_STRING);
@@ -315,8 +298,8 @@ retrieve:
 		free(content->data);
 		result = NULL;
 	}
-	*length = content->len;
 	free(content);
+
 	return result;
 }
 
@@ -324,64 +307,16 @@ void free_fetch_result(char *result) {
 	free(result);
 }
 
-static void submit_post_request(const char *url, const char *post_data, char **post_response) {
-	CURL *curl;
-	CURLcode res;
-	struct ucontent chunk;
-
-	chunk.data = malloc(1);  /* will be grown as needed by realloc above */
-	chunk.len = 0;    /* no data at this point */
-
-	curl_global_init(CURL_GLOBAL_ALL);
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-
-		// send all data to this function
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-
-		// we pass our 'chunk' struct to the callback function
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-
-		// some servers do not like requests that are made without a user-agent
-		// field, so we provide one
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
-
-		// if we do not provide POSTFIELDSIZE, libcurl will strlen() by itself
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
-
-		// Perform the request, res will get the return code
-		res = curl_easy_perform(curl);
-
-		// Check for errors
-		if(res != CURLE_OK) {
-			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-		} else {
-			// Set the response data
-			*post_response = g_strdup(chunk.data);
-		}
-
-		// always cleanup
-		curl_easy_cleanup(curl);
-	}
-
-	free(chunk.data);
-	curl_global_cleanup();
-    return;
-}
-
 #elif defined HAVE_NETWORKING
 
-gchar *fetch_url(const gchar *url, gsize *length) {
+gchar *fetch_url(const gchar *url) {
 	GFile *file = g_file_new_for_uri(url);
 	GError *error = NULL;
 	gchar *content = NULL;
 
 	siril_debug_print("fetch_url(): %s\n", url);
 
-	if (!g_file_load_contents(file, NULL, &content, length, NULL, &error)) {
+	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
 		siril_log_color_message(_("Server unreachable or unresponsive. (%s)\n"), "salmon", error->message);
 		g_clear_error(&error);
 	}
@@ -660,18 +595,12 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 #endif
 }
 
-static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrieval_type datalink_product) {
+static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat) {
 	gchar *filename = NULL;
 	gchar *dt = NULL, *fmtstr = NULL;
-	gchar *ext = NULL;
-	if (datalink_product == NO_DATALINK_RETRIEVAL || siril_cat->cat_index != CAT_GAIADR3_DIRECT) {
-		ext = g_strdup(".csv");
-	} else {
-		ext = g_strdup_printf("_%d.fit", datalink_product);
-	}
 	switch (siril_cat->cat_index) {
 		case CAT_TYCHO2 ... CAT_AAVSO_CHART:
-			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s%s", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt, ext);
+			fmtstr = g_strdup_printf("cat_%s_%s_%s_%s_%s.csv", catcodefmt, rafmt, decfmt, radiusfmt, limitmagfmt);
 			filename = g_strdup_printf(fmtstr,
 				(int)siril_cat->cat_index,
 				siril_cat->center_ra,
@@ -703,7 +632,6 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 			siril_debug_print("should not happen, download_catalog should only be called for online calls\n");
 			return NULL;
 	}
-	g_free(ext);
 	siril_debug_print("catalog type not handled, should not happen\n");
 	return NULL;
 }
@@ -711,11 +639,11 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 // Parses the catalogue name and checks if it exists in cache
 // Returns the path to write to (if in_cache is FALSE)
 // or the path to read directly (if in_cache is TRUE)
-static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gboolean *in_cache, retrieval_type datalink_product) {
+static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gboolean *in_cache) {
 	GError *error = NULL;
 	GFile *file = NULL;
 	*in_cache = FALSE;
-	gchar *filename = parse_remote_catalogue_filename(siril_cat, datalink_product);
+	gchar *filename = parse_remote_catalogue_filename(siril_cat);
 	if (!filename)
 		return NULL;
 	siril_debug_print("Catalogue file: %s\n", filename);
@@ -772,7 +700,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	gboolean remove_file = FALSE, catalog_is_in_cache = FALSE;
 
 	/* check if catalogue already exists in cache */
-	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
+	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache);
 	g_free(str);
 
 	if (catalog_is_in_cache) {
@@ -798,8 +726,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		goto download_error;
 	}
 	siril_log_message(_("Contacting server\n"));
-	gsize length;
-	buffer = fetch_url(url, &length);
+	buffer = fetch_url(url);
 	g_free(url);
 
 	/* save (and parse if required)*/
@@ -823,6 +750,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 					remove_file = TRUE;
 					goto download_error;
 				}
+				break;
 			default:
 				break;
 		}
@@ -857,7 +785,7 @@ download_error:
 /* This function is the main interface to collect an online catalogue
    It sends a conesearch around given center, within given radius and for stars below limit_mag
    Internally, it uses download_catalog to search cache and download catalog as required
-   The cache folder (named download_cache) stores all downloaded queries in the form
+   The cache folder (named download_cache) stores all downloaded queries in the form 
    of csv files, named as 'cat-cat_index-ra-dec-radius[-mag].csv' or
    'cat-cat_index-ra-dec-radius-date-obscode.csv' for solar syatem queries (IMCCE)
    It fills the siril_catalogue given in input
@@ -881,366 +809,3 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	return 0;
 }
 
-#ifdef HAVE_LIBCURL
-
-static void submit_async_request(const char *url, const char *post_data, char **job_id) {
-	gchar *post_response = NULL;
-	submit_post_request(url, post_data, &post_response);
-	gchar *location_header = strstr(post_response, "Location: ");
-	if (location_header != NULL) {
-		gchar *start = strrchr(location_header, '/') + 1;
-		gchar *end = strchr(start, '\n');
-		if (end != NULL) {
-			*end = '\0';
-			*job_id = g_strdup(start);
-			siril_debug_print("Job ID: %s\n", *job_id);
-		}
-	}
-}
-
-#else
-
-// Gets the job ID from the response from posting a Gaia DR3 job
-static void get_job_id(GInputStream *input_stream, gchar **job_id) {
-    gsize bytes_read;
-    gchar buffer[4096];
-
-    while ((bytes_read = g_input_stream_read(input_stream, buffer, sizeof(buffer), NULL, NULL)) > 0) {
-        siril_debug_print("%.*s", (int)bytes_read, buffer);
-
-        // Extract job id from 'Location' header
-        gchar *location_header = strstr(buffer, "Location: ");
-        if (location_header != NULL) {
-            gchar *start = strrchr(location_header, '/') + 1;
-            gchar *end = strchr(start, '\n');
-            if (end != NULL) {
-                *end = '\0';
-                *job_id = g_strdup(start);
-            }
-        }
-    }
-}
-
-static void submit_async_request(const gchar *url, const gchar *data, gchar **job_id) {
-    GError *error = NULL;
-    GSocketClient *client = NULL;
-//    GTlsConnection *tls_conn = NULL;
-    GSocketConnection *conn = NULL;
-    GIOStream *iostream = NULL;
-    GInputStream *input_stream = NULL;
-    GOutputStream *output_stream = NULL;
-    gsize bytes_read;
-    gsize response_length = 0;
-
-    // Create a GSocketClient for HTTPS
-    client = g_socket_client_new();
-    g_socket_client_set_tls(client, TRUE);
-	g_socket_client_set_timeout(client, 15);
-
-    // Connect to the server
-    conn = g_socket_client_connect_to_uri(client, url, 443, NULL, &error);
-    if (!conn) {
-        g_error("Failed to connect: %s", error->message);
-        g_clear_error(&error);
-//        goto cleanup;
-    }
-
-    // Get input and output streams
-    input_stream = g_io_stream_get_input_stream(G_IO_STREAM(conn));
-    output_stream = g_io_stream_get_output_stream(G_IO_STREAM(conn));
-
-	siril_debug_print("Socket connection state: %d\n", g_socket_connection_is_connected(conn));
-
-    // Send the POST request
-    g_output_stream_write(output_stream, data, strlen(data), NULL, &error);
-    if (error) {
-        g_error("Failed to send POST data: %s", error->message);
-        g_clear_error(&error);
- //       goto cleanup;
-    }
-	printf("Sent POST\n");
-    // Read the response
-    gchar response_data[4096];
-    while ((bytes_read = g_input_stream_read(input_stream, &response_data, 4096, NULL, &error)) > 0) {
-        response_length += bytes_read;
-		if (error) {
-			g_error("Failed to read response: %s", error->message);
-			g_clear_error(&error);
-	//        goto cleanup;
-		}
-    }
-
-    response_data[response_length] = '\0';  // Null-terminate the response
-/*
-cleanup:
-    if (iostream) g_io_stream_close(iostream, NULL, NULL);
-    if (client) g_object_unref(client);
-
-    return error ? -1 : 0;
-*/
-	// Copy the response data to the output parameter
-	siril_debug_print("Response:\n%s\n", response_data);
-	gchar *location_header = strstr(response_data, "Location: ");
-	if (location_header != NULL) {
-		gchar *start = strrchr(location_header, '/') + 1;
-		gchar *end = strchr(start, '\n');
-		if (end != NULL) {
-			*end = '\0';
-			*job_id = g_strdup(start);
-		}
-	}
-
-	// Extract the job ID from the response
-	get_job_id(input_stream, job_id);
-}
-#endif
-
-// Returns url to be submitted as a Gaia DR3 job. This allows the job ID to be used as
-// the source of source_ids for a subsequent datalink query. This is intended for use
-// with SPCC but may be useful in the future for other types of datalink query.
-// The path to the datalink FITS is set and the catalogue is populated
-int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type, gchar** datalink_path) {
-#ifndef HAVE_NETWORKING
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-	return -1;
-#endif
-	GError *error = NULL;
-	gsize length;
-    const gchar *host = "https://gea.esac.esa.int";
-	GString *querystring = NULL;
-    const gchar *pathinfo = "/tap-server/tap/async/";
-	gchar *str = NULL, *url = NULL, *data = NULL, *buffer = NULL;
-	GString *datalink_url = NULL;
-	GOutputStream *output_stream = NULL;
-	GFile *file = NULL;
-	gboolean remove_file = FALSE;
-
-	gboolean catalog_is_in_cache, retrieval_product_is_in_cache;
-	gchar *csvfilepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
-	if (!csvfilepath) { // if the path is NULL, an error was caught earlier, just free and abort
-		return -1;
-	}
-	gchar *filepath = get_remote_catalogue_cached_path(siril_cat, &retrieval_product_is_in_cache, type);
-	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
-		return -1;
-	}
-	if (!(catalog_is_in_cache && retrieval_product_is_in_cache)) {
-
-		// Set up query
-		gchar *fmtstr;
-		const gchar **cat_columns = get_cat_colums_names();
-		cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index);
-		uint32_t catcols = siril_catalog_columns(siril_cat->cat_index);
-		querystring = g_string_new("LANG=ADQL&FORMAT=csv&QUERY=SELECT+TOP+1000+"); // We ignore the cat_server as the URL is dealt with elsewhere
-		// Maximum 1000 stars. This is plenty, and should keep things manageable and below the maximum Datalink sources number of 5000.
-		// TODO: make the max stars configurable in the UI, up to 5000
-		gboolean first = TRUE;
-		for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
-			if (fields->tap_columns[i]) {
-				g_string_append_printf(querystring, "%s%s+as+%s", (first) ? "" : ",", fields->tap_columns[i], cat_columns[i]);
-				if (first)
-					first = FALSE;
-			}
-		}
-		g_string_append_printf(querystring,"+FROM+%s", fields->catcode);
-		g_string_append_printf(querystring,"+WHERE+has_xp_sampled+=+'True'+AND+CONTAINS(POINT('ICRS',%s,%s),", fields->tap_columns[CAT_FIELD_RA], fields->tap_columns[CAT_FIELD_DEC]);
-		fmtstr = g_strdup_printf("CIRCLE('ICRS',%s,%s,%s))=1", rafmt, decfmt, radiusfmt);
-		g_string_append_printf(querystring, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius / 60.);
-		g_free(fmtstr);
-		if (siril_cat->limitmag > 0 && catcols & (1 << CAT_FIELD_MAG)) {
-			fmtstr = g_strdup_printf("+AND+(%%s<=%s)", limitmagfmt);
-			g_string_append_printf(querystring, fmtstr,  fields->tap_columns[CAT_FIELD_MAG], siril_cat->limitmag);
-			g_free(fmtstr);
-		}
-		g_string_append_printf(querystring, "+ORDER+BY+random_index"); // Avoids bias in the results by ordering by random_index
-		free_cat_tap_query_fields(fields);
-
-		// Create job
-		url = g_strdup_printf("%s%s", host, pathinfo);
-		data = g_strdup_printf(
-			"PHASE=run&"
-			"LANG=ADQL&"
-			"FORMAT=csv&"
-			"REQUEST=doQuery&"
-			"%s", querystring->str
-		);
-		siril_debug_print("Query data: %s\n", data);
-		gchar *job_id = NULL;
-		submit_async_request(url, data, &job_id);
-
-		// Print job id
-		if (job_id == NULL) {
-			g_print("Job id not found in the response.\n");
-			goto tap_error_and_cleanup;
-		}
-
-		// Wait until the job is finished
-		// Possible IVOA UWS statuses are: PENDING, QUEUED, EXECUTING, COMPLETED, ERROR, ABORTED
-		//Timeout 1 minute in us
-		gchar* job_check = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s", job_id);
-		uint64_t timer = 0;
-		gboolean success = FALSE;
-		while (1) {
-			if (timer > ASYNC_JOB_TIMEOUT) { // Avoid infinite loop
-				siril_log_color_message(_("Timeout on Gaia DR3 query\n"), "red");
-				break;
-			}
-			buffer = fetch_url(job_check, &length);
-			gboolean error = (g_strrstr(buffer, "ERROR") != NULL);
-			if (!error)
-				error = (g_strrstr(buffer, "ABORTED") != NULL);
-			if (error) {
-				siril_log_color_message(_("Gaia DR3 async query failed, unable to continue.\n"), "red");
-				break;
-			}
-			gboolean completed = (g_strrstr(buffer,"COMPLETED") != NULL);
-			g_free(buffer);
-			if (completed) {
-				success = TRUE;
-				break;
-			}
-			g_usleep(500000);
-			timer += 500000;
-		}
-		g_free(job_check);
-
-		if (!success) // ERROR, ABORTED or timed out
-			goto tap_error_and_cleanup;
-
-		// Retrieve the TAP+ query result
-		gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
-		gchar *buffer = fetch_url(job_retrieval, &length);
-		siril_debug_print("Length: %lu\n", length);
-		g_free(job_retrieval);
-
-		// buffer is the CSV data for the standard Gaia DR3 TAP+ query, it gets saved to the usual catalogue location
-		/* check if catalogue already exists in cache */
-		GOutputStream *csvoutput_stream = NULL;
-		GFile *csvfile = NULL;
-
-		// the catalog needs to be downloaded, prepare the output stream
-		csvfile = g_file_new_for_path(csvfilepath);
-		csvoutput_stream = (GOutputStream*) g_file_create(csvfile, G_FILE_CREATE_NONE, NULL, &error);
-		if (!csvoutput_stream) {
-			goto tap_error_and_cleanup;
-		}
-		if (!g_output_stream_write_all(csvoutput_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
-			g_warning("%s\n", error->message);
-			remove_file = TRUE;
-			goto tap_error_and_cleanup;
-		}
-		// Populate the siril_catalog with the data from the initial query
-		int retval = siril_catalog_load_from_file(siril_cat, csvfilepath);
-		if (retval) {
-			goto tap_error_and_cleanup;
-		}
-		// Finished with the CSV filepath
-		g_free(csvfilepath);
-
-		// Now we can use the job ID to provide the source_ids for a Datalink query
-		datalink_url = g_string_new("https://gea.esac.esa.int/data-server/data?RETRIEVAL_TYPE=");
-		// Append the retrieval type string
-		switch (type) {
-			case EPOCH_PHOTOMETRY:
-				g_string_append(datalink_url, "EPOCH_PHOTOMETRY");
-				break;
-			case XP_SAMPLED:
-				g_string_append(datalink_url, "XP_SAMPLED");
-				break;
-			case XP_CONTINUOUS:
-				g_string_append(datalink_url, "XP_CONTINUOUS");
-				break;
-			case MCMC_GSPPHOT:
-				g_string_append(datalink_url, "MCMC_GSPPHOT");
-				break;
-			case MCMC_MSC:
-				g_string_append(datalink_url, "MCMC_MSC");
-				break;
-			case RVS:
-				g_string_append(datalink_url, "RVS");
-				break;
-			case ALL:
-				g_string_append(datalink_url, "ALL");
-				break;
-			default:
-				siril_debug_print("Error: siril_gaiadr3_datalink_query called with unsupported retrieval type, cannot proceed\n");
-				goto datalink_download_error;
-		}
-
-		// Set the data structure and format. Siril will always consume the data as FITS,
-		// as we already use libcfitsio and it's easier than adding support for VOTables
-		g_string_append(datalink_url, "&DATA_STRUCTURE=COMBINED&FORMAT=FITS");
-
-		// Append the source IDs (using the job number)
-		g_string_append(datalink_url, "&ID=job:");
-		g_string_append(datalink_url,job_id);
-		g_string_append(datalink_url, ".source_id");
-
-		siril_debug_print("Datalink url: %s\n", datalink_url->str);
-		gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
-		siril_debug_print("Length: %lu\n", length);
-		g_string_free(datalink_url, TRUE);
-		datalink_url = NULL;
-
-		if (retrieval_product_is_in_cache) {
-			siril_log_message(_("Using already downloaded datalink product\n"));
-
-			return 0;
-		}
-		if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
-			g_free(str);
-			return 0;
-		}
-
-		// the catalog needs to be downloaded, prepare the output stream
-		file = g_file_new_for_path(filepath);
-		output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
-		if (!output_stream) {
-			goto datalink_download_error;
-		}
-		if (!g_output_stream_write_all(output_stream, datalink_buffer, length, NULL, NULL, &error)) {
-			g_warning("%s\n", error->message);
-			remove_file = TRUE;
-			goto datalink_download_error;
-		}
-		siril_log_message(_("Datalink query succeeded: cached as %s\n"), filepath);
-		*datalink_path = g_strdup(filepath);
-		g_free(str);
-		return 0;
-	} else {
-		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cat_index));
-		// Populate the siril_catalog with the data from the initial query
-		int retval = siril_catalog_load_from_file(siril_cat, csvfilepath);
-		*datalink_path = g_strdup(filepath);
-		if (retval) {
-			goto tap_error_and_cleanup;
-		}
-		g_free(csvfilepath);
-		return 0;
-	}
-
-tap_error_and_cleanup:
-	// Cleanup
-    g_free(url);
-    g_free(data);
-	return -1;
-
-datalink_download_error:
-	g_string_free(datalink_url, TRUE);
-	if (error) {
-		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
-		g_clear_error(&error);
-		}
-	g_free(buffer);
-	if (output_stream)
-		g_object_unref(output_stream);
-	if (file) {
-		if (remove_file)
-			if (g_unlink(g_file_peek_path(file)))
-				siril_debug_print(("Cannot delete catalogue file %s\n"), filepath);
-		g_object_unref(file);
-	}
-	if (filepath)
-		g_free(filepath);
-	return -1;
-}
