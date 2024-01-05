@@ -280,6 +280,8 @@ int spcc_colorspace_transform(struct photometric_cc_data *args) {
 	cmsUInt32Number bytesperplane = npixels * datasize;
 	cmsDoTransformLineStride(transform, data, data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 	cmsDeleteTransform(transform);
+	refresh_icc_transforms();
+	color_manage(args->fit, TRUE);
 	return 0;
 }
 
