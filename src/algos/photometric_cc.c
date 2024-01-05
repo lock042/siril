@@ -37,6 +37,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/star_finder.h"
 #include "algos/siril_wcs.h"
+#include "gui/message_dialog.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h" // For the datalink FITS functions
 #include "io/local_catalogues.h"
@@ -498,6 +499,28 @@ int photometric_cc(struct photometric_cc_data *args) {
 	float maxs[3];
 	int norm_channel;
 
+	// Check SPCC hasn't been applied already
+	GSList* entry = NULL;
+	if (args->spcc && args->fit->history) {
+		entry = args->fit->history;
+		while (entry) {
+			if (strstr(entry->data, "SPCC")) {
+				gchar *msg = g_strdup("Spectrophotometric Color Correction "
+							"has already been applied to this image. Re-applying it will "
+							"result in incorrect results!");
+				if (!com.script) {
+					if (!siril_confirm_dialog(_("Warning!"), _(msg), _("Continue"))) {
+						g_free(msg);
+						return 1;
+					}
+				} else {
+					siril_log_color_message(_("Warning! %s\n"), "red", msg);
+					g_free(msg);
+				}
+			}
+			entry = entry->next;
+		}
+	}
 	// Initialize filters if required
 	if (args->spcc && !spcc_filters_initialized) {
 		init_spcc_filters();
@@ -535,8 +558,14 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	if (!ret) {
 		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
-		if (args->spcc && !ret) {
+		if (args->spcc) {
 			ret = spcc_colorspace_transform(args);
+		}
+		if (args->spcc && !ret) {
+			// WARNING: Do not make this string translatable: it is used to
+			// check whether SPCC has previously been applied
+			args->fit->history = g_slist_append(args->fit->history, strdup("SPCC"));
+
 			invalidate_stats_from_fit(args->fit);
 		}
 	} else {
