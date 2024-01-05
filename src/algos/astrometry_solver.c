@@ -266,7 +266,7 @@ static void flip_bottom_up_astrometry_data(fits *fit) {
 	Homography H = { 0 };
 	cvGetEye(&H);
 	H.h11 = -1.;
-	H.h12 = (double)fit->ry - 0.5;
+	H.h12 = (double)fit->ry;
 	reframe_astrometry_data(fit, H);
 }
 
@@ -382,10 +382,14 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	wcs_cdelt2unity(fit->wcslib);
 	wcspcx(fit->wcslib, 0, 0, NULL);
 
-	point refpointin = {fit->wcslib->crpix[0], fit->wcslib->crpix[1]};
+	// we fetch the refpoint in siril convention
+	point refpointin = {fit->wcslib->crpix[0] - 0.5, fit->wcslib->crpix[1] - 0.5};
 	cvTransformImageRefPoint(H, refpointin, &refpointout);
-	fit->wcslib->crpix[0] = refpointout.x;
-	fit->wcslib->crpix[1] = refpointout.y;
+	// and convert it back to FITS/WCS convention
+	fit->wcslib->crpix[0] = refpointout.x + 0.5;
+	fit->wcslib->crpix[1] = refpointout.y + 0.5;
+	fit->wcslib->flag = 0; // to update the structure
+	wcs_set(fit->wcslib);
 
 	print_updated_wcs_data(fit);
 }
@@ -1223,15 +1227,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
 	solution->focal_length = RADCONV * args->pixel_size / resolution;
-
-	if (args->downsample) {
-		solution->focal_length *= args->scalefactor;
-
-		Homography S;
-		cvGetMatrixResize(args->fit->wcslib->crpix[0], args->fit->wcslib->crpix[1],
-				(double)args->fit->rx * 0.5, (double)args->fit->ry * 0.5, args->scalefactor, &S);
-		reframe_astrometry_data(args->fit, S);
-	}
 
 	args->fit->wcsdata.pltsolvd = TRUE;
 	strcpy(args->fit->wcsdata.pltsolvd_comment, "This WCS header was created by Astrometry.net.");

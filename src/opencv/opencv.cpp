@@ -948,10 +948,10 @@ void cvGetMatrixResize(double cxin, double cyin, double cxout, double cyout, dou
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h) {
 	Rect frame;
 	Point2f pt(center.x, center.y);
-	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
+	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect2f();
 	siril_debug_print("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
-	*w = frame.width;
-	*h = frame.height;
+	*w = (int)frame.width;
+	*h = (int)frame.height;
 }
 
 void cvInvertH(Homography *Hom) {
@@ -969,11 +969,11 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	/* modify matrix for reverse Y axis */
 	Mat F1 = Mat::eye(3, 3, CV_64FC1);
 	F1.at<double>(1,1) = -1.0;
-	F1.at<double>(1,2) = source_ry - 1.0;
+	F1.at<double>(1,2) = source_ry;
 
 	Mat F2 = Mat::eye(3, 3, CV_64FC1);
 	F2.at<double>(1,1) = -1.0;
-	F2.at<double>(1,2) = target_ry - 1.0;
+	F2.at<double>(1,2) = target_ry;
 
 	H = F2.inv() * H * F1;
 	convert_MatH_to_H(H, Hom);
