@@ -1055,8 +1055,7 @@ gboolean asnet_is_available() {
 	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
 	g_free(bin);
 	if (!asnet_version)
-		siril_get_asnet_bin(bin);
-
+		get_asnet_version(bin);
 	return is_available;
 }
 #endif
