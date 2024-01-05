@@ -29,6 +29,7 @@ siril 1.4.0 xx xx, xx
 * Fixed a crash when carrying out sequence geometry operations, caused by ROI (#1235)
 * Fixed wavelets redraw. (#1236)
 * Removed glib-networking as a dependency (#1157)
+* Fixed a crash in asinh (#1246)
 * Add color management to photometric color calibration, and SPCC as a new method. (!598)
 
 siril 1.2.1 xx xx, xx
