@@ -84,11 +84,10 @@ option('ffmpeg',
  description: 'build with FFmpeg support'
 )
 
-option('enable-libcurl',
- type: 'combo',
- value: 'platform-default',
- description: 'Use libcurl instead of GIO',
- choices: [ 'yes', 'no', 'platform-default' ]
+option('libcurl',
+ type: 'boolean',
+ value: true,
+ description: 'Use libcurl for web access',
 )
 
 option('criterion',
