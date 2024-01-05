@@ -964,6 +964,7 @@ static void get_asnet_version(gchar *path) {
 	if (error) {
 		// This will happen on Windows, for users using ansvr but having set the path to cygwin_ansvr in the prefs (instead of leaving blank)
 		// We'll not make this over complicated and fallback assuming this is the only case
+		siril_debug_print(error->message);
 		asnet_version = g_strdup("ansvr");
 	} else {
 		gchar** chunks = g_strsplit(child_stdout, "\n", 2);
@@ -1046,7 +1047,7 @@ gboolean asnet_is_available() {
 		solvefield_is_in_path = TRUE;
 		siril_debug_print("solve-field found in PATH\n");
 		if (!asnet_version)
-			get_asnet_version("solve_field");
+			get_asnet_version("solve-field");
 		return TRUE;
 	}
 	siril_debug_print("solve-field not found in PATH\n");
