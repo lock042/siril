@@ -67,6 +67,8 @@
 
 #undef DEBUG		/* get some of diagnostic output */
 
+static gchar *asnet_version = NULL;
+
 typedef struct {
 	point size;
 	SirilWorldCS *px_cat_center;	// the original target first, but can get refined
@@ -949,6 +951,39 @@ clearup:
 }
 
 /*********************** finding asnet bash first **********************/
+
+// Retrieves and caches asnet_version
+static void get_asnet_version(gchar *path) {
+	gchar* bin[3];
+	gchar* child_stdout = NULL;
+	bin[0] = path;
+	bin[1] = "--version";
+	bin[2] = NULL;
+	g_autoptr(GError) error = NULL;
+	g_spawn_sync(NULL, bin, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &child_stdout, NULL, NULL, &error);
+	if (error) {
+		// This will happen on Windows, for users using ansvr but having set the path to cygwin_ansvr in the prefs (instead of leaving blank)
+		// We'll not make this over complicated and fallback assuming this is the only case
+		asnet_version = g_strdup("ansvr");
+	} else {
+		gchar** chunks = g_strsplit(child_stdout, "\n", 2);
+		if (strlen(chunks[1]) == 0) { // if the second chunk is void, it means there was only one line which contains the version
+			asnet_version = g_strdup(chunks[0]);
+		} else {
+			asnet_version = g_strdup("<0.88"); // version switch was introduced from 0.88 (https://github.com/dstndstn/astrometry.net/commit/25f0b829d80c57984d404de50f9c645cb3da2223)
+		}
+	}
+	g_free(child_stdout);
+	siril_debug_print("Running asnet version %s\n", asnet_version);
+}
+
+void reset_asnet_version() {
+	if (asnet_version) {
+		g_free(asnet_version);
+		asnet_version = NULL;
+	}
+}
+
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
 	// searching user-defined path if any
@@ -962,6 +997,10 @@ static gchar *siril_get_asnet_bash() {
 		} else {
 			siril_debug_print("cygwin/bin found at %s\n", testdir);
 			g_free(testdir);
+			gchar *versionpath = g_build_filename(com.pref.asnet_dir, "bin", "solve-field", NULL);
+			if (!asnet_version)
+				get_asnet_version(versionpath);
+			g_free(versionpath);
 			return g_build_filename(com.pref.asnet_dir, NULL);
 		}
 	}
@@ -971,6 +1010,10 @@ static gchar *siril_get_asnet_bash() {
 	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
 		siril_debug_print("cygwin/bin found at %s\n", testdir);
 		g_free(testdir);
+		if (!asnet_version) {
+			asnet_version = g_strdup("ansvr");
+			siril_debug_print("Running asnet version %s\n", asnet_version);
+		}
 		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	}
 	siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
@@ -1002,6 +1045,8 @@ gboolean asnet_is_available() {
 	if (WIFEXITED(retval) && (0 == WEXITSTATUS(retval))) {
 		solvefield_is_in_path = TRUE;
 		siril_debug_print("solve-field found in PATH\n");
+		if (!asnet_version)
+			siril_get_asnet_bash("solve_field");
 		return TRUE;
 	}
 	siril_debug_print("solve-field not found in PATH\n");
@@ -1009,6 +1054,8 @@ gboolean asnet_is_available() {
 	if (!bin) return FALSE;
 	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
 	g_free(bin);
+	if (!asnet_version)
+		siril_get_asnet_bash(bin);
 
 	return is_available;
 }
@@ -1229,7 +1276,9 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	solution->focal_length = RADCONV * args->pixel_size / resolution;
 
 	args->fit->wcsdata.pltsolvd = TRUE;
-	strcpy(args->fit->wcsdata.pltsolvd_comment, "This WCS header was created by Astrometry.net.");
+	if (args->fit->wcsdata.pltsolvd_comment[0] != '\0')
+		memset(args->fit->wcsdata.pltsolvd_comment, 0, FLEN_COMMENT);
+	snprintf(args->fit->wcsdata.pltsolvd_comment, FLEN_COMMENT, "Solved by Astrometry.net (%s)", asnet_version);
 	if (args->verbose)
 		siril_log_color_message(_("Local astrometry.net solve succeeded.\n"), "green");
 
