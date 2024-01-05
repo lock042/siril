@@ -226,6 +226,7 @@ static void write_nina_file(struct compstars_arg *args) {
 		siril_log_color_message(_("Problem writing the comparison stars file\n"), "red");
 }
 
+
 #define ONE_ARCSEC 0.000277778
 /* determines if two stars are the same based on their coordinates */
 static gboolean is_same_star(cat_item *s1, cat_item *s2, double ratio) {
