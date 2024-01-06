@@ -2147,6 +2147,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
         <child>
           <object class="GtkModelButton">
             <property name="visible">True</property>
@@ -2326,7 +2327,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">6</property>
+        <property name="spacing">2</property>
         <child>
           <object class="GtkModelButton">
             <property name="visible">True</property>
@@ -2400,7 +2401,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">6</property>
+        <property name="spacing">2</property>
         <child>
           <object class="GtkModelButton">
             <property name="visible">True</property>
@@ -2459,6 +2460,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
         <child>
           <object class="GtkModelButton" id="proc_image_analysis">
             <property name="visible">True</property>
