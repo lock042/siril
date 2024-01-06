@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -8077,9 +8077,6 @@ int process_capabilities(int nb) {
 	siril_log_message("Can%s create symbolic links\n", test_if_symlink_is_ok(FALSE) ? "" : "not");
 #ifndef HAVE_CV44
 	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
-#endif
-#ifdef HAVE_NETWORKING
-	siril_log_message("Build with networking capabilities\n");
 #endif
 #ifdef HAVE_LIBCURL
 	siril_log_message("Built with libcurl\n");
