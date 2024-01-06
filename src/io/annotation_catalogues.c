@@ -430,7 +430,7 @@ GSList *find_objects_in_field(fits *fit) {
 			if (siril_cat->cat_items[i].included) { //included means it is within the bounds of the image after projection
 				double x, y;
 				// we write directly in display coordinates to avoid the flip at every redraw
-				fits_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &x, &y, fit->ry);
+				siril_to_display(siril_cat->cat_items[i].x, siril_cat->cat_items[i].y, &x, &y, fit->ry);
 				CatalogObjects *cur = new_catalog_object(
 					siril_cat->cat_items[i].name,
 					x,

@@ -167,8 +167,8 @@ void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
 gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_format, ...);
 
-int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
-int display_to_fits(double dx, double dy, double *fx, double *fy, int ry);
+int siril_to_display(double fx, double fy, double *dx, double *dy, int ry);
+int display_to_siril(double dx, double dy, double *fx, double *fy, int ry);
 gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
 GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
 int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even);
