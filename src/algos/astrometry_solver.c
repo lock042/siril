@@ -189,8 +189,10 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 		siril_log_message(_("Up position wrt. N is undetermined (too close to a Pole)\n"));
 	else {
 		// We move 10" to the North and we'll figure out the angle from there....
+		// For some unknown reason, asnet may return a solution with the reference point not at center
+		// We need to handle that case by passing ra and dec from args->fit->wcsdata which has been updated to take it into account
 		double xN, yN, rotation;
-		int status = wcs2pix(args->fit, args->fit->wcslib->crval[0], args->fit->wcslib->crval[1] + 2.78e-3, &xN, &yN);
+		int status = wcs2pix(args->fit, args->fit->wcsdata.ra, args->fit->wcsdata.dec + 2.78e-3, &xN, &yN);
 		xN -= args->fit->rx * 0.5;
 		yN -= args->fit->ry * 0.5;
 		if (!status) {
@@ -1115,7 +1117,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
 		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
-		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
+		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, "-s", "FLUX", NULL };
 
 	char order[12];	// referenced in sfargs, needs the same scope
 	if (com.pref.astrometry.sip_correction_order > 1) {
@@ -1269,8 +1271,12 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	solution->image_is_flipped = image_is_flipped_from_wcs(args->fit);
 
-	args->fit->wcsdata.ra  = args->fit->wcslib->crval[0];
-	args->fit->wcsdata.dec = args->fit->wcslib->crval[1];
+	// For some reason, asnet may not return a solution with the ref point at the center
+	// We need to account for that
+	double ra0, dec0;
+	center2wcs(args->fit, &ra0, &dec0);
+	args->fit->wcsdata.ra  = ra0;
+	args->fit->wcsdata.dec = dec0;
 
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
 	solution->focal_length = RADCONV * args->pixel_size / resolution;
@@ -1284,8 +1290,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	// asnet puts more info in the HISTORY and the console log in COMMENT fields
 	solution->image_center = siril_world_cs_new_from_a_d(
-			args->fit->wcslib->crval[0],
-			args->fit->wcslib->crval[1]);
+			ra0,
+			dec0);
 	/* print results from WCS data */
 	print_updated_wcs_data(args->fit);
 
