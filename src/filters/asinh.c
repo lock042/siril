@@ -168,7 +168,7 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 			blend_data data;
 #pragma omp simd
 			for (int ii = 0; ii < 3; ii++)
-				data.do_channel[i] = TRUE;
+				data.do_channel[ii] = TRUE;
 			float r = buf[RLAYER][i];
 			float g = buf[GLAYER][i];
 			float b = buf[BLAYER][i];
