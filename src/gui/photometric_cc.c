@@ -43,6 +43,9 @@
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
 static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
+static const cmsCIExyY D58 = {0.344994428, 0.35152261, 1.0}; // Sun as white point, modelled as a Black Body
+// (note using the Black Body locus gives a slightly different result than using the Daylight locus but
+// is *probably* what is wanted here.
 
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
@@ -389,6 +392,8 @@ void get_whitepoint_from_ui(struct photometric_cc_data *args) {
 			memcpy(&args->whitepoint, &D65, sizeof(cmsCIExyY));
 			break;
 		case WP_SOL:
+			memcpy(&args->whitepoint, &D58, sizeof(cmsCIExyY));
+			break;
 		case WP_GAL_AVGSPIRAL:
 		case WP_GAL_AVGELLIPTICAL:
 			// TODO: This currently just returns D50, update this based on data

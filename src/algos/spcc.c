@@ -48,14 +48,6 @@
 #include "algos/spcc.h"
 #include "algos/spcc_filters.h"
 
-
-// SPCC White Points
-const cmsCIExyY Whitepoint_D58 = {0.32598, 0.33532, 1.0}; // Sun as white point, modelled as D58 black body
-// TODO: could model this better based on a real solar spectrum
-
-const cmsCIExyY Whitepoint_average_galaxy = {0.345702915, 0.358538597, 1.0}; // D50
-// TODO: for testing, D50 is used. Needs replacing with a value computed from real galactic spectra.
-
 void init_spcc_filters() {
 	Optolong_Blue.x = Optolong_Blue_wl;
 	Optolong_Blue.y = Optolong_Blue_sr;
