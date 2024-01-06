@@ -8,7 +8,7 @@ spectral_intensity	Johnson_B, Johnson_V,
 					Astrodon_RE, Astrodon_RI, Astrodon_GE, Astrodon_GI, Astrodon_B;
 
 // Define the SPCC sensors
-spectral_intensity Sony_IMX571M;
+spectral_intensity Sony_IMX571M, ZWO_1600M, KAF1603ME, KAF3200, KAF8300, Sony_ICX694;
 
 // SPCC functions
 void init_spcc_filters();

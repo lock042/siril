@@ -66,9 +66,6 @@ void init_spcc_filters() {
 	Optolong_Red.x = Optolong_Red_wl;
 	Optolong_Red.y = Optolong_Red_sr;
 	Optolong_Red.n = 66;
-	Sony_IMX571M.x = Sony_IMX571_wl;
-	Sony_IMX571M.y = Sony_IMX571_qe;
-	Sony_IMX571M.n = 32;
 	Astrodon_RE.x = full_2nm_wl;
 	Astrodon_RE.y = Astrodon_Red_E_sr;
 	Astrodon_RE.n = 163;
@@ -93,6 +90,24 @@ void init_spcc_filters() {
 	Chroma_Blue.x = full_2nm_wl;
 	Chroma_Blue.y = Chroma_Blue_sr;
 	Chroma_Blue.n = 163;
+	Sony_IMX571M.x = Sony_IMX571_wl;
+	Sony_IMX571M.y = Sony_IMX571_qe;
+	Sony_IMX571M.n = 32;
+	ZWO_1600M.x = ZWO_ASI1600_wl;
+	ZWO_1600M.y = ZWO_ASI1600_qe;
+	ZWO_1600M.n = 64;
+	KAF3200.x = KAF_3200_wl;
+	KAF3200.y = KAF_3200_qe;
+	KAF3200.n = 27;
+	KAF8300.x = KAF_8300_wl;
+	KAF8300.y = KAF_8300_qe;
+	KAF8300.n = 22;
+	KAF1603ME.x = KAF_1603ME_wl;
+	KAF1603ME.y = KAF_1603ME_qe;
+	KAF1603ME.n = 25;
+	Sony_ICX694.x = Sony_ICX694_wl;
+	Sony_ICX694.y = Sony_ICX694_qe;
+	Sony_ICX694.n = 22;
 }
 
 cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
@@ -214,6 +229,21 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		switch (selected_sensor_m) {
 			case IMX571M:
 				init_xpsampled_from_library(spectrum, &Sony_IMX571M);
+				break;
+			case ZWO1600M:
+				init_xpsampled_from_library(spectrum, &ZWO_1600M);
+				break;
+			case KAF_1603ME:
+				init_xpsampled_from_library(spectrum, &KAF1603ME);
+				break;
+			case KAF_3200:
+				init_xpsampled_from_library(spectrum, &KAF3200);
+				break;
+			case KAF_8300:
+				init_xpsampled_from_library(spectrum, &KAF8300);
+				break;
+			case ICX_694:
+				init_xpsampled_from_library(spectrum, &Sony_ICX694);
 				break;
 			// Add other mono sensors here
 		}

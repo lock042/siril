@@ -5,7 +5,12 @@
 #include <glib.h>
 
 typedef enum {
-	IMX571M
+	IMX571M,
+	ZWO1600M,
+	KAF_1603ME,
+	KAF_3200,
+	KAF_8300,
+	ICX_694
 } mono_sensor_t;
 
 typedef enum {

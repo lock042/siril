@@ -1267,6 +1267,11 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="active">0</property>
                         <items>
                           <item id="&lt;Enter ID&gt;" translatable="yes">Sony IMX411/455/461/533/571</item>
+                          <item translatable="yes">ZWO ASI1600MM series</item>
+                          <item translatable="yes">Kodak KAF-1603ME CCD</item>
+                          <item translatable="yes">Kodak KAF-3200 CCD</item>
+                          <item translatable="yes">Kodak KAF-8300 CCD</item>
+                          <item translatable="yes">Sony ICX694 CCD</item>
                         </items>
                       </object>
                       <packing>
