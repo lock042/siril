@@ -1578,23 +1578,30 @@ const gchar *get_com_ext(gboolean fz) {
     return com.pref.ext;
 }
 
-/* converts FITS or WCS coordinates to display coordinates */
-int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
-       if (fx < 0.0 || fy < 1.0 || fy > ry)
+/*
+  We have 4 conventions to handle:
+  - siril: origin bottom left, y up, (0,0) at the corner of first bottom left pixel
+  - display/cairo: origin top left, y down, (0,0) at the corner of first top left pixel
+  - WCS/FITS: origin bottom left, y up, (1,1) at the center point of first bottom left pixel (https://www.atnf.csiro.au/people/mcalabre/WCS/Intro/WCS04.html, that is a pixel-one-based (FORTRAN) system)
+  - OPENCV: origin top left, y down, (0,0) at the center point of first top left pixel
+  (Both WCS/FITS and OPENCV are pixel-based while Siril and display/cairo are grid-based)
+*/
+
+/* converts Siril coordinates to display coordinates */
+int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
+       if (sx < 0.0 || sy < 0.0 || sy > ry)
                return 1;
-       // TODO: does ROWORDER change this?
-       *dx = fx;
-       *dy = ry - fy;
+       *dx = sx;
+       *dy = ry - sy;
        return 0;
 }
 
-/* converts display coordinates to FITS or WCS coordinates */
-int display_to_fits(double dx, double dy, double *fx, double *fy, int ry) {
-       if (dx < 0.0 || dy < 0.0 || dy > ry - 1)
+/* converts display coordinates to Siril */
+int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
+       if (dx < 0.0 || dy < 0.0 || dy > ry)
                return 1;
-       // TODO: does ROWORDER change this?
-       *fx = dx;
-       *fy = ry - dy;
+       *sx = dx;
+       *sy = ry - dy;
        return 0;
 }
 
