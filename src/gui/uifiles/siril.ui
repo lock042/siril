@@ -2283,7 +2283,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="action-name">win.show-tilt</property>
-            <property name="text" translatable="yes">Show tilt</property>
+            <property name="text" translatable="yes">Show Tilt</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -2367,7 +2367,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Process a light curve using a list of stars in the format produced by Siril (Create Comparison Stars File) or by the NINA exoplanet plugin.</property>
             <property name="action-name">win.nina_light_curve</property>
-            <property name="text" translatable="yes">Automated light curve...</property>
+            <property name="text" translatable="yes">Automated Light Curve...</property>
           </object>
           <packing>
             <property name="expand">False</property>
