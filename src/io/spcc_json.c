@@ -182,12 +182,12 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     // Parse JSON data
     node = json_parser_get_root(parser);
     root = json_node_get_object(node);
-    // Get 'wavelength' and 'quantity' arrays
+    // Get 'wavelength' and 'values' arrays
     JsonArray *wavelengthArray = json_object_get_array_member(root, "wavelength");
-    JsonArray *quantityArray = json_object_get_array_member(root, "quantity");
+    JsonArray *valuesArray = json_object_get_array_member(root, "values");
     data->n = json_array_get_length(wavelengthArray);
-    int quantityLength = json_array_get_length(quantityArray);
-	if (data->n != quantityLength) {
+    int valuesLength = json_array_get_length(valuesArray);
+	if (data->n != valuesLength) {
 		goto validation_error;
 	}
 	data->x = (double *)malloc(data->n * sizeof(double));
@@ -196,7 +196,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     }
     data->y = (double *)malloc(data->n * sizeof(double));
     for (int i = 0; i < data->n; i++) {
-        data->y[i] = json_array_get_double_element(quantityArray, i);
+        data->y[i] = json_array_get_double_element(valuesArray, i);
     }
     // Cleanup
     g_object_unref(parser);
