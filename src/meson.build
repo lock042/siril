@@ -174,6 +174,7 @@ src_files = [
   'io/siril_plot.c',
   'io/SirilXISFReader.cpp',
   'io/SirilJpegXLWrapper.cpp',
+  'io/spcc_json.c',
 
   'livestacking/gui.c',
   'livestacking/livestacking.c',

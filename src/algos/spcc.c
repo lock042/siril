@@ -144,48 +144,30 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
 	return xyY;
 }
 
-void si_free(spectral_intensity *foo, gboolean free_struct) {
-	free(foo->x);
-	free(foo->y);
-	if (free_struct)
-		free(foo);
-	return;
-}
-
-/* Fills a destination spectral_intensity at evenly spaced wavelength intervals
- * from a source spectral_intensity. This allows library sensor / filter
+/* Fills a destination xpsampled at evenly spaced wavelength intervals
+ * from a source spcc_object. This allows library sensor / filter
  * spectral_intensities to be stored as unevenly spaced data points that suit the
  * data, but interpolated to the same spacings as the Gaia DR3 data. */
 
-void init_xpsampled_from_library(xpsampled *out, spectral_intensity *in) {
+void init_xpsampled_from_library(xpsampled *out, spcc_object *in) {
 	const int n = in->n;
-	double *dbl_x = malloc(n * sizeof(double));
-	double *dbl_y = malloc(n * sizeof(double));
-	for (int i = 0 ; i < n ; i++) {
-		dbl_x[i] = in->x[i];
-	}
-	for (int i = 0 ; i < n ; i++) {
-		dbl_y[i] = in->y[i];
-	}
 	gsl_interp *interp = gsl_interp_alloc(gsl_interp_akima, (size_t) n);
-	gsl_interp_init(interp, dbl_x, dbl_y, n);
+	gsl_interp_init(interp, in->x, in->y, n);
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
 	for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
-		if (out->x[i] < in->x[0] || out->x[i] > in->x[in->n-1])
+		if (out->x[i] < in->x[0] || out->x[i] > in->x[n-1])
 			out->y[i] = 0.0;
 		else
-			out->y[i] = max(0.0, gsl_interp_eval(interp, dbl_x, dbl_y, out->x[i], acc));
+			out->y[i] = max(0.0, gsl_interp_eval(interp, in->x, in->y, out->x[i], acc));
 	}
-	free(dbl_x);
-	free(dbl_y);
 	gsl_interp_free(interp);
 	gsl_interp_accel_free(acc);
 	return;
 }
 
-// Takes one spectral_intensity and multiplies each value by the (interpolated)
-// value of a second spectral intensity at each of the wavelength values of the
-// first one. Result is returned as a new spectral_intensity*
+// Takes one xpsampled and multiplies each value by the (interpolated)
+// value of a second spectral intensity at each of spcc_objectthe wavelength values of the
+// first one. Result is passed back in *result.
 // The two spectral_intensities must be compatible (i.e. a->n = b->n,
 // a->x[i] = b->x[i] for all i.
 
@@ -197,7 +179,7 @@ void multiply_xpsampled(xpsampled *result, const xpsampled *a, const xpsampled *
 }
 
 // Uses the gsl interp_integ routine to evaluate the integral
-// of the product of a spectral_intensity and a given CIE color
+// of the product of an xpsampled and a given CIE color
 // matching function. This is returned as a cmsCIExyY with the
 // Y component set to 1.0
 

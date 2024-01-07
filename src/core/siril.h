@@ -478,11 +478,25 @@ struct ffit {
 
 /* Filter spectral responses are defined by unevenly spaced frequency samples
  * and accompanying spectral responses corresponding to the sampling points. */
-typedef struct _spectral_intensity {
-	float* x; // Wavelength array
-	float* y; // Intensity array
-	int n; // Number of data points
-} spectral_intensity;
+typedef struct _spcc_object {
+    gchar *name;
+	gchar *filepath;
+    int type;
+    int quality;
+    gchar *manufacturer;
+    int version;
+    gchar *date;
+    double *x;  // Wavelength array
+    double *y;  // Quantity array
+    int n; // Number of points in x and y
+} spcc_object;
+
+struct spcc_data_store {
+	GList *mono_sensors;
+	GList *osc_sensors;
+	GList *mono_filters;
+	GList *osc_filters;
+};
 
 /* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
  * 378nm and 702nm, allowing one extra value either side of the real range we care
@@ -761,6 +775,8 @@ struct cominf {
 	GSList *grad_samples;		// list of samples for the background extraction
 
 	GSList *found_object;		// list of objects found in the image from catalogues
+
+	struct spcc_data_store spcc_data; // library of SPCC filters, sensors
 
 	sensor_tilt *tilt;		// computed tilt information
 
