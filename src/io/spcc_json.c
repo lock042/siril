@@ -29,15 +29,16 @@
 
 void spcc_object_free(spcc_object *data, gboolean free_struct);
 
-static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *data) {
+static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *data, int index) {
 #ifndef HAVE_JSON_GLIB
 	siril_log_color_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"), "red");
 	return FALSE;
 #else
     GError *error = NULL;
     JsonParser *parser;
-    JsonObject *root;
+    JsonObject *object;
     JsonNode *node;
+	JsonArray *array;
 
 	// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 	memset(data, 0, sizeof(spcc_object));
@@ -55,14 +56,29 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
 
     // Parse JSON data
     node = json_parser_get_root(parser);
-    root = json_node_get_object(node);
+	// Ensure the root is an array
+    if (!JSON_NODE_HOLDS_ARRAY(node)) {
+        fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+        g_object_unref(parser);
+        return FALSE;
+    }
+
+    // Get the array of objects
+    array = json_node_get_array(node);
+    int num_objects = json_array_get_length(array);
+	if (index > num_objects) {
+        fprintf(stderr, "Error: index out of range.\n");
+        g_object_unref(parser);
+        return FALSE;
+    }
+    object = json_array_get_object_element(array, index);
 
     // Get values from JSON and store in the struct
-    data->name = g_strdup(json_object_get_string_member(root, "name"));
+    data->name = g_strdup(json_object_get_string_member(object, "name"));
 	if (!data->name) {
 		goto validation_error;
 	}
-	const gchar *typestring = json_object_get_string_member(root, "type");
+	const gchar *typestring = json_object_get_string_member(object, "type");
 	if (!strcmp(typestring, "MONO_SENSOR")) {
 		data->type = 1;
 	} else if (!strcmp(typestring, "OSC_SENSOR")) {
@@ -74,19 +90,20 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
 	} else {
 		goto validation_error;
 	}
-    data->quality = json_object_get_int_member(root, "dataQualityMarker");
+    data->quality = json_object_get_int_member(object, "dataQualityMarker");
 	if (!data->quality) {
 		goto validation_error;
 	}
-	    data->manufacturer = g_strdup(json_object_get_string_member(root, "manufacturer"));
+	    data->manufacturer = g_strdup(json_object_get_string_member(object, "manufacturer"));
 	if (!data->manufacturer) {
 		goto validation_error;
 	}
-    data->version = json_object_get_int_member(root, "version");
+    data->version = json_object_get_int_member(object, "version");
 	if (!data->type) {
 		goto validation_error;
 	}
 	data->filepath = g_strdup(jsonFilePath);
+	data->index = index;
 
     // Cleanup
     g_object_unref(parser);
@@ -104,29 +121,64 @@ validation_error:
 
 static gboolean processJsonFile(const char *file_path) {
 	int retval;
-	spcc_object *data = g_new0(spcc_object, 1);
-    retval = load_spcc_object_from_file(file_path, data);
-   if (!retval) {
-	   // Place the data into the correct list based on its type
-		switch (data->type) {
-			case 1:
-				com.spcc_data.mono_sensors = g_list_append(com.spcc_data.mono_sensors, data);
-				break;
-			case 2:
-				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, data);
-				break;
-			case 3:
-				com.spcc_data.mono_filters = g_list_append(com.spcc_data.mono_filters, data);
-				break;
-			case 4:
-				com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
-				break;
-			default:
-				g_warning("Unknown type: %d", data->type);
-				spcc_object_free(data, TRUE);
-				break;
+    GError *error = NULL;
+    JsonParser *parser;
+    JsonNode *node;
+	JsonArray *array;
+
+    // Create a JSON parser
+    parser = json_parser_new();
+
+    // Load JSON file
+    if (!json_parser_load_from_file(parser, file_path, &error)) {
+        fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
+        g_error_free(error);
+        g_object_unref(parser);
+        return FALSE;
+    }
+
+    // Parse JSON data
+    node = json_parser_get_root(parser);
+	// Ensure the root is an array
+    if (!JSON_NODE_HOLDS_ARRAY(node)) {
+        fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+        g_object_unref(parser);
+        return FALSE;
+    }
+
+    // Get the array of objects
+    array = json_node_get_array(node);
+    int num_objects = json_array_get_length(array);
+
+	for (int index = 0 ; index < num_objects ; index++) {
+		spcc_object *data = g_new0(spcc_object, 1);
+		// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
+		memset(data, 0, sizeof(spcc_object));
+
+		retval = load_spcc_object_from_file(file_path, data, index);
+		if (!retval) {
+		// Place the data into the correct list based on its type
+			switch (data->type) {
+				case 1:
+					com.spcc_data.mono_sensors = g_list_append(com.spcc_data.mono_sensors, data);
+					break;
+				case 2:
+					com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, data);
+					break;
+				case 3:
+					com.spcc_data.mono_filters = g_list_append(com.spcc_data.mono_filters, data);
+					break;
+				case 4:
+					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
+					break;
+				default:
+					g_warning("Unknown type: %d", data->type);
+					spcc_object_free(data, TRUE);
+					break;
+			}
+
 		}
-   }
+	}
    return retval;
 }
 
@@ -155,15 +207,16 @@ void spcc_object_free_arrays(spcc_object *data) {
 }
 
 // Call to populate the arrays of a specific spcc_object
-gboolean load_spcc_object_arrays(spcc_object *data) {
+gboolean load_spcc_object_arrays(spcc_object *data, int index) {
 #ifndef HAVE_JSON_GLIB
 	siril_log_color_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"), "red");
 	return FALSE;
 #else
     GError *error = NULL;
     JsonParser *parser;
-    JsonObject *root;
+    JsonObject *object;
     JsonNode *node;
+	JsonArray *array;
 
 	// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 	memset(data, 0, sizeof(spcc_object));
@@ -181,10 +234,27 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 
     // Parse JSON data
     node = json_parser_get_root(parser);
-    root = json_node_get_object(node);
+	// Ensure the root is an array
+    if (!JSON_NODE_HOLDS_ARRAY(node)) {
+        fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+        g_object_unref(parser);
+        return FALSE;
+    }
+
+    // Get the array of objects
+    array = json_node_get_array(node);
+    int num_objects = json_array_get_length(array);
+	if (index > num_objects) {
+        fprintf(stderr, "Error: index out of range.\n");
+        g_object_unref(parser);
+        return FALSE;
+    }
+
+    object = json_array_get_object_element(array, index);
+
     // Get 'wavelength' and 'values' arrays
-    JsonArray *wavelengthArray = json_object_get_array_member(root, "wavelength");
-    JsonArray *valuesArray = json_object_get_array_member(root, "values");
+    JsonArray *wavelengthArray = json_object_get_array_member(object, "wavelength");
+    JsonArray *valuesArray = json_object_get_array_member(object, "values");
     data->n = json_array_get_length(wavelengthArray);
     int valuesLength = json_array_get_length(valuesArray);
 	if (data->n != valuesLength) {

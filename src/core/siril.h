@@ -481,6 +481,7 @@ struct ffit {
 typedef struct _spcc_object {
     gchar *name;
 	gchar *filepath;
+	int index; // index in the JSON file
     int type;
     int quality;
     gchar *manufacturer;

@@ -26,7 +26,7 @@ int check_prior_spcc(fits *fit);
 void spcc_object_free(spcc_object *data, gboolean free_struct);
 void spcc_object_free_arrays(spcc_object *data);
 void load_all_spcc_metadata(gchar *path);
-gboolean load_spcc_object_arrays(spcc_object *data);
+gboolean load_spcc_object_arrays(spcc_object *data, int index);
 
 enum {
 	CMF_1931, CMF_1964
