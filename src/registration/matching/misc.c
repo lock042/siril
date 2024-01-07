@@ -419,32 +419,17 @@ int get_stars(psf_star **s, int n, int *num_stars, struct s_star **list) {
 	return (SH_SUCCESS);
 }
 
-int get_stars_from_previous_list(struct s_star **old_list, int n_old, psf_star **s, int *num_stars, struct s_star **list) {
+int update_stars_positions(struct s_star **old_list, int n_old, psf_star **s) {
 	int i = 0;
-	struct s_star *head, *last, *new, *old_list_current;
-
-	head = (struct s_star *) NULL;
-	last = head;
-	old_list_current = *old_list;
+	struct s_star *current = *old_list;
 
 	while (i < n_old) {
-		int index = old_list_current->id;
-		new = atStarNew(s[index]->xpos, s[index]->ypos, s[index]->mag, s[index]->BV);
-		new->id = index;
-
-		if (head == NULL) {
-			head = new;
-			last = new;
-		} else {
-			last->next = new;
-			last = new;
-		}
-		old_list_current = old_list_current->next;
+		int index = current->id;
+		current->x = s[index]->xpos;
+		current->y = s[index]->ypos;
+		current = current->next;
 		i++;
 	}
-
-	*num_stars = i;
-	*list = head;
 
 	return (SH_SUCCESS);
 }

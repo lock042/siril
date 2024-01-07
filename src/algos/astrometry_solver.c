@@ -62,7 +62,7 @@
 
 
 #define DOWNSAMPLE_FACTOR 0.25
-#define CONV_TOLERANCE 1E-3 // convergence tolerance in arcsec from the projection center
+#define CONV_TOLERANCE 1E-1 // convergence tolerance in arcsec from the projection center
 #define PLATESOLVE_STEP 100. // step made on CRPIX axes to compute the CD matrix
 
 #undef DEBUG		/* get some of diagnostic output */
@@ -716,7 +716,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	TRANS trans = { 0 };
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
 	int max_trials = 0;
-	s_star *star_list_A = NULL, *star_list_B = NULL, *new_star_list_B = NULL;
+	s_star *star_list_A = NULL, *star_list_B = NULL;
 
 	// if (args->uncentered)
 		max_trials = 20; //retry to converge if solve is done at an offset from the center
@@ -790,12 +790,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 			args->ret = 1;
 			break;
 		}
-		// this uses the old indexes to create a new list with exactly the same stars, in the same order (but updated x,y pos)
-		int num_star_check = 0;
-		get_stars_from_previous_list(&star_list_B, num_matched, args->cstars, &num_star_check, &new_star_list_B);
-		free_stars(&star_list_B);
-		star_list_B = new_star_list_B;
-
+		// Uses the indexes in star_list_B to update the stars positions according to the new projection
+		update_stars_positions(&star_list_B, num_matched, args->cstars);
+		// and recompute the trans structure
 		if (atRecalcTrans(num_matched, star_list_A, num_matched, star_list_B, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &trans)) {
 			args->message = g_strdup(_("Updating trans failed."));
 			args->ret = 1;

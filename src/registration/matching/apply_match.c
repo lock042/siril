@@ -219,6 +219,11 @@ static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRAN
 	if (alpha >= 360.0) {
 		alpha -= 360.0;
 	}
+	// this avoids converging exactly to 90. which creates a mess in wcslib
+	// (change of convention when native pole is at celestial pole)
+	if (delta == 90.) {
+		delta -= 1.e-8;
+	}
 #ifdef DEBUG
 	fprintf(stdout, "new RA = %10.5f, new dec = %10.5f\n", alpha, delta);
 #endif

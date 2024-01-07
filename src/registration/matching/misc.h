@@ -164,11 +164,10 @@ int
 get_stars(psf_star **s, int n, int *num_stars, struct s_star **list);
 
    /*
-    * converts a psf_star list to a s_star list usable by the match functions
-    * using the index of a previous list
+    * updates stars positions using an updated psf_star catalog
     */
 int
-get_stars_from_previous_list(struct s_star **old_list, int n_old, psf_star **s, int *num_stars, struct s_star **list);
+update_stars_positions(struct s_star **old_list, int n_old, psf_star **s);
 
 void
 free_stars(struct s_star **head);
