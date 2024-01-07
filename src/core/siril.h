@@ -672,6 +672,7 @@ struct guiinf {
 	GList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
+	gboolean spcc_repo_available;
 
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders

@@ -360,7 +360,9 @@ struct pref_struct {
 	icc_params icc;
 	GList *selected_scripts;
 	gboolean use_scripts_repository;
+	gboolean use_spcc_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
+	gboolean auto_spcc_update; // automatically update spcc repository at startup
 };
 
 typedef struct pref_struct preferences;

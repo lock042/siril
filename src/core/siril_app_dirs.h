@@ -26,5 +26,6 @@ const gchar *siril_get_startup_dir();
 const gchar *siril_get_system_data_dir();
 const gchar* siril_get_config_dir();
 const gchar* siril_get_scripts_repo_path();
+const gchar* siril_get_spcc_repo_path();
 
 #endif /* SRC_CORE_SIRIL_APP_DIRS_H_ */

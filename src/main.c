@@ -176,6 +176,7 @@ static void global_initialization() {
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
+	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else
@@ -294,6 +295,12 @@ static void siril_app_activate(GApplication *application) {
 		auto_update_gitscripts(com.pref.auto_script_update);
 	else
 		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+	if (com.pref.use_spcc_repository)
+		auto_update_gitspcc(com.pref.auto_spcc_update);
+	else
+		siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+#else
+	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
 #endif
 
 	if (com.headless) {
