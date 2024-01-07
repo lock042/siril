@@ -62,10 +62,11 @@
 
 
 #define DOWNSAMPLE_FACTOR 0.25
-#define CONV_TOLERANCE 1E-8
+#define CONV_TOLERANCE 1E-3 // convergence tolerance in arcsec from the projection center
 #define PLATESOLVE_STEP 100. // step made on CRPIX axes to compute the CD matrix
 
 #undef DEBUG		/* get some of diagnostic output */
+#define ASTROMETRY_DEBUG 1
 
 static gchar *asnet_version = NULL;
 
@@ -79,6 +80,31 @@ typedef struct {
 	Homography H;			// for matching results printing
 	gboolean image_is_flipped;
 } solve_results;
+
+static void debug_print_catalog_files(s_star *star_list_A, s_star *star_list_B) {
+#ifdef ASTROMETRY_DEBUG
+	GFile *file = g_file_new_for_path("ABtars.csv");
+	g_autoptr(GError) error = NULL;
+	GOutputStream* output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+	if (error) {
+		siril_debug_print("%s\n", error->message);
+		return;
+	}
+	const gchar *header;
+	header = "xA,yA,magA,indA,xB,yB,magB,indB\n";
+	g_output_stream_write_all(output_stream, header, strlen(header), NULL, NULL,NULL);
+	static gchar buffer[256] = { 0 };
+	s_star *sA, *sB;
+	for (sA = star_list_A, sB = star_list_B; ; sA = sA->next, sB = sB->next) {
+		if (!sA) break;
+		if (!sB) break;
+		g_sprintf(buffer, "%g,%g,%g,%d,%g,%g,%g,%d\n", sA->x, sA->y, sA->mag, sA->id, sB->x, sB->y, sB->mag, sB->id);
+		g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, NULL);
+		memset(buffer, 0, 256);
+	}
+	g_object_unref(output_stream);
+#endif
+}
 
 static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
 	struct astrometry_data *ret = malloc(sizeof(struct astrometry_data));
@@ -230,32 +256,88 @@ static void print_image_center(solve_results *image) {
 	g_free(delta);
 }
 
-static TRANS H_to_linear_TRANS(Homography H) {
-	TRANS trans = { 0 };
-
-	trans.order = AT_TRANS_LINEAR;
-
-	trans.a = H.h02;
-	trans.b = H.h00;
-	trans.c = H.h01;
-	trans.d = H.h12;
-	trans.e = H.h10;
-	trans.f = H.h11;
-
-	return trans;
-}
-
 static gboolean check_affine_TRANS_sanity(TRANS *trans) {
-	double var1 = fabs(trans->b) - fabs(trans->f);
-	double var2 = fabs(trans->c) - fabs(trans->e);
-	siril_debug_print("abs(b+f)=%f et abs(c+e)=%f\n", var1, var2);
-
-	return ((fabs(var1) < 0.3) && fabs(var2) < 0.3);
+	double var1, var2;
+	switch (trans->order) {
+		case AT_TRANS_LINEAR:
+			var1 = fabs(trans->b) - fabs(trans->f);
+			var2 = fabs(trans->c) - fabs(trans->e);
+			break;
+		case AT_TRANS_QUADRATIC:
+			var1 = fabs(trans->b) - fabs(trans->i);
+			var2 = fabs(trans->c) - fabs(trans->h);
+			break;
+		case AT_TRANS_CUBIC:
+			var1 = fabs(trans->b) - fabs(trans->k);
+			var2 = fabs(trans->c) - fabs(trans->j);
+			break;
+		default:
+			break;
+	}
+	siril_debug_print("abs(diff_cos)=%f et abs(diff_sin)=%f\n", var1, var2);
+	return ((fabs(var1) < 0.01) && fabs(var2) < 0.01);
 }
 
-static gboolean image_is_flipped(Homography H) {
-	double det = (H.h00 * H.h11 - H.h01 * H.h10); // determinant of rotation matrix (ad - bc)
+static gboolean image_is_flipped_from_trans(TRANS *trans) {
+	double det = 1.;
+	switch (trans->order) {
+		case AT_TRANS_LINEAR:
+			det = (trans->b * trans->f - trans->c * trans->e);
+			break;
+		case AT_TRANS_QUADRATIC:
+			det = (trans->b * trans->i - trans->c * trans->h);
+			break;
+		case AT_TRANS_CUBIC:
+			det = (trans->b * trans->k - trans->c * trans->j);
+			break;
+		default:
+			break;
+	}
 	return det > 0;
+}
+
+static double get_resolution_from_trans(TRANS *trans) {
+	switch (trans->order) {
+		case AT_TRANS_LINEAR:
+			return sqrt(fabs(trans->b * trans->f - trans->c * trans->e));
+		case AT_TRANS_QUADRATIC:
+			return sqrt(fabs(trans->b * trans->i - trans->c * trans->h));
+		case AT_TRANS_CUBIC:
+			return sqrt(fabs(trans->b * trans->k - trans->c * trans->j));
+		default:
+			return 0.;
+	}
+}
+
+static void get_cdelt_from_trans(TRANS *trans, double flip, double *cdelt1, double *cdelt2) {
+	*cdelt1 = sqrt(trans->b * trans->b + trans->c * trans->c) / 3600 * -flip; // cdelt1 is < 0 when the image is not flipped
+	switch (trans->order) {
+		case AT_TRANS_LINEAR:
+			*cdelt2 = sqrt(trans->e * trans->e + trans->f * trans->f) / 3600;
+			break;
+		case AT_TRANS_QUADRATIC:
+			*cdelt2 = sqrt(trans->h * trans->h + trans->i * trans->i) / 3600;
+			break;
+		case AT_TRANS_CUBIC:
+			*cdelt2 = sqrt(trans->j * trans->j + trans->k * trans->k) / 3600;
+			break;
+		default:
+			break;
+	}
+}
+
+static double get_center_offset_from_trans(TRANS *trans) {
+	// this measures the remaining offset, expressed in pseudo-arcsec
+	switch (trans->order) {
+		case AT_TRANS_LINEAR:
+			return sqrt(trans->a * trans->a + trans->d * trans->d);
+		case AT_TRANS_QUADRATIC:
+			return sqrt(trans->a * trans->a + trans->g * trans->g);
+		case AT_TRANS_CUBIC:
+			return sqrt(trans->a * trans->a + trans->i * trans->i);
+		default:
+			return 0.;
+	}
 }
 
 static gboolean image_is_flipped_from_wcs(fits *fit) {
@@ -272,72 +354,6 @@ static void flip_bottom_up_astrometry_data(fits *fit) {
 	H.h11 = -1.;
 	H.h12 = (double)fit->ry;
 	reframe_astrometry_data(fit, H);
-}
-
-// From projected starlist and center (ra,dec), go back to original ra and dec
-// All formulas from AIPS memo #27 III.A.ii
-// https://library.nrao.edu/public/memos/aips/memos/AIPSM_027.pdf
-
-static void deproject_starlist(int num_stars, s_star *star_list, double ra0, double dec0, int doASEC) {
-	ra0 *= DEGTORAD;
-	dec0 *= DEGTORAD;
-	s_star *currstar;
-	currstar = star_list;
-	for (int i = 0; i < num_stars; i++) {
-		double xi = currstar->x;
-		double eta = currstar->y;
-		if (doASEC > 0) {
-			xi /= RADtoASEC;
-			eta /= RADtoASEC;
-		}
-		double delta_ra = atan(xi / (cos(dec0) - eta * sin(dec0)));
-		double ra = ra0 + delta_ra;
-		double dec = atan(cos(delta_ra) * (eta * cos(dec0) + sin(dec0)) / (cos(dec0) - eta * sin(dec0)));
-		currstar->x = ra / DEGTORAD;
-		currstar->y = dec / DEGTORAD;
-		currstar = currstar->next;
-	}
-}
-
-// From starlist in (ra,dec) and center (ra,dec), project in "pixels" (in arcsec)
-// All formulas from AIPS memo #27 III.A.i
-// https://library.nrao.edu/public/memos/aips/memos/AIPSM_027.pdf
-
-static void project_starlist(int num_stars, s_star *star_list, double ra0, double dec0, int doASEC) {
-	double delta_ra;
-	dec0 *= DEGTORAD;
-	s_star *currstar;
-	currstar = star_list;
-	for (int i = 0; i < num_stars; i++) {
-		double ra = currstar->x;
-		double dec = currstar->y;
-		if ((ra < 10) && (ra0 > 350)) {
-			delta_ra = (ra + 360) - ra0;
-		} else if ((ra > 350) && (ra0 < 10)) {
-			delta_ra = (ra - 360) - ra0;
-		} else {
-			delta_ra = ra - ra0;
-		}
-		delta_ra *= DEGTORAD;
-		dec *= DEGTORAD;
-
-		/*
-		 * let's transform from (delta_RA, delta_Dec) to (xi, eta),
-		 */
-		double xx = cos(dec) * sin(delta_ra);
-		double yy = sin(dec0) * sin(dec) + cos(dec0) * cos(dec) * cos(delta_ra);
-		double xi = (xx / yy);
-		xx = cos(dec0) * sin(dec) - sin(dec0) * cos(dec) * cos(delta_ra);
-		double eta = (xx / yy);
-
-		if (doASEC > 0) {
-			xi *= RADtoASEC;
-			eta *= RADtoASEC;
-		}
-		currstar->x = xi;
-		currstar->y = eta;
-		currstar = currstar->next;
-	}
 }
 
 void print_updated_wcs_data(fits *fit) {
@@ -410,13 +426,16 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution);
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; return 1; }
-static int get_catalog_stars(struct astrometry_data *args) {
+static int get_catalog_stars(struct astrometry_data *args, gboolean do_fetch) {
 	if (args->ref_stars->cat_index == CAT_ASNET)
 		return 0;
-
-	if (siril_catalog_conesearch(args->ref_stars) <= 0)
-		return 1;
-	siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cat_index));
+	if (do_fetch) {
+		if (siril_catalog_conesearch(args->ref_stars) <= 0)
+			return 1;
+		siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cat_index));
+	} else { // the stars were already fetched, we just reset the projection
+		siril_catalog_reset_projection(args->ref_stars);
+	}
 
 	CHECK_FOR_CANCELLATION_RET;
 	double ra0 = siril_world_cs_get_alpha(args->cat_center);
@@ -460,7 +479,7 @@ gpointer plate_solver(gpointer p) {
 	}
 
 	/* 1. Get catalogue stars for the field of view (for sequences, see the prepare hook) */
-	if (!args->for_sequence && get_catalog_stars(args)) {
+	if (!args->for_sequence && get_catalog_stars(args, TRUE)) {
 		goto clearup;
 	}
 	CHECK_FOR_CANCELLATION;
@@ -694,12 +713,12 @@ clearup:
 
 /* entry point for siril's plate solver based on catalogue matching */
 static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
-	Homography H = { 0 };
+	TRANS trans = { 0 };
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
 	int max_trials = 0;
-	s_star *star_list_A = NULL, *star_list_B = NULL;
+	s_star *star_list_A = NULL, *star_list_B = NULL, *new_star_list_B = NULL;
 
-	if (args->uncentered)
+	// if (args->uncentered)
 		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
 	/* make sure that arrays are not too small
@@ -715,8 +734,8 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		free_stars(&star_list_A);
 		free_stars(&star_list_B);
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
-				scale_min, scale_max, &H, TRUE,
-				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
+				scale_min, scale_max, NULL, &trans, TRUE,
+				UNDEFINED_TRANSFORMATION, AT_TRANS_LINEAR, &star_list_A, &star_list_B);
 		if (attempt == 2) {
 			scale_min = -1.0;
 			scale_max = -1.0;
@@ -730,13 +749,11 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		args->message = g_strdup(_("Could not match stars from the catalogue"));
 		goto clearup;
 	}
+	debug_print_catalog_files(star_list_A, star_list_B);
 
 	double conv = DBL_MAX;
 	solution->px_cat_center = siril_world_cs_ref(args->cat_center);
-	/* we only want to compare with linear function
-	 * Maybe one day we will apply match with homography matrix
-	 */
-	TRANS trans = H_to_linear_TRANS(H);
+
 	if (!check_affine_TRANS_sanity(&trans)) {
 		args->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
 		args->ret = 1;
@@ -748,56 +765,54 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	double center[2] = {0., 0.};
 
 	apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
-	int num_matched = H.pair_matched;
+	int num_matched = trans.nm;
 	int trial = 0;
 
-	/* try to get a better solution in case of uncentered selection */
+	/* try to get a better solution in case of uncentered solution */
+	conv = get_center_offset_from_trans(&trans);
+	siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, num_matched);
 	while (conv > CONV_TOLERANCE && trial < max_trials){
-		double rainit = siril_world_cs_get_alpha(args->cat_center);
-		double decinit = siril_world_cs_get_delta(args->cat_center);
-		double orig_ra0 = ra0;
-		double orig_dec0 = dec0;
-
-		deproject_starlist(num_matched, star_list_B, rainit, decinit, 1);
-		siril_debug_print("Deprojecting from: alpha: %s, delta: %s\n",
-				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
-				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
-		args->cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
-		siril_world_cs_unref(solution->px_cat_center);
-		solution->px_cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
-
-		project_starlist(num_matched, star_list_B, ra0, dec0, 1);
-		siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
-				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
-				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
-
-		double scaleX = sqrt(H.h00 * H.h00 + H.h01 * H.h01);
-		double scaleY = sqrt(H.h10 * H.h10 + H.h11 * H.h11);
-		double resolution = (scaleX + scaleY) * 0.5; // we assume square pixels
-
+		double resolution = get_resolution_from_trans(&trans);
 		double focal = RADCONV * solution->pixel_size / resolution;
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
 
-		if (atPrepareHomography(num_matched, star_list_A, num_matched, star_list_B, &H, TRUE, AFFINE_TRANSFORMATION)){
-			args->message = g_strdup(_("Updating homography failed."));
+		// we will reproject the catalog at the new image center
+		siril_world_cs_unref(args->cat_center);
+		siril_world_cs_unref(solution->px_cat_center);
+		args->cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
+		solution->px_cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
+		siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
+				siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
+				siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
+		// this simply reprojects the catalog to the new center (no fetch)
+		if (get_catalog_stars(args, FALSE)) {
+			args->message = g_strdup(_("Reprojecting catalog failed."));
 			args->ret = 1;
 			break;
 		}
-		trans = H_to_linear_TRANS(H);
+		// this uses the old indexes to create a new list with exactly the same stars, in the same order (but updated x,y pos)
+		int num_star_check = 0;
+		get_stars_from_previous_list(&star_list_B, num_matched, args->cstars, &num_star_check, &new_star_list_B);
+		free_stars(&star_list_B);
+		star_list_B = new_star_list_B;
+
+		if (atRecalcTrans(num_matched, star_list_A, num_matched, star_list_B, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &trans)) {
+			args->message = g_strdup(_("Updating trans failed."));
+			args->ret = 1;
+			break;
+		}
+		num_matched = trans.nm;
+		
 		apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
-
-		conv = fabs((dec0 - orig_dec0) / args->used_fov / 60.) + fabs((ra0 - orig_ra0) / args->used_fov / 60.);
-
+		conv = get_center_offset_from_trans(&trans);
 		trial++;
+		siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, num_matched);
 		CHECK_FOR_CANCELLATION;
 	}
 	if (args->ret)	// after the break
 		goto clearup;
 
-	memcpy(&solution->H, &H, sizeof(Homography));
-	double scaleX = sqrt(H.h00 * H.h00 + H.h01 * H.h01);
-	double scaleY = sqrt(H.h10 * H.h10 + H.h11 * H.h11);
-	double resolution = (scaleX + scaleY) * 0.5; // we assume square pixels
+	double resolution = get_resolution_from_trans(&trans);
 	solution->focal_length = RADCONV * solution->pixel_size / resolution;
 	solution->image_center = siril_world_cs_new_from_a_d(ra0, dec0);
 	if (max_trials == 0) {
@@ -811,7 +826,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	if (args->downsample)
 		solution->focal_length *= args->scalefactor;
 
-	solution->image_is_flipped = image_is_flipped(H);
+	solution->image_is_flipped = image_is_flipped_from_trans(&trans);
 	double flip = (solution->image_is_flipped) ? -1. : 1.; // when the image is not flipped, x positive in native coords is to the left (East)
 
 	/* compute cd matrix */
@@ -838,7 +853,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	// hence why we express the left and up vectors at the native pole though their (l,m) coordinates
 
 	/* make a step in direction crpix1 accounting for flip or not*/
-	double crpix1[] = {-flip * PLATESOLVE_STEP * 100., 0. };
+	double crpix1[] = {-flip * PLATESOLVE_STEP, 0. };
 	apply_match(solution->px_cat_center, crpix1, &trans, &ra1, &dec1);
 	siril_debug_print("alpha1: %0.8f, delta1: %0.8f\n", ra1, dec1);
 	dec1 *= DEGTORAD;
@@ -860,8 +875,8 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	double crota2 = atan2(m2, l2);
 	siril_debug_print("crota1: %0.2f, crota2: %0.2f\n", crota1 * RADTODEG, crota2 * RADTODEG);
 
-	double cdelt1 = sqrt(trans.b * trans.b + trans.c * trans.c) / 3600 * -flip; // cdelt1 is < 0 when the image is not flipped
-	double cdelt2 = sqrt(trans.e * trans.e + trans.f * trans.f) / 3600;
+	double cdelt1 = 0., cdelt2 = 0.;
+	get_cdelt_from_trans(&trans, flip, &cdelt1, &cdelt2);
 
 	cd[0][0] =  cdelt1*cos(crota1);
 	cd[0][1] = -cdelt1*sin(crota1) * flip;
@@ -1423,7 +1438,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
-	return get_catalog_stars(args);
+	return get_catalog_stars(args, TRUE);
 }
 
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {

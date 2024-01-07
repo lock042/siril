@@ -121,15 +121,30 @@ static int prepare_to_recalc(int num_matched_A,
 		struct s_star *matched_list_B, struct s_star *star_list_A_copy,
 		TRANS *trans);
 
+// star_match can output either:
+// - a Homography matrix (with the right order, set with transformation_type) for linear transformations only (global alignment)
+// - a trans matrix (with the right order, set with trans_order) for astrometry solve which can be linear, quadratic or cubic
+// The flag for astrometry is used to check whether we are getting the right members to fill:
+// if TRUE, we should have a trans_order input and a TRANS* output
+// if FALSE, we should have a transformation_type input and a  Homography * output
+// The function starts by making sure we have the correct inputs/outputs set
 int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
-		double min_scale, double max_scale, Homography *H,
-		gboolean for_astrometry, transformation_type type,
+		double min_scale, double max_scale, Homography *H, TRANS *t,
+		gboolean for_astrometry, transformation_type type, int trans_type,
 		s_star **out_list_A, s_star **out_list_B) {
+	//sanity checks
+	if (for_astrometry) {
+		g_assert(t != NULL);
+		g_assert(trans_type > AT_TRANS_UNDEFINED);
+	} else {
+		g_assert(H != NULL);
+		g_assert(type >= SHIFT_TRANSFORMATION);
+	}
 	int numA, numB;
 	int num_matched_A, num_matched_B;
 	int numA_copy;
 	int max_iter = AT_MATCH_MAXITER;
-	int trans_order = AT_TRANS_LINEAR; /* Good enough to start */
+	int trans_order = (for_astrometry) ? trans_type : AT_TRANS_LINEAR; /* for image registration, we will always use linear */
 	double triangle_radius = AT_TRIANGLE_RADIUS; /* in triangle-space coords */
 	double match_radius = AT_MATCH_RADIUS; /* in units of list B */
 	double rot_angle = AT_MATCH_NOANGLE; /* by default, any angle is okay */
@@ -140,8 +155,8 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	struct s_star *star_list_A = NULL, *star_list_B = NULL;
 	struct s_star *star_list_A_copy = NULL;
 	struct s_star *matched_list_A = NULL, *matched_list_B = NULL;
-	TRANS *trans;
-	Homography *Hom;
+	TRANS *trans = NULL;
+	Homography *Hom = NULL;
 
 	if (min_scale != -1.0 && max_scale != -1.0 && min_scale > max_scale) {
 		fprintf(stderr,"min_scale must be smaller than max_scale\n");
@@ -378,27 +393,30 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	printf("TRANS based on recalculated matches is \n");
 	print_trans(trans);
 #endif
+	if (!for_astrometry) { // we will compute the full linear up to HOMOGRAPHY_TRANSFORMATION with opencv
+		Hom = atHNew();
+		Hom->pair_matched = num_matches;
 
-	Hom = atHNew();
-	Hom->pair_matched = num_matches;
+		if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
+				matched_list_B, Hom, for_astrometry, type)) {
+			fprintf(stderr, "atPrepareHomography failed to compute H\n");
+			/** */
+			atTransDel(trans);
+			atHDel(Hom);
+			free_stars(&matched_list_A);
+			free_stars(&matched_list_B);
+			free_stars(&star_list_A);
+			free_stars(&star_list_B);
+			free_stars(&star_list_A_copy);
+			/** */
+			return (SH_GENERIC_ERROR);
+		}
 
-	if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
-			matched_list_B, Hom, for_astrometry, type)) {
-		fprintf(stderr, "atPrepareHomography failed to compute H\n");
-		/** */
-		atTransDel(trans);
-		atHDel(Hom);
-		free_stars(&matched_list_A);
-		free_stars(&matched_list_B);
-		free_stars(&star_list_A);
-		free_stars(&star_list_B);
-		free_stars(&star_list_A_copy);
-		/** */
-		return (SH_GENERIC_ERROR);
+		print_H(Hom);
+		*H = *Hom;
+	} else {
+		*t = *trans;
 	}
-
-	print_H(Hom);
-	*H = *Hom;
 
 	if (out_list_A)
 		*out_list_A = matched_list_A;

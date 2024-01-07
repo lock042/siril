@@ -33,6 +33,7 @@
 
 
    /* possibilities for the "order" field of TRANS structures */
+#define AT_TRANS_UNDEFINED   0           /* when not specified */
 #define AT_TRANS_LINEAR      1           /* linear terms only */
 #define AT_TRANS_QUADRATIC   2           /* linear plus quadratic */
 #define AT_TRANS_CUBIC       3           /* linear plus quadratic plus cubic */
@@ -156,21 +157,18 @@ struct s_star *
 atStarNew(double x, double y, double mag, double BV);
 
    /*
-    * read an ASCII file with a catalog of stars, and create a list
-    * of s_star structures
-    */
-int
-read_star_file(char *filename, int xcolumn, int ycolumn, int magcolumn,
-               int idcolumn, int ra_hours_col, int *num_stars,
-               struct s_star **list);
-
-   /*
-    * read an ASCII file with a list of matched stars, created by
-    * the atMatchLists function, and create a list of s_star structures.
+    * converts a psf_star list to a s_star list usable by the match functions
     */
 
 int
 get_stars(psf_star **s, int n, int *num_stars, struct s_star **list);
+
+   /*
+    * converts a psf_star list to a s_star list usable by the match functions
+    * using the index of a previous list
+    */
+int
+get_stars_from_previous_list(struct s_star **old_list, int n_old, psf_star **s, int *num_stars, struct s_star **list);
 
 void
 free_stars(struct s_star **head);
