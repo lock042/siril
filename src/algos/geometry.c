@@ -338,7 +338,7 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 	double orig_x = (double)area.x;
 	double orig_y = (double)area.y;
 	if (!cropped) {
-		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_rx * 0.5 };
+		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_ry * 0.5 };
 		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
 		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
 		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
