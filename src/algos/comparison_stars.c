@@ -328,6 +328,7 @@ int sort_compstars(struct compstars_arg *args) {
 	const gchar *startype = (args->cat == CAT_NOMAD || args->cat == CAT_APASS) ? "Comp1" : "Comp2";
 
 	siril_catalogue *siril_cat_vsx = NULL;
+	args->discarded_vsx = TRUE; // Hard coded to TRUE for now. Will be used later
 	if (args->discarded_vsx)
 		siril_cat_vsx = vsx_to_discard(args);	// the catalog of variable stars to be discarded
 	int nb_disc = 0;
