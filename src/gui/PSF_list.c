@@ -642,7 +642,7 @@ static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble 
 	if (has_wcs(&gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_fits(star->xpos, star->ypos, &fx, &fy, gfit.ry);
+		display_to_siril(star->xpos, star->ypos, &fx, &fy, gfit.ry);
 
 		double ra, dec;
 		pix2wcs(&gfit, fx, fy, &ra, &dec);

@@ -151,7 +151,7 @@ int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double
 static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRANS *trans, double *a, double*d) {
 	double xval, yval;
 	double r_dec;
-	double z, alpha, delta;
+	double z, zz, alpha, delta;
 	double delta_ra, delta_dec;
 	double rsquared;
 	double ra = siril_world_cs_get_alpha(px_cat_center);
@@ -194,14 +194,12 @@ static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRAN
 		break;
 	}
 
-#if 1
 	/*
 	 * and now convert from arcseconds to radians
 	 * (convenient for calculations)
 	 */
 	delta_ra = (delta_ra / 3600.0) * DEGTORAD;
 	delta_dec = (delta_dec / 3600.0) * DEGTORAD;
-#endif
 
 	/*
 	 * we have (delta_ra, delta_dec), in radians; these give the distance
@@ -209,35 +207,17 @@ static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRAN
 	 * the tangent plane (centered on RA,Dec) and calculate the actual
 	 * RA, Dec of the star (in degrees)
 	 */
-	{
-		double zz;
+	z = cos(r_dec) - delta_dec * sin(r_dec);
+	zz = atan2(delta_ra, z) * RADTODEG;
+	alpha = zz + ra;
+	delta = asin((sin(r_dec) + delta_dec * cos(r_dec)) / sqrt( 1. + delta_ra * delta_ra + delta_dec * delta_dec)) * RADTODEG;
 
-		z = cos(r_dec) - delta_dec * sin(r_dec);
-		zz = atan2(delta_ra, z) / DEGTORAD;
-		alpha = zz + ra;
 
-		zz = cos((alpha - ra) * DEGTORAD) * (sin(r_dec) + delta_dec * cos(r_dec));
-		delta = atan2(zz, z) / DEGTORAD;
-	}
-
-	/*
-	 * make sure new RA lies in range  0 < RA < 360
-	 */
 	if (alpha < 0) {
 		alpha += 360.0;
 	}
 	if (alpha >= 360.0) {
 		alpha -= 360.0;
-	}
-
-	/*
-	 * make sure Dec lies in range  -90 < Dec < +90
-	 */
-	if (delta < -90) {
-		delta += 180;
-	}
-	if (delta > 90) {
-		delta -= 180;
 	}
 #ifdef DEBUG
 	fprintf(stdout, "new RA = %10.5f, new dec = %10.5f\n", alpha, delta);

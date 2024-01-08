@@ -52,7 +52,7 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 		return 1;
 	}
 	double dx, dy;
-	fits_to_display(fx, fy, &dx, &dy, fit->ry);
+	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 	// some margin needs to be allowed for star centroid movement
 	double start = 1.5 * com.pref.phot_set.outer;
 	double size = 3.0 * com.pref.phot_set.outer;

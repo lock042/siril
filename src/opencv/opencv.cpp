@@ -916,42 +916,13 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 	convert_MatH_to_H(H, Hom);
 }
 
-void cvGetMatrixResize(double cxin, double cyin, double cxout, double cyout, double scale, Homography *Hom) {
-
-	// shift to get to the center of the initial image
-	Mat S =  Mat::eye(3, 3, CV_64FC1);
-	S.at<double>(0, 2) = cxin;
-	S.at<double>(1, 2) = cyin;
-
-	// shift backwards to set the top-left point of the final image
-	Mat S2 =  Mat::eye(3, 3, CV_64FC1);
-	S2.at<double>(0, 2) = -cxout;
-	S2.at<double>(1, 2) = -cyout;
-
-	// get scaling matrix about origin {0, 0}
-	Mat H = Mat::eye(3, 3, CV_64FC1);
-	H.at<double>(0, 0) = scale;
-	H.at<double>(1, 1) = scale;
-	// std::cout << H << std::endl;
-
-	H = S * H * S2;
-	std::cout << H << std::endl;
-
-	// transform is final to orginal, we need to inverse
-	// to have H from original to final
-	H = H.inv();
-	std::cout << H << std::endl;
-
-	convert_MatH_to_H(H, Hom);
-}
-
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h) {
 	Rect frame;
 	Point2f pt(center.x, center.y);
-	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
+	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect2f();
 	siril_debug_print("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
-	*w = frame.width;
-	*h = frame.height;
+	*w = (int)frame.width;
+	*h = (int)frame.height;
 }
 
 void cvInvertH(Homography *Hom) {
@@ -969,12 +940,26 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	/* modify matrix for reverse Y axis */
 	Mat F1 = Mat::eye(3, 3, CV_64FC1);
 	F1.at<double>(1,1) = -1.0;
-	F1.at<double>(1,2) = source_ry - 1.0;
+	F1.at<double>(1,2) = source_ry;
 
 	Mat F2 = Mat::eye(3, 3, CV_64FC1);
 	F2.at<double>(1,1) = -1.0;
-	F2.at<double>(1,2) = target_ry - 1.0;
+	F2.at<double>(1,2) = target_ry;
 
 	H = F2.inv() * H * F1;
+	convert_MatH_to_H(H, Hom);
+}
+
+// Used to convert a H matrix written in display convention to opencv convention
+void cvdisplay2ocv(Homography *Hom) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+
+	/* modify matrix to go to opencv convention */
+	Mat S1 = Mat::eye(3, 3, CV_64FC1);
+	S1.at<double>(0,2) = 0.5;
+	S1.at<double>(1,2) = 0.5;
+
+	H = S1.inv() * H * S1;
 	convert_MatH_to_H(H, Hom);
 }

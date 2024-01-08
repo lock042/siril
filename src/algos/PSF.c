@@ -986,7 +986,7 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	if (has_wcs(&gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_fits(xpos, ypos, &fx, &fy, gfit.ry);
+		display_to_siril(xpos, ypos, &fx, &fy, gfit.ry);
 
 		double ra, dec;
 		pix2wcs(&gfit, fx, fy, &ra, &dec);
