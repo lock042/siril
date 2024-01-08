@@ -98,7 +98,7 @@ static void debug_print_catalog_files(s_star *star_list_A, s_star *star_list_B) 
 	for (sA = star_list_A, sB = star_list_B; ; sA = sA->next, sB = sB->next) {
 		if (!sA) break;
 		if (!sB) break;
-		g_sprintf(buffer, "%g,%g,%g,%d,%g,%g,%g,%d\n", sA->x, sA->y, sA->mag, sA->id, sB->x, sB->y, sB->mag, sB->id);
+		g_sprintf(buffer, "%.8f,%.8f,%g,%d,%.8f,%.8f,%g,%d\n", sA->x, sA->y, sA->mag, sA->id, sB->x, sB->y, sB->mag, sB->id);
 		g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, NULL);
 		memset(buffer, 0, 256);
 	}
@@ -443,11 +443,17 @@ static int get_catalog_stars(struct astrometry_data *args, gboolean do_fetch) {
 	GDateTime *dateobs = NULL;
 	if (args->fit && args->fit->date_obs)
 		dateobs = args->fit->date_obs;
+	if (args->cstars) {
+		free_fitted_stars(args->cstars);
+		args->cstars = NULL; // next step may fail and we may try to use it again
+	}
 	if (!siril_catalog_project_at_center(args->ref_stars, ra0, dec0, TRUE, dateobs)) {
 		args->cstars = convert_siril_cat_to_psf_stars(args->ref_stars, &args->n_cat);
 		args->n_cat = args->ref_stars->nbitems;
+		return 0;
 	}
-	return 0;
+	siril_debug_print("Could not convert catalog to a psf_star list\n");
+	return 1;
 }
 
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; goto clearup; }
@@ -749,7 +755,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		args->message = g_strdup(_("Could not match stars from the catalogue"));
 		goto clearup;
 	}
-	debug_print_catalog_files(star_list_A, star_list_B);
 
 	double conv = DBL_MAX;
 	solution->px_cat_center = siril_world_cs_ref(args->cat_center);
@@ -798,8 +803,8 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 			args->ret = 1;
 			break;
 		}
+		print_trans(&trans);
 		num_matched = trans.nm;
-		
 		apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
 		conv = get_center_offset_from_trans(&trans);
 		trial++;
@@ -808,6 +813,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	}
 	if (args->ret)	// after the break
 		goto clearup;
+	debug_print_catalog_files(star_list_A, star_list_B);
 
 	double resolution = get_resolution_from_trans(&trans);
 	solution->focal_length = RADCONV * solution->pixel_size / resolution;
