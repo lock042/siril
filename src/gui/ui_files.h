@@ -61,6 +61,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/search_window.ui",
 	"/org/siril/ui/seqlist_dialog.ui",
 	"/org/siril/ui/settings_window.ui",
+	"/org/siril/ui/spcc_details.ui",
 	"/org/siril/ui/split_cfa_dialog.ui",
 	"/org/siril/ui/starnet_dialog.ui",
 	"/org/siril/ui/stars_list_window.ui",

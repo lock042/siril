@@ -1074,6 +1074,10 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 	return;
 }
 
+void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
+	return;
+}
+
 void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
                     GtkTreeViewColumn *column, gpointer user_data) {
 	return;

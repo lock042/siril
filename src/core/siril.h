@@ -485,6 +485,7 @@ typedef struct _spcc_object {
     int type;
     int quality;
     gchar *manufacturer;
+	gchar *source;
     int version;
     gchar *date;
     double *x;  // Wavelength array

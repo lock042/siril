@@ -99,12 +99,26 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
 	if (!data->manufacturer) {
 		goto validation_error;
 	}
+	data->source = g_strdup(json_object_get_string_member(object, "dataSource"));
+	if (!data->source) {
+		goto validation_error;
+	}
     data->version = json_object_get_int_member(object, "version");
 	if (!data->version) {
 		goto validation_error;
 	}
 	data->filepath = g_strdup(jsonFilePath);
 	data->index = index;
+
+	// Get array lengths for validation
+	JsonArray *wavelengthArray = json_object_get_array_member(object, "wavelength");
+	JsonArray *valuesArray = json_object_get_array_member(object, "values");
+	data->n = json_array_get_length(wavelengthArray);
+	int valuesLength = json_array_get_length(valuesArray);
+	if (data->n != valuesLength) {
+		goto validation_error;
+	}
+
 
     // Cleanup
     g_object_unref(parser);
@@ -265,11 +279,6 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     // Get 'wavelength' and 'values' arrays
     JsonArray *wavelengthArray = json_object_get_array_member(object, "wavelength");
     JsonArray *valuesArray = json_object_get_array_member(object, "values");
-    data->n = json_array_get_length(wavelengthArray);
-    int valuesLength = json_array_get_length(valuesArray);
-	if (data->n != valuesLength) {
-		goto validation_error;
-	}
 	data->x = (double *)malloc(data->n * sizeof(double));
     for (int i = 0; i < data->n; i++) {
         data->x[i] = json_array_get_double_element(wavelengthArray, i);
@@ -281,12 +290,6 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     // Cleanup
     g_object_unref(parser);
 	return TRUE;
-
-validation_error:
-    g_object_unref(parser);
-	// This function does not free the struct members: the caller must do this
-	// and also remove the struct from its GList.
-	return FALSE;
 #endif
 }
 

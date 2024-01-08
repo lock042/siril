@@ -31,6 +31,7 @@
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
+#include "gui/siril_plot.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
@@ -455,11 +456,15 @@ void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_d
 	gtk_button_set_label(GTK_BUTTON(button), state ? _("Mono Sensor") : _("OSC Sensor"));
 	widget = lookup_widget("label_spcc_sensors_osc");
 	gtk_widget_set_visible(widget, !state);
-	widget = lookup_widget("label_spcc_filters_osc");
-	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("combo_spcc_sensors_osc");
 	gtk_widget_set_visible(widget, !state);
+	widget = lookup_widget("details_spcc_sensors_osc");
+	gtk_widget_set_visible(widget, !state);
+	widget = lookup_widget("label_spcc_filters_osc");
+	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("combo_spcc_filters_osc");
+	gtk_widget_set_visible(widget, !state);
+	widget = lookup_widget("details_spcc_filters_osc");
 	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("osc_filters_enable");
 	gtk_widget_set_visible(widget, !state);
@@ -467,17 +472,25 @@ void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_d
 	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("label_spcc_sensors_mono");
 	gtk_widget_set_visible(widget, state);
+	widget = lookup_widget("details_spcc_sensors_mono");
+	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("combo_spcc_filters_r");
 	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("label_spcc_filters_r");
+	gtk_widget_set_visible(widget, state);
+	widget = lookup_widget("details_spcc_filters_r");
 	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("combo_spcc_filters_g");
 	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("label_spcc_filters_g");
 	gtk_widget_set_visible(widget, state);
+	widget = lookup_widget("details_spcc_filters_g");
+	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("combo_spcc_filters_b");
 	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("label_spcc_filters_b");
+	gtk_widget_set_visible(widget, state);
+	widget = lookup_widget("details_spcc_filters_b");
 	gtk_widget_set_visible(widget, state);
 }
 
@@ -485,4 +498,85 @@ void on_osc_filter_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	int state = gtk_toggle_button_get_active(button);
 	GtkWidget *widget = lookup_widget("combo_spcc_filters_osc");
 	gtk_widget_set_sensitive(widget, state);
+}
+
+void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *widget = GTK_WIDGET(button);
+	GtkComboBox *combo = NULL;
+	int n;
+	GList *list = NULL;
+	spcc_object *object = NULL;
+	if (widget == lookup_widget("details_spcc_sensors_osc")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"));
+		n = gtk_combo_box_get_active(combo);
+		list = g_list_nth(com.spcc_data.osc_sensors, n);
+	} else if (widget == lookup_widget("details_spcc_sensors_mono")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_mono"));
+		n = gtk_combo_box_get_active(combo);
+		list = g_list_nth(com.spcc_data.mono_sensors, n);
+	} else if (widget == lookup_widget("details_spcc_filters_osc")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_osc"));
+		n = gtk_combo_box_get_active(combo);
+		list = g_list_nth(com.spcc_data.osc_filters, n);
+	} else if (widget == lookup_widget("details_spcc_filters_r")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_r"));
+		n = gtk_combo_box_get_active(combo);
+		list = g_list_nth(com.spcc_data.mono_filters, n);
+	} else if (widget == lookup_widget("details_spcc_filters_g")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_g"));
+		n = gtk_combo_box_get_active(combo);
+		list = g_list_nth(com.spcc_data.mono_filters, n);
+	} else if (widget == lookup_widget("details_spcc_filters_b")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"));
+		n = gtk_combo_box_get_active(combo);
+		list = g_list_nth(com.spcc_data.mono_filters, n);
+	}
+	object = (spcc_object*) list->data;
+
+	GtkLabel *label = GTK_LABEL(lookup_widget("spcc_details_name"));
+	gtk_label_set_text(label, object->name);
+	label = GTK_LABEL(lookup_widget("spcc_details_mfr"));
+	gtk_label_set_text(label, object->manufacturer);
+	label = GTK_LABEL(lookup_widget("spcc_details_version"));
+	gchar *version_text = g_strdup_printf("%d", object->version);
+	gtk_label_set_text(label, version_text);
+	g_free(version_text);
+	label = GTK_LABEL(lookup_widget("spcc_details_source"));
+	gtk_label_set_text(label, object->source);
+	label = GTK_LABEL(lookup_widget("spcc_details_nsamples"));
+	gchar *nsamples_text = g_strdup_printf("%d", object->n);
+	gtk_label_set_text(label, nsamples_text);
+	g_free(nsamples_text);
+	GObject *plot_button = lookup_gobject("spcc_details_plot");
+	g_object_set_data(plot_button, "spcc_data_key", object);
+
+	GtkWidget *win = lookup_widget("spcc_details");
+	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("IPS_dialog")));
+	/* Here this is wanted that we do not use siril_open_dialog */
+	gtk_widget_show(win);
+}
+
+void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
+	spcc_object *object = (spcc_object *) g_object_get_data(G_OBJECT(button), "spcc_data_key");
+	load_spcc_object_arrays(object);
+	gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
+	gchar *spl_legend = g_strdup(object->name);
+	siril_plot_data *spl_data = NULL;
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_title(spl_data, title);
+	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
+	if (object->type == 1 || object->type == 2)
+		siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
+	else
+		siril_plot_set_ylabel(spl_data, _("Transmittance"));
+	siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
+	siril_plot_set_savename(spl_data, "SPCC_data");
+	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_idle(end_generic, NULL);
+}
+
+void on_spcc_details_close_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *win = lookup_widget("spcc_details");
+	gtk_widget_hide(win);
 }
