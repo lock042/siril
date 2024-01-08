@@ -250,7 +250,7 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 }
 
 // data assignment
-gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm) {
+gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, size_t nb, const double *x, const double *y, const double *errp, const double *errm) {
 	// single plot case
 	if (!errp) {
 		// allocate data
@@ -524,13 +524,13 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		guint index = 0;
 		do {
 			GList *current_entry = g_list_nth(legend, index);
-			double color[3];
-			memcpy(color, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
+			double color3[3];
+			memcpy(color3, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
 			if (iter == NULL)
 				break;
 			y0 = pango_layout_iter_get_baseline(iter);
 			double dy = (double)y0 / PANGO_SCALE - 0.5 * SIRIL_PLOT_LEGEND_SIZE;
-			cairo_set_source_rgb(cr, color[0], color[1], color[2]);
+			cairo_set_source_rgb(cr, color3[0], color3[1], color3[2]);
 			cairo_set_line_width(cr, 1.);
 			if (index < nb_xygraphs) {
 				cairo_move_to(cr, px0, py0 + dy);
@@ -718,7 +718,11 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 		}
 		j += 3;
 	}
-	fileout = g_fopen(datfilename, "w");
+	char *newfilename = strdup(datfilename);
+	if (!g_str_has_suffix(newfilename, ".dat")) {
+		str_append(&newfilename, ".dat");
+	}
+	fileout = g_fopen(newfilename, "w");
 	if (fileout == NULL) {
 		siril_log_message(_("Could not create %s, aborting\n"));
 		retval = FALSE;
@@ -732,7 +736,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 			fprintf(fileout, " %g", data[index++]);
 	}
 	fclose(fileout);
-	siril_log_message(_("%s has been saved.\n"), datfilename);
+	siril_log_message(_("%s has been saved.\n"), newfilename);
 
 clean_and_exit:
 	g_string_free(header, TRUE);
