@@ -40,7 +40,6 @@
 #include <config.h>
 #endif
 
-
 #ifdef HAVE_LIBJXL
 
 #include <glib.h>

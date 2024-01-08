@@ -129,7 +129,7 @@ static void set_filter(GtkFileChooser *dialog, const gchar *name, const gchar *p
 	gtk_file_chooser_set_filter(dialog, f);
 }
 
-static gchar* save_siril_plot_dialog(GtkWindow *parent, gchar *defaultfilename, gchar *filter_name, gchar *filter_pattern) {
+static gchar* save_siril_plot_dialog(GtkWindow *parent, const gchar *defaultfilename, const gchar *filter_name, const gchar *filter_pattern) {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
 	gint res;
