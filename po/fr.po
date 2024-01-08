@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-12 08:08+0100\n"
-"PO-Revision-Date: 2023-11-18 00:32+0000\n"
+"PO-Revision-Date: 2024-01-08 20:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/fr/>\n"
@@ -23537,7 +23537,7 @@ msgstr "Pondération ............... désactivée\n"
 
 #: src/stacking/stacking.c:396
 msgid "RGB equalization .......... enabled\n"
-msgstr "Égalisation RVB ............. acrtivée\n"
+msgstr "Égalisation RVB ............. activée\n"
 
 #: src/stacking/stacking.c:397
 msgid "RGB equalization .......... disabled\n"
