@@ -38,9 +38,13 @@ struct photometric_cc_data {
 	gchar *datalink_path;	// to hold the datalink path for SPCC
 	gboolean spcc;			// set if doing SPCC
 	gboolean spcc_mono_sensor; // for SPCC
+	int selected_sensor_osc; // for SPCC
 	int selected_sensor_m; // for SPCC
-	int selected_sensor_rgb; // for SPCC
-	int selected_filters; // for SPCC
+	int selected_filter_osc; // for SPCC
+	int selected_filter_r; // for SPCC
+	int selected_filter_g; // for SPCC
+	int selected_filter_b; // for SPCC
+	gboolean use_osc_filter; // for SPCC
 	cmsCIExyYTRIPLE primaries; // used for SPCC source profile
 	cmsCIExyY whitepoint; // used for SPCC source profile
 };

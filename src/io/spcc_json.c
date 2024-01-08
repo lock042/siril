@@ -25,6 +25,7 @@
  */
 
 #include "core/siril.h"
+#include "core/siril_app_dirs.h"
 #include <json-glib/json-glib.h>
 
 void spcc_object_free(spcc_object *data, gboolean free_struct);
@@ -94,12 +95,12 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
 	if (!data->quality) {
 		goto validation_error;
 	}
-	    data->manufacturer = g_strdup(json_object_get_string_member(object, "manufacturer"));
+	data->manufacturer = g_strdup(json_object_get_string_member(object, "manufacturer"));
 	if (!data->manufacturer) {
 		goto validation_error;
 	}
     data->version = json_object_get_int_member(object, "version");
-	if (!data->type) {
+	if (!data->version) {
 		goto validation_error;
 	}
 	data->filepath = g_strdup(jsonFilePath);
@@ -156,8 +157,9 @@ static gboolean processJsonFile(const char *file_path) {
 		memset(data, 0, sizeof(spcc_object));
 
 		retval = load_spcc_object_from_file(file_path, data, index);
-		if (!retval) {
-		// Place the data into the correct list based on its type
+		if (retval) {
+			siril_debug_print("Read JSON file: %s\n", data->name);
+			// Place the data into the correct list based on its type
 			switch (data->type) {
 				case 1:
 					com.spcc_data.mono_sensors = g_list_append(com.spcc_data.mono_sensors, data);
@@ -207,9 +209,9 @@ void spcc_object_free_arrays(spcc_object *data) {
 }
 
 // Call to populate the arrays of a specific spcc_object
-gboolean load_spcc_object_arrays(spcc_object *data, int index) {
+gboolean load_spcc_object_arrays(spcc_object *data) {
 #ifndef HAVE_JSON_GLIB
-	siril_log_color_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"), "red");
+	siril_log_color_message(_("Siril was not built with json-glib, cannot proceed.\n"), "red");
 	return FALSE;
 #else
     GError *error = NULL;
@@ -217,9 +219,17 @@ gboolean load_spcc_object_arrays(spcc_object *data, int index) {
     JsonObject *object;
     JsonNode *node;
 	JsonArray *array;
+	int index = data->index;
 
-	// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
-	memset(data, 0, sizeof(spcc_object));
+	// Ensure arrays are not already populated, to avoid memory leaks
+	if (data->x) {
+		free(data->x);
+		data->x = NULL;
+	}
+	if (data->y) {
+		free(data->y);
+		data->y = NULL;
+	}
 
     // Create a JSON parser
     parser = json_parser_new();
@@ -283,26 +293,38 @@ validation_error:
 // Call once to populate com.spcc_data with metadata for all known spcc_objects
 // This doesn't populate the arrays (which take up more memory): the arrays can
 // be populated for a required spcc_object with load_spcc_object_arrays()
-void load_all_spcc_metadata(gchar *path) {
-    GDir *dir = g_dir_open(path, 0, NULL);
+static void processDirectory(const gchar *directory_path) {
+    GDir *dir = g_dir_open(directory_path, 0, NULL);
 
     if (dir == NULL) {
-        g_warning("Unable to open directory: %s", path);
+        g_warning("Unable to open directory: %s", directory_path);
         return;
     }
 
     const gchar *filename;
 
     while ((filename = g_dir_read_name(dir)) != NULL) {
-        gchar *file_path = g_build_filename(path, filename, NULL);
+        gchar *file_path = g_build_filename(directory_path, filename, NULL);
 
-        // Check if the file has a .json extension
-        if (g_str_has_suffix(filename, ".json")) {
-            processJsonFile(file_path);
+        if (g_file_test(file_path, G_FILE_TEST_IS_DIR)) {
+            // If the current item is a directory, recursively process it
+            if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") != 0) {
+                processDirectory(file_path);
+            }
+        } else {
+            // Check if the file has a .json extension
+            if (g_str_has_suffix(filename, ".json") && !g_strrstr(filename, "schema")) {
+                processJsonFile(file_path);
+            }
         }
 
         g_free(file_path);
     }
 
     g_dir_close(dir);
+}
+
+void load_all_spcc_metadata() {
+    const gchar *path = siril_get_spcc_repo_path();
+    processDirectory(path);
 }

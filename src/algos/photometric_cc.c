@@ -498,12 +498,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 	float maxs[3];
 	int norm_channel;
 
-	// Initialize filters if required
-	if (args->spcc && !spcc_filters_initialized) {
-		init_spcc_filters();
-		spcc_filters_initialized = TRUE;
-	}
-
 	if (!isrgb(args->fit)) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
 		return 0;

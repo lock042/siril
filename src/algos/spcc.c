@@ -49,6 +49,8 @@
 #include "algos/spcc_filters.h"
 
 void init_spcc_filters() {
+	load_all_spcc_metadata();
+
 	Optolong_Blue.x = Optolong_Blue_wl;
 	Optolong_Blue.y = Optolong_Blue_sr;
 	Optolong_Blue.n = 72;
@@ -195,108 +197,26 @@ double integrate_xpsampled(const xpsampled *xps) {
 
 void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectrum, int chan) {
 	xpsampled spectrum2 = { spectrum->x, { 0.0 } };
-	mono_sensor_t selected_sensor_m = (mono_sensor_t) args->selected_sensor_m;
-	rgb_sensor_t selected_sensor_rgb = (rgb_sensor_t) args->selected_sensor_rgb;
-	filter_t selected_filters = (filter_t) args->selected_filters;
 
 	if (args->spcc_mono_sensor) {
-		switch (selected_sensor_m) {
-			case IMX571M:
-				init_xpsampled_from_library(spectrum, &Sony_IMX571M);
-				break;
-			case ZWO1600M:
-				init_xpsampled_from_library(spectrum, &ZWO_1600M);
-				break;
-			case KAF_1603ME:
-				init_xpsampled_from_library(spectrum, &KAF1603ME);
-				break;
-			case KAF_3200:
-				init_xpsampled_from_library(spectrum, &KAF3200);
-				break;
-			case KAF_8300:
-				init_xpsampled_from_library(spectrum, &KAF8300);
-				break;
-			case ICX_694:
-				init_xpsampled_from_library(spectrum, &Sony_ICX694);
-				break;
-			// Add other mono sensors here
-		}
-		switch (selected_filters) {
-			case FILTER_NONE:
-				break;
-			// TODO: Add filter data
-			case FILTER_L_ENHANCE:
-			case FILTER_DUAL:
-			case FILTER_QUAD:
-			case ANTLIA:
-			case ASTRODON_E:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RE : chan == 1 ? &Astrodon_GE : &Astrodon_B);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ASTRODON_I:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RI : chan == 1 ? &Astrodon_GI : &Astrodon_B);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ASTRONOMIK:
-			case BAADER:
-			case CHROMA:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Chroma_Red : chan == 1 ? &Chroma_Green : &Chroma_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case OPTOLONG:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ZWO:
-				// TODO: populate with the correct data once OSC camera response curves are scanned in
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-		}
+		GList *sensor = g_list_nth(com.spcc_data.mono_sensors, args->selected_sensor_m);
+		load_spcc_object_arrays( (spcc_object*) sensor->data);
+		init_xpsampled_from_library(spectrum, (spcc_object*) sensor->data);
+		int selected_filter = chan == 0 ? args->selected_filter_r : chan == 1 ? args->selected_filter_g : args->selected_filter_b;
+		GList *filter = g_list_nth(com.spcc_data.mono_filters, selected_filter);
+		load_spcc_object_arrays( (spcc_object*) filter->data);
+		init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
+		multiply_xpsampled(spectrum, spectrum, &spectrum2);
 	} else {
-		switch (selected_sensor_rgb) {
-			case CANONT3I:
-				// TODO: populate with the correct data once OSC camera response curves are scanned in
-				init_xpsampled_from_library(spectrum, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				break;
-			// Add other RGB sensors here
-		}
-		switch (selected_filters) {
-			// TODO: Currently all these fall through to Optolong RGB, need to address this once more filter data is available
-			case FILTER_L_ENHANCE:
-			case FILTER_DUAL:
-			case FILTER_QUAD:
-				// TODO: populate with the correct data once I have obtained it
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ANTLIA:
-			case ASTRODON_E:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RE : chan == 1 ? &Astrodon_GE : &Astrodon_B);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ASTRODON_I:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Astrodon_RI : chan == 1 ? &Astrodon_GI : &Astrodon_B);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ASTRONOMIK:
-			case BAADER:
-			case CHROMA:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Chroma_Red : chan == 1 ? &Chroma_Green : &Chroma_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case OPTOLONG:
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			case ZWO:
-				// TODO: populate with the correct data once OSC camera response curves are scanned in
-				init_xpsampled_from_library(&spectrum2, chan == 0 ? &Optolong_Red : chan == 1 ? &Optolong_Green : &Optolong_Blue);
-				multiply_xpsampled(spectrum, spectrum, &spectrum2);
-				break;
-			default:
-				// Do nothing for FILTER_NONE
-				break;
+		// The 3 channels of an OSC sensor are stored in RGB order in the JSON file and will be in order in the GList.
+		GList *sensor = g_list_nth(com.spcc_data.osc_sensors, 3 * args->selected_sensor_osc + chan);
+		load_spcc_object_arrays( (spcc_object*) sensor->data);
+		init_xpsampled_from_library(spectrum, (spcc_object*) sensor->data);
+		if (args->use_osc_filter) {
+			GList *filter = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
+			load_spcc_object_arrays( (spcc_object*) filter->data);
+			init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
+			multiply_xpsampled(spectrum, spectrum, &spectrum2);
 		}
 	}
 }

@@ -1173,7 +1173,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <child>
-                  <!-- n-columns=3 n-rows=4 -->
+                  <!-- n-columns=3 n-rows=8 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -1190,7 +1190,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_spcc_sensor_mono">
+                      <object class="GtkLabel" id="label_spcc_sensors_mono">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
@@ -1198,7 +1198,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">2</property>
+                        <property name="top-attach">3</property>
                       </packing>
                     </child>
                     <child>
@@ -1220,103 +1220,177 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_spcc_sensor_rgb">
+                      <object class="GtkLabel" id="label_spcc_sensors_osc">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">RGB Sensor</property>
+                        <property name="label" translatable="yes">OSC Sensor</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="combo_spcc_sensor_rgb">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item translatable="yes">Canon EOS 600D (Rebel T3i)</item>
-                        </items>
-                        <style>
-                          <class name="Canon EOS 600D / Rebel T3i"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label_spcc_filters">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">RGB Filters</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="combo_spcc_sensor_mono">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item id="&lt;Enter ID&gt;" translatable="yes">Sony IMX411/455/461/533/571</item>
-                          <item translatable="yes">ZWO ASI1600MM series</item>
-                          <item translatable="yes">Kodak KAF-1603ME CCD</item>
-                          <item translatable="yes">Kodak KAF-3200 CCD</item>
-                          <item translatable="yes">Kodak KAF-8300 CCD</item>
-                          <item translatable="yes">Sony ICX694 CCD</item>
-                        </items>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
                         <property name="top-attach">2</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="combo_spcc_filters">
+                      <object class="GtkLabel" id="label_spcc_filters_r">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="active">8</property>
-                        <items>
-                          <item translatable="yes">None</item>
-                          <item translatable="yes">Optolong L-Enhance</item>
-                          <item translatable="yes">Dual Narrowband (Optlong L-Extreme etc.)</item>
-                          <item translatable="yes">Quad band filter (eg OPT Triad Ultra)</item>
-                          <item translatable="yes">Antlia RGB</item>
-                          <item translatable="yes">Astrodon E-series RGB</item>
-                          <item translatable="yes">Astrodon I-series RGB</item>
-                          <item translatable="yes">Astronomik RGB</item>
-                          <item translatable="yes">Baader RGB</item>
-                          <item translatable="yes">Chroma RGB</item>
-                          <item translatable="yes">Optolong RGB</item>
-                          <item translatable="yes">ZWO RGB</item>
-                        </items>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Red Filter</property>
                       </object>
                       <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">3</property>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="mono_sensor_check">
+                      <object class="GtkLabel" id="label_spcc_filters_g">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Green Filter</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_osc">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">OSC Filter</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_b">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Blue Filter</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="spcc_toggle_sensor_type">
                         <property name="label" translatable="yes">Mono sensor</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Choose OSC or mono sensor</property>
                         <property name="active">True</property>
+                        <signal name="toggled" handler="on_spcc_toggle_sensor_type_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_sensor_type">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Sensor Type</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_sensors_osc">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_sensors_mono">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_filters_osc">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_filters_r">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_filters_g">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_filters_b">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="osc_filters_enable">
+                        <property name="label" translatable="yes">enable</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
                         <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_osc_filter_enable_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">2</property>
+                        <property name="top-attach">4</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
