@@ -372,17 +372,19 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *mono_sensor_check = lookup_widget("spcc_toggle_sensor_type");
 	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
 	GtkWidget *monosensor = lookup_widget("combo_spcc_sensors_mono");
-	GtkWidget *rgbsensor = lookup_widget("combo_spcc_sensors_rgb");
+	GtkWidget *oscsensor = lookup_widget("combo_spcc_sensors_osc");
 	GtkWidget *filters_r = lookup_widget("combo_spcc_filters_r");
 	GtkWidget *filters_g = lookup_widget("combo_spcc_filters_g");
 	GtkWidget *filters_b = lookup_widget("combo_spcc_filters_b");
+	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
 	GtkWidget *osc_filters_enable = lookup_widget("osc_filters_enable");
 
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
-	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(rgbsensor)); // TODO: this just picks one channel, work out how to get the others (in get_spectrum_from_args)
+	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(oscsensor));
 	args->selected_filter_r = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_r));
 	args->selected_filter_g = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_g));
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
+	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
 	args->use_osc_filter = gtk_combo_box_get_active(GTK_COMBO_BOX(osc_filters_enable));
 
 }

@@ -494,6 +494,10 @@ typedef struct _spcc_object {
     int n; // Number of points in x and y
 } spcc_object;
 
+typedef struct _osc_sensor {
+	spcc_object channel[3];
+} osc_sensor;
+
 struct spcc_data_store {
 	GList *mono_sensors;
 	GList *osc_sensors;

@@ -153,9 +153,11 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		multiply_xpsampled(spectrum, spectrum, &spectrum2);
 	} else {
 		// The 3 channels of an OSC sensor are stored in RGB order in the JSON file and will be in order in the GList.
-		GList *sensor = g_list_nth(com.spcc_data.osc_sensors, 3 * args->selected_sensor_osc + chan);
-		load_spcc_object_arrays( (spcc_object*) sensor->data);
-		init_xpsampled_from_library(spectrum, (spcc_object*) sensor->data);
+		GList *object = g_list_nth(com.spcc_data.osc_sensors, args->selected_sensor_osc);
+		osc_sensor *osc = (osc_sensor*) object->data;
+		spcc_object *sensor = &osc->channel[chan];
+		load_spcc_object_arrays( (spcc_object*) sensor);
+		init_xpsampled_from_library(spectrum, (spcc_object*) sensor);
 		if (args->use_osc_filter) {
 			GList *filter = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
 			load_spcc_object_arrays( (spcc_object*) filter->data);

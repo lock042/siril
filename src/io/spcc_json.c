@@ -28,12 +28,17 @@
 #include "core/siril_app_dirs.h"
 #include <json-glib/json-glib.h>
 
-void spcc_object_free(spcc_object *data, gboolean free_struct);
+enum {
+	RED, GREEN, BLUE
+};
 
-static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *data, int index) {
+void spcc_object_free(spcc_object *data, gboolean free_struct);
+void osc_sensor_free(osc_sensor *data, gboolean free_struct);
+
+static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *data, int index, gboolean from_osc_sensor) {
 #ifndef HAVE_JSON_GLIB
 	siril_log_color_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"), "red");
-	return FALSE;
+	return 0;
 #else
     GError *error = NULL;
     JsonParser *parser;
@@ -52,7 +57,7 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
         fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
         g_error_free(error);
         g_object_unref(parser);
-        return FALSE;
+        return 0;
     }
 
     // Parse JSON data
@@ -61,7 +66,7 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
     if (!JSON_NODE_HOLDS_ARRAY(node)) {
         fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
         g_object_unref(parser);
-        return FALSE;
+        return 0;
     }
 
     // Get the array of objects
@@ -70,29 +75,34 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
 	if (index > num_objects) {
         fprintf(stderr, "Error: index out of range.\n");
         g_object_unref(parser);
-        return FALSE;
+        return 0;
     }
     object = json_array_get_object_element(array, index);
 
     // Get values from JSON and store in the struct
+	const gchar *typestring = json_object_get_string_member(object, "type");
+	if (!strcmp(typestring, "MONO_SENSOR")) {
+		data->type = 1;
+	} else if (!strcmp(typestring, "OSC_SENSOR")) {
+		if (!from_osc_sensor) {
+			g_object_unref(parser);
+			return 2; // OSC sensors are handled by a different routine
+		} else {
+			data->type = 2; // We have been called from the OSC handler
+		}
+	} else if (!strcmp(typestring, "MONO_FILTER")) {
+		data->type = 3;
+	} else if (!strcmp(typestring, "OSC_FILTER")) {
+		data->type = 4;
+	} else {
+		goto validation_error;
+	}
     data->model = g_strdup(json_object_get_string_member(object, "model"));
 	if (!data->model) {
 		goto validation_error;
 	}
     data->name = g_strdup(json_object_get_string_member(object, "name"));
 	if (!data->name) {
-		goto validation_error;
-	}
-	const gchar *typestring = json_object_get_string_member(object, "type");
-	if (!strcmp(typestring, "MONO_SENSOR")) {
-		data->type = 1;
-	} else if (!strcmp(typestring, "OSC_SENSOR")) {
-		data->type = 2;
-	} else if (!strcmp(typestring, "MONO_FILTER")) {
-		data->type = 3;
-	} else if (!strcmp(typestring, "OSC_FILTER")) {
-		data->type = 4;
-	} else {
 		goto validation_error;
 	}
     data->quality = json_object_get_int_member(object, "dataQualityMarker");
@@ -128,10 +138,9 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
 		goto validation_error;
 	}
 
-
     // Cleanup
     g_object_unref(parser);
-	return TRUE;
+	return 1;
 
 validation_error:
     g_object_unref(parser);
@@ -139,8 +148,24 @@ validation_error:
     g_free(data->manufacturer);
     free(data->x);
     free(data->y);
-	return FALSE;
+	return 0;
 #endif
+}
+
+static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor *data) {
+	int retval;
+	retval = load_spcc_object_from_file(jsonFilePath, &data->channel[RED], RED, TRUE);
+	if (retval == 1) {
+		retval = load_spcc_object_from_file(jsonFilePath, &data->channel[GREEN], GREEN, TRUE);
+		if (retval == 1) {
+			retval = load_spcc_object_from_file(jsonFilePath, &data->channel[BLUE], BLUE, TRUE);
+		}
+	}
+	gboolean retbool = (retval == 1);
+	if (!retbool) {
+		osc_sensor_free(data, TRUE);
+	}
+	return retbool;
 }
 
 static gboolean processJsonFile(const char *file_path) {
@@ -179,8 +204,8 @@ static gboolean processJsonFile(const char *file_path) {
 		// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 		memset(data, 0, sizeof(spcc_object));
 
-		retval = load_spcc_object_from_file(file_path, data, index);
-		if (retval) {
+		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
+		if (retval == 1) {
 			siril_debug_print("Read JSON file: %s\n", data->name);
 			// Place the data into the correct list based on its type
 			switch (data->type) {
@@ -188,7 +213,7 @@ static gboolean processJsonFile(const char *file_path) {
 					com.spcc_data.mono_sensors = g_list_append(com.spcc_data.mono_sensors, data);
 					break;
 				case 2:
-					com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, data);
+					siril_debug_print("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
 					break;
 				case 3:
 					com.spcc_data.mono_filters = g_list_append(com.spcc_data.mono_filters, data);
@@ -201,7 +226,12 @@ static gboolean processJsonFile(const char *file_path) {
 					spcc_object_free(data, TRUE);
 					break;
 			}
-
+		}
+		else if (retval == 2) {
+			osc_sensor *osc = g_new(osc_sensor, 1);
+			retval = load_osc_sensor_from_file(file_path, osc);
+			if (retval)
+				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
 		}
 	}
    return retval;
@@ -217,9 +247,25 @@ void spcc_object_free(spcc_object *data, gboolean free_struct) {
     free(data->x);
     free(data->y);
 	if (free_struct)
-		free(data);
+		g_free(data);
 	return;
 }
+
+void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
+	for (int i = 0 ; i < 3 ; i++) {
+		g_free(data->channel[i].model);
+		g_free(data->channel[i].name);
+		g_free(data->channel[i].manufacturer);
+		g_free(data->channel[i].filepath);
+		g_free(data->channel[i].source);
+		free(data->channel[i].x);
+		free(data->channel[i].y);
+	}
+	if (free_struct)
+		g_free(data);
+	return;
+}
+
 
 // Frees and nulls the arrays of a spcc_object. This should be called
 // after use to release the memory used by the arrays, but without
