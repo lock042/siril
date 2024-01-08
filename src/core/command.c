@@ -3938,7 +3938,7 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 			return CMD_ARG_ERROR;
 		}
 		double dx, dy;
-		fits_to_display(fx, fy, &dx, &dy, first->ry);
+		siril_to_display(fx, fy, &dx, &dy, first->ry);
 		double start = 1.5 * com.pref.phot_set.outer;
 		double size = 3 * com.pref.phot_set.outer;
 		area.x = dx - start;
