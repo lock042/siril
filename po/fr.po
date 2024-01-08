@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-01-08 13:14+0100\n"
-"PO-Revision-Date: 2023-11-30 11:41+0000\n"
+"PO-Revision-Date: 2024-01-08 13:08+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -467,10 +467,15 @@ msgid ""
 "<b>WARNING</b>: if the data do not have a valid photometry, they will not be "
 "displayed, contrary of what you can see in the plot tab."
 msgstr ""
+"Ouvrir une nouvelle fenêtre Siril Plot pour afficher les données.\n"
+"\n"
+"<b>ATTENTION</b> : si les données n'ont pas une photométrie valide, elles ne "
+"seront pas affichées, contrairement à ce que vous pouvez voir dans l'onglet "
+"graphique."
 
 #: src/gui/uifiles/siril.ui:1103
 msgid "Show valid data in Siril Plot"
-msgstr ""
+msgstr "Afficher les données valides dans Siril Plot"
 
 #: src/gui/uifiles/siril.ui:1117
 msgid "Export displayed plot to a CSV file."
@@ -864,9 +869,8 @@ msgid "Solar System Objects"
 msgstr "Objets du Système Solaire"
 
 #: src/gui/uifiles/siril.ui:2227 src/gui/uifiles/siril.ui:2469
-#, fuzzy
 msgid "Image Analysis"
-msgstr "Vignettes des images"
+msgstr "Analyse de l'image"
 
 #: src/gui/uifiles/siril.ui:2244
 msgid "Statistics..."
@@ -881,9 +885,8 @@ msgid "Aberration Inspector"
 msgstr "Inspecteur d'aberration"
 
 #: src/gui/uifiles/siril.ui:2286
-#, fuzzy
 msgid "Show Tilt"
-msgstr "Affiche la grille"
+msgstr "Montrer le tilt"
 
 #: src/gui/uifiles/siril.ui:2311
 msgid "Dynamic PSF..."
@@ -905,34 +908,29 @@ msgstr ""
 "La sortie est un fichier csv compatible avec NINA Exoplanet"
 
 #: src/gui/uifiles/siril.ui:2355
-#, fuzzy
 msgid "Create Comparison Stars File..."
-msgstr "Créer une liste d'étoiles de comparaison"
+msgstr "Créer un fichier d'étoiles de comparaison..."
 
 #: src/gui/uifiles/siril.ui:2368
-#, fuzzy
 msgid ""
 "Process a light curve using a list of stars in the format produced by Siril "
 "(Create Comparison Stars File) or by the NINA exoplanet plugin."
 msgstr ""
-"Traiter une courbe de lumière en utilisant la liste d'étoiles du plugin "
-"exoplanète NINA"
+"Traiter une courbe de lumière en utilisant la liste d'étoiles créée par "
+"Siril (en utilisant la création d'un fichier d'étoiles de comparaison) ou "
+"via le plugin exoplanète de NINA."
 
 #: src/gui/uifiles/siril.ui:2370
 msgid "Automated Light Curve..."
-msgstr ""
+msgstr "Courbe de lumière automatisée..."
 
 #: src/gui/uifiles/siril.ui:2383
-#, fuzzy
 msgid "This is the button for outputting photometric data."
-msgstr ""
-"Il s'agit du bouton de sortie des données photométriques. Pour l'activer, "
-"passez en vue \"magnitude\"."
+msgstr "Il s'agit du bouton permettant d'éditer les données photométriques."
 
 #: src/gui/uifiles/siril.ui:2384
-#, fuzzy
 msgid "Create Output"
-msgstr "Sortie"
+msgstr "Créer une sortie"
 
 #: src/gui/uifiles/siril.ui:2410 src/gui/uifiles/siril.ui:2427
 #: src/gui/uifiles/siril.ui:2442
@@ -956,9 +954,8 @@ msgid "FITS Header..."
 msgstr "Entête FITS..."
 
 #: src/gui/uifiles/siril.ui:2551
-#, fuzzy
 msgid "Image Information..."
-msgstr "Informations de l'image"
+msgstr "Informations de l'image..."
 
 #: src/gui/uifiles/siril.ui:2603
 msgid "current red file"
@@ -2539,7 +2536,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:7181
 msgid "Hovering for the legend"
-msgstr ""
+msgstr "Survol pour la légende"
 
 #: src/gui/uifiles/siril.ui:7200
 msgid ""
@@ -2611,23 +2608,20 @@ msgid "Select the source of graph information."
 msgstr "Sélectionner la source des informations affichées."
 
 #: src/gui/uifiles/siril.ui:7348
-#, fuzzy
 msgid "Registration data"
-msgstr "Données d'alignement trouvées"
+msgstr "Données d'alignement"
 
 #: src/gui/uifiles/siril.ui:7349
-#, fuzzy
 msgid "Photometry data"
-msgstr "Photométrie"
+msgstr "Données de Photométrie"
 
 #: src/gui/uifiles/siril.ui:7364
 msgid "Deletes photometric plots displayed in the graphics area."
-msgstr ""
+msgstr "Supprime les courbes photométriques affichées dans la zone graphique."
 
 #: src/gui/uifiles/siril.ui:7376
-#, fuzzy
 msgid "Clear plots"
-msgstr "Effacer la dernière"
+msgstr "Effacer les courbes"
 
 #: src/gui/uifiles/siril.ui:7427
 msgid "Show all relevant graphs using registration and / or photometry data."
@@ -3309,7 +3303,6 @@ msgid "Image Processing"
 msgstr "Traitement de l'image"
 
 #: src/gui/uifiles/siril.ui:9864
-#, fuzzy
 msgid "Tools"
 msgstr "Outils"
 
@@ -4263,6 +4256,11 @@ msgid ""
 "entire profile. This means that when you re-open the file the ICC profile "
 "description may be different, although it will be functionally equivalent."
 msgstr ""
+"Remarque : lors de l'intégration de profils ICC, libjxl vérifie s'il "
+"reconnaît le profil. Si c'est le cas, il définira une valeur de référence "
+"plutôt que de stocker l'intégralité du profil. Cela signifie que lorsque "
+"vous rouvrez le fichier, la description du profil ICC peut être différente, "
+"bien qu'elle soit fonctionnellement équivalente."
 
 #: src/gui/uifiles/savepopup.ui:133
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -4378,15 +4376,26 @@ msgid ""
 "filesize than TIFF compression at the expense of being slower and not "
 "providing the metadata that is available with TIFF."
 msgstr ""
+"Qualité. Une valeur de qualité = 100 permet une compression sans perte ("
+"notez que cela peut être assez lent). Les autres valeurs de qualité "
+"fonctionnent de la même manière que la qualité JPEG, mais il n'y a pas de "
+"conversion directe (la même valeur de qualité ne donnera pas exactement la "
+"même qualité visuelle ou la même taille de fichier que pour un fichier JPEG)."
+"\n"
+"\n"
+"REMARQUE : la compression avec perte donne de mauvais résultats lors de "
+"l'enregistrement de données linéaires en raison de la plage dynamique très "
+"élevée, mais la compression sans perte permet de réduire la taille des "
+"fichiers par rapport à la compression TIFF, mais elle est plus lente et ne "
+"fournit pas les métadonnées disponibles avec le format TIFF."
 
 #: src/gui/uifiles/savepopup.ui:876
-#, fuzzy
 msgid "100"
-msgstr "1000"
+msgstr "100"
 
 #: src/gui/uifiles/savepopup.ui:902
 msgid "Effort:"
-msgstr ""
+msgstr "Effort :"
 
 #: src/gui/uifiles/savepopup.ui:926
 msgid ""
@@ -4394,10 +4403,14 @@ msgid ""
 "the default: values higher than this are not recommended as they become very "
 "slow and may not result in an improvement in file size."
 msgstr ""
+"L'effort représente le travail effectué par l'encodeur pour optimiser la "
+"sortie. 7 est la valeur par défaut : les valeurs supérieures ne sont pas "
+"recommandées, car elles deviennent très lentes et peuvent ne pas entraîner "
+"d'amélioration de la taille du fichier."
 
 #: src/gui/uifiles/savepopup.ui:940
 msgid "8 bit output"
-msgstr ""
+msgstr "Sortie 8 bits"
 
 #: src/gui/uifiles/savepopup.ui:944
 msgid ""
@@ -4405,11 +4418,14 @@ msgid ""
 "its native bit depth (32 bit images will be stored as 32 bit; 16 bit images "
 "will be stored as 16 bit unless they originated as 8 bit images)"
 msgstr ""
+"Si cette case est cochée, la sortie sera de 8 bits. Si la case n'est pas "
+"cochée, l'image sera sauvegardée dans sa profondeur de bit native (les "
+"images 32 bits seront stockées en 32 bits ; les images 16 bits seront "
+"stockées en 16 bits à moins qu'elles ne proviennent d'images 8 bits)"
 
 #: src/gui/uifiles/savepopup.ui:982
-#, fuzzy
 msgid "JPEG XL"
-msgstr "JPEG"
+msgstr "JPEG XL"
 
 #: src/gui/uifiles/satu_dialog.ui:47
 msgid "Color saturation"
@@ -10772,6 +10788,8 @@ msgstr "Aucune séquence `%s' trouvée.\n"
 #: src/algos/astrometry_solver.c:189
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr ""
+"La position en amont par rapport au Nord est indéterminée (trop proche d'un "
+"pôle)\n"
 
 #: src/algos/astrometry_solver.c:211
 #, c-format
@@ -12726,14 +12744,12 @@ msgid "Error: cannot open sequence\n"
 msgstr "Erreur : Impossible d'ouvrir la séquence\n"
 
 #: src/core/command.c:759
-#, fuzzy
 msgid "Error: quality must be >= 0.0 and <= 100.0.\n"
-msgstr "Erreur : D doit être > 0.0 et <= 10.0.\n"
+msgstr "Erreur : la qualité doit être >= 0.0 et <= 100.0.\n"
 
 #: src/core/command.c:767
-#, fuzzy
 msgid "Error: effort must be an integer between 1 and 9.\n"
-msgstr "Erreur : D doit être spécifié entre 0.0 et 1.0 en utilisant -D=\n"
+msgstr "Erreur : l'effort doit être un nombre entier entre 1 et 9.\n"
 
 #: src/core/command.c:896
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
@@ -13595,9 +13611,8 @@ msgid "Missing argument to command\n"
 msgstr "Argument manquant à la commande\n"
 
 #: src/core/command.c:4100
-#, fuzzy
 msgid "Could not find stars in the reference image, aborting.\n"
-msgstr "Impossible de trouver des étoiles dans la première image, abandon.\n"
+msgstr "Impossible de trouver des étoiles dans l'image de référence, abandon.\n"
 
 #: src/core/command.c:4110
 #, c-format
@@ -13616,15 +13631,14 @@ msgstr ""
 "préconfigurés de %.1f et %.1f.\n"
 
 #: src/core/command.c:4143
-#, fuzzy
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
 "current\n"
 msgstr ""
-"Aucune image de la séquence n'a été trouvée avec les information WCS "
-"requises pour la sélection d'étoiles par coordonnées équatoriales, nécessite "
-"la résolution astrométrique de la référence ou de la première image.\n"
+"Aucune image de la séquence n'a été trouvée avec les informations WCS "
+"requises pour la sélection de l'étoile par les coordonnées équatoriales, "
+"résolvez la référence ou l'image actuellement chargée.\n"
 
 #: src/core/command.c:4265
 #, c-format
@@ -22383,27 +22397,25 @@ msgid "Deconvolution. Processing sequence..."
 msgstr "Déconvolution : Traitement de séquence en cours..."
 
 #: src/gui/nina_light_curve.c:41
-#, fuzzy
 msgid "Automated light curve"
-msgstr "Affichage de la courbe de lumière"
+msgstr "Courbe de lumière automatisée"
 
 #: src/gui/nina_light_curve.c:49
-#, fuzzy
 msgid "Select the comparison star list file"
-msgstr "Sélectionnez le fichier de la liste d'étoiles NINA"
+msgstr "Sélectionner le fichier de la liste d'étoiles de comparaison"
 
 #: src/gui/nina_light_curve.c:54
 msgid "CSV file (*.csv)"
 msgstr "Fichiers SER (*.csv)"
 
 #: src/gui/nina_light_curve.c:58
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list of "
 "reference stars created by Siril or the NINA exoplanet plugin"
 msgstr ""
 "Traiter une séquence pour obtenir une courbe de lumière sur une étoile en "
-"utilisant la liste d'étoiles de référence créée par le plugin exoplanète NINA"
+"utilisant la liste d'étoiles de référence créée par Siril ou par le plugin "
+"exoplanète de NINA"
 
 #: src/gui/nina_light_curve.c:62
 msgid "Use comparative stars selected for their color"
@@ -22426,7 +22438,6 @@ msgstr ""
 "manière à cause du changement d'atmosphère"
 
 #: src/gui/nina_light_curve.c:71
-#, fuzzy
 msgid "The AAVSO gives stars that are known to not be variable"
 msgstr "L'AAVSO donne les étoiles qui sont connues pour ne pas être variables"
 
@@ -22965,9 +22976,8 @@ msgid "JPEG Files (*.jpg, *.jpeg)"
 msgstr "Fichiers JPEG (*.jpg, *.jpeg)"
 
 #: src/gui/save_dialog.c:93
-#, fuzzy
 msgid "JPEG XL Files (*.jxl)"
-msgstr "Fichiers PNG (*.png)"
+msgstr "Fichiers JPEG XL (*.jxl)"
 
 #: src/gui/save_dialog.c:101
 msgid "PNG Files (*.png)"
@@ -22998,9 +23008,8 @@ msgid "Saving JPG"
 msgstr "Enregistrer JPG"
 
 #: src/gui/save_dialog.c:260
-#, fuzzy
 msgid "Saving JPEG XL"
-msgstr "Enregistrer JPG"
+msgstr "Enregistrer JPG XL"
 
 #: src/gui/save_dialog.c:264
 msgid "Saving TIFF"
@@ -23234,11 +23243,8 @@ msgstr ""
 "dans le menu"
 
 #: src/gui/siril_intro.c:40
-#, fuzzy
 msgid "The documentation set is also available via the menu \"Siril Manual\""
-msgstr ""
-"Une nouvelle documentation est également disponible via le menu "
-"\"Documentation\""
+msgstr "La documentation est également disponible via le menu \"Documentation\""
 
 #: src/gui/siril_intro.c:41
 msgid ""
@@ -23269,6 +23275,11 @@ msgid ""
 "Hamburger menu, as well as tools for photometry, astrometry and much more. "
 "This menu is generally essential once pre-processing is complete."
 msgstr ""
+"Ce nouveau bouton rassemble tous les outils qui étaient auparavant dispersés "
+"dans l'application. Il comprend une partie de ce qui était contenu dans le "
+"menu Burger, ainsi que des outils de photométrie, d'astrométrie et bien plus "
+"encore. Ce menu est généralement indispensable une fois le prétraitement "
+"terminé."
 
 #: src/gui/siril_intro.c:46
 msgid "Use this button to undo an operation"
@@ -23625,18 +23636,16 @@ msgid "JPG images"
 msgstr "Images JPG"
 
 #: src/io/conversion.c:240
-#, fuzzy
 msgid "JPEG XL images"
-msgstr "Images JPG"
+msgstr "Images JPG XL"
 
 #: src/io/conversion.c:247
 msgid "PNG images"
 msgstr "Images PNG"
 
 #: src/io/conversion.c:255
-#, fuzzy
 msgid "HEIF images, AVIF images"
-msgstr "Images HEIF"
+msgstr "Images HEIF, images AVIF"
 
 # #################################################
 #: src/io/conversion.c:265
@@ -24351,6 +24360,9 @@ msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
 msgstr ""
+"Erreur : le TRC NCLX spécifié n'est pas encore pris en charge par Siril. Une "
+"TRC linéaire sera utilisée : il se peut que vous deviez corriger ce fichier "
+"manuellement.\n"
 
 #: src/io/image_formats_libraries.c:2557
 msgid "Input file contains no readable images.\n"
@@ -24367,49 +24379,50 @@ msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
 msgstr ""
+"Erreur lors de l'obtention d'un profil ICC à partir d'un fichier HEIF. Suite "
+": vous devez assigner manuellement un profil ICC.\n"
 
 #: src/io/image_formats_libraries.c:2648
-#, fuzzy
 msgid "Input image has undefined bit-depth.\n"
-msgstr "Les fichiers d'entrée n'ont pas tous la même profondeur de bits\n"
+msgstr "L'image d'entrée a une profondeur de bits indéfinie.\n"
 
 #: src/io/image_formats_libraries.c:2806
-#, fuzzy, c-format
+#, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
-msgstr "Lecture du fichier HEIF : %s, %ld canal(aux), %ux%u pixels\n"
+msgstr ""
+"Lecture du fichier HEIF : %s, %ld canal(aux), %ux%u pixels, profondeur de "
+"bits %d\n"
 
 #: src/io/image_formats_libraries.c:2926
-#, fuzzy, c-format
+#, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Lecture du fichier JPG : %s, %ld canal(aux), %ux%u pixels\n"
+msgstr "Lecture du fichier JPG XL : %s, %ld canal(aux), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:2946
-#, fuzzy
 msgid "Error interleaving image\n"
-msgstr "Erreur dans la création de l'image de sortie\n"
+msgstr "Image d'entrelacement des erreurs\n"
 
 #: src/io/image_formats_libraries.c:3056
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
 msgstr ""
-"Fichier JPG enregistré : fichier %s, qualité=%d%%, %ld canal(aux), %ux%u "
-"pixels\n"
+"Fichier JPG XL enregistré : fichier %s, sans perte, effort=%d %ld canal(aux)"
+", %ux%u pixels, profondeur de bit : %d\n"
 
 #: src/io/image_formats_libraries.c:3059
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
 "bit depth: %d\n"
 msgstr ""
-"Fichier JPG enregistré : fichier %s, qualité=%d%%, %ld canal(aux), %ux%u "
-"pixels\n"
+"Fichier JPG XL enregistré : fichier %s, qualité=%.3f, effort=%d %ld "
+"canal(aux), %ux%u pixels, profondeur de bit : %d\n"
 
 #: src/io/image_formats_libraries.c:3067
-#, fuzzy
 msgid "Save complete.\n"
-msgstr "Empilement terminé."
+msgstr "Enregistrement terminé.\n"
 
 #: src/io/image_format_fits.c:374
 #, c-format
@@ -27109,7 +27122,7 @@ msgstr "Pondération ............... désactivée\n"
 
 #: src/stacking/stacking.c:397
 msgid "RGB equalization .......... enabled\n"
-msgstr "Égalisation RVB ............. acrtivée\n"
+msgstr "Égalisation RVB ............. activée\n"
 
 #: src/stacking/stacking.c:398
 msgid "RGB equalization .......... disabled\n"
