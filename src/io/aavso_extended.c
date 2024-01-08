@@ -310,9 +310,8 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 		j++;
 	}
 	int nb_valid_images = j;
-
-
-	if (!com.pref.phot_set.force_radius) {		// Additionnal information on the error bars distributionif the auto aperture option is set
+	siril_log_color_message(_("Error bars2-- (%d images) \n"), "blue", nb_valid_images);
+	if (com.pref.phot_set.force_radius) {		// Additionnal information on the error bars distributionif the auto aperture option is set
 		double median_err, largest_err, smallest_err;
 		gsl_sort (err, 1, nb_valid_images);
 		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);

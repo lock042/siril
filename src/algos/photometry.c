@@ -480,7 +480,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int nb_valid_images = j;
 	int julian0 = 0;
 
-	if (!com.pref.phot_set.force_radius) {		// Additionnal information on the error bars distributionif the auto aperture option is set
+	if (com.pref.phot_set.force_radius) {		// Additionnal information on the error bars distributionif the auto aperture option is set
 		double median_err, largest_err, smallest_err;
 		gsl_sort (err, 1, nb_valid_images);
 		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);

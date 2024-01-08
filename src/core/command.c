@@ -3274,7 +3274,7 @@ int process_set_photometry(int nb) {
 				arg += 14;
 				force = g_ascii_strtod(arg, &end);
 				if (arg == end) error = TRUE;
-				else if (force < 1.0 || force > 5.0) error = TRUE;
+//				else if (force < 1.0 || force > 5.0) error = TRUE;
 
 			}
 			else {
@@ -3320,7 +3320,7 @@ int process_set_photometry(int nb) {
 			com.pref.phot_set.auto_aperture_factor = (double)force;
 		} else {
 			com.pref.phot_set.force_radius = FALSE;
-			error = TRUE;
+//			error = TRUE;
 		}
 
 		if (gain > 0.0)
