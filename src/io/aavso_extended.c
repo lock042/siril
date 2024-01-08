@@ -20,8 +20,6 @@
 
 #include <glib/gprintf.h>
 #include <math.h>
-#include <gsl/gsl_sort.h>
-#include <gsl/gsl_statistics.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -310,21 +308,6 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 		j++;
 	}
 	int nb_valid_images = j;
-	siril_log_color_message(_("Error bars2-- (%d images) \n"), "blue", nb_valid_images);
-	if (com.pref.phot_set.force_radius) {		// Additionnal information on the error bars distributionif the auto aperture option is set
-		double median_err, largest_err, smallest_err;
-		gsl_sort (err, 1, nb_valid_images);
-		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
-		largest_err = gsl_stats_max (err, 1, nb_valid_images);
-		smallest_err = gsl_stats_min (err, 1, nb_valid_images);
-		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
-			nb_valid_images,
-			median_err,
-			largest_err,
-			smallest_err);
-	}
-
-
 
 	siril_log_message(_("Calibrated data for %d points of the output data, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
 
