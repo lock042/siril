@@ -48,62 +48,6 @@
 #include "algos/spcc.h"
 #include "algos/spcc_filters.h"
 
-void init_spcc_filters() {
-	load_all_spcc_metadata();
-
-	Optolong_Blue.x = Optolong_Blue_wl;
-	Optolong_Blue.y = Optolong_Blue_sr;
-	Optolong_Blue.n = 72;
-	Optolong_Green.x = Optolong_Green_wl;
-	Optolong_Green.y = Optolong_Green_sr;
-	Optolong_Green.n = 52;
-	Optolong_Red.x = Optolong_Red_wl;
-	Optolong_Red.y = Optolong_Red_sr;
-	Optolong_Red.n = 66;
-	Astrodon_RE.x = full_2nm_wl;
-	Astrodon_RE.y = Astrodon_Red_E_sr;
-	Astrodon_RE.n = 163;
-	Astrodon_RI.x = full_2nm_wl;
-	Astrodon_RI.y = Astrodon_Red_I_sr;
-	Astrodon_RI.n = 163;
-	Astrodon_GE.x = full_2nm_wl;
-	Astrodon_GE.y = Astrodon_Green_E_sr;
-	Astrodon_GE.n = 163;
-	Astrodon_GI.x = full_2nm_wl;
-	Astrodon_GI.y = Astrodon_Green_I_sr;
-	Astrodon_GI.n = 163;
-	Astrodon_B.x = full_2nm_wl;
-	Astrodon_B.y = Astrodon_Blue_sr;
-	Astrodon_B.n = 163;
-	Chroma_Red.x = full_2nm_wl;
-	Chroma_Red.y = Chroma_Red_sr;
-	Chroma_Red.n = 163;
-	Chroma_Green.x = full_2nm_wl;
-	Chroma_Green.y = Chroma_Green_sr;
-	Chroma_Green.n = 163;
-	Chroma_Blue.x = full_2nm_wl;
-	Chroma_Blue.y = Chroma_Blue_sr;
-	Chroma_Blue.n = 163;
-	Sony_IMX571M.x = Sony_IMX571_wl;
-	Sony_IMX571M.y = Sony_IMX571_qe;
-	Sony_IMX571M.n = 32;
-	ZWO_1600M.x = ZWO_ASI1600_wl;
-	ZWO_1600M.y = ZWO_ASI1600_qe;
-	ZWO_1600M.n = 64;
-	KAF3200.x = KAF_3200_wl;
-	KAF3200.y = KAF_3200_qe;
-	KAF3200.n = 27;
-	KAF8300.x = KAF_8300_wl;
-	KAF8300.y = KAF_8300_qe;
-	KAF8300.n = 22;
-	KAF1603ME.x = KAF_1603ME_wl;
-	KAF1603ME.y = KAF_1603ME_qe;
-	KAF1603ME.n = 25;
-	Sony_ICX694.x = Sony_ICX694_wl;
-	Sony_ICX694.y = Sony_ICX694_qe;
-	Sony_ICX694.n = 22;
-}
-
 cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
 	cmsCIEXYZ XYZ;
 	cmsCIExyY xyY;

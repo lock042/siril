@@ -1,15 +1,6 @@
 #ifndef SRC_ALGOS_SPCC_H
 #define SRC_ALGOS_SPCC_H
 
-// Define the SPCC filters
-spcc_object	Johnson_B, Johnson_V,
-			Optolong_Blue, Optolong_Green, Optolong_Red,
-			Chroma_Red, Chroma_Green, Chroma_Blue,
-			Astrodon_RE, Astrodon_RI, Astrodon_GE, Astrodon_GI, Astrodon_B;
-
-// Define the SPCC sensors
-spcc_object Sony_IMX571M, ZWO_1600M, KAF1603ME, KAF3200, KAF8300, Sony_ICX694;
-
 // SPCC functions
 void init_spcc_filters();
 void init_xpsampled(xpsampled *xps);

@@ -379,7 +379,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *osc_filters_enable = lookup_widget("osc_filters_enable");
 
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
-	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(rgbsensor));
+	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(rgbsensor)); // TODO: this just picks one channel, work out how to get the others (in get_spectrum_from_args)
 	args->selected_filter_r = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_r));
 	args->selected_filter_g = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_g));
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
@@ -427,11 +427,30 @@ void fill_combo_from_glist(gchar *comboname, GList *list) {
 	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo),renderer,"text",0,NULL);
 
 	GList *iterator = list;
-	while (iterator) {
-		gtk_list_store_append(store,&iter);
-		spcc_object *object = (spcc_object*) iterator->data;
-		gtk_list_store_set(store,&iter,0,object->name,-1);
-		iterator = iterator->next;
+
+	if (list == com.spcc_data.osc_sensors) {
+		GHashTable *model_set = g_hash_table_new(g_str_hash, g_str_equal);
+		while (iterator) {
+			// Need to add objects by model but only if not a duplicate
+			// g_hash_table_insert returns TRUE if there is already a matching entry
+			spcc_object *object = (spcc_object*) iterator->data;
+			if (!g_hash_table_contains(model_set, object->model)) {
+				gtk_list_store_append(store, &iter);
+				gtk_list_store_set(store,&iter,0,object->model,-1);
+				g_hash_table_insert(model_set, object->model, object->model);
+			}
+			iterator = iterator->next;
+		}
+		g_hash_table_destroy(model_set);
+
+} else {
+		while (iterator) {
+			// Easier, just add all objects by name
+			spcc_object *object = (spcc_object*) iterator->data;
+			gtk_list_store_append(store,&iter);
+			gtk_list_store_set(store,&iter,0,object->name,-1);
+			iterator = iterator->next;
+		}
 	}
 	gtk_combo_box_set_active(combo, 0);
 }
@@ -560,7 +579,6 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 	spcc_object *object = (spcc_object *) g_object_get_data(G_OBJECT(button), "spcc_data_key");
 	load_spcc_object_arrays(object);
 	gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
-	gchar *spl_legend = g_strdup(object->name);
 	siril_plot_data *spl_data = NULL;
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
@@ -570,8 +588,13 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
 	else
 		siril_plot_set_ylabel(spl_data, _("Transmittance"));
+
+	gchar *spl_legend = g_strdup(object->name);
 	siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
 	siril_plot_set_savename(spl_data, "SPCC_data");
+	// TODO: for OSC_SENSOR and MONO_FILTER, find the other entries in the GList
+	// with the same model name but different channels and plot them too.
+
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }

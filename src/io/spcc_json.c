@@ -75,6 +75,10 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
     object = json_array_get_object_element(array, index);
 
     // Get values from JSON and store in the struct
+    data->model = g_strdup(json_object_get_string_member(object, "model"));
+	if (!data->model) {
+		goto validation_error;
+	}
     data->name = g_strdup(json_object_get_string_member(object, "name"));
 	if (!data->name) {
 		goto validation_error;
@@ -94,6 +98,11 @@ static gboolean load_spcc_object_from_file(const gchar *jsonFilePath, spcc_objec
     data->quality = json_object_get_int_member(object, "dataQualityMarker");
 	if (!data->quality) {
 		goto validation_error;
+	}
+    if (json_object_has_member(object, "channel")) {
+		data->channel = json_object_get_int_member(object, "channel");
+	} else {
+		data->channel = -1;
 	}
 	data->manufacturer = g_strdup(json_object_get_string_member(object, "manufacturer"));
 	if (!data->manufacturer) {

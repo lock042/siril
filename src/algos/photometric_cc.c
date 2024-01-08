@@ -46,7 +46,6 @@
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
-static gboolean spcc_filters_initialized = FALSE;
 const double xpsampled_wl[163] = {378, 380, 382, 384, 386, 388, 390, 392, 394, 396, 398, 400, 402, 404, 406, 408, 410, 412, 414, 416, 418, 420, 422, 424, 426, 428, 430, 432, 434, 436, 438, 440, 442, 444, 446, 448, 450, 452, 454, 456, 458, 460,
   462, 464, 466, 468, 470, 472, 474, 476, 478, 480, 482, 484, 486, 488, 490, 492, 494, 496, 498, 500, 502, 504, 506, 508, 510, 512, 514, 516, 518, 520, 522, 524, 526, 528, 530, 532, 534, 536, 538, 540, 542, 544, 546, 548, 550, 552,
   554, 556, 558, 560, 562, 564, 566, 568, 570, 572, 574, 576, 578, 580, 582, 584, 586, 588, 590, 592, 594, 596, 598, 600, 602, 604, 606, 608, 610, 612, 614, 616, 618, 620, 622, 624, 626, 628, 630, 632, 634, 636, 638, 640, 642, 644,
@@ -556,12 +555,6 @@ int photometric_cc(struct photometric_cc_data *args) {
  */
 gpointer photometric_cc_standalone(gpointer p) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
-
-		// Initialize filters if required
-	if (args->spcc && !spcc_filters_initialized) {
-		init_spcc_filters();
-		spcc_filters_initialized = TRUE;
-	}
 
 	if (!has_wcs(args->fit)) {
 		siril_log_color_message(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"), "red");
