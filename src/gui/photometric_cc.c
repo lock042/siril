@@ -589,6 +589,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 			load_spcc_object_arrays(&osc->channel[i]);
 			gchar *spl_legend = g_strdup(osc->channel[i].name);
 			siril_plot_add_xydata(spl_data, spl_legend, osc->channel[i].n, osc->channel[i].x, osc->channel[i].y, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) i == 0, (double) i == 1, (double) i == 2});
 			g_free(spl_legend);
 			spcc_object_free_arrays(&osc->channel[i]);
 		}

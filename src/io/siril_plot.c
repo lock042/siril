@@ -215,6 +215,17 @@ void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
 	spl_data->savename = g_strdup(savename);
 }
 
+// set the color of the nth plot (n is one-based)
+// e.g.: siril_plot_set_nth_color(spl_data, 1, (double[3]){1., 0., 0.});
+// sets the first series color to red
+void siril_plot_set_nth_color(siril_plot_data *spl_data, int n, double color[3]) {
+	if (n > spl_data->cfgplot.clrsz) {
+		siril_debug_print("can't add color out of palette size (%lu)\n", spl_data->cfgplot.clrsz);
+		return;
+	}
+	memcpy(spl_data->cfgplot.clrs[n - 1].rgba, color, 3 * sizeof(double));
+}
+
 // utilities
 static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax, int *sig) {
 	double extent = vmax - vmin;
