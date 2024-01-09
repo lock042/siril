@@ -86,55 +86,39 @@ static void temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
 		xyY->Y = 0.0;
 }
 
-// Alternative temp_to_xyY converters, for comparison with Kim et al above
-// Only one should be kept once this MR is complete
+// Mitchell Charity's table of temperature to CIE (x,y) extends down to 1000K
+// We don't use the whole table but only for temperatures < 1600K where the Kim
+// splines don't work
 
 // Returns a valid xyY for 1000K and up, otherwise xyY = { 0.0 }
 // Uses Mitchell Charity's tabulation of black body xy values from
 // http://www.vendian.org/mncharity/dir3/blackbody/UnstableURLs/bbr_color.html
-// Linear interpolation is used between each value.
-// Commented out until / unless needed
-/*
+// Cubic spline interpolation is used between each value; we only use this below
+// 1650K approaching the region where the Kim splines don't work.
+static const double tK[] = { 1000.0,1100.0,1200.0,1300.0,1400.0,1500.0,1600.0,1700.0 };
+static const double x_1931_2deg_jv[] = { 0.6499,0.6361,0.6226,0.6095,0.5966,0.5841,0.572,0.5601 };
+static const double y_1931_2deg_jv[] = { 0.3474,0.3594,0.3703,0.3801,0.3887,0.3962,0.4025,0.4076 };
+#define NUM_POINTS_CHARITY 8
+
 static void charity_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
-	int i = 0;
 	if (t < 1000.0) {
 		memset(xyY, 0.0, sizeof(cmsCIExyY));
 		return;
-	} else if (t > 40000.0)
-		t = 40000.0;
-	while (t > tK[i+1]) {
-		i++;
+	} else if (t > 1650.0) {
+		siril_debug_print("Error, excessive temperature value %f passed to charity_temp_to_xyY\n", t);
+		t = 1650.0;
 	}
-	float t1 = tK[i];
-	float t2 = tK[i+1];
-	float x1 = x_1931_2deg_jv[i];
-	float x2 = x_1931_2deg_jv[i+1];
-	float y1 = y_1931_2deg_jv[i];
-	float y2 = y_1931_2deg_jv[i+1];
-	xyY->x = (cmsFloat64Number) x1 + ((t - t1) / (t2 - t1)) * (x2 - x1);
-	xyY->y = (cmsFloat64Number) y1 + ((t - t1) / (t2 - t1)) * (y2 - y1);
-	xyY->Y = 1.0;
+	gsl_interp *interp = gsl_interp_alloc(gsl_interp_cspline, NUM_POINTS_CHARITY);
+	gsl_interp_init(interp, tK, x_1931_2deg_jv, NUM_POINTS_CHARITY);
+	gsl_interp_accel *acc = gsl_interp_accel_alloc();
+	xyY->x = gsl_interp_eval(interp, tK, x_1931_2deg_jv, t, acc);
+	gsl_interp_init(interp, tK, y_1931_2deg_jv, NUM_POINTS_CHARITY);
+	gsl_interp_accel_reset(acc);
+	xyY->y = gsl_interp_eval(interp, tK, y_1931_2deg_jv, t, acc);
+	gsl_interp_free(interp);
+	gsl_interp_accel_free(acc);
+	xyY->y = 1.0;
 }
-*/
-
-// Returns a valid xyY for 2000K <= t, otherwise xyY = { 0.0 }
-// Uses BQ Octantis's 6th order best fit for D65 values down to 2000K
-// (https://www.cloudynights.com/topic/849382-generating-a-planckian-ccm/)
-// Commented out until / unless needed
-/*
-static void BQ_temp_to_xyY(cmsCIExyY *xyY, cmsFloat64Number t) {
-	if (t < 2000.0) {
-		xyY->x = xyY->y = xyY->Y = 0.0;
-	} else {
-		xyY->x = -1.3737e-25 * pow(t,6.0) + 3.0985e-22 * pow(t, 5.0) + 1.5842e-16 * pow(t, 4.0)
-				- 4.0138e-12 * pow(t, 3.0) + 4.3777e-08 * pow(t, 2.0) - 2.4363e-04 * t + 8.7309e-01;
-		cmsFloat64Number x = xyY->x;
-		xyY->y =  2.5110e+01 * pow(x, 5.0) - 5.9883e+01 * pow(x, 4.0) + 5.5545e+01 * pow(x, 3.0)
-				- 2.7667e+01 * pow(x, 2.0) + 8.1167e+00 * x - 7.0462e-01;
-		xyY->Y = 1.0;
-	}
-}
-*/
 
 // Makes use of lcms2 to get the RGB values correct
 // transform is calculated in get_white_balance_coeff below
@@ -143,9 +127,10 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 	cmsCIExyY WhitePoint;
 	cmsCIEXYZ XYZ, XYZ_adapted;
 	float xyz[3], rgb[3] = { 0.f };
-	temp_to_xyY(&WhitePoint, TempK);
-//	charity_temp_to_xyY(&WhitePoint, TempK);
-//	BQ_temp_to_xyY(&WhitePoint, TempK);
+	if (TempK > 1650.f)
+		temp_to_xyY(&WhitePoint, TempK);
+	else
+		charity_temp_to_xyY(&WhitePoint, TempK);
 	cmsxyY2XYZ(&XYZ, &WhitePoint);
 	// Adapt the source (D65 Planckian locus) to the destination (lcms2 xyz profile with D50 whitepoint)
 	cmsAdaptToIlluminant(&XYZ_adapted, &D65, &D50, &XYZ);
