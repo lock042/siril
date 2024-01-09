@@ -593,12 +593,13 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 			g_free(spl_legend);
 			spcc_object_free_arrays(&osc->channel[i]);
 		}
-
+		g_free(title);
 	} else {
 		spcc_object *object = (spcc_object*) g_object_get_data(G_OBJECT(button), "spcc_data_key");
 		load_spcc_object_arrays(object);
 		gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
 		siril_plot_set_title(spl_data, title);
+		g_free(title);
 		if (object->type == 1 || object->type == 2)
 			siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
 		else
