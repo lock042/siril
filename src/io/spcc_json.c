@@ -197,7 +197,7 @@ static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor 
 	}
 	// Ensure the channels are in the correct order
 	if (!correct_channels) {
-		qsort(data, 3, sizeof(spcc_object), compare_spcc_chan);
+		qsort(data->channel, 3, sizeof(spcc_object), compare_spcc_chan);
 		for (int i = 0 ; i < 3 ; i++) {
 			data->channel[i].index = i;
 		}
