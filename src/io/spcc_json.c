@@ -272,9 +272,9 @@ static gboolean processJsonFile(const char *file_path) {
 			osc_sensor *osc = g_new(osc_sensor, 1);
 			retval = load_osc_sensor_from_file(file_path, osc);
 			if (retval) {
-				if (index == 2)
-					siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
+				siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
 				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
+				return retval;
 			}
 		}
 	}
