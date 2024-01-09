@@ -410,7 +410,7 @@ void get_whitepoint_from_ui(struct photometric_cc_data *args) {
 	}
 }
 
-void fill_combo_from_glist(gchar *comboname, GList *list) {
+void fill_combo_from_glist(gchar *comboname, GList *list, int channel) {
 	GtkComboBox *combo;
 	GtkListStore *store;
 	GtkTreeIter iter;
@@ -431,19 +431,12 @@ void fill_combo_from_glist(gchar *comboname, GList *list) {
 	GList *iterator = list;
 
 	if (list == com.spcc_data.osc_sensors) {
-		GHashTable *model_set = g_hash_table_new(g_str_hash, g_str_equal);
 		while (iterator) {
-			// Need to add objects by model but only if not a duplicate
-			// g_hash_table_insert returns TRUE if there is already a matching entry
-			spcc_object *object = (spcc_object*) iterator->data;
-			if (!g_hash_table_contains(model_set, object->model)) {
-				gtk_list_store_append(store, &iter);
-				gtk_list_store_set(store,&iter,0,object->model,-1);
-				g_hash_table_insert(model_set, object->model, object->model);
-			}
+			osc_sensor *object = (osc_sensor*) iterator->data;
+			gtk_list_store_append(store, &iter);
+			gtk_list_store_set(store,&iter,0,object->channel[0].model,-1);
 			iterator = iterator->next;
 		}
-		g_hash_table_destroy(model_set);
 
 } else {
 		while (iterator) {
@@ -461,12 +454,12 @@ void populate_spcc_combos() {
 	// Initialize filters if required
 	if (!spcc_filters_initialized) {
 		load_all_spcc_metadata();
-		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters);
-		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters);
-		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters);
-		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters);
-		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors);
-		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors);
+		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters, RED);
+		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters, GREEN);
+		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters, BLUE);
+		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1);
+		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1);
+		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1);
 		spcc_filters_initialized = TRUE;
 	}
 }
