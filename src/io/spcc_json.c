@@ -40,6 +40,10 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	siril_log_color_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"), "red");
 	return 0;
 #else
+
+	if (!jsonFilePath)
+		return FALSE;
+
     GError *error = NULL;
     JsonParser *parser;
     JsonObject *object;
@@ -170,6 +174,10 @@ static int compare_spcc_chan(const void *a, const void *b) {
 
 static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor *data) {
 	gboolean retbool = TRUE;
+
+	if (!jsonFilePath)
+		return FALSE;
+
 	for (int i = 0 ; i < 3 ; i++) {
 		if (load_spcc_object_from_file(jsonFilePath, &data->channel[i], i, TRUE) != 1) {
 			retbool = FALSE;
@@ -204,6 +212,9 @@ static gboolean processJsonFile(const char *file_path) {
     JsonParser *parser;
     JsonNode *node;
 	JsonArray *array;
+
+	if (!file_path)
+		return FALSE;
 
     // Create a JSON parser
     parser = json_parser_new();
@@ -274,9 +285,12 @@ static gboolean processJsonFile(const char *file_path) {
 
 // Call to free the members of a spcc_object
 void spcc_object_free(spcc_object *data, gboolean free_struct) {
-    g_free(data->name);
+	if (!data)
+		return;
+	g_free(data->name);
     g_free(data->manufacturer);
 	g_free(data->filepath);
+	g_free(data->source);
     free(data->x);
     free(data->y);
 	if (free_struct)
@@ -285,6 +299,8 @@ void spcc_object_free(spcc_object *data, gboolean free_struct) {
 }
 
 void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
+	if(!data)
+		return;
 	for (int i = 0 ; i < 3 ; i++) {
 		g_free(data->channel[i].model);
 		g_free(data->channel[i].name);
@@ -304,6 +320,9 @@ void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
 // after use to release the memory used by the arrays, but without
 // destroying the entire spcc_object
 void spcc_object_free_arrays(spcc_object *data) {
+	if (!data)
+		return;
+
 	free(data->x);
 	data->x = NULL;
 	free(data->y);
@@ -328,6 +347,9 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	siril_log_color_message(_("Siril was not built with json-glib, cannot proceed.\n"), "red");
 	return FALSE;
 #else
+	if (!data || !data->filepath) // Avoid dereferencing null pointers, if the spcc_object isn't prepopulated we can't load the arrays
+		return FALSE;
+
 	if (data->arrays_loaded)
 		return TRUE;
 
@@ -407,6 +429,9 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 // This doesn't populate the arrays (which take up more memory): the arrays can
 // be populated for a required spcc_object with load_spcc_object_arrays()
 static void processDirectory(const gchar *directory_path) {
+	if (!directory_path)
+		return;
+
     GDir *dir = g_dir_open(directory_path, 0, NULL);
 
     if (dir == NULL) {
