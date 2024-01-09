@@ -3942,7 +3942,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=4 n-rows=3 -->
+                                  <!-- n-columns=3 n-rows=3 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -4015,34 +4015,6 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkButton" id="monitor_profile_clear">
-                                        <property name="label" translatable="yes">Clear</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
-                                        <signal name="clicked" handler="on_monitor_profile_clear_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">2</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="proofing_profile_clear">
-                                        <property name="label" translatable="yes">Clear</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
-                                        <signal name="clicked" handler="on_proofing_profile_clear_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">2</property>
-                                        <property name="top-attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkComboBoxText" id="combo_rendering_intent">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -4062,36 +4034,6 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkCheckButton" id="custom_monitor_profile_active">
-                                        <property name="label" translatable="yes">active</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                        <property name="draw-indicator">True</property>
-                                        <signal name="toggled" handler="on_custom_monitor_profile_active_toggled" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">3</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkCheckButton" id="custom_proofing_profile_active">
-                                        <property name="label" translatable="yes">active</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                        <property name="draw-indicator">True</property>
-                                        <signal name="toggled" handler="on_custom_proofing_profile_active_toggled" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">3</property>
-                                        <property name="top-attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkCheckButton" id="checkbutton_rendering_bpc">
                                         <property name="label" translatable="yes">Black point compensation</property>
                                         <property name="visible">True</property>
@@ -4104,7 +4046,88 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                       <packing>
                                         <property name="left-attach">2</property>
                                         <property name="top-attach">1</property>
-                                        <property name="width">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <child>
+                                          <object class="GtkButton" id="monitor_profile_clear">
+                                            <property name="label" translatable="yes">Clear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
+                                            <signal name="clicked" handler="on_monitor_profile_clear_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="custom_monitor_profile_active">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_custom_monitor_profile_active_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <child>
+                                          <object class="GtkButton" id="proofing_profile_clear">
+                                            <property name="label" translatable="yes">Clear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
+                                            <signal name="clicked" handler="on_proofing_profile_clear_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="custom_proofing_profile_active">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_custom_proofing_profile_active_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">2</property>
                                       </packing>
                                     </child>
                                   </object>

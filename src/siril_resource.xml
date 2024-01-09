@@ -126,8 +126,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/starfinder_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/sum.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/sum_dark.svg</file>
-    <file compressed="true" preprocess="xml-stripblanks">pixmaps/tilt.svg</file>
-    <file compressed="true" preprocess="xml-stripblanks">pixmaps/tilt_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/wcs-grid.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/wcs-grid_dark.svg</file>
   </gresource>

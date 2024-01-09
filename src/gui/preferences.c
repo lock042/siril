@@ -416,6 +416,7 @@ void initialize_starnet_weights(const gchar *path) {
 
 void initialize_asnet_directory(const gchar *path) {
 	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	reset_asnet_version();
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (asnet_dir, path);
 	}
@@ -424,6 +425,7 @@ void initialize_asnet_directory(const gchar *path) {
 void on_asnet_clear_clicked(GtkButton *button, gpointer user_data) {
 	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
 	gtk_file_chooser_set_filename(asnet_dir, "\0");
+	reset_asnet_version();
 }
 
 void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {

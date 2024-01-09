@@ -1012,9 +1012,9 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 		return 1;
 	}
 
-	char* rownames[] = { "X", "Y" };
-	char* rowtypes[] = { "1E", "1E" };	// rE is float, rD is double
-	if (fits_create_tbl(fptr, BINARY_TBL, nbstars, 2, rownames, rowtypes, NULL, NULL, &status)) {
+	char* rownames[] = { "X", "Y", "FLUX", "BACKGROUND"};
+	char* rowtypes[] = { "1E", "1E", "1E", "1E"};	// rE is float, rD is double
+	if (fits_create_tbl(fptr, BINARY_TBL, nbstars, 4, rownames, rowtypes, NULL, NULL, &status)) {
 		report_fits_error(status);
 		status = 0;
 		fits_close_file(fptr, &status);
@@ -1047,8 +1047,33 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 
 	for (int i = 0; i < nbstars; i++)
 		data[i] = ry - stars[i]->ypos + 0.5; // asnet convention
-	if (fits_write_col(fptr, TFLOAT, 2, 1, 1, nbstars, data, &status))
+	if (fits_write_col(fptr, TFLOAT, 2, 1, 1, nbstars, data, &status)) {
 		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
+
+	for (int i = 0; i < nbstars; i++)
+		data[i] = stars[i]->A; 
+	if (fits_write_col(fptr, TFLOAT, 3, 1, 1, nbstars, data, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
+
+	for (int i = 0; i < nbstars; i++)
+		data[i] = stars[i]->B; 
+	if (fits_write_col(fptr, TFLOAT, 4, 1, 1, nbstars, data, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
 
 	int retval = status;
 	status = 0;
@@ -1251,7 +1276,7 @@ gpointer findstar_worker(gpointer p) {
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
-					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
@@ -1266,7 +1291,7 @@ gpointer findstar_worker(gpointer p) {
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
-					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;

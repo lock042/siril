@@ -145,7 +145,7 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	/* make a selection around the star, coordinates are in display reference frame */
 	double fx = star.x, fy = star.y;
 	double dx, dy;
-	fits_to_display(fx, fy, &dx, &dy, fit->ry);
+	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 
 	double outer = com.pref.phot_set.outer;
 	area->x = round_to_int(dx - outer);

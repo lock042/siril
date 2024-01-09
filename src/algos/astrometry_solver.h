@@ -80,6 +80,7 @@ void set_focal_and_pixel_pitch();
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
 
 gboolean asnet_is_available();
+void reset_asnet_version();
 
 /* for the GUI */
 double get_resolution(double focal, double pixel);
