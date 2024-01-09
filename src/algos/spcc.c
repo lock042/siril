@@ -46,7 +46,6 @@
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
-#include "algos/spcc_filters.h"
 
 cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
 	cmsCIEXYZ XYZ;
