@@ -152,19 +152,39 @@ validation_error:
 #endif
 }
 
+static int compare_spcc_chan(const void *a, const void *b) {
+	spcc_object *obj_a = (spcc_object*) a;
+	spcc_object *obj_b = (spcc_object*) b;
+	return obj_a->n - obj_b->n;
+}
+
 static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor *data) {
-	int retval;
-	retval = load_spcc_object_from_file(jsonFilePath, &data->channel[RED], RED, TRUE);
-	if (retval == 1) {
-		retval = load_spcc_object_from_file(jsonFilePath, &data->channel[GREEN], GREEN, TRUE);
-		if (retval == 1) {
-			retval = load_spcc_object_from_file(jsonFilePath, &data->channel[BLUE], BLUE, TRUE);
+	gboolean retbool = TRUE;
+	for (int i = 0 ; i < 3 ; i++) {
+		if (load_spcc_object_from_file(jsonFilePath, &data->channel[i], i, TRUE) != 1) {
+			retbool = FALSE;
 		}
 	}
-	gboolean retbool = (retval == 1);
 	if (!retbool) {
 		osc_sensor_free(data, TRUE);
+		return retbool;
 	}
+	int chan[3];
+	gboolean correct_channels = TRUE;
+	for (int i = 0 ; i < 3 ; i++) {
+		chan[i] = data->channel[i].channel;
+		if (chan[i] != i) {
+			correct_channels = FALSE;
+		}
+	}
+	// Ensure the channels are in the correct order
+	if (!correct_channels) {
+		qsort(data, 3, sizeof(spcc_object), compare_spcc_chan);
+		for (int i = 0 ; i < 3 ; i++) {
+			data->channel[i].index = i;
+		}
+	}
+
 	return retbool;
 }
 
@@ -206,7 +226,7 @@ static gboolean processJsonFile(const char *file_path) {
 
 		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
 		if (retval == 1) {
-			siril_debug_print("Read JSON file: %s\n", data->name);
+			siril_debug_print("Read JSON object: %s\n", data->name);
 			// Place the data into the correct list based on its type
 			switch (data->type) {
 				case 1:
@@ -230,11 +250,14 @@ static gboolean processJsonFile(const char *file_path) {
 		else if (retval == 2) {
 			osc_sensor *osc = g_new(osc_sensor, 1);
 			retval = load_osc_sensor_from_file(file_path, osc);
-			if (retval)
+			if (retval) {
+				if (index == 2)
+					siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
 				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
+			}
 		}
 	}
-   return retval;
+	return retval;
 }
 
 /*********************** PUBLIC FUNCTIONS ****************************/
@@ -275,6 +298,18 @@ void spcc_object_free_arrays(spcc_object *data) {
 	data->x = NULL;
 	free(data->y);
 	data->y = NULL;
+	data->arrays_loaded = FALSE;
+}
+
+static int compare_pair_x(const void *a, const void *b) {
+	point* aa = (point*) a;
+	point* bb = (point*) b;
+	if (aa->x == bb->x)
+    return 0;
+	else if(aa->x > bb->x)
+    return 1;
+else
+    return -1;;
 }
 
 // Call to populate the arrays of a specific spcc_object
@@ -283,6 +318,9 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	siril_log_color_message(_("Siril was not built with json-glib, cannot proceed.\n"), "red");
 	return FALSE;
 #else
+	if (data->arrays_loaded)
+		return TRUE;
+
     GError *error = NULL;
     JsonParser *parser;
     JsonObject *object;
@@ -334,15 +372,22 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     // Get 'wavelength' and 'values' arrays
     JsonArray *wavelengthArray = json_object_get_array_member(object, "wavelength");
     JsonArray *valuesArray = json_object_get_array_member(object, "values");
-	data->x = (double *)malloc(data->n * sizeof(double));
+	point *pairs = (point*) malloc(data->n * sizeof(point));
     for (int i = 0; i < data->n; i++) {
-        data->x[i] = json_array_get_double_element(wavelengthArray, i);
+		pairs[i].x = json_array_get_double_element(wavelengthArray, i);
+		pairs[i].y = json_array_get_double_element(valuesArray, i);
     }
+    qsort(pairs, data->n, sizeof(point), compare_pair_x);
+    data->x = (double *)malloc(data->n * sizeof(double));
     data->y = (double *)malloc(data->n * sizeof(double));
     for (int i = 0; i < data->n; i++) {
-        data->y[i] = json_array_get_double_element(valuesArray, i);
+        data->x[i] = pairs[i].x;
+        data->y[i] = pairs[i].y;
     }
-    // Cleanup
+    free(pairs);
+	data->arrays_loaded = TRUE;
+
+	// Cleanup
     g_object_unref(parser);
 	return TRUE;
 #endif

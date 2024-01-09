@@ -526,9 +526,11 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *combo = NULL;
 	int n;
 	GList *list = NULL;
+	gboolean is_osc_sensor = FALSE;
 	spcc_object *object = NULL;
 	if (widget == lookup_widget("details_spcc_sensors_osc")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"));
+		is_osc_sensor = TRUE;
 		n = gtk_combo_box_get_active(combo);
 		list = g_list_nth(com.spcc_data.osc_sensors, n);
 	} else if (widget == lookup_widget("details_spcc_sensors_mono")) {
@@ -570,6 +572,7 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	g_free(nsamples_text);
 	GObject *plot_button = lookup_gobject("spcc_details_plot");
 	g_object_set_data(plot_button, "spcc_data_key", object);
+	g_object_set_data(plot_button, "spcc_type_key", GINT_TO_POINTER(is_osc_sensor));
 
 	GtkWidget *win = lookup_widget("spcc_details");
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("IPS_dialog")));
@@ -578,25 +581,38 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
-	spcc_object *object = (spcc_object *) g_object_get_data(G_OBJECT(button), "spcc_data_key");
-	load_spcc_object_arrays(object);
-	gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
 	siril_plot_data *spl_data = NULL;
+	gboolean is_osc_sensor = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "spcc_type_key"));
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
-	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
-	if (object->type == 1 || object->type == 2)
-		siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
-	else
-		siril_plot_set_ylabel(spl_data, _("Transmittance"));
-
-	gchar *spl_legend = g_strdup(object->name);
-	siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
 	siril_plot_set_savename(spl_data, "SPCC_data");
-	// TODO: for OSC_SENSOR and MONO_FILTER, find the other entries in the GList
-	// with the same model name but different channels and plot them too.
+	if (is_osc_sensor) {
+		osc_sensor *osc = (osc_sensor*) g_object_get_data(G_OBJECT(button), "spcc_data_key");
+		gchar *title = g_strdup_printf(_("SPCC Data: %s"), osc->channel[0].model);
+		siril_plot_set_title(spl_data, title);
+		siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
+		for (int i = 0 ; i <3 ; i++) {
+			load_spcc_object_arrays(&osc->channel[i]);
+			gchar *spl_legend = g_strdup(osc->channel[i].name);
+			siril_plot_add_xydata(spl_data, spl_legend, osc->channel[i].n, osc->channel[i].x, osc->channel[i].y, NULL, NULL);
+			g_free(spl_legend);
+		}
 
+	} else {
+		spcc_object *object = (spcc_object*) g_object_get_data(G_OBJECT(button), "spcc_data_key");
+		load_spcc_object_arrays(object);
+		gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
+		siril_plot_set_title(spl_data, title);
+		if (object->type == 1 || object->type == 2)
+			siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
+		else
+			siril_plot_set_ylabel(spl_data, _("Transmittance"));
+
+		gchar *spl_legend = g_strdup(object->name);
+
+		siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
+	}
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }

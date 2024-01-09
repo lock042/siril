@@ -489,6 +489,7 @@ typedef struct _spcc_object {
     gchar *manufacturer;
 	gchar *source;
     int version;
+	gboolean arrays_loaded;
     double *x;  // Wavelength array
     double *y;  // Quantity array
     int n; // Number of points in x and y
