@@ -420,8 +420,8 @@ static void processDirectory(const gchar *directory_path) {
         gchar *file_path = g_build_filename(directory_path, filename, NULL);
 
         if (g_file_test(file_path, G_FILE_TEST_IS_DIR)) {
-            // If the current item is a directory, recursively process it
-            if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") != 0) {
+            // If the current item is a directory, recursively process it (ignore ., .. and .git)
+            if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") && g_strcmp0(filename, ".git") != 0) {
                 processDirectory(file_path);
             }
         } else {
