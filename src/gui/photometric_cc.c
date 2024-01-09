@@ -590,6 +590,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 			gchar *spl_legend = g_strdup(osc->channel[i].name);
 			siril_plot_add_xydata(spl_data, spl_legend, osc->channel[i].n, osc->channel[i].x, osc->channel[i].y, NULL, NULL);
 			g_free(spl_legend);
+			spcc_object_free_arrays(&osc->channel[i]);
 		}
 
 	} else {
@@ -605,6 +606,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		gchar *spl_legend = g_strdup(object->name);
 
 		siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
+		spcc_object_free_arrays(object);
 	}
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
