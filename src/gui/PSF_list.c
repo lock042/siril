@@ -637,7 +637,7 @@ static void save_stars_dialog() {
 	siril_widget_destroy(widgetdialog);
 }
 
-static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
+int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
 	if (has_wcs(&gfit)) {
 		// coordinates of the star in FITS/WCS coordinates

@@ -194,7 +194,7 @@ static gboolean end_compstars(gpointer p) {
 	return end_generic(NULL);
 }
 
-static void write_nina_file(struct compstars_arg *args) {
+void write_nina_file(struct compstars_arg *args) {
 	if (!args->nina_file)
 		return;
 	if (!g_strcmp0(args->nina_file, "auto")) {

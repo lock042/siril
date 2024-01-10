@@ -45,6 +45,7 @@
 #include "registration/registration.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
+#include "algos/comparison_stars.h"
 #include "io/aavso_extended.h"
 #include "io/ser.h"
 #include "io/sequence.h"
@@ -62,7 +63,7 @@
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
+		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *varFile = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL,
 		*buttonNINA = NULL, *buttonCompStars = NULL;
@@ -704,6 +705,7 @@ static int get_number_of_stars(const sequence *seq) {
 // the first will be the target
 static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **error, void *ptr) {
 	struct light_curve_args *lcargs = calloc(1, sizeof(struct light_curve_args));
+///	struct compstars_arg *args = (struct compstars_arg *) seq;
 
 	lcargs->seq = seq;
 	lcargs->layer = 0; // We don't care. This is not used in our case
@@ -1026,6 +1028,7 @@ static void fill_plot_statics() {
 		comboX = lookup_widget("plotComboX");
 		photometry_output1 = lookup_widget("varCurvePhotometry");
 		photometry_output2 = lookup_widget("exportAAVSO_button");
+		varFile = lookup_widget("varWriteAsNina");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
@@ -1049,6 +1052,8 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_sensitive(photometry_output1, use_photometry);
+	gtk_widget_set_visible(varFile, TRUE);
+	gtk_widget_set_sensitive(varFile, use_photometry);
 	gtk_widget_set_sensitive(photometry_output2, use_photometry);
 	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonCompStars, TRUE);
@@ -1077,6 +1082,7 @@ static void validate_combos() {
 			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _(registration_labels[i]));
 			i++;
 		}
+		gtk_widget_set_visible(varFile, FALSE);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), X_selected_source);
 		gtk_widget_set_sensitive(comboX, layer_has_registration(&com.seq, reglayer));
@@ -1407,6 +1413,69 @@ void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 	fill_combo_boxes();
 	gtk_widget_show_all(lookup_widget("aavso_dialog"));
 }
+
+int filldata (sequence *seq, gpointer *p) {
+	siril_log_message(_("3-On passe par ici !!!!\n"));
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return 1;
+	}
+
+	struct compstars_arg *args = (struct compstars_arg *) p;
+
+//	args->comp_stars = malloc((MAX_SEQPSF) * sizeof(psf_star *));
+//	args->comp_stars = malloc((MAX_SEQPSF + 1) * sizeof(psf_star *));// dimensionnement
+	double ra, dec;
+	int nb_ref_stars = 0;
+	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+//		siril_log_color_message(_("reference_image: %d, seq->photometry[r][98]->xpos: %lf, seq->photometry[r][98]->ypos: %lf\n"), "salmon", seq->reference_image, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos);
+		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem xith convertion\n"), "salmon"); //y'a un PB sur la conversion pix->wcs
+		seq->photometry[r][seq->reference_image]->ra = ra;
+///		args->cat_stars[r].ra = ra;
+		seq->photometry[r][seq->reference_image]->dec = dec;
+///		args->comp_stars[r] = duplicate_psf(&args->cat_stars[r]);
+
+//		siril_log_color_message(_("index: %d, xpos: %lf, ypos: %lf, ra: %lf, dec: %lf\n"), "salmon",r, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos, seq->photometry[r][seq->reference_image]->ra, seq->photometry[r][seq->reference_image]->dec);
+		nb_ref_stars++;
+	}
+	args->comp_stars = malloc((nb_ref_stars + 1) * sizeof(psf_star *));
+	
+
+//	args->comp_stars = malloc((nb_ref_stars + 1) * sizeof(psf_star *));
+	siril_log_message(_("seq->photometry[1][seq->reference_image]->ra: %lf\n"), seq->photometry[1][seq->reference_image]->ra);
+	siril_log_message(_("reference_image %i\n"), seq->reference_image);
+//	args->comp_stars = malloc((nb_ref_stars + 1) * sizeof(psf_star *));// dimensionnement
+	for (int i = 0; i < nb_ref_stars + 1; i++) {
+///		args->comp_stars[i] = duplicate_psf(seq->photometry[i][seq->reference_image]);
+		i++;
+	}
+///	args->comp_stars[nb_ref_stars] = NULL; // ca c'est pour terminer par un NULL
+	args->nina_file = g_strdup("auto");
+///	args->target_star->star_name = g_strdup("nostarname");
+	args->delta_Vmag = 0.2;
+	args->delta_BV = 0.3;
+	args->cat = CAT_NOMAD;
+
+
+///	int r = 1;
+	siril_log_message(_("WIP: save the comp stars as a Nina-file\n"));
+//	siril_log_message(_("seq->photometry[1][seq->reference_image]->dec: %lf\n"), seq->photometry[1][1]->dec);
+//	siril_log_color_message(_("index: %d, xpos: %lf, ypos: %lf, ra: %lf, dec: %lf\n"), "salmon",r, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos, seq->photometry[r][seq->reference_image]->ra, seq->photometry[r][seq->reference_image]->dec);
+
+//	siril_log_message(_("args->comp_stars[i][comp_stars[1]->dec\n"), args->comp_stars[1]->dec);
+//	write_nina_file(args);
+
+	return 0;
+}
+void on_varWriteAsNina_clicked(GtkButton *button, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+
+//	if (filldata(&com.seq)) siril_log_message(_("Pb with he function\n"));
+//	if (filldata(&com.seq)) siril_log_message(_("Pb with he function\n"));
+	filldata(&com.seq, user_data);
+	set_cursor_waiting(FALSE);
+}
+
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	int i;
