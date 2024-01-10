@@ -1172,17 +1172,21 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
               <object class="GtkExpander" id="spcc_options">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
                 <child>
                   <!-- n-columns=4 n-rows=8 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="row-spacing">5</property>
+                    <property name="column-spacing">5</property>
                     <child>
                       <object class="GtkLabel" id="label_spcc_wp">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">White Point Reference</property>
+                        <property name="label" translatable="yes">White Point Reference:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1194,7 +1198,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">Mono Sensor</property>
+                        <property name="label" translatable="yes">Mono Sensor:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1224,7 +1228,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">OSC Sensor</property>
+                        <property name="label" translatable="yes">OSC Sensor:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1236,7 +1240,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">Red Filter</property>
+                        <property name="label" translatable="yes">Red Filter:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1248,7 +1252,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">Green Filter</property>
+                        <property name="label" translatable="yes">Green Filter:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1260,7 +1264,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">OSC Filter</property>
+                        <property name="label" translatable="yes">OSC Filter:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1272,7 +1276,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">Blue Filter</property>
+                        <property name="label" translatable="yes">Blue Filter:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1299,7 +1303,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">Sensor Type</property>
+                        <property name="label" translatable="yes">Sensor Type:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
