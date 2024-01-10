@@ -26,6 +26,7 @@
 
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
 #include <json-glib/json-glib.h>
 
 enum {
@@ -356,6 +357,21 @@ else
     return -1;;
 }
 
+int remove_duplicate_x(point *points, int n, const gchar *filename) {
+    int write_index = 0;
+	gchar *basename = g_path_get_basename(filename);
+    for (int i = 1; i < n; i++) {
+        if (points[i].x != points[write_index].x) {
+            write_index++;
+            points[write_index] = points[i];
+        } else {
+            siril_log_color_message(_("Warning: Duplicate x value detected in JSON file %s: %.1f\n"), "salmon", basename, points[i].x);
+        }
+    }
+	g_free(basename);
+    return write_index + 1;
+}
+
 // Call to populate the arrays of a specific spcc_object
 gboolean load_spcc_object_arrays(spcc_object *data) {
 #ifndef HAVE_JSON_GLIB
@@ -417,15 +433,31 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     object = json_array_get_object_element(array, index);
 
     // Get 'wavelength' and 'values' arrays
+	double scalefactor = 1.0;
 	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
 	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "values");
     JsonArray *valuesArray = json_object_get_array_member(object, "values");
+	gchar *wavelengthUnit = g_strdup(json_object_get_string_member(wavelengthObject, "units"));
+	if (!strcmp(wavelengthUnit, "nm"))
+		scalefactor = 1.0;
+	else if (!strcmp(wavelengthUnit, "micrometer"))
+		scalefactor = 1000.0;
+	else if (!strcmp(wavelengthUnit, "angstrom"))
+		scalefactor = 0.1;
+	else if (!strcmp(wavelengthUnit, "m"))
+		scalefactor = 1.0e9;
+	else {
+		siril_debug_print("Error in JSON: unrecognised wavelength unit\n");
+		g_object_unref(parser);
+		return FALSE;
+	}
 	point *pairs = (point*) malloc(data->n * sizeof(point));
     for (int i = 0; i < data->n; i++) {
-		pairs[i].x = json_array_get_double_element(wavelengthArray, i);
+		pairs[i].x = json_array_get_double_element(wavelengthArray, i) * scalefactor;
 		pairs[i].y = json_array_get_double_element(valuesArray, i);
     }
     qsort(pairs, data->n, sizeof(point), compare_pair_x);
+	data->n = remove_duplicate_x(pairs, data->n, data->filepath);
     data->x = (double *)malloc(data->n * sizeof(double));
     data->y = (double *)malloc(data->n * sizeof(double));
     for (int i = 0; i < data->n; i++) {
