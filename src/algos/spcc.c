@@ -146,7 +146,7 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		load_spcc_object_arrays( (spcc_object*) sensor->data);
 		init_xpsampled_from_library(spectrum, (spcc_object*) sensor->data);
 		int selected_filter = chan == 0 ? args->selected_filter_r : chan == 1 ? args->selected_filter_g : args->selected_filter_b;
-		GList *filter = g_list_nth(com.spcc_data.mono_filters, selected_filter);
+		GList *filter = g_list_nth(com.spcc_data.mono_filters[chan], selected_filter);
 		load_spcc_object_arrays( (spcc_object*) filter->data);
 		init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
 		spcc_object_free_arrays( (spcc_object*) filter->data);

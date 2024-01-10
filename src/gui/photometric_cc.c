@@ -439,8 +439,7 @@ void fill_combo_from_glist(gchar *comboname, GList *list, int channel) {
 			gtk_list_store_set(store,&iter,0,object->channel[0].model,-1);
 			iterator = iterator->next;
 		}
-
-} else {
+	} else {
 		while (iterator) {
 			// Easier, just add all objects by name
 			spcc_object *object = (spcc_object*) iterator->data;
@@ -456,9 +455,9 @@ void populate_spcc_combos() {
 	// Initialize filters if required
 	if (!spcc_filters_initialized) {
 		load_all_spcc_metadata();
-		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters, RED);
-		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters, GREEN);
-		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters, BLUE);
+		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RED], RED);
+		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GREEN], GREEN);
+		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLUE], BLUE);
 		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1);
 		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1);
 		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1);
@@ -543,15 +542,15 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	} else if (widget == lookup_widget("details_spcc_filters_r")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_r"));
 		n = gtk_combo_box_get_active(combo);
-		list = g_list_nth(com.spcc_data.mono_filters, n);
+		list = g_list_nth(com.spcc_data.mono_filters[RED], n);
 	} else if (widget == lookup_widget("details_spcc_filters_g")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_g"));
 		n = gtk_combo_box_get_active(combo);
-		list = g_list_nth(com.spcc_data.mono_filters, n);
+		list = g_list_nth(com.spcc_data.mono_filters[GREEN], n);
 	} else if (widget == lookup_widget("details_spcc_filters_b")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"));
 		n = gtk_combo_box_get_active(combo);
-		list = g_list_nth(com.spcc_data.mono_filters, n);
+		list = g_list_nth(com.spcc_data.mono_filters[BLUE], n);
 	}
 	// For OSC sensors which use the osc_sensor data structure this is a bit cheeky
 	// but it works because the first element of the struct is a spcc_object, and

@@ -122,9 +122,10 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 			data->channel = 1;
 		} else if (!strcmp(channel_string, "BLUE")) {
 			data->channel = 2;
-		} else if (!strcmp(channel_string, "OTHER")) {
+		} else {
 			// "OTHER" may be used for filters that aren't clearly R, G or B
-			data->channel = -1;
+			// we don't care about them for SPCC though, so move on
+			goto validation_error;
 		}
 	} else {
 		data->channel = -1;
@@ -251,6 +252,10 @@ static gboolean processJsonFile(const char *file_path) {
 
 		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
 		if (retval == 1) {
+			if (data->type == 3 && (data->channel < 0 || data->channel > 2)) {
+				spcc_object_free(data, TRUE);
+				return 0;
+			}
 			siril_debug_print("Read JSON object: %s\n", data->name);
 			// Place the data into the correct list based on its type
 			switch (data->type) {
@@ -261,7 +266,7 @@ static gboolean processJsonFile(const char *file_path) {
 					siril_debug_print("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
 					break;
 				case 3:
-					com.spcc_data.mono_filters = g_list_append(com.spcc_data.mono_filters, data);
+					com.spcc_data.mono_filters[data->channel] = g_list_append(com.spcc_data.mono_filters[data->channel], data);
 					break;
 				case 4:
 					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
@@ -269,7 +274,7 @@ static gboolean processJsonFile(const char *file_path) {
 				default:
 					g_warning("Unknown type: %d", data->type);
 					spcc_object_free(data, TRUE);
-					break;
+					return 0;
 			}
 		}
 		else if (retval == 2) {
