@@ -607,7 +607,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 
 	/* Fetching the catalog*/
 	if (args->spcc) {
-		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path);
+		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, args->max_spcc_stars);
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	}
@@ -628,6 +628,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 		args->stars = stars;
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);	// args is freed from here
+	} else {
+		siril_log_color_message(_("Catalog error, no stars identified!\n"), "red");
 	}
 	free(stars);
 	args = NULL;

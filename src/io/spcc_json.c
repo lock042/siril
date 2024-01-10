@@ -144,7 +144,8 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	data->index = index;
 
 	// Get array lengths for validation
-	JsonArray *wavelengthArray = json_object_get_array_member(object, "wavelength");
+	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
+	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "values");
 	JsonArray *valuesArray = json_object_get_array_member(object, "values");
 	data->n = json_array_get_length(wavelengthArray);
 	int valuesLength = json_array_get_length(valuesArray);
@@ -181,11 +182,11 @@ static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor 
 	for (int i = 0 ; i < 3 ; i++) {
 		if (load_spcc_object_from_file(jsonFilePath, &data->channel[i], i, TRUE) != 1) {
 			retbool = FALSE;
+			for (int j = 0 ; j <= i ; j++) {
+				spcc_object_free(&data->channel[j], FALSE);
+			}
+			return FALSE;
 		}
-	}
-	if (!retbool) {
-		osc_sensor_free(data, TRUE);
-		return retbool;
 	}
 	int chan[3];
 	gboolean correct_channels = TRUE;
@@ -240,6 +241,8 @@ static gboolean processJsonFile(const char *file_path) {
     array = json_node_get_array(node);
     int num_objects = json_array_get_length(array);
 
+	g_object_unref(parser);
+
 	for (int index = 0 ; index < num_objects ; index++) {
 		spcc_object *data = g_new0(spcc_object, 1);
 		// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
@@ -269,11 +272,14 @@ static gboolean processJsonFile(const char *file_path) {
 			}
 		}
 		else if (retval == 2) {
-			osc_sensor *osc = g_new(osc_sensor, 1);
+			osc_sensor *osc = g_new0(osc_sensor, 1);
 			retval = load_osc_sensor_from_file(file_path, osc);
 			if (retval) {
 				siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
 				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
+				return retval;
+			} else {
+				siril_debug_print("Error reading JSON object in file %s\n", file_path);
 				return retval;
 			}
 		}
@@ -303,15 +309,24 @@ void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
 		return;
 	for (int i = 0 ; i < 3 ; i++) {
 		g_free(data->channel[i].model);
+		data->channel[i].model = NULL;
 		g_free(data->channel[i].name);
+		data->channel[i].name = NULL;
 		g_free(data->channel[i].manufacturer);
+		data->channel[i].manufacturer = NULL;
 		g_free(data->channel[i].filepath);
+		data->channel[i].filepath = NULL;
 		g_free(data->channel[i].source);
+		data->channel[i].source = NULL;
 		free(data->channel[i].x);
+		data->channel[i].x = NULL;
 		free(data->channel[i].y);
+		data->channel[i].y = NULL;
 	}
-	if (free_struct)
+	if (free_struct) {
 		g_free(data);
+		data = NULL;
+	}
 	return;
 }
 
@@ -402,7 +417,8 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     object = json_array_get_object_element(array, index);
 
     // Get 'wavelength' and 'values' arrays
-    JsonArray *wavelengthArray = json_object_get_array_member(object, "wavelength");
+	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
+	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "values");
     JsonArray *valuesArray = json_object_get_array_member(object, "values");
 	point *pairs = (point*) malloc(data->n * sizeof(point));
     for (int i = 0; i < data->n; i++) {
@@ -431,8 +447,8 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 static void processDirectory(const gchar *directory_path) {
 	if (!directory_path)
 		return;
-
-    GDir *dir = g_dir_open(directory_path, 0, NULL);
+	GError *error;
+    GDir *dir = g_dir_open(directory_path, 0, &error);
 
     if (dir == NULL) {
         g_warning("Unable to open directory: %s", directory_path);

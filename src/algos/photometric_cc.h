@@ -34,6 +34,7 @@ struct photometric_cc_data {
 
 	pcc_star *stars;		// the list of stars with BV index in the image
 	int nb_stars;			// the number of stars in the array
+	int max_spcc_stars;			// the maximum number of stars to request from Gaia DR3
 	float fwhm;			// representative FWHM for stars
 	gchar *datalink_path;	// to hold the datalink path for SPCC
 	gboolean spcc;			// set if doing SPCC

@@ -877,7 +877,7 @@ static void submit_async_request(const char *url, const char *post_data, char **
 // the source of source_ids for a subsequent datalink query. This is intended for use
 // with SPCC but may be useful in the future for other types of datalink query.
 // The path to the datalink FITS is set and the catalogue is populated
-int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type, gchar** datalink_path) {
+int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type, gchar** datalink_path, int max_datalink_sources) {
 #ifndef HAVE_LIBCURL
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 	return -1;
@@ -902,16 +902,33 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
 		return -1;
 	}
+
+	/* Check the CSV file has the same number of stars as the requested maximum.
+	 * If it doesn't, perhaps the user has changed the amount to use, so we remove the
+	 * file and say it is not in the cache after all.
+	 * This does have the problem that Gaia may not be able to return as many
+	 * stars as the user's desired maximum, but this is rare - Gaia contains a *lot*
+	 * of stars!
+	 */
+/*	if (catalog_is_in_cache && count_lines_in_textfile(filepath) != max_datalink_sources + 1) {
+		siril_debug_print("Number of stars in cached catalog does not match user's desired maximum. Resubmitting query.\n");
+		fprintf(stderr, "Cat stars: %d, max stars: %d\n", count_lines_in_textfile(filepath), max_datalink_sources);
+		g_unlink(csvfilepath);
+		g_unlink(filepath);
+		catalog_is_in_cache = FALSE;
+		retrieval_product_is_in_cache = FALSE;
+	}*/
+
 	if (!(catalog_is_in_cache && retrieval_product_is_in_cache)) {
 
 		// Set up query
 		gchar *fmtstr;
+		max_datalink_sources = max(min(max_datalink_sources,5000), 1); // Limit the maximum number of sources to retrieve from Gaia to be between 1-5000.
 		const gchar **cat_columns = get_cat_colums_names();
 		cat_tap_query_fields *fields = catalog_to_tap_fields(siril_cat->cat_index);
 		uint32_t catcols = siril_catalog_columns(siril_cat->cat_index);
-		querystring = g_string_new("LANG=ADQL&FORMAT=csv&QUERY=SELECT+TOP+1000+"); // We ignore the cat_server as the URL is dealt with elsewhere
-		// Maximum 1000 stars. This is plenty, and should keep things manageable and below the maximum Datalink sources number of 5000.
-		// TODO: make the max stars configurable in the UI, up to 5000
+		querystring = g_string_new("LANG=ADQL&FORMAT=csv&QUERY=SELECT+TOP+"); // We ignore the cat_server as the URL is dealt with elsewhere
+		g_string_append_printf(querystring, "%d+", max_datalink_sources);
 		gboolean first = TRUE;
 		for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
 			if (fields->tap_columns[i]) {

@@ -378,6 +378,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *filters_b = lookup_widget("combo_spcc_filters_b");
 	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
 	GtkWidget *osc_filters_enable = lookup_widget("osc_filters_enable");
+	GtkWidget *max_stars_spin = lookup_widget("SPCC_max_stars");
 
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
 	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(oscsensor));
@@ -385,7 +386,8 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_g = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_g));
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
-	args->use_osc_filter = gtk_combo_box_get_active(GTK_COMBO_BOX(osc_filters_enable));
+	args->use_osc_filter = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(osc_filters_enable));
+	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
 
 }
 
@@ -514,16 +516,20 @@ void on_osc_filter_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(widget, state);
 }
 
+static spcc_object *cbdata = NULL;
+
+void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data);
+
 void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *win = lookup_widget("spcc_details");
+	gtk_widget_set_visible(win, FALSE);
 	GtkWidget *widget = GTK_WIDGET(button);
 	GtkComboBox *combo = NULL;
 	int n;
 	GList *list = NULL;
-	gboolean is_osc_sensor = FALSE;
 	spcc_object *object = NULL;
 	if (widget == lookup_widget("details_spcc_sensors_osc")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"));
-		is_osc_sensor = TRUE;
 		n = gtk_combo_box_get_active(combo);
 		list = g_list_nth(com.spcc_data.osc_sensors, n);
 	} else if (widget == lookup_widget("details_spcc_sensors_mono")) {
@@ -547,10 +553,13 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 		n = gtk_combo_box_get_active(combo);
 		list = g_list_nth(com.spcc_data.mono_filters, n);
 	}
+	// For OSC sensors which use the osc_sensor data structure this is a bit cheeky
+	// but it works because the first element of the struct is a spcc_object, and
+	// saves handling them differently.
 	object = (spcc_object*) list->data;
 
 	GtkLabel *label = GTK_LABEL(lookup_widget("spcc_details_name"));
-	gtk_label_set_text(label, object->name);
+	gtk_label_set_text(label, object->type == 2 ? object->model : object->name);
 	label = GTK_LABEL(lookup_widget("spcc_details_mfr"));
 	gtk_label_set_text(label, object->manufacturer);
 	label = GTK_LABEL(lookup_widget("spcc_details_version"));
@@ -563,11 +572,8 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	gchar *nsamples_text = g_strdup_printf("%d", object->n);
 	gtk_label_set_text(label, nsamples_text);
 	g_free(nsamples_text);
-	GObject *plot_button = lookup_gobject("spcc_details_plot");
-	g_object_set_data(plot_button, "spcc_data_key", object);
-	g_object_set_data(plot_button, "spcc_type_key", GINT_TO_POINTER(is_osc_sensor));
+	cbdata = object;
 
-	GtkWidget *win = lookup_widget("spcc_details");
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("IPS_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */
 	gtk_widget_show(win);
@@ -575,13 +581,13 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 
 void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 	siril_plot_data *spl_data = NULL;
-	gboolean is_osc_sensor = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "spcc_type_key"));
+	gboolean is_osc_sensor = (cbdata->type == 2);
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
 	siril_plot_set_savename(spl_data, "SPCC_data");
 	if (is_osc_sensor) {
-		osc_sensor *osc = (osc_sensor*) g_object_get_data(G_OBJECT(button), "spcc_data_key");
+		osc_sensor *osc = (osc_sensor*) cbdata;
 		gchar *title = g_strdup_printf(_("SPCC Data: %s"), osc->channel[0].model);
 		siril_plot_set_title(spl_data, title);
 		siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
@@ -595,7 +601,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		}
 		g_free(title);
 	} else {
-		spcc_object *object = (spcc_object*) g_object_get_data(G_OBJECT(button), "spcc_data_key");
+		spcc_object *object = (spcc_object*) cbdata;
 		load_spcc_object_arrays(object);
 		gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
 		siril_plot_set_title(spl_data, title);
@@ -610,6 +616,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
 		spcc_object_free_arrays(object);
 	}
+	cbdata = NULL;
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }
