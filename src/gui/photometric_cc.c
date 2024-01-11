@@ -378,6 +378,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *filters_b = lookup_widget("combo_spcc_filters_b");
 	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
 	GtkWidget *max_stars_spin = lookup_widget("SPCC_max_stars");
+	GtkWidget *toggle_colortransform = lookup_widget("spcc_correct_colorspace");
 
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
 	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(oscsensor));
@@ -386,7 +387,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
 	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
-
+	args->do_colortransform = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_colortransform));
 }
 
 void get_whitepoint_from_ui(struct photometric_cc_data *args) {

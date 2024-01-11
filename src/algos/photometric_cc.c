@@ -510,7 +510,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	if (!ret) {
 		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
-		if (args->spcc) {
+		if (args->spcc && args->do_colortransform) {
 			ret = spcc_colorspace_transform(args);
 		}
 		if (args->spcc && !ret) {
