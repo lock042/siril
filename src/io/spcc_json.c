@@ -149,8 +149,9 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 
 	// Get array lengths for validation
 	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
-	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "values");
-	JsonArray *valuesArray = json_object_get_array_member(object, "values");
+	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "value");
+	JsonObject *valuesObject = json_object_get_object_member(object, "values");
+	JsonArray *valuesArray = json_object_get_array_member(valuesObject, "value");
 	data->n = json_array_get_length(wavelengthArray);
 	int valuesLength = json_array_get_length(valuesArray);
 	if (data->n != valuesLength) {
@@ -445,9 +446,11 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
     // Get 'wavelength' and 'values' arrays
 	double scalefactor = 1.0;
 	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
-	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "values");
-    JsonArray *valuesArray = json_object_get_array_member(object, "values");
+	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "value");
+	JsonObject *valuesObject = json_object_get_object_member(object, "values");
+    JsonArray *valuesArray = json_object_get_array_member(valuesObject, "value");
 	gchar *wavelengthUnit = g_strdup(json_object_get_string_member(wavelengthObject, "units"));
+	double valuerange = json_object_get_double_member(valuesObject, "range");
 	if (!strcmp(wavelengthUnit, "nm"))
 		scalefactor = 1.0;
 	else if (!strcmp(wavelengthUnit, "micrometer"))
@@ -464,7 +467,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	point *pairs = (point*) malloc(data->n * sizeof(point));
     for (int i = 0; i < data->n; i++) {
 		pairs[i].x = json_array_get_double_element(wavelengthArray, i) * scalefactor;
-		pairs[i].y = json_array_get_double_element(valuesArray, i);
+		pairs[i].y = json_array_get_double_element(valuesArray, i) / valuerange;
     }
     qsort(pairs, data->n, sizeof(point), compare_pair_x);
 	data->n = remove_duplicate_x(pairs, data->n, data->filepath);

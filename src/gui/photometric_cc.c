@@ -377,7 +377,6 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *filters_g = lookup_widget("combo_spcc_filters_g");
 	GtkWidget *filters_b = lookup_widget("combo_spcc_filters_b");
 	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
-	GtkWidget *osc_filters_enable = lookup_widget("osc_filters_enable");
 	GtkWidget *max_stars_spin = lookup_widget("SPCC_max_stars");
 
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
@@ -386,7 +385,6 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_g = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_g));
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
-	args->use_osc_filter = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(osc_filters_enable));
 	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
 
 }
@@ -501,8 +499,6 @@ void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_d
 	widget = lookup_widget("combo_spcc_filters_osc");
 	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("details_spcc_filters_osc");
-	gtk_widget_set_visible(widget, !state);
-	widget = lookup_widget("osc_filters_enable");
 	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("combo_spcc_sensors_mono");
 	gtk_widget_set_visible(widget, state);

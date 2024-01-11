@@ -1175,7 +1175,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
-                  <!-- n-columns=4 n-rows=9 -->
+                  <!-- n-columns=3 n-rows=9 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -1371,21 +1371,6 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="osc_filters_enable">
-                        <property name="label" translatable="yes">enable</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Enable the OSC filter selection, for example for LP filters. If this check box is unselected, no filter will be applied.</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_osc_filter_enable_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">3</property>
-                        <property name="top-attach">5</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkButton" id="details_spcc_sensors_osc">
                         <property name="label" translatable="yes">Details</property>
                         <property name="visible">True</property>
@@ -1512,30 +1497,6 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="left-attach">1</property>
                         <property name="top-attach">4</property>
                       </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>

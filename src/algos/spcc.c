@@ -85,7 +85,7 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
 	gsl_interp_free(interp);
 	gsl_interp_accel_free(acc);
 	cmsXYZ2xyY(&xyY, &XYZ);
-	xyY.Y = 1.f;
+//	xyY.Y = 1.f;
 	return xyY;
 }
 
@@ -159,13 +159,12 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		load_spcc_object_arrays( (spcc_object*) sensor);
 		init_xpsampled_from_library(spectrum, (spcc_object*) sensor);
 		spcc_object_free_arrays( (spcc_object*) sensor);
-		if (args->use_osc_filter) {
-			GList *filter = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
-			load_spcc_object_arrays( (spcc_object*) filter->data);
-			init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
-			spcc_object_free_arrays( (spcc_object*) filter->data);
-			multiply_xpsampled(spectrum, spectrum, &spectrum2);
-		}
+		// TODO: Also add a LPF filter if the OSC sensor is a DSLR
+		GList *filter = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
+		load_spcc_object_arrays( (spcc_object*) filter->data);
+		init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
+		spcc_object_free_arrays( (spcc_object*) filter->data);
+		multiply_xpsampled(spectrum, spectrum, &spectrum2);
 	}
 }
 
@@ -189,6 +188,9 @@ int spcc_colorspace_transform(struct photometric_cc_data *args) {
 	gboolean threaded = !get_thread_run();
 	cmsUInt32Number fit_colorspace = cmsSigRgbData;
 	cmsUInt32Number type = get_planar_formatter_type(fit_colorspace, args->fit->type, FALSE);
+
+	siril_log_message(_("Computed sensor chromaticities:\nRed: x = %f, y = %f\nGreen: x = %f, y = %f\nBlue:x = %f, y = %f\nTransforming to working color space primaries.\n"),
+					  args->primaries.Red.x, args->primaries.Red.y, args->primaries.Green.x, args->primaries.Green.y, args->primaries.Blue.x, args->primaries.Blue.y);
 
 	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), source_profile, type, dest_profile, type, INTENT_ABSOLUTE_COLORIMETRIC, com.icc.rendering_flags);
 	cmsCloseProfile(dest_profile);
