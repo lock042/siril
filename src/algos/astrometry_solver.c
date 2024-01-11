@@ -268,8 +268,10 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 			var2 = fabs(trans->c) - fabs(trans->h);
 			break;
 		case AT_TRANS_CUBIC:
-			var1 = fabs(trans->b) - fabs(trans->k);
-			var2 = fabs(trans->c) - fabs(trans->j);
+			// var1 = fabs(trans->b) - fabs(trans->k);
+			// var2 = fabs(trans->c) - fabs(trans->j);
+			var1 = fabs(trans->b) - fabs(trans->m);
+			var2 = fabs(trans->c) - fabs(trans->l);
 			break;
 		default:
 			break;
@@ -288,7 +290,8 @@ static gboolean image_is_flipped_from_trans(TRANS *trans) {
 			det = (trans->b * trans->i - trans->c * trans->h);
 			break;
 		case AT_TRANS_CUBIC:
-			det = (trans->b * trans->k - trans->c * trans->j);
+			// det = (trans->b * trans->k - trans->c * trans->j);
+			det = (trans->b * trans->m - trans->c * trans->l);
 			break;
 		default:
 			break;
@@ -303,7 +306,8 @@ static double get_resolution_from_trans(TRANS *trans) {
 		case AT_TRANS_QUADRATIC:
 			return sqrt(fabs(trans->b * trans->i - trans->c * trans->h));
 		case AT_TRANS_CUBIC:
-			return sqrt(fabs(trans->b * trans->k - trans->c * trans->j));
+			// return sqrt(fabs(trans->b * trans->k - trans->c * trans->j));
+			return sqrt(fabs(trans->b * trans->m - trans->c * trans->l));
 		default:
 			return 0.;
 	}
@@ -319,7 +323,8 @@ static void get_cdelt_from_trans(TRANS *trans, double flip, double *cdelt1, doub
 			*cdelt2 = sqrt(trans->h * trans->h + trans->i * trans->i) / 3600;
 			break;
 		case AT_TRANS_CUBIC:
-			*cdelt2 = sqrt(trans->j * trans->j + trans->k * trans->k) / 3600;
+			// *cdelt2 = sqrt(trans->j * trans->j + trans->k * trans->k) / 3600;
+			*cdelt2 = sqrt(trans->l * trans->l + trans->m * trans->m) / 3600;
 			break;
 		default:
 			break;
@@ -334,7 +339,8 @@ static double get_center_offset_from_trans(TRANS *trans) {
 		case AT_TRANS_QUADRATIC:
 			return sqrt(trans->a * trans->a + trans->g * trans->g);
 		case AT_TRANS_CUBIC:
-			return sqrt(trans->a * trans->a + trans->i * trans->i);
+			// return sqrt(trans->a * trans->a + trans->i * trans->i);
+			return sqrt(trans->a * trans->a + trans->k * trans->k);
 		default:
 			return 0.;
 	}
@@ -723,9 +729,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
 	int max_trials = 0;
 	s_star *star_list_A = NULL, *star_list_B = NULL;
+	args->trans_order = AT_TRANS_CUBIC; // TODO: for debugging purposes only - to be removed
 
-	// if (args->uncentered)
-		max_trials = 20; //retry to converge if solve is done at an offset from the center
+	max_trials = 20; //retry to converge if solve is done at an offset from the center
 
 	/* make sure that arrays are not too small
 	 * make sure that the max of stars is BRIGHTEST_STARS */
@@ -741,12 +747,12 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		free_stars(&star_list_B);
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
 				scale_min, scale_max, NULL, &trans, TRUE,
-				UNDEFINED_TRANSFORMATION, AT_TRANS_LINEAR, &star_list_A, &star_list_B);
+				UNDEFINED_TRANSFORMATION, args->trans_order, &star_list_A, &star_list_B);
 		if (attempt == 2) {
 			scale_min = -1.0;
 			scale_max = -1.0;
 		} else {
-			nobj += 30;
+			nobj += 50;
 		}
 		attempt++;
 		CHECK_FOR_CANCELLATION;
@@ -924,13 +930,24 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	prm->crpix[1] = solution->crpix[1];
 	prm->crval[0] = args->fit->wcsdata.ra;
 	prm->crval[1] = args->fit->wcsdata.dec;
-	const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
-	const char CUNIT[2][9] = { "deg", "deg" };
-	for (int i = 0; i < NAXIS; i++) {
-		strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
-	}
-	for (int i = 0; i < NAXIS; i++) {
-		strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+	// if (args->trans_order == AT_TRANS_LINEAR) {
+		const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
+		const char CUNIT[2][4] = { "deg", "deg" };
+		for (int i = 0; i < NAXIS; i++) {
+			strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+		}
+		for (int i = 0; i < NAXIS; i++) {
+			strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+		}
+	// } else {
+	// 	const char CTYPE[2][12] = { "RA---TAN-SIP", "DEC--TAN-SIP" };
+	// 	const char CUNIT[2][4] = { "deg", "deg" };
+	// 	for (int i = 0; i < NAXIS; i++) {
+	// 		strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+	// 	}
+	// 	for (int i = 0; i < NAXIS; i++) {
+	// 		strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+	// 	}	
 	}
 	/* PC + CDELT seems to be the preferred approach
 	 * according to Calabretta private discussion
@@ -942,6 +959,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	wcs_mat2cd(prm, cd);
 	prm->altlin = 2;
 	wcspcx(prm, 0, 0, NULL);
+	if (args->trans_order > 1) {
+		disinit(TRUE, 2, prm->lin.dispre, 34);
+
+	}
 	wcs_print(prm);
 	if (args->fit->wcslib)
 		wcsfree(args->fit->wcslib);

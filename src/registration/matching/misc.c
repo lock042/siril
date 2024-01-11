@@ -485,14 +485,20 @@ print_trans
       siril_debug_print("g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e\n",
           trans->g, trans->h, trans->i, trans->j, trans->k, trans->l);
       break;
-
+//    case 3:  /* cubic terms */
+//       siril_debug_print("TRANS:\na=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e\n",
+//          trans->a, trans->b, trans->c, trans->d, trans->e, trans->f,
+//          trans->g, trans->h);
+//       siril_debug_print("i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e\n",
+//          trans->i, trans->j, trans->k, trans->l, trans->m, trans->n,
+//          trans->o, trans->p);
+//       break;
    case 3:  /* cubic terms */
-      siril_debug_print("TRANS:\na=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e\n",
+      siril_debug_print("TRANS:\na=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e\n",
          trans->a, trans->b, trans->c, trans->d, trans->e, trans->f,
-         trans->g, trans->h);
-      siril_debug_print("i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e\n",
-         trans->i, trans->j, trans->k, trans->l, trans->m, trans->n,
-         trans->o, trans->p);
+         trans->g, trans->h, trans->i, trans->j);
+      siril_debug_print("k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e q=%-15.9e r=%-15.9e s=%-15.9e t=%-15.9e\n",
+         trans->k, trans->l, trans->m, trans->n, trans->o, trans->p, trans->q, trans->r, trans->s, trans->t);
       break;
 
    default:

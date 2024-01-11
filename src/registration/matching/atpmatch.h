@@ -84,7 +84,9 @@
     */
 #define AT_MATCH_REQUIRE_LINEAR     3
 #define AT_MATCH_REQUIRE_QUADRATIC  6
-#define AT_MATCH_REQUIRE_CUBIC      8
+// #define AT_MATCH_REQUIRE_CUBIC      8
+#define AT_MATCH_REQUIRE_CUBIC      10
+
 
    /*
     * We start with the top "AT_MATCH_STARTN" candidates of

@@ -153,7 +153,7 @@ static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRAN
 	double r_dec;
 	double z, zz, alpha, delta;
 	double delta_ra, delta_dec;
-	double rsquared;
+	// double rsquared;
 	double ra = siril_world_cs_get_alpha(px_cat_center);
 	double dec = siril_world_cs_get_delta(px_cat_center);
 
@@ -182,15 +182,25 @@ static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRAN
 				+ trans->l * yval * yval;
 		break;
 	case AT_TRANS_CUBIC:
-		rsquared = xval * xval + yval * yval;
+		// rsquared = xval * xval + yval * yval;
+		// delta_ra = trans->a + trans->b * xval + trans->c * yval
+		// 		+ trans->d * xval * xval + trans->e * xval * yval
+		// 		+ trans->f * yval * yval + trans->g * xval * rsquared
+		// 		+ trans->h * yval * rsquared;
+		// delta_dec = trans->i + trans->j * xval + trans->k * yval
+		// 		+ trans->l * xval * xval + trans->m * xval * yval
+		// 		+ trans->n * yval * yval + trans->o * xval * rsquared
+		// 		+ trans->p * yval * rsquared;
 		delta_ra = trans->a + trans->b * xval + trans->c * yval
 				+ trans->d * xval * xval + trans->e * xval * yval
-				+ trans->f * yval * yval + trans->g * xval * rsquared
-				+ trans->h * yval * rsquared;
-		delta_dec = trans->i + trans->j * xval + trans->k * yval
-				+ trans->l * xval * xval + trans->m * xval * yval
-				+ trans->n * yval * yval + trans->o * xval * rsquared
-				+ trans->p * yval * rsquared;
+				+ trans->f * yval * yval + trans->g * xval * xval * xval
+				+ trans->h * xval * xval * yval + trans->i * xval * yval * yval
+				+ trans->j * yval * yval * yval;
+		delta_dec = trans->k + trans->l * xval + trans->m * yval
+				+ trans->n * xval * xval + trans->o * xval * yval
+				+ trans->p * yval * yval + trans->q * xval * xval * xval
+				+ trans->r * xval * xval * yval + trans->s * xval * yval * yval
+				+ trans->t * yval * yval * yval;
 		break;
 	}
 
