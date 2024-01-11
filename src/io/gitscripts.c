@@ -1055,11 +1055,11 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(button)) {
-		com.pref.use_spcc_repository = TRUE;
+		com.pref.spcc.use_spcc_repository = TRUE;
 		auto_update_gitspcc(FALSE);
 	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_spcc_repository);
-	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.use_spcc_repository && gui.spcc_repo_available));
+	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.spcc.use_spcc_repository);
+	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
 }
 #else
 

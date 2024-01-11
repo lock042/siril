@@ -411,7 +411,37 @@ void get_whitepoint_from_ui(struct photometric_cc_data *args) {
 	}
 }
 
-void fill_combo_from_glist(gchar *comboname, GList *list, int channel) {
+int get_favourite_spccobject(GList *list, gchar *favourite) {
+	if (!list)
+		return 0;
+
+	GList *current = list;
+	while (current != NULL) {
+		spcc_object *haystack = current->data;
+		if (g_strcmp0(haystack->name, favourite) == 0) {
+			return g_list_position(list, current);  // Found a match, return the GList node
+		}
+		current = current->next;
+	}
+	return -1;  // No match found
+}
+
+int get_favourite_oscsensor(GList *list, gchar *favourite) {
+	if (!list)
+		return 0;
+
+	GList *current = list;
+	while (current != NULL) {
+		osc_sensor *haystack = current->data;
+		if (g_strcmp0(haystack->channel[0].name, favourite) == 0) {
+			return g_list_position(list, current);  // Found a match, return the GList node
+		}
+		current = current->next;
+	}
+	return -1;  // No match found
+}
+
+void fill_combo_from_glist(gchar *comboname, GList *list, int channel, gchar *favourite) {
 	GtkComboBox *combo;
 	GtkListStore *store;
 	GtkTreeIter iter;
@@ -438,6 +468,7 @@ void fill_combo_from_glist(gchar *comboname, GList *list, int channel) {
 			gtk_list_store_set(store,&iter,0,object->channel[0].model,-1);
 			iterator = iterator->next;
 		}
+		gtk_combo_box_set_active(combo, get_favourite_oscsensor(list, favourite));
 	} else {
 		while (iterator) {
 			// Easier, just add all objects by name
@@ -446,21 +477,21 @@ void fill_combo_from_glist(gchar *comboname, GList *list, int channel) {
 			gtk_list_store_set(store,&iter,0,object->name,-1);
 			iterator = iterator->next;
 		}
+		gtk_combo_box_set_active(combo, get_favourite_spccobject(list, favourite));
 	}
-	gtk_combo_box_set_active(combo, 0);
 }
 
 void populate_spcc_combos() {
 	// Initialize filters if required
 	if (!spcc_filters_initialized) {
 		load_all_spcc_metadata();
-		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RED], RED);
-		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GREEN], GREEN);
-		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLUE], BLUE);
-		fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1);
-		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1);
-		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1);
-		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1);
+		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RED], RED, com.pref.spcc.redpref);
+		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GREEN], GREEN, com.pref.spcc.greenpref);
+		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLUE], BLUE, com.pref.spcc.bluepref);
+		fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
+		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
+		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
+		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
 		spcc_filters_initialized = TRUE;
 	}
 }
@@ -645,4 +676,85 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 void on_spcc_details_close_clicked(GtkButton *button, gpointer user_data) {
 	GtkWidget *win = lookup_widget("spcc_details");
 	gtk_widget_hide(win);
+}
+
+void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
+	if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.oscsensorpref) {
+			g_free(com.pref.spcc.oscsensorpref);
+			com.pref.spcc.oscsensorpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.osc_sensors, index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.oscsensorpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_mono"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.monosensorpref) {
+			g_free(com.pref.spcc.monosensorpref);
+			com.pref.spcc.monosensorpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_sensors, index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.monosensorpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_osc"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.oscfilterpref) {
+			g_free(com.pref.spcc.oscfilterpref);
+			com.pref.spcc.oscfilterpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.osc_filters, index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.oscfilterpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_r"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.redpref) {
+			g_free(com.pref.spcc.redpref);
+			com.pref.spcc.redpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_filters[RED], index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.redpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_g"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.greenpref) {
+			g_free(com.pref.spcc.greenpref);
+			com.pref.spcc.greenpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_filters[GREEN], index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.greenpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.bluepref) {
+			g_free(com.pref.spcc.bluepref);
+			com.pref.spcc.bluepref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_filters[BLUE], index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.bluepref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_lpf"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.lpfpref) {
+			g_free(com.pref.spcc.lpfpref);
+			com.pref.spcc.lpfpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_filters[3], index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.lpfpref = g_strdup(object->name);
+		}
+	}
 }

@@ -305,6 +305,18 @@ typedef struct icc_params {
 	gboolean pedantic_linear;
 } icc_params;
 
+struct spcc_favourites {
+	gboolean use_spcc_repository;
+	gboolean auto_spcc_update; // automatically update spcc repository at startup
+	gchar *redpref;
+	gchar *greenpref;
+	gchar *bluepref;
+	gchar *lpfpref;
+	gchar *oscfilterpref;
+	gchar *monosensorpref;
+	gchar *oscsensorpref;
+};
+
 /**
  * This is the preference structure.
  * WARNING!!
@@ -356,13 +368,12 @@ struct pref_struct {
 	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;
+	struct spcc_favourites spcc;
 	fftw_params fftw_conf;
 	icc_params icc;
 	GList *selected_scripts;
 	gboolean use_scripts_repository;
-	gboolean use_spcc_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
-	gboolean auto_spcc_update; // automatically update spcc repository at startup
 };
 
 typedef struct pref_struct preferences;

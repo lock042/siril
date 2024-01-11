@@ -202,8 +202,8 @@ static void update_scripts_preferences() {
 #ifdef HAVE_LIBGIT2
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
 	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
-	com.pref.use_spcc_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")));
-	com.pref.auto_spcc_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")));
+	com.pref.spcc.use_spcc_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")));
+	com.pref.spcc.auto_spcc_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")));
 #else
 	com.pref.use_scripts_repository = FALSE;
 	com.pref.use_spcc_repository = FALSE;
@@ -786,8 +786,8 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")), pref->use_spcc_repository);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")), pref->auto_spcc_update);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")), pref->spcc.use_spcc_repository);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")), pref->spcc.auto_spcc_update);
 
 	/* tab Performances */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);

@@ -1314,6 +1314,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_sensors_osc">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -1324,6 +1325,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_sensors_mono">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -1334,6 +1336,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_filters_osc">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -1344,6 +1347,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_filters_r">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -1354,6 +1358,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_filters_g">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -1364,6 +1369,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_filters_b">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -1492,6 +1498,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_filters_lpf">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
