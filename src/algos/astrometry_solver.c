@@ -948,7 +948,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	// 	for (int i = 0; i < NAXIS; i++) {
 	// 		strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
 	// 	}	
-	}
+	// }
 	/* PC + CDELT seems to be the preferred approach
 	 * according to Calabretta private discussion
 	 *
