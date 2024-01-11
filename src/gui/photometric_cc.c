@@ -572,6 +572,10 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"));
 		n = gtk_combo_box_get_active(combo);
 		list = g_list_nth(com.spcc_data.mono_filters[BLUE], n);
+	} else if (widget == lookup_widget("details_spcc_filters_lpf")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_lpf"));
+		n = gtk_combo_box_get_active(combo);
+		list = g_list_nth(com.spcc_data.osc_lpf, n);
 	}
 	// For OSC sensors which use the osc_sensor data structure this is a bit cheeky
 	// but it works because the first element of the struct is a spcc_object, and
