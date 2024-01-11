@@ -1312,9 +1312,18 @@ static void save_wcs_keywords(fits *fit) {
 	status = 0;
 
 	if (fit->wcslib) {
-		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
+		gboolean has_sip = fit->wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
+		if (!has_sip) {// no distorsions
+			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "TAN (gnomic) projection", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "TAN (gnomic) projection", &status);
+			status = 0;
+		} else {
+			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
+			status = 0;
+		}
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
 		status = 0;
@@ -1353,6 +1362,79 @@ static void save_wcs_keywords(fits *fit) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcslib->cd[3]), "Scale matrix (2, 2)", &status);
 			status = 0;
+		}
+		if (has_sip) {
+			double A[7][7] = {{ 0. }}, B[7][7] = {{ 0. }}, AP[7][7]  = {{ 0. }}, BP[7][7]  = {{ 0. }}; // we deal with images up to order 7
+			int order = 0;
+			struct disprm *dis = fit->wcslib->lin.dispre;
+			for (int n = 0; n < dis->ndp; n++) {
+				if (!g_str_has_prefix(dis->dp[n].field + 4, "SIP"))
+					continue;
+				int mat  = dis->dp[n].j; // if 1, it's the A terms, if 2, it's the B terms
+				int fwd = (g_str_has_prefix(dis->dp[n].field + 8, "FWD")) ? 1 : 2; // if 1, it's A/B, if 2, it's AP/BP
+				int i, j;
+				sscanf(dis->dp[n].field + 12, "%d_%d", &i, &j);
+				order = max(order, i);
+				order = max(order, j);
+				if (mat == 1) {
+					if (fwd == 1) {
+						A[i][j] = dis->dp[n].value.f;
+					} else {
+						AP[i][j] = dis->dp[n].value.f;
+					}
+				} else {
+					if (fwd == 1) {
+						B[i][j] = dis->dp[n].value.f;
+					} else {
+						BP[i][j] = dis->dp[n].value.f;
+					}
+				}
+			}
+			// we know the order of the distorsions, we can now write them
+			// A terms
+			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "Polynomial order, axis 1", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order; j++) {
+					if (A[i][j] != 0.) {
+						char key[5];
+						g_sprintf(key, "A_%d_%d", i, j);
+						fits_update_key(fit->fptr, TDOUBLE, key, &A[i][j], NULL, &status);
+					}
+				}
+			}
+			// B terms
+			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "Polynomial order, axis 2", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order; j++) {
+					if (B[i][j] != 0.) {
+						char key[5];
+						g_sprintf(key, "B_%d_%d", i, j);
+						fits_update_key(fit->fptr, TDOUBLE, key, &B[i][j], NULL, &status);
+					}
+				}
+			}
+			// AP terms
+			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "Inv polynomial order, axis 1", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order; j++) {
+					if (AP[i][j] != 0.) {
+						char key[6];
+						g_sprintf(key, "AP_%d_%d", i, j);
+						fits_update_key(fit->fptr, TDOUBLE, key, &AP[i][j], NULL, &status);
+					}
+				}
+			}
+			// BP terms
+			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "Inv polynomial order, axis 2", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order; j++) {
+					if (AP[i][j] != 0.) {
+						char key[6];
+						g_sprintf(key, "BP_%d_%d", i, j);
+						fits_update_key(fit->fptr, TDOUBLE, key, &BP[i][j], NULL, &status);
+					}
+				}
+			}
 		}
 	}
 	if (fit->wcsdata.pltsolvd) {
