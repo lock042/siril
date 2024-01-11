@@ -281,6 +281,7 @@ static gboolean processJsonFile(const char *file_path) {
 					break;
 				case 6:
 					com.spcc_data.wb_ref = g_list_append(com.spcc_data.wb_ref, data);
+					break;
 				default:
 					g_warning("Unknown type: %d", data->type);
 					spcc_object_free(data, TRUE);
