@@ -99,6 +99,8 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 		data->type = 3;
 	} else if (!strcmp(typestring, "OSC_FILTER")) {
 		data->type = 4;
+	} else if (!strcmp(typestring, "OSC_LPF")) {
+		data->type = 5;
 	} else {
 		goto validation_error;
 	}
@@ -270,6 +272,9 @@ static gboolean processJsonFile(const char *file_path) {
 					break;
 				case 4:
 					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
+					break;
+				case 5:
+					com.spcc_data.osc_lpf = g_list_append(com.spcc_data.osc_lpf, data);
 					break;
 				default:
 					g_warning("Unknown type: %d", data->type);
@@ -531,6 +536,7 @@ void load_all_spcc_metadata() {
     const gchar *path = siril_get_spcc_repo_path();
     processDirectory(path);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);
+	com.spcc_data.osc_lpf = g_list_sort(com.spcc_data.osc_lpf, compare_spcc_object_names);
 	com.spcc_data.osc_filters = g_list_sort(com.spcc_data.osc_filters, compare_spcc_object_names);
 	com.spcc_data.mono_sensors = g_list_sort(com.spcc_data.mono_sensors, compare_spcc_object_names);
 	for (int i = 0 ; i < 3 ; i++)

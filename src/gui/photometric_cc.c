@@ -458,6 +458,7 @@ void populate_spcc_combos() {
 		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RED], RED);
 		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GREEN], GREEN);
 		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLUE], BLUE);
+		fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1);
 		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1);
 		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1);
 		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1);
@@ -465,16 +466,36 @@ void populate_spcc_combos() {
 	}
 }
 
+void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean sensor_is_osc = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_toggle_sensor_type")));
+	gboolean osc_is_dslr = gtk_toggle_button_get_active(button);
+	GtkWidget *widget = lookup_widget("label_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (osc_is_dslr && sensor_is_osc));
+	widget = lookup_widget("combo_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (osc_is_dslr && sensor_is_osc));
+	widget = lookup_widget("details_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (osc_is_dslr && sensor_is_osc));
+}
+
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data) {
-	int state = gtk_toggle_button_get_active(button);
+	gboolean osc_is_dslr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr")));
+	gboolean state = gtk_toggle_button_get_active(button);
 	GtkWidget *widget;
 	gtk_button_set_label(GTK_BUTTON(button), state ? _("Mono Sensor") : _("OSC Sensor"));
+	widget = lookup_widget("osc_is_dslr");
+	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("label_spcc_sensors_osc");
 	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("combo_spcc_sensors_osc");
 	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("details_spcc_sensors_osc");
 	gtk_widget_set_visible(widget, !state);
+	widget = lookup_widget("label_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (!state && osc_is_dslr));
+	widget = lookup_widget("combo_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (!state && osc_is_dslr));
+	widget = lookup_widget("details_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (!state && osc_is_dslr));
 	widget = lookup_widget("label_spcc_filters_osc");
 	gtk_widget_set_visible(widget, !state);
 	widget = lookup_widget("combo_spcc_filters_osc");

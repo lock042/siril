@@ -1175,7 +1175,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
-                  <!-- n-columns=4 n-rows=8 -->
+                  <!-- n-columns=4 n-rows=9 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -1244,7 +1244,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">6</property>
                       </packing>
                     </child>
                     <child>
@@ -1256,7 +1256,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">7</property>
                       </packing>
                     </child>
                     <child>
@@ -1268,7 +1268,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
@@ -1280,7 +1280,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">8</property>
                       </packing>
                     </child>
                     <child>
@@ -1337,7 +1337,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
@@ -1347,7 +1347,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">6</property>
                       </packing>
                     </child>
                     <child>
@@ -1357,7 +1357,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">7</property>
                       </packing>
                     </child>
                     <child>
@@ -1367,7 +1367,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">8</property>
                       </packing>
                     </child>
                     <child>
@@ -1382,7 +1382,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">3</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
@@ -1421,7 +1421,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
@@ -1434,7 +1434,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">6</property>
                       </packing>
                     </child>
                     <child>
@@ -1447,7 +1447,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">7</property>
                       </packing>
                     </child>
                     <child>
@@ -1460,7 +1460,57 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">8</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="osc_is_dslr">
+                        <property name="label" translatable="yes">DSLR</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Set whether the OSC sensor is a DSLR. This allows setting the LPF for astro-modified or unmodifed DSLRs.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_osc_is_dslr_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_lpf">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">DSLR LPF:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_filters_lpf">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_filters_lpf">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">4</property>
                       </packing>
                     </child>
                     <child>
