@@ -515,7 +515,24 @@ static void processDirectory(const gchar *directory_path) {
     g_dir_close(dir);
 }
 
+gint compare_spcc_object_names(gconstpointer a, gconstpointer b) {
+    const spcc_object *object1 = a;
+    const spcc_object *object2 = b;
+    return g_strcmp0(object1->name, object2->name);
+}
+
+gint compare_osc_object_models(gconstpointer a, gconstpointer b) {
+    const osc_sensor *object1 = a;
+    const osc_sensor *object2 = b;
+    return g_strcmp0(object1->channel[0].model, object2->channel[0].model);
+}
+
 void load_all_spcc_metadata() {
     const gchar *path = siril_get_spcc_repo_path();
     processDirectory(path);
+	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);
+	com.spcc_data.osc_filters = g_list_sort(com.spcc_data.osc_filters, compare_spcc_object_names);
+	com.spcc_data.mono_sensors = g_list_sort(com.spcc_data.mono_sensors, compare_spcc_object_names);
+	for (int i = 0 ; i < 3 ; i++)
+		com.spcc_data.mono_filters[i] = g_list_sort(com.spcc_data.mono_filters[i], compare_spcc_object_names);
 }
