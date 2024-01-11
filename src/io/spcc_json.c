@@ -101,6 +101,8 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 		data->type = 4;
 	} else if (!strcmp(typestring, "OSC_LPF")) {
 		data->type = 5;
+	} else if (!strcmp(typestring, "WB_REF")) {
+		data->type = 6;
 	} else {
 		goto validation_error;
 	}
@@ -277,6 +279,8 @@ static gboolean processJsonFile(const char *file_path) {
 				case 5:
 					com.spcc_data.osc_lpf = g_list_append(com.spcc_data.osc_lpf, data);
 					break;
+				case 6:
+					com.spcc_data.wb_ref = g_list_append(com.spcc_data.wb_ref, data);
 				default:
 					g_warning("Unknown type: %d", data->type);
 					spcc_object_free(data, TRUE);

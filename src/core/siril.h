@@ -505,6 +505,7 @@ struct spcc_data_store {
 	GList *mono_filters[4]; // R, G, B
 	GList *osc_lpf;
 	GList *osc_filters;
+	GList *wb_ref;
 };
 
 /* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
