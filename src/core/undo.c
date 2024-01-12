@@ -125,7 +125,6 @@ static void undo_add_item(fits *fit, char *filename, const char *histo) {
 	com.history[com.hist_current].type = fit->type;
 	com.history[com.hist_current].wcsdata = fit->wcsdata;
 	com.history[com.hist_current].wcslib = wcs_deepcopy(fit->wcslib, &status);
-	com.history[com.hist_current].spcc_applied = fit->spcc_applied;
 	if (status)
 		siril_debug_print("could not copy wcslib struct\n");
 	com.history[com.hist_current].focal_length = fit->focal_length;
@@ -269,7 +268,6 @@ static int undo_get_data(fits *fit, historic *hist) {
 	fit->icc_profile = copyICCProfile(hist->icc_profile);
 	color_manage(fit, (fit->icc_profile != NULL));
 	fits_change_depth(fit, hist->nchans);
-	fit->spcc_applied = hist->spcc_applied;
 
 	if (hist->type == DATA_USHORT) {
 		if (gfit.type != DATA_USHORT) {

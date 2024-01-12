@@ -211,32 +211,3 @@ int spcc_set_source_profile(struct photometric_cc_data *args) {
 	siril_colorspace_transform(args->fit, profile);
 	return 0;
 }
-
-int check_prior_spcc(fits *fit) {
-	// Check SPCC hasn't been applied already
-	GSList* entry = NULL;
-	if (fit->spcc_applied)
-		return 1;
-	if (fit->history) {
-		entry = fit->history;
-		while (entry) {
-			if (strstr(entry->data, "SPCC")) {
-				gchar *msg = g_strdup("Spectrophotometric Color Correction "
-							"has already been applied to this image. Re-applying it will "
-							"result in incorrect results!");
-				if (!com.script) {
-					if (!siril_confirm_dialog(_("Warning!"), _(msg), _("Continue"))) {
-						g_free(msg);
-						return 1;
-					}
-					break;
-				} else {
-					siril_log_color_message(_("Warning! %s\n"), "red", msg);
-					g_free(msg);
-				}
-			}
-			entry = entry->next;
-		}
-	}
-	return 0;
-}

@@ -445,9 +445,6 @@ gpointer plate_solver(gpointer p) {
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
 	if (args->for_photometry_spcc) {
-		if (check_prior_spcc(args->fit)) {
-			return GINT_TO_POINTER(1);
-		}
 		args->ref_stars->cat_index = CAT_GAIADR3;
 	}
 	if (args->verbose) {
@@ -890,7 +887,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 			const char *algo;
 			if (args-> for_photometry_spcc) {
 				algo = "SPCC";
-				args->fit->spcc_applied = TRUE;
 			} else {
 				algo = "PCC";
 			}

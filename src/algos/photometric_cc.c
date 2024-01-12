@@ -691,16 +691,11 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	if (!ret) {
 		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
-		if (args->spcc && args->set_source_profile) {
-			ret = spcc_set_source_profile(args);
+		if (!ret) {
 		}
 		if (args->spcc && !ret) {
+			ret = spcc_set_source_profile(args);
 			invalidate_stats_from_fit(args->fit);
-			if (!ret) {
-				if (args->spcc) {
-					args->fit->spcc_applied = TRUE;
-				}
-			}
 		}
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);

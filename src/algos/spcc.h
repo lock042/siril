@@ -11,7 +11,6 @@ gpointer spectrophotometric_cc_standalone(gpointer p);
 cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf);
 void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectrum, int chan);
 int spcc_set_source_profile(struct photometric_cc_data *args);
-int check_prior_spcc(fits *fit);
 
 // In io/spcc_json.c
 void spcc_object_free(spcc_object *data, gboolean free_struct);
