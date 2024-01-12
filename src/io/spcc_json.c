@@ -116,11 +116,11 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	}
     if (json_object_has_member(object, "channel")) {
 		const gchar *channel_string = json_object_get_string_member(object, "channel");
-		if (!strcmp(channel_string, "RLAYER")) {
+		if (!strcmp(channel_string, "RED")) {
 			data->channel = 0;
-		} else if (!strcmp(channel_string, "BLAYER")) {
+		} else if (!strcmp(channel_string, "GREEN")) {
 			data->channel = 1;
-		} else if (!strcmp(channel_string, "BLAYER")) {
+		} else if (!strcmp(channel_string, "BLUE")) {
 			data->channel = 2;
 		} else {
 			// "OTHER" may be used for filters that aren't clearly R, G or B

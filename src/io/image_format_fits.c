@@ -3714,12 +3714,8 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
 	// The dataset wavelength range is always the same for all xpsampled spectra
 	// The spacing is always 2nm iaw the dataset
-#define WAVESTAR 336
-#define WAVEEND 1020
-#define FIRST_WL 378
-#define LAST_WL 702
     int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
-    long nrows, firstrow, nelements;
+    long nrows;
 	// We open a separate fptr so that multiple threads can operate on the file
 	// simultaneously, reading data from different HDUs corresponding to different sources.
 	fitsfile *fptr = NULL;
@@ -3738,13 +3734,6 @@ int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
         goto error;
     }
     fits_get_num_rows(fptr, &nrows, &status);
-    nelements = ((LAST_WL - FIRST_WL) / 2) + 1;
-    firstrow = ((FIRST_WL - WAVESTAR) / 2) + 1;
-    if ((firstrow + nelements) > nrows) {
-        siril_debug_print("Row error in get_xpsampled!\n");
-        goto error;
-    }
-
     if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
         fits_report_error(stderr, status);
         goto error;
@@ -3753,13 +3742,7 @@ int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
         fits_report_error(stderr, status);
         goto error;
     }
-/*
-	if (fits_read_col(fptr, TDOUBLE, wlcol, firstrow, 1, nelements, NULL, xps->x, &anynul, &status)) {
-        fits_report_error(stderr, status);
-        goto error;
-    }
-*/
-    if (fits_read_col(fptr, TDOUBLE, fluxcol, firstrow, 1, nelements, NULL, xps->y, &anynul, &status)) {
+    if (fits_read_col(fptr, TDOUBLE, fluxcol, 1, 1, 343, NULL, xps->y, &anynul, &status)) {
         fits_report_error(stderr, status);
         goto error;
     }

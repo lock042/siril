@@ -3,7 +3,7 @@
 
 // SPCC functions
 void init_spcc_filters();
-void init_xpsampled(xpsampled *xps);
+xpsampled init_xpsampled();
 void init_xpsampled_from_library(xpsampled *out, spcc_object *in);
 void multiply_xpsampled(xpsampled *result, const xpsampled *a, const xpsampled *b);
 double integrate_xpsampled(const xpsampled *xps);

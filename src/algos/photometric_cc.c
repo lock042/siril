@@ -46,8 +46,6 @@
 #include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
-const double xpsampled_wl[163] = {378.0,380.0,382.0,384.0,386.0,388.0,390.0,392.0,394.0,396.0,398.0,400.0,402.0,404.0,406.0,408.0,410.0,412.0,414.0,416.0,418.0,420.0,422.0,424.0,426.0,428.0,430.0,432.0,434.0,436.0,438.0,440.0,442.0,444.0,446.0,448.0,450.0,452.0,454.0,456.0,458.0,460.0,462.0,464.0,466.0,468.0,470.0,472.0,474.0,476.0,478.0,480.0,482.0,484.0,486.0,488.0,490.0,492.0,494.0,496.0,498.0,500.0,502.0,504.0,506.0,508.0,510.0,512.0,514.0,516.0,518.0,520.0,522.0,524.0,526.0,528.0,530.0,532.0,534.0,536.0,538.0,540.0,542.0,544.0,546.0,548.0,550.0,552.0,554.0,556.0,558.0,560.0,562.0,564.0,566.0,568.0,570.0,572.0,574.0,576.0,578.0,580.0,582.0,584.0,586.0,588.0,590.0,592.0,594.0,596.0,598.0,600.0,602.0,604.0,606.0,608.0,610.0,612.0,614.0,616.0,618.0,620.0,622.0,624.0,626.0,628.0,630.0,632.0,634.0,636.0,638.0,640.0,642.0,644.0,646.0,648.0,650.0,652.0,654.0,656.0,658.0,660.0,662.0,664.0,666.0,668.0,670.0,672.0,674.0,676.0,678.0,680.0,682.0,684.0,686.0,688.0,690.0,692.0,694.0,696.0,698.0,700.0,702.0};
-
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
 static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
 
@@ -170,7 +168,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	double *crg = malloc(sizeof(double) * nb_stars);
 	double *cbg = malloc(sizeof(double) * nb_stars);
 	double wrg = 0.f, wbg = 0.f;
-	xpsampled response[3] = { { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } } };
+	xpsampled response[3] = { init_xpsampled(), init_xpsampled(), init_xpsampled() };
 
 	for (int k = 0 ; k < nb_stars; k++) {
 		irg[k] = FLT_MAX;
@@ -236,10 +234,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 		// Calculate catalogue flux ratios
 		double ref_flux[3];
-		xpsampled star_spectrum = { xpsampled_wl, { 0.0 } };
+		xpsampled star_spectrum = init_xpsampled();
 		get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
 
-		xpsampled flux_expected = { xpsampled_wl, { 0.0 } };
+		xpsampled flux_expected = init_xpsampled();
 		for (int chan = 0 ; chan < 3 ; chan++) {
 			multiply_xpsampled(&flux_expected, &response[chan], &star_spectrum);
 			ref_flux[chan] = integrate_xpsampled(&flux_expected);
@@ -258,13 +256,13 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 	// Calculate white reference ratios
 	double white_flux[3];
-	xpsampled white_spectrum = { xpsampled_wl, { 0.0 } };
+	xpsampled white_spectrum = init_xpsampled();
 	GList *selected_white = g_list_nth(com.spcc_data.wb_ref, args->selected_white_ref);
 	spcc_object *white = (spcc_object *) selected_white->data;
 	load_spcc_object_arrays(white);
 	init_xpsampled_from_library(&white_spectrum, white);
 	spcc_object_free_arrays(white);
-	xpsampled white_expected = { xpsampled_wl, { 0.0 } };
+	xpsampled white_expected = init_xpsampled();
 	for (int chan = 0 ; chan < 3 ; chan++) {
 		multiply_xpsampled(&white_expected, &response[chan], &white_spectrum);
 		white_flux[chan] = integrate_xpsampled(&white_expected);

@@ -507,9 +507,8 @@ struct spcc_data_store {
 };
 
 /* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
- * 378nm and 702nm, allowing one extra value either side of the real range we care
- * about integrating over (380-700nm). */
-#define XPSAMPLED_LEN 163
+ * 336-1020nm for use with Gaia DR3 xp_sampled data products. */
+#define XPSAMPLED_LEN 343
 typedef struct _xpsampdata {
 	const double *x;
 	double y[XPSAMPLED_LEN];
