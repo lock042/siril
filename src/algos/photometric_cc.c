@@ -20,8 +20,6 @@
 
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_interp.h>
-#include <gsl/gsl_sort.h>
-#include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -163,58 +161,6 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
-void repeated_median_regression(const double *x, const double *y, size_t n, double *a, double *b, double *std_err) {
-
-	double *a_ijk = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
-
-#ifdef _OPENMP
-	// Declare num_slopes to track the total count of slopes
-	size_t num_slopes = 0;
-	double *a_ijk_local = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
-#pragma omp parallel for
-	for (size_t i = 0; i < n; i++) {
-		size_t num_slopes_local = 0;
-		for (size_t j = i + 1; j < n; j++) {
-			for (size_t k = j + 1; k < n; k++) {
-				a_ijk_local[num_slopes_local++] = (y[j] - y[i]) / (x[j] - x[i]);
-			}
-		}
-		#pragma omp critical
-		{
-			memcpy(a_ijk + num_slopes, a_ijk_local, num_slopes_local * sizeof(double));
-			num_slopes += num_slopes_local;
-		}
-	}
-#else
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = i + 1; j < n; j++) {
-			for (size_t k = j + 1; k < n; k++) {
-				a_ijk[num_slopes++] = (y[j] - y[i]) / (x[j] - x[i]);
-			}
-		}
-	}
-#endif
-
-	// Find the median slope using GSL
-	gsl_sort(a_ijk, 1, num_slopes);
-	*a = gsl_stats_median_from_sorted_data(a_ijk, 1, num_slopes);
-
-	// Calculate residuals using the estimated slope
-	double residuals[n];
-	for (size_t i = 0; i < n; i++) {
-		residuals[i] = y[i] - *a * x[i];
-	}
-
-	// Find the median residual using GSL
-	gsl_sort(residuals, 1, n);
-	*b = gsl_stats_median_from_sorted_data(residuals, 1, n);
-	// Calculate the standard deviation of the residuals
-	*std_err = gsl_stats_sd(residuals, 1, n);
-
-	free(a_ijk);
-	free(a_ijk_local);
-}
-
 static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
@@ -246,9 +192,9 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			get_spectrum_from_args(args, &response[chan], chan);
 		}
 		// Calculate effective primaries for later
-		args->primaries.Red = xpsampled_to_xyY(&response[RED], CMF_1931);
-		args->primaries.Green = xpsampled_to_xyY(&response[GREEN], CMF_1931);
-		args->primaries.Blue = xpsampled_to_xyY(&response[BLUE], CMF_1931);
+		args->primaries.Red = xpsampled_to_xyY(&response[RLAYER], CMF_1931);
+		args->primaries.Green = xpsampled_to_xyY(&response[GLAYER], CMF_1931);
+		args->primaries.Blue = xpsampled_to_xyY(&response[BLAYER], CMF_1931);
 	}
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
@@ -285,8 +231,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
-		irg[i] = flux[RED]/flux[GREEN];
-		ibg[i] = flux[BLUE]/flux[GREEN];
+		irg[i] = flux[RLAYER]/flux[GLAYER];
+		ibg[i] = flux[BLAYER]/flux[GLAYER];
 
 		// Calculate catalogue flux ratios
 		double ref_flux[3];
@@ -298,8 +244,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			multiply_xpsampled(&flux_expected, &response[chan], &star_spectrum);
 			ref_flux[chan] = integrate_xpsampled(&flux_expected);
 		}
-		crg[i] = ref_flux[RED]/ref_flux[GREEN];
-		cbg[i] = ref_flux[BLUE]/ref_flux[GREEN];
+		crg[i] = ref_flux[RLAYER]/ref_flux[GLAYER];
+		cbg[i] = ref_flux[BLAYER]/ref_flux[GLAYER];
 		if (xisnanf(irg[i]) || xisnanf(ibg[i]) || xisnanf(crg[i]) || xisnanf(cbg[i])) {
 			irg[i] = FLT_MAX;
 			ibg[i] = FLT_MAX;
@@ -323,8 +269,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		multiply_xpsampled(&white_expected, &response[chan], &white_spectrum);
 		white_flux[chan] = integrate_xpsampled(&white_expected);
 	}
-	wrg = white_flux[RED]/white_flux[GREEN];
-	wbg = white_flux[BLUE]/white_flux[GREEN];
+	wrg = white_flux[RLAYER]/white_flux[GLAYER];
+	wbg = white_flux[BLAYER]/white_flux[GLAYER];
 	// Robust estimation of linear best fit
 	// First sort the arrays so any FLT_MAX are at the end, after ngood
 	double arg, brg, abg, bbg, deviation[2] = { 0.0 };
@@ -332,20 +278,32 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	quicksort_d(crg, nb_stars);
 	quicksort_d(ibg, nb_stars);
 	quicksort_d(cbg, nb_stars);
-	repeated_median_regression(crg, irg, ngood, &arg, &brg, &deviation[0]);
-	repeated_median_regression(cbg, ibg, ngood, &abg, &bbg, &deviation[1]);
+	if (repeated_median_regression(crg, irg, ngood, &arg, &brg, &deviation[0])) {
+		free(irg);
+		free(ibg);
+		free(crg);
+		free(cbg);
+		return 1;
+	}
+	if (repeated_median_regression(cbg, ibg, ngood, &abg, &bbg, &deviation[1])) {
+		free(irg);
+		free(ibg);
+		free(crg);
+		free(cbg);
+		return 1;
+	}
 	double kr = 1.f / (arg + brg * wrg);
 	double kg = 1.f;
 	double kb = 1.f / (abg + bbg * wbg);
 	double maxk = max(max(kr, kg), kb);
-	kw[RED] = kr / maxk;
-	kw[GREEN] = kg / maxk;
-	kw[BLUE] = kb / maxk;
+	kw[RLAYER] = kr / maxk;
+	kw[GLAYER] = kg / maxk;
+	kw[BLAYER] = kb / maxk;
 	free (irg);
 	free(ibg);
 	free(crg);
 	free(cbg);
-	if (kw[RED] < 0.f || kw[GREEN] < 0.f || kw[BLUE] < 0.f) {
+	if (kw[RLAYER] < 0.f || kw[GLAYER] < 0.f || kw[BLAYER] < 0.f) {
 		return 1;
 	}
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
@@ -358,7 +316,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
 /* Commenting this out at least for now, I'm not sure how the new deviations compare with regard to the solution being imprecise.
  * The values seem comparable to what other SPCC implementations return.
-	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
+	else if (deviation[RLAYER] > 0.1 || deviation[GLAYER] > 0.1 || deviation[BLAYER] > 0.1)
 		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
 */
 	return 0;
@@ -369,17 +327,17 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	fits *fit = args->fit;
 	pcc_star *stars = args->stars;
 	float *data[3];
-	data[RED] = malloc(sizeof(float) * nb_stars);
-	data[GREEN] = malloc(sizeof(float) * nb_stars);
-	data[BLUE] = malloc(sizeof(float) * nb_stars);
-	if (!data[RED] || !data[GREEN] || !data[BLUE]) {
+	data[RLAYER] = malloc(sizeof(float) * nb_stars);
+	data[GLAYER] = malloc(sizeof(float) * nb_stars);
+	data[BLAYER] = malloc(sizeof(float) * nb_stars);
+	if (!data[RLAYER] || !data[GLAYER] || !data[BLAYER]) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
 	for (int k = 0; k < nb_stars; k++) {
-		data[RED][k] = FLT_MAX;
-		data[GREEN][k] = FLT_MAX;
-		data[BLUE][k] = FLT_MAX;
+		data[RLAYER][k] = FLT_MAX;
+		data[GLAYER][k] = FLT_MAX;
+		data[BLAYER][k] = FLT_MAX;
 	}
 	gchar *str = ngettext("Applying aperture photometry to %d star.\n", "Applying aperture photometry to %d stars.\n", nb_stars);
 	str = g_strdup_printf(str, nb_stars);
@@ -473,14 +431,14 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		TempK2rgb(&r, &g, &b, stars[i].teff, transform);
 		/* get Color calibration factors for current star */
 
-		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
-		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
-		data[BLUE][i] = (flux[norm_channel] / flux[BLUE]) * b;
+		data[RLAYER][i] = (flux[norm_channel] / flux[RLAYER]) * r;
+		data[GLAYER][i] = (flux[norm_channel] / flux[GLAYER]) * g;
+		data[BLAYER][i] = (flux[norm_channel] / flux[BLAYER]) * b;
 
-		if (xisnanf(data[RED][i]) || xisnanf(data[GREEN][i]) || xisnanf(data[BLUE][i])) {
-			data[RED][i] = FLT_MAX;
-			data[GREEN][i] = FLT_MAX;
-			data[BLUE][i] = FLT_MAX;
+		if (xisnanf(data[RLAYER][i]) || xisnanf(data[GLAYER][i]) || xisnanf(data[BLAYER][i])) {
+			data[RLAYER][i] = FLT_MAX;
+			data[GLAYER][i] = FLT_MAX;
+			data[BLAYER][i] = FLT_MAX;
 			continue;
 		}
 		g_atomic_int_inc(&ngood);
@@ -489,9 +447,9 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		cmsDeleteTransform(transform);
 	free(ps);
 	if (!get_thread_run()) {
-		free(data[RED]);
-		free(data[GREEN]);
-		free(data[BLUE]);
+		free(data[RLAYER]);
+		free(data[GLAYER]);
+		free(data[BLAYER]);
 		return 1;
 	}
 	int excl = nb_stars - ngood;
@@ -504,44 +462,44 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 
 	if (ngood == 0) {
 		siril_log_message(_("No valid stars found.\n"));
-		free(data[RED]);
-		free(data[GREEN]);
-		free(data[BLUE]);
+		free(data[RLAYER]);
+		free(data[GLAYER]);
+		free(data[BLAYER]);
 		return 1;
 	}
 	/* sort in ascending order before using siril_stats_mean_from_linearFit
 	 * Hence, DBL_MAX are at the end of the tab */
-	quicksort_f(data[RED], nb_stars);
-	quicksort_f(data[GREEN], nb_stars);
-	quicksort_f(data[BLUE], nb_stars);
+	quicksort_f(data[RLAYER], nb_stars);
+	quicksort_f(data[GLAYER], nb_stars);
+	quicksort_f(data[BLAYER], nb_stars);
 
 	double deviation[3];
 	/* we do not take into account FLT_MAX values */
-	kw[RED] = siril_stats_robust_mean(data[RED], 1, ngood, &(deviation[RED]));
-	kw[GREEN] = siril_stats_robust_mean(data[GREEN], 1, ngood, &(deviation[GREEN]));
-	kw[BLUE] = siril_stats_robust_mean(data[BLUE], 1, ngood, &(deviation[BLUE]));
-	if (kw[RED] < 0.f || kw[GREEN] < 0.f || kw[BLUE] < 0.f) {
-		free(data[RED]);
-		free(data[GREEN]);
-		free(data[BLUE]);
+	kw[RLAYER] = siril_stats_robust_mean(data[RLAYER], 1, ngood, &(deviation[RLAYER]));
+	kw[GLAYER] = siril_stats_robust_mean(data[GLAYER], 1, ngood, &(deviation[GLAYER]));
+	kw[BLAYER] = siril_stats_robust_mean(data[BLAYER], 1, ngood, &(deviation[BLAYER]));
+	if (kw[RLAYER] < 0.f || kw[GLAYER] < 0.f || kw[BLAYER] < 0.f) {
+		free(data[RLAYER]);
+		free(data[GLAYER]);
+		free(data[BLAYER]);
 		return 1;
 	}
 	/* normalize factors */
 	float norm = kw[norm_channel];
-	kw[RED] /= norm;
-	kw[GREEN] /= norm;
-	kw[BLUE] /= norm;
+	kw[RLAYER] /= norm;
+	kw[GLAYER] /= norm;
+	kw[BLAYER] /= norm;
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
 	}
 	if (ngood < 20)
 		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
-	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
+	else if (deviation[RLAYER] > 0.1 || deviation[GLAYER] > 0.1 || deviation[BLAYER] > 0.1)
 		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
-	free(data[RED]);
-	free(data[GREEN]);
-	free(data[BLUE]);
+	free(data[RLAYER]);
+	free(data[GLAYER]);
+	free(data[BLAYER]);
 	return 0;
 }
 

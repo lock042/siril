@@ -29,10 +29,6 @@
 #include "core/siril_log.h"
 #include <json-glib/json-glib.h>
 
-enum {
-	RED, GREEN, BLUE
-};
-
 void spcc_object_free(spcc_object *data, gboolean free_struct);
 void osc_sensor_free(osc_sensor *data, gboolean free_struct);
 
@@ -120,11 +116,11 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	}
     if (json_object_has_member(object, "channel")) {
 		const gchar *channel_string = json_object_get_string_member(object, "channel");
-		if (!strcmp(channel_string, "RED")) {
+		if (!strcmp(channel_string, "RLAYER")) {
 			data->channel = 0;
-		} else if (!strcmp(channel_string, "GREEN")) {
+		} else if (!strcmp(channel_string, "BLAYER")) {
 			data->channel = 1;
-		} else if (!strcmp(channel_string, "BLUE")) {
+		} else if (!strcmp(channel_string, "BLAYER")) {
 			data->channel = 2;
 		} else {
 			// "OTHER" may be used for filters that aren't clearly R, G or B

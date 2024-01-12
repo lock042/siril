@@ -485,9 +485,9 @@ void populate_spcc_combos() {
 	// Initialize filters if required
 	if (!spcc_filters_initialized) {
 		load_all_spcc_metadata();
-		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RED], RED, com.pref.spcc.redpref);
-		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GREEN], GREEN, com.pref.spcc.greenpref);
-		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLUE], BLUE, com.pref.spcc.bluepref);
+		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
+		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
+		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
 		fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
 		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
@@ -592,15 +592,15 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	} else if (widget == lookup_widget("details_spcc_filters_r")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_r"));
 		n = gtk_combo_box_get_active(combo);
-		list = g_list_nth(com.spcc_data.mono_filters[RED], n);
+		list = g_list_nth(com.spcc_data.mono_filters[RLAYER], n);
 	} else if (widget == lookup_widget("details_spcc_filters_g")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_g"));
 		n = gtk_combo_box_get_active(combo);
-		list = g_list_nth(com.spcc_data.mono_filters[GREEN], n);
+		list = g_list_nth(com.spcc_data.mono_filters[GLAYER], n);
 	} else if (widget == lookup_widget("details_spcc_filters_b")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"));
 		n = gtk_combo_box_get_active(combo);
-		list = g_list_nth(com.spcc_data.mono_filters[BLUE], n);
+		list = g_list_nth(com.spcc_data.mono_filters[BLAYER], n);
 	} else if (widget == lookup_widget("details_spcc_filters_lpf")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_lpf"));
 		n = gtk_combo_box_get_active(combo);
@@ -719,7 +719,7 @@ void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
 			g_free(com.pref.spcc.redpref);
 			com.pref.spcc.redpref = NULL;
 		}
-		GList *list = g_list_nth(com.spcc_data.mono_filters[RED], index);
+		GList *list = g_list_nth(com.spcc_data.mono_filters[RLAYER], index);
 		if (list) {
 			spcc_object* object = (spcc_object*) list->data;
 			com.pref.spcc.redpref = g_strdup(object->name);
@@ -730,7 +730,7 @@ void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
 			g_free(com.pref.spcc.greenpref);
 			com.pref.spcc.greenpref = NULL;
 		}
-		GList *list = g_list_nth(com.spcc_data.mono_filters[GREEN], index);
+		GList *list = g_list_nth(com.spcc_data.mono_filters[GLAYER], index);
 		if (list) {
 			spcc_object* object = (spcc_object*) list->data;
 			com.pref.spcc.greenpref = g_strdup(object->name);
@@ -741,7 +741,7 @@ void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
 			g_free(com.pref.spcc.bluepref);
 			com.pref.spcc.bluepref = NULL;
 		}
-		GList *list = g_list_nth(com.spcc_data.mono_filters[BLUE], index);
+		GList *list = g_list_nth(com.spcc_data.mono_filters[BLAYER], index);
 		if (list) {
 			spcc_object* object = (spcc_object*) list->data;
 			com.pref.spcc.bluepref = g_strdup(object->name);

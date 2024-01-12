@@ -37,6 +37,7 @@
 #include <string.h>
 #include <float.h>
 #include <assert.h>
+#include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
@@ -761,3 +762,62 @@ int robustmean(int n, const double *x, double *mean, double *stdev)
 	return 0;
 }
 
+/************* robust linear fit *****************/
+int repeated_median_regression(const double *x, const double *y, size_t n, double *a, double *b, double *std_err) {
+
+	double *a_ijk = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
+	if (!a_ijk)
+		return 1;
+
+#ifdef _OPENMP
+	// Declare num_slopes to track the total count of slopes
+	size_t num_slopes = 0;
+	double *a_ijk_local = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
+	if (!a_ijk_local) {
+		free(a_ijk);
+		return 1;
+	}
+#pragma omp parallel for
+	for (size_t i = 0; i < n; i++) {
+		size_t num_slopes_local = 0;
+		for (size_t j = i + 1; j < n; j++) {
+			for (size_t k = j + 1; k < n; k++) {
+				a_ijk_local[num_slopes_local++] = (y[j] - y[i]) / (x[j] - x[i]);
+			}
+		}
+		#pragma omp critical
+		{
+			memcpy(a_ijk + num_slopes, a_ijk_local, num_slopes_local * sizeof(double));
+			num_slopes += num_slopes_local;
+		}
+	}
+#else
+	for (size_t i = 0; i < n; i++) {
+		for (size_t j = i + 1; j < n; j++) {
+			for (size_t k = j + 1; k < n; k++) {
+				a_ijk[num_slopes++] = (y[j] - y[i]) / (x[j] - x[i]);
+			}
+		}
+	}
+#endif
+
+	// Find the median slope using GSL
+	gsl_sort(a_ijk, 1, num_slopes);
+	*a = gsl_stats_median_from_sorted_data(a_ijk, 1, num_slopes);
+
+	// Calculate residuals using the estimated slope
+	double residuals[n];
+	for (size_t i = 0; i < n; i++) {
+		residuals[i] = y[i] - *a * x[i];
+	}
+
+	// Find the median residual using GSL
+	gsl_sort(residuals, 1, n);
+	*b = gsl_stats_median_from_sorted_data(residuals, 1, n);
+	// Calculate the standard deviation of the residuals
+	*std_err = gsl_stats_sd(residuals, 1, n);
+
+	free(a_ijk);
+	free(a_ijk_local);
+	return 0;
+}

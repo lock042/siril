@@ -23,8 +23,4 @@ enum {
 	CMF_1931, CMF_1964
 };
 
-enum {
-	RED, GREEN, BLUE
-};
-
 #endif
