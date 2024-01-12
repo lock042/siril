@@ -215,7 +215,7 @@ void repeated_median_regression(const double *x, const double *y, size_t n, doub
 	free(a_ijk_local);
 }
 
-static int get_pcc_coeffs(struct photometric_cc_data *args, float* kw) {
+static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
 	pcc_star *stars = args->stars;
@@ -313,8 +313,11 @@ static int get_pcc_coeffs(struct photometric_cc_data *args, float* kw) {
 	// Calculate white reference ratios
 	double white_flux[3];
 	xpsampled white_spectrum = { xpsampled_wl, { 0.0 } };
-	load_spcc_object_arrays( args->white);
-	init_xpsampled_from_library(&white_spectrum, args->white);
+	GList *selected_white = g_list_nth(com.spcc_data.wb_ref, args->selected_white_ref);
+	spcc_object *white = (spcc_object *) selected_white->data;
+	load_spcc_object_arrays(white);
+	init_xpsampled_from_library(&white_spectrum, white);
+	spcc_object_free_arrays(white);
 	xpsampled white_expected = { xpsampled_wl, { 0.0 } };
 	for (int chan = 0 ; chan < 3 ; chan++) {
 		multiply_xpsampled(&white_expected, &response[chan], &white_spectrum);
@@ -322,17 +325,15 @@ static int get_pcc_coeffs(struct photometric_cc_data *args, float* kw) {
 	}
 	wrg = white_flux[RED]/white_flux[GREEN];
 	wbg = white_flux[BLUE]/white_flux[GREEN];
-
 	// Robust estimation of linear best fit
 	// First sort the arrays so any FLT_MAX are at the end, after ngood
-	double arg, brg, abg, bbg, deviation[3] = { 0.0 };
+	double arg, brg, abg, bbg, deviation[2] = { 0.0 };
 	quicksort_d(irg, nb_stars);
 	quicksort_d(crg, nb_stars);
 	quicksort_d(ibg, nb_stars);
 	quicksort_d(cbg, nb_stars);
 	repeated_median_regression(crg, irg, ngood, &arg, &brg, &deviation[0]);
-	repeated_median_regression(cbg, ibg, ngood, &abg, &bbg, &deviation[2]);
-
+	repeated_median_regression(cbg, ibg, ngood, &abg, &bbg, &deviation[1]);
 	double kr = 1.f / (arg + brg * wrg);
 	double kg = 1.f;
 	double kb = 1.f / (abg + bbg * wbg);
@@ -363,7 +364,10 @@ static int get_pcc_coeffs(struct photometric_cc_data *args, float* kw) {
 	return 0;
 }
 
-static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float *kw, int norm_channel, struct photometric_cc_data *args) {
+static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float *kw, int norm_channel) {
+	int nb_stars = args->nb_stars;
+	fits *fit = args->fit;
+	pcc_star *stars = args->stars;
 	float *data[3];
 	data[RED] = malloc(sizeof(float) * nb_stars);
 	data[GREEN] = malloc(sizeof(float) * nb_stars);
@@ -372,7 +376,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-
 	for (int k = 0; k < nb_stars; k++) {
 		data[RED][k] = FLT_MAX;
 		data[GREEN][k] = FLT_MAX;
@@ -388,51 +391,39 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
-	xpsampled response[3] = { { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } } };
-
 	cmsHPROFILE xyzprofile = NULL;
 	cmsHPROFILE profile = NULL;
 	cmsHTRANSFORM transform = NULL;
 
-	if (args->spcc) {
-		for (int chan = 0 ; chan < 3 ; chan++) {
-			get_spectrum_from_args(args, &response[chan], chan);
-		}
-		// Calculate effective primaries for later
-		args->primaries.Red = xpsampled_to_xyY(&response[RED], CMF_1931);
-		args->primaries.Green = xpsampled_to_xyY(&response[GREEN], CMF_1931);
-		args->primaries.Blue = xpsampled_to_xyY(&response[BLUE], CMF_1931);
-	} else {
 	// This transform is for normal PCC to transform the reference
 	//star XYZ to RGB: the SPCC source->working transform is dealt
 	//with later.
-		xyzprofile = cmsCreateXYZProfile();
-		if (fit->icc_profile) {
-			profile = copyICCProfile(fit->icc_profile);
-			if (!fit_icc_is_linear(fit)) {
-				siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
-						"apply photometric color calibration to linear images.\n"), "salmon");
-			}
-		} else {
-			profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
-			fit->icc_profile = copyICCProfile(profile);
-			color_manage(fit, (fit->icc_profile != NULL));
+	xyzprofile = cmsCreateXYZProfile();
+	if (fit->icc_profile) {
+		profile = copyICCProfile(fit->icc_profile);
+		if (!fit_icc_is_linear(fit)) {
+			siril_log_color_message(_("Image color space is nonlinear. It is recommended to "
+					"apply photometric color calibration to linear images.\n"), "salmon");
 		}
-		if (xyzprofile && profile) {
-			transform = cmsCreateTransformTHR(com.icc.context_single,
-						xyzprofile,
-						TYPE_XYZ_FLT,
-						profile,
-						TYPE_RGB_FLT,
-						INTENT_RELATIVE_COLORIMETRIC,
-						cmsFLAGS_NONEGATIVES);
-			cmsCloseProfile(profile);
-			cmsCloseProfile(xyzprofile);
-		}
-		if (!transform) {
-			siril_log_color_message(_("Error: failed to set up colorspace transform.\n"), "red");
-			return 1;
-		}
+	} else {
+		profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
+		fit->icc_profile = copyICCProfile(profile);
+		color_manage(fit, (fit->icc_profile != NULL));
+	}
+	if (xyzprofile && profile) {
+		transform = cmsCreateTransformTHR(com.icc.context_single,
+					xyzprofile,
+					TYPE_XYZ_FLT,
+					profile,
+					TYPE_RGB_FLT,
+					INTENT_RELATIVE_COLORIMETRIC,
+					cmsFLAGS_NONEGATIVES);
+		cmsCloseProfile(profile);
+		cmsCloseProfile(xyzprofile);
+	}
+	if (!transform) {
+		siril_log_color_message(_("Error: failed to set up colorspace transform.\n"), "red");
+		return 1;
 	}
 
 #ifdef _OPENMP
@@ -469,33 +460,19 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
-		if (!args->spcc) {
-			// get r g b coefficient
-			// If the Gaia Teff field is populated (CAT_GAIADR3 and
-			// CAT_GAIADR3_DIRECT), use that as it should be more accurate.
-			// Otherwise, we convert from Johnson B-V
-			if (stars[i].teff == 0.f) {
-				bv = min(max(stars[i].BV, -0.4f), 2.f);
-				cmsFloat64Number TempK = BV_to_T(bv);
-				stars[i].teff = (float) TempK;
-			}
-			// TempK2rgb converts the temperature to RGB values in the working colorspace
-			TempK2rgb(&r, &g, &b, stars[i].teff, transform);
-			/* get Color calibration factors for current star */
-		} else {
-			float ref_flux[3];
-			// Get the XP_sampled spectrum for this star
-			xpsampled xp_sampled = { xpsampled_wl, { 0.0 } };
-			get_xpsampled(&xp_sampled, args->datalink_path, stars[i].index);
-
-			// Multiply the stellar spectrum by the channel response and integrate
-			xpsampled flux_expected = { xpsampled_wl, { 0.0 } };
-			for (int chan = 0 ; chan < 3 ; chan++) {
-				multiply_xpsampled(&flux_expected, &response[chan], &xp_sampled);
-				ref_flux[chan] = integrate_xpsampled(&flux_expected);
-			}
-			r = ref_flux[RED]; g = ref_flux[GREEN]; b = ref_flux[BLUE];
+		// get r g b coefficient
+		// If the Gaia Teff field is populated (CAT_GAIADR3 and
+		// CAT_GAIADR3_DIRECT), use that as it should be more accurate.
+		// Otherwise, we convert from Johnson B-V
+		if (stars[i].teff == 0.f) {
+			bv = min(max(stars[i].BV, -0.4f), 2.f);
+			cmsFloat64Number TempK = BV_to_T(bv);
+			stars[i].teff = (float) TempK;
 		}
+		// TempK2rgb converts the temperature to RGB values in the working colorspace
+		TempK2rgb(&r, &g, &b, stars[i].teff, transform);
+		/* get Color calibration factors for current star */
+
 		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
 		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
 		data[BLUE][i] = (flux[norm_channel] / flux[BLUE]) * b;
@@ -549,7 +526,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		free(data[BLUE]);
 		return 1;
 	}
-
 	/* normalize factors */
 	float norm = kw[norm_channel];
 	kw[RED] /= norm;
@@ -559,7 +535,6 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
 	}
-
 	if (ngood < 20)
 		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
 	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
@@ -708,12 +683,15 @@ int photometric_cc(struct photometric_cc_data *args) {
 			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
 	set_progress_bar_data(_("Photometric color calibration in progress..."), PROGRESS_RESET);
-	int ret = get_pcc_coeffs(args, kw);
-//	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel, args);
+	int ret;
+	if (args->spcc)
+		ret = get_spcc_white_balance_coeffs(args, kw);
+	else
+		ret = get_pcc_white_balance_coeffs(args, kw, norm_channel);
 
 	if (!ret) {
 		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
-		if (args->spcc && args->do_colortransform) {
+		if (args->spcc && args->set_source_profile) {
 			ret = spcc_set_source_profile(args);
 		}
 		if (args->spcc && !ret) {
@@ -746,9 +724,6 @@ gpointer photometric_cc_standalone(gpointer p) {
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
-
-	if (check_prior_spcc(args->fit))
-		return GINT_TO_POINTER(1);
 
 	/* run peaker to measure FWHM of the image to adjust photometry settings */
 	args->fwhm = measure_image_FWHM(args->fit, -1);

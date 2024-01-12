@@ -1175,7 +1175,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
-                  <!-- n-columns=3 n-rows=9 -->
+                  <!-- n-columns=3 n-rows=10 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -1203,24 +1203,6 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="combo_spcc_whitepoint">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item translatable="yes">D50 (sun low in the sky)</item>
-                          <item translatable="yes">D65 (midday sun)</item>
-                          <item translatable="yes">D58 (Solar black body temperature)</item>
-                          <item translatable="yes">Average Spiral Galaxy</item>
-                          <item translatable="yes">Average Elliptical Galaxy</item>
-                        </items>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">0</property>
                       </packing>
                     </child>
                     <child>
@@ -1507,18 +1489,33 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="spcc_correct_colorspace">
-                        <property name="label" translatable="yes">Sensor colorspace
-correction</property>
+                        <property name="label" translatable="yes">Assign source color profile</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-markup" translatable="yes">If selected, Siril will compute the effective chromaticities of the sensor and transform the source color space to the working color space. &lt;b&gt;This feature is experimental!&lt;/b&gt;</property>
+                        <property name="tooltip-markup" translatable="yes">If selected, Siril will assign a linear source ICC profile computed from the effective spectrophotometric chromaticities of the sensor / filters combination.</property>
+                        <property name="active">True</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">9</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="combo_spcc_whitepoint">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select white balance reference</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>

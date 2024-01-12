@@ -168,23 +168,47 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 	}
 }
 
-// SPCC color space transform from a source profile constructed from the
-// computed primaries of the sensor / filter setup and the chosen white point
-// to a linear version of the working colorspace
+// Set a source profile constructed from the computed primaries of the sensor /
+// filter setup. A D50 white point is nominally assigned but this would only be
+// used with INTENT_ABSOLUTE_COLORIMETRIC. Since white point correction is
+// already carried out, that intent should generally not be used when converting
+// from this profile.
 int spcc_set_source_profile(struct photometric_cc_data *args) {
 	cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
+	cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
+	cmsMLU *copyright = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(copyright, "en", "US", "Copyright 2024, Team free-astro (https://free-astro.org/index.php/Siril), CC-BY-SA 3.0 Unported (https://creativecommons.org/licenses/by-sa/3.0/");
 	cmsToneCurve *curve[3], *tonecurve;
 	tonecurve = cmsBuildGamma(NULL, 1.00);
 	curve[0] = curve[1] = curve[2] = tonecurve;
-	cmsHPROFILE source_profile = cmsCreateRGBProfile(&d50_illuminant_specs, &args->primaries, curve);
-	if (!source_profile)
+	cmsHPROFILE profile = cmsCreateRGBProfile(&d50_illuminant_specs, &args->primaries, curve);
+	if (!profile)
 		return 1;
+	cmsWriteTag(profile, cmsSigCopyrightTag, copyright);
+	cmsWriteTag (profile, cmsSigMediaWhitePointTag, &d50_illuminant_specs_media_whitepoint);
+	cmsMLU *description = cmsMLUalloc(NULL, 1);
+	GList *sensorlistitem, *filterlistitem;
+	if (args->spcc_mono_sensor) {
+		sensorlistitem = g_list_nth(com.spcc_data.mono_sensors, args->selected_sensor_m);
+		filterlistitem = g_list_nth(com.spcc_data.mono_filters[0], args->selected_filter_r);
+	} else {
+		sensorlistitem = g_list_nth(com.spcc_data.osc_sensors, args->selected_sensor_osc);
+		filterlistitem = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
+	}
+	spcc_object *sensor = (spcc_object*) sensorlistitem->data;
+	spcc_object *filter = (spcc_object*) filterlistitem->data;
+	gchar *description_text = g_strdup_printf("Siril SPCC sensor source profile (linear). Sensor: %s, filters: %s", sensor->name, filter->model);
+	cmsMLUsetASCII(description, "en", "US", description_text);
+	cmsWriteTag(profile, cmsSigProfileDescriptionTag, description);
+	cmsMLUfree(description);
+	cmsMLUfree(copyright);
+	g_free(description_text);
 	if (args->fit->icc_profile) {
 		cmsCloseProfile(args->fit->icc_profile);
 		args->fit->icc_profile = NULL;
 	}
 	// As the existing profile is NULL, we are just assigning here.
-	siril_colorspace_transform(args->fit, source_profile);
+	siril_colorspace_transform(args->fit, profile);
 	return 0;
 }
 

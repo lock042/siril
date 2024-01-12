@@ -371,6 +371,7 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *mono_sensor_check = lookup_widget("spcc_toggle_sensor_type");
 	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
+	GtkWidget *whiteref = lookup_widget("combo_spcc_whitepoint");
 	GtkWidget *monosensor = lookup_widget("combo_spcc_sensors_mono");
 	GtkWidget *oscsensor = lookup_widget("combo_spcc_sensors_osc");
 	GtkWidget *filters_r = lookup_widget("combo_spcc_filters_r");
@@ -380,6 +381,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *max_stars_spin = lookup_widget("SPCC_max_stars");
 	GtkWidget *toggle_colortransform = lookup_widget("spcc_correct_colorspace");
 
+	args->selected_white_ref = gtk_combo_box_get_active(GTK_COMBO_BOX(whiteref));
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
 	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(oscsensor));
 	args->selected_filter_r = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_r));
@@ -387,8 +389,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
 	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
-	args->do_colortransform = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_colortransform));
-	args->white = (spcc_object*) com.spcc_data.wb_ref->data;
+	args->set_source_profile = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_colortransform));
 }
 
 void get_whitepoint_from_ui(struct photometric_cc_data *args) {
@@ -412,7 +413,7 @@ void get_whitepoint_from_ui(struct photometric_cc_data *args) {
 	}
 }
 
-int get_favourite_spccobject(GList *list, gchar *favourite) {
+int get_favourite_spccobject(GList *list, const gchar *favourite) {
 	if (!list)
 		return 0;
 
@@ -427,7 +428,7 @@ int get_favourite_spccobject(GList *list, gchar *favourite) {
 	return -1;  // No match found
 }
 
-int get_favourite_oscsensor(GList *list, gchar *favourite) {
+int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 	if (!list)
 		return 0;
 
@@ -442,7 +443,7 @@ int get_favourite_oscsensor(GList *list, gchar *favourite) {
 	return -1;  // No match found
 }
 
-void fill_combo_from_glist(gchar *comboname, GList *list, int channel, gchar *favourite) {
+void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gchar *favourite) {
 	GtkComboBox *combo;
 	GtkListStore *store;
 	GtkTreeIter iter;
@@ -493,6 +494,7 @@ void populate_spcc_combos() {
 		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
 		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
+		fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
 		spcc_filters_initialized = TRUE;
 	}
 }
