@@ -20,6 +20,8 @@
 
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_interp.h>
+#include <gsl/gsl_sort.h>
+#include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -158,6 +160,206 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	if (area->y <= 0 || area->y + area->h >= fit->ry - 1)
 		return 1;
 
+	return 0;
+}
+
+void repeated_median_regression(const double *x, const double *y, size_t n, double *a, double *b, double *std_err) {
+
+	double *a_ijk = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
+
+#ifdef _OPENMP
+	// Declare num_slopes to track the total count of slopes
+	size_t num_slopes = 0;
+	double *a_ijk_local = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
+#pragma omp parallel for
+	for (size_t i = 0; i < n; i++) {
+		size_t num_slopes_local = 0;
+		for (size_t j = i + 1; j < n; j++) {
+			for (size_t k = j + 1; k < n; k++) {
+				a_ijk_local[num_slopes_local++] = (y[j] - y[i]) / (x[j] - x[i]);
+			}
+		}
+		#pragma omp critical
+		{
+			memcpy(a_ijk + num_slopes, a_ijk_local, num_slopes_local * sizeof(double));
+			num_slopes += num_slopes_local;
+		}
+	}
+#else
+	for (size_t i = 0; i < n; i++) {
+		for (size_t j = i + 1; j < n; j++) {
+			for (size_t k = j + 1; k < n; k++) {
+				a_ijk[num_slopes++] = (y[j] - y[i]) / (x[j] - x[i]);
+			}
+		}
+	}
+#endif
+
+	// Find the median slope using GSL
+	gsl_sort(a_ijk, 1, num_slopes);
+	*a = gsl_stats_median_from_sorted_data(a_ijk, 1, num_slopes);
+
+	// Calculate residuals using the estimated slope
+	double residuals[n];
+	for (size_t i = 0; i < n; i++) {
+		residuals[i] = y[i] - *a * x[i];
+	}
+
+	// Find the median residual using GSL
+	gsl_sort(residuals, 1, n);
+	*b = gsl_stats_median_from_sorted_data(residuals, 1, n);
+	// Calculate the standard deviation of the residuals
+	*std_err = gsl_stats_sd(residuals, 1, n);
+
+	free(a_ijk);
+	free(a_ijk_local);
+}
+
+static int get_pcc_coeffs(struct photometric_cc_data *args, float* kw) {
+	int nb_stars = args->nb_stars;
+	fits *fit = args->fit;
+	pcc_star *stars = args->stars;
+	double *irg = malloc(sizeof(double) * nb_stars);
+	double *ibg = malloc(sizeof(double) * nb_stars);
+	double *crg = malloc(sizeof(double) * nb_stars);
+	double *cbg = malloc(sizeof(double) * nb_stars);
+	double wrg = 0.f, wbg = 0.f;
+	xpsampled response[3] = { { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } }, { xpsampled_wl, { 0.0 } } };
+
+	for (int k = 0 ; k < nb_stars; k++) {
+		irg[k] = FLT_MAX;
+		ibg[k] = FLT_MAX;
+		crg[k] = FLT_MAX;
+		cbg[k] = FLT_MAX;
+	}
+	gchar *str = ngettext("Applying aperture photometry to %d star.\n", "Applying aperture photometry to %d stars.\n", nb_stars);
+	str = g_strdup_printf(str, nb_stars);
+	siril_log_message(str);
+	g_free(str);
+
+	struct phot_config *ps = phot_set_adjusted_for_image(fit);
+	siril_debug_print("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
+	gint ngood = 0, progress = 0;
+	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
+	if (args->spcc) {
+		for (int chan = 0 ; chan < 3 ; chan++) {
+			get_spectrum_from_args(args, &response[chan], chan);
+		}
+		// Calculate effective primaries for later
+		args->primaries.Red = xpsampled_to_xyY(&response[RED], CMF_1931);
+		args->primaries.Green = xpsampled_to_xyY(&response[GREEN], CMF_1931);
+		args->primaries.Blue = xpsampled_to_xyY(&response[BLUE], CMF_1931);
+	}
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
+#endif
+	for (int i = 0; i < nb_stars; i++) {
+		if (!get_thread_run())
+			continue;
+		rectangle area = { 0 };
+
+		// Calculate image flux ratios
+		double flux[3] = { 0.0, 0.0, 0.0 };
+		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
+			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
+		g_atomic_int_inc(&progress);
+
+		if (make_selection_around_a_star(stars[i], &area, fit)) {
+			siril_debug_print("star %d is outside image or too close to border\n", i);
+			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
+			continue;
+		}
+
+		gboolean no_phot = FALSE;
+		psf_error error = PSF_NO_ERR;
+		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
+			g_atomic_int_inc(errors+error);
+			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
+				no_phot = TRUE;
+			else flux[chan] = pow(10., -0.4 * photometry->mag);
+			if (photometry)
+				free_psf(photometry);
+		}
+		if (no_phot) {
+			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
+			continue;
+		}
+		irg[i] = flux[RED]/flux[GREEN];
+		ibg[i] = flux[BLUE]/flux[GREEN];
+
+		// Calculate catalogue flux ratios
+		double ref_flux[3];
+		xpsampled star_spectrum = { xpsampled_wl, { 0.0 } };
+		get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
+
+		xpsampled flux_expected = { xpsampled_wl, { 0.0 } };
+		for (int chan = 0 ; chan < 3 ; chan++) {
+			multiply_xpsampled(&flux_expected, &response[chan], &star_spectrum);
+			ref_flux[chan] = integrate_xpsampled(&flux_expected);
+		}
+		crg[i] = ref_flux[RED]/ref_flux[GREEN];
+		cbg[i] = ref_flux[BLUE]/ref_flux[GREEN];
+		if (xisnanf(irg[i]) || xisnanf(ibg[i]) || xisnanf(crg[i]) || xisnanf(cbg[i])) {
+			irg[i] = FLT_MAX;
+			ibg[i] = FLT_MAX;
+			crg[i] = FLT_MAX;
+			cbg[i] = FLT_MAX;
+			continue;
+		}
+		g_atomic_int_inc(&ngood);
+	}
+
+	// Calculate white reference ratios
+	double white_flux[3];
+	xpsampled white_spectrum = { xpsampled_wl, { 0.0 } };
+	load_spcc_object_arrays( args->white);
+	init_xpsampled_from_library(&white_spectrum, args->white);
+	xpsampled white_expected = { xpsampled_wl, { 0.0 } };
+	for (int chan = 0 ; chan < 3 ; chan++) {
+		multiply_xpsampled(&white_expected, &response[chan], &white_spectrum);
+		white_flux[chan] = integrate_xpsampled(&white_expected);
+	}
+	wrg = white_flux[RED]/white_flux[GREEN];
+	wbg = white_flux[BLUE]/white_flux[GREEN];
+
+	// Robust estimation of linear best fit
+	// First sort the arrays so any FLT_MAX are at the end, after ngood
+	double arg, brg, abg, bbg, deviation[3] = { 0.0 };
+	quicksort_d(irg, nb_stars);
+	quicksort_d(crg, nb_stars);
+	quicksort_d(ibg, nb_stars);
+	quicksort_d(cbg, nb_stars);
+	repeated_median_regression(crg, irg, ngood, &arg, &brg, &deviation[0]);
+	repeated_median_regression(cbg, ibg, ngood, &abg, &bbg, &deviation[2]);
+
+	double kr = 1.f / (arg + brg * wrg);
+	double kg = 1.f;
+	double kb = 1.f / (abg + bbg * wbg);
+	double maxk = max(max(kr, kg), kb);
+	kw[RED] = kr / maxk;
+	kw[GREEN] = kg / maxk;
+	kw[BLUE] = kb / maxk;
+	free (irg);
+	free(ibg);
+	free(crg);
+	free(cbg);
+	if (kw[RED] < 0.f || kw[GREEN] < 0.f || kw[BLUE] < 0.f) {
+		return 1;
+	}
+	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
+	for (int chan = 0; chan < 3; chan++) {
+//		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
+		siril_log_message("K%d: %5.3lf\n", chan, kw[chan]);
+	}
+
+	if (ngood < 20)
+		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
+/* Commenting this out at least for now, I'm not sure how the new deviations compare with regard to the solution being imprecise.
+ * The values seem comparable to what other SPCC implementations return.
+	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
+		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
+*/
 	return 0;
 }
 
@@ -506,12 +708,13 @@ int photometric_cc(struct photometric_cc_data *args) {
 			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
 	set_progress_bar_data(_("Photometric color calibration in progress..."), PROGRESS_RESET);
-	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel, args);
+	int ret = get_pcc_coeffs(args, kw);
+//	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel, args);
 
 	if (!ret) {
 		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
 		if (args->spcc && args->do_colortransform) {
-			ret = spcc_colorspace_transform(args);
+			ret = spcc_set_source_profile(args);
 		}
 		if (args->spcc && !ret) {
 			invalidate_stats_from_fit(args->fit);

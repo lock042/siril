@@ -171,47 +171,20 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 // SPCC color space transform from a source profile constructed from the
 // computed primaries of the sensor / filter setup and the chosen white point
 // to a linear version of the working colorspace
-int spcc_colorspace_transform(struct photometric_cc_data *args) {
+int spcc_set_source_profile(struct photometric_cc_data *args) {
+	cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
 	cmsToneCurve *curve[3], *tonecurve;
 	tonecurve = cmsBuildGamma(NULL, 1.00);
 	curve[0] = curve[1] = curve[2] = tonecurve;
-	cmsHPROFILE source_profile = cmsCreateRGBProfile(&args->whitepoint, &args->primaries, curve);
+	cmsHPROFILE source_profile = cmsCreateRGBProfile(&d50_illuminant_specs, &args->primaries, curve);
 	if (!source_profile)
 		return 1;
-	cmsHPROFILE dest_profile = siril_color_profile_linear_from_color_profile(com.icc.working_standard);
-	if (!dest_profile) {
-		cmsCloseProfile(source_profile);
-		return 1;
-	}
-
-	uint32_t npixels = args->fit->rx * args->fit->ry;
-	gboolean threaded = !get_thread_run();
-	cmsUInt32Number fit_colorspace = cmsSigRgbData;
-	cmsUInt32Number type = get_planar_formatter_type(fit_colorspace, args->fit->type, FALSE);
-
-	siril_log_message(_("Computed sensor chromaticities:\nRed: x = %f, y = %f\nGreen: x = %f, y = %f\nBlue:x = %f, y = %f\nTransforming to working color space primaries.\n"),
-					  args->primaries.Red.x, args->primaries.Red.y, args->primaries.Green.x, args->primaries.Green.y, args->primaries.Blue.x, args->primaries.Blue.y);
-
-	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), source_profile, type, dest_profile, type, INTENT_ABSOLUTE_COLORIMETRIC, com.icc.rendering_flags);
-	cmsCloseProfile(dest_profile);
-	if (!transform) {
-		cmsCloseProfile(source_profile);
-		return 1;
-	}
-	if (args->fit->icc_profile)
+	if (args->fit->icc_profile) {
 		cmsCloseProfile(args->fit->icc_profile);
-	args->fit->icc_profile = copyICCProfile(source_profile);
-	cmsCloseProfile(source_profile);
-
-	void *data = (args->fit->type == DATA_FLOAT) ? (void *) args->fit->fdata : (void *) args->fit->data;
-	cmsUInt32Number datasize = args->fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	cmsUInt32Number bytesperline = args->fit->rx * datasize;
-	cmsUInt32Number bytesperplane = npixels * datasize;
-	cmsDoTransformLineStride(transform, data, data, args->fit->rx, args->fit->ry,
-							 bytesperline, bytesperline, bytesperplane, bytesperplane);
-	cmsDeleteTransform(transform);
-	refresh_icc_transforms();
-	color_manage(args->fit, TRUE);
+		args->fit->icc_profile = NULL;
+	}
+	// As the existing profile is NULL, we are just assigning here.
+	siril_colorspace_transform(args->fit, source_profile);
 	return 0;
 }
 
