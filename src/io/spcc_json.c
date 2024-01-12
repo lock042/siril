@@ -543,6 +543,7 @@ gint compare_osc_object_models(gconstpointer a, gconstpointer b) {
 void load_all_spcc_metadata() {
     const gchar *path = siril_get_spcc_repo_path();
     processDirectory(path);
+	com.spcc_data.wb_ref = g_list_sort(com.spcc_data.wb_ref, compare_spcc_object_names);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);
 	com.spcc_data.osc_lpf = g_list_sort(com.spcc_data.osc_lpf, compare_spcc_object_names);
 	com.spcc_data.osc_filters = g_list_sort(com.spcc_data.osc_filters, compare_spcc_object_names);
