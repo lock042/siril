@@ -674,6 +674,8 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
 		spcc_object_free_arrays(object);
 	}
+	spl_data->datamin.x = 336.0;
+	spl_data->datamax.x = 1020.0;
 	cbdata = NULL;
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
