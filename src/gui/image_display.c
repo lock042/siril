@@ -1207,14 +1207,14 @@ static void draw_compass(const draw_data_t* dd) {
 	double ra0, dec0;
 	double xN, yN, xE, yE;
 
-	double xpos = -1 + (fit->rx + 1) / 2.0;
-	double ypos = -1 + (fit->ry + 1) / 2.0;
+	double xpos = fit->rx * 0.5;
+	double ypos = fit->ry * 0.5;
 	pix2wcs(fit, xpos, ypos, &ra0, &dec0);
 	if (ra0 == -1) return; // checks implicitly that wcslib member exists
-	double len = (double) fit->ry / 20.;
+	if (90. - fabs(dec0) < 2.78e-3) return;// center is less than 10"off from a pole
+	double len = (double)fit->ry / 20.;
 	wcs2pix(fit, ra0, dec0 + 0.1, &xN, &yN);
 	wcs2pix(fit, ra0 + 0.1, dec0, &xE, &yE);
-	if (fabs(dec0 - 90.) < len * get_wcs_image_resolution(fit)) return; //If within one arrow length of the North Pole, do not plot
 	double angleN = -atan2(yN - ypos, xN - xpos);
 	double angleE = -atan2(yE - ypos, xE - xpos);
 

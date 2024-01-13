@@ -399,15 +399,17 @@ gboolean has_nonzero_coords() {
 }
 
 // returns a string describing the site coordinates on Earth in a format suited for queries
+#ifdef HAVE_LIBCURL
 static gchar *retrieve_site_coord(fits *fit) {
 	if (fit->sitelat == 0.0 && fit->sitelong == 0.0)
 		return g_strdup("@500");
 	return g_strdup_printf("%+f,%+f,%f", fit->sitelat, fit->sitelong, fit->siteelev);
 }
+#endif
 
 // free the result with free_fetch_result
 gchar *search_in_online_catalogs(sky_object_query_args *args) {
-#ifndef HAVE_NETWORKING
+#ifndef HAVE_LIBCURL
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 	return NULL;
 #else

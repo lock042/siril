@@ -48,9 +48,9 @@ double cvCalculRigidTransform(s_star *star_array_img,
 void cvMultH(Homography H1, Homography H2, Homography *Hout);
 void cvInvertH(Homography *Hom);
 void cvApplyFlips(Homography *Hom, int source_ry, int target_ry);
+void cvdisplay2ocv(Homography *Hom);
 
 void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom);
-void cvGetMatrixResize(double cxin, double cyin, double cxout, double cyout, double scale, Homography *Hom);
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h);
 
 #ifdef __cplusplus

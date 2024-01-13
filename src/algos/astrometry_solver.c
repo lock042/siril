@@ -63,8 +63,11 @@
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-8
+#define PLATESOLVE_STEP 100. // step made on CRPIX axes to compute the CD matrix
 
 #undef DEBUG		/* get some of diagnostic output */
+
+static gchar *asnet_version = NULL;
 
 typedef struct {
 	point size;
@@ -174,27 +177,40 @@ SirilWorldCS *get_eqs_from_header(fits *fit) {
 }
 
 static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
-	double rotationa, rotationb, rotation;
 	char field_x[256] = "";
 	char field_y[256] = "";
+	gboolean report_flip = FALSE;
 
 	double cd[2][2];
-	rotationa = atan2(-args->fit->wcslib->pc[2], args->fit->wcslib->pc[0]);
-	rotationb = atan2(args->fit->wcslib->pc[1], args->fit->wcslib->pc[3]);
-	rotation = 0.5 * (rotationa + rotationb) * RADTODEG;
 	wcs_cd2mat(args->fit->wcslib, cd);
 	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
-	/* If the determinant of the top-left 2x2 rotation matrix is < 0
-	 * the transformation is orientation-preserving. */
 
-	if (det > 0 && args->flip_image)
-		rotation = 180.0 - rotation;
-	if (rotation < -180.0)
-		rotation += 360.0;
-	if (rotation > 180.0)
-		rotation -= 360.0;
-	siril_log_message(_("Up is %+.2lf deg ClockWise wrt. N%s\n"), rotation, det > 0.0 ? _(" (flipped)") : "");
-
+	if (90. - fabs(args->fit->wcsdata.dec) < 2.78e-3) // center is less than 10" off from a pole
+		siril_log_message(_("Up position wrt. N is undetermined (too close to a Pole)\n"));
+	else {
+		// We move 10" to the North and we'll figure out the angle from there....
+		// For some unknown reason, asnet may return a solution with the reference point not at center
+		// We need to handle that case by passing ra and dec from args->fit->wcsdata which has been updated to take it into account
+		double xN, yN, rotation;
+		int status = wcs2pix(args->fit, args->fit->wcsdata.ra, args->fit->wcsdata.dec + 2.78e-3, &xN, &yN);
+		xN -= args->fit->rx * 0.5;
+		yN -= args->fit->ry * 0.5;
+		if (!status) {
+			rotation = -atan2(xN, yN) * RADTODEG; // we measure clockwise wrt. +y axis
+			if (det > 0) {
+				if (args->flip_image) {
+					rotation = 180.0 - rotation;
+				} else {
+					report_flip = TRUE; // we only report a flip if the image is not flipped afterwards
+				}
+			}
+			if (rotation < -180.0)
+				rotation += 360.0;
+			if (rotation > 180.0)
+				rotation -= 360.0;
+			siril_log_message(_("Up is %+.2lf deg ClockWise wrt. N%s\n"), rotation, report_flip ? _(" (flipped)") : "");
+		}
+	}
 	/* Plate Solving */
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
 	siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
@@ -239,7 +255,7 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 
 static gboolean image_is_flipped(Homography H) {
 	double det = (H.h00 * H.h11 - H.h01 * H.h10); // determinant of rotation matrix (ad - bc)
-	return det < 0;
+	return det > 0;
 }
 
 static gboolean image_is_flipped_from_wcs(fits *fit) {
@@ -254,7 +270,7 @@ static void flip_bottom_up_astrometry_data(fits *fit) {
 	Homography H = { 0 };
 	cvGetEye(&H);
 	H.h11 = -1.;
-	H.h12 = (double)fit->ry - 0.5;
+	H.h12 = (double)fit->ry;
 	reframe_astrometry_data(fit, H);
 }
 
@@ -370,10 +386,14 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	wcs_cdelt2unity(fit->wcslib);
 	wcspcx(fit->wcslib, 0, 0, NULL);
 
-	point refpointin = {fit->wcslib->crpix[0], fit->wcslib->crpix[1]};
+	// we fetch the refpoint in siril convention
+	point refpointin = {fit->wcslib->crpix[0] - 0.5, fit->wcslib->crpix[1] - 0.5};
 	cvTransformImageRefPoint(H, refpointin, &refpointout);
-	fit->wcslib->crpix[0] = refpointout.x;
-	fit->wcslib->crpix[1] = refpointout.y;
+	// and convert it back to FITS/WCS convention
+	fit->wcslib->crpix[0] = refpointout.x + 0.5;
+	fit->wcslib->crpix[1] = refpointout.y + 0.5;
+	fit->wcslib->flag = 0; // to update the structure
+	wcsset(fit->wcslib);
 
 	print_updated_wcs_data(fit);
 }
@@ -544,10 +564,17 @@ gpointer plate_solver(gpointer p) {
 		if (local_asnet_platesolve(stars, nb_stars, args, &solution)) {
 			args->ret = ERROR_PLATESOLVE;
 		}
-	} else
+	} else {
+		double x0 = args->fit->rx * 0.5;
+		double y0 = args->fit->ry * 0.5;
+		for (int s = 0; s < nb_stars; s++) {
+			stars[s]->xpos -= x0;
+			stars[s]->ypos = y0 - stars[s]->ypos;
+		}
 		if (match_catalog(stars, nb_stars, args, &solution)) {
 			args->ret = ERROR_PLATESOLVE;
 		}
+	}
 	if (args->ret)
 		goto clearup;
 
@@ -717,11 +744,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	}
 
 	double ra0, dec0;
-	// using siril convention as were set by the peaker
-	solution->crpix[0] = args->rx_solver * 0.5;
-	solution->crpix[1] = args->ry_solver * 0.5;
+	// star coordinates were set with the origin at the grid center and y upwards
+	double center[2] = {0., 0.};
 
-	apply_match(solution->px_cat_center, solution->crpix, &trans, &ra0, &dec0);
+	apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
 	int num_matched = H.pair_matched;
 	int trial = 0;
 
@@ -758,7 +784,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 			break;
 		}
 		trans = H_to_linear_TRANS(H);
-		apply_match(solution->px_cat_center, solution->crpix, &trans, &ra0, &dec0);
+		apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
 
 		conv = fabs((dec0 - orig_dec0) / args->used_fov / 60.) + fabs((ra0 - orig_ra0) / args->used_fov / 60.);
 
@@ -786,44 +812,61 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		solution->focal_length *= args->scalefactor;
 
 	solution->image_is_flipped = image_is_flipped(H);
+	double flip = (solution->image_is_flipped) ? -1. : 1.; // when the image is not flipped, x positive in native coords is to the left (East)
 
 	/* compute cd matrix */
-	double ra7, dec7, delta_ra, cd[2][2];
+	double ra1, dec1, ra2, dec2, cd[2][2];
 
 	/* first, convert center coordinates from deg to rad: */
 	dec0 *= DEGTORAD;
 	ra0 *= DEGTORAD;
 
-	/* make 1 step in direction crpix1 */
-	double crpix1[] = { solution->crpix[0] + 1.0 / args->scalefactor, solution->crpix[1] };
-	apply_match(solution->px_cat_center, crpix1, &trans, &ra7, &dec7);
+	// We will use 2 points at -flip*dx and dy from the computed center away from the image center
+	// to define the left(point1)  and the up (point2) directions
+	// (the -flip factor is used to make the step towards increasing ra)
+	// We use Appendix B.1 from WCS paper II (http://www.atnf.csiro.au/people/mcalabre/WCS/ccs.pdf):
+	// - we compute l', m', n' of each point (the 3D coordinates of the point on the unit sphere)
+	// - we then compute its l and m (the coordinates of the point on the unit sphere shifted to the native pole)
+	// l is the N coordinate (increasing dec, pointing to NCP), m is the E coordinate (increasing ra)
+	// we can then compute the 2 rotations wrt. N
 
-	dec7 *= DEGTORAD;
-	ra7 *= DEGTORAD;
+	// Note: the reason for all this is that close to Celestial poles, ra varies largely for small angular distances
+	// it's even undetermined (see https://www.atnf.csiro.au/people/mcalabre/WCS/notes_20040211.pdf) when exactly at poles
+	// So that if dec0 ≈ ±90deg, ra0 returned can take any value and this will go into the header as CRVAL1,
+	// which will in turn determine the first Euler angle of the spherical rotation to the native pole (that is ra0+90)
+	// We therefore need to have a CD matrix consistant with this ra0 value
+	// hence why we express the left and up vectors at the native pole though their (l,m) coordinates
 
-	delta_ra = ra7 - ra0;
-	if (delta_ra > +M_PI)
-		delta_ra = 2.0 * M_PI - delta_ra;
-	if (delta_ra < -M_PI)
-		delta_ra = delta_ra - 2.0 * M_PI;
-	cd[0][0] = (delta_ra) * cos(dec0) * RADTODEG;
-	cd[1][0] = (dec7 - dec0) * RADTODEG;
+	/* make a step in direction crpix1 accounting for flip or not*/
+	double crpix1[] = {-flip * PLATESOLVE_STEP * 100., 0. };
+	apply_match(solution->px_cat_center, crpix1, &trans, &ra1, &dec1);
+	siril_debug_print("alpha1: %0.8f, delta1: %0.8f\n", ra1, dec1);
+	dec1 *= DEGTORAD;
+	ra1 *= DEGTORAD;
+	double l1 = sin(dec1) * cos(dec0) - cos(dec1) * sin(dec0) * cos(ra1 - ra0);
+	double m1 = cos(dec1) * sin(ra1 - ra0);
+	siril_debug_print("l1: %0.8f, m1: %0.8f\n", l1, m1);
+	double crota1 = -atan2(l1, m1);
 
-	/* make 1 step in direction crpix2
-	 * WARNING: we use -1 because of the Y axis reversing */
-	double crpix2[] = { solution->crpix[0], solution->crpix[1] - 1.0 / args->scalefactor };
-	apply_match(solution->px_cat_center, crpix2, &trans, &ra7, &dec7);
+	/* make a step in direction crpix2*/
+	double crpix2[] = { 0., PLATESOLVE_STEP};
+	apply_match(solution->px_cat_center, crpix2, &trans, &ra2, &dec2);
+	siril_debug_print("alpha2: %0.8f, delta2: %0.8f\n", ra2, dec2);
+	dec2 *= DEGTORAD;
+	ra2 *= DEGTORAD;
+	double l2 = sin(dec2) * cos(dec0) - cos(dec2) * sin(dec0) * cos(ra2 - ra0);
+	double m2 = cos(dec2) * sin(ra2 - ra0);
+	siril_debug_print("l2: %0.8f, m2: %0.8f\n", l2, m2);
+	double crota2 = atan2(m2, l2);
+	siril_debug_print("crota1: %0.2f, crota2: %0.2f\n", crota1 * RADTODEG, crota2 * RADTODEG);
 
-	dec7 *= DEGTORAD;
-	ra7 *= DEGTORAD;
+	double cdelt1 = sqrt(trans.b * trans.b + trans.c * trans.c) / 3600 * -flip; // cdelt1 is < 0 when the image is not flipped
+	double cdelt2 = sqrt(trans.e * trans.e + trans.f * trans.f) / 3600;
 
-	delta_ra = ra7 - ra0;
-	if (delta_ra > +M_PI)
-		delta_ra = 2.0 * M_PI - delta_ra;
-	if (delta_ra < -M_PI)
-		delta_ra = delta_ra - 2.0 * M_PI;
-	cd[0][1] = (delta_ra) * cos(dec0) * RADTODEG;
-	cd[1][1] = (dec7 - dec0) * RADTODEG;
+	cd[0][0] =  cdelt1*cos(crota1);
+	cd[0][1] = -cdelt1*sin(crota1) * flip;
+	cd[1][0] =  cdelt2*sin(crota2) * flip;
+	cd[1][1] =  cdelt2*cos(crota2);
 
 	CHECK_FOR_CANCELLATION;
 
@@ -837,6 +880,9 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	solution->crpix[1] = args->ry_solver * 0.5;
 	solution->crpix[0] *= args->scalefactor;
 	solution->crpix[1] *= args->scalefactor;
+	// we now go back to FITS convention (from siril)
+	solution->crpix[0] += 0.5;
+	solution->crpix[1] += 0.5;
 
 	/**** Fill wcsdata fit structure ***/
 	args->fit->wcsdata.ra = siril_world_cs_get_alpha(solution->image_center);
@@ -899,7 +945,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	CHECK_FOR_CANCELLATION;
 
 	if (args->verbose)
-		// print_platesolving_results(solution, args->downsample);
 		print_platesolving_results_from_wcs(args);
 clearup:
 	free_stars(&star_list_A);
@@ -908,6 +953,40 @@ clearup:
 }
 
 /*********************** finding asnet bash first **********************/
+
+// Retrieves and caches asnet_version
+static void get_asnet_version(gchar *path) {
+	gchar* bin[3];
+	gchar* child_stdout = NULL;
+	bin[0] = path;
+	bin[1] = "--version";
+	bin[2] = NULL;
+	g_autoptr(GError) error = NULL;
+	g_spawn_sync(NULL, bin, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &child_stdout, NULL, NULL, &error);
+	if (error) {
+		// This will happen on Windows, for users using ansvr but having set the path to cygwin_ansvr in the prefs (instead of leaving blank)
+		// We'll not make this over complicated and fallback assuming this is the only case
+		siril_debug_print("%s\n",error->message);
+		asnet_version = g_strdup("ansvr");
+	} else {
+		gchar** chunks = g_strsplit(child_stdout, "\n", 2);
+		if (strlen(chunks[1]) == 0) { // if the second chunk is void, it means there was only one line which contains the version
+			asnet_version = g_strdup(chunks[0]);
+		} else {
+			asnet_version = g_strdup("<0.88"); // version switch was introduced from 0.88 (https://github.com/dstndstn/astrometry.net/commit/25f0b829d80c57984d404de50f9c645cb3da2223)
+		}
+	}
+	g_free(child_stdout);
+	siril_debug_print("Running asnet version %s\n", asnet_version);
+}
+
+void reset_asnet_version() {
+	if (asnet_version) {
+		g_free(asnet_version);
+		asnet_version = NULL;
+	}
+}
+
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
 	// searching user-defined path if any
@@ -921,6 +1000,10 @@ static gchar *siril_get_asnet_bash() {
 		} else {
 			siril_debug_print("cygwin/bin found at %s\n", testdir);
 			g_free(testdir);
+			gchar *versionpath = g_build_filename(com.pref.asnet_dir, "bin", "solve-field", NULL);
+			if (!asnet_version)
+				get_asnet_version(versionpath);
+			g_free(versionpath);
 			return g_build_filename(com.pref.asnet_dir, NULL);
 		}
 	}
@@ -930,6 +1013,10 @@ static gchar *siril_get_asnet_bash() {
 	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
 		siril_debug_print("cygwin/bin found at %s\n", testdir);
 		g_free(testdir);
+		if (!asnet_version) {
+			asnet_version = g_strdup("ansvr");
+			siril_debug_print("Running asnet version %s\n", asnet_version);
+		}
 		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	}
 	siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
@@ -961,6 +1048,8 @@ gboolean asnet_is_available() {
 	if (WIFEXITED(retval) && (0 == WEXITSTATUS(retval))) {
 		solvefield_is_in_path = TRUE;
 		siril_debug_print("solve-field found in PATH\n");
+		if (!asnet_version)
+			get_asnet_version("solve-field");
 		return TRUE;
 	}
 	siril_debug_print("solve-field not found in PATH\n");
@@ -968,7 +1057,8 @@ gboolean asnet_is_available() {
 	if (!bin) return FALSE;
 	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
 	g_free(bin);
-
+	if (!asnet_version)
+		get_asnet_version(bin);
 	return is_available;
 }
 #endif
@@ -1027,7 +1117,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
 		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
-		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
+		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, "-s", "FLUX", NULL };
 
 	char order[12];	// referenced in sfargs, needs the same scope
 	if (com.pref.astrometry.sip_correction_order > 1) {
@@ -1181,33 +1271,27 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	solution->image_is_flipped = image_is_flipped_from_wcs(args->fit);
 
-	// we go back to siril convention
-	args->fit->wcslib->crpix[0] = (double)args->rx_solver * 0.5;
-	args->fit->wcslib->crpix[1] = (double)args->ry_solver * 0.5;
-	args->fit->wcsdata.ra  = args->fit->wcslib->crval[0];
-	args->fit->wcsdata.dec = args->fit->wcslib->crval[1];
+	// For some reason, asnet may not return a solution with the ref point at the center
+	// We need to account for that
+	double ra0, dec0;
+	center2wcs(args->fit, &ra0, &dec0);
+	args->fit->wcsdata.ra  = ra0;
+	args->fit->wcsdata.dec = dec0;
 
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
 	solution->focal_length = RADCONV * args->pixel_size / resolution;
 
-	if (args->downsample) {
-		solution->focal_length *= args->scalefactor;
-
-		Homography S;
-		cvGetMatrixResize(args->fit->wcslib->crpix[0], args->fit->wcslib->crpix[1],
-				(double)args->fit->rx * 0.5, (double)args->fit->ry * 0.5, args->scalefactor, &S);
-		reframe_astrometry_data(args->fit, S);
-	}
-
 	args->fit->wcsdata.pltsolvd = TRUE;
-	strcpy(args->fit->wcsdata.pltsolvd_comment, "This WCS header was created by Astrometry.net.");
+	if (args->fit->wcsdata.pltsolvd_comment[0] != '\0')
+		memset(args->fit->wcsdata.pltsolvd_comment, 0, FLEN_COMMENT);
+	snprintf(args->fit->wcsdata.pltsolvd_comment, FLEN_COMMENT, "Solved by Astrometry.net (%s)", asnet_version);
 	if (args->verbose)
 		siril_log_color_message(_("Local astrometry.net solve succeeded.\n"), "green");
 
 	// asnet puts more info in the HISTORY and the console log in COMMENT fields
 	solution->image_center = siril_world_cs_new_from_a_d(
-			args->fit->wcslib->crval[0],
-			args->fit->wcslib->crval[1]);
+			ra0,
+			dec0);
 	/* print results from WCS data */
 	print_updated_wcs_data(args->fit);
 

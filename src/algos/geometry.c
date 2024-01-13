@@ -342,7 +342,7 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 	double orig_x = (double)area.x;
 	double orig_y = (double)area.y;
 	if (!cropped) {
-		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_rx * 0.5 };
+		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_ry * 0.5};
 		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
 		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
 		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
@@ -413,9 +413,14 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
-	Homography H = { 0 };
+	Homography H = { 0 }, Hocv = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp)) return 1;
+	// The matrix has been written in display convention (i.e, siril flipped)
+	// We need to convert to opencv convention (pixel-based) before applying to the image
+	// The original matrix will still be used to reframe astrometry data
+	Hocv = H;
+	cvdisplay2ocv(&Hocv);
+	if (cvTransformImage(image, target_rx, target_ry, Hocv, FALSE, interpolation, clamp)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -514,7 +519,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h11 = -1.;
-		H.h12 = (double)fit->ry - 1.;
+		H.h12 = (double)fit->ry;
 		reframe_astrometry_data(fit, H);
 		refresh_annotations(FALSE);
 	}
@@ -542,7 +547,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h00 = -1.;
-		H.h02 = (double)fit->rx - 1.;
+		H.h02 = (double)fit->rx;
 		reframe_astrometry_data(fit, H);
 		refresh_annotations(FALSE);
 	}

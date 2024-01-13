@@ -47,6 +47,7 @@ have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
+enable_libcurl     = get_option('libcurl')
 enable_json_glib = get_option('json_glib')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
@@ -212,18 +213,6 @@ else # == 'platform-default'
       relocatable_bundle = true
   else
       relocatable_bundle = false
-  endif
-endif
-
-if get_option('enable-libcurl') == 'yes'
-  enable_libcurl= true
-elif get_option('enable-libcurl') == 'no'
-  enable_libcurl = false
-else # == 'platform-default'
-  if platform_windows or platform_osx
-      enable_libcurl = true
-  else
-      enable_libcurl = false
   endif
 endif
 
@@ -610,61 +599,6 @@ endif
 
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
 
-################################################################################
-# Check for GLib Networking
-
-glib_networking_works_run=false
-if meson.is_cross_build() and not meson.can_run_host_binaries()
-    # Cross-compilation without run capability: we won't be able to
-    # check networking support.
-    glib_networking_works = true
-    glib_warning = '''
-      Test for glib-networking cannot be performed while cross-compiling,
-      unless you set an `exe_wrapper` binary in your toolchain file.
-      Make sure glib-networking is installed, otherwise Siril will not be able
-      to open remote HTTPS (or other protocol using SSL/TLS) files.
-      HTTPS is becoming the expected standard and should not be considered
-      optional anymore.
-    '''
-    warning(glib_warning)
-    warnings += glib_warning
-else # not meson.is_cross_build() or meson.can_run_host_binaries()
-    glib_networking_works_run = cc.run(
-      '''#include <gio/gio.h>
-      int main() {
-        return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
-      }''',
-      dependencies: gio_dep,
-    )
-    glib_networking_works = (glib_networking_works_run.compiled() and
-                             glib_networking_works_run.returncode() == 0)
-    if (glib_networking_works)
-      message('glib-networking detected.')
-    elif meson.is_cross_build()
-        # Since cross-platform test runs may be unreliable, let's be
-        # flexible and pass the test with a warning.
-        glib_networking_works = true
-        glib_warning = '''
-      The cross-platform test for glib-networking failed, using the
-      `exe_wrapper` set in your toolchain file.
-      Make sure glib-networking is installed, otherwise Siril will not be able
-      to open remote HTTPS (or other protocol using SSL/TLS) files.
-      HTTPS is becoming the expected standard and should not be considered
-      optional anymore.
-        '''
-        warning(glib_warning)
-        warnings += glib_warning
-    endif
-endif
-
-if not glib_networking_works and not libcurl_dep.found()
-  warning('no networking library found, neither glib-networking or curl found.')
-  conf_data.set('HAVE_NETWORKING', false, description : 'Using networking.')
-else
-  message('networking solution found with either glib-networking or curl.')
-  conf_data.set('HAVE_NETWORKING', true, description : 'Using networking.')
-endif
-
 ## Git configuration
 git_data = configuration_data()
 git_data.set_quoted('SIRIL_GIT_VERSION_ABBREV', git_version)
@@ -783,7 +717,6 @@ summary(
     'libgit2'           : libgit2_dep.found(),
     'ffmpeg'            : ffmpeg_found,
     'libcurl'           : libcurl_dep.found(),
-    'glib-networking'   : glib_networking_works,
     'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )

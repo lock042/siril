@@ -138,6 +138,7 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 		case CAT_GAIADR3:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_PPMXL:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG);
 		case CAT_BSC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_APASS:
@@ -509,21 +510,26 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	int nbstars = 0;
-	if (siril_cat->cat_index < CAT_AN_MESSIER) // online
-#ifndef HAVE_NETWORKING
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-	return 0;
+
+	if (siril_cat->cat_index < CAT_AN_MESSIER) {
+#ifndef HAVE_LIBCURL
+		siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+		return 0;
+#else
+        nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
+        return nbstars;
 #endif
-		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
-	else if (siril_cat->cat_index == CAT_LOCAL)
+	} else if (siril_cat->cat_index == CAT_LOCAL) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
-	else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
+	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
 	} else {
 		siril_debug_print("trying to conesearch an invalid catalog type\n");
 	}
+
 	return nbstars;
 }
+
 
 // This is the generic parser for all csv catalogues used by Siril
 // (annotation, downloaded, nina lists...)

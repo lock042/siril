@@ -225,12 +225,6 @@ static int compute_tilt_to_image(image *im, struct tilt_data *t_args) {
 	return 0;
 }
 
-void on_tilt_button_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-	confirm_peaker_GUI();
-	draw_sensor_tilt(&gfit);
-	set_cursor_waiting(FALSE);
-}
 
 /** Tilt on sequence **/
 

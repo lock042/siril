@@ -42,11 +42,7 @@ formats are handled internally, like BMP, PPM and SER, some require external
 libraries listed below. Libraries need to be present at compilation time, or
 their support won't be included.
 
-- **glib-networking** for Web requests or **libcurl**, depending on the platform
-    - both are required on Windows as there is a problem with both in some cases,
-      only curl is used for Mac as glib-networking does not work there,
-      and for linux both work and if curl is enabled during the build, glib-networking will not be used
-    - glib-networking requires the **gvfs-backends** dependency on some systems
+- **libcurl** for web access
 - **json-glib-1.0**, (>= 1.2.6) for Siril update check and metadata output
 - **exiv2** to get thumbnails from files
 - **libraw** for DSLR RAW files import

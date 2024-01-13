@@ -3935,7 +3935,7 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 			return CMD_ARG_ERROR;
 		}
 		double dx, dy;
-		fits_to_display(fx, fy, &dx, &dy, first->ry);
+		siril_to_display(fx, fy, &dx, &dy, first->ry);
 		double start = 1.5 * com.pref.phot_set.outer;
 		double size = 3 * com.pref.phot_set.outer;
 		area.x = dx - start;
@@ -8077,9 +8077,6 @@ int process_capabilities(int nb) {
 	siril_log_message("Can%s create symbolic links\n", test_if_symlink_is_ok(FALSE) ? "" : "not");
 #ifndef HAVE_CV44
 	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
-#endif
-#ifdef HAVE_NETWORKING
-	siril_log_message("Build with networking capabilities\n");
 #endif
 #ifdef HAVE_LIBCURL
 	siril_log_message("Built with libcurl\n");
