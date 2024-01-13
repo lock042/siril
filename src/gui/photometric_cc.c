@@ -42,6 +42,9 @@
 #include "photometric_cc.h"
 #include "io/image_format_fits.h"
 
+#define MIN_PLOT 336.0
+#define MAX_PLOT 1020.0
+
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
 static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
 static const cmsCIExyY D58 = {0.344994428, 0.35152261, 1.0}; // Sun as white point, modelled as a Black Body
@@ -706,8 +709,8 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			}
 		}
 	}
-	spl_data->datamin.x = 336.0;
-	spl_data->datamax.x = 1020.0;
+	spl_data->datamin.x = MIN_PLOT;
+	spl_data->datamax.x = MAX_PLOT;
 	spl_data->cfgdata.line.sz = 2;
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
@@ -750,8 +753,9 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
 		spcc_object_free_arrays(object);
 	}
-	spl_data->datamin.x = 336.0;
-	spl_data->datamax.x = 1020.0;
+	spl_data->datamin.x = MIN_PLOT;
+	spl_data->datamax.x = MAX_PLOT;
+	spl_data->cfgdata.line.sz = 2;
 	cbdata = NULL;
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
