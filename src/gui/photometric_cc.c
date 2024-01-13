@@ -383,6 +383,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *filters_g = lookup_widget("combo_spcc_filters_g");
 	GtkWidget *filters_b = lookup_widget("combo_spcc_filters_b");
 	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
+	GtkWidget *filters_lpf = lookup_widget("combo_spcc_filters_lpf");
 	GtkWidget *max_stars_spin = lookup_widget("SPCC_max_stars");
 
 	args->selected_white_ref = gtk_combo_box_get_active(GTK_COMBO_BOX(whiteref));
@@ -392,6 +393,7 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_g = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_g));
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
+	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
 	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
 }
 
@@ -635,6 +637,65 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("IPS_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */
 	gtk_widget_show(win);
+}
+
+void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
+	struct photometric_cc_data args = { 0 };
+	set_spcc_args(&args);
+	GList *sensor_list = args.spcc_mono_sensor ? com.spcc_data.mono_sensors : com.spcc_data.osc_sensors;
+	GList *filter_list_r = com.spcc_data.mono_filters[RLAYER];
+	GList *filter_list_g = com.spcc_data.mono_filters[GLAYER];
+	GList *filter_list_b = com.spcc_data.mono_filters[BLAYER];
+	GList *filter_list_lpf = com.spcc_data.osc_lpf;
+	GList *filter_list_osc = com.spcc_data.osc_filters;
+	GList *whiteref_list = com.spcc_data.wb_ref;
+
+	siril_plot_data *spl_data = NULL;
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
+	siril_plot_set_savename(spl_data, "SPCC_data");
+	siril_plot_set_title(spl_data, _("SPCC Data"));
+	siril_plot_set_ylabel(spl_data, _("Quantum Efficiency / Transmittance / Rel. Flux"));
+	if (args.spcc_mono_sensor) {
+		spcc_object *sensor = (spcc_object*) g_list_nth(sensor_list, args.selected_sensor_m)->data;
+		spcc_object *filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
+		spcc_object *filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
+		spcc_object *filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		spcc_object *whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
+		spcc_object* structs[5] = { filter_r, filter_g, filter_b, sensor, whiteref };
+		for (int i = 0 ; i <5 ; i++) {
+			load_spcc_object_arrays(structs[i]);
+			gchar *spl_legend = g_strdup(structs[i]->name);
+			siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+			if (i < 3)
+				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) i == 0, (double) i == 1, (double) i == 2});
+			g_free(spl_legend);
+			spcc_object_free_arrays(structs[i]);
+		}
+	} else {
+		osc_sensor *osc = (osc_sensor*) g_list_nth(sensor_list, args.selected_sensor_osc)->data;
+		spcc_object *sensor_r = &osc->channel[RLAYER];
+		spcc_object *sensor_g = &osc->channel[GLAYER];
+		spcc_object *sensor_b = &osc->channel[BLAYER];
+		spcc_object *filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		spcc_object *filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
+		spcc_object *whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
+		spcc_object* structs[6] = { sensor_r, sensor_g, sensor_b, filter_lpf, filter_osc, whiteref };
+		for (int i = 0 ; i < 6 ; i++) {
+			load_spcc_object_arrays(structs[i]);
+			gchar *spl_legend = g_strdup(structs[i]->name);
+			siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+			if (i < 3)
+				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) i == 0, (double) i == 1, (double) i == 2});
+			g_free(spl_legend);
+			spcc_object_free_arrays(structs[i]);
+		}
+	}
+	spl_data->datamin.x = 336.0;
+	spl_data->datamax.x = 1020.0;
+	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_idle(end_generic, NULL);
 }
 
 void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
