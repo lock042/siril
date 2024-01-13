@@ -587,30 +587,44 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	if (widget == lookup_widget("details_spcc_sensors_osc")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"));
 		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
 		list = g_list_nth(com.spcc_data.osc_sensors, n);
 	} else if (widget == lookup_widget("details_spcc_sensors_mono")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_mono"));
 		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
 		list = g_list_nth(com.spcc_data.mono_sensors, n);
 	} else if (widget == lookup_widget("details_spcc_filters_osc")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_osc"));
 		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
 		list = g_list_nth(com.spcc_data.osc_filters, n);
 	} else if (widget == lookup_widget("details_spcc_filters_r")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_r"));
 		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
 		list = g_list_nth(com.spcc_data.mono_filters[RLAYER], n);
 	} else if (widget == lookup_widget("details_spcc_filters_g")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_g"));
 		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
 		list = g_list_nth(com.spcc_data.mono_filters[GLAYER], n);
 	} else if (widget == lookup_widget("details_spcc_filters_b")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"));
 		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
 		list = g_list_nth(com.spcc_data.mono_filters[BLAYER], n);
 	} else if (widget == lookup_widget("details_spcc_filters_lpf")) {
 		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_lpf"));
 		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
 		list = g_list_nth(com.spcc_data.osc_lpf, n);
 	}
 	// For OSC sensors which use the osc_sensor data structure this is a bit cheeky
@@ -637,6 +651,10 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("IPS_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */
 	gtk_widget_show(win);
+	return;
+	no_selection:
+	siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), _("No selection made: no details to show."));
+	return;
 }
 
 void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
@@ -661,13 +679,13 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
 		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
 			sensor = (spcc_object*) g_list_nth(sensor_list, args.selected_sensor_m)->data;
-		if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (sensor_list))
+		if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
 			filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
-		if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (sensor_list))
+		if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
 			filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
-		if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (sensor_list))
+		if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
 			filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
-		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (sensor_list))
+		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
 		spcc_object* structs[5] = { filter_r, filter_g, filter_b, sensor, whiteref };
 		for (int i = 0 ; i <5 ; i++) {
@@ -688,11 +706,11 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			sensor_g = &osc->channel[GLAYER];
 			sensor_b = &osc->channel[BLAYER];
 		}
-		if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (sensor_list))
+		if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
 			filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
-		if (args.selected_filter_lpf >= 0 && args.selected_filter_lpf < g_list_length (sensor_list))
+		if (args.selected_filter_lpf >= 0 && args.selected_filter_lpf < g_list_length (filter_list_lpf))
 			filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
-		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (sensor_list))
+		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
 		spcc_object* structs[6] = { sensor_r, sensor_g, sensor_b, filter_lpf, filter_osc, whiteref };
 		for (int i = 0 ; i < 6 ; i++) {
@@ -752,7 +770,6 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 	}
 	spl_data->datamin.x = 336.0;
 	spl_data->datamax.x = 1020.0;
-	cbdata = NULL;
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }
