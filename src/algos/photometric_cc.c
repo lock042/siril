@@ -171,10 +171,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	xpsampled response[3] = { init_xpsampled(), init_xpsampled(), init_xpsampled() };
 
 	for (int k = 0 ; k < nb_stars; k++) {
-		irg[k] = FLT_MAX;
-		ibg[k] = FLT_MAX;
-		crg[k] = FLT_MAX;
-		cbg[k] = FLT_MAX;
+		irg[k] = DBL_MAX;
+		ibg[k] = DBL_MAX;
+		crg[k] = DBL_MAX;
+		cbg[k] = DBL_MAX;
 	}
 	gchar *str = ngettext("Applying aperture photometry to %d star.\n", "Applying aperture photometry to %d stars.\n", nb_stars);
 	str = g_strdup_printf(str, nb_stars);
@@ -245,10 +245,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		crg[i] = ref_flux[RLAYER]/ref_flux[GLAYER];
 		cbg[i] = ref_flux[BLAYER]/ref_flux[GLAYER];
 		if (xisnanf(irg[i]) || xisnanf(ibg[i]) || xisnanf(crg[i]) || xisnanf(cbg[i])) {
-			irg[i] = FLT_MAX;
-			ibg[i] = FLT_MAX;
-			crg[i] = FLT_MAX;
-			cbg[i] = FLT_MAX;
+			irg[i] = DBL_MAX;
+			ibg[i] = DBL_MAX;
+			crg[i] = DBL_MAX;
+			cbg[i] = DBL_MAX;
 			continue;
 		}
 		g_atomic_int_inc(&ngood);
@@ -270,7 +270,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	wrg = white_flux[RLAYER]/white_flux[GLAYER];
 	wbg = white_flux[BLAYER]/white_flux[GLAYER];
 	// Robust estimation of linear best fit
-	// First sort the arrays so any FLT_MAX are at the end, after ngood
+	// First sort the arrays so any DBL_MAX are at the end, after ngood
 	double arg, brg, abg, bbg, deviation[2] = { 0.0 };
 	quicksort_d(irg, nb_stars);
 	quicksort_d(crg, nb_stars);
