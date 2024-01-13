@@ -660,6 +660,24 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	return;
 }
 
+static void normalize_y(spcc_object *object, double min_wl, double max_wl) {
+	int i = 0, j = 0;
+	double maximum = -DBL_MAX;
+	if (min_wl < object->x[0] || max_wl > object->x[object->n-1])
+		return;
+
+	while (object->x[i] < min_wl)
+		i++;
+	while (object->x[j] < max_wl)
+		j++;
+	for (int k = i ; k < j ; k++) {
+		if (object->y[k] > maximum)
+			maximum = object->y[k];
+	}
+	for (int k = 0 ; k < object->n ; k++)
+		object->y[k] /= maximum;
+}
+
 void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	struct photometric_cc_data args = { 0 };
 	set_spcc_args(&args);
@@ -694,6 +712,8 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		for (int i = 0 ; i <5 ; i++) {
 			if (structs[i]) {
 				load_spcc_object_arrays(structs[i]);
+				if (structs[i] == whiteref)
+					normalize_y(structs[i], MIN_PLOT, MAX_PLOT);
 				gchar *spl_legend = g_strdup(structs[i]->name);
 				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
 				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 0 || i == 3), (double) ((i == 1) + ((i == 4) * 0.5)), (double) ((i == 2 || i == 3) + ((i == 4) * 0.5)) });
@@ -719,6 +739,8 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		for (int i = 0 ; i < 6 ; i++) {
 			if (structs[i]) {
 				load_spcc_object_arrays(structs[i]);
+				if (structs[i] == whiteref)
+					normalize_y(structs[i], MIN_PLOT, MAX_PLOT);
 				gchar *spl_legend = g_strdup(structs[i]->name);
 				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
 				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 0 || i == 3), (double) ((i == 1) + ((i == 4) * 0.5)), (double) ((i == 2 || i == 3) + ((i == 4) * 0.5)) });
