@@ -708,6 +708,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	}
 	spl_data->datamin.x = 336.0;
 	spl_data->datamax.x = 1020.0;
+	spl_data->cfgdata.line.sz = 2;
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }
