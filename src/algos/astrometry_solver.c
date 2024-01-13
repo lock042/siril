@@ -64,6 +64,7 @@
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-1 // convergence tolerance in arcsec from the projection center
 #define PLATESOLVE_STEP 100. // step made on CRPIX axes to compute the CD matrix
+#define NB_GRID_PPOINTS 5 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
 
 #undef DEBUG		/* get some of diagnostic output */
 #define ASTROMETRY_DEBUG 1
@@ -257,7 +258,7 @@ static void print_image_center(solve_results *image) {
 }
 
 static gboolean check_affine_TRANS_sanity(TRANS *trans) {
-	double var1, var2;
+	double var1 = 0., var2 = 0.;
 	switch (trans->order) {
 		case AT_TRANS_LINEAR:
 			var1 = fabs(trans->b) - fabs(trans->f);
@@ -268,8 +269,6 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 			var2 = fabs(trans->c) - fabs(trans->h);
 			break;
 		case AT_TRANS_CUBIC:
-			// var1 = fabs(trans->b) - fabs(trans->k);
-			// var2 = fabs(trans->c) - fabs(trans->j);
 			var1 = fabs(trans->b) - fabs(trans->m);
 			var2 = fabs(trans->c) - fabs(trans->l);
 			break;
@@ -277,25 +276,24 @@ static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 			break;
 	}
 	siril_debug_print("abs(diff_cos)=%f et abs(diff_sin)=%f\n", var1, var2);
-	return ((fabs(var1) < 0.01) && fabs(var2) < 0.01);
+	return (fabs(var1) < 0.01 && fabs(var2) < 0.01);
+}
+
+static double get_det_from_trans(TRANS *trans) {
+	switch (trans->order) {
+		case AT_TRANS_LINEAR:
+			return (trans->b * trans->f - trans->c * trans->e);
+		case AT_TRANS_QUADRATIC:
+			return (trans->b * trans->i - trans->c * trans->h);
+		case AT_TRANS_CUBIC:
+			return (trans->b * trans->m - trans->c * trans->l);
+		default:
+			return DBL_MAX;
+	}
 }
 
 static gboolean image_is_flipped_from_trans(TRANS *trans) {
-	double det = 1.;
-	switch (trans->order) {
-		case AT_TRANS_LINEAR:
-			det = (trans->b * trans->f - trans->c * trans->e);
-			break;
-		case AT_TRANS_QUADRATIC:
-			det = (trans->b * trans->i - trans->c * trans->h);
-			break;
-		case AT_TRANS_CUBIC:
-			// det = (trans->b * trans->k - trans->c * trans->j);
-			det = (trans->b * trans->m - trans->c * trans->l);
-			break;
-		default:
-			break;
-	}
+	double det = get_det_from_trans(trans);
 	return det > 0;
 }
 
@@ -306,7 +304,6 @@ static double get_resolution_from_trans(TRANS *trans) {
 		case AT_TRANS_QUADRATIC:
 			return sqrt(fabs(trans->b * trans->i - trans->c * trans->h));
 		case AT_TRANS_CUBIC:
-			// return sqrt(fabs(trans->b * trans->k - trans->c * trans->j));
 			return sqrt(fabs(trans->b * trans->m - trans->c * trans->l));
 		default:
 			return 0.;
@@ -323,8 +320,28 @@ static void get_cdelt_from_trans(TRANS *trans, double flip, double *cdelt1, doub
 			*cdelt2 = sqrt(trans->h * trans->h + trans->i * trans->i) / 3600;
 			break;
 		case AT_TRANS_CUBIC:
-			// *cdelt2 = sqrt(trans->j * trans->j + trans->k * trans->k) / 3600;
 			*cdelt2 = sqrt(trans->l * trans->l + trans->m * trans->m) / 3600;
+			break;
+		default:
+			break;
+	}
+}
+
+static void get_cd_from_trans(TRANS *trans, double cd[][2]) {
+	cd[0][0] = trans->b;
+	cd[0][1] = trans->c;
+	switch (trans->order) {
+		case AT_TRANS_LINEAR:
+			cd[1][0] = trans->e;
+			cd[1][1] = trans->f;
+			break;
+		case AT_TRANS_QUADRATIC:
+			cd[1][0] = trans->h;
+			cd[1][1] = trans->i;
+			break;
+		case AT_TRANS_CUBIC:
+			cd[1][0] = trans->l;
+			cd[1][1] = trans->m;
 			break;
 		default:
 			break;
@@ -339,11 +356,142 @@ static double get_center_offset_from_trans(TRANS *trans) {
 		case AT_TRANS_QUADRATIC:
 			return sqrt(trans->a * trans->a + trans->g * trans->g);
 		case AT_TRANS_CUBIC:
-			// return sqrt(trans->a * trans->a + trans->i * trans->i);
 			return sqrt(trans->a * trans->a + trans->k * trans->k);
 		default:
 			return 0.;
 	}
+}
+// 2x2 matrix vector multiplication
+void Mv(double matrix[2][2], double vector[2], double result[2]) {
+	for (int i = 0; i < 2; i++) {
+		result[i] = 0;
+		for (int j = 0; j < 2; j++) {
+			result[i] += matrix[i][j] * vector[j];
+		}
+	}
+}
+// and a helper function to simplify calling the M*v multiplication and decompose the result to its 2 values
+void Mvdecomp(double matrix[2][2], double v0, double v1, double *r0, double *r1) {
+	double vector[2] = { v0, v1 };
+	double result[2];
+	Mv(matrix, vector, result);
+	*r0 = result[0];
+	*r1 = result[1];
+}
+
+static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
+	if (!fit || !fit->wcslib || !trans)
+		return 1;
+
+	// we will first create the inverse transform:
+	// This is done by creating a grid of pixels coords (listA)
+	// and using the forward trasform coeffs, generate the deltaRA/deltaDec list (listB)
+	// and then pass the 2 lists (B and A in that order) to atrecalctrans
+	int nbpoints = NB_GRID_PPOINTS * NB_GRID_PPOINTS;
+	struct s_star *pixgrid = create_grid_list(fit->rx, fit->ry, NB_GRID_PPOINTS);
+	struct s_star *celgrid = create_grid_list(fit->rx, fit->ry, NB_GRID_PPOINTS); // these coords are then converted using the pixel-to-sky transform
+	atApplyTrans(nbpoints, celgrid, trans);
+	TRANS revtrans = { 0 };
+	revtrans.order = trans->order;
+	int status = atRecalcTrans(nbpoints, celgrid, nbpoints, pixgrid, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &revtrans);
+	if (status) {
+		siril_log_color_message(_("Could not invert the SIP distorsion coefficients, try using a lower order or a linear solution\n"), "red");
+		free_stars(&pixgrid);
+		free_stars(&celgrid);
+		return 1;
+	}
+
+	// we then extract the cd matrix (still in arsec but it doesn't matter as it is consistent with the other trans coeffs)
+	// and we will apply its inverse to each pair in the trans structure to obtain the Aij/Bij SIP coeffs
+	// and we do the same but with cd on the revtrans to obtain the APij/BPij SIP coeffs
+	double cd[2][2] = {{ 0. }}, cd_inv[2][2] = {{ 0. }};
+	get_cd_from_trans(trans, cd);
+	double det = get_det_from_trans(trans);
+	double invdet = 1. / det;
+	// CD^-1 is simply 1/det(CD)*[[d -b][-c a]] if CD is [[a b][c d]]
+	cd_inv[0][0] =  invdet * cd[1][1];
+	cd_inv[0][1] = -invdet * cd[0][1];
+	cd_inv[1][0] = -invdet * cd[1][0];
+	cd_inv[1][1] =  invdet * cd[0][0];
+	double A[4][4] = {{ 0. }}, B[4][4] = {{ 0. }}, AP[4][4]  = {{ 0. }}, BP[4][4]  = {{ 0. }}; // we deal with images up to order 3
+	int N;
+	if (trans->order == AT_TRANS_QUADRATIC) {
+		N = 2;
+		Mvdecomp(cd_inv, trans->d, trans->j, &A[2][0], &B[2][0]);
+		Mvdecomp(cd_inv, trans->e, trans->k, &A[1][1], &B[1][1]);
+		Mvdecomp(cd_inv, trans->f, trans->l, &A[0][2], &B[0][2]);
+
+		Mvdecomp(cd, revtrans.a, revtrans.g, &AP[0][0], &BP[0][0]);
+		Mvdecomp(cd, revtrans.b, revtrans.h, &AP[1][0], &BP[1][0]);
+		Mvdecomp(cd, revtrans.c, revtrans.i, &AP[0][1], &BP[0][1]);
+		Mvdecomp(cd, revtrans.d, revtrans.j, &AP[2][0], &BP[2][0]);
+		Mvdecomp(cd, revtrans.e, revtrans.k, &AP[1][1], &BP[1][1]);
+		Mvdecomp(cd, revtrans.f, revtrans.l, &AP[0][2], &BP[0][2]);
+	}
+	if (trans->order == AT_TRANS_CUBIC) {
+		N = 3;
+		Mvdecomp(cd_inv, trans->d, trans->n, &A[2][0], &B[2][0]);
+		Mvdecomp(cd_inv, trans->e, trans->o, &A[1][1], &B[1][1]);
+		Mvdecomp(cd_inv, trans->f, trans->p, &A[0][2], &B[0][2]);
+		Mvdecomp(cd_inv, trans->g, trans->q, &A[3][0], &B[3][0]);
+		Mvdecomp(cd_inv, trans->h, trans->r, &A[2][1], &B[2][1]);
+		Mvdecomp(cd_inv, trans->i, trans->s, &A[1][2], &B[1][2]);
+		Mvdecomp(cd_inv, trans->j, trans->t, &A[0][3], &B[0][3]);
+
+		Mvdecomp(cd, revtrans.a, revtrans.e, &AP[0][0], &BP[0][0]);
+		Mvdecomp(cd, revtrans.b, revtrans.f, &AP[1][0], &BP[1][0]);
+		Mvdecomp(cd, revtrans.c, revtrans.g, &AP[0][1], &BP[0][1]);
+		Mvdecomp(cd, revtrans.d, revtrans.h, &AP[2][0], &BP[2][0]);
+		Mvdecomp(cd, revtrans.e, revtrans.o, &AP[1][1], &BP[1][1]);
+		Mvdecomp(cd, revtrans.f, revtrans.p, &AP[0][2], &BP[0][2]);
+		Mvdecomp(cd, revtrans.g, revtrans.q, &AP[3][0], &BP[3][0]);
+		Mvdecomp(cd, revtrans.h, revtrans.r, &AP[2][1], &BP[2][1]);
+		Mvdecomp(cd, revtrans.i, revtrans.s, &AP[1][2], &BP[1][2]);
+		Mvdecomp(cd, revtrans.j, revtrans.t, &AP[0][3], &BP[0][3]);
+	}
+	struct disprm *dis = calloc(1, sizeof(struct disprm));
+	int ipx = 0;
+	int dpmax = 10 + 2 * (N + 1) * (N + 2);
+	dis->flag = -1;
+	// thread-safe version of disini as per WCSLIB documentation.
+	// Anyway, dpmax should not change if we solve multiple images in parralel
+	// as the trans order should be the same for all images of the sequence
+	disinit(1, 2, dis, dpmax);
+	char keyword[4];
+	char field[12];
+	for (int i = 0; i < 2; i++) {
+		strcpy(dis->dtype[i], "SIP");
+		sprintf(keyword, "DP%d", i + 1);
+		dpfill(dis->dp + ipx, keyword, "NAXES", i + 1, 0, 2, 0.0);
+		ipx ++;
+		dpfill(dis->dp + ipx, keyword, "AXIS.1", i + 1, 0, 1, 0.0);
+		ipx ++;
+		dpfill(dis->dp + ipx, keyword, "AXIS.2", i + 1, 0, 2, 0.0);
+		ipx++;
+		dpfill(dis->dp + ipx, keyword, "OFFSET.1", i + 1, 1, 0, fit->wcslib->crpix[0]);
+		ipx ++;
+		dpfill(dis->dp + ipx, keyword, "OFFSET.2", i + 1, 1, 0, fit->wcslib->crpix[1]);
+		ipx++;
+		for (int sipflag = 1; sipflag <= 2; sipflag++) { // fwd or rev
+			for (int p = 0; p <= N; p++) {
+				for (int q = 0; q <= N - p; q++) {
+					sprintf(field, "SIP.%s.%d_%d", (sipflag == 1) ? "FWD" : "REV", p, q);
+					if (i == 0)
+						dpfill(dis->dp + ipx, keyword, field, i + 1, 1, 0, (sipflag == 1) ? A[p][q] : AP[p][q]);
+					else
+						dpfill(dis->dp + ipx, keyword, field, i + 1, 1, 0, (sipflag == 1) ? B[p][q] : BP[p][q]);
+					ipx++;
+				}
+			}
+		}
+	}
+	dis->ndp = dpmax;
+	fit->wcslib->lin.dispre = dis;
+	dis->flag = 0;
+	fit->wcslib->lin.flag = 0;
+	disset(dis);
+	linset(&fit->wcslib->lin);
+	return 0;
 }
 
 static gboolean image_is_flipped_from_wcs(fits *fit) {
@@ -363,8 +511,10 @@ static void flip_bottom_up_astrometry_data(fits *fit) {
 }
 
 void print_updated_wcs_data(fits *fit) {
+	if (!fit->wcslib)
+		return;
 	/* debug output */
-	siril_debug_print("****Updated WCS data*************\n");
+	siril_debug_print("****Current WCS data*************\n");
 	siril_debug_print("crpix1 = %*.12e\n", 20, fit->wcslib->crpix[0]);
 	siril_debug_print("crpix2 = %*.12e\n", 20, fit->wcslib->crpix[1]);
 	siril_debug_print("crval1 = %*.12e\n", 20, fit->wcslib->crval[0]);
@@ -419,7 +569,6 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 
 	print_updated_wcs_data(fit);
 }
-
 
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 	cd[0][0] = pc[0][0] * cdelt[0];
@@ -729,9 +878,8 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
 	int max_trials = 0;
 	s_star *star_list_A = NULL, *star_list_B = NULL;
-	args->trans_order = AT_TRANS_CUBIC; // TODO: for debugging purposes only - to be removed
 
-	max_trials = 20; //retry to converge if solve is done at an offset from the center
+	max_trials = 20; //always try to converge to the center
 
 	/* make sure that arrays are not too small
 	 * make sure that the max of stars is BRIGHTEST_STARS */
@@ -779,7 +927,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	int num_matched = trans.nm;
 	int trial = 0;
 
-	/* try to get a better solution in case of uncentered solution */
+	/* try to get a better solution */
 	conv = get_center_offset_from_trans(&trans);
 	siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, num_matched);
 	while (conv > CONV_TOLERANCE && trial < max_trials){
@@ -930,7 +1078,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	prm->crpix[1] = solution->crpix[1];
 	prm->crval[0] = args->fit->wcsdata.ra;
 	prm->crval[1] = args->fit->wcsdata.dec;
-	// if (args->trans_order == AT_TRANS_LINEAR) {
+	if (args->trans_order == AT_TRANS_LINEAR) {
 		const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
 		const char CUNIT[2][4] = { "deg", "deg" };
 		for (int i = 0; i < NAXIS; i++) {
@@ -939,16 +1087,16 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		for (int i = 0; i < NAXIS; i++) {
 			strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
 		}
-	// } else {
-	// 	const char CTYPE[2][12] = { "RA---TAN-SIP", "DEC--TAN-SIP" };
-	// 	const char CUNIT[2][4] = { "deg", "deg" };
-	// 	for (int i = 0; i < NAXIS; i++) {
-	// 		strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
-	// 	}
-	// 	for (int i = 0; i < NAXIS; i++) {
-	// 		strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
-	// 	}	
-	// }
+	} else {
+		const char CTYPE[2][12] = { "RA---TAN-SIP", "DEC--TAN-SIP" };
+		const char CUNIT[2][4] = { "deg", "deg" };
+		for (int i = 0; i < NAXIS; i++) {
+			strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+		}
+		for (int i = 0; i < NAXIS; i++) {
+			strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+		}
+	}
 	/* PC + CDELT seems to be the preferred approach
 	 * according to Calabretta private discussion
 	 *
@@ -967,19 +1115,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	if (args->fit->wcslib)
 		wcsfree(args->fit->wcslib);
 	args->fit->wcslib = prm;
+	if (args->trans_order > AT_TRANS_LINEAR)
+		add_disto_to_wcslib(args->fit, &trans);
 
-	siril_debug_print("****Solution found: WCS data*************\n");
-	siril_debug_print("crpix1 = %*.12e\n", 20, solution->crpix[0]);
-	siril_debug_print("crpix2 = %*.12e\n", 20, solution->crpix[1]);
-	siril_debug_print("crval1 = %*.12e\n", 20, args->fit->wcsdata.ra);
-	siril_debug_print("crval2 = %*.12e\n", 20, args->fit->wcsdata.dec);
-	siril_debug_print("cdelt1 = %*.12e\n", 20, args->fit->wcslib->cdelt[0]);
-	siril_debug_print("cdelt2 = %*.12e\n", 20, args->fit->wcslib->cdelt[1]);
-	siril_debug_print("pc1_1  = %*.12e\n", 20, args->fit->wcslib->pc[0]);
-	siril_debug_print("pc1_2  = %*.12e\n", 20, args->fit->wcslib->pc[1]);
-	siril_debug_print("pc2_1  = %*.12e\n", 20, args->fit->wcslib->pc[2]);
-	siril_debug_print("pc2_2  = %*.12e\n", 20, args->fit->wcslib->pc[3]);
-	siril_debug_print("******************************************\n");
+	print_updated_wcs_data(args->fit);
 
 	CHECK_FOR_CANCELLATION;
 

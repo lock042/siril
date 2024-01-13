@@ -434,6 +434,50 @@ int update_stars_positions(struct s_star **old_list, int n_old, psf_star **s) {
 	return (SH_SUCCESS);
 }
 
+/***********************************************************************
+ * ROUTINE: create_grid_list
+ *
+ * DESCRIPTION:
+ * Create an array of s_star structures, placed on a regular grid
+ * The grid is nbpoints x nbpoints, centered about the image center
+ * so from [-rx/2,rx/2][-y/2, ry/2]
+ * Return a pointer to the complete, filled array.
+ *
+ */
+
+struct s_star *
+create_grid_list(int rx, int ry, int nbpoints
+) {
+	struct s_star *head, *last, *new;
+
+	head = (struct s_star *) NULL;
+	last = head;
+	double paceX = (double)rx / (double)(nbpoints - 1);
+	double paceY = (double)ry / (double)(nbpoints - 1);
+	double currX = -0.5 * (double)rx;
+	double currY = -0.5 * (double)ry;
+	int s = 0;
+
+	for (int i = 0; i < nbpoints; i++) {
+		currY = -0.5 * (double)ry;
+		for (int j = 0; j < nbpoints; j++) {
+			new = atStarNew(currX, currY, 0., 0.);
+			new->id = s++;
+			currY += paceY;
+			if (head == NULL) {
+				head = new;
+				last = new;
+			} else {
+				last->next = new;
+				last = new;
+			}
+		}
+		currX += paceX;
+	}
+
+	return head;
+}
+
 void free_stars(struct s_star **list) {
 	struct s_star *head = *list;
 	while (head != NULL) {

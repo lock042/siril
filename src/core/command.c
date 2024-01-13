@@ -8388,6 +8388,7 @@ int process_pcc(int nb) {
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
+	int order = 3; // we default with distorsions to the 3rd order
 	siril_cat_index cat = CAT_AUTO;
 	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve' or 'seqplatesolve'
 	gboolean seqps = word[0][0] == 's';
@@ -8470,6 +8471,18 @@ int process_pcc(int nb) {
 				mag_offset = value;
 			else target_mag = value;
 		}
+		else if (g_str_has_prefix(word[next_arg], "-order=")) {
+			char *arg = word[next_arg] + 7;
+			gchar *end;
+			int value = g_ascii_strtoull(arg, &end, 10);
+			if (end == arg || value < 1 || value > 3) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+			order = value;
+		}
 		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
 			char *arg = word[next_arg] + 9;
 			if (!g_strcmp0(arg, "tycho2"))
@@ -8535,6 +8548,7 @@ int process_pcc(int nb) {
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
+		args->trans_order = order;
 		if (target_coords) {
 			args->cat_center = target_coords;
 		}
@@ -8691,6 +8705,7 @@ int process_pcc(int nb) {
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
+		args->trans_order = order;
 		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 			noflip = TRUE;
 			siril_debug_print("forced no flip for solving an image from a sequence");

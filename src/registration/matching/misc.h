@@ -169,6 +169,13 @@ get_stars(psf_star **s, int n, int *num_stars, struct s_star **list);
 int
 update_stars_positions(struct s_star **old_list, int n_old, psf_star **s);
 
+   /*
+    * creates a list of stars on a mesh
+    */
+
+struct s_star *
+create_grid_list(int rx, int ry, int nbpoints);
+
 void
 free_stars(struct s_star **head);
 

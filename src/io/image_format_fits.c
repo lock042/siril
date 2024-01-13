@@ -1364,7 +1364,7 @@ static void save_wcs_keywords(fits *fit) {
 			status = 0;
 		}
 		if (has_sip) {
-			double A[7][7] = {{ 0. }}, B[7][7] = {{ 0. }}, AP[7][7]  = {{ 0. }}, BP[7][7]  = {{ 0. }}; // we deal with images up to order 7
+			double A[8][8] = {{ 0. }}, B[8][8] = {{ 0. }}, AP[8][8]  = {{ 0. }}, BP[8][8]  = {{ 0. }}; // we deal with images up to order 7, we need 8 to hold 0_7 terms
 			int order = 0;
 			struct disprm *dis = fit->wcslib->lin.dispre;
 			for (int n = 0; n < dis->ndp; n++) {
@@ -1392,47 +1392,39 @@ static void save_wcs_keywords(fits *fit) {
 			}
 			// we know the order of the distorsions, we can now write them
 			// A terms
-			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "Polynomial order, axis 1", &status);
+			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order; j++) {
-					if (A[i][j] != 0.) {
-						char key[5];
-						g_sprintf(key, "A_%d_%d", i, j);
-						fits_update_key(fit->fptr, TDOUBLE, key, &A[i][j], NULL, &status);
-					}
+				for (int j = 0; j <= order - i; j++) {
+					char key[5];
+					g_sprintf(key, "A_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &A[i][j], NULL, &status);
 				}
 			}
 			// B terms
-			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "Polynomial order, axis 2", &status);
+			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "SIP polynomial degree, axis 2, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order; j++) {
-					if (B[i][j] != 0.) {
-						char key[5];
-						g_sprintf(key, "B_%d_%d", i, j);
-						fits_update_key(fit->fptr, TDOUBLE, key, &B[i][j], NULL, &status);
-					}
+				for (int j = 0; j <= order - i; j++) {
+					char key[5];
+					g_sprintf(key, "B_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &B[i][j], NULL, &status);
 				}
 			}
 			// AP terms
-			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "Inv polynomial order, axis 1", &status);
+			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "SIP polynomial degree, axis 1, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order; j++) {
-					if (AP[i][j] != 0.) {
-						char key[6];
-						g_sprintf(key, "AP_%d_%d", i, j);
-						fits_update_key(fit->fptr, TDOUBLE, key, &AP[i][j], NULL, &status);
-					}
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_sprintf(key, "AP_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &AP[i][j], NULL, &status);
 				}
 			}
 			// BP terms
-			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "Inv polynomial order, axis 2", &status);
+			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "SIP polynomial degree, axis 2, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order; j++) {
-					if (AP[i][j] != 0.) {
-						char key[6];
-						g_sprintf(key, "BP_%d_%d", i, j);
-						fits_update_key(fit->fptr, TDOUBLE, key, &BP[i][j], NULL, &status);
-					}
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_sprintf(key, "BP_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &BP[i][j], NULL, &status);
 				}
 			}
 		}

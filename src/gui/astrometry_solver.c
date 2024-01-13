@@ -641,6 +641,7 @@ void open_astrometry_dialog() {
 
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->fit = &gfit;
+	args->trans_order = 3; // TODO add the GUI element
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
 	args->manual = is_detection_manual();
