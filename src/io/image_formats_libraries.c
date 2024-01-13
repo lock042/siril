@@ -1513,6 +1513,7 @@ int readpng(const char *name, fits* fit) {
 				*buf[RLAYER]++ = ptr[0];
 				*buf[GLAYER]++ = ptr[1];
 				*buf[BLAYER]++ = ptr[2];
+			}
 
 		}
 	}
