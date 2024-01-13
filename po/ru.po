@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-12 08:08+0100\n"
-"PO-Revision-Date: 2024-01-07 13:46+0000\n"
+"PO-Revision-Date: 2024-01-18 13:50+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -18801,7 +18801,7 @@ msgid ""
 "standard 16 bit LUTs.\n"
 msgstr ""
 "Ошибка: не удалось выделить память при инициализации HD LUT. Сброс к "
-"стандартным 16 битным LUT.\n"
+"стандартным 16-битным LUT.\n"
 
 #: src/gui/image_display.c:532
 #, c-format
@@ -20239,7 +20239,7 @@ msgstr "JPG"
 
 #: src/io/conversion.c:226
 msgid "PNG images"
-msgstr "PNG"
+msgstr "Изображения PNG"
 
 #: src/io/conversion.c:233
 msgid "HEIF images"
@@ -20338,7 +20338,7 @@ msgid ""
 "Converting 32 bits images (from %s) to 16 bits is not supported, ignoring "
 "file.\n"
 msgstr ""
-"Конвертация 32 битных изображений (из %s) в 16 битные не поддерживается, "
+"Конвертация 32-битных изображений (из %s) в 16-битные не поддерживается, "
 "игнорирование файла.\n"
 
 #: src/io/conversion.c:1065 src/io/conversion.c:1135
@@ -20529,11 +20529,11 @@ msgstr ""
 
 #: src/io/image_formats_internal.c:515
 msgid "Error reading 8-bit PPM image data.\n"
-msgstr "Ошибка чтения 8 битных данных изображения PPM.\n"
+msgstr "Ошибка чтения 8-битных данных изображения PPM.\n"
 
 #: src/io/image_formats_internal.c:545
 msgid "Error reading 16-bit gray PPM image data.\n"
-msgstr "Ошибка чтения 16 битных данных изображения PPM в градациях серого.\n"
+msgstr "Ошибка чтения 16-битных данных изображения PPM в градациях серого.\n"
 
 #: src/io/image_formats_internal.c:577
 msgid "Error reading 16-bit color PPM image data.\n"
@@ -20630,7 +20630,7 @@ msgstr "Ориентация TIFFTAG не поддерживается.\n"
 #: src/io/image_formats_libraries.c:616
 #, c-format
 msgid "Reading TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Чтение TIFF: %d битный файл %s, слоёв %ld, пикселей %u×%u\n"
+msgstr "Чтение TIFF: %d-битный файл %s, слоёв %ld, пикселей %u×%u\n"
 
 #: src/io/image_formats_libraries.c:668
 msgid "Siril cannot create TIFF file.\n"
@@ -20676,7 +20676,7 @@ msgstr "Ошибка при открытии файла %s\n"
 #: src/io/image_formats_libraries.c:1150
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Чтение PNG: битов %d, файл %s, слоёв %ld, пикселей %u×%u\n"
+msgstr "Чтение PNG: %d-битный файл %s, слоёв %ld, пикселей %u×%u\n"
 
 #: src/io/image_formats_libraries.c:1333
 #, c-format
