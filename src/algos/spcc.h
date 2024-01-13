@@ -1,6 +1,9 @@
 #ifndef SRC_ALGOS_SPCC_H
 #define SRC_ALGOS_SPCC_H
 
+#define XPSAMPLED_MIN_WL 337.0
+#define XPSAMPLED_MAX_WL 1019.0
+
 // SPCC functions
 void init_spcc_filters();
 xpsampled init_xpsampled();

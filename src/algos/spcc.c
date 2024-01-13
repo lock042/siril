@@ -77,17 +77,17 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf) {
 	gsl_interp *interp = gsl_interp_alloc(gsl_interp_akima, XPSAMPLED_LEN);
 	gsl_interp_init(interp, xps->x, dbl_si_x, XPSAMPLED_LEN);
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
-	XYZ.X = gsl_interp_eval_integ(interp, xps->x, dbl_si_x, 380.0, 700.0, acc);
+	XYZ.X = gsl_interp_eval_integ(interp, xps->x, dbl_si_x, XPSAMPLED_MIN_WL, XPSAMPLED_MAX_WL, acc);
 	gsl_interp_accel_reset(acc);
 	free(dbl_si_x);
 
 	gsl_interp_init(interp, xps->x, dbl_si_y, XPSAMPLED_LEN);
-	XYZ.Y = gsl_interp_eval_integ(interp, xps->x, dbl_si_y, 380.0, 700.0, acc);
+	XYZ.Y = gsl_interp_eval_integ(interp, xps->x, dbl_si_y, XPSAMPLED_MIN_WL, XPSAMPLED_MAX_WL, acc);
 	gsl_interp_accel_reset(acc);
 	free(dbl_si_y);
 
 	gsl_interp_init(interp, xps->x, dbl_si_z, XPSAMPLED_LEN);
-	XYZ.Z = gsl_interp_eval_integ(interp, xps->x, dbl_si_z, 380.0, 700.0, acc);
+	XYZ.Z = gsl_interp_eval_integ(interp, xps->x, dbl_si_z, XPSAMPLED_MIN_WL, XPSAMPLED_MAX_WL, acc);
 	free(dbl_si_z);
 	gsl_interp_free(interp);
 	gsl_interp_accel_free(acc);
@@ -139,7 +139,7 @@ double integrate_xpsampled(const xpsampled *xps) {
 	gsl_interp *interp = gsl_interp_alloc(gsl_interp_akima, (size_t) XPSAMPLED_LEN);
 	gsl_interp_init(interp, xps->x, xps->y, XPSAMPLED_LEN);
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
-	double result = gsl_interp_eval_integ(interp, xps->x, xps->y, 380.0, 700.0, acc);
+	double result = gsl_interp_eval_integ(interp, xps->x, xps->y, XPSAMPLED_MIN_WL, XPSAMPLED_MAX_WL, acc);
 	gsl_interp_free(interp);
 	gsl_interp_accel_free(acc);
 	return result;
