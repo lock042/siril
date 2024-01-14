@@ -70,7 +70,7 @@ static void start_photometric_cc(gboolean spcc) {
 		plate_solve = gtk_toggle_button_get_active(force_platesolve_button);
 		if (plate_solve)
 			siril_log_message(_("Plate solving will be recomputed for image\n"));
-		else siril_log_message(_("Existing plate solve (WCS information) will be resused for image\n"));
+		else siril_log_message(_("Existing plate solve (WCS information) will be reused for image\n"));
 	}
 
 	struct astrometry_data *args = NULL;
