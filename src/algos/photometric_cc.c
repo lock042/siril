@@ -20,6 +20,8 @@
 
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_interp.h>
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_fit.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -160,6 +162,107 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
+double find_min_d(double *arr, int size) {
+    if (size <= 0 || arr == NULL) {
+        // Handle the case of an empty array or invalid size
+        return 0.0;  // You can choose another value or use an error mechanism
+    }
+
+    double min_value = arr[0];  // Assume the first element is the minimum
+
+    for (int i = 1; i < size; i++) {
+        if (arr[i] < min_value) {
+            min_value = arr[i];  // Update the minimum value if a smaller element is found
+        }
+    }
+
+    return min_value;
+}
+
+double find_max_d(double *arr, int size) {
+    if (size <= 0 || arr == NULL) {
+        // Handle the case of an empty array or invalid size
+        return 0.0;  // You can choose another value or use an error mechanism
+    }
+
+    double max_value = arr[0];  // Assume the first element is the minimum
+
+    for (int i = 1; i < size; i++) {
+        if (arr[i] > max_value) {
+            max_value = arr[i];  // Update the minimum value if a smaller element is found
+        }
+    }
+
+    return max_value;
+}
+
+int
+dofit(const gsl_multifit_robust_type *T,
+      const gsl_matrix *X, const gsl_vector *y,
+      gsl_vector *c, gsl_matrix *cov)
+{
+  int s;
+  gsl_multifit_robust_workspace * work
+    = gsl_multifit_robust_alloc (T, X->size1, X->size2);
+
+  s = gsl_multifit_robust (X, y, c, cov, work);
+  gsl_multifit_robust_free (work);
+
+  return s;
+}
+// Fits y = a + bx to double *xdata, double *ydata with eah array of length n
+void robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b) {
+	const size_t p = 2; /* linear fit */
+	gsl_matrix *X, *cov;
+	gsl_vector *x, *y, *c;
+	X = gsl_matrix_alloc (n, p);
+	x = gsl_vector_alloc (n);
+	y = gsl_vector_alloc (n);
+	c = gsl_vector_alloc (p);
+	cov = gsl_matrix_alloc (p, p);
+	for (int i = 0 ; i < n ; i++) {
+		gsl_vector_set(x, i, xdata[i]);
+		gsl_vector_set(y, i, ydata[i]);
+	}
+	/* construct design matrix X for linear fit */
+	for (int i = 0; i < n; ++i) {
+		double xi = gsl_vector_get(x, i);
+
+		gsl_matrix_set (X, i, 0, 1.0);
+		gsl_matrix_set (X, i, 1, xi);
+	}
+
+	/* perform robust and OLS fit */
+	dofit(gsl_multifit_robust_bisquare, X, y, c, cov);
+#define C(i) (gsl_vector_get(c,(i)))
+#define COV(i,j) (gsl_matrix_get(cov,(i),(j)))
+	*a = C(0);
+	*b = C(1);
+	gsl_matrix_free (X);
+	gsl_vector_free (x);
+	gsl_vector_free (y);
+	gsl_vector_free (c);
+	gsl_matrix_free (cov);
+}
+
+void remove_invalid_pairs(double *x, double *y, int *n) {
+    int i, j;
+
+    for (i = 0, j = 0; i < *n; ++i) {
+        // Check if either x[i] or y[i] is equal to DBL_MAX
+        if (x[i] != DBL_MAX && y[i] != DBL_MAX) {
+            // If not, keep the pair
+            x[j] = x[i];
+            y[j] = y[i];
+            ++j;
+        }
+        // If either x[i] or y[i] is equal to DBL_MAX, skip the pair
+    }
+
+    // Update the size of the arrays
+    *n = j;
+}
+
 static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
@@ -273,51 +376,30 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	// Robust estimation of linear best fit
 	// First sort the arrays so any DBL_MAX are at the end, after ngood
 	double arg, brg, abg, bbg, deviation[2] = { 0.0 };
+/*	int orig_nb_stars = nb_stars;
+	remove_invalid_pairs(irg, crg, &nb_stars);
+	remove_invalid_pairs(ibg, cbg, &orig_nb_stars);*/
 	quicksort_d(irg, nb_stars);
 	quicksort_d(crg, nb_stars);
 	quicksort_d(ibg, nb_stars);
 	quicksort_d(cbg, nb_stars);
-	// Plot the arrays (TODO: make this optional and configurable)
-	siril_plot_data *spl_datarg = NULL;
-	spl_datarg = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_datarg);
-	spl_datarg->plottype = KPLOT_POINTS;
-	siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
-	siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
-	siril_plot_set_title(spl_datarg, _("SPCC Linear Fit: R/G"));
-	siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
-	gchar *spl_legendrg = _("R/G");
-	siril_plot_add_xydata(spl_datarg, spl_legendrg, ngood, crg, irg, NULL, NULL);
-
-	siril_plot_data *spl_databg = NULL;
-	spl_databg = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_databg);
-	spl_databg->plottype = KPLOT_POINTS;
-	siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
-	siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
-	siril_plot_set_title(spl_databg, _("SPCC Linear Fit: B/G"));
-	siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
-	gchar *spl_legendbg = _("B/G");
-	siril_plot_add_xydata(spl_databg, spl_legendbg, ngood, cbg, ibg, NULL, NULL);
-	siril_add_idle(create_new_siril_plot_window, spl_datarg);
-	siril_add_idle(create_new_siril_plot_window, spl_databg);
-	siril_add_idle(end_generic, NULL);
-
-
-	if (repeated_median_regression(crg, irg, ngood, &arg, &brg, &deviation[0])) {
+	if (repeated_median_regression(crg, irg, ngood, &brg, &arg, &deviation[0])) {
 		free(irg);
 		free(ibg);
 		free(crg);
 		free(cbg);
 		return 1;
 	}
-	if (repeated_median_regression(cbg, ibg, ngood, &abg, &bbg, &deviation[1])) {
+	if (repeated_median_regression(cbg, ibg, ngood, &bbg, &abg, &deviation[1])) {
 		free(irg);
 		free(ibg);
 		free(crg);
 		free(cbg);
 		return 1;
 	}
+//	robust_linear_fit(crg, irg, ngood, &arg, &brg);
+//	robust_linear_fit(cbg, ibg, ngood, &abg, &bbg);
+
 	double kr = 1.f / (arg + brg * wrg);
 	double kg = 1.f;
 	double kb = 1.f / (abg + bbg * wbg);
@@ -325,6 +407,38 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	kw[RLAYER] = kr / maxk;
 	kw[GLAYER] = kg / maxk;
 	kw[BLAYER] = kb / maxk;
+
+	// Plot the arrays (TODO: make this optional and configurable)
+	double best_fit_rgx[2] = {find_min_d(crg, ngood), find_max_d(crg, ngood)};
+	double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
+	siril_plot_data *spl_datarg = NULL;
+	spl_datarg = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_datarg);
+	spl_datarg->plottype = KPLOT_LINESPOINTS;
+	siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
+	siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
+	siril_plot_set_title(spl_datarg, _("SPCC Linear Fit: R/G"));
+	siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
+	siril_plot_add_xydata(spl_datarg, _("R/G"), ngood, crg, irg, NULL, NULL);
+	siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
+
+	double best_fit_bgx[2] = {find_min_d(cbg, ngood), find_max_d(cbg, ngood)};
+	double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
+	siril_plot_data *spl_databg = NULL;
+	spl_databg = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_databg);
+	spl_databg->plottype = KPLOT_LINESPOINTS;
+	siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
+	siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
+	siril_plot_set_title(spl_databg, _("SPCC Linear Fit: B/G"));
+	siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
+	gchar *spl_legendbg = _("B/G");
+	siril_plot_add_xydata(spl_databg, spl_legendbg, ngood, cbg, ibg, NULL, NULL);
+	siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+	siril_add_idle(create_new_siril_plot_window, spl_datarg);
+	siril_add_idle(create_new_siril_plot_window, spl_databg);
+	siril_add_idle(end_generic, NULL);
+
 	free (irg);
 	free(ibg);
 	free(crg);
