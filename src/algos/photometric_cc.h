@@ -47,6 +47,7 @@ struct photometric_cc_data {
 	int selected_filter_b; // for SPCC
 	int selected_filter_lpf; // for SPCC
 	int selected_white_ref; // for SPCC
+	gboolean do_plot; // for SPCC
 	cmsCIExyYTRIPLE primaries; // used for SPCC source profile
 	cmsCIExyY whitepoint; // used for SPCC source profile
 };

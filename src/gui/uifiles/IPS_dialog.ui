@@ -125,6 +125,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkCheckButton" id="spcc_plot_fits">
+                <property name="label" translatable="yes">Plot fits</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="buttonIPS_close">
                 <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
@@ -136,7 +151,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -154,7 +169,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -172,7 +187,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
             <child>
@@ -189,7 +204,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -1175,7 +1190,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
-                  <!-- n-columns=3 n-rows=9 -->
+                  <!-- n-columns=4 n-rows=9 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -1507,9 +1522,46 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_plot_all_clicked" swapped="no"/>
                       </object>
                       <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_wb">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
                         <property name="left-attach">2</property>
                         <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>

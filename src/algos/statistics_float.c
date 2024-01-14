@@ -39,6 +39,8 @@
 #include <assert.h>
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_fit.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -763,61 +765,48 @@ int robustmean(int n, const double *x, double *mean, double *stdev)
 }
 
 /************* robust linear fit *****************/
-int repeated_median_regression(const double *x, const double *y, size_t n, double *a, double *b, double *std_err) {
 
-	double *a_ijk = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
-	if (!a_ijk)
+static int dofit(const gsl_multifit_robust_type *T, const gsl_matrix *X, const gsl_vector *y, gsl_vector *c, gsl_matrix *cov, double *sigma) {
+	gsl_multifit_robust_workspace *work = gsl_multifit_robust_alloc (T, X->size1, X->size2);
+	int s = gsl_multifit_robust (X, y, c, cov, work);
+	gsl_multifit_robust_stats fit_stats = gsl_multifit_robust_statistics(work);
+	*sigma = fit_stats.sigma_rob;
+	gsl_multifit_robust_free (work);
+	return s;
+}
+
+// Fits y = a + bx to double *xdata, double *ydata with each array of length n
+int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b, double *sigma) {
+	const size_t p = 2; /* linear fit */
+	gsl_matrix *X = NULL, *cov = NULL;
+	gsl_vector *y = NULL, *c = NULL;
+	X = gsl_matrix_alloc (n, p);
+	y = gsl_vector_alloc (n);
+	c = gsl_vector_alloc (p);
+	cov = gsl_matrix_alloc (p, p);
+	if (!X || !y || !c || !cov) {
+		gsl_matrix_free(X);
+		gsl_vector_free(y);
+		gsl_vector_free(c);
+		gsl_matrix_free(cov);
 		return 1;
-
-#ifdef _OPENMP
-	// Declare num_slopes to track the total count of slopes
-	size_t num_slopes = 0;
-	double *a_ijk_local = malloc(n * (n - 1) * (n - 2) / 6 * sizeof(double));  // Array to store all slopes
-	if (!a_ijk_local) {
-		free(a_ijk);
-		return 1;
 	}
-#pragma omp parallel for
-	for (size_t i = 0; i < n; i++) {
-		size_t num_slopes_local = 0;
-		for (size_t j = i + 1; j < n; j++) {
-			for (size_t k = j + 1; k < n; k++) {
-				a_ijk_local[num_slopes_local++] = (y[j] - y[i]) / (x[j] - x[i]);
-			}
-		}
-		#pragma omp critical
-		{
-			memcpy(a_ijk + num_slopes, a_ijk_local, num_slopes_local * sizeof(double));
-			num_slopes += num_slopes_local;
-		}
+	for (int i = 0 ; i < n ; i++) {
+		gsl_vector_set(y, i, ydata[i]);
 	}
-#else
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = i + 1; j < n; j++) {
-			for (size_t k = j + 1; k < n; k++) {
-				a_ijk[num_slopes++] = (y[j] - y[i]) / (x[j] - x[i]);
-			}
-		}
-	}
-#endif
-
-	// Find the median slope using GSL
-	gsl_sort(a_ijk, 1, num_slopes);
-	*a = gsl_stats_median_from_sorted_data(a_ijk, 1, num_slopes);
-
-	// Calculate residuals using the estimated slope
-	double residuals[n];
-	for (size_t i = 0; i < n; i++) {
-		residuals[i] = y[i] - *a * x[i];
+	/* construct design matrix X for linear fit */
+	for (int i = 0; i < n; ++i) {
+		gsl_matrix_set (X, i, 0, 1.0);
+		gsl_matrix_set (X, i, 1, xdata[i]);
 	}
 
-	// Find the median residual using GSL
-	gsl_sort(residuals, 1, n);
-	*b = gsl_stats_median_from_sorted_data(residuals, 1, n);
-	// Calculate the standard deviation of the residuals
-	*std_err = gsl_stats_sd(residuals, 1, n);
-
-	free(a_ijk);
-	free(a_ijk_local);
-	return 0;
+	/* perform robust and OLS fit */
+	int retval = dofit(gsl_multifit_robust_bisquare, X, y, c, cov, sigma);
+	*a = gsl_vector_get(c,0);
+	*b = gsl_vector_get(c,1);
+	gsl_matrix_free (X);
+	gsl_vector_free (y);
+	gsl_vector_free (c);
+	gsl_matrix_free (cov);
+	return retval;
 }
