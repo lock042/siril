@@ -635,6 +635,12 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 		if (n == -1)
 			goto no_selection;
 		list = g_list_nth(com.spcc_data.osc_lpf, n);
+	} else if (widget == lookup_widget("details_spcc_wb")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_whitepoint"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.wb_ref, n);
 	}
 	// For OSC sensors which use the osc_sensor data structure this is a bit cheeky
 	// but it works because the first element of the struct is a spcc_object, and
