@@ -41,6 +41,7 @@
 #include "io/image_format_fits.h" // For the datalink FITS functions
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
+#include "gui/siril_plot.h"
 #include "gui/progress_and_log.h"
 #include "gui/photometric_cc.h"
 #include "registration/matching/misc.h" // for catalogue parsing helpers
@@ -276,6 +277,33 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	quicksort_d(crg, nb_stars);
 	quicksort_d(ibg, nb_stars);
 	quicksort_d(cbg, nb_stars);
+	// Plot the arrays (TODO: make this optional and configurable)
+	siril_plot_data *spl_datarg = NULL;
+	spl_datarg = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_datarg);
+	spl_datarg->plottype = KPLOT_POINTS;
+	siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
+	siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
+	siril_plot_set_title(spl_datarg, _("SPCC Linear Fit: R/G"));
+	siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
+	gchar *spl_legendrg = _("R/G");
+	siril_plot_add_xydata(spl_datarg, spl_legendrg, ngood, crg, irg, NULL, NULL);
+
+	siril_plot_data *spl_databg = NULL;
+	spl_databg = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_databg);
+	spl_databg->plottype = KPLOT_POINTS;
+	siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
+	siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
+	siril_plot_set_title(spl_databg, _("SPCC Linear Fit: B/G"));
+	siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
+	gchar *spl_legendbg = _("B/G");
+	siril_plot_add_xydata(spl_databg, spl_legendbg, ngood, cbg, ibg, NULL, NULL);
+	siril_add_idle(create_new_siril_plot_window, spl_datarg);
+	siril_add_idle(create_new_siril_plot_window, spl_databg);
+	siril_add_idle(end_generic, NULL);
+
+
 	if (repeated_median_regression(crg, irg, ngood, &arg, &brg, &deviation[0])) {
 		free(irg);
 		free(ibg);

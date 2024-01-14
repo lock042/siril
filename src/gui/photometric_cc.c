@@ -713,7 +713,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			if (structs[i]) {
 				load_spcc_object_arrays(structs[i]);
 				if (structs[i] == whiteref)
-					normalize_y(structs[i], MIN_PLOT, MAX_PLOT);
+					normalize_y(structs[i], 400, 700);
 				gchar *spl_legend = g_strdup(structs[i]->name);
 				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
 				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 0 || i == 3), (double) ((i == 1) + ((i == 4) * 0.5)), (double) ((i == 2 || i == 3) + ((i == 4) * 0.5)) });
@@ -740,7 +740,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			if (structs[i]) {
 				load_spcc_object_arrays(structs[i]);
 				if (structs[i] == whiteref)
-					normalize_y(structs[i], MIN_PLOT, MAX_PLOT);
+					normalize_y(structs[i], 400, 700);
 				gchar *spl_legend = g_strdup(structs[i]->name);
 				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
 				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 0 || i == 3), (double) ((i == 1) + ((i == 4) * 0.5)), (double) ((i == 2 || i == 3) + ((i == 4) * 0.5)) });
@@ -751,6 +751,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	}
 	spl_data->datamin.x = MIN_PLOT;
 	spl_data->datamax.x = MAX_PLOT;
+	spl_data->datamax.y = min(spl_data->datamax.y, 1.2);
 	spl_data->cfgdata.line.sz = 2;
 	siril_add_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
