@@ -64,7 +64,7 @@
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-1 // convergence tolerance in arcsec from the projection center
 #define PLATESOLVE_STEP 100. // step made on CRPIX axes to compute the CD matrix
-#define NB_GRID_PPOINTS 5 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
+#define NB_GRID_POINTS 5 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
 
 #undef DEBUG		/* get some of diagnostic output */
 #define ASTROMETRY_DEBUG 1
@@ -383,27 +383,25 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	if (!fit || !fit->wcslib || !trans)
 		return 1;
 
-	// we will first create the inverse transform:
-	// This is done by creating a grid of pixels coords (listA)
-	// and using the forward trasform coeffs, generate the deltaRA/deltaDec list (listB)
-	// and then pass the 2 lists (B and A in that order) to atrecalctrans
-	int nbpoints = NB_GRID_PPOINTS * NB_GRID_PPOINTS;
-	struct s_star *pixgrid = create_grid_list(fit->rx, fit->ry, NB_GRID_PPOINTS);
-	struct s_star *celgrid = create_grid_list(fit->rx, fit->ry, NB_GRID_PPOINTS); // these coords are then converted using the pixel-to-sky transform
-	atApplyTrans(nbpoints, celgrid, trans);
-	TRANS revtrans = { 0 };
-	revtrans.order = trans->order;
-	int status = atRecalcTrans(nbpoints, celgrid, nbpoints, pixgrid, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &revtrans);
-	if (status) {
-		siril_log_color_message(_("Could not invert the SIP distorsion coefficients, try using a lower order or a linear solution\n"), "red");
-		free_stars(&pixgrid);
-		free_stars(&celgrid);
-		return 1;
-	}
+	// we start by zero-ing the constant terms because we have set CRVAL at the center of the solution
+	trans->a = 0.;
+	if (trans->order == AT_TRANS_QUADRATIC)
+		trans->g = 0.;
+	if (trans->order == AT_TRANS_CUBIC)
+		trans->k = 0.;
 
-	// we then extract the cd matrix (still in arsec but it doesn't matter as it is consistent with the other trans coeffs)
-	// and we will apply its inverse to each pair in the trans structure to obtain the Aij/Bij SIP coeffs
-	// and we do the same but with cd on the revtrans to obtain the APij/BPij SIP coeffs
+	// Definitions from https://irsa.ipac.caltech.edu/data/SPITZER/docs/files/spitzer/shupeADASS.pdf
+
+	// We will create the inverse transform:
+	// This is done by generating a grid of pixels coords (u,v)
+	// and using the forward transform coeffs, generating the intermediate world coordinates grid (x,y)
+	int nbpoints = NB_GRID_POINTS * NB_GRID_POINTS;
+	struct s_star *uvgrid = create_grid_list(fit->rx, fit->ry, NB_GRID_POINTS);
+	struct s_star *xygrid = create_grid_list(fit->rx, fit->ry, NB_GRID_POINTS); // these coords are then converted using the pixel-to-sky transform
+	atApplyTrans(nbpoints, xygrid, trans);
+
+
+	// we then extract the CD matrix and invert it
 	double cd[2][2] = {{ 0. }}, cd_inv[2][2] = {{ 0. }};
 	get_cd_from_trans(trans, cd);
 	double det = get_det_from_trans(trans);
@@ -413,6 +411,33 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	cd_inv[0][1] = -invdet * cd[0][1];
 	cd_inv[1][0] = -invdet * cd[1][0];
 	cd_inv[1][1] =  invdet * cd[0][0];
+
+	// we form a linear trans structure which sends the iwc to corrected pixels coordinates U,V
+	// eq (4)
+	TRANS transUV = { 0 };
+	transUV.order = 1;
+	transUV.b = cd_inv[0][0];
+	transUV.c = cd_inv[0][1];
+	transUV.e = cd_inv[1][0];
+	transUV.f = cd_inv[1][1];
+	atApplyTrans(nbpoints, xygrid, &transUV);
+	// xygrid now holds the UV grid
+
+	// we can then find the polynomials that send U,V to u,v the original pixel coordinates of the grid
+	// the APij/BPij coeffs are simply the values of revtrans (for the 10 and 01 terms, we need to substrtact 1., see definitions in eq (5) and (6))
+	TRANS revtrans = { 0 };
+	revtrans.order = trans->order;
+	int status = atRecalcTrans(nbpoints, xygrid, nbpoints,uvgrid, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &revtrans);
+	if (status) {
+		siril_log_color_message(_("Could not invert the SIP distorsion coefficients, try using a lower order or a linear solution\n"), "red");
+		free_stars(&uvgrid);
+		free_stars(&xygrid);
+		return 1;
+	}
+
+	// We will apply CD^-1 to each pair in the forward trans structure to obtain the Aij/Bij SIP coeffs (using defs of eq (1), (2) and (3))
+	// The inverse APij/BPij coeffs are simply the values of revtrans
+	// For the inverse _10 and _01 terms, we need to substract 1., see definitions in eq (5) and (6))
 	double A[4][4] = {{ 0. }}, B[4][4] = {{ 0. }}, AP[4][4]  = {{ 0. }}, BP[4][4]  = {{ 0. }}; // we deal with images up to order 3
 	int N;
 	if (trans->order == AT_TRANS_QUADRATIC) {
@@ -421,12 +446,19 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 		Mvdecomp(cd_inv, trans->e, trans->k, &A[1][1], &B[1][1]);
 		Mvdecomp(cd_inv, trans->f, trans->l, &A[0][2], &B[0][2]);
 
-		Mvdecomp(cd, revtrans.a, revtrans.g, &AP[0][0], &BP[0][0]);
-		Mvdecomp(cd, revtrans.b, revtrans.h, &AP[1][0], &BP[1][0]);
-		Mvdecomp(cd, revtrans.c, revtrans.i, &AP[0][1], &BP[0][1]);
-		Mvdecomp(cd, revtrans.d, revtrans.j, &AP[2][0], &BP[2][0]);
-		Mvdecomp(cd, revtrans.e, revtrans.k, &AP[1][1], &BP[1][1]);
-		Mvdecomp(cd, revtrans.f, revtrans.l, &AP[0][2], &BP[0][2]);
+		AP[0][0] = revtrans.a;
+		AP[1][0] = revtrans.b - 1.;
+		AP[0][1] = revtrans.c;
+		AP[2][0] = revtrans.d;
+		AP[1][1] = revtrans.e;
+		AP[0][2] = revtrans.f;
+
+		BP[0][0] = revtrans.g;
+		BP[1][0] = revtrans.h;
+		BP[0][1] = revtrans.i - 1.;
+		BP[2][0] = revtrans.j;
+		BP[1][1] = revtrans.k;
+		BP[0][2] = revtrans.l;
 	}
 	if (trans->order == AT_TRANS_CUBIC) {
 		N = 3;
@@ -438,16 +470,27 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 		Mvdecomp(cd_inv, trans->i, trans->s, &A[1][2], &B[1][2]);
 		Mvdecomp(cd_inv, trans->j, trans->t, &A[0][3], &B[0][3]);
 
-		Mvdecomp(cd, revtrans.a, revtrans.e, &AP[0][0], &BP[0][0]);
-		Mvdecomp(cd, revtrans.b, revtrans.f, &AP[1][0], &BP[1][0]);
-		Mvdecomp(cd, revtrans.c, revtrans.g, &AP[0][1], &BP[0][1]);
-		Mvdecomp(cd, revtrans.d, revtrans.h, &AP[2][0], &BP[2][0]);
-		Mvdecomp(cd, revtrans.e, revtrans.o, &AP[1][1], &BP[1][1]);
-		Mvdecomp(cd, revtrans.f, revtrans.p, &AP[0][2], &BP[0][2]);
-		Mvdecomp(cd, revtrans.g, revtrans.q, &AP[3][0], &BP[3][0]);
-		Mvdecomp(cd, revtrans.h, revtrans.r, &AP[2][1], &BP[2][1]);
-		Mvdecomp(cd, revtrans.i, revtrans.s, &AP[1][2], &BP[1][2]);
-		Mvdecomp(cd, revtrans.j, revtrans.t, &AP[0][3], &BP[0][3]);
+		AP[0][0] = revtrans.a;
+		AP[1][0] = revtrans.b - 1.;
+		AP[0][1] = revtrans.c;
+		AP[2][0] = revtrans.d;
+		AP[1][1] = revtrans.e;
+		AP[0][2] = revtrans.f;
+		AP[3][0] = revtrans.g;
+		AP[2][1] = revtrans.h;
+		AP[1][2] = revtrans.i;
+		AP[0][3] = revtrans.j;
+
+		BP[0][0] = revtrans.k;
+		BP[1][0] = revtrans.l;
+		BP[0][1] = revtrans.m - 1.;
+		BP[2][0] = revtrans.n;
+		BP[1][1] = revtrans.o;
+		BP[0][2] = revtrans.p;
+		BP[3][0] = revtrans.q;
+		BP[2][1] = revtrans.r;
+		BP[1][2] = revtrans.s;
+		BP[0][3] = revtrans.t;
 	}
 	struct disprm *dis = calloc(1, sizeof(struct disprm));
 	int ipx = 0;
@@ -1078,6 +1121,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	prm->crpix[1] = solution->crpix[1];
 	prm->crval[0] = args->fit->wcsdata.ra;
 	prm->crval[1] = args->fit->wcsdata.dec;
+	prm->lonpole = 180.;
 	if (args->trans_order == AT_TRANS_LINEAR) {
 		const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
 		const char CUNIT[2][4] = { "deg", "deg" };
@@ -1107,10 +1151,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	wcs_mat2cd(prm, cd);
 	prm->altlin = 2;
 	wcspcx(prm, 0, 0, NULL);
-	if (args->trans_order > 1) {
-		disinit(TRUE, 2, prm->lin.dispre, 34);
-
-	}
 	wcs_print(prm);
 	if (args->fit->wcslib)
 		wcsfree(args->fit->wcslib);

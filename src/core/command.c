@@ -8716,8 +8716,10 @@ int process_pcc(int nb) {
 		// preparing the catalogue query
 		args->ref_stars->cat_index = cat;
 		args->ref_stars->columns =  siril_catalog_columns(cat);
-		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
-		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+		if (target_coords) {
+			args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+			args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+		}
 		process_plate_solver_input(args);
 	}
 

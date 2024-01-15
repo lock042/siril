@@ -1338,6 +1338,10 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcslib->crval[0]), "Axis1 reference value (deg)", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcslib->crval[1]), "Axis2 reference value (deg)", &status);
+		if (fit->wcslib->lonpole) {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->wcslib->lonpole), "Axis2 reference value (deg)", &status);
+		}
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcslib->cdelt[0]), "X pixel size (deg)", &status);
