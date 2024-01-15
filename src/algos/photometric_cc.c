@@ -704,7 +704,8 @@ int photometric_cc(struct photometric_cc_data *args) {
 		free(args);
 		return 1;
 	}
-	siril_log_message(_("Normalizing on %s channel.\n"), (norm_channel == 0) ? _("red") : ((norm_channel == 1) ? _("green") : _("blue")));
+	if (!args->spcc)
+		siril_log_message(_("Normalizing on %s channel.\n"), (norm_channel == 0) ? _("red") : ((norm_channel == 1) ? _("green") : _("blue")));
 
 	/* set photometry parameters to values adapted to the image */
 	struct phot_config backup = com.pref.phot_set;
@@ -822,7 +823,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	retval = nb_stars == 0;
 
 	siril_catalog_free(siril_cat);
-
+	gboolean spcc = args->spcc; // Needed for the success message after args has been freed in photometric_cc()
 	if (!retval) {
 		if (!com.script) {
 			// WARNING: Do not make this "algo" string translatable: it is used to
@@ -842,7 +843,10 @@ gpointer photometric_cc_standalone(gpointer p) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
 	if (!retval && image_is_gfit) {
-		siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
+		if (spcc)
+			siril_log_color_message(_("Spectrophotometric Color Calibration succeeded.\n"), "green");
+		else
+			siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
 		notify_gfit_modified();
 	}
 	else siril_add_idle(end_generic, NULL);
