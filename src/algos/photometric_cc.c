@@ -319,6 +319,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		free(ibg);
 		free(crg);
 		free(cbg);
+		siril_log_color_message(_("Error: unable to compute a fit to the data. "
+				"Check your sensor and filter selections are correct.\n"), "red");
 		return 1;
 	}
 	if (robust_linear_fit(cbg, ibg, ngood, &abg, &bbg, &deviation[1])) {
@@ -326,12 +328,13 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		free(ibg);
 		free(crg);
 		free(cbg);
+		siril_log_color_message(_("Error: unable to compute a fit to the data. "
+				"Check your sensor and filter selections are correct.\n"), "red");
 		return 1;
 	}
 	siril_log_color_message(_("SPCC Linear Fits\n"), "green");
-	siril_log_message(_("Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"
-						"Image B/G = %f +%f * Catalog B/G (sigma: %f)\n"),
-						arg, brg, abg, bbg, deviation[0], deviation[1]);
+	siril_log_message(_("Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"), arg, brg, deviation[0]);
+	siril_log_message(_("Image B/G = %f +%f * Catalog B/G (sigma: %f)\n"), abg, bbg, deviation[1]);
 	double kr = 1.f / (arg + brg * wrg);
 	double kg = 1.f;
 	double kb = 1.f / (abg + bbg * wbg);

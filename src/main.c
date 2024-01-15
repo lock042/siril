@@ -23,6 +23,7 @@
 #  include <config.h>
 #endif
 
+#include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
@@ -168,6 +169,7 @@ void parallel_loop(void *(*work)(char *), char *jobdata, size_t elsize, int njob
 #endif
 
 static void global_initialization() {
+	gsl_set_error_handler_off();
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;

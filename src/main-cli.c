@@ -23,6 +23,7 @@
 #  include <config.h>
 #endif
 
+#include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
@@ -114,6 +115,7 @@ static GOptionEntry main_option[] = {
 };
 
 static void global_initialization() {
+	gsl_set_error_handler_off();
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;
