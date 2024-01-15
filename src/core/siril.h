@@ -500,7 +500,7 @@ typedef struct _osc_sensor {
 struct spcc_data_store {
 	GList *mono_sensors;
 	GList *osc_sensors;
-	GList *mono_filters[4]; // R, G, B, LPF
+	GList *mono_filters[4]; // R, G, B, Lum
 	GList *osc_lpf;
 	GList *osc_filters;
 	GList *wb_ref;

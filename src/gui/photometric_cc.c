@@ -891,7 +891,7 @@ void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
 			g_free(com.pref.spcc.lpfpref);
 			com.pref.spcc.lpfpref = NULL;
 		}
-		GList *list = g_list_nth(com.spcc_data.mono_filters[3], index);
+		GList *list = g_list_nth(com.spcc_data.osc_lpf, index);
 		if (list) {
 			spcc_object* object = (spcc_object*) list->data;
 			com.pref.spcc.lpfpref = g_strdup(object->name);
