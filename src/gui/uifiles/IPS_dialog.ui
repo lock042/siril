@@ -1471,7 +1471,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">DSLR LPF:</property>
+                        <property name="label" translatable="yes">DSLR Low Pass Filter:</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -1495,6 +1495,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <object class="GtkComboBox" id="combo_spcc_filters_lpf">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">For unmodified DSLRs, select the LPF most closely matching your model (many Canon LPFs are almost identical so there may not be an exact match for your model). For modified DSLRs, select the replacement LPF (if there isn't an exact match the Baader BCF is probably close).</property>
                         <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
                       </object>
                       <packing>
