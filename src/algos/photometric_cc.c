@@ -349,20 +349,20 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_plot_data *spl_datarg = NULL;
 		spl_datarg = malloc(sizeof(siril_plot_data));
 		init_siril_plot_data(spl_datarg);
-		spl_datarg->plottype = KPLOT_LINESPOINTS;
 		siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
 		siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
 		siril_plot_set_title(spl_datarg, _("SPCC Linear Fit: R/G"));
 		siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
 		siril_plot_add_xydata(spl_datarg, _("R/G"), ngood, crg, irg, NULL, NULL);
 		siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
+		siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
+		siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
 
 		double best_fit_bgx[2] = {find_min_d(cbg, ngood), find_max_d(cbg, ngood)};
 		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
 		siril_plot_data *spl_databg = NULL;
 		spl_databg = malloc(sizeof(siril_plot_data));
 		init_siril_plot_data(spl_databg);
-		spl_databg->plottype = KPLOT_LINESPOINTS;
 		siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
 		siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
 		siril_plot_set_title(spl_databg, _("SPCC Linear Fit: B/G"));
@@ -370,6 +370,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		gchar *spl_legendbg = _("B/G");
 		siril_plot_add_xydata(spl_databg, spl_legendbg, ngood, cbg, ibg, NULL, NULL);
 		siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+		siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
+		siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
 
 		spl_datarg->cfgdata.point.radius = 1;
 		spl_datarg->cfgdata.point.sz = 2;
