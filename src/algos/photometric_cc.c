@@ -162,7 +162,7 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
-double find_min_d(double *arr, int size) {
+static double find_min_d(double *arr, int size) {
     if (size <= 0 || arr == NULL) {
         // Handle the case of an empty array or invalid size
         return 0.0;  // You can choose another value or use an error mechanism
@@ -179,7 +179,7 @@ double find_min_d(double *arr, int size) {
     return min_value;
 }
 
-double find_max_d(double *arr, int size) {
+static double find_max_d(double *arr, int size) {
     if (size <= 0 || arr == NULL) {
         // Handle the case of an empty array or invalid size
         return 0.0;  // You can choose another value or use an error mechanism
@@ -370,6 +370,12 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		gchar *spl_legendbg = _("B/G");
 		siril_plot_add_xydata(spl_databg, spl_legendbg, ngood, cbg, ibg, NULL, NULL);
 		siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+
+		spl_datarg->cfgdata.point.radius = 1;
+		spl_datarg->cfgdata.point.sz = 2;
+		spl_databg->cfgdata.point.radius = 1;
+		spl_databg->cfgdata.point.sz = 2;
+
 		siril_add_idle(create_new_siril_plot_window, spl_datarg);
 		siril_add_idle(create_new_siril_plot_window, spl_databg);
 		siril_add_idle(end_generic, NULL);
@@ -634,21 +640,19 @@ int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *
 	float minimum = FLT_MAX;
 	float scale[3];
 	float offset[3];
-	float invrange;
 
 	for (int chan = 0; chan < 3; chan++) {
 		maximum = max(maximum, kw[chan] * (maxs[chan] - bg[chan].value) + bg[norm_channel].value);
 		minimum = min(minimum, kw[chan] * (mins[chan] - bg[chan].value) + bg[norm_channel].value);
 	}
-	invrange = ((fit->type == DATA_USHORT) ? USHRT_MAX_SINGLE : 1.f) / (maximum - minimum);
 
 	for (int chan = 0; chan < 3; chan++) {
-		scale[chan] = kw[chan] * invrange;
-		if (scale[chan] != scale[chan]) { // Check for NaN... If they are NaN the result image is junk
+		scale[chan] = kw[chan];
+		if (isnan(scale[chan])) { // Check for NaN... If they are NaN the result image is junk
 			siril_log_color_message(_("Error computing coefficients: aborting...\n"), "red");
 			return 1;
 		}
-		offset[chan] = (-bg[chan].value * kw[chan] + bg[norm_channel].value  - minimum) * invrange;
+		offset[chan] = (-bg[chan].value * kw[chan] + bg[norm_channel].value - minimum);
 	}
 	siril_log_message("After renormalization, the following coefficients are applied\n");
 	siril_log_color_message(_("White balance factors:\n"), "green");
