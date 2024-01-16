@@ -482,6 +482,23 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
         data->x[i] = pairs[i].x;
         data->y[i] = pairs[i].y;
     }
+    if (data->type == 6) {
+		int norm_ref = 0;
+		while (data->x[norm_ref] < 550) {
+			if (norm_ref == data->n - 1) {
+				norm_ref = 0;
+				break;
+			}
+			norm_ref++;
+		}
+		for (int i = 0 ; i < data->n ; i++) {
+			data->y[i] *= data->x[i];
+		}
+		double norm = data->y[norm_ref];
+		for (int i = 0 ; i < data->n ; i++) {
+			data->y[i] /= norm;
+		}
+	}
     free(pairs);
 	data->arrays_loaded = TRUE;
 
