@@ -412,8 +412,8 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	cd_inv[1][0] = -invdet * cd[1][0];
 	cd_inv[1][1] =  invdet * cd[0][0];
 
-	// we form a linear trans structure which sends the iwc to corrected pixels coordinates U,V
-	// eq (4)
+	// we form a linear trans structure which sends the iwc to corrected pixels coordinates U,V using CD^-1
+	// see the definition in eq (4)
 	TRANS transUV = { 0 };
 	transUV.order = 1;
 	transUV.b = cd_inv[0][0];
@@ -424,10 +424,9 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	// xygrid now holds the UV grid
 
 	// we can then find the polynomials that send U,V to u,v the original pixel coordinates of the grid
-	// the APij/BPij coeffs are simply the values of revtrans (for the 10 and 01 terms, we need to substrtact 1., see definitions in eq (5) and (6))
 	TRANS revtrans = { 0 };
 	revtrans.order = trans->order;
-	int status = atRecalcTrans(nbpoints, xygrid, nbpoints,uvgrid, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &revtrans);
+	int status = atRecalcTrans(nbpoints, xygrid, nbpoints, uvgrid, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &revtrans);
 	if (status) {
 		siril_log_color_message(_("Could not invert the SIP distorsion coefficients, try using a lower order or a linear solution\n"), "red");
 		free_stars(&uvgrid);
@@ -492,6 +491,8 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 		BP[1][2] = revtrans.s;
 		BP[0][3] = revtrans.t;
 	}
+
+	// We can now fill the disprm structure and assign it to wcslib->lin
 	struct disprm *dis = calloc(1, sizeof(struct disprm));
 	int ipx = 0;
 	int dpmax = 10 + 2 * (N + 1) * (N + 2);
