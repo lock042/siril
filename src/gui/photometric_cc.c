@@ -707,7 +707,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
 	siril_plot_set_savename(spl_data, "SPCC_data");
 	siril_plot_set_title(spl_data, _("SPCC Data"));
-	siril_plot_set_ylabel(spl_data, _("Quantum Efficiency / Transmittance / Rel. Flux"));
+	siril_plot_set_ylabel(spl_data, _("Quantum Efficiency / Transmittance / Rel. Photon Count"));
 	if (args.spcc_mono_sensor) {
 		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
 		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
@@ -799,7 +799,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		if (object->type == 1 || object->type == 2)
 			siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
 		else
-			siril_plot_set_ylabel(spl_data, _("Transmittance"));
+			siril_plot_set_ylabel(spl_data, object->type == 6 ? _("Relative photon count") : _("Transmittance"));
 
 		gchar *spl_legend = g_strdup(object->name);
 
