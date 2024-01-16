@@ -988,6 +988,10 @@ void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
 		}
 	} else {
+		if (!com.headless) {
+			// Check if the SPCC window is open, if so refresh the combo boxes
+			populate_spcc_combos();
+		}
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
 	}
 	set_cursor_waiting(FALSE);

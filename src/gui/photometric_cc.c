@@ -45,9 +45,6 @@
 #define MIN_PLOT 336.0
 #define MAX_PLOT 1020.0
 
-static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
-static const cmsCIEXYZ D50 = {0.964199999, 1.000000000, 0.824899998};
-static const cmsCIExyY D58 = {0.344994428, 0.35152261, 1.0}; // Sun as white point, modelled as a Black Body
 // (note using the Black Body locus gives a slightly different result than using the Daylight locus but
 // is *probably* what is wanted here.
 static gboolean spcc_filters_initialized = FALSE;
@@ -57,6 +54,10 @@ void set_spcc_args(struct photometric_cc_data *args);
 void get_whitepoint_from_ui(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data);
+
+void reset_spcc_filters() {
+	spcc_filters_initialized = FALSE;
+}
 
 static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
@@ -80,7 +81,6 @@ static void start_photometric_cc(gboolean spcc) {
 		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
 		set_spcc_args(pcc_args);
-		get_whitepoint_from_ui(pcc_args);
 	} else {
 		pcc_args->catalog = get_photometry_catalog_from_GUI();
 		pcc_args->spcc = FALSE;
@@ -404,27 +404,6 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
 	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
 	args->do_plot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_plot));
-}
-
-void get_whitepoint_from_ui(struct photometric_cc_data *args) {
-	GtkWidget *wp = lookup_widget("combo_spcc_whitepoint");
-	wp_t wp_index = gtk_combo_box_get_active(GTK_COMBO_BOX(wp));
-	switch (wp_index) {
-		case WP_D50:
-			memcpy(&args->whitepoint, &D50, sizeof(cmsCIExyY));
-			break;
-		case WP_D65:
-			memcpy(&args->whitepoint, &D65, sizeof(cmsCIExyY));
-			break;
-		case WP_SOL:
-			memcpy(&args->whitepoint, &D58, sizeof(cmsCIExyY));
-			break;
-		case WP_GAL_AVGSPIRAL:
-		case WP_GAL_AVGELLIPTICAL:
-			// TODO: This currently just returns D50, update this based on data
-			memcpy(&args->whitepoint, &D50, sizeof(cmsCIExyY));
-			break;
-	}
 }
 
 int get_favourite_spccobject(GList *list, const gchar *favourite) {

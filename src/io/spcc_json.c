@@ -27,6 +27,7 @@
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "gui/photometric_cc.h" // for reset_spcc_filters() (this is not a GTK function)
 #include <json-glib/json-glib.h>
 
 void spcc_object_free(spcc_object *data, gboolean free_struct);
@@ -557,9 +558,29 @@ gint compare_osc_object_models(gconstpointer a, gconstpointer b) {
     return g_strcmp0(object1->channel[0].model, object2->channel[0].model);
 }
 
+static void spcc_object_destroy(void *user_data) {
+	spcc_object *object = (spcc_object*) user_data;
+	spcc_object_free(object, TRUE);
+}
+
+static void osc_sensor_destroy(void *user_data) {
+	osc_sensor *object = (osc_sensor*) user_data;
+	osc_sensor_free(object, TRUE);
+}
+
 void load_all_spcc_metadata() {
-    const gchar *path = siril_get_spcc_repo_path();
-    processDirectory(path);
+	// Ensure any previous content in the lists is removed and freed properly
+	g_list_free_full(com.spcc_data.wb_ref, (GDestroyNotify) spcc_object_destroy);
+	g_list_free_full(com.spcc_data.osc_lpf, (GDestroyNotify)spcc_object_destroy);
+	g_list_free_full(com.spcc_data.osc_filters, (GDestroyNotify)spcc_object_destroy);
+	g_list_free_full(com.spcc_data.mono_sensors, (GDestroyNotify)spcc_object_destroy);
+	g_list_free_full(com.spcc_data.osc_sensors, (GDestroyNotify)osc_sensor_destroy);
+	for (int i = 0 ; i < 3 ; i++) {
+		g_list_free_full(com.spcc_data.mono_filters[i], (GDestroyNotify)spcc_object_destroy);
+	}
+
+	const gchar *path = siril_get_spcc_repo_path();
+	processDirectory(path);
 	com.spcc_data.wb_ref = g_list_sort(com.spcc_data.wb_ref, compare_spcc_object_names);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);
 	com.spcc_data.osc_lpf = g_list_sort(com.spcc_data.osc_lpf, compare_spcc_object_names);
@@ -567,4 +588,5 @@ void load_all_spcc_metadata() {
 	com.spcc_data.mono_sensors = g_list_sort(com.spcc_data.mono_sensors, compare_spcc_object_names);
 	for (int i = 0 ; i < 3 ; i++)
 		com.spcc_data.mono_filters[i] = g_list_sort(com.spcc_data.mono_filters[i], compare_spcc_object_names);
+	reset_spcc_filters();
 }

@@ -49,7 +49,6 @@ struct photometric_cc_data {
 	int selected_white_ref; // for SPCC
 	gboolean do_plot; // for SPCC
 	cmsCIExyYTRIPLE primaries; // used for SPCC source profile
-	cmsCIExyY whitepoint; // used for SPCC source profile
 };
 
 int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *bg, const float *mins, const float *maxs, int norm_channel);
