@@ -436,44 +436,35 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 	return -1;  // No match found
 }
 
+void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data);
+
 void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gchar *favourite) {
-	GtkComboBox *combo;
-	GtkListStore *store;
-	GtkTreeIter iter;
+    GtkComboBoxText *combo;
 
-	combo=GTK_COMBO_BOX(lookup_widget(comboname));
-	// Clear the model
-	gtk_combo_box_set_model(combo, NULL);
+    combo = GTK_COMBO_BOX_TEXT(lookup_widget(comboname));
+	g_signal_handlers_block_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
+    // Clear the model
+    gtk_combo_box_text_remove_all(combo);
 
-	GtkTreeModel *model;
+    GList *iterator = list;
 
-	GtkCellRenderer *renderer=gtk_cell_renderer_text_new();
-
-	model=GTK_TREE_MODEL((store=gtk_list_store_new(1,G_TYPE_STRING)));
-	gtk_combo_box_set_model(combo, model);
-	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo),renderer,TRUE);
-	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo),renderer,"text",0,NULL);
-
-	GList *iterator = list;
-
-	if (list == com.spcc_data.osc_sensors) {
-		while (iterator) {
-			osc_sensor *object = (osc_sensor*) iterator->data;
-			gtk_list_store_append(store, &iter);
-			gtk_list_store_set(store,&iter,0,object->channel[0].model,-1);
-			iterator = iterator->next;
-		}
-		gtk_combo_box_set_active(combo, get_favourite_oscsensor(list, favourite));
-	} else {
-		while (iterator) {
-			// Easier, just add all objects by name
-			spcc_object *object = (spcc_object*) iterator->data;
-			gtk_list_store_append(store,&iter);
-			gtk_list_store_set(store,&iter,0,object->name,-1);
-			iterator = iterator->next;
-		}
-		gtk_combo_box_set_active(combo, get_favourite_spccobject(list, favourite));
-	}
+    if (list == com.spcc_data.osc_sensors) {
+        while (iterator) {
+            osc_sensor *object = (osc_sensor *)iterator->data;
+            gtk_combo_box_text_append_text(combo, object->channel[0].model);
+            iterator = iterator->next;
+        }
+		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_oscsensor(list, favourite));
+    } else {
+        while (iterator) {
+            spcc_object *object = (spcc_object *)iterator->data;
+            gtk_combo_box_text_append_text(combo, object->name);
+            iterator = iterator->next;
+        }
+		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_spccobject(list, favourite));
+    }
 }
 
 void populate_spcc_combos() {

@@ -993,7 +993,7 @@ void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
 			reset_spcc_filters();
 			// Check if the SPCC window is open, if so refresh the combo boxes
 			GtkWidget *spcc_dialog = lookup_widget("ImagePlateSolver_Dial");
-			if (gtk_widget_get_visible(widget) {
+			if (gtk_widget_get_visible(spcc_dialog)) {
 				populate_spcc_combos();
 			}
 		}

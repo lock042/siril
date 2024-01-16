@@ -570,12 +570,18 @@ static void osc_sensor_destroy(void *user_data) {
 void load_all_spcc_metadata() {
 	// Ensure any previous content in the lists is removed and freed properly
 	g_list_free_full(com.spcc_data.wb_ref, (GDestroyNotify) spcc_object_destroy);
+	com.spcc_data.wb_ref = NULL;
 	g_list_free_full(com.spcc_data.osc_lpf, (GDestroyNotify)spcc_object_destroy);
+	com.spcc_data.osc_lpf = NULL;
 	g_list_free_full(com.spcc_data.osc_filters, (GDestroyNotify)spcc_object_destroy);
+	com.spcc_data.osc_filters = NULL;
 	g_list_free_full(com.spcc_data.mono_sensors, (GDestroyNotify)spcc_object_destroy);
+	com.spcc_data.mono_sensors = NULL;
 	g_list_free_full(com.spcc_data.osc_sensors, (GDestroyNotify)osc_sensor_destroy);
+	com.spcc_data.osc_sensors = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
 		g_list_free_full(com.spcc_data.mono_filters[i], (GDestroyNotify)spcc_object_destroy);
+		com.spcc_data.mono_filters[i] = NULL;
 	}
 
 	const gchar *path = siril_get_spcc_repo_path();
