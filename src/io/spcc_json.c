@@ -162,10 +162,14 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 
 validation_error:
     g_object_unref(parser);
+	g_free(data->model);
+	data->model = NULL;
 	g_free(data->name);
-    g_free(data->manufacturer);
-    free(data->x);
-    free(data->y);
+	data->name = NULL;
+	g_free(data->source);
+	data->source = NULL;
+g_free(data->manufacturer);
+	data->manufacturer = NULL;
 	return 0;
 #endif
 }
