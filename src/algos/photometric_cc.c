@@ -196,6 +196,16 @@ static double find_max_d(double *arr, int size) {
     return max_value;
 }
 
+static gchar *generate_title(const gchar *type, double arg, double br, double sig, gchar *wr, int nb_stars, float *kw) {
+	return g_strdup_printf(_("White Balance summary\n"
+			"<span size=\"small\">"
+			"%s SPCC Linear Fit: y = %f + %f·x, &#x03C3; = %f\n"
+			"White reference: %s\n"
+			"Number of stars: %d\n"
+			"White balance factors: %.3f %.3f %.3f"
+			"</span>"),
+			type, arg, br, sig, wr, nb_stars, kw[RLAYER], kw[GLAYER], kw[BLAYER]);
+}
 
 static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
@@ -334,7 +344,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	}
 	siril_log_color_message(_("SPCC Linear Fits\n"), "green");
 	siril_log_message(_("Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"), arg, brg, deviation[0]);
-	siril_log_message(_("Image B/G = %f +%f * Catalog B/G (sigma: %f)\n"), abg, bbg, deviation[1]);
+	siril_log_message(_("Image B/G = %f + %f * Catalog B/G (sigma: %f)\n"), abg, bbg, deviation[1]);
 	double kr = 1.f / (arg + brg * wrg);
 	double kg = 1.f;
 	double kb = 1.f / (abg + bbg * wbg);
@@ -347,17 +357,23 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		double best_fit_rgx[2] = {find_min_d(crg, ngood), find_max_d(crg, ngood)};
 		double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
 		siril_plot_data *spl_datarg = NULL;
+		spcc_object *object = (spcc_object*) selected_white->data;
+
+
+		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, nb_stars, kw);
 		spl_datarg = malloc(sizeof(siril_plot_data));
 		init_siril_plot_data(spl_datarg);
 		siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
 		siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
-		siril_plot_set_title(spl_datarg, _("SPCC Linear Fit: R/G"));
+		siril_plot_set_title(spl_datarg, title1);
 		siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
 		siril_plot_add_xydata(spl_datarg, _("R/G"), ngood, crg, irg, NULL, NULL);
 		siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
 		siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
+		g_free(title1);
 
+		gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, nb_stars, kw);
 		double best_fit_bgx[2] = {find_min_d(cbg, ngood), find_max_d(cbg, ngood)};
 		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
 		siril_plot_data *spl_databg = NULL;
@@ -365,13 +381,14 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		init_siril_plot_data(spl_databg);
 		siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
 		siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
-		siril_plot_set_title(spl_databg, _("SPCC Linear Fit: B/G"));
+		siril_plot_set_title(spl_databg, title2);
 		siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
 		gchar *spl_legendbg = _("B/G");
 		siril_plot_add_xydata(spl_databg, spl_legendbg, ngood, cbg, ibg, NULL, NULL);
 		siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
 		siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
+		g_free(title2);
 
 		spl_datarg->cfgdata.point.radius = 1;
 		spl_datarg->cfgdata.point.sz = 2;
