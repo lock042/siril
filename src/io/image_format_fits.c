@@ -3746,6 +3746,18 @@ int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
         fits_report_error(stderr, status);
         goto error;
     }
+
+    // Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
+    // for consistency with how we handle white references and camera photon counting
+    // behaviour.
+    for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
+		xps->y[i] *= xps->x[i];
+	}
+	double norm = xps->y[82];
+    for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
+		xps->y[i] /= norm;
+	}
+
 	if (fits_close_file(fptr, &status))
         fits_report_error(stderr, status);
 	return 0;

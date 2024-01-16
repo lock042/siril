@@ -387,6 +387,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	free(crg);
 	free(cbg);
 	if (kw[RLAYER] < 0.f || kw[GLAYER] < 0.f || kw[BLAYER] < 0.f) {
+		siril_log_color_message(_("Error calculating white balance coefficients: kw contains negative values.\n"),"red");
 		return 1;
 	}
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
