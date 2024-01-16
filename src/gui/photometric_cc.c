@@ -275,7 +275,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
 	gtk_widget_set_visible(lasnet, FALSE);
 	gtk_widget_set_visible(spcc_options, TRUE);
-	gtk_widget_set_visible(spcc_max_stars, FALSE);
+	gtk_widget_set_visible(spcc_max_stars, TRUE);
 	gtk_widget_set_visible(spcc_max_stars_label, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
 	gtk_widget_grab_focus(button_cc_ok);
