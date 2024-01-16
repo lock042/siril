@@ -34,6 +34,7 @@
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
 #include "gui/progress_and_log.h"
+#include "gui/photometric_cc.h" // for reset_spcc_filters() (this is not a GTK function)
 #include "gui/utils.h"
 #include "gui/script_menu.h"
 #include "core/siril_update.h" // for the version_number struct
@@ -989,8 +990,12 @@ void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
 		}
 	} else {
 		if (!com.headless) {
+			reset_spcc_filters();
 			// Check if the SPCC window is open, if so refresh the combo boxes
-			populate_spcc_combos();
+			GtkWidget *spcc_dialog = lookup_widget("ImagePlateSolver_Dial");
+			if (gtk_widget_get_visible(widget) {
+				populate_spcc_combos();
+			}
 		}
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
 	}

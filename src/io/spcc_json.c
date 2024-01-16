@@ -27,7 +27,6 @@
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "gui/photometric_cc.h" // for reset_spcc_filters() (this is not a GTK function)
 #include <json-glib/json-glib.h>
 
 void spcc_object_free(spcc_object *data, gboolean free_struct);
@@ -588,5 +587,4 @@ void load_all_spcc_metadata() {
 	com.spcc_data.mono_sensors = g_list_sort(com.spcc_data.mono_sensors, compare_spcc_object_names);
 	for (int i = 0 ; i < 3 ; i++)
 		com.spcc_data.mono_filters[i] = g_list_sort(com.spcc_data.mono_filters[i], compare_spcc_object_names);
-	reset_spcc_filters();
 }
