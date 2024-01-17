@@ -175,8 +175,8 @@ g_free(data->manufacturer);
 }
 
 static int compare_spcc_chan(const void *a, const void *b) {
-	spcc_object *obj_a = (spcc_object*) a;
-	spcc_object *obj_b = (spcc_object*) b;
+	const spcc_object *obj_a = (spcc_object*) a;
+	const spcc_object *obj_b = (spcc_object*) b;
 	return obj_a->n - obj_b->n;
 }
 
@@ -215,7 +215,7 @@ static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor 
 }
 
 static gboolean processJsonFile(const char *file_path) {
-	int retval;
+	int retval = 0;
     GError *error = NULL;
     JsonParser *parser;
     JsonNode *node;
@@ -259,7 +259,7 @@ static gboolean processJsonFile(const char *file_path) {
 		if (retval == 1) {
 			if (data->type == 3 && (data->channel < 0 || data->channel > 2)) {
 				spcc_object_free(data, TRUE);
-				return 0;
+				return FALSE;
 			}
 			siril_debug_print("Read JSON object: %s\n", data->name);
 			// Place the data into the correct list based on its type
@@ -285,7 +285,7 @@ static gboolean processJsonFile(const char *file_path) {
 				default:
 					g_warning("Unknown type: %d", data->type);
 					spcc_object_free(data, TRUE);
-					return 0;
+					return FALSE;
 			}
 		}
 		else if (retval == 2) {
@@ -294,14 +294,14 @@ static gboolean processJsonFile(const char *file_path) {
 			if (retval) {
 				siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
 				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
-				return retval;
+				return TRUE;
 			} else {
 				siril_debug_print("Error reading JSON object in file %s\n", file_path);
-				return retval;
+				return FALSE;
 			}
 		}
 	}
-	return retval;
+	return TRUE;
 }
 
 /*********************** PUBLIC FUNCTIONS ****************************/
@@ -363,8 +363,8 @@ void spcc_object_free_arrays(spcc_object *data) {
 }
 
 static int compare_pair_x(const void *a, const void *b) {
-	point* aa = (point*) a;
-	point* bb = (point*) b;
+	const point* aa = (point*) a;
+	const point* bb = (point*) b;
 	if (aa->x == bb->x)
     return 0;
 	else if(aa->x > bb->x)
