@@ -110,6 +110,7 @@
 #include "algos/noise.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
+#include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "algos/geometry.h"
 #include "algos/photometric_cc.h"
@@ -8383,15 +8384,19 @@ int process_rgbcomp(int nb) {
 }
 
 // used for plate solver and PCC commands
-int process_pcc(int nb) {
+static int do_pcc(int nb, gboolean spectro) {
 	gboolean noflip = FALSE, plate_solve = !has_wcs(&gfit), downsample = FALSE;
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
 	siril_cat_index cat = CAT_AUTO;
-	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve' or 'seqplatesolve'
-	gboolean seqps = word[0][0] == 's';
+	gboolean pcc_command = word[0][1] == 'c' || word[0][1] == 'p'; // not 'platesolve' or 'seqplatesolve'
+	gboolean seqps = !pcc_command && word[0][0] == 's';
 	sequence *seq = NULL;
+	gchar *monosensor = NULL, *oscsensor = NULL, *rfilter = NULL, *gfilter = NULL, *bfilter = NULL, *oscfilter = NULL, *osclpf = NULL, *whiteref = NULL;
+	gchar* spcc_strings_to_free[8] = { oscsensor, oscfilter, osclpf, monosensor, rfilter, gfilter, bfilter, whiteref };
+	int max_spcc_stars = 1000;
+	int mono_or_osc = 0; // for SPCC
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -8441,6 +8446,8 @@ int process_pcc(int nb) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
+
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -8452,6 +8459,7 @@ int process_pcc(int nb) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -8464,6 +8472,7 @@ int process_pcc(int nb) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
 			if (arg[0] == '-' || arg[0] == '+')
@@ -8471,6 +8480,10 @@ int process_pcc(int nb) {
 			else target_mag = value;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
+			if (spectro) {
+				siril_log_message(_("For SPCC, catalog can only be GAIA DR3. Ignoring -catalog= argument.\n"));
+				continue;
+			}
 			char *arg = word[next_arg] + 9;
 			if (!g_strcmp0(arg, "tycho2"))
 				cat = CAT_TYCHO2;
@@ -8488,12 +8501,14 @@ int process_pcc(int nb) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
 			if (pcc_command && cat != CAT_NOMAD && cat != CAT_APASS) {
 				siril_log_message(_("Catalog can only be NOMAD or APASS for photometric usage\n"));
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -8502,10 +8517,54 @@ int process_pcc(int nb) {
 				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
 			cat = CAT_ASNET;
 			local_cat = TRUE;
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-monosensor=")) {
+			char *arg = word[next_arg] + 12;
+			monosensor = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-oscsensor=")) {
+			char *arg = word[next_arg] + 11;
+			oscsensor = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-rfilter=")) {
+			char *arg = word[next_arg] + 9;
+			rfilter = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-gfilter=")) {
+			char *arg = word[next_arg] + 9;
+			gfilter = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-bfilter=")) {
+			char *arg = word[next_arg] + 9;
+			bfilter = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-oscfilter=")) {
+			char *arg = word[next_arg] + 11;
+			oscfilter = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-osclpf=")) {
+			char *arg = word[next_arg] + 8;
+			gfilter = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-whiteref=")) {
+			char *arg = word[next_arg] + 10;
+			whiteref = g_strdup(arg);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-osc=")) {
+			char *arg = word[next_arg] + 5;
+			if (!g_ascii_strcasecmp(arg, "true"))
+				mono_or_osc = 1;
+			else if (!g_ascii_strcasecmp(arg, "false"))
+				mono_or_osc = -1;
+			if ((oscsensor && mono_or_osc == -1) || (monosensor && mono_or_osc == 1)) {
+				siril_log_message(_("Inconsistent use of -osc=\n"));
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				return CMD_ARG_ERROR;
+			}
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-max_spcc_stars=")) {
+			char *arg = word[next_arg] + 16;
+			max_spcc_stars = (int) g_ascii_strtod(arg, NULL);
+			if (max_spcc_stars < 50) {
+				siril_log_message(_("Error, cannot set spcc_max_stars lower than 50 to ensure there are enough stars for a reasonable fit.\n"));
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				return CMD_ARG_ERROR;
+			}
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			if (target_coords)
 				siril_world_cs_unref(target_coords);
+			for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 			return CMD_ARG_ERROR;
 		}
 		next_arg++;
@@ -8572,6 +8631,7 @@ int process_pcc(int nb) {
 		if (cat != CAT_ASNET) {
 			if (!target_coords) {
 				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_INVALID_IMAGE;
 			}
 		}
@@ -8603,8 +8663,43 @@ int process_pcc(int nb) {
 		pcc_args = calloc(1, sizeof(struct photometric_cc_data));
 		pcc_args->fit = &gfit;
 		pcc_args->bg_auto = TRUE;
+		pcc_args->spcc = spectro;
+		if (spectro) {
+			if (!oscsensor && !monosensor && !mono_or_osc) {
+				siril_log_message(_("If neither mono nor OSC sensor is specified you must use the -osc={true|false} option\n"));
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				return CMD_ARG_ERROR;
+			}
+			if (oscsensor || mono_or_osc == 1) {
+				pcc_args->selected_sensor_osc = get_favourite_oscsensor(com.spcc_data.osc_sensors, oscsensor ? oscsensor : com.pref.spcc.oscsensorpref);
+				if (pcc_args->selected_sensor_osc == -1) {
+					siril_log_message(_("No sensor specified as argument or guessable from previous use\n"));
+					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					return CMD_ARG_ERROR;
+				}
+				pcc_args->selected_filter_osc = get_favourite_spccobject(com.spcc_data.osc_filters, oscfilter ?oscfilter : com.pref.spcc.oscfilterpref ? com.pref.spcc.oscfilterpref : "No filter");
+				pcc_args->selected_filter_lpf = get_favourite_spccobject(com.spcc_data.osc_lpf, osclpf ? osclpf : com.pref.spcc.lpfpref ? com.pref.spcc.lpfpref : "Full spectrum");
+				pcc_args->spcc_mono_sensor = FALSE;
+				siril_log_message(_("SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n", oscsensor ? oscsensor : com.pref.spcc.oscsensorpref, oscfilter ?oscfilter : com.pref.spcc.oscfilterpref, osclpf : com.pref.spcc.lpfpref);
+			} else {
+				pcc_args->selected_sensor_m = get_favourite_spccobject(com.spcc_data.mono_sensors, monosensor ? monosensor : com.pref.spcc.monosensorpref);
+				pcc_args->selected_filter_r = get_favourite_spccobject(com.spcc_data.mono_filters[0], rfilter ? rfilter : com.pref.spcc.redpref);
+				pcc_args->selected_filter_g = get_favourite_spccobject(com.spcc_data.mono_filters[1], gfilter ? gfilter : com.pref.spcc.greenpref);
+				pcc_args->selected_filter_b = get_favourite_spccobject(com.spcc_data.mono_filters[2], bfilter ? bfilter : com.pref.spcc.bluepref);
+				if (pcc_args->selected_sensor_m == -1 || pcc_args->selected_filter_r == -1 || pcc_args->selected_filter_g == -1 || pcc_args->selected_filter_b == -1 ) {
+					siril_log_message(_("Either the sensor or a filter was not specified as argument or guessable from previous use\n"));
+					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					return CMD_ARG_ERROR;
+				}
+				pcc_args->spcc_mono_sensor = TRUE;
+				siril_log_message(_("SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n", monosensor ? monosensor : com.pref.spcc.monosensorpref, rfilter ? rfilter : com.pref.spcc.redpref, gfilter ? gfilter : com.pref.spcc.greenpref, bfilter ? bfilter : com.pref.spcc.bluepref);
+			}
+			pcc_args->selected_white_ref = get_favourite_spccobject(com.spcc_data.wb_ref, whiteref ? whiteref : "Average Spiral Galaxy");
+			pcc_args->max_spcc_stars = max_spcc_stars;
+			pcc_args->do_plot = FALSE; // Option not available from scripts
+		}
 	}
-
+	for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 	/* populating plate solve arguments */
 	if (forced_pixsize > 0.0) {
 		if (!plate_solve)
@@ -8707,7 +8802,7 @@ int process_pcc(int nb) {
 	}
 
 	if (pcc_command) {
-		pcc_args->catalog = cat;
+		pcc_args->catalog = spectro ? CAT_GAIADR3_DIRECT : cat;
 		if (plate_solve) {
 			args->for_photometry_cc = TRUE;
 			args->pcc = pcc_args;
@@ -8717,10 +8812,22 @@ int process_pcc(int nb) {
 	if (plate_solve)
 		start_in_new_thread(plate_solver, args);
 	else {
+		if (spectro) {
+			if ((!com.spcc_data.mono_sensors && pcc_args->spcc_mono_sensor) || (!com.spcc_data.osc_sensors && !pcc_args->spcc_mono_sensor))
+				load_all_spcc_metadata();
+		}
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
 
 	return CMD_OK;
+}
+
+int process_pcc(int nb) {
+	return do_pcc(nb, FALSE);
+}
+
+int process_spcc(int nb) {
+	return do_pcc(nb, TRUE);
 }
 
 int process_conesearch(int nb) {

@@ -56,6 +56,8 @@ int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, f
 int photometric_cc(struct photometric_cc_data *args);
 gpointer photometric_cc_standalone(gpointer p);
 pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars);
+int get_favourite_spccobject(GList *list, const gchar *favourite);
+int get_favourite_oscsensor(GList *list, const gchar *favourite);
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
 
