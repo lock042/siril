@@ -110,6 +110,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	reset_zoom_default();
 	free(gui.qphot);
 	gui.qphot = NULL;
+	gui.show_wcs_disto = FALSE;
 	clear_sensor_tilt();
 	g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);

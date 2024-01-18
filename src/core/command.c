@@ -9515,3 +9515,26 @@ int process_icc_remove(int nb) {
 
 	return CMD_OK;
 }
+
+int process_disto(int nb) {
+	if (!has_wcs(&gfit) || !gfit.wcslib->lin.dispre) {
+		siril_log_color_message(_("This command only works on plate solved images with distorsions included\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	if (nb > 2)
+		return CMD_WRONG_N_ARG;
+	if (nb == 1) {
+		gui.show_wcs_disto	= TRUE;
+		redraw(REDRAW_OVERLAY);
+		return CMD_OK;
+	}
+	if (!strcmp(word[1], "clear")) {
+		gui.show_wcs_disto	= FALSE;
+		redraw(REDRAW_OVERLAY);
+		return CMD_OK;
+	} else {
+		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	return CMD_OK;
+}
