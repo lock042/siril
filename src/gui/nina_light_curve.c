@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,15 +38,15 @@ static GtkWidget *display_curve = NULL;
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data);
 
 static void build_the_dialog() {
-	dialog = gtk_dialog_new_with_buttons(_("Light curve with NINA star list"), NULL,
-			0, _("_OK"), GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
+	dialog = gtk_dialog_new_with_buttons(_("Automated light curve"), NULL,
+			0, _("_Close"), GTK_RESPONSE_REJECT, _("_OK"), GTK_RESPONSE_ACCEPT, NULL);
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
 	// the GtkDialog::response signal with the corresponding response ID
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_nina_lc_response), NULL);
 
-	file_chooser = gtk_file_chooser_button_new (_("Select the NINA star list file"),
+	file_chooser = gtk_file_chooser_button_new (_("Select the comparison star list file"),
 			GTK_FILE_CHOOSER_ACTION_OPEN);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(file_chooser), com.wd);
 	g_object_set(G_OBJECT(file_chooser), "margin", 15, NULL);
@@ -55,7 +55,7 @@ static void build_the_dialog() {
 	gtk_file_filter_add_pattern(f, "*.csv");
 	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(file_chooser), f);
 
-	GtkWidget *label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list of reference stars created by the NINA exoplanet plugin"));
+	GtkWidget *label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list of reference stars created by Siril or the NINA exoplanet plugin"));
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	g_object_set(G_OBJECT(label), "margin", 15, NULL);
 
@@ -68,7 +68,7 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(use_comp2), "margin-right", 6, NULL);
 	g_object_set(G_OBJECT(display_curve), "margin", 6, NULL);
 	gtk_widget_set_tooltip_text(use_comp1, _("Color similar to the target mean they will get extincted the same way by the changing atmosphere"));
-	gtk_widget_set_tooltip_text(use_comp2, _("The AAVSO gives stars that are know to not be variable"));
+	gtk_widget_set_tooltip_text(use_comp2, _("The AAVSO gives stars that are known to not be variable"));
 	gtk_widget_set_tooltip_text(display_curve, _("if not checked, a PNG image of the graph will be generated instead"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_comp1), TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_comp2), TRUE);
@@ -125,7 +125,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 
 	if (sequence_drifts(&com.seq, layer, com.seq.rx / 4)) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), _("The sequence seems to have a heavy drift, the computation of a light curve may not be accurate or possible"));
-		// TODO: if clicked on cancel, do not continue
+		// TODO: if clicked on close, do not continue
 	}
 
 	siril_log_message(_("Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"),

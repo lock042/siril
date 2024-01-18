@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1185,7 +1185,7 @@ static void get_asnet_version(gchar *path) {
 	if (error) {
 		// This will happen on Windows, for users using ansvr but having set the path to cygwin_ansvr in the prefs (instead of leaving blank)
 		// We'll not make this over complicated and fallback assuming this is the only case
-		siril_debug_print(error->message);
+		siril_debug_print("%s\n",error->message);
 		asnet_version = g_strdup("ansvr");
 	} else {
 		gchar** chunks = g_strsplit(child_stdout, "\n", 2);
