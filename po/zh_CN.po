@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-01-08 13:14+0100\n"
-"PO-Revision-Date: 2023-12-21 10:21+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"PO-Revision-Date: 2024-01-18 13:50+0000\n"
+"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -2615,10 +2615,9 @@ msgid ""
 "each image, they can still give a satisfactory result when compared to no "
 "normalization at all."
 msgstr ""
-"缺省下，Siril使用IKSS位置估计量和尺度来计算归一化。对于长序列，计算这些估计量"
-"会非常密集。这种情况下，您可以选择快速归一化（基于中位数和绝对中位差）。当每"
-"幅图像中的离群阻力较低的时候，仍然会得到令人满意的结果（相比于根本没有归一"
-"化）。"
+"缺省下，Siril使用IKSS来评估位置和拉伸量，用于计算归一化。对于长序列，计算量会"
+"非常大。这种情况下，您可以选择快速归一化（基于中位数和绝对中位差）。当每幅图"
+"像中的异常值较少的时候，仍然会得到令人满意的结果（相比于完全不做归一化）。"
 
 #: src/gui/uifiles/siril.ui:7621
 msgid "Normalisation:"
@@ -2675,8 +2674,8 @@ msgstr ""
 "\n"
 "<b>百分数修剪</b> 是一种单步操作的剔除算法，适用于小数量的数据（最多6张）。\n"
 "\n"
-"<b>Sigma修剪</b> 是一种迭代式算法，会剔除那些距离中值大于给定的两个sigma值的"
-"像素点。\n"
+"<b>Sigma修剪</b> "
+"是一种迭代式算法，会剔除那些距离中值大于给定的两个sigma值的像素点。\n"
 "\n"
 "<b>绝对中位差修剪</b> 是一种类似于Sigma Clipping的迭代算法，其评估方式基于绝"
 "对中位差（MAD）。通常用于含有红外噪声的图像处理。\n"
@@ -2686,9 +2685,9 @@ msgstr ""
 "<b>Winsorized Sigma修剪</b> 也是跟上面类似的算法，所应剔除的像素值却被临近值"
 "所替代。该算法基于Hube的工作，参见 [1] [2].\n"
 "\n"
-"<b>线性拟合修剪</b> 是Juan Conejero为PixInsight所开发的 [2].。该算法基于一条"
-"坐标上的斜线 (y=ax+b) 来计算离群值而用于像素剔除和叠加。该算法非常适用于巨大"
-"数据量的叠加并且图像包含有不同方向和空间分布形式的天光。\n"
+"<b>线性拟合修剪</b> 是PixInsight的主开发者Juan Conejero开发的 [2].。"
+"该算法基于一条坐标上的斜线 (y=ax+b) 来计算离群值而用于像素剔除和叠加。该算法"
+"非常适用于巨大数据量的叠加并且图像包含有不同方向和空间分布形式的天光。\n"
 "\n"
 "<b>广义ESD检验</b> 是广义的Grubbs Test算法[3]，用于检测近似正态分布的单变量数"
 "据集中的若干离群值。该算法在超过50张图像的庞大集合中可体现出优秀的性能。\n"
@@ -3603,9 +3602,8 @@ msgid ""
 "If selected, a custom value may be entererd for the StarNet stride "
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
-msgstr ""
-"如果选中此选项，则可以为 StarNet 步幅参数输入自定义值。默认值为 256，StarNet "
-"开发人员建议不要更改此值。"
+msgstr "如果选中此选项，则可以自定义 StarNet 步幅。默认值为 256，StarNet "
+"的开发者建议不要更改此值。"
 
 #: src/gui/uifiles/starnet_dialog.ui:172
 msgid "Stride"
@@ -3618,8 +3616,8 @@ msgid ""
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
-"设置传递给 StarNet 神经网络进行处理的图块的尺寸。强烈建议将其保留为缺省设置。"
-"步幅设置减半可使处理时间翻两番。如果更改，步幅必须是介于 2-256 之间的偶数。"
+"设置传递给 StarNet 神经网络进行处理的图块的尺寸。强烈建议保持缺省值。步幅减半"
+"，处理时间变为四倍。如果更改，步幅必须是 2-256 之间的偶数。"
 
 #: src/gui/uifiles/starnet_dialog.ui:207
 msgid "Recompose stars on completion"
@@ -3809,7 +3807,7 @@ msgstr "第一页"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:237
 msgid "Degree order: "
-msgstr "阶数： "
+msgstr "次数： "
 
 #: src/gui/uifiles/background_extraction_dialog.ui:249
 msgid ""
@@ -3817,9 +3815,9 @@ msgid ""
 "By default the value is of 4.\n"
 "The higher the degree order is, the more complex the gradient can be removed."
 msgstr ""
-"选择拟合中使用的多项式函数的阶数。\n"
+"选择拟合中使用的多项式函数的次数。\n"
 "默认值为4。\n"
-"阶数越高，可以去除的渐变就越复杂。"
+"次数越高，可以去除的渐变就越复杂。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:299
 msgid "Samples per line"
@@ -3831,7 +3829,7 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
-"于低动态范围的背景渐变中加入一些随机噪声以避免产生条纹\n"
+"在平缓的背景渐变中加入一些随机噪声以避免断层\n"
 "应该在未拉伸的图像上使用。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
@@ -4214,7 +4212,7 @@ msgstr "生成内核以用于反卷积当前图像或序列"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
 msgid "Blind deconvolution"
-msgstr "盲解反卷积"
+msgstr "盲反卷积"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
@@ -4245,7 +4243,7 @@ msgstr "根据所选参数使用手动定义的 PSF。"
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
-msgstr "选择要使用的盲解 PSF 估算方法。ℓ0 descent 是缺省选项，通常也是最佳的。"
+msgstr "选择要使用的盲 PSF 估算方法。ℓ0 descent 是缺省选项，通常也是最佳的。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:425
 msgid "Spectral Irregularity"
@@ -4454,7 +4452,7 @@ msgstr "Lambda (λ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1061
 msgid "Blind Deconvolution PSF Estimation"
-msgstr "盲解反卷积PSF估算"
+msgstr "盲反卷积的PSF估算"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1095
 msgid "Multiscale"
@@ -4550,7 +4548,7 @@ msgstr "设置 PSF 的最小像素值。小于此值的 PSF 像素将设置为�
 msgid ""
 "Uses a refinement technique to improve subsequent iterations of the PSF "
 "estimator. This should essentially always be enabled."
-msgstr "使用优化技术来改进 PSF 估计器的后续迭代。这基本上应该始终处于启用。"
+msgstr "使用优化技术来改进 PSF 估算的后续迭代。这基本上应该常开。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1378
 msgid "ℓ1 gradient parameter"
@@ -4953,13 +4951,13 @@ msgstr "彩色降噪"
 
 #: src/gui/uifiles/denoise_dialog.ui:210
 msgid "No secondary denoising stage"
-msgstr "无二阶段降噪"
+msgstr "二次降噪"
 
 #: src/gui/uifiles/denoise_dialog.ui:214
 msgid ""
 "No secondary denoising process will be used. The primary algorithm by itself "
 "usually performs well so this is the default."
-msgstr "不会使用二阶段降噪处理。主要算法本身通常表现良好，因此这是缺省设置。"
+msgstr "不会使用二次降噪。这是缺省设置，因为算法本身通常表现良好。"
 
 #: src/gui/uifiles/denoise_dialog.ui:228
 msgid "Anscombe VST with exact unbiased inverse"
@@ -5009,7 +5007,7 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:287
 msgid "Secondary Denoising Algorithm"
-msgstr "二阶段降噪算法"
+msgstr "二次降噪算法"
 
 #: src/gui/uifiles/denoise_dialog.ui:318
 msgid ""
@@ -5030,9 +5028,9 @@ msgid ""
 "than the intermediate values shown between iterations.)"
 msgstr ""
 "设置 SOS 迭代次数。3-5 次迭代通常提供良好的收敛性。通过检查每次迭代后日志窗口"
-"中显示的更新图像噪声估计值，可以看到收敛。（这些噪声值是在原始图像的噪声混合"
-"回以准备下一次迭代后测量的，因此最终输出噪声水平大大低于迭代之间显示的中间"
-"值。）"
+"中显示的更新图像噪声估算值，可以看到收敛。（这些噪声值是在原始图像的噪声混合"
+"回以准备下一次迭代后测量的，因此最终输出噪声水平大大低于迭代之间显示的中间值"
+"。）"
 
 #: src/gui/uifiles/denoise_dialog.ui:347
 msgid ""
@@ -5074,8 +5072,8 @@ msgid ""
 "completed."
 msgstr ""
 "调制允许将一小部分噪声图像混合到降噪结果中。如果降噪结果看起来不自然平滑，这"
-"对于添加微纹理可能很有用。值为 1 表示输出将 100% 降噪，不添加任何噪声图像。调"
-"制在过程结束时执行，在主阶段和二阶降噪都完成后。"
+"对于添加微纹理可能很有用。值为 1 表示输出 100% 降噪的图像，完全不混入降噪前的"
+"图像。调制在过程结束时执行，在基础降噪和二次降噪都完成后。"
 
 #: src/gui/uifiles/denoise_dialog.ui:418 src/gui/uifiles/denoise_dialog.ui:444
 msgid ""
@@ -5192,7 +5190,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:189
 msgid "Computed sampling (arcsec/pixel):"
-msgstr "计算所得采样（弧秒/像素）："
+msgstr "计算所得采样（角秒/像素）："
 
 #: src/gui/uifiles/file_information_dialog.ui:202
 msgid "Binning: "
@@ -6217,7 +6215,7 @@ msgstr "像素尺寸(微米):"
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
-msgstr "通过焦距和像素尺寸自动算出的图像分辨率。单位是弧秒每像素。"
+msgstr "通过焦距和像素尺寸自动算出的图像分辨率。单位是角秒每像素。"
 
 #: src/gui/uifiles/IPS_dialog.ui:450
 msgid "Resolution: "
@@ -8107,7 +8105,7 @@ msgstr "常规解析"
 
 #: src/gui/uifiles/settings_window.ui:1590
 msgid "Degrees of the polynomial correction:"
-msgstr "多项式修正的阶数:"
+msgstr "多项式修正中多项式的次数："
 
 #: src/gui/uifiles/settings_window.ui:1601
 msgid ""
@@ -8160,9 +8158,8 @@ msgstr ""
 msgid ""
 "Astrometry.net can use a polynomial correction (SIP) to work with optical "
 "aberrations, this is the order of the polynomial model. 0 disables it."
-msgstr ""
-"Astrometry.net 可以使用多项式修正 （SIP） 来处理光学像差，这是多项式模型的阶"
-"数。0 禁用它。"
+msgstr "Astrometry.net 可以使用多项式修正 （SIP） 来处理光学像差，这是多项式的次数。"
+"设置为 0 以禁用。"
 
 #: src/gui/uifiles/settings_window.ui:1700
 msgid "Location of local astrometry.net solver"
@@ -9174,7 +9171,7 @@ msgstr ""
 "在大图上可能太慢。注意：如果选择了多线程FFTW，则生成给定尺寸和级别的初始规划"
 "需要更长的时间。\n"
 "\n"
-"此设置用于反卷积。傅立叶变换函数会忽略此选项，而始终使用“估计”，因为其他策略"
+"此设置用于反卷积。傅立叶变换函数会忽略此选项，而始终使用“估算”，因为其他策略"
 "的开销不值得。"
 
 #: src/gui/uifiles/settings_window.ui:4996
@@ -9973,7 +9970,7 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1144
 #, c-format
 msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
-msgstr "Astrometry.net盲目定位，比例尺范围为[%s, %s]。\n"
+msgstr "Astrometry.net盲定位，比例尺范围为[%s, %s]。\n"
 
 #: src/algos/astrometry_solver.c:1222
 msgid "No astrometric solution found\n"
@@ -11683,7 +11680,7 @@ msgstr "错误：必须载入图像或序列才能执行 %s PSF 估算，中止.
 
 #: src/core/command.c:1140
 msgid "Blind kernel estimation:\n"
-msgstr "盲解内核估算：\n"
+msgstr "盲内核估算：\n"
 
 #: src/core/command.c:1146
 msgid "ℓ0 descent prior method\n"
@@ -12543,7 +12540,7 @@ msgstr "1/sigma 值只能在 [0, 5] 区间\n"
 
 #: src/core/command.c:5159
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
-msgstr "多项式阶数必须在 [1, 4] 区间。\n"
+msgstr "多项式次数必须在 [1, 4] 区间。\n"
 
 #: src/core/command.c:5169
 msgid "There can be only one prefix argument"
@@ -14532,39 +14529,39 @@ msgid ""
 msgstr ""
 "用RL、SB或WIENER命令显示的三种方法中的任何一种，生成用于反卷积的PSF。必须将以"
 "下其中一项作为第一个参数：<b>clear</b>（清除现有的PSF），<b>load</b>（从文件"
-"载入PSF）、<b>save</b>（保存当前的PSF），<b>blind</b>（盲估计PSF），"
-"<b>stars</b>（根据图像中测量的恒星生成PSF），<b>manual</b>（根据函数和参数手"
-"动生成PSF）。\n"
+"载入PSF）、<b>save</b>（保存当前的PSF），<b>blind</b>（盲估算PSF），<b>stars<"
+"/b>（根据图像中测量的恒星生成PSF），<b>manual</b>（根据函数和参数手动生成PSF"
+"）。\n"
 "\n"
 "使用<b>clear</b>参数时不需要其他参数。\n"
 "\n"
-"要载入先前保存的PSF，参数<b>load</b>需要PSF的<i>filename</i>作为第二个参数。"
-"PSF可以是Siril支持的任何格式，但必须是方形的，理想情况下尺寸应该是奇数。\n"
+"要载入先前保存的PSF，参数<b>load</b>需要PSF的<i>filename</i>作为第二个参数。P"
+"SF可以是Siril支持的任何格式，但必须是方形的，理想情况下尺寸应该是奇数。\n"
 "\n"
-"使用参数<b>save</b>以保存当前生成的PSF。可以指定文件名（扩展名必须为\"."
-"fit\"，\".fits\"，\".fts\"或\".tif\"之一）。如果不指定，则将根据打开的文件或"
-"序列的名称命名PSF。\n"
+"使用参数<b>save</b>以保存当前生成的PSF。可以指定文件名（扩展名必须为\".fit\""
+"，\".fits\"，\".fts\"或\".tif\"之一"
+"）。如果不指定，则将根据打开的文件或序列的名称命名PSF。\n"
 "\n"
-"选择<b>blind</b>时，可以提供以下可选参数：<b>-l0</b>使用l0下降算法，<b>-si</"
-"b>采用光谱不规则法，<b>-multiscale</b>配置l0算法来进行多尺度PSF估计，<b>-"
-"lambda=</b>提供正则化常数。\n"
+"选择<b>blind</b>时，可以提供以下可选参数：<b>-l0</b>使用l0下降算法，<b>-si</b"
+">采用光谱不规则法，<b>-multiscale</b>配置l0算法来进行多尺度PSF估算，<b>-lambd"
+"a=</b>提供正则化常数。\n"
 "\n"
 "对于来自侦测到的<b>stars</b>的PSF，唯一的可选参数是<b>-sym</b>，它将PSF配置为"
 "对称的。\n"
 "\n"
 "对于<b>manual</b>PSF，可以提供<b>-gaussian</b>、<b>-moffat</b>、<b>-disc</b>"
 "或<b>-airy</b>中的一个来指定PSF函数，默认情况下为gaussian。对于高斯或moffat形"
-"PSF，可以提供可选参数<b>-fwhm=</b>、<b>-angle=</b>或<b>-ratio=</b>。对于"
-"Moffat PSF，还可以提供可选参数<b>-beta=</b>。如果忽略这些值，则它们默认为与反"
-"卷积对话框中相同的值。对于圆盘形PSF，只需要参数<b>-fwhm=</b>，用于设置PSF的"
-"<i>diameter</i>。对于艾里斑PSF，可以提供以下参数：<b>-dia=</b>（设置望远镜直"
-"径）、<b>-fl=</b>（设置望远镜焦距）、<b>-wl=</b>（设置用于计算Airy衍射图案的"
-"波长）、<b>-pixelsize=</b>（设置传感器像素尺寸）、<b>-obstruct=</b>（设置中央"
-"遮挡面积占总口径的百分比）。如果不提供这些参数，波长将默认为525nm，中央遮挡面"
-"积将默认为0%。Siril将尝试从打开的图像中读取其他信息，但一些拍摄软件可能并未将"
-"这些信息写入图像，在这种情况下，您会得到糟糕的结果。请注意，SER格式的视频中可"
-"能不会含有元数据。总结经验，您将会知道，对于一套成像装置，哪些参数可以略"
-"过。\n"
+"PSF，可以提供可选参数<b>-fwhm=</b>、<b>-angle=</b>或<b>-ratio=</b>。"
+"对于Moffat PSF，还可以提供可选参数<b>-beta=</b>。如果忽略这些值，则它们默认为"
+"与反卷积对话框中相同的值。对于圆盘形PSF，只需要参数<b>-fwhm=</b>，用于设置PSF"
+"的<i>diameter</i>。对于艾里斑PSF，可以提供以下参数：<b>-dia=</b>（设置望远镜"
+"直径）、<b>-fl=</b>（设置望远镜焦距）、<b>-wl=</b>（设置用于计算Airy衍射图案"
+"的波长）、<b>-pixelsize=</b>（设置传感器像素尺寸）、<b>-obstruct=</b>（设置中"
+"央遮挡面积占总口径的百分比）。如果不提供这些参数，波长将默认为525nm，中央遮挡"
+"面积将默认为0%。Siril将尝试从打开的图像中读取其他信息，但一些拍摄软件可能并未"
+"将这些信息写入图像，在这种情况下，您会得到糟糕的结果。请注意，SER格式的视频中"
+"可能不会含有元数据。总结经验，您将会知道，对于一套成像装置，哪些参数可以略过"
+"。\n"
 "\n"
 "对于上述任何生成PSF的选项，可以提供可选参数<b>-ks=</b>来设置PSF的尺寸，并且可"
 "以使用可选参数<b>-savepsf=<i>filename</i></b>保存生成的PSF：必须提供文件名，"
@@ -15872,10 +15869,10 @@ msgid ""
 "are processed"
 msgstr ""
 "与SUBSKY相同的命令，但用于序列<b>sequencename</b>。\n"
-"默认开启抖动，这是低动态范围的渐变所需的，可以通过<b>-nodithe</b>禁用。\n"
+"默认开启抖动，这可以防止平缓的渐变出现断层，可以通过<b>-nodither</b>禁用。\n"
 "\n"
-"输出序列名前缀为\"bkg_\"，除非使用<b>-prefix=</b>选项指定。仅处理序列中选定的"
-"图像"
+"输出序列名前缀为\"bkg_\""
+"，除非使用<b>-prefix=</b>选项指定。仅处理序列中选定的图像"
 
 #: src/core/command_def.h:165
 msgid ""
@@ -16264,23 +16261,23 @@ msgid ""
 "author of StarNet <i>strongly</i> recommends that the default stride of 256 "
 "be used"
 msgstr ""
-"访问<a href=\"https://www.starnetastro.com/\">StarNet</a>，为载入的图像去"
-"星。\n"
+"访问<a href=\"https://www.starnetastro.com/\">StarNet</a>，为载入的图像去星。"
+"\n"
 "\n"
 "<b>前提条件：</b>StarNet是一个外部程序，与Siril没有关联，必须在首次使用此命令"
 "之前正确安装，并在“偏好设置/杂项”中正确设置其CLI版本安装路径。\n"
 "\n"
-"完成时会载入无星图像，并且在工作目录中创建星点遮罩图像，除非提供可选参数<b>-"
-"nostarmask</b>。\n"
+"完成时会载入无星图像，并且在工作目录中创建星点遮罩图像，除非提供可选参数<b>-n"
+"ostarmask</b>。\n"
 "\n"
 "可以将以下可选参数传递给命令：\n"
 "-选项<b>-stretch</b>用于线性图像，将在运行StarNet之前应用预拉伸，并对生成的无"
 "星图像和星点遮罩图像应用逆拉伸。\n"
-"-为了改进星点密集的图像上的去星效果，可以提供参数<b>-upscale</b>。这将在"
-"StarNet处理之前将图像放大2倍，然后将其重新缩小到原始尺寸，代价是花费更多的处"
-"理时间。\n"
-"-参数<b>-stride=value</b>用于指定步长，但是StarNet的作者<i>强烈建议</i>使用默"
-"认步长256"
+"-为了改进星点密集的图像上的去星效果，可以提供参数<b>-upscale</b>。这将在StarN"
+"et处理之前将图像放大2倍，然后将其重新缩小到原始尺寸，代价是花费更多的处理时间"
+"。\n"
+"-参数<b>-stride=value</b>用于指定步幅，但是StarNet的作者<i>强烈建议</i>使用默"
+"认步幅256"
 
 #: src/core/command_def.h:186
 msgid ""
@@ -16330,11 +16327,11 @@ msgid ""
 "dither</b>.\n"
 "For RBF, the additional smoothing parameter is also available"
 msgstr ""
-"使用阶数为<b>degree</b>的多项式函数模型或RBF模型（如果提供<b>-RBF</b>）计算合"
-"成背景渐变，并将其从图像中减去。\n"
-"每行采样点的数量和采样点的容差可以使用可选参数调整。容差以MAD为单位：median "
-"+ tolerance * mad。\n"
-"可以通过<b>-dither</b>启用低动态范围渐变所需的抖动。\n"
+"使用次数为<b>degree</b>的多项式函数模型或RBF模型（如果提供<b>-RBF</b>）计算人"
+"工背景渐变，并将其从图像中减去。\n"
+"每行采样点的数量和采样点的容差可以使用可选参数调整。容差以MAD为单位：median +"
+" tolerance * mad。\n"
+"可以使用<b>-dither</b>来启用抖动，防止平缓的渐变出现断层。\n"
 "对于RBF，还可以使用额外的平滑参数"
 
 #: src/core/command_def.h:190
@@ -17737,7 +17734,7 @@ msgstr "光度测量的最大有效像素值"
 
 #: src/core/settings.c:352
 msgid "degrees of the polynomial correction"
-msgstr "多项式修正的阶数"
+msgstr "多项式修正中多项式的次数"
 
 #: src/core/settings.c:353
 msgid "radius around the target coordinates (degrees)"
@@ -18666,7 +18663,7 @@ msgstr "StarNet：运行中。请稍候...\n"
 #: src/filters/starnet.c:485
 #, c-format
 msgid "StarNet: stride = %s...\n"
-msgstr "StarNet： stride = %s...\n"
+msgstr "StarNet： 步幅 = %s...\n"
 
 #: src/filters/starnet.c:486
 msgid "StarNet: -nostarmask invoked, star mask will not be generated...\n"
@@ -18972,9 +18969,8 @@ msgid ""
 "degree greater than 1. This is unlikely because such gradients are often "
 "linear and a correction with a polynomial function of degree 1 is probably "
 "enough."
-msgstr ""
-"您即将使用阶数高于1的多项式处理预处理过的序列。这是不太可能的，因为此时的渐变"
-"通常是线性的。将阶数修改为1或许已经足够。"
+msgstr "您即将使用次数高于1的多项式处理预处理后的序列。这是不太可能的，因为此时的渐变"
+"通常是线性的。1次多项式应该就够了。"
 
 #: src/gui/background_extraction.c:193 src/gui/background_extraction.c:204
 msgid "Extract Background"
@@ -18990,9 +18986,8 @@ msgid ""
 "algorithm. This algorithm may not be very well suited for automated "
 "processing and we advise you to use the polynomial algorithm with a degree "
 "order of 1."
-msgstr ""
-"您即将使用RBF算法处理预处理过的序列。该算法可能不太适合自动处理。建议使用阶数"
-"为1的多项式算法。"
+msgstr "您将使用RBF算法处理预处理过的序列。该算法可能不太适合自动处理。建议使用次数为"
+"1的多项式算法。"
 
 #: src/gui/background_extraction.c:224
 #, c-format
@@ -19379,10 +19374,12 @@ msgid ""
 "may notify the developers that the extension you are trying to use should be "
 "recognized for this type."
 msgstr ""
-"文件扩展名'%s'不被支持。\n"
+"不支持扩展名为'%s'的文件。\n"
 "请确认输入了正确的扩展名。\n"
-"如果确认无误，那么你需要安装第三方软件来激活这种文件类型，参见README\n"
-"如果你所试图载入的文件类型在支持列表内，那么可以向开发团队提交一个缺陷报告。"
+"如果确认无误，你可能还需要安装第三方软件，来启用此文件类型的转换，参见README"
+"。\n"
+"如果此文件的类型在支持列表内，只是扩展名不能识别，那么可以向开发团队报告此问"
+"题。"
 
 #: src/gui/conversion.c:170
 msgid "Too many files are being converted."
@@ -19980,8 +19977,7 @@ msgid ""
 "Error: no previous PSF found. A blind PSF estimator or calculation of PSF "
 "from stars or manual parameters must already have been done to use the "
 "Previous PSF option.\n"
-msgstr ""
-"错误：未找到先前生成的PSF。必须提前完成盲PSF估计，或根据星点计算PSF，或手动指"
+msgstr "错误：未找到先前生成的PSF。必须提前完成盲PSF估算，或根据星点计算PSF，或手动指"
 "定参数，才能使用“先前生成的 PSF”选项。\n"
 
 #: src/gui/newdeconv.c:920
@@ -20127,7 +20123,7 @@ msgstr "显示光变曲线"
 msgid ""
 "Color similar to the target mean they will get extincted the same way by the "
 "changing atmosphere"
-msgstr "与目标相似的颜色意味着它们会因不断变化的大气而以相同的方式灭绝"
+msgstr "颜色与目标相似，则它们被大气消光的程度相同"
 
 #: src/gui/nina_light_curve.c:71
 #, fuzzy
