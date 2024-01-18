@@ -207,6 +207,20 @@ static gchar *generate_title(const gchar *type, double arg, double br, double si
 			type, arg, br, sig, wr, nb_stars, kw[RLAYER], kw[GLAYER], kw[BLAYER]);
 }
 
+int filterArrays(double *x, double *y, int n) {
+	int newSize = 0;
+
+	for (int i = 0; i < n; i++) {
+		if (x[i] != DBL_MAX && y[i] != DBL_MAX) {
+			x[newSize] = x[i];
+			y[newSize] = y[i];
+			newSize++;
+		}
+	}
+
+	return newSize;
+}
+
 static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
@@ -320,10 +334,26 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	// Robust estimation of linear best fit
 	// First sort the arrays so any DBL_MAX are at the end, after ngood
 	double arg, brg, abg, bbg, deviation[2] = { 0.0 };
+
+/*
+ * These lines are a bug. However the fix breaks things until the WCS distortions MR is merged,
+ * so I'm keeping it for now to aid other testing. The fix is ready (commented out below) and
+ * can be uncommented once the WCS work is ready. */
 	quicksort_d(irg, nb_stars);
 	quicksort_d(crg, nb_stars);
 	quicksort_d(ibg, nb_stars);
 	quicksort_d(cbg, nb_stars);
+
+/* Bug fix below:
+	int n_rg = filterArrays(crg, irg, ngood);
+	int n_bg = filterArrays(cbg, ibg, ngood);
+	if (n_rg != n_bg) {
+		siril_log_message(_("Array mismatch after discarding photometrically invalid stars\n"));
+		return 1;
+	}
+	ngood = n_rg;
+*/
+
 	if (robust_linear_fit(crg, irg, ngood, &arg, &brg, &deviation[0])) {
 		free(irg);
 		free(ibg);
