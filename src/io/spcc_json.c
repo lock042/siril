@@ -41,46 +41,46 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	if (!jsonFilePath)
 		return FALSE;
 
-    GError *error = NULL;
-    JsonParser *parser;
-    JsonObject *object;
-    JsonNode *node;
+	GError *error = NULL;
+	JsonParser *parser;
+	JsonObject *object;
+	JsonNode *node;
 	JsonArray *array;
 
 	// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 	memset(data, 0, sizeof(spcc_object));
 
-    // Create a JSON parser
-    parser = json_parser_new();
+	// Create a JSON parser
+	parser = json_parser_new();
 
-    // Load JSON file
-    if (!json_parser_load_from_file(parser, jsonFilePath, &error)) {
-        fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
-        g_error_free(error);
-        g_object_unref(parser);
-        return 0;
-    }
+	// Load JSON file
+	if (!json_parser_load_from_file(parser, jsonFilePath, &error)) {
+		fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
+		g_error_free(error);
+		g_object_unref(parser);
+		return 0;
+	}
 
-    // Parse JSON data
-    node = json_parser_get_root(parser);
+	// Parse JSON data
+	node = json_parser_get_root(parser);
 	// Ensure the root is an array
-    if (!JSON_NODE_HOLDS_ARRAY(node)) {
-        fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
-        g_object_unref(parser);
-        return 0;
-    }
+	if (!JSON_NODE_HOLDS_ARRAY(node)) {
+		fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+		g_object_unref(parser);
+		return 0;
+	}
 
-    // Get the array of objects
-    array = json_node_get_array(node);
-    int num_objects = json_array_get_length(array);
+	// Get the array of objects
+	array = json_node_get_array(node);
+	int num_objects = json_array_get_length(array);
 	if (index > num_objects) {
-        fprintf(stderr, "Error: index out of range.\n");
-        g_object_unref(parser);
-        return 0;
-    }
-    object = json_array_get_object_element(array, index);
+		fprintf(stderr, "Error: index out of range.\n");
+		g_object_unref(parser);
+		return 0;
+	}
+	object = json_array_get_object_element(array, index);
 
-    // Get values from JSON and store in the struct
+	// Get values from JSON and store in the struct
 	const gchar *typestring = json_object_get_string_member(object, "type");
 	if (!strcmp(typestring, "MONO_SENSOR")) {
 		data->type = 1;
@@ -102,19 +102,19 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	} else {
 		goto validation_error;
 	}
-    data->model = g_strdup(json_object_get_string_member(object, "model"));
+	data->model = g_strdup(json_object_get_string_member(object, "model"));
 	if (!data->model) {
 		goto validation_error;
 	}
-    data->name = g_strdup(json_object_get_string_member(object, "name"));
+	data->name = g_strdup(json_object_get_string_member(object, "name"));
 	if (!data->name) {
 		goto validation_error;
 	}
-    data->quality = json_object_get_int_member(object, "dataQualityMarker");
+	data->quality = json_object_get_int_member(object, "dataQualityMarker");
 	if (!data->quality) {
 		goto validation_error;
 	}
-    if (json_object_has_member(object, "channel")) {
+	if (json_object_has_member(object, "channel")) {
 		const gchar *channel_string = json_object_get_string_member(object, "channel");
 		if (!strcmp(channel_string, "RED")) {
 			data->channel = 0;
@@ -138,7 +138,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	if (!data->source) {
 		goto validation_error;
 	}
-    data->version = json_object_get_int_member(object, "version");
+	data->version = json_object_get_int_member(object, "version");
 	if (!data->version) {
 		goto validation_error;
 	}
@@ -153,22 +153,23 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	data->n = json_array_get_length(wavelengthArray);
 	int valuesLength = json_array_get_length(valuesArray);
 	if (data->n != valuesLength) {
+		fprintf(stderr, "Error loading SPCC JSON file: arrays have not the same size (%d != %d)\n", data->n, valuesLength);
 		goto validation_error;
 	}
 
     // Cleanup
-    g_object_unref(parser);
+	g_object_unref(parser);
 	return 1;
 
 validation_error:
-    g_object_unref(parser);
+	g_object_unref(parser);
 	g_free(data->model);
 	data->model = NULL;
 	g_free(data->name);
 	data->name = NULL;
 	g_free(data->source);
 	data->source = NULL;
-g_free(data->manufacturer);
+	g_free(data->manufacturer);
 	data->manufacturer = NULL;
 	return 0;
 #endif
@@ -216,37 +217,37 @@ static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor 
 
 static gboolean processJsonFile(const char *file_path) {
 	int retval = 0;
-    GError *error = NULL;
-    JsonParser *parser;
-    JsonNode *node;
+	GError *error = NULL;
+	JsonParser *parser;
+	JsonNode *node;
 	JsonArray *array;
 
 	if (!file_path)
 		return FALSE;
 
-    // Create a JSON parser
-    parser = json_parser_new();
+	// Create a JSON parser
+	parser = json_parser_new();
 
-    // Load JSON file
-    if (!json_parser_load_from_file(parser, file_path, &error)) {
+	// Load JSON file
+	if (!json_parser_load_from_file(parser, file_path, &error)) {
         fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
         g_error_free(error);
         g_object_unref(parser);
-        return FALSE;
-    }
+		return FALSE;
+	}
 
-    // Parse JSON data
-    node = json_parser_get_root(parser);
+	// Parse JSON data
+	node = json_parser_get_root(parser);
 	// Ensure the root is an array
-    if (!JSON_NODE_HOLDS_ARRAY(node)) {
-        fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
-        g_object_unref(parser);
-        return FALSE;
-    }
+	if (!JSON_NODE_HOLDS_ARRAY(node)) {
+		fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+		g_object_unref(parser);
+		return FALSE;
+	}
 
-    // Get the array of objects
-    array = json_node_get_array(node);
-    int num_objects = json_array_get_length(array);
+	// Get the array of objects
+	array = json_node_get_array(node);
+	int num_objects = json_array_get_length(array);
 
 	g_object_unref(parser);
 
@@ -311,20 +312,20 @@ void spcc_object_free(spcc_object *data, gboolean free_struct) {
 	if (!data)
 		return;
 	g_free(data->name);
-    g_free(data->manufacturer);
+	g_free(data->manufacturer);
 	g_free(data->filepath);
 	g_free(data->source);
-    free(data->x);
-    free(data->y);
+	free(data->x);
+	free(data->y);
 	if (free_struct)
 		g_free(data);
 	return;
 }
 
 void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
-	if(!data)
+	if (!data)
 		return;
-	for (int i = 0 ; i < 3 ; i++) {
+	for (int i = 0; i < 3; i++) {
 		g_free(data->channel[i].model);
 		data->channel[i].model = NULL;
 		g_free(data->channel[i].name);
@@ -363,29 +364,29 @@ void spcc_object_free_arrays(spcc_object *data) {
 }
 
 static int compare_pair_x(const void *a, const void *b) {
-	const point* aa = (point*) a;
-	const point* bb = (point*) b;
+	const point *aa = (point*) a;
+	const point *bb = (point*) b;
 	if (aa->x == bb->x)
-    return 0;
-	else if(aa->x > bb->x)
-    return 1;
-else
-    return -1;;
+		return 0;
+	else if (aa->x > bb->x)
+		return 1;
+	else
+		return -1;;
 }
 
 int remove_duplicate_x(point *points, int n, const gchar *filename) {
-    int write_index = 0;
+	int write_index = 0;
 	gchar *basename = g_path_get_basename(filename);
-    for (int i = 1; i < n; i++) {
-        if (points[i].x != points[write_index].x) {
-            write_index++;
-            points[write_index] = points[i];
-        } else {
-            siril_log_color_message(_("Warning: Duplicate x value detected in JSON file %s: %.1f\n"), "salmon", basename, points[i].x);
-        }
-    }
+	for (int i = 1; i < n; i++) {
+		if (points[i].x != points[write_index].x) {
+			write_index++;
+			points[write_index] = points[i];
+		} else {
+			siril_log_color_message(_("Warning: Duplicate x value detected in JSON file %s: %.1f\n"), "salmon", basename, points[i].x);
+		}
+	}
 	g_free(basename);
-    return write_index + 1;
+	return write_index + 1;
 }
 
 // Call to populate the arrays of a specific spcc_object
@@ -400,10 +401,10 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	if (data->arrays_loaded)
 		return TRUE;
 
-    GError *error = NULL;
-    JsonParser *parser;
-    JsonObject *object;
-    JsonNode *node;
+	GError *error = NULL;
+	JsonParser *parser;
+	JsonObject *object;
+	JsonNode *node;
 	JsonArray *array;
 	int index = data->index;
 
@@ -417,43 +418,43 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		data->y = NULL;
 	}
 
-    // Create a JSON parser
-    parser = json_parser_new();
+	// Create a JSON parser
+	parser = json_parser_new();
 
-    // Load JSON file
-    if (!json_parser_load_from_file(parser, data->filepath, &error)) {
-        fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
-        g_error_free(error);
-        g_object_unref(parser);
-        return FALSE;
-    }
+	// Load JSON file
+	if (!json_parser_load_from_file(parser, data->filepath, &error)) {
+		fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
+		g_error_free(error);
+		g_object_unref(parser);
+		return FALSE;
+	}
 
-    // Parse JSON data
-    node = json_parser_get_root(parser);
+	// Parse JSON data
+	node = json_parser_get_root(parser);
 	// Ensure the root is an array
-    if (!JSON_NODE_HOLDS_ARRAY(node)) {
-        fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
-        g_object_unref(parser);
-        return FALSE;
-    }
+	if (!JSON_NODE_HOLDS_ARRAY(node)) {
+		fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+		g_object_unref(parser);
+		return FALSE;
+	}
 
-    // Get the array of objects
-    array = json_node_get_array(node);
-    int num_objects = json_array_get_length(array);
+	// Get the array of objects
+	array = json_node_get_array(node);
+	int num_objects = json_array_get_length(array);
 	if (index > num_objects) {
-        fprintf(stderr, "Error: index out of range.\n");
-        g_object_unref(parser);
-        return FALSE;
-    }
+		fprintf(stderr, "Error: index out of range.\n");
+		g_object_unref(parser);
+		return FALSE;
+	}
 
-    object = json_array_get_object_element(array, index);
+	object = json_array_get_object_element(array, index);
 
     // Get 'wavelength' and 'values' arrays
 	double scalefactor = 1.0;
 	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
 	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "value");
 	JsonObject *valuesObject = json_object_get_object_member(object, "values");
-    JsonArray *valuesArray = json_object_get_array_member(valuesObject, "value");
+	JsonArray *valuesArray = json_object_get_array_member(valuesObject, "value");
 	gchar *wavelengthUnit = g_strdup(json_object_get_string_member(wavelengthObject, "units"));
 	double valuerange = json_object_get_double_member(valuesObject, "range");
 	if (!strcmp(wavelengthUnit, "nm"))
@@ -470,19 +471,19 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		return FALSE;
 	}
 	point *pairs = (point*) malloc(data->n * sizeof(point));
-    for (int i = 0; i < data->n; i++) {
+	for (int i = 0; i < data->n; i++) {
 		pairs[i].x = json_array_get_double_element(wavelengthArray, i) * scalefactor;
 		pairs[i].y = json_array_get_double_element(valuesArray, i) / valuerange;
-    }
-    qsort(pairs, data->n, sizeof(point), compare_pair_x);
+	}
+	qsort(pairs, data->n, sizeof(point), compare_pair_x);
 	data->n = remove_duplicate_x(pairs, data->n, data->filepath);
-    data->x = (double *)malloc(data->n * sizeof(double));
-    data->y = (double *)malloc(data->n * sizeof(double));
-    for (int i = 0; i < data->n; i++) {
-        data->x[i] = pairs[i].x;
-        data->y[i] = pairs[i].y;
-    }
-    if (data->type == 6) {
+	data->x = (double*) malloc(data->n * sizeof(double));
+	data->y = (double*) malloc(data->n * sizeof(double));
+	for (int i = 0; i < data->n; i++) {
+		data->x[i] = pairs[i].x;
+		data->y[i] = pairs[i].y;
+	}
+	if (data->type == 6) {
 		int norm_ref = 0;
 		while (data->x[norm_ref] < 550) {
 			if (norm_ref == data->n - 1) {
@@ -491,19 +492,19 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 			}
 			norm_ref++;
 		}
-		for (int i = 0 ; i < data->n ; i++) {
+		for (int i = 0; i < data->n; i++) {
 			data->y[i] *= data->x[i];
 		}
 		double norm = data->y[norm_ref];
-		for (int i = 0 ; i < data->n ; i++) {
+		for (int i = 0; i < data->n; i++) {
 			data->y[i] /= norm;
 		}
 	}
-    free(pairs);
+	free(pairs);
 	data->arrays_loaded = TRUE;
 
 	// Cleanup
-    g_object_unref(parser);
+	g_object_unref(parser);
 	return TRUE;
 #endif
 }
@@ -515,46 +516,46 @@ static void processDirectory(const gchar *directory_path) {
 	if (!directory_path)
 		return;
 	GError *error;
-    GDir *dir = g_dir_open(directory_path, 0, &error);
+	GDir *dir = g_dir_open(directory_path, 0, &error);
 
-    if (dir == NULL) {
-        g_warning("Unable to open directory: %s", directory_path);
-        return;
-    }
+	if (dir == NULL) {
+		g_warning("Unable to open directory: %s", directory_path);
+		return;
+	}
 
-    const gchar *filename;
+	const gchar *filename;
 
-    while ((filename = g_dir_read_name(dir)) != NULL) {
-        gchar *file_path = g_build_filename(directory_path, filename, NULL);
+	while ((filename = g_dir_read_name(dir)) != NULL) {
+		gchar *file_path = g_build_filename(directory_path, filename, NULL);
 
-        if (g_file_test(file_path, G_FILE_TEST_IS_DIR)) {
-            // If the current item is a directory, recursively process it (ignore ., .. and .git)
-            if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") && g_strcmp0(filename, ".git") != 0) {
-                processDirectory(file_path);
-            }
-        } else {
-            // Check if the file has a .json extension
-            if (g_str_has_suffix(filename, ".json") && !g_strrstr(filename, "schema")) {
-                processJsonFile(file_path);
-            }
-        }
+		if (g_file_test(file_path, G_FILE_TEST_IS_DIR)) {
+			// If the current item is a directory, recursively process it (ignore ., .. and .git)
+			if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") && g_strcmp0(filename, ".git") != 0) {
+				processDirectory(file_path);
+			}
+		} else {
+			// Check if the file has a .json extension
+			if (g_str_has_suffix(filename, ".json") && !g_strrstr(filename, "schema")) {
+				processJsonFile(file_path);
+			}
+		}
 
-        g_free(file_path);
-    }
+		g_free(file_path);
+	}
 
-    g_dir_close(dir);
+	g_dir_close(dir);
 }
 
 gint compare_spcc_object_names(gconstpointer a, gconstpointer b) {
-    const spcc_object *object1 = a;
-    const spcc_object *object2 = b;
-    return g_strcmp0(object1->name, object2->name);
+	const spcc_object *object1 = a;
+	const spcc_object *object2 = b;
+	return g_strcmp0(object1->name, object2->name);
 }
 
 gint compare_osc_object_models(gconstpointer a, gconstpointer b) {
-    const osc_sensor *object1 = a;
-    const osc_sensor *object2 = b;
-    return g_strcmp0(object1->channel[0].model, object2->channel[0].model);
+	const osc_sensor *object1 = a;
+	const osc_sensor *object2 = b;
+	return g_strcmp0(object1->channel[0].model, object2->channel[0].model);
 }
 
 static void spcc_object_destroy(void *user_data) {
