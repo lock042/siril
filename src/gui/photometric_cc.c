@@ -50,7 +50,7 @@
 static gboolean spcc_filters_initialized = FALSE;
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
-void set_spcc_args(struct photometric_cc_data *args);
+int set_spcc_args(struct photometric_cc_data *args);
 void get_whitepoint_from_ui(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data);
@@ -81,7 +81,8 @@ static void start_photometric_cc(gboolean spcc) {
 		pcc_args->catalog = CAT_GAIADR3_DIRECT;
 		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
-		set_spcc_args(pcc_args);
+		if (set_spcc_args(pcc_args))
+			return;
 	} else {
 		pcc_args->catalog = get_photometry_catalog_from_GUI();
 		pcc_args->spcc = FALSE;
@@ -390,7 +391,7 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
 }
 
-void set_spcc_args(struct photometric_cc_data *args) {
+int set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *mono_sensor_check = lookup_widget("spcc_toggle_sensor_type");
 	GtkWidget *dslr_check = lookup_widget("osc_is_dslr");
 	GtkWidget *whiteref = lookup_widget("combo_spcc_whitepoint");
@@ -416,6 +417,23 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
 	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
 	args->do_plot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_plot));
+	// Check for problems
+	if (args->spcc_mono_sensor) {
+		if (args->selected_sensor_m == -1 || args->selected_filter_r == -1 ||
+						args->selected_filter_g == -1 || args->selected_filter_b == -1 ||
+						args->selected_white_ref == -1) {
+			siril_log_color_message(_("Error: ensure mono sensor, R, G and B filters and white reference are selected.\n"), "red");
+			return 1;
+		}
+	} else {
+		if (args->selected_sensor_osc == -1 || args->selected_filter_osc == -1 ||
+						(args->selected_filter_lpf == -1 && args->is_dslr == TRUE) ||
+						args->selected_white_ref == -1) {
+			siril_log_color_message(_("Error: ensure OSC sensor, OSC filter and white reference are selected. If the DSLR option is checked, a DSLR LPF must be selected as well.\n"), "red");
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int get_favourite_spccobject(GList *list, const gchar *favourite) {
@@ -680,7 +698,8 @@ static void normalize_y(spcc_object *object, double min_wl, double max_wl) {
 
 void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	struct photometric_cc_data args = { 0 };
-	set_spcc_args(&args);
+	if (set_spcc_args(&args))
+		return;
 	GList *sensor_list = args.spcc_mono_sensor ? com.spcc_data.mono_sensors : com.spcc_data.osc_sensors;
 	GList *filter_list_r = com.spcc_data.mono_filters[RLAYER];
 	GList *filter_list_g = com.spcc_data.mono_filters[GLAYER];
