@@ -1414,7 +1414,6 @@ void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 int filldata (sequence *seq, gpointer user_data) {
-	siril_log_message(_("3-On passe par ici !!!!\n"));
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return 1;
@@ -1426,66 +1425,61 @@ int filldata (sequence *seq, gpointer user_data) {
 	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item *));
 
 	double ra, dec;
+	// Gather the selected stars by hand
 	int nb_ref_stars = 0;
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-//		siril_log_color_message(_("reference_image: %d, seq->photometry[r][98]->xpos: %lf, seq->photometry[r][98]->ypos: %lf\n"), "salmon", seq->reference_image, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos);
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem xith convertion\n"), "salmon"); //y'a un PB sur la conversion pix->wcs
-//		siril_log_color_message(_("reference_image: %d, ra: %lf, dec: %lf\n"), "salmon", seq->reference_image, ra, dec);
 		sel_item[r].ra = ra;
 		sel_item[r].dec = dec;
-//		siril_log_color_message(_("index: %d, xpos: %lf, ypos: %lf, ra: %lf, dec: %lf\n"), "salmon",r, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos, seq->photometry[r][seq->reference_image]->ra, seq->photometry[r][seq->reference_image]->dec);
 		nb_ref_stars++;
 	}
-//	comp_sta->nbitems = nb_ref_stars;
-	siril_log_message(_("nb_ref_stars %i\n"), nb_ref_stars);
 
-	// preparing the output catalog
+	// Header for the console display
+	siril_log_message(_("-> %i comparison stars were selected\n"), nb_ref_stars - 1);
+	siril_log_message("Star type        RA      DEC\n");
+	// Preparing the output catalog
 	comp_sta->columns = siril_catalog_columns(CAT_COMPSTARS); // we add mag to write it in the output file (it is not a mandatory field at readout)
-	// allocating final sorted list to the required size
+	// Allocating final sorted list to the required size
 	cat_item *result = calloc(nb_ref_stars + 1, sizeof(cat_item));
-	// write the target star TO BE DONE
+	// Write the target star
 	fill_compstar_item(&result[0], sel_item[0].ra, sel_item[0].dec, 0.0, g_strdup_printf("V"), "Target");
-	siril_log_message(_("Target star: %lf, %lf\n"),
+	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"),
 			sel_item[0].ra,
 			sel_item[0].dec);
-	// and write the stars sorted by radius
-	//ATTENTION, il y a un decalage d'indice qui va pas
-	for (int i = 0; i < nb_ref_stars - 1; i++) {
+	// And write the selected comparison stars
+	for (int i = 0; i < nb_ref_stars; i++) {
 		cat_item *item = &sel_item[i];
-		gchar *name = g_strdup_printf("%d", i + 1);
-		fill_compstar_item(&result[i + 1], item->ra, item->dec, 0.0, name, "Comp1");
+		if (i == 0) continue;
+		gchar *name = g_strdup_printf("%d", i);
+		fill_compstar_item(&result[i], item->ra, item->dec, 0.0, name, "Comp1");
 		g_free(name);
-		siril_log_message(_("Comp star: %3d: %lf, %lf\n"),
-				i + 1, 
+		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"),
+				i, 
 				item->ra,
 				item->dec);
 	}
 
+	// Fill the catalogue
 	comp_sta->cat_items = result;
 	comp_sta->nbitems = nb_ref_stars;
 	comp_sta->nbincluded = nb_ref_stars;
-//	args->nb_comp_stars = nb_ref_stars;
+
+	// Fill the catalogue
 	args->comp_stars = comp_sta;
-//	comp_stars[nb_ref_stars] = NULL; // ca c'est pour terminer par un NULL
-	args->nina_file = g_strdup("auto");
-	args->target_name = g_strdup("noStarName");
+	args->nina_file = g_strdup("V_SirilstarList_user.csv");
 	args->target_star = &result[0];
-///	args->target_star->star_name = g_strdup("nostarname");
-	args->delta_Vmag = 0.2;
-	args->delta_BV = 0.3;
+	args->delta_Vmag = 0.0;		// Explicitely set these two variables
+	args->delta_BV = 0.0;
 	args->cat = CAT_COMPSTARS;
 
-	siril_log_message(_("%d comparison stars after sort.\n"), nb_ref_stars);
+	// And finally create the csv file
 	write_nina_file(args);
+	siril_catalog_free_items (comp_sta);
 	return 0;
 }
 
 void on_varWriteAsNina_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-
-//	if (filldata(&com.seq)) siril_log_message(_("Pb with he function\n"));
-//	if (filldata(&com.seq)) siril_log_message(_("Pb with he function\n"));
-	siril_log_message(_("Pb with he function\n"));
 	filldata(&com.seq, user_data);
 	set_cursor_waiting(FALSE);
 }
