@@ -125,5 +125,6 @@ typedef struct plot_draw_data {
 } plot_draw_data_t;
 
 gboolean is_inside_grid(double x, double y, plot_draw_data_t *pddstruct);
+int filldata (sequence *seq, gpointer user_data);
 
 #endif /* SRC_GUI_PLOT_H_ */

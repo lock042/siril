@@ -233,7 +233,7 @@ static gboolean is_same_star(cat_item *s1, cat_item *s2) {
 			(fabs(s1->dec - s2->dec) < 2.0 * ONE_ARCSEC);
 }
 
-static void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
+void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
 	item->ra = ra;
 	item->dec = dec;
 	item->mag = mag;

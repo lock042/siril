@@ -63,10 +63,10 @@
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *varFile = NULL, *buttonClearAll = NULL,
+		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
 		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL,
-		*buttonNINA = NULL, *buttonCompStars = NULL;
+		*buttonNINA = NULL, *buttonCompStars = NULL, *buttonCompStarsManu = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -1028,7 +1028,6 @@ static void fill_plot_statics() {
 		comboX = lookup_widget("plotComboX");
 		photometry_output1 = lookup_widget("varCurvePhotometry");
 		photometry_output2 = lookup_widget("exportAAVSO_button");
-		varFile = lookup_widget("varWriteAsNina");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
@@ -1040,6 +1039,7 @@ static void fill_plot_statics() {
 		layer_selector = lookup_widget("seqlist_dialog_combo");
 		buttonNINA = lookup_widget("nina_button");
 		buttonCompStars = lookup_widget("comp_stars_button");
+		buttonCompStarsManu = lookup_widget("comp_stars_manu_button");
 	}
 }
 
@@ -1052,12 +1052,12 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_sensitive(photometry_output1, use_photometry);
-	gtk_widget_set_visible(varFile, TRUE);
-	gtk_widget_set_sensitive(varFile, use_photometry);
 	gtk_widget_set_sensitive(photometry_output2, use_photometry);
 	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonCompStars, TRUE);
 	gtk_widget_set_sensitive(buttonCompStars, sequence_is_loaded());
+	gtk_widget_set_visible(buttonCompStarsManu, TRUE);
+	gtk_widget_set_sensitive(buttonCompStarsManu, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
@@ -1082,7 +1082,6 @@ static void validate_combos() {
 			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _(registration_labels[i]));
 			i++;
 		}
-		gtk_widget_set_visible(varFile, FALSE);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), X_selected_source);
 		gtk_widget_set_sensitive(comboX, layer_has_registration(&com.seq, reglayer));
@@ -1414,64 +1413,79 @@ void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_show_all(lookup_widget("aavso_dialog"));
 }
 
-int filldata (sequence *seq, gpointer *p) {
+int filldata (sequence *seq, gpointer user_data) {
 	siril_log_message(_("3-On passe par ici !!!!\n"));
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return 1;
 	}
 
-	struct compstars_arg *args = (struct compstars_arg *) p;
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
+	comp_sta->cat_index = CAT_COMPSTARS;
+	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item *));
 
-//	args->comp_stars = malloc((MAX_SEQPSF) * sizeof(psf_star *));
-//	args->comp_stars = malloc((MAX_SEQPSF + 1) * sizeof(psf_star *));// dimensionnement
 	double ra, dec;
 	int nb_ref_stars = 0;
-	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 //		siril_log_color_message(_("reference_image: %d, seq->photometry[r][98]->xpos: %lf, seq->photometry[r][98]->ypos: %lf\n"), "salmon", seq->reference_image, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos);
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem xith convertion\n"), "salmon"); //y'a un PB sur la conversion pix->wcs
-		seq->photometry[r][seq->reference_image]->ra = ra;
-///		args->cat_stars[r].ra = ra;
-		seq->photometry[r][seq->reference_image]->dec = dec;
-///		args->comp_stars[r] = duplicate_psf(&args->cat_stars[r]);
-
+//		siril_log_color_message(_("reference_image: %d, ra: %lf, dec: %lf\n"), "salmon", seq->reference_image, ra, dec);
+		sel_item[r].ra = ra;
+		sel_item[r].dec = dec;
 //		siril_log_color_message(_("index: %d, xpos: %lf, ypos: %lf, ra: %lf, dec: %lf\n"), "salmon",r, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos, seq->photometry[r][seq->reference_image]->ra, seq->photometry[r][seq->reference_image]->dec);
 		nb_ref_stars++;
 	}
-	args->comp_stars = malloc((nb_ref_stars + 1) * sizeof(psf_star *));
-	
+//	comp_sta->nbitems = nb_ref_stars;
+	siril_log_message(_("nb_ref_stars %i\n"), nb_ref_stars);
 
-//	args->comp_stars = malloc((nb_ref_stars + 1) * sizeof(psf_star *));
-	siril_log_message(_("seq->photometry[1][seq->reference_image]->ra: %lf\n"), seq->photometry[1][seq->reference_image]->ra);
-	siril_log_message(_("reference_image %i\n"), seq->reference_image);
-//	args->comp_stars = malloc((nb_ref_stars + 1) * sizeof(psf_star *));// dimensionnement
-	for (int i = 0; i < nb_ref_stars + 1; i++) {
-///		args->comp_stars[i] = duplicate_psf(seq->photometry[i][seq->reference_image]);
-		i++;
+	// preparing the output catalog
+	comp_sta->columns = siril_catalog_columns(CAT_COMPSTARS); // we add mag to write it in the output file (it is not a mandatory field at readout)
+	// allocating final sorted list to the required size
+	cat_item *result = calloc(nb_ref_stars + 1, sizeof(cat_item));
+	// write the target star TO BE DONE
+	fill_compstar_item(&result[0], sel_item[0].ra, sel_item[0].dec, 0.0, g_strdup_printf("V"), "Target");
+	siril_log_message(_("Target star: %lf, %lf\n"),
+			sel_item[0].ra,
+			sel_item[0].dec);
+	// and write the stars sorted by radius
+	//ATTENTION, il y a un decalage d'indice qui va pas
+	for (int i = 0; i < nb_ref_stars - 1; i++) {
+		cat_item *item = &sel_item[i];
+		gchar *name = g_strdup_printf("%d", i + 1);
+		fill_compstar_item(&result[i + 1], item->ra, item->dec, 0.0, name, "Comp1");
+		g_free(name);
+		siril_log_message(_("Comp star: %3d: %lf, %lf\n"),
+				i + 1, 
+				item->ra,
+				item->dec);
 	}
-///	args->comp_stars[nb_ref_stars] = NULL; // ca c'est pour terminer par un NULL
+
+	comp_sta->cat_items = result;
+	comp_sta->nbitems = nb_ref_stars;
+	comp_sta->nbincluded = nb_ref_stars;
+//	args->nb_comp_stars = nb_ref_stars;
+	args->comp_stars = comp_sta;
+//	comp_stars[nb_ref_stars] = NULL; // ca c'est pour terminer par un NULL
 	args->nina_file = g_strdup("auto");
+	args->target_name = g_strdup("noStarName");
+	args->target_star = &result[0];
 ///	args->target_star->star_name = g_strdup("nostarname");
 	args->delta_Vmag = 0.2;
 	args->delta_BV = 0.3;
-	args->cat = CAT_NOMAD;
+	args->cat = CAT_COMPSTARS;
 
-
-///	int r = 1;
-	siril_log_message(_("WIP: save the comp stars as a Nina-file\n"));
-//	siril_log_message(_("seq->photometry[1][seq->reference_image]->dec: %lf\n"), seq->photometry[1][1]->dec);
-//	siril_log_color_message(_("index: %d, xpos: %lf, ypos: %lf, ra: %lf, dec: %lf\n"), "salmon",r, seq->photometry[r][seq->reference_image]->xpos, seq->photometry[r][seq->reference_image]->ypos, seq->photometry[r][seq->reference_image]->ra, seq->photometry[r][seq->reference_image]->dec);
-
-//	siril_log_message(_("args->comp_stars[i][comp_stars[1]->dec\n"), args->comp_stars[1]->dec);
-//	write_nina_file(args);
-
+	siril_log_message(_("%d comparison stars after sort.\n"), nb_ref_stars);
+	write_nina_file(args);
 	return 0;
 }
+
 void on_varWriteAsNina_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 //	if (filldata(&com.seq)) siril_log_message(_("Pb with he function\n"));
 //	if (filldata(&com.seq)) siril_log_message(_("Pb with he function\n"));
+	siril_log_message(_("Pb with he function\n"));
 	filldata(&com.seq, user_data);
 	set_cursor_waiting(FALSE);
 }
