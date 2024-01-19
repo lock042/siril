@@ -344,7 +344,6 @@ void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
 	}
 	if (free_struct) {
 		g_free(data);
-		data = NULL;
 	}
 	return;
 }
