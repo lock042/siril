@@ -9605,3 +9605,46 @@ int process_icc_remove(int nb) {
 
 	return CMD_OK;
 }
+
+int process_spcc_list(int nb) {
+	GList *list = NULL;
+	gboolean is_osc_sensor = FALSE;
+	const gchar *list_name = NULL;
+	load_spcc_metadata_if_needed();
+	if (g_str_has_prefix(word[1], "oscsensor")) {
+		list = com.spcc_data.osc_sensors;
+		is_osc_sensor = TRUE;
+		list_name = _("OSC Sensors");
+	} else if (g_str_has_prefix(word[1], "monosensor")) {
+		list = com.spcc_data.mono_sensors;
+		list_name = _("Mono Sensors");
+	} else if (g_str_has_prefix(word[1], "redfilter")) {
+		list = com.spcc_data.mono_filters[RLAYER];
+		list_name = _("Red Filters");
+	} else if (g_str_has_prefix(word[1], "greenfilter")) {
+		list = com.spcc_data.mono_filters[GLAYER];
+		list_name = _("Green Filters");
+	} else if (g_str_has_prefix(word[1], "bluefilter")) {
+		list = com.spcc_data.mono_filters[BLAYER];
+		list_name = _("Blue Filters");
+	} else if (g_str_has_prefix(word[1], "oscfilter")) {
+		list = com.spcc_data.osc_filters;
+		list_name = _("OSC Filters");
+	} else if (g_str_has_prefix(word[1], "osclpf")) {
+		list = com.spcc_data.osc_lpf;
+		list_name = _("OSC Low-Pass Filters");
+	} else if (g_str_has_prefix(word[1], "whiteref")) {
+		list = com.spcc_data.wb_ref;
+		list_name = _("White References");
+	} else {
+		siril_log_message(_("Unknown SPCC list\n"));
+		return CMD_ARG_ERROR;
+	}
+	siril_log_color_message("%s\n", "green", list_name);
+	while (list) {
+		const spcc_object *object = (const spcc_object*) list->data;
+		siril_log_message("%s\n", is_osc_sensor ? object->model : object->name);
+		list = list->next;
+	}
+	return CMD_OK;
+}

@@ -31,6 +31,7 @@
 
 void spcc_object_free(spcc_object *data, gboolean free_struct);
 void osc_sensor_free(osc_sensor *data, gboolean free_struct);
+gboolean spcc_metadata_loaded = FALSE;
 
 static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *data, int index, gboolean from_osc_sensor) {
 #ifndef HAVE_JSON_GLIB
@@ -594,4 +595,10 @@ void load_all_spcc_metadata() {
 	com.spcc_data.mono_sensors = g_list_sort(com.spcc_data.mono_sensors, compare_spcc_object_names);
 	for (int i = 0 ; i < 3 ; i++)
 		com.spcc_data.mono_filters[i] = g_list_sort(com.spcc_data.mono_filters[i], compare_spcc_object_names);
+	spcc_metadata_loaded = TRUE;
+}
+
+void load_spcc_metadata_if_needed() {
+	if (!spcc_metadata_loaded)
+		load_all_spcc_metadata();
 }

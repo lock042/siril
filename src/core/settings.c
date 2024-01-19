@@ -243,7 +243,9 @@ preferences pref_init = {
 		.lpfpref = NULL,
 		.oscfilterpref = NULL,
 		.monosensorpref = NULL,
-		.oscsensorpref = NULL
+		.oscsensorpref = NULL,
+		.is_mono = TRUE,
+		.is_dslr = FALSE
 	}
 };
 
@@ -367,6 +369,8 @@ struct settings_access all_settings[] = {
 	{ "photometry", "oscfilterpref", STYPE_STR, N_("preferred SPCC OSC filter"), &com.pref.spcc.oscfilterpref },
 	{ "photometry", "monosensorpref", STYPE_STR, N_("preferred SPCC mono sensor"), &com.pref.spcc.monosensorpref },
 	{ "photometry", "oscsensorpref", STYPE_STR, N_("preferred SPCC OSC sensor"), &com.pref.spcc.oscsensorpref },
+	{ "photometry", "is_mono", STYPE_BOOL, N_("is the SPCC sensor mono?"), &com.pref.spcc.is_mono },
+	{ "photometry", "is_dslr", STYPE_BOOL, N_("is the SPCC OSC sensor a DSLR?"), &com.pref.spcc.is_dslr },
 
 	{ "astrometry", "asnet_sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 6 } } },
 	{ "astrometry", "asnet_radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },

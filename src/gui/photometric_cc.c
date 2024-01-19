@@ -479,6 +479,10 @@ void populate_spcc_combos() {
 		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
 		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
 		fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
+		GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("spcc_toggle_sensor_type"));
+		gtk_toggle_button_set_active(button, com.pref.spcc.is_mono);
+		GtkToggleButton *dslrbutton = GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr"));
+		gtk_toggle_button_set_active(dslrbutton, com.pref.spcc.is_dslr);
 		spcc_filters_initialized = TRUE;
 	}
 }
@@ -496,6 +500,8 @@ void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean osc_is_dslr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr")));
+	com.pref.spcc.is_mono = gtk_toggle_button_get_active(button);
+	com.pref.spcc.is_dslr = osc_is_dslr;
 	gboolean state = gtk_toggle_button_get_active(button);
 	GtkWidget *widget;
 	gtk_button_set_label(GTK_BUTTON(button), state ? _("Mono Sensor") : _("OSC Sensor"));

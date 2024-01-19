@@ -315,6 +315,8 @@ struct spcc_favourites {
 	gchar *oscfilterpref;
 	gchar *monosensorpref;
 	gchar *oscsensorpref;
+	gboolean is_mono;
+	gboolean is_dslr;
 };
 
 /**

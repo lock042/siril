@@ -20,6 +20,7 @@ void spcc_object_free(spcc_object *data, gboolean free_struct);
 void osc_sensor_free(osc_sensor *data, gboolean free_struct);
 void spcc_object_free_arrays(spcc_object *data);
 void load_all_spcc_metadata();
+void load_spcc_metadata_if_needed();
 gboolean load_spcc_object_arrays(spcc_object *data);
 
 enum {
