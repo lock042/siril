@@ -636,7 +636,7 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	object = (spcc_object*) list->data;
 
 	GtkLabel *label = GTK_LABEL(lookup_widget("spcc_details_name"));
-	gtk_label_set_text(label, object->type == 2 ? object->model : object->name);
+	gtk_label_set_text(label, object->type == OSC_SENSORS ? object->model : object->name);
 	label = GTK_LABEL(lookup_widget("spcc_details_mfr"));
 	gtk_label_set_text(label, object->manufacturer);
 	label = GTK_LABEL(lookup_widget("spcc_details_version"));
@@ -759,7 +759,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 
 void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 	siril_plot_data *spl_data = NULL;
-	gboolean is_osc_sensor = (cbdata->type == 2);
+	gboolean is_osc_sensor = (cbdata->type == OSC_SENSORS);
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
@@ -784,10 +784,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
 		siril_plot_set_title(spl_data, title);
 		g_free(title);
-		if (object->type == 1 || object->type == 2)
-			siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
-		else
-			siril_plot_set_ylabel(spl_data, object->type == 6 ? _("Relative photon count") : _("Transmittance"));
+		siril_plot_set_ylabel(spl_data, (object->type == MONO_SENSORS || object->type == OSC_SENSORS) ? _("Quantum Efficiency") : object->type == WB_REFS ? _("Relative photon count") : _("Transmittance"));
 
 		gchar *spl_legend = g_strdup(object->name);
 
@@ -795,7 +792,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		spcc_object_free_arrays(object);
 	}
 	spl_data->datamin.x = MIN_PLOT;
-	if (cbdata->type != 6)
+	if (cbdata->type != WB_REFS)
 		spl_data->datamax.x = MAX_PLOT;
 	spl_data->cfgdata.line.sz = 2;
 	siril_add_idle(create_new_siril_plot_window, spl_data);

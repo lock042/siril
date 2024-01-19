@@ -27,4 +27,13 @@ enum {
 	CMF_1931, CMF_1964
 };
 
+enum {
+	MONO_SENSORS = 1,
+	OSC_SENSORS,
+	MONO_FILTERS,
+	OSC_FILTERS,
+	OSC_LPFS,
+	WB_REFS
+};
+
 #endif

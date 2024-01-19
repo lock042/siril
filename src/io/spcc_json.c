@@ -27,6 +27,8 @@
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "algos/photometric_cc.h"
+#include "algos/spcc.h"
 #include <json-glib/json-glib.h>
 
 void spcc_object_free(spcc_object *data, gboolean free_struct);
@@ -84,22 +86,22 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	// Get values from JSON and store in the struct
 	const gchar *typestring = json_object_get_string_member(object, "type");
 	if (!strcmp(typestring, "MONO_SENSOR")) {
-		data->type = 1;
+		data->type = MONO_SENSORS;
 	} else if (!strcmp(typestring, "OSC_SENSOR")) {
 		if (!from_osc_sensor) {
 			g_object_unref(parser);
 			return 2; // OSC sensors are handled by a different routine
 		} else {
-			data->type = 2; // We have been called from the OSC handler
+			data->type = OSC_SENSORS; // We have been called from the OSC handler
 		}
 	} else if (!strcmp(typestring, "MONO_FILTER")) {
-		data->type = 3;
+		data->type = MONO_FILTERS;
 	} else if (!strcmp(typestring, "OSC_FILTER")) {
-		data->type = 4;
+		data->type = OSC_FILTERS;
 	} else if (!strcmp(typestring, "OSC_LPF")) {
-		data->type = 5;
+		data->type = OSC_LPFS;
 	} else if (!strcmp(typestring, "WB_REF")) {
-		data->type = 6;
+		data->type = WB_REFS;
 	} else {
 		goto validation_error;
 	}
@@ -259,29 +261,29 @@ static gboolean processJsonFile(const char *file_path) {
 
 		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
 		if (retval == 1) {
-			if (data->type == 3 && (data->channel < 0 || data->channel > 2)) {
+			if (data->type == MONO_FILTERS && (data->channel < 0 || data->channel > 2)) {
 				spcc_object_free(data, TRUE);
 				return FALSE;
 			}
 			siril_debug_print("Read JSON object: %s\n", data->name);
 			// Place the data into the correct list based on its type
 			switch (data->type) {
-				case 1:
+				case MONO_SENSORS:
 					com.spcc_data.mono_sensors = g_list_append(com.spcc_data.mono_sensors, data);
 					break;
-				case 2:
+				case OSC_SENSORS:
 					siril_debug_print("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
 					break;
-				case 3:
+				case MONO_FILTERS:
 					com.spcc_data.mono_filters[data->channel] = g_list_append(com.spcc_data.mono_filters[data->channel], data);
 					break;
-				case 4:
+				case OSC_FILTERS:
 					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
 					break;
-				case 5:
+				case OSC_LPFS:
 					com.spcc_data.osc_lpf = g_list_append(com.spcc_data.osc_lpf, data);
 					break;
-				case 6:
+				case WB_REFS:
 					com.spcc_data.wb_ref = g_list_append(com.spcc_data.wb_ref, data);
 					break;
 				default:
@@ -483,7 +485,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		data->x[i] = pairs[i].x;
 		data->y[i] = pairs[i].y;
 	}
-	if (data->type == 6) {
+	if (data->type == WB_REFS) {
 		int norm_ref = 0;
 		while (data->x[norm_ref] < 550) {
 			if (norm_ref == data->n - 1) {
