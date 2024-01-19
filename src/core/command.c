@@ -8397,6 +8397,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	gchar* spcc_strings_to_free[8] = { oscsensor, oscfilter, osclpf, monosensor, rfilter, gfilter, bfilter, whiteref };
 	int max_spcc_stars = 1000;
 	int mono_or_osc = 0; // for SPCC
+	int dslr = 0; // for SPCC
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -8517,6 +8518,12 @@ static int do_pcc(int nb, gboolean spectro) {
 				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
 			cat = CAT_ASNET;
 			local_cat = TRUE;
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-dslr=")) {
+			char *arg = word[next_arg] + 5;
+			if (!g_ascii_strcasecmp(arg, "true"))
+				dslr = 1;
+			else if (!g_ascii_strcasecmp(arg, "false"))
+				dslr = -1;
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-monosensor=")) {
 			char *arg = word[next_arg] + 12;
 			monosensor = g_strdup(arg);
@@ -8541,14 +8548,14 @@ static int do_pcc(int nb, gboolean spectro) {
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-whiteref=")) {
 			char *arg = word[next_arg] + 10;
 			whiteref = g_strdup(arg);
-		} else if (spectro && g_str_has_prefix(word[next_arg], "-osc=")) {
-			char *arg = word[next_arg] + 5;
-			if (!g_ascii_strcasecmp(arg, "true"))
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-sensortype=")) {
+			char *arg = word[next_arg] + 12;
+			if (!g_ascii_strcasecmp(arg, "osc"))
 				mono_or_osc = 1;
-			else if (!g_ascii_strcasecmp(arg, "false"))
+			else if (!g_ascii_strcasecmp(arg, "mono"))
 				mono_or_osc = -1;
 			if ((oscsensor && mono_or_osc == -1) || (monosensor && mono_or_osc == 1)) {
-				siril_log_message(_("Inconsistent use of -osc=\n"));
+				siril_log_message(_("Inconsistent use of -sensortype=\n"));
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
@@ -8665,6 +8672,11 @@ static int do_pcc(int nb, gboolean spectro) {
 		pcc_args->bg_auto = TRUE;
 		pcc_args->spcc = spectro;
 		if (spectro) {
+			if (monosensor && (dslr == 1)) {
+				siril_log_message(_("-dslr is an invalid option with a mono sensor\n"));
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				return CMD_ARG_ERROR;
+			}
 			if (!oscsensor && !monosensor && !mono_or_osc) {
 				siril_log_message(_("If neither mono nor OSC sensor is specified you must use the -osc={true|false} option\n"));
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
@@ -8681,6 +8693,7 @@ static int do_pcc(int nb, gboolean spectro) {
 				pcc_args->selected_filter_lpf = get_favourite_spccobject(com.spcc_data.osc_lpf, osclpf ? osclpf : com.pref.spcc.lpfpref ? com.pref.spcc.lpfpref : "Full spectrum");
 				pcc_args->spcc_mono_sensor = FALSE;
 				siril_log_message(_("SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"), oscsensor ? oscsensor : com.pref.spcc.oscsensorpref, oscfilter ? oscfilter : com.pref.spcc.oscfilterpref, osclpf ? osclpf : com.pref.spcc.lpfpref);
+				pcc_args->is_dslr = dslr == 1 ? TRUE : dslr == -1 ? FALSE : com.pref.spcc.is_dslr;
 			} else {
 				pcc_args->selected_sensor_m = get_favourite_spccobject(com.spcc_data.mono_sensors, monosensor ? monosensor : com.pref.spcc.monosensorpref);
 				pcc_args->selected_filter_r = get_favourite_spccobject(com.spcc_data.mono_filters[0], rfilter ? rfilter : com.pref.spcc.redpref);

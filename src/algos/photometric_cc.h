@@ -39,6 +39,7 @@ struct photometric_cc_data {
 	gchar *datalink_path;	// to hold the datalink path for SPCC
 	gboolean spcc;			// set if doing SPCC
 	gboolean spcc_mono_sensor; // for SPCC
+	gboolean is_dslr; // for SPCC
 	int selected_sensor_osc; // for SPCC
 	int selected_sensor_m; // for SPCC
 	int selected_filter_osc; // for SPCC

@@ -212,7 +212,7 @@ static command commands[] = {
 	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE, REQ_CMD_NONE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE, REQ_CMD_NONE},
 	{"show", 1, "show [-clear] [{ -list=file.csv | [name] RA Dec }] [-nolog] [-notag]", process_show, STR_SHOW, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"spcc", 1, "spcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-downscale] [ { -monosensor= [ -rfilter= ] [ -gfilter= ] [ -bfilter= ] | -oscsensor= [ -oscfilter= ] [ -osclpf= ] } ] [ -whiteref= ] [ -max_spcc_stars= ]", process_spcc, STR_SPCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
+	{"spcc", 1, "spcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-downscale] [ { -monosensor= [ -rfilter= ] [ -gfilter= ] [ -bfilter= ] | -oscsensor= [ -oscfilter= ] [ -osclpf= ] } ] [ -whiteref= ] [ -max_spcc_stars= ] [-sensortype={osc | mono}] -dslr={true | false}]", process_spcc, STR_SPCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
 	{"spcc_list", 1, "spcc_list { oscsensor | monosensor | redfilter | greenfilter | bluefilter | oscfilter | osclpf | whiteref }", process_spcc_list, STR_SPCC_LIST, TRUE, REQ_CMD_NONE },
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},

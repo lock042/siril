@@ -392,7 +392,7 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 
 void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *mono_sensor_check = lookup_widget("spcc_toggle_sensor_type");
-	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
+	GtkWidget *dslr_check = lookup_widget("osc_is_dslr");
 	GtkWidget *whiteref = lookup_widget("combo_spcc_whitepoint");
 	GtkWidget *monosensor = lookup_widget("combo_spcc_sensors_mono");
 	GtkWidget *oscsensor = lookup_widget("combo_spcc_sensors_osc");
@@ -404,6 +404,8 @@ void set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *max_stars_spin = lookup_widget("SPCC_max_stars");
 	GtkWidget *spcc_plot = lookup_widget("spcc_plot_fits");
 
+	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
+	args->is_dslr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dslr_check));
 	args->selected_white_ref = gtk_combo_box_get_active(GTK_COMBO_BOX(whiteref));
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
 	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(oscsensor));

@@ -159,19 +159,29 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		spcc_object_free_arrays( (spcc_object*) filter->data);
 		multiply_xpsampled(spectrum, spectrum, &spectrum2);
 	} else {
-		// The 3 channels of an OSC sensor are stored in RGB order in the JSON file and will be in order in the GList.
+		// Sensor
 		GList *object = g_list_nth(com.spcc_data.osc_sensors, args->selected_sensor_osc);
 		osc_sensor *osc = (osc_sensor*) object->data;
 		spcc_object *sensor = &osc->channel[chan];
 		load_spcc_object_arrays( (spcc_object*) sensor);
-		init_xpsampled_from_library(spectrum, (spcc_object*) sensor);
+		init_xpsampled_from_library(spectrum, sensor);
 		spcc_object_free_arrays( (spcc_object*) sensor);
-		// TODO: Also add a LPF filter if the OSC sensor is a DSLR
+		// Filter
 		GList *filter = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
 		load_spcc_object_arrays( (spcc_object*) filter->data);
 		init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
 		spcc_object_free_arrays( (spcc_object*) filter->data);
 		multiply_xpsampled(spectrum, spectrum, &spectrum2);
+		// DSLR LPF (if required)
+		if (args->is_dslr) {
+			GList *lpf_list_entry = g_list_nth(com.spcc_data.osc_lpf, args->selected_filter_lpf);
+			spcc_object *lpf = (spcc_object*) lpf_list_entry->data;
+			load_spcc_object_arrays(lpf);
+			xpsampled spectrum3 = { spectrum->x, { 0.0 } };
+			init_xpsampled_from_library(&spectrum3, lpf);
+			spcc_object_free_arrays(lpf);
+			multiply_xpsampled(spectrum, spectrum, &spectrum3);
+		}
 	}
 }
 
