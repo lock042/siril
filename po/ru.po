@@ -6,16 +6,16 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-01-08 13:14+0100\n"
-"PO-Revision-Date: 2024-01-07 12:36+0000\n"
+"PO-Revision-Date: 2024-01-18 13:50+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:53 src/gui/uifiles/denoise_dialog.ui:148
@@ -850,9 +850,8 @@ msgid "Solar System Objects"
 msgstr "Объекты Солнечной системы"
 
 #: src/gui/uifiles/siril.ui:2227 src/gui/uifiles/siril.ui:2469
-#, fuzzy
 msgid "Image Analysis"
-msgstr "Миниатюры изображений"
+msgstr "Анализ изображений"
 
 #: src/gui/uifiles/siril.ui:2244
 msgid "Statistics..."
@@ -867,9 +866,8 @@ msgid "Aberration Inspector"
 msgstr "Аберрации"
 
 #: src/gui/uifiles/siril.ui:2286
-#, fuzzy
 msgid "Show Tilt"
-msgstr "Показывать сетку"
+msgstr "Показать наклон"
 
 #: src/gui/uifiles/siril.ui:2311
 msgid "Dynamic PSF..."
@@ -890,21 +888,21 @@ msgstr ""
 "Будет создан файл csv, совместимый с плагином NINA Exoplanets"
 
 #: src/gui/uifiles/siril.ui:2355
-#, fuzzy
 msgid "Create Comparison Stars File..."
-msgstr "Создать список звёзд сравнения"
+msgstr "Создать файл со списком звёзд сравнения..."
 
 #: src/gui/uifiles/siril.ui:2368
-#, fuzzy
 msgid ""
 "Process a light curve using a list of stars in the format produced by Siril "
 "(Create Comparison Stars File) or by the NINA exoplanet plugin."
 msgstr ""
-"Обработать световую кривую, использую список звёзд из плагина экзопланет NINA"
+"Обработать световую кривую, использую список звёзд в формате, созданном "
+"Siril (создать файл со списком звёзд сравнения) или из плагина экзопланет "
+"NINA."
 
 #: src/gui/uifiles/siril.ui:2370
 msgid "Automated Light Curve..."
-msgstr ""
+msgstr "Автоматическая световая кривая..."
 
 #: src/gui/uifiles/siril.ui:2383
 msgid "This is the button for outputting photometric data."
@@ -938,9 +936,8 @@ msgid "FITS Header..."
 msgstr "Заголовок FITS…"
 
 #: src/gui/uifiles/siril.ui:2551
-#, fuzzy
 msgid "Image Information..."
-msgstr "Данные об изображении"
+msgstr "Данные об изображении..."
 
 #: src/gui/uifiles/siril.ui:2603
 msgid "current red file"
@@ -2499,12 +2496,11 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:7130
 msgid "Modify x-axis units, or y-axis units if available."
-msgstr ""
+msgstr "По возможности изменить единицы измерения по осям x или y."
 
 #: src/gui/uifiles/siril.ui:7142
-#, fuzzy
 msgid "Display"
-msgstr "Экран"
+msgstr "Отображение"
 
 #: src/gui/uifiles/siril.ui:7177
 msgid ""
@@ -2520,7 +2516,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:7181
 msgid "Hovering for the legend"
-msgstr ""
+msgstr "Наведите для показа легенды"
 
 #: src/gui/uifiles/siril.ui:7200
 msgid ""
@@ -2590,23 +2586,20 @@ msgid "Select the source of graph information."
 msgstr "Источник информации для графика."
 
 #: src/gui/uifiles/siril.ui:7348
-#, fuzzy
 msgid "Registration data"
-msgstr "Обнаружены данные регистрации"
+msgstr "Данные регистрации"
 
 #: src/gui/uifiles/siril.ui:7349
-#, fuzzy
 msgid "Photometry data"
-msgstr "Фотометрия"
+msgstr "Данные фотометрии"
 
 #: src/gui/uifiles/siril.ui:7364
 msgid "Deletes photometric plots displayed in the graphics area."
-msgstr ""
+msgstr "Удаляет графики фотометрии, отображаемые в области графиков."
 
 #: src/gui/uifiles/siril.ui:7376
-#, fuzzy
 msgid "Clear plots"
-msgstr "Очистить последнее"
+msgstr "Очистить графики"
 
 #: src/gui/uifiles/siril.ui:7427
 msgid "Show all relevant graphs using registration and / or photometry data."
@@ -3286,9 +3279,8 @@ msgid "Image Processing"
 msgstr "Обработка"
 
 #: src/gui/uifiles/siril.ui:9864
-#, fuzzy
 msgid "Tools"
-msgstr "Сервис"
+msgstr "Инструменты"
 
 #: src/gui/uifiles/siril.ui:9898
 msgid ""
@@ -4353,13 +4345,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:876
-#, fuzzy
 msgid "100"
-msgstr "500"
+msgstr "100"
 
 #: src/gui/uifiles/savepopup.ui:902
 msgid "Effort:"
-msgstr ""
+msgstr "Усилие:"
 
 #: src/gui/uifiles/savepopup.ui:926
 msgid ""
@@ -4370,7 +4361,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:940
 msgid "8 bit output"
-msgstr ""
+msgstr "8-битный вывод"
 
 #: src/gui/uifiles/savepopup.ui:944
 msgid ""
@@ -4380,9 +4371,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:982
-#, fuzzy
 msgid "JPEG XL"
-msgstr "JPEG"
+msgstr "JPEG XL"
 
 #: src/gui/uifiles/satu_dialog.ui:47
 msgid "Color saturation"
@@ -12407,14 +12397,12 @@ msgid "Error: cannot open sequence\n"
 msgstr "Ошибка: не удалось открыть последовательность\n"
 
 #: src/core/command.c:759
-#, fuzzy
 msgid "Error: quality must be >= 0.0 and <= 100.0.\n"
-msgstr "Ошибка: D должна быть >= 0.0 и <= 10.0.\n"
+msgstr "Ошибка: качество должно быть >= 0.0 и <= 100.0.\n"
 
 #: src/core/command.c:767
-#, fuzzy
 msgid "Error: effort must be an integer between 1 and 9.\n"
-msgstr "Ошибка: D должна быть указана между 0.0 и 1.0 с помощью -D=\n"
+msgstr "Ошибка: усилие должно быть целым значением между 1 и 9.\n"
 
 #: src/core/command.c:896
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
@@ -13078,7 +13066,6 @@ msgid "Wrong parameter values. Pixel size must be greater than 0, aborting.\n"
 msgstr "Неверное значение. Размер пикселя должен быть более 0, прерывание.\n"
 
 #: src/core/command.c:3521
-#, fuzzy
 msgid "Wrong parameter values. Relax must be set to on or off, aborting.\n"
 msgstr ""
 "Неверные значения параметра. Параметр \"Ослабить\" должен быть \"Вкл.\" или "
@@ -13245,9 +13232,8 @@ msgid "Missing argument to command\n"
 msgstr "Отсутствующий аргумент для команды\n"
 
 #: src/core/command.c:4100
-#, fuzzy
 msgid "Could not find stars in the reference image, aborting.\n"
-msgstr "Не удалось найти звёзды на первом изображении, прерывание.\n"
+msgstr "Не удалось найти звёзды на опорном изображении, прерывание.\n"
 
 #: src/core/command.c:4110
 #, c-format
@@ -13266,7 +13252,6 @@ msgstr ""
 "кольцевые радиусы для фотометрии\n"
 
 #: src/core/command.c:4143
-#, fuzzy
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
@@ -13274,7 +13259,7 @@ msgid ""
 msgstr ""
 "В последовательности не найдено изображений с информацией WCS, необходимой "
 "для выбора звезды по экваториальным координатам, найдите астрономическое "
-"решение для опорного или первого изображения\n"
+"решение для опорного или текущего изображения\n"
 
 #: src/core/command.c:4265
 #, c-format
@@ -21447,7 +21432,7 @@ msgid ""
 "standard 16 bit LUTs.\n"
 msgstr ""
 "Ошибка: не удалось выделить память при инициализации HD LUT. Сброс к "
-"стандартным 16 битным LUT.\n"
+"стандартным 16-битным LUT.\n"
 
 #: src/gui/image_display.c:715
 #, c-format
@@ -21792,27 +21777,24 @@ msgid "Deconvolution. Processing sequence..."
 msgstr "Реконструкция. Обработка последовательности..."
 
 #: src/gui/nina_light_curve.c:41
-#, fuzzy
 msgid "Automated light curve"
-msgstr "Показать световую кривую"
+msgstr "Автоматическая световая кривая"
 
 #: src/gui/nina_light_curve.c:49
-#, fuzzy
 msgid "Select the comparison star list file"
-msgstr "Выберите файл NINA со списком звёзд"
+msgstr "Выберите файл со списком звёзд"
 
 #: src/gui/nina_light_curve.c:54
 msgid "CSV file (*.csv)"
 msgstr "Файл CSV (*.csv)"
 
 #: src/gui/nina_light_curve.c:58
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list of "
 "reference stars created by Siril or the NINA exoplanet plugin"
 msgstr ""
 "Обрабатывает последовательность для получения световой кривой звезды, "
-"используя список опорных звёзд, созданных плагином экзопланет NINA"
+"используя список опорных звёзд, созданных Siril или плагином экзопланет NINA"
 
 #: src/gui/nina_light_curve.c:62
 msgid "Use comparative stars selected for their color"
@@ -21835,9 +21817,8 @@ msgstr ""
 "изменения атмосферы"
 
 #: src/gui/nina_light_curve.c:71
-#, fuzzy
 msgid "The AAVSO gives stars that are known to not be variable"
-msgstr "Звёзды, предоставленные AAVSO, не являются переменными"
+msgstr "Известно, что звёзды, предоставленные AAVSO, не являются переменными"
 
 #: src/gui/nina_light_curve.c:72
 msgid "if not checked, a PNG image of the graph will be generated instead"
@@ -21953,9 +21934,8 @@ msgid "Output files (*%s)"
 msgstr "Итоговые файлы (*%s)"
 
 #: src/gui/plot.c:1328 src/gui/plot.c:1372 src/gui/plot.c:1386
-#, fuzzy
 msgid "Cannot output data"
-msgstr "Не удалось создать каталог для вывода: %s\n"
+msgstr "Не удалось создать исходящие данные"
 
 #: src/gui/plot.c:1358
 msgid "Incomplete data"
@@ -22354,9 +22334,8 @@ msgid "JPEG Files (*.jpg, *.jpeg)"
 msgstr "Файлы JPEG (*.jpg, *.jpeg)"
 
 #: src/gui/save_dialog.c:93
-#, fuzzy
 msgid "JPEG XL Files (*.jxl)"
-msgstr "Файлы PNG (*.png)"
+msgstr "Файлы JPEG XL (*.jxl)"
 
 #: src/gui/save_dialog.c:101
 msgid "PNG Files (*.png)"
@@ -22387,9 +22366,8 @@ msgid "Saving JPG"
 msgstr "Сохранение JPG"
 
 #: src/gui/save_dialog.c:260
-#, fuzzy
 msgid "Saving JPEG XL"
-msgstr "Сохранение JPG"
+msgstr "Сохранение JPG XL"
 
 #: src/gui/save_dialog.c:264
 msgid "Saving TIFF"
@@ -22619,9 +22597,8 @@ msgstr ""
 "Можно скачать дополнительные сценарии, выбрав в меню пункт «Скачать сценарии»"
 
 #: src/gui/siril_intro.c:40
-#, fuzzy
 msgid "The documentation set is also available via the menu \"Siril Manual\""
-msgstr "Новая документация доступна также через меню «Руководство Siril»"
+msgstr "Документация доступна также через меню \"Руководство Siril\""
 
 #: src/gui/siril_intro.c:41
 msgid ""
@@ -22999,18 +22976,16 @@ msgid "JPG images"
 msgstr "JPG"
 
 #: src/io/conversion.c:240
-#, fuzzy
 msgid "JPEG XL images"
-msgstr "JPG"
+msgstr "Изображения JPG XL"
 
 #: src/io/conversion.c:247
 msgid "PNG images"
-msgstr "PNG"
+msgstr "Изображения PNG"
 
 #: src/io/conversion.c:255
-#, fuzzy
 msgid "HEIF images, AVIF images"
-msgstr "HEIF"
+msgstr "Изображения HEIF и AVIF"
 
 #: src/io/conversion.c:265
 #, c-format
@@ -23105,7 +23080,7 @@ msgid ""
 "Converting 32 bits images (from %s) to 16 bits is not supported, ignoring "
 "file.\n"
 msgstr ""
-"Конвертация 32 битных изображений (из %s) в 16 битные не поддерживается, "
+"Конвертация 32-битных изображений (из %s) в 16-битные не поддерживается, "
 "игнорирование файла.\n"
 
 #: src/io/conversion.c:1107 src/io/conversion.c:1177
@@ -23450,11 +23425,11 @@ msgstr ""
 
 #: src/io/image_formats_internal.c:557
 msgid "Error reading 8-bit PPM image data.\n"
-msgstr "Ошибка чтения 8 битных данных изображения PPM.\n"
+msgstr "Ошибка чтения 8-битных данных изображения PPM.\n"
 
 #: src/io/image_formats_internal.c:587
 msgid "Error reading 16-bit gray PPM image data.\n"
-msgstr "Ошибка чтения 16 битных данных изображения PPM в градациях серого.\n"
+msgstr "Ошибка чтения 16-битных данных изображения PPM в градациях серого.\n"
 
 #: src/io/image_formats_internal.c:620
 msgid "Error reading 16-bit color PPM image data.\n"
@@ -23551,7 +23526,7 @@ msgstr "Ориентация TIFFTAG не поддерживается.\n"
 #: src/io/image_formats_libraries.c:649
 #, c-format
 msgid "Reading TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Чтение TIFF: %d битный файл %s, слоёв %ld, пикселей %u×%u\n"
+msgstr "Чтение TIFF: %d-битный файл %s, слоёв %ld, пикселей %u×%u\n"
 
 #: src/io/image_formats_libraries.c:699
 msgid "Siril cannot create TIFF file.\n"
@@ -23623,7 +23598,7 @@ msgstr "Ошибка при открытии файла %s\n"
 #: src/io/image_formats_libraries.c:1567
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Чтение PNG: битов %d, файл %s, слоёв %ld, пикселей %u×%u\n"
+msgstr "Чтение PNG: %d-битный файл %s, слоёв %ld, пикселей %u×%u\n"
 
 #: src/io/image_formats_libraries.c:1857
 #, c-format
@@ -23692,19 +23667,18 @@ msgid ""
 msgstr ""
 
 #: src/io/image_formats_libraries.c:2648
-#, fuzzy
 msgid "Input image has undefined bit-depth.\n"
-msgstr "Входящие файлы имеют разную разрядность\n"
+msgstr "Разрядность входящих файлов не указана.\n"
 
 #: src/io/image_formats_libraries.c:2806
-#, fuzzy, c-format
+#, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
-msgstr "Чтение HEIF: файл %s, слоёв %ld, пикселей %u×%u\n"
+msgstr "Чтение HEIF: файл %s, слоёв %ld, пикселей %u×%u, битов %d\n"
 
 #: src/io/image_formats_libraries.c:2926
-#, fuzzy, c-format
+#, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "Чтение JPG: файл %s, слоёв %ld, пикселей %u×%u\n"
+msgstr "Чтение JPG XL: файл %s, слоёв %ld, пикселей %u×%u\n"
 
 #: src/io/image_formats_libraries.c:2946
 #, fuzzy
@@ -23712,23 +23686,26 @@ msgid "Error interleaving image\n"
 msgstr "Ошибка создания итогового изображения\n"
 
 #: src/io/image_formats_libraries.c:3056
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
-msgstr "Сохранение JPG: файл %s, качество %d%%, слоёв %ld, пикселей %u×%u\n"
+msgstr ""
+"Сохранение JPG XL: файл %s, без потери качества, усилие %d, слоёв %ld, "
+"пикселей %u×%u, битов %d\n"
 
 #: src/io/image_formats_libraries.c:3059
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
 "bit depth: %d\n"
-msgstr "Сохранение JPG: файл %s, качество %d%%, слоёв %ld, пикселей %u×%u\n"
+msgstr ""
+"Сохранение JPG XL: файл %s, качество %.3f, усилие %d, слоёв %ld, пикселей %u×"
+"%u, битов %d\n"
 
 #: src/io/image_formats_libraries.c:3067
-#, fuzzy
 msgid "Save complete.\n"
-msgstr "Укладка завершена."
+msgstr "Сохранение завершено.\n"
 
 #: src/io/image_format_fits.c:374
 #, c-format
