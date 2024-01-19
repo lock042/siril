@@ -54,6 +54,7 @@ void set_spcc_args(struct photometric_cc_data *args);
 void get_whitepoint_from_ui(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data);
+void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data);
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
@@ -295,7 +296,16 @@ void initialize_spectrophotometric_cc_dialog() {
 
 	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
-	on_spcc_toggle_sensor_type_toggled(GTK_TOGGLE_BUTTON(lookup_widget("spcc_toggle_sensor_type")), NULL);
+	GtkToggleButton *monoselector = GTK_TOGGLE_BUTTON(lookup_widget("spcc_toggle_sensor_type"));
+	g_signal_handlers_block_by_func(G_OBJECT(monoselector), on_spcc_toggle_sensor_type_toggled, NULL);
+	gtk_toggle_button_set_active(monoselector, com.pref.spcc.is_mono);
+	g_signal_handlers_unblock_by_func(G_OBJECT(monoselector), on_spcc_toggle_sensor_type_toggled, NULL);
+	on_spcc_toggle_sensor_type_toggled(monoselector, NULL);
+	GtkToggleButton *dslrtoggle = GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr"));
+	g_signal_handlers_block_by_func(G_OBJECT(dslrtoggle), on_osc_is_dslr_toggled, NULL);
+	gtk_toggle_button_set_active(dslrtoggle, com.pref.spcc.is_dslr);
+	g_signal_handlers_unblock_by_func(G_OBJECT(dslrtoggle), on_osc_is_dslr_toggled, NULL);
+	on_osc_is_dslr_toggled(dslrtoggle, NULL);
 	populate_spcc_combos();
 }
 
@@ -490,6 +500,7 @@ void populate_spcc_combos() {
 void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean sensor_is_osc = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_toggle_sensor_type")));
 	gboolean osc_is_dslr = gtk_toggle_button_get_active(button);
+	com.pref.spcc.is_dslr = osc_is_dslr;
 	GtkWidget *widget = lookup_widget("label_spcc_filters_lpf");
 	gtk_widget_set_visible(widget, (osc_is_dslr && sensor_is_osc));
 	widget = lookup_widget("combo_spcc_filters_lpf");
@@ -501,7 +512,6 @@ void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean osc_is_dslr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr")));
 	com.pref.spcc.is_mono = gtk_toggle_button_get_active(button);
-	com.pref.spcc.is_dslr = osc_is_dslr;
 	gboolean state = gtk_toggle_button_get_active(button);
 	GtkWidget *widget;
 	gtk_button_set_label(GTK_BUTTON(button), state ? _("Mono Sensor") : _("OSC Sensor"));
