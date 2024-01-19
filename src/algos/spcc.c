@@ -20,6 +20,7 @@
 
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_interp.h>
+#include "git-version.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -194,7 +195,7 @@ int spcc_set_source_profile(struct photometric_cc_data *args) {
 	cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
 	cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
 	cmsMLU *copyright = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(copyright, "en", "US", "Copyright 2024, Team free-astro (https://free-astro.org/index.php/Siril), CC-BY-SA 3.0 Unported (https://creativecommons.org/licenses/by-sa/3.0/");
+	cmsMLUsetASCII(copyright, "en", "US", "Copyright "SIRIL_GIT_LAST_COMMIT_YEAR", Team free-astro (https://siril.org), CC-BY-SA 3.0 Unported (https://creativecommons.org/licenses/by-sa/3.0/");
 	cmsToneCurve *curve[3], *tonecurve;
 	tonecurve = cmsBuildGamma(NULL, 1.00);
 	curve[0] = curve[1] = curve[2] = tonecurve;
