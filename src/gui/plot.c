@@ -1413,7 +1413,7 @@ void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_show_all(lookup_widget("aavso_dialog"));
 }
 
-int filldata (sequence *seq, gpointer user_data) {
+static void manual_photometry_data (sequence *seq) {
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return 1;
@@ -1480,7 +1480,7 @@ int filldata (sequence *seq, gpointer user_data) {
 
 void on_varWriteAsNina_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	filldata(&com.seq, user_data);
+	manual_photometry_data(&com.seq);
 	set_cursor_waiting(FALSE);
 }
 
