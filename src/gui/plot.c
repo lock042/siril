@@ -1416,7 +1416,7 @@ void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 static void manual_photometry_data (sequence *seq) {
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return 1;
+		return;
 	}
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
@@ -1475,7 +1475,6 @@ static void manual_photometry_data (sequence *seq) {
 	// And finally create the csv file
 	write_nina_file(args);
 	siril_catalog_free_items (comp_sta);
-	return 0;
 }
 
 void on_varWriteAsNina_clicked(GtkButton *button, gpointer user_data) {
