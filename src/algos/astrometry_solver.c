@@ -608,10 +608,39 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	// and convert it back to FITS/WCS convention
 	fit->wcslib->crpix[0] = refpointout.x + 0.5;
 	fit->wcslib->crpix[1] = refpointout.y + 0.5;
+
+	// and we update all the wcslib structures
+	if (fit->wcslib->lin.dispre) {
+		struct disprm *dis = fit->wcslib->lin.dispre;
+		for (int n = 0; n < dis->ndp; n++) { // update the OFFSET keywords to new CRPIX values
+			if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.1"))
+				dis->dp[n].value.f = fit->wcslib->crpix[0];
+			else if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.2"))
+				dis->dp[n].value.f = fit->wcslib->crpix[1];
+		}
+		dis->flag = 0; // to update the structure
+		disset(dis);
+	}
+	fit->wcslib->lin.flag = 0; // to update the structure
+	linset(&fit->wcslib->lin);
 	fit->wcslib->flag = 0; // to update the structure
 	wcsset(fit->wcslib);
-
+	wcs_print(fit->wcslib);
 	print_updated_wcs_data(fit);
+
+	// Update the center position in fit->wcsdata //
+	double rac, decc;
+	center2wcs(fit, &rac, &decc);
+	if (rac != -1) {
+		fit->wcsdata.ra = rac;
+		fit->wcsdata.dec = decc;
+		gchar *ra = siril_world_cs_alpha_format_from_double(rac, "%02d %02d %.3lf");
+		gchar *dec = siril_world_cs_delta_format_from_double(decc, "%c%02d %02d %.3lf");
+		g_sprintf(fit->wcsdata.objctra, "%s", ra);
+		g_sprintf(fit->wcsdata.objctdec, "%s", dec);
+		g_free(ra);
+		g_free(dec);
+	}
 }
 
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
