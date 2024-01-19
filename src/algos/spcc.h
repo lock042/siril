@@ -9,9 +9,9 @@ void init_spcc_filters();
 xpsampled init_xpsampled();
 void init_xpsampled_from_library(xpsampled *out, spcc_object *in);
 void multiply_xpsampled(xpsampled *result, const xpsampled *a, const xpsampled *b);
-double integrate_xpsampled(const xpsampled *xps);
+double integrate_xpsampled(const xpsampled *xps, const double minimum, const double maximum);
 gpointer spectrophotometric_cc_standalone(gpointer p);
-cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf);
+cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const int cmf, const double minwl, const double maxwl);
 void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectrum, int chan);
 int spcc_set_source_profile(struct photometric_cc_data *args);
 

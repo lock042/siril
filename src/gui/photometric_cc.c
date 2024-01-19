@@ -157,7 +157,7 @@ void initialize_photometric_cc_dialog() {
 			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
 			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*labelIPScatparams, *spcc_max_stars, *spcc_max_stars_label, *spcc_do_plot;
+			*labelIPScatparams, *spcc_do_plot;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -177,8 +177,6 @@ void initialize_photometric_cc_dialog() {
 	spcc_options = lookup_widget("spcc_options");
 	stardet = lookup_widget("Frame_IPS_star_detection");
 	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
-	spcc_max_stars = lookup_widget("SPCC_max_stars");
-	spcc_max_stars_label = lookup_widget("SPCC_max_stars_label");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
@@ -204,8 +202,6 @@ void initialize_photometric_cc_dialog() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
 	gtk_widget_set_visible(lasnet, FALSE);
 	gtk_widget_set_visible(spcc_options, FALSE);
-	gtk_widget_set_visible(spcc_max_stars, FALSE);
-	gtk_widget_set_visible(spcc_max_stars_label, FALSE);
 	gtk_widget_set_visible(spcc_do_plot, FALSE);
 	gtk_widget_grab_focus(button_cc_ok);
 	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), TRUE);
@@ -230,7 +226,7 @@ void initialize_spectrophotometric_cc_dialog() {
 			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
 			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*labelIPScatparams, *spcc_max_stars, *spcc_max_stars_label, *spcc_do_plot;
+			*labelIPScatparams, *spcc_do_plot;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -248,8 +244,6 @@ void initialize_spectrophotometric_cc_dialog() {
 	force_platesolve = lookup_widget("force_astrometry_button");
 	lasnet = lookup_widget("localasnet_check_button");
 	spcc_options = lookup_widget("spcc_options");
-	spcc_max_stars = lookup_widget("SPCC_max_stars");
-	spcc_max_stars_label = lookup_widget("SPCC_max_stars_label");
 	stardet = lookup_widget("Frame_IPS_star_detection");
 	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
@@ -277,8 +271,6 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
 	gtk_widget_set_visible(lasnet, FALSE);
 	gtk_widget_set_visible(spcc_options, TRUE);
-	gtk_widget_set_visible(spcc_max_stars, TRUE);
-	gtk_widget_set_visible(spcc_max_stars_label, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
 	gtk_widget_grab_focus(button_cc_ok);
 	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), FALSE);
@@ -402,7 +394,6 @@ int set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *filters_b = lookup_widget("combo_spcc_filters_b");
 	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
 	GtkWidget *filters_lpf = lookup_widget("combo_spcc_filters_lpf");
-	GtkWidget *max_stars_spin = lookup_widget("SPCC_max_stars");
 	GtkWidget *spcc_plot = lookup_widget("spcc_plot_fits");
 
 	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
@@ -415,7 +406,6 @@ int set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
 	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
-	args->max_spcc_stars = gtk_spin_button_get_value(GTK_SPIN_BUTTON(max_stars_spin));
 	args->do_plot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_plot));
 	// Check for problems
 	if (args->spcc_mono_sensor) {

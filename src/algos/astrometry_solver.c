@@ -615,7 +615,7 @@ gpointer plate_solver(gpointer p) {
 		siril_catalog_free_items(args->ref_stars);
 		if (args->for_photometry_spcc) {
 			args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
-			siril_gaiadr3_datalink_query(args->ref_stars, XP_SAMPLED, &args->pcc->datalink_path, args->pcc->max_spcc_stars);
+			siril_gaiadr3_datalink_query(args->ref_stars, XP_SAMPLED, &args->pcc->datalink_path, 5000);
 		} else {
 			siril_catalog_conesearch(args->ref_stars);
 		}

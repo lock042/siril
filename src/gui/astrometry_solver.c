@@ -59,7 +59,7 @@ static void initialize_ips_dialog() {
 			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
 			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*flip_image, *spcc_max_stars, *spcc_max_stars_label, *spcc_do_plot;
+			*flip_image, *spcc_do_plot;
 	GtkWindow *parent;
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
@@ -78,8 +78,6 @@ static void initialize_ips_dialog() {
 	lasnet = lookup_widget("localasnet_check_button");
 	spcc_options = lookup_widget("spcc_options");
 	stardet = lookup_widget("Frame_IPS_star_detection");
-	spcc_max_stars = lookup_widget("SPCC_max_stars");
-	spcc_max_stars_label = lookup_widget("SPCC_max_stars_label");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
@@ -100,8 +98,6 @@ static void initialize_ips_dialog() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(flip_image), single_image_is_loaded());
 	gtk_widget_set_visible(lasnet, TRUE);
 	gtk_widget_set_visible(spcc_options, FALSE);
-	gtk_widget_set_visible(spcc_max_stars, FALSE);
-	gtk_widget_set_visible(spcc_max_stars_label, FALSE);
 	gtk_widget_set_visible(spcc_do_plot, FALSE);
 	gtk_widget_grab_focus(button_ips_ok);
 

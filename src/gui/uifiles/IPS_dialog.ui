@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -738,7 +738,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=4 n-rows=4 -->
+                  <!-- n-columns=4 n-rows=3 -->
                   <object class="GtkGrid" id="GtkGridIPS2">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -904,38 +904,6 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="left-attach">3</property>
                         <property name="top-attach">0</property>
                       </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="SPCC_max_stars_label">
-                        <property name="name">spcc_max_stars_label</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">SPCC Max Stars:</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="SPCC_max_stars">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Maximum number of stars processed for SPCC. Up to a point, more stars may give a more accurate result, but will be slower to retrieve from the catalog and to process. The absolute maximum is 5000 as this is the maximum number of sources in a single Gaia DR3 datalink request.</property>
-                        <property name="adjustment">adj_spcc_max_stars</property>
-                        <property name="value">1000</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>

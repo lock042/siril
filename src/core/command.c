@@ -8395,7 +8395,6 @@ static int do_pcc(int nb, gboolean spectro) {
 	sequence *seq = NULL;
 	gchar *monosensor = NULL, *oscsensor = NULL, *rfilter = NULL, *gfilter = NULL, *bfilter = NULL, *oscfilter = NULL, *osclpf = NULL, *whiteref = NULL;
 	gchar* spcc_strings_to_free[8] = { oscsensor, oscfilter, osclpf, monosensor, rfilter, gfilter, bfilter, whiteref };
-	int max_spcc_stars = 1000;
 	int mono_or_osc = 0; // for SPCC
 	int dslr = 0; // for SPCC
 
@@ -8559,14 +8558,6 @@ static int do_pcc(int nb, gboolean spectro) {
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
-		} else if (spectro && g_str_has_prefix(word[next_arg], "-max_spcc_stars=")) {
-			char *arg = word[next_arg] + 16;
-			max_spcc_stars = (int) g_ascii_strtod(arg, NULL);
-			if (max_spcc_stars < 50) {
-				siril_log_message(_("Error, cannot set spcc_max_stars lower than 50 to ensure there are enough stars for a reasonable fit.\n"));
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
-			}
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			if (target_coords)
@@ -8708,7 +8699,6 @@ static int do_pcc(int nb, gboolean spectro) {
 				siril_log_message(_("SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"), monosensor ? monosensor : com.pref.spcc.monosensorpref, rfilter ? rfilter : com.pref.spcc.redpref, gfilter ? gfilter : com.pref.spcc.greenpref, bfilter ? bfilter : com.pref.spcc.bluepref);
 			}
 			pcc_args->selected_white_ref = get_favourite_spccobject(com.spcc_data.wb_ref, whiteref ? whiteref : "Average Spiral Galaxy");
-			pcc_args->max_spcc_stars = max_spcc_stars;
 			pcc_args->do_plot = FALSE; // Option not available from scripts
 		}
 	}

@@ -246,15 +246,25 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	siril_debug_print("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
+	double minwl[3], maxwl[3];
 	if (args->spcc) {
 		for (int chan = 0 ; chan < 3 ; chan++) {
 			get_spectrum_from_args(args, &response[chan], chan);
 		}
+		for (int chan = 0 ; chan < 3 ; chan++) {
+			/* The idea here is that in narrowband mode we integrate the interpolated response (with no filtering
+			 * included) over a very precise wavelength range, so as to get an accurate value. In broadband mode
+			 * we include the effect of the filter in the resposne and we integrate over the full xp_sampled
+			 * wavelength range. This principle is used in the flux and WB calcs too. */
+			minwl[chan] = args->nb_mode ? args->nb_center[chan] - (args->nb_bandwidth[chan]/2) : XPSAMPLED_MIN_WL;
+			maxwl[chan] = args->nb_mode ? args->nb_center[chan] + (args->nb_bandwidth[chan]/2) : XPSAMPLED_MAX_WL;
+		}
 		// Calculate effective primaries for later
-		args->primaries.Red = xpsampled_to_xyY(&response[RLAYER], CMF_1931);
-		args->primaries.Green = xpsampled_to_xyY(&response[GLAYER], CMF_1931);
-		args->primaries.Blue = xpsampled_to_xyY(&response[BLAYER], CMF_1931);
+		args->primaries.Red = xpsampled_to_xyY(&response[RLAYER], CMF_1931, minwl[RLAYER], maxwl[RLAYER]);
+		args->primaries.Green = xpsampled_to_xyY(&response[GLAYER], CMF_1931, minwl[GLAYER], maxwl[GLAYER]);
+		args->primaries.Blue = xpsampled_to_xyY(&response[BLAYER], CMF_1931, minwl[BLAYER], maxwl[BLAYER]);
 	}
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
@@ -301,7 +311,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		xpsampled flux_expected = init_xpsampled();
 		for (int chan = 0 ; chan < 3 ; chan++) {
 			multiply_xpsampled(&flux_expected, &response[chan], &star_spectrum);
-			ref_flux[chan] = integrate_xpsampled(&flux_expected);
+			ref_flux[chan] = integrate_xpsampled(&flux_expected, minwl[chan], maxwl[chan]);
 		}
 		crg[i] = ref_flux[RLAYER]/ref_flux[GLAYER];
 		cbg[i] = ref_flux[BLAYER]/ref_flux[GLAYER];
@@ -326,7 +336,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	xpsampled white_expected = init_xpsampled();
 	for (int chan = 0 ; chan < 3 ; chan++) {
 		multiply_xpsampled(&white_expected, &response[chan], &white_spectrum);
-		white_flux[chan] = integrate_xpsampled(&white_expected);
+		white_flux[chan] = integrate_xpsampled(&white_expected, minwl[chan], maxwl[chan]);
 	}
 	wrg = white_flux[RLAYER]/white_flux[GLAYER];
 	wbg = white_flux[BLAYER]/white_flux[GLAYER];
@@ -856,7 +866,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 
 	/* Fetching the catalog*/
 	if (args->spcc) {
-		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, args->max_spcc_stars);
+		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	}

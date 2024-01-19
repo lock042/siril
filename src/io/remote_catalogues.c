@@ -903,22 +903,6 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		return -1;
 	}
 
-	/* Check the CSV file has the same number of stars as the requested maximum.
-	 * If it doesn't, perhaps the user has changed the amount to use, so we remove the
-	 * file and say it is not in the cache after all.
-	 * This does have the problem that Gaia may not be able to return as many
-	 * stars as the user's desired maximum, but this is rare - Gaia contains a *lot*
-	 * of stars!
-	 */
-/*	if (catalog_is_in_cache && count_lines_in_textfile(filepath) != max_datalink_sources + 1) {
-		siril_debug_print("Number of stars in cached catalog does not match user's desired maximum. Resubmitting query.\n");
-		fprintf(stderr, "Cat stars: %d, max stars: %d\n", count_lines_in_textfile(filepath), max_datalink_sources);
-		g_unlink(csvfilepath);
-		g_unlink(filepath);
-		catalog_is_in_cache = FALSE;
-		retrieval_product_is_in_cache = FALSE;
-	}*/
-
 	if (!(catalog_is_in_cache && retrieval_product_is_in_cache)) {
 
 		// Set up query
