@@ -245,7 +245,14 @@ preferences pref_init = {
 		.monosensorpref = NULL,
 		.oscsensorpref = NULL,
 		.is_mono = TRUE,
-		.is_dslr = FALSE
+		.is_dslr = FALSE,
+		.nb_mode = FALSE,
+		.red_wl = 672.0,
+		.green_wl = 656.46,
+		.blue_wl = 500.0,
+		.red_bw = 6.0,
+		.green_bw = 6.0,
+		.blue_bw = 6.0
 	}
 };
 
@@ -371,6 +378,13 @@ struct settings_access all_settings[] = {
 	{ "photometry", "oscsensorpref", STYPE_STR, N_("preferred SPCC OSC sensor"), &com.pref.spcc.oscsensorpref },
 	{ "photometry", "is_mono", STYPE_BOOL, N_("is the SPCC sensor mono?"), &com.pref.spcc.is_mono },
 	{ "photometry", "is_dslr", STYPE_BOOL, N_("is the SPCC OSC sensor a DSLR?"), &com.pref.spcc.is_dslr },
+	{ "photometry", "nb_mode", STYPE_BOOL, N_("are we in narrowband mode?"), &com.pref.spcc.nb_mode },
+	{ "photometry", "r_wl", STYPE_DOUBLE, N_("red NB filter wavelength"), &com.pref.spcc.red_wl },
+	{ "photometry", "r_bw", STYPE_DOUBLE, N_("red NB filter bandwidth"), &com.pref.spcc.red_bw },
+	{ "photometry", "g_wl", STYPE_DOUBLE, N_("green NB filter wavelength"), &com.pref.spcc.green_wl },
+	{ "photometry", "g_bw", STYPE_DOUBLE, N_("green NB filter bandwidth"), &com.pref.spcc.green_bw },
+	{ "photometry", "b_wl", STYPE_DOUBLE, N_("blue NB filter wavelength"), &com.pref.spcc.blue_wl },
+	{ "photometry", "b_bw", STYPE_DOUBLE, N_("blue NB filter bandwidth"), &com.pref.spcc.blue_bw },
 
 	{ "astrometry", "asnet_sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 6 } } },
 	{ "astrometry", "asnet_radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },

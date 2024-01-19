@@ -153,12 +153,15 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		GList *sensor = g_list_nth(com.spcc_data.mono_sensors, args->selected_sensor_m);
 		load_spcc_object_arrays( (spcc_object*) sensor->data);
 		init_xpsampled_from_library(spectrum, (spcc_object*) sensor->data);
-		int selected_filter = chan == 0 ? args->selected_filter_r : chan == 1 ? args->selected_filter_g : args->selected_filter_b;
-		GList *filter = g_list_nth(com.spcc_data.mono_filters[chan], selected_filter);
-		load_spcc_object_arrays( (spcc_object*) filter->data);
-		init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
-		spcc_object_free_arrays( (spcc_object*) filter->data);
-		multiply_xpsampled(spectrum, spectrum, &spectrum2);
+		spcc_object_free_arrays( (spcc_object*) sensor->data);
+		if (!args->nb_mode) {
+			int selected_filter = chan == 0 ? args->selected_filter_r : chan == 1 ? args->selected_filter_g : args->selected_filter_b;
+			GList *filter = g_list_nth(com.spcc_data.mono_filters[chan], selected_filter);
+			load_spcc_object_arrays( (spcc_object*) filter->data);
+			init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
+			spcc_object_free_arrays( (spcc_object*) filter->data);
+			multiply_xpsampled(spectrum, spectrum, &spectrum2);
+		}
 	} else {
 		// Sensor
 		GList *object = g_list_nth(com.spcc_data.osc_sensors, args->selected_sensor_osc);
@@ -168,11 +171,13 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		init_xpsampled_from_library(spectrum, sensor);
 		spcc_object_free_arrays( (spcc_object*) sensor);
 		// Filter
-		GList *filter = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
-		load_spcc_object_arrays( (spcc_object*) filter->data);
-		init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
-		spcc_object_free_arrays( (spcc_object*) filter->data);
-		multiply_xpsampled(spectrum, spectrum, &spectrum2);
+		if (!args->nb_mode) {
+			GList *filter = g_list_nth(com.spcc_data.osc_sensors, args->selected_filter_osc);
+			load_spcc_object_arrays( (spcc_object*) filter->data);
+			init_xpsampled_from_library(&spectrum2, (spcc_object*) filter->data);
+			spcc_object_free_arrays( (spcc_object*) filter->data);
+			multiply_xpsampled(spectrum, spectrum, &spectrum2);
+		}
 		// DSLR LPF (if required)
 		if (args->is_dslr) {
 			GList *lpf_list_entry = g_list_nth(com.spcc_data.osc_lpf, args->selected_filter_lpf);

@@ -107,6 +107,48 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkAdjustment" id="nb_b_bw">
+    <property name="lower">1</property>
+    <property name="upper">20</property>
+    <property name="value">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_b_wl">
+    <property name="lower">380</property>
+    <property name="upper">700</property>
+    <property name="value">500</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_g_bw">
+    <property name="lower">1</property>
+    <property name="upper">20</property>
+    <property name="value">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_g_wl">
+    <property name="lower">380</property>
+    <property name="upper">700</property>
+    <property name="value">656.46</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_r_bw">
+    <property name="lower">1</property>
+    <property name="upper">20</property>
+    <property name="value">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_r_wl">
+    <property name="lower">380</property>
+    <property name="upper">700</property>
+    <property name="value">672</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkDialog" id="ImagePlateSolver_Dial">
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
@@ -1158,7 +1200,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
-                  <!-- n-columns=4 n-rows=9 -->
+                  <!-- n-columns=4 n-rows=10 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -1509,7 +1551,178 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <!-- n-columns=3 n-rows=4 -->
+                      <object class="GtkGrid" id="spcc_nb_controls">
+                        <property name="can-focus">False</property>
+                        <property name="column-homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Blue:</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Green:</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Red:</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Nominal passband wavelength in nm
+Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm</property>
+                            <property name="label" translatable="yes">Wavelength</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Filter bandwidth in nm</property>
+                            <property name="label" translatable="yes">Bandwidth</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_r_wl">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="text" translatable="yes">672.00</property>
+                            <property name="adjustment">nb_r_wl</property>
+                            <property name="digits">2</property>
+                            <property name="value">672</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_b_wl">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="text" translatable="yes">500.00</property>
+                            <property name="adjustment">nb_b_wl</property>
+                            <property name="digits">2</property>
+                            <property name="value">500</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_g_wl">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="text" translatable="yes">656.46</property>
+                            <property name="adjustment">nb_g_wl</property>
+                            <property name="digits">2</property>
+                            <property name="value">656.46</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_r_bw">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="text" translatable="yes">6.0</property>
+                            <property name="adjustment">nb_r_bw</property>
+                            <property name="digits">1</property>
+                            <property name="value">6</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_g_bw">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="text" translatable="yes">6.0</property>
+                            <property name="adjustment">nb_g_bw</property>
+                            <property name="digits">1</property>
+                            <property name="value">6</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_b_bw">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="text" translatable="yes">6.0</property>
+                            <property name="adjustment">nb_b_bw</property>
+                            <property name="digits">1</property>
+                            <property name="value">6</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">9</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="spcc_toggle_nb">
+                        <property name="label" translatable="yes">Narrowband mode</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_spcc_toggle_nb_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>

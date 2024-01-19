@@ -8397,6 +8397,9 @@ static int do_pcc(int nb, gboolean spectro) {
 	gchar* spcc_strings_to_free[8] = { oscsensor, oscfilter, osclpf, monosensor, rfilter, gfilter, bfilter, whiteref };
 	int mono_or_osc = 0; // for SPCC
 	int dslr = 0; // for SPCC
+	gboolean nb_mode = FALSE; // for SPCC
+	double wl[3] = { -1.0 }; // for SPCC
+	double bw[3] = { -1.0 }; // for SPCC
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -8523,6 +8526,26 @@ static int do_pcc(int nb, gboolean spectro) {
 				dslr = 1;
 			else if (!g_ascii_strcasecmp(arg, "false"))
 				dslr = -1;
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-narrowband")) {
+			nb_mode = TRUE;
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-rwl=")) {
+			char *arg = word[next_arg] + 5;
+			wl[RLAYER] = g_ascii_strtod(arg, NULL);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-gwl=")) {
+			char *arg = word[next_arg] + 5;
+			wl[GLAYER] = g_ascii_strtod(arg, NULL);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-bwl=")) {
+			char *arg = word[next_arg] + 5;
+			wl[BLAYER] = g_ascii_strtod(arg, NULL);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-rbw=")) {
+			char *arg = word[next_arg] + 5;
+			bw[RLAYER] = g_ascii_strtod(arg, NULL);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-gbw=")) {
+			char *arg = word[next_arg] + 5;
+			bw[GLAYER] = g_ascii_strtod(arg, NULL);
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-bbw=")) {
+			char *arg = word[next_arg] + 5;
+			bw[BLAYER] = g_ascii_strtod(arg, NULL);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-monosensor=")) {
 			char *arg = word[next_arg] + 12;
 			monosensor = g_strdup(arg);
@@ -8566,6 +8589,25 @@ static int do_pcc(int nb, gboolean spectro) {
 			return CMD_ARG_ERROR;
 		}
 		next_arg++;
+	}
+
+	if (spectro && nb_mode) {
+		wl[RLAYER] = wl[RLAYER] < 0.0 ? com.pref.spcc.red_wl : wl[RLAYER];
+		wl[GLAYER] = wl[GLAYER] < 0.0 ? com.pref.spcc.green_wl : wl[GLAYER];
+		wl[BLAYER] = wl[BLAYER] < 0.0 ? com.pref.spcc.blue_wl : wl[BLAYER];
+		bw[RLAYER] = bw[RLAYER] < 0.0 ? com.pref.spcc.red_bw : bw[RLAYER];
+		bw[GLAYER] = bw[GLAYER] < 0.0 ? com.pref.spcc.green_bw : bw[GLAYER];
+		bw[BLAYER] = bw[BLAYER] < 0.0 ? com.pref.spcc.blue_bw : bw[BLAYER];
+		if (wl[RLAYER] < 380.0 || wl[RLAYER] > 700.0 || wl[GLAYER] < 380.0 || wl[GLAYER] > 700.0 || wl[BLAYER] < 380.0 || wl[BLAYER] > 700.0) {
+		siril_log_message(_("NB wavelength out of range (must be 380 <= wl <= 700)\n"));
+		for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+		return CMD_ARG_ERROR;
+		}
+		if (bw[RLAYER] < 1.0 || bw[RLAYER] > 20.0 || bw[GLAYER] < 1.0 || bw[GLAYER] > 20.0 || bw[BLAYER] < 1.0 || bw[BLAYER] > 20.0) {
+		siril_log_message(_("NB bandwidth out of range (must be 1.0 <= wl <= 20.0)\n"));
+		for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+		return CMD_ARG_ERROR;
+		}
 	}
 
 	if (local_cat && cat == CAT_AUTO)
@@ -8663,6 +8705,11 @@ static int do_pcc(int nb, gboolean spectro) {
 		pcc_args->bg_auto = TRUE;
 		pcc_args->spcc = spectro;
 		if (spectro) {
+			pcc_args->nb_mode = nb_mode;
+			if (nb_mode) {
+				memcpy(&pcc_args->nb_center, wl, sizeof(double[3]));
+				memcpy(&pcc_args->nb_bandwidth, bw, sizeof(double[3]));
+			}
 			if (monosensor && (dslr == 1)) {
 				siril_log_message(_("-dslr is an invalid option with a mono sensor\n"));
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }

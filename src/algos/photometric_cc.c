@@ -316,6 +316,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		crg[i] = ref_flux[RLAYER]/ref_flux[GLAYER];
 		cbg[i] = ref_flux[BLAYER]/ref_flux[GLAYER];
 		if (xisnanf(irg[i]) || xisnanf(ibg[i]) || xisnanf(crg[i]) || xisnanf(cbg[i])) {
+			siril_debug_print("flux ratio NAN for star %d\n", i);
 			irg[i] = DBL_MAX;
 			ibg[i] = DBL_MAX;
 			crg[i] = DBL_MAX;
@@ -352,7 +353,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		return 1;
 	}
 	ngood = n_rg;
-
+	if (ngood < 3) {
+		siril_log_message(_("Error: insufficient photometrically valid stars\n"));
+		return 1;
+	}
 	if (robust_linear_fit(crg, irg, ngood, &arg, &brg, &deviation[0])) {
 		free(irg);
 		free(ibg);

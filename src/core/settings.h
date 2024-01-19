@@ -317,6 +317,13 @@ struct spcc_favourites {
 	gchar *oscsensorpref;
 	gboolean is_mono;
 	gboolean is_dslr;
+	gboolean nb_mode;
+	double red_wl;
+	double green_wl;
+	double blue_wl;
+	double red_bw;
+	double green_bw;
+	double blue_bw;
 };
 
 /**

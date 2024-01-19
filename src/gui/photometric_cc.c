@@ -55,6 +55,7 @@ void get_whitepoint_from_ui(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data);
 void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data);
+void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
@@ -157,7 +158,7 @@ void initialize_photometric_cc_dialog() {
 			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
 			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*labelIPScatparams, *spcc_do_plot;
+			*labelIPScatparams, *spcc_do_plot, *spcc_nb_controls, *spcc_toggle_nb;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -178,6 +179,8 @@ void initialize_photometric_cc_dialog() {
 	stardet = lookup_widget("Frame_IPS_star_detection");
 	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
+	spcc_nb_controls = lookup_widget("spcc_nb_controls");
+	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -203,6 +206,8 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(lasnet, FALSE);
 	gtk_widget_set_visible(spcc_options, FALSE);
 	gtk_widget_set_visible(spcc_do_plot, FALSE);
+	gtk_widget_set_visible(spcc_nb_controls, FALSE);
+	gtk_widget_set_visible(spcc_toggle_nb, FALSE);
 	gtk_widget_grab_focus(button_cc_ok);
 	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), TRUE);
 
@@ -221,12 +226,27 @@ void initialize_photometric_cc_dialog() {
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 }
 
+void populate_nb_spinbuttons() {
+	GtkSpinButton *button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_wl"));
+	gtk_spin_button_set_value(button, com.pref.spcc.red_wl);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_wl"));
+	gtk_spin_button_set_value(button, com.pref.spcc.green_wl);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_wl"));
+	gtk_spin_button_set_value(button, com.pref.spcc.blue_wl);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_bw"));
+	gtk_spin_button_set_value(button, com.pref.spcc.red_bw);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_bw"));
+	gtk_spin_button_set_value(button, com.pref.spcc.green_bw);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_bw"));
+	gtk_spin_button_set_value(button, com.pref.spcc.blue_bw);
+}
+
 void initialize_spectrophotometric_cc_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *button_spcc_ok, *catalog_label,
 			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
 			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*labelIPScatparams, *spcc_do_plot;
+			*labelIPScatparams, *spcc_do_plot, *spcc_nb_controls, *spcc_toggle_nb;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -247,6 +267,8 @@ void initialize_spectrophotometric_cc_dialog() {
 	stardet = lookup_widget("Frame_IPS_star_detection");
 	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
+	spcc_nb_controls = lookup_widget("spcc_nb_controls");
+	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -273,6 +295,9 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_widget_set_visible(spcc_options, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
 	gtk_widget_grab_focus(button_cc_ok);
+	gtk_widget_set_visible(spcc_nb_controls, com.pref.spcc.nb_mode);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(spcc_toggle_nb), com.pref.spcc.nb_mode);
+	gtk_widget_set_visible(spcc_toggle_nb, TRUE);
 	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), FALSE);
 	gtk_expander_set_expanded(GTK_EXPANDER(spcc_options), TRUE);
 
@@ -299,6 +324,10 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_toggle_button_set_active(dslrtoggle, com.pref.spcc.is_dslr);
 	g_signal_handlers_unblock_by_func(G_OBJECT(dslrtoggle), on_osc_is_dslr_toggled, NULL);
 	on_osc_is_dslr_toggled(dslrtoggle, NULL);
+	g_signal_handlers_block_by_func(G_OBJECT(spcc_toggle_nb), on_spcc_toggle_nb_toggled, NULL);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(spcc_toggle_nb), com.pref.spcc.nb_mode);
+	g_signal_handlers_unblock_by_func(G_OBJECT(spcc_toggle_nb), on_spcc_toggle_nb_toggled, NULL);
+	populate_nb_spinbuttons();
 	populate_spcc_combos();
 }
 
@@ -395,6 +424,13 @@ int set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
 	GtkWidget *filters_lpf = lookup_widget("combo_spcc_filters_lpf");
 	GtkWidget *spcc_plot = lookup_widget("spcc_plot_fits");
+	GtkWidget *nb_mode = lookup_widget("spcc_toggle_nb");
+	GtkWidget *nb_r_wl = lookup_widget("spcc_nb_r_wl");
+	GtkWidget *nb_g_wl = lookup_widget("spcc_nb_g_wl");
+	GtkWidget *nb_b_wl = lookup_widget("spcc_nb_b_wl");
+	GtkWidget *nb_r_bw = lookup_widget("spcc_nb_r_bw");
+	GtkWidget *nb_g_bw = lookup_widget("spcc_nb_g_bw");
+	GtkWidget *nb_b_bw = lookup_widget("spcc_nb_b_bw");
 
 	args->spcc_mono_sensor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_sensor_check));
 	args->is_dslr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dslr_check));
@@ -407,6 +443,13 @@ int set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
 	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
 	args->do_plot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_plot));
+	args->nb_mode = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nb_mode));
+	args->nb_center[RLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_r_wl));
+	args->nb_center[GLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_g_wl));
+	args->nb_center[BLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_b_wl));
+	args->nb_bandwidth[RLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_r_bw));
+	args->nb_bandwidth[GLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_g_bw));
+	args->nb_bandwidth[BLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_b_bw));
 	// Check for problems
 	if (args->spcc_mono_sensor) {
 		if (args->selected_sensor_m == -1 || args->selected_filter_r == -1 ||
@@ -540,11 +583,11 @@ void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_d
 	widget = lookup_widget("details_spcc_filters_lpf");
 	gtk_widget_set_visible(widget, (!state && osc_is_dslr));
 	widget = lookup_widget("label_spcc_filters_osc");
-	gtk_widget_set_visible(widget, !state);
+	gtk_widget_set_visible(widget, !state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("combo_spcc_filters_osc");
-	gtk_widget_set_visible(widget, !state);
+	gtk_widget_set_visible(widget, !state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("details_spcc_filters_osc");
-	gtk_widget_set_visible(widget, !state);
+	gtk_widget_set_visible(widget, !state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("combo_spcc_sensors_mono");
 	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("label_spcc_sensors_mono");
@@ -552,23 +595,23 @@ void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_d
 	widget = lookup_widget("details_spcc_sensors_mono");
 	gtk_widget_set_visible(widget, state);
 	widget = lookup_widget("combo_spcc_filters_r");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("label_spcc_filters_r");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("details_spcc_filters_r");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("combo_spcc_filters_g");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("label_spcc_filters_g");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("details_spcc_filters_g");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("combo_spcc_filters_b");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("label_spcc_filters_b");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 	widget = lookup_widget("details_spcc_filters_b");
-	gtk_widget_set_visible(widget, state);
+	gtk_widget_set_visible(widget, state && !com.pref.spcc.nb_mode);
 }
 
 void on_osc_filter_enable_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -893,3 +936,22 @@ void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
 		}
 	}
 }
+
+void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	com.pref.spcc.nb_mode = state;
+	gtk_widget_set_visible(lookup_widget("spcc_nb_controls"), state);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_r"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_r"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_r"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_g"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_g"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_g"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_b"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_b"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_b"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_osc"), !state && !com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_osc"), !state && !com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_osc"), !state && !com.pref.spcc.is_mono);
+}
+
