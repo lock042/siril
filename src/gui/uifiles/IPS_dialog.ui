@@ -117,7 +117,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkAdjustment" id="nb_b_wl">
     <property name="lower">380</property>
     <property name="upper">700</property>
-    <property name="value">500</property>
+    <property name="value">500.69999999999999</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -131,7 +131,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkAdjustment" id="nb_g_wl">
     <property name="lower">380</property>
     <property name="upper">700</property>
-    <property name="value">656.46</property>
+    <property name="value">500.69999999999999</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -145,7 +145,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkAdjustment" id="nb_r_wl">
     <property name="lower">380</property>
     <property name="upper">700</property>
-    <property name="value">672</property>
+    <property name="value">656.27999999999997</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -1554,6 +1554,8 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <!-- n-columns=3 n-rows=4 -->
                       <object class="GtkGrid" id="spcc_nb_controls">
                         <property name="can-focus">False</property>
+                        <property name="row-spacing">5</property>
+                        <property name="column-spacing">5</property>
                         <property name="column-homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
@@ -1623,7 +1625,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="text" translatable="yes">672.00</property>
                             <property name="adjustment">nb_r_wl</property>
                             <property name="digits">2</property>
-                            <property name="value">672</property>
+                            <property name="value">656.27999999999997</property>
                             <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
@@ -1638,7 +1640,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="text" translatable="yes">500.00</property>
                             <property name="adjustment">nb_b_wl</property>
                             <property name="digits">2</property>
-                            <property name="value">500</property>
+                            <property name="value">500.69999999999999</property>
                             <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
@@ -1653,7 +1655,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="text" translatable="yes">656.46</property>
                             <property name="adjustment">nb_g_wl</property>
                             <property name="digits">2</property>
-                            <property name="value">656.46</property>
+                            <property name="value">500.69999999999999</property>
                             <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
