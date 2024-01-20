@@ -601,6 +601,7 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 				siril_cat->radius,
 				siril_cat->limitmag);
 			g_free(fmtstr);
+			g_free(ext);
 			return filename;
 			break;
 		case CAT_IMCCE:
@@ -619,14 +620,14 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 				siril_cat->IAUcode);
 			g_free(fmtstr);
 			g_free(dt);
+			g_free(ext);
 			return filename;
 			break;
 		default:
 			siril_debug_print("should not happen, download_catalog should only be called for online calls\n");
-			return NULL;
+			g_free(ext);
+			break;
 	}
-	g_free(ext);
-	siril_debug_print("catalog type not handled, should not happen\n");
 	return NULL;
 }
 
@@ -807,7 +808,7 @@ void free_fetch_result(char *result) {
 
 #ifdef HAVE_LIBCURL
 
-static void submit_post_request(const char *url, const char *post_data, char **post_response) {
+static int submit_post_request(const char *url, const char *post_data, char **post_response) {
 	CURL *curl;
 	CURLcode res;
 	struct ucontent chunk;
@@ -818,25 +819,25 @@ static void submit_post_request(const char *url, const char *post_data, char **p
 	curl_global_init(CURL_GLOBAL_ALL);
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
+		res = curl_easy_setopt(curl, CURLOPT_URL, url);
 
 		// send all data to this function
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
+		if (!res) res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 
 		// we pass our 'chunk' struct to the callback function
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+		if (!res) res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 
 		// some servers do not like requests that are made without a user-agent
 		// field, so we provide one
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+		if (!res) res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
+		if (!res) res = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
 
 		// if we do not provide POSTFIELDSIZE, libcurl will strlen() by itself
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
+		if (!res) res = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
 
 		// Perform the request, res will get the return code
-		res = curl_easy_perform(curl);
+		if (!res) res = curl_easy_perform(curl);
 
 		// Check for errors
 		if(res != CURLE_OK) {
@@ -852,12 +853,13 @@ static void submit_post_request(const char *url, const char *post_data, char **p
 
 	free(chunk.data);
 	curl_global_cleanup();
-    return;
+    return (res ? 1 : 0);
 }
 
-static void submit_async_request(const char *url, const char *post_data, char **job_id) {
+static int submit_async_request(const char *url, const char *post_data, char **job_id) {
 	gchar *post_response = NULL;
-	submit_post_request(url, post_data, &post_response);
+	int res = submit_post_request(url, post_data, &post_response);
+	if (res) return 1;
 	gchar *location_header = strstr(post_response, "Location: ");
 	if (location_header != NULL) {
 		gchar *start = strrchr(location_header, '/') + 1;
@@ -868,6 +870,7 @@ static void submit_async_request(const char *url, const char *post_data, char **
 			siril_debug_print("Job ID: %s\n", *job_id);
 		}
 	}
+	return 0;
 }
 
 
@@ -946,11 +949,14 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		siril_debug_print("Query data: %s\n", data);
 		gchar *job_id = NULL;
 		siril_log_message(_("Submitting conesearch request to ESA Gaia DR3 catalog. This may take a few seconds to complete...\n"));
-		submit_async_request(url, data, &job_id);
+		if (submit_async_request(url, data, &job_id)) {
+			siril_log_color_message(_("Error submitting conesearch request.\n"), "red");
+			goto tap_error_and_cleanup;
+		}
 
 		// Print job id
 		if (job_id == NULL) {
-			g_print("Job id not found in the response.\n");
+			siril_log_color_message(_("Job id not found in the response.\n"), "red");
 			goto tap_error_and_cleanup;
 		}
 
@@ -1070,10 +1076,6 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 			return 0;
 		}
-		if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
-			g_free(str);
-			return 0;
-		}
 
 		// the catalog needs to be downloaded, prepare the output stream
 		file = g_file_new_for_path(filepath);
@@ -1106,6 +1108,7 @@ tap_error_and_cleanup:
 	// Cleanup
     g_free(url);
     g_free(data);
+	g_string_free(querystring, TRUE);
 	return -1;
 
 datalink_download_error:

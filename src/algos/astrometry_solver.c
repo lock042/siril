@@ -995,6 +995,7 @@ static void get_asnet_version(gchar *path) {
 		} else {
 			asnet_version = g_strdup("<0.88"); // version switch was introduced from 0.88 (https://github.com/dstndstn/astrometry.net/commit/25f0b829d80c57984d404de50f9c645cb3da2223)
 		}
+		g_strfreev(chunks);
 	}
 	g_free(child_stdout);
 	siril_debug_print("Running asnet version %s\n", asnet_version);

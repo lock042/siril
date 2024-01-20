@@ -247,23 +247,21 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 	double minwl[3], maxwl[3];
-	if (args->spcc) {
-		for (int chan = 0 ; chan < 3 ; chan++) {
-			get_spectrum_from_args(args, &response[chan], chan);
-		}
-		for (int chan = 0 ; chan < 3 ; chan++) {
-			/* The idea here is that in narrowband mode we integrate the interpolated response (with no filtering
-			 * included) over a very precise wavelength range, so as to get an accurate value. In broadband mode
-			 * we include the effect of the filter in the resposne and we integrate over the full xp_sampled
-			 * wavelength range. This principle is used in the flux and WB calcs too. */
-			minwl[chan] = args->nb_mode ? args->nb_center[chan] - (args->nb_bandwidth[chan]/2) : XPSAMPLED_MIN_WL;
-			maxwl[chan] = args->nb_mode ? args->nb_center[chan] + (args->nb_bandwidth[chan]/2) : XPSAMPLED_MAX_WL;
-		}
-		// Calculate effective primaries for later
-		args->primaries.Red = xpsampled_to_xyY(&response[RLAYER], CMF_1931, minwl[RLAYER], maxwl[RLAYER]);
-		args->primaries.Green = xpsampled_to_xyY(&response[GLAYER], CMF_1931, minwl[GLAYER], maxwl[GLAYER]);
-		args->primaries.Blue = xpsampled_to_xyY(&response[BLAYER], CMF_1931, minwl[BLAYER], maxwl[BLAYER]);
+	for (int chan = 0 ; chan < 3 ; chan++) {
+		get_spectrum_from_args(args, &response[chan], chan);
 	}
+	for (int chan = 0 ; chan < 3 ; chan++) {
+		/* The idea here is that in narrowband mode we integrate the interpolated response (with no filtering
+			* included) over a very precise wavelength range, so as to get an accurate value. In broadband mode
+			* we include the effect of the filter in the resposne and we integrate over the full xp_sampled
+			* wavelength range. This principle is used in the flux and WB calcs too. */
+		minwl[chan] = args->nb_mode ? args->nb_center[chan] - (args->nb_bandwidth[chan]/2) : XPSAMPLED_MIN_WL;
+		maxwl[chan] = args->nb_mode ? args->nb_center[chan] + (args->nb_bandwidth[chan]/2) : XPSAMPLED_MAX_WL;
+	}
+	// Calculate effective primaries for later
+	args->primaries.Red = xpsampled_to_xyY(&response[RLAYER], CMF_1931, minwl[RLAYER], maxwl[RLAYER]);
+	args->primaries.Green = xpsampled_to_xyY(&response[GLAYER], CMF_1931, minwl[GLAYER], maxwl[GLAYER]);
+	args->primaries.Blue = xpsampled_to_xyY(&response[BLAYER], CMF_1931, minwl[BLAYER], maxwl[BLAYER]);
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
@@ -325,7 +323,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		}
 		g_atomic_int_inc(&ngood);
 	}
-
+	free(ps);
 	// Calculate white reference ratios
 	double white_flux[3];
 	xpsampled white_spectrum = init_xpsampled();
@@ -349,11 +347,19 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	int n_rg = filterArrays(crg, irg, ngood);
 	int n_bg = filterArrays(cbg, ibg, ngood);
 	if (n_rg != n_bg) {
+		free(irg);
+		free(ibg);
+		free(crg);
+		free(cbg);
 		siril_log_message(_("Array mismatch after discarding photometrically invalid stars\n"));
 		return 1;
 	}
 	ngood = n_rg;
 	if (ngood < 3) {
+		free(irg);
+		free(ibg);
+		free(crg);
+		free(cbg);
 		siril_log_message(_("Error: insufficient photometrically valid stars\n"));
 		return 1;
 	}
@@ -514,6 +520,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	}
 	if (!transform) {
 		siril_log_color_message(_("Error: failed to set up colorspace transform.\n"), "red");
+		free(ps);
 		return 1;
 	}
 
@@ -877,7 +884,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	/* project using WCS */
 	siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, FALSE);
 	stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
-	retval = nb_stars == 0;
+	retval |= nb_stars == 0;
 
 	siril_catalog_free(siril_cat);
 	gboolean spcc = args->spcc; // Needed for the success message after args has been freed in photometric_cc()

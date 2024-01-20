@@ -790,5 +790,6 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 clean_and_exit:
 	g_string_free(header, TRUE);
 	free(data);
+	free(newfilename);
 	return retval;
 }

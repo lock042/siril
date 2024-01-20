@@ -8578,6 +8578,8 @@ static int do_pcc(int nb, gboolean spectro) {
 				mono_or_osc = -1;
 			if ((oscsensor && mono_or_osc == -1) || (monosensor && mono_or_osc == 1)) {
 				siril_log_message(_("Inconsistent use of -sensortype=\n"));
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
@@ -8601,11 +8603,13 @@ static int do_pcc(int nb, gboolean spectro) {
 		if (wl[RLAYER] < 380.0 || wl[RLAYER] > 700.0 || wl[GLAYER] < 380.0 || wl[GLAYER] > 700.0 || wl[BLAYER] < 380.0 || wl[BLAYER] > 700.0) {
 		siril_log_message(_("NB wavelength out of range (must be 380 <= wl <= 700)\n"));
 		for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+		siril_world_cs_unref(target_coords);
 		return CMD_ARG_ERROR;
 		}
 		if (bw[RLAYER] < 1.0 || bw[RLAYER] > 40.0 || bw[GLAYER] < 1.0 || bw[GLAYER] > 40.0 || bw[BLAYER] < 1.0 || bw[BLAYER] > 40.0) {
 		siril_log_message(_("NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"));
 		for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+		siril_world_cs_unref(target_coords);
 		return CMD_ARG_ERROR;
 		}
 	}
@@ -8617,7 +8621,6 @@ static int do_pcc(int nb, gboolean spectro) {
 				"salmon", catalog_to_str(cat));
 		local_cat = FALSE;
 	}
-
 
 	if (seqps) {
 		if (cat == CAT_ASNET && !asnet_is_available()) {
@@ -8713,11 +8716,15 @@ static int do_pcc(int nb, gboolean spectro) {
 			if (monosensor && (dslr == 1)) {
 				siril_log_message(_("-dslr is an invalid option with a mono sensor\n"));
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				free(pcc_args);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 			if (!oscsensor && !monosensor && !mono_or_osc) {
 				siril_log_message(_("If neither mono nor OSC sensor is specified you must use the -osc={true|false} option\n"));
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				free(pcc_args);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 			if (oscsensor || mono_or_osc == 1) {
@@ -8727,6 +8734,8 @@ static int do_pcc(int nb, gboolean spectro) {
 				if (pcc_args->selected_sensor_osc == -1 || pcc_args->selected_filter_osc == -1 || (pcc_args->is_dslr && pcc_args->selected_filter_lpf == -1)) {
 					siril_log_message(_("Either the sensor or a filter / LPF was not specified as argument or guessable from previous use. Ensure all necessary data is set.\n"));
 					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					free(pcc_args);
+					free(args);
 					return CMD_ARG_ERROR;
 				}
 				pcc_args->spcc_mono_sensor = FALSE;
@@ -8740,6 +8749,8 @@ static int do_pcc(int nb, gboolean spectro) {
 				if (pcc_args->selected_sensor_m == -1 || pcc_args->selected_filter_r == -1 || pcc_args->selected_filter_g == -1 || pcc_args->selected_filter_b == -1 ) {
 					siril_log_message(_("Either the sensor or a filter was not specified as argument or guessable from previous use. Ensure all necessary data is set.\n"));
 					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+					free(pcc_args);
+					free(args);
 					return CMD_ARG_ERROR;
 				}
 				pcc_args->spcc_mono_sensor = TRUE;

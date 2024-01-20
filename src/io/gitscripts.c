@@ -925,9 +925,11 @@ void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data)
 					"scripts to another location, and add this location to the "
 					"list of script directories to be searched."),
 					_("Accept"))) {
+				g_string_free(git_pending_commit_buffer, TRUE);
 				return;
 			} else {
 				reset_scripts_repository();
+				g_string_free(git_pending_commit_buffer, TRUE);
 				return;
 			}
 		default:
@@ -946,6 +948,7 @@ void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data)
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The spcc-database repository is up to date."));
 	}
 	fill_script_repo_list(TRUE);
+	g_string_free(git_pending_commit_buffer, TRUE);
 	set_cursor_waiting(FALSE);
 }
 
@@ -972,9 +975,11 @@ void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
 					"scripts to another location, and add this location to the "
 					"list of script directories to be searched."),
 					_("Accept"))) {
+				g_string_free(git_pending_commit_buffer, TRUE);
 				return;
 			} else {
 				reset_spcc_repository();
+				g_string_free(git_pending_commit_buffer, TRUE);
 				return;
 			}
 		default:
@@ -999,6 +1004,7 @@ void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
 		}
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
 	}
+	g_string_free(git_pending_commit_buffer, TRUE);
 	set_cursor_waiting(FALSE);
 }
 

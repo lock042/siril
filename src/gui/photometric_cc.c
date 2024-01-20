@@ -82,8 +82,10 @@ static void start_photometric_cc(gboolean spcc) {
 		pcc_args->catalog = CAT_GAIADR3_DIRECT;
 		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
-		if (set_spcc_args(pcc_args))
+		if (set_spcc_args(pcc_args)) {
+			free(pcc_args);
 			return;
+		}
 	} else {
 		pcc_args->catalog = get_photometry_catalog_from_GUI();
 		pcc_args->spcc = FALSE;
@@ -681,6 +683,8 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 			goto no_selection;
 		list = g_list_nth(com.spcc_data.wb_ref, n);
 	}
+	if (!list)
+		goto no_selection;
 	// For OSC sensors which use the osc_sensor data structure this is a bit cheeky
 	// but it works because the first element of the struct is a spcc_object, and
 	// saves handling them differently.

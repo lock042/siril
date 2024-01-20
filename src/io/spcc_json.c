@@ -305,9 +305,12 @@ static gboolean processJsonFile(const char *file_path) {
 				return TRUE;
 			} else {
 				siril_debug_print("Error reading JSON object in file %s\n", file_path);
+				osc_sensor_free(osc, TRUE);
+				spcc_object_free(data, TRUE);
 				return FALSE;
 			}
 		}
+		spcc_object_free(data, TRUE);
 	}
 	return TRUE;
 }
@@ -526,6 +529,7 @@ static void processDirectory(const gchar *directory_path) {
 
 	if (dir == NULL) {
 		g_warning("Unable to open directory: %s", directory_path);
+		g_error_free(error);
 		return;
 	}
 
