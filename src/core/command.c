@@ -8603,8 +8603,8 @@ static int do_pcc(int nb, gboolean spectro) {
 		for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 		return CMD_ARG_ERROR;
 		}
-		if (bw[RLAYER] < 1.0 || bw[RLAYER] > 20.0 || bw[GLAYER] < 1.0 || bw[GLAYER] > 20.0 || bw[BLAYER] < 1.0 || bw[BLAYER] > 20.0) {
-		siril_log_message(_("NB bandwidth out of range (must be 1.0 <= wl <= 20.0)\n"));
+		if (bw[RLAYER] < 1.0 || bw[RLAYER] > 40.0 || bw[GLAYER] < 1.0 || bw[GLAYER] > 40.0 || bw[BLAYER] < 1.0 || bw[BLAYER] > 40.0) {
+		siril_log_message(_("NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"));
 		for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 		return CMD_ARG_ERROR;
 		}
