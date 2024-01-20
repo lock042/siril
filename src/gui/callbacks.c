@@ -1610,6 +1610,9 @@ void initialize_all_GUI(gchar *supported_files) {
 #ifndef HAVE_LIBCURL
 	// SPCC is not available if compiled without networking
 	gtk_widget_set_visible(lookup_widget("proc_spcc"), FALSE);
+	// Remove it from the RGB composition color calibration methods list too
+	gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(lookup_widget("rgbcomp_cc_method")), 2);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")), 1);
 #endif
 
 	/* now that everything is loaded we can connect these signals
