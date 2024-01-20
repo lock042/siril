@@ -955,3 +955,18 @@ void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_visible(lookup_widget("details_spcc_filters_osc"), !state && !com.pref.spcc.is_mono);
 }
 
+void on_nb_spin_changed(GtkSpinButton *button, gpointer user_data) {
+	if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_wl"))) {
+		com.pref.spcc.red_wl = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_wl"))) {
+		com.pref.spcc.green_wl = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_wl"))) {
+		com.pref.spcc.blue_wl = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_bw"))) {
+		com.pref.spcc.red_bw = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_bw"))) {
+		com.pref.spcc.green_bw = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_bw"))) {
+		com.pref.spcc.blue_bw = gtk_spin_button_get_value(button);
+	}
+}

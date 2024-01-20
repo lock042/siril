@@ -1624,6 +1624,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="adjustment">nb_r_wl</property>
                             <property name="digits">2</property>
                             <property name="value">672</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -1638,6 +1639,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="adjustment">nb_b_wl</property>
                             <property name="digits">2</property>
                             <property name="value">500</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -1652,6 +1654,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="adjustment">nb_g_wl</property>
                             <property name="digits">2</property>
                             <property name="value">656.46</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -1666,6 +1669,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="adjustment">nb_r_bw</property>
                             <property name="digits">1</property>
                             <property name="value">6</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
@@ -1680,6 +1684,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="adjustment">nb_g_bw</property>
                             <property name="digits">1</property>
                             <property name="value">6</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
@@ -1694,6 +1699,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="adjustment">nb_b_bw</property>
                             <property name="digits">1</property>
                             <property name="value">6</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
