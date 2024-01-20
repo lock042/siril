@@ -197,6 +197,10 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 // already carried out, that intent should generally not be used when converting
 // from this profile.
 int spcc_set_source_profile(struct photometric_cc_data *args) {
+	if (!memcmp(&args->primaries.Red, &args->primaries.Green, sizeof(cmsCIExyY)) || !memcmp(&args->primaries.Red, &args->primaries.Blue, sizeof(cmsCIExyY)) || !memcmp(&args->primaries.Green, &args->primaries.Blue, sizeof(cmsCIExyY))) {
+		siril_log_message(_("Cannot make a source profile as the chromaticity primaries are not unique. This will occur when carrying out SPCC on compositions such as HOO whre the same data is assigned to multiple channels.\n"));
+		return 0; // We don't return an error here otherwise SPCC will fail on such compositions
+	}
 	cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
 	cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
 	cmsMLU *copyright = cmsMLUalloc(NULL, 1);
