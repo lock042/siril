@@ -22,7 +22,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Plot the data</property>
+                <property name="tooltip-text" translatable="yes">Plot the data (QE, transmittance or relative photon count) as a function of wavelength</property>
                 <signal name="clicked" handler="on_spcc_details_plot_clicked" swapped="no"/>
               </object>
               <packing>
