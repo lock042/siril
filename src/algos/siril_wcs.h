@@ -26,6 +26,8 @@
 
 /* we force naxis to 2 */
 #define NAXIS 2
+#define MAX_SIP_ORDER 6
+#define MAX_SIP_SIZE MAX_SIP_ORDER + 1
 
 typedef struct wcsprm wcsprm_t;
 
@@ -49,6 +51,11 @@ void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_cd2mat(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
 void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+int extract_SIP_matrices(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
 void wcs_print(wcsprm_t *prm);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

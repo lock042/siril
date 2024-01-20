@@ -352,6 +352,44 @@ double get_wcs_image_resolution(fits *fit) {
 	return resolution;
 }
 
+// return the order of the SIP polynomials and fills the coeffs matrices (if first matrix A is not NULL)
+int extract_SIP_matrices(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]) {
+	int order = 0;
+	if (!dis)
+		return 0;
+	for (int n = 0; n < dis->ndp; n++) {
+		if (!g_str_has_prefix(dis->dp[n].field + 4, "SIP"))
+			continue;
+		int mat  = dis->dp[n].j; // if 1, it's the A terms, if 2, it's the B terms
+		int fwd = (g_str_has_prefix(dis->dp[n].field + 8, "FWD")) ? 1 : 2; // if 1, it's A/B, if 2, it's AP/BP
+		int i, j;
+		sscanf(dis->dp[n].field + 12, "%d_%d", &i, &j);
+		order = max(order, i);
+		order = max(order, j);
+		if (!A) // Warning: for brevity, we only test for the first matrix for brevity...
+			continue;
+		if (mat == 1) {
+			if (fwd == 1) {
+				A[i][j] = dis->dp[n].value.f;
+			} else {
+				AP[i][j] = dis->dp[n].value.f;
+			}
+		} else {
+			if (fwd == 1) {
+				B[i][j] = dis->dp[n].value.f;
+			} else {
+				BP[i][j] = dis->dp[n].value.f;
+			}
+		}
+	}
+	return order;
+
+}
+
 void wcs_print(wcsprm_t *prm) {
 #if DEBUG_WCS
 	printf("CRPIX\n");
