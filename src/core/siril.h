@@ -480,6 +480,7 @@ typedef struct _spcc_object {
     gchar *model;
 	gchar *name;
 	gchar *filepath;
+	gchar *comment; // optional comment
 	int index; // index in the JSON file
     int type;
     int quality;

@@ -700,6 +700,12 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	gchar *nsamples_text = g_strdup_printf("%d", object->n);
 	gtk_label_set_text(label, nsamples_text);
 	g_free(nsamples_text);
+	label = GTK_LABEL(lookup_widget("spcc_details_comment"));
+	gtk_widget_set_visible(GTK_WIDGET(label), (!(object->comment)));
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("spcc_details_comment_label")), (!(object->comment)));
+	if (object->comment) {
+		gtk_label_set_text(label, object->comment);
+	}
 	cbdata = object;
 
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("IPS_dialog")));

@@ -64,7 +64,7 @@
                 <property name="can-focus">False</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=2 n-rows=5 -->
+                  <!-- n-columns=2 n-rows=6 -->
                   <object class="GtkGrid" id="spcc_details_ver">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -125,20 +125,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="spcc_details_nsamples">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">label</property>
-                        <property name="wrap">True</property>
-                        <property name="width-chars">40</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel" id="spcc_details_source">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -150,18 +136,6 @@
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">Number of samples</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
                       </packing>
                     </child>
                     <child>
@@ -200,6 +174,58 @@
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Number of samples</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_nsamples">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">label</property>
+                        <property name="wrap">True</property>
+                        <property name="width-chars">40</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_comment_label">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Comment</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_comment">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">label</property>
+                        <property name="wrap">True</property>
+                        <property name="width-chars">40</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">4</property>
                       </packing>
                     </child>
                   </object>

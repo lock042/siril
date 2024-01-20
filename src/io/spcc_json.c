@@ -113,6 +113,10 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	if (!data->name) {
 		goto validation_error;
 	}
+	if (json_object_has_member(object, "comment"))
+		data->comment = g_strdup(json_object_get_string_member(object, "comment"));
+	else
+		data->comment = NULL;
 	data->quality = json_object_get_int_member(object, "dataQualityMarker");
 	if (!data->quality) {
 		goto validation_error;
