@@ -3,9 +3,11 @@
 <interface>
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkDialog" id="spcc_details">
+    <property name="width-request">320</property>
     <property name="can-focus">False</property>
     <property name="resizable">False</property>
-    <property name="type-hint">normal</property>
+    <property name="default-width">320</property>
+    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -68,7 +70,6 @@
                   <object class="GtkGrid" id="spcc_details_ver">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="halign">start</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">6</property>
                     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
@@ -77,6 +78,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
+                        <property name="valign">start</property>
                         <property name="label" translatable="yes">Name</property>
                       </object>
                       <packing>
@@ -89,6 +91,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
+                        <property name="valign">start</property>
                         <property name="label" translatable="yes">Manufacturer</property>
                       </object>
                       <packing>
@@ -103,7 +106,8 @@
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">label</property>
                         <property name="wrap">True</property>
-                        <property name="width-chars">40</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -117,7 +121,8 @@
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">label</property>
                         <property name="wrap">True</property>
-                        <property name="width-chars">40</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -131,7 +136,8 @@
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">label</property>
                         <property name="wrap">True</property>
-                        <property name="width-chars">40</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -143,6 +149,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
+                        <property name="valign">start</property>
                         <property name="label" translatable="yes">Data Source</property>
                       </object>
                       <packing>
@@ -155,6 +162,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
+                        <property name="valign">start</property>
                         <property name="label" translatable="yes">Datafile version</property>
                       </object>
                       <packing>
@@ -169,7 +177,8 @@
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">label</property>
                         <property name="wrap">True</property>
-                        <property name="width-chars">40</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -181,6 +190,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
+                        <property name="valign">start</property>
                         <property name="label" translatable="yes">Number of samples</property>
                       </object>
                       <packing>
@@ -195,7 +205,8 @@
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">label</property>
                         <property name="wrap">True</property>
-                        <property name="width-chars">40</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -207,6 +218,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
+                        <property name="valign">start</property>
                         <property name="label" translatable="yes">Comment</property>
                       </object>
                       <packing>
@@ -221,7 +233,8 @@
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">label</property>
                         <property name="wrap">True</property>
-                        <property name="width-chars">40</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -238,12 +251,15 @@
                 <property name="can-focus">False</property>
                 <property name="ypad">10</property>
                 <property name="label" translatable="yes">SPCC Details</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
               </object>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
+            <property name="fill">False</property>
             <property name="position">1</property>
           </packing>
         </child>
