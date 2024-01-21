@@ -57,7 +57,6 @@
 #include "registration/matching/match.h"
 #include "registration/matching/apply_match.h"
 #include "registration/matching/atpmatch.h"
-#include "registration/matching/project_coords.h"
 #include "gui/message_dialog.h"
 
 
@@ -259,37 +258,14 @@ static void print_image_center(solve_results *image) {
 
 static gboolean check_affine_TRANS_sanity(TRANS *trans) {
 	double var1 = 0., var2 = 0.;
-	switch (trans->order) {
-		case AT_TRANS_LINEAR:
-			var1 = fabs(trans->b) - fabs(trans->f);
-			var2 = fabs(trans->c) - fabs(trans->e);
-			break;
-		case AT_TRANS_QUADRATIC:
-			var1 = fabs(trans->b) - fabs(trans->i);
-			var2 = fabs(trans->c) - fabs(trans->h);
-			break;
-		case AT_TRANS_CUBIC:
-			var1 = fabs(trans->b) - fabs(trans->m);
-			var2 = fabs(trans->c) - fabs(trans->l);
-			break;
-		default:
-			break;
-	}
+	var1 = fabs(trans->x10) - fabs(trans->y01);
+	var2 = fabs(trans->y10) - fabs(trans->x01);
 	siril_debug_print("abs(diff_cos)=%f et abs(diff_sin)=%f\n", var1, var2);
 	return (fabs(var1) < 0.01 && fabs(var2) < 0.01);
 }
 
 static double get_det_from_trans(TRANS *trans) {
-	switch (trans->order) {
-		case AT_TRANS_LINEAR:
-			return (trans->b * trans->f - trans->c * trans->e);
-		case AT_TRANS_QUADRATIC:
-			return (trans->b * trans->i - trans->c * trans->h);
-		case AT_TRANS_CUBIC:
-			return (trans->b * trans->m - trans->c * trans->l);
-		default:
-			return DBL_MAX;
-	}
+	return (trans->x10 * trans->y01 - trans->y10 * trans->x01);
 }
 
 static gboolean image_is_flipped_from_trans(TRANS *trans) {
@@ -298,51 +274,19 @@ static gboolean image_is_flipped_from_trans(TRANS *trans) {
 }
 
 static double get_resolution_from_trans(TRANS *trans) {
-	switch (trans->order) {
-		case AT_TRANS_LINEAR:
-			return sqrt(fabs(trans->b * trans->f - trans->c * trans->e));
-		case AT_TRANS_QUADRATIC:
-			return sqrt(fabs(trans->b * trans->i - trans->c * trans->h));
-		case AT_TRANS_CUBIC:
-			return sqrt(fabs(trans->b * trans->m - trans->c * trans->l));
-		default:
-			return 0.;
-	}
+	return sqrt(fabs(get_det_from_trans(trans)));
 }
 
 static void get_cd_from_trans(TRANS *trans, double cd[][2]) {
-	cd[0][0] = trans->b;
-	cd[0][1] = trans->c;
-	switch (trans->order) {
-		case AT_TRANS_LINEAR:
-			cd[1][0] = trans->e;
-			cd[1][1] = trans->f;
-			break;
-		case AT_TRANS_QUADRATIC:
-			cd[1][0] = trans->h;
-			cd[1][1] = trans->i;
-			break;
-		case AT_TRANS_CUBIC:
-			cd[1][0] = trans->l;
-			cd[1][1] = trans->m;
-			break;
-		default:
-			break;
-	}
+	cd[0][0] = trans->x10;
+	cd[0][1] = trans->x01;
+	cd[1][0] = trans->y10;
+	cd[1][1] = trans->y01;
 }
 
 static double get_center_offset_from_trans(TRANS *trans) {
 	// this measures the remaining offset, expressed in pseudo-arcsec
-	switch (trans->order) {
-		case AT_TRANS_LINEAR:
-			return sqrt(trans->a * trans->a + trans->d * trans->d);
-		case AT_TRANS_QUADRATIC:
-			return sqrt(trans->a * trans->a + trans->g * trans->g);
-		case AT_TRANS_CUBIC:
-			return sqrt(trans->a * trans->a + trans->k * trans->k);
-		default:
-			return 0.;
-	}
+	return sqrt(trans->x00 * trans->x00 + trans->y00 * trans->y00);
 }
 // 2x2 matrix vector multiplication
 void Mv(double matrix[2][2], double vector[2], double result[2]) {
@@ -367,11 +311,8 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 		return 1;
 
 	// we start by zero-ing the constant terms because we have set CRVAL at the center of the solution
-	trans->a = 0.;
-	if (trans->order == AT_TRANS_QUADRATIC)
-		trans->g = 0.;
-	if (trans->order == AT_TRANS_CUBIC)
-		trans->k = 0.;
+	trans->x00 = 0.;
+	trans->y00 = 0.;
 
 	// Definitions from https://irsa.ipac.caltech.edu/data/SPITZER/docs/files/spitzer/shupeADASS.pdf
 
@@ -399,10 +340,10 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	// see the definition in eq (4)
 	TRANS transUV = { 0 };
 	transUV.order = 1;
-	transUV.b = cd_inv[0][0];
-	transUV.c = cd_inv[0][1];
-	transUV.e = cd_inv[1][0];
-	transUV.f = cd_inv[1][1];
+	transUV.x10 = cd_inv[0][0];
+	transUV.x01 = cd_inv[0][1];
+	transUV.y10 = cd_inv[1][0];
+	transUV.y01 = cd_inv[1][1];
 	atApplyTrans(nbpoints, xygrid, &transUV);
 	// xygrid now holds the UV grid
 
@@ -424,55 +365,55 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	int N;
 	if (trans->order == AT_TRANS_QUADRATIC) {
 		N = 2;
-		Mvdecomp(cd_inv, trans->d, trans->j, &A[2][0], &B[2][0]);
-		Mvdecomp(cd_inv, trans->e, trans->k, &A[1][1], &B[1][1]);
-		Mvdecomp(cd_inv, trans->f, trans->l, &A[0][2], &B[0][2]);
+		Mvdecomp(cd_inv, trans->x20, trans->y20, &A[2][0], &B[2][0]);
+		Mvdecomp(cd_inv, trans->x11, trans->y11, &A[1][1], &B[1][1]);
+		Mvdecomp(cd_inv, trans->x02, trans->y02, &A[0][2], &B[0][2]);
 
-		AP[0][0] = revtrans.a;
-		AP[1][0] = revtrans.b - 1.;
-		AP[0][1] = revtrans.c;
-		AP[2][0] = revtrans.d;
-		AP[1][1] = revtrans.e;
-		AP[0][2] = revtrans.f;
+		AP[0][0] = revtrans.x00;
+		AP[1][0] = revtrans.x10 - 1.;
+		AP[0][1] = revtrans.x01;
+		AP[2][0] = revtrans.x20;
+		AP[1][1] = revtrans.x11;
+		AP[0][2] = revtrans.x02;
 
-		BP[0][0] = revtrans.g;
-		BP[1][0] = revtrans.h;
-		BP[0][1] = revtrans.i - 1.;
-		BP[2][0] = revtrans.j;
-		BP[1][1] = revtrans.k;
-		BP[0][2] = revtrans.l;
+		BP[0][0] = revtrans.y00;
+		BP[1][0] = revtrans.y10;
+		BP[0][1] = revtrans.y01 - 1.;
+		BP[2][0] = revtrans.y20;
+		BP[1][1] = revtrans.y11;
+		BP[0][2] = revtrans.y02;
 	}
 	if (trans->order == AT_TRANS_CUBIC) {
 		N = 3;
-		Mvdecomp(cd_inv, trans->d, trans->n, &A[2][0], &B[2][0]);
-		Mvdecomp(cd_inv, trans->e, trans->o, &A[1][1], &B[1][1]);
-		Mvdecomp(cd_inv, trans->f, trans->p, &A[0][2], &B[0][2]);
-		Mvdecomp(cd_inv, trans->g, trans->q, &A[3][0], &B[3][0]);
-		Mvdecomp(cd_inv, trans->h, trans->r, &A[2][1], &B[2][1]);
-		Mvdecomp(cd_inv, trans->i, trans->s, &A[1][2], &B[1][2]);
-		Mvdecomp(cd_inv, trans->j, trans->t, &A[0][3], &B[0][3]);
+		Mvdecomp(cd_inv, trans->x20, trans->y20, &A[2][0], &B[2][0]);
+		Mvdecomp(cd_inv, trans->x11, trans->y11, &A[1][1], &B[1][1]);
+		Mvdecomp(cd_inv, trans->x02, trans->y02, &A[0][2], &B[0][2]);
+		Mvdecomp(cd_inv, trans->x30, trans->y30, &A[3][0], &B[3][0]);
+		Mvdecomp(cd_inv, trans->x21, trans->y21, &A[2][1], &B[2][1]);
+		Mvdecomp(cd_inv, trans->x12, trans->y12, &A[1][2], &B[1][2]);
+		Mvdecomp(cd_inv, trans->x03, trans->y03, &A[0][3], &B[0][3]);
 
-		AP[0][0] = revtrans.a;
-		AP[1][0] = revtrans.b - 1.;
-		AP[0][1] = revtrans.c;
-		AP[2][0] = revtrans.d;
-		AP[1][1] = revtrans.e;
-		AP[0][2] = revtrans.f;
-		AP[3][0] = revtrans.g;
-		AP[2][1] = revtrans.h;
-		AP[1][2] = revtrans.i;
-		AP[0][3] = revtrans.j;
+		AP[0][0] = revtrans.x00;
+		AP[1][0] = revtrans.x10 - 1.;
+		AP[0][1] = revtrans.x01;
+		AP[2][0] = revtrans.x20;
+		AP[1][1] = revtrans.x11;
+		AP[0][2] = revtrans.x02;
+		AP[3][0] = revtrans.x30;
+		AP[2][1] = revtrans.x21;
+		AP[1][2] = revtrans.x12;
+		AP[0][3] = revtrans.x03;
 
-		BP[0][0] = revtrans.k;
-		BP[1][0] = revtrans.l;
-		BP[0][1] = revtrans.m - 1.;
-		BP[2][0] = revtrans.n;
-		BP[1][1] = revtrans.o;
-		BP[0][2] = revtrans.p;
-		BP[3][0] = revtrans.q;
-		BP[2][1] = revtrans.r;
-		BP[1][2] = revtrans.s;
-		BP[0][3] = revtrans.t;
+		BP[0][0] = revtrans.y00;
+		BP[1][0] = revtrans.y10;
+		BP[0][1] = revtrans.y01 - 1.;
+		BP[2][0] = revtrans.y20;
+		BP[1][1] = revtrans.y11;
+		BP[0][2] = revtrans.y02;
+		BP[3][0] = revtrans.y30;
+		BP[2][1] = revtrans.y21;
+		BP[1][2] = revtrans.y12;
+		BP[0][3] = revtrans.y03;
 	}
 
 	// We can now fill the disprm structure and assign it to wcslib->lin

@@ -519,30 +519,24 @@ print_trans
    switch (trans->order) {
 
    case 1:  /* linear transformation */
-      siril_debug_print("TRANS:\na=%-15.9e b=%-15.9e c=%-15.9e\nd=%-15.9e e=%-15.9e f=%-15.9e\n",
-            trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e\ny00=%+15.9e y10=%+15.9e y01=%+15.9e\n",
+            trans->x00, trans->x10, trans->x01, trans->y00, trans->y10, trans->y01);
       break;
 
    case 2:  /* quadratic terms */
-      siril_debug_print("TRANS:\na=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e\n",
-          trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
-      siril_debug_print("g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e\n",
-          trans->g, trans->h, trans->i, trans->j, trans->k, trans->l);
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e\n",
+          trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02);
+      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e\n",
+          trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02);
       break;
-//    case 3:  /* cubic terms */
-//       siril_debug_print("TRANS:\na=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e\n",
-//          trans->a, trans->b, trans->c, trans->d, trans->e, trans->f,
-//          trans->g, trans->h);
-//       siril_debug_print("i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e\n",
-//          trans->i, trans->j, trans->k, trans->l, trans->m, trans->n,
-//          trans->o, trans->p);
-//       break;
+
    case 3:  /* cubic terms */
-      siril_debug_print("TRANS:\na=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e\n",
-         trans->a, trans->b, trans->c, trans->d, trans->e, trans->f,
-         trans->g, trans->h, trans->i, trans->j);
-      siril_debug_print("k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e q=%-15.9e r=%-15.9e s=%-15.9e t=%-15.9e\n",
-         trans->k, trans->l, trans->m, trans->n, trans->o, trans->p, trans->q, trans->r, trans->s, trans->t);
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
+         trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
+         trans->x30, trans->x21, trans->x12, trans->x03);
+      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
+         trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
+         trans->y30, trans->y21, trans->y12, trans->y03);
       break;
 
    default:

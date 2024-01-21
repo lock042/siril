@@ -3239,41 +3239,26 @@ double *newy /* O: contains output y coord */
 
 	switch (trans->order) {
 	case AT_TRANS_LINEAR:
-		*newx = trans->a + trans->b * star->x + trans->c * star->y;
-		*newy = trans->d + trans->e * star->x + trans->f * star->y;
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y;
 		break;
 
 	case AT_TRANS_QUADRATIC:
-		*newx = trans->a + trans->b * star->x + trans->c * star->y
-				+ trans->d * star->x * star->x + trans->e * star->x * star->y
-				+ trans->f * star->y * star->y;
-		*newy = trans->g + trans->h * star->x + trans->i * star->y
-				+ trans->j * star->x * star->x + trans->k * star->x * star->y
-				+ trans->l * star->y * star->y;
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y
+			  + trans->x20 * star->x * star->x + trans->x11 * star->x * star->y + trans->x02 * star->y * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y
+			  + trans->y20 * star->x * star->x + trans->y11 * star->x * star->y + trans->y02 * star->y * star->y;
 		break;
 
 	case AT_TRANS_CUBIC:
-		// rsquared = star->x * star->x + star->y * star->y;
-		// *newx = trans->a + trans->b * star->x + trans->c * star->y
-		// 		+ trans->d * star->x * star->x + trans->e * star->x * star->y
-		// 		+ trans->f * star->y * star->y + trans->g * star->x * rsquared
-		// 		+ trans->h * star->y * rsquared;
-
-		// *newy = trans->i + trans->j * star->x + trans->k * star->y
-		// 		+ trans->l * star->x * star->x + trans->m * star->x * star->y
-		// 		+ trans->n * star->y * star->y + trans->o * star->x * rsquared
-		// 		+ trans->p * star->y * rsquared;
-		*newx = trans->a + trans->b * star->x + trans->c * star->y
-				+ trans->d * star->x * star->x + trans->e * star->x * star->y
-				+ trans->f * star->y * star->y + trans->g * star->x * star->x * star->x
-				+ trans->h * star->x * star->x * star->y + trans->i * star->x * star->y * star->y
-				+ trans->j * star->y * star->y * star->y;
-
-		*newy = trans->k + trans->l * star->x + trans->m * star->y
-				+ trans->n * star->x * star->x + trans->o * star->x * star->y
-				+ trans->p * star->y * star->y + trans->q * star->x * star->x * star->x
-				+ trans->r * star->x * star->x * star->y + trans->s * star->x * star->y * star->y
-				+ trans->t * star->y * star->y * star->y;
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y
+			  + trans->x20 * star->x * star->x + trans->x11 * star->x * star->y + trans->x02 * star->y * star->y
+			  + trans->x30 * star->x * star->x * star->x + trans->x21 * star->x * star->x * star->y
+			  + trans->x12 * star->x * star->y * star->y + trans->x03 * star->y * star->y * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y
+			  + trans->y20 * star->x * star->x + trans->y11 * star->x * star->y + trans->y02 * star->y * star->y
+			  + trans->y30 * star->x * star->x * star->x + trans->y21 * star->x * star->x * star->y
+			  + trans->y12 * star->x * star->y * star->y + trans->y03 * star->y * star->y * star->y;
 		break;
 
 	default:
@@ -4515,12 +4500,12 @@ TRANS *trans /* O: place solved coefficients into this */
 	 *
 	 * so, here, we have to re-arrange the coefficients a bit.
 	 */
-	trans->a = solved_c;
-	trans->b = solved_a;
-	trans->c = solved_b;
-	trans->d = solved_f;
-	trans->e = solved_d;
-	trans->f = solved_e;
+	trans->x00 = solved_c;
+	trans->x10 = solved_a;
+	trans->x01 = solved_b;
+	trans->y00 = solved_f;
+	trans->y10 = solved_d;
+	trans->y01 = solved_e;
 
 	/*
 	 * free up memory we allocated for this function
@@ -4916,18 +4901,18 @@ TRANS *trans /* O: place solved coefficients into this */
 	 * assign the coefficients we've just calculated to the output
 	 * TRANS structure.
 	 */
-	trans->a = solved_a;
-	trans->b = solved_b;
-	trans->c = solved_c;
-	trans->d = solved_d;
-	trans->e = solved_e;
-	trans->f = solved_f;
-	trans->g = solved_g;
-	trans->h = solved_h;
-	trans->i = solved_i;
-	trans->j = solved_j;
-	trans->k = solved_k;
-	trans->l = solved_l;
+	trans->x00 = solved_a;
+	trans->x10 = solved_b;
+	trans->x01 = solved_c;
+	trans->x20 = solved_d;
+	trans->x11 = solved_e;
+	trans->x02 = solved_f;
+	trans->y00 = solved_g;
+	trans->y10 = solved_h;
+	trans->y01 = solved_i;
+	trans->y20 = solved_j;
+	trans->y11 = solved_k;
+	trans->y02 = solved_l;
 
 	/*
 	 * free up memory we allocated for this function
@@ -5483,26 +5468,26 @@ TRANS *trans /* O: place solved coefficients into this */
 	 * assign the coefficients we've just calculated to the output
 	 * TRANS structure.
 	 */
-	trans->a = solved_a;
-	trans->b = solved_b;
-	trans->c = solved_c;
-	trans->d = solved_d;
-	trans->e = solved_e;
-	trans->f = solved_f;
-	trans->g = solved_g;
-	trans->h = solved_h;
-	trans->i = solved_i;
-	trans->j = solved_j;
-	trans->k = solved_k;
-	trans->l = solved_l;
-	trans->m = solved_m;
-	trans->n = solved_n;
-	trans->o = solved_o;
-	trans->p = solved_p;
-	trans->q = solved_q;
-	trans->r = solved_r;
-	trans->s = solved_s;
-	trans->t = solved_t;
+	trans->x00 = solved_a;
+	trans->x10 = solved_b;
+	trans->x01 = solved_c;
+	trans->x20 = solved_d;
+	trans->x11 = solved_e;
+	trans->x02 = solved_f;
+	trans->x30 = solved_g;
+	trans->x21 = solved_h;
+	trans->x12 = solved_i;
+	trans->x03 = solved_j;
+	trans->y00 = solved_k;
+	trans->y10 = solved_l;
+	trans->y01 = solved_m;
+	trans->y20 = solved_n;
+	trans->y11 = solved_o;
+	trans->y02 = solved_p;
+	trans->y30 = solved_q;
+	trans->y21 = solved_r;
+	trans->y12 = solved_s;
+	trans->y03 = solved_t;
 
 	/*
 	 * free up memory we allocated for this function

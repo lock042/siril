@@ -238,7 +238,6 @@ src_files = [
   'registration/matching/match.c',
   'registration/matching/atpmatch.c',
   'registration/matching/misc.c',
-  'registration/matching/project_coords.c',
   'registration/matching/apply_match.c',
   'registration/registration.c',
   'registration/applyreg.c',
