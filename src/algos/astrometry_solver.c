@@ -582,22 +582,22 @@ static int Cnk(int n, int k)
 	switch (n) {
 		case 0:
 			return 1;
-		case 1:
+		case 1:;
 			int v1[2] = { 1, 1 };
 			return v1[k];
-		case 2:
+		case 2:;
 			int v2[3] = { 1, 2, 1 };
 			return v2[k];
-		case 3:
+		case 3:;
 			int v3[4] = { 1, 3, 3, 1 };
 			return v3[k];
-		case 4:
+		case 4:;
 			int v4[5] = { 1, 4, 6, 4, 1 };
 			return v4[k];
-		case 5:
+		case 5:;
 			int v5[6] = { 1, 5, 10, 10, 5, 1 };
 			return v5[k];
-		case 6:
+		case 6:;
 			int v6[7] = { 1, 6, 15, 20, 15, 6, 1 };
 			return v6[k];
 		default:
