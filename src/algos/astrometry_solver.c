@@ -572,12 +572,42 @@ void print_updated_wcs_data(fits *fit) {
 	siril_debug_print("******************************************\n");
 }
 
-// binomial coeffs from https://stackoverflow.com/questions/35121401/binomial-coefficient-in-c-program-explanation
+// binomial coeffs up to n=6
+// hard-coded for faster execution
 static int Cnk(int n, int k)
 {
 	if(k == 0) return 1;
 	if(n < k)  return 0;
-	return (n * Cnk(n - 1, k - 1)) / k;
+	if (n > 6) return 0;
+	switch (n) {
+		case 0:
+			return 1;
+		case 1:
+			int v1[2] = { 1, 1 };
+			return v1[k];
+		case 2:
+			int v2[3] = { 1, 2, 1 };
+			return v2[k];
+		case 3:
+			int v3[4] = { 1, 3, 3, 1 };
+			return v3[k];
+		case 4:
+			int v4[5] = { 1, 4, 6, 4, 1 };
+			return v4[k];
+		case 5:
+			int v5[6] = { 1, 5, 10, 10, 5, 1 };
+			return v5[k];
+		case 6:
+			int v6[7] = { 1, 6, 15, 20, 15, 6, 1 };
+			return v6[k];
+		default:
+			return 0;
+	}
+	// Full implementation for any n (https://stackoverflow.com/questions/35121401/binomial-coefficient-in-c-program-explanation)
+	// In case we need it someday
+	// 	if(k == 0) return 1;
+	// 	if(n < k)  return 0;
+	// 	return (n * Cnk(n - 1, k - 1)) / k;
 }
 
 static void transform_disto_coeff(struct disprm *dis, Homography H) {
@@ -600,6 +630,14 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 	b = CD[0][1];
 	c = CD[1][0];
 	d = CD[1][1];
+	// pre-computing powers up to N of the a, b, c, d terms
+	double powa[MAX_SIP_SIZE], powb[MAX_SIP_SIZE], powc[MAX_SIP_SIZE], powd[MAX_SIP_SIZE];
+	for (int i = 0; i <= N; i++) {
+		powa[i] = pow(a, i);
+		powb[i] = pow(b, i);
+		powc[i] = pow(c, i);
+		powd[i] = pow(d, i);
+	}
 
 	// allocations
 	int size = (N + 1) * (N + 2) / 2;
@@ -636,10 +674,10 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 			int n = i - j;
 			// printf("j(cd):%d , n(ab):%d\n", j, n);
 			for (int l = 0; l <= j; l++) {
-				double m = Cnk(j, l) * pow(c, j - l) * pow(d, l);
+				double m = Cnk(j, l) * powc[j - l] * powd[l];
 				// printf("%d: %d c^%d d^%d\n", l, Cnk(j, l), j - l, l);
 				for (int k = 0; k <= i - j; k++) {
-					t[r + l + k][r + j] += m * Cnk(n, k) * pow(a, n - k) * pow(b, k);
+					t[r + l + k][r + j] += m * Cnk(n, k) * powa[n - k] * powb[k];
 					// printf("%d,%d: %d a^%d b^%d\n", r + l + k, r + j, Cnk(n, k), n - k, k);
 				}
 			}
@@ -649,8 +687,8 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 	for (int i = 0; i < size; i++) {
 		for (int j = 0; j < size; j++) {
 			// printf("%g ", t[i][j]);
-			tva[i] += t[i][j] * va[j];
-			tvb[i] += t[i][j] * vb[j];
+			tva[i]  += t[i][j] * va[j];
+			tvb[i]  += t[i][j] * vb[j];
 			tvap[i] += t[i][j] * vap[j];
 			tvbp[i] += t[i][j] * vbp[j];
 		}
