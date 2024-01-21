@@ -1327,6 +1327,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">2</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1339,6 +1340,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">3</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1351,6 +1353,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">5</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1363,6 +1366,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">6</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1375,6 +1379,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">7</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1387,6 +1392,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">8</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1399,7 +1405,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">2</property>
                       </packing>
                     </child>
@@ -1413,7 +1419,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">3</property>
                       </packing>
                     </child>
@@ -1427,7 +1433,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">5</property>
                       </packing>
                     </child>
@@ -1441,7 +1447,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">6</property>
                       </packing>
                     </child>
@@ -1455,7 +1461,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">7</property>
                       </packing>
                     </child>
@@ -1469,7 +1475,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">8</property>
                       </packing>
                     </child>
@@ -1510,7 +1516,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">3</property>
                         <property name="top-attach">4</property>
                       </packing>
                     </child>
@@ -1524,6 +1530,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">4</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1753,27 +1760,6 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="left-attach">3</property>
                         <property name="top-attach">1</property>
                       </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                   </object>
                 </child>
