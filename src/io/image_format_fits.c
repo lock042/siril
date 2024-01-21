@@ -1340,7 +1340,7 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcslib->crval[1]), "Axis2 reference value (deg)", &status);
 		if (fit->wcslib->lonpole) {
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->wcslib->lonpole), "Axis2 reference value (deg)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->wcslib->lonpole), "Native longitude of celestial pole", &status);
 		}
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;

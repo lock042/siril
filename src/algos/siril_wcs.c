@@ -86,9 +86,13 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 	wcsprm_t *data = NULL, *wcs = NULL;
 	int nreject, nwcs;
+	int ctrl = 0;
+#if DEBUG_WCS
+	ctrl = 2; // writes rejected WCS cards
+#endif
 	/** There was a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
 	 * We now force to have 7.12 at least */
-	int wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
+	int wcs_status = wcspih(header, nkeyrec, 0, ctrl, &nreject, &nwcs, &data);
 
 	if (wcs_status == 0) {
 		for (int i = 0; i < nwcs; i++) {
