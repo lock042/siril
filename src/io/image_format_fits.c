@@ -1374,7 +1374,7 @@ static void save_wcs_keywords(fits *fit) {
 			double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
 			double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
 			struct disprm *dis = fit->wcslib->lin.dispre;
-			int order = extract_SIP_matrices(dis, A, B, AP, BP);
+			int order = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
 			// we know the order of the distorsions, we can now write them
 			// A terms
 			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);

@@ -357,7 +357,7 @@ double get_wcs_image_resolution(fits *fit) {
 }
 
 // return the order of the SIP polynomials and fills the coeffs matrices (if first matrix A is not NULL)
-int extract_SIP_matrices(struct disprm *dis, 
+int extract_SIP_order_and_matrices(struct disprm *dis, 
 		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
@@ -372,8 +372,10 @@ int extract_SIP_matrices(struct disprm *dis,
 		int fwd = (g_str_has_prefix(dis->dp[n].field + 8, "FWD")) ? 1 : 2; // if 1, it's A/B, if 2, it's AP/BP
 		int i, j;
 		sscanf(dis->dp[n].field + 12, "%d_%d", &i, &j);
-		order = max(order, i);
-		order = max(order, j);
+		if (fabs(dis->dp[n].value.f) > 0) {
+			order = max(order, i);
+			order = max(order, j);
+		}
 		if (!A) // Warning: for brevity, we only test for the first matrix for brevity...
 			continue;
 		if (mat == 1) {

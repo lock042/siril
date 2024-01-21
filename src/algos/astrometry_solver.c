@@ -569,6 +569,8 @@ void print_updated_wcs_data(fits *fit) {
 	siril_debug_print("pc1_2  = %*.12e\n", 20, fit->wcslib->pc[1]);
 	siril_debug_print("pc2_1  = %*.12e\n", 20, fit->wcslib->pc[2]);
 	siril_debug_print("pc2_2  = %*.12e\n", 20, fit->wcslib->pc[3]);
+	if (fit->wcslib->lin.dispre != NULL)
+		siril_debug_print("+ SIP terms\n");
 	siril_debug_print("******************************************\n");
 }
 
@@ -615,7 +617,7 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 	double B[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
 	double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
 	double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
-	int N = extract_SIP_matrices(dis, A, B, AP, BP);
+	int N = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
 	if (!N)
 		return;
 	double a = H.h00;
@@ -1689,6 +1691,22 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	if (!com.pref.astrometry.keep_wcs_files)
 		g_unlink(wcs_filename);
 	g_free(wcs_filename);
+
+	// In some cases asnet returns a dis struct with all coeffs null
+	if (args->fit->wcslib->lin.dispre) { // some distorsions were calculated, checked that the terms are not all null
+		int order = extract_SIP_order_and_matrices(args->fit->wcslib->lin.dispre, NULL, NULL, NULL, NULL);
+		if (!order) { // the computation of the distorsions has failed for the order specified, we remove it and warn the user
+			disfree(args->fit->wcslib->lin.dispre);
+			args->fit->wcslib->lin.dispre = NULL;
+			args->fit->wcslib->flag = 0;
+			wcsset(args->fit->wcslib);
+			siril_log_color_message(_("astrometry.net could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", com.pref.astrometry.sip_correction_order);
+		}
+	}
+	// In other cases, the dis struct is empyty, we still need to warn the user
+	if (com.pref.astrometry.sip_correction_order > 1 && !args->fit->wcslib->lin.dispre) {
+		siril_log_color_message(_("astrometry.net could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", com.pref.astrometry.sip_correction_order);
+	}
 
 	solution->image_is_flipped = image_is_flipped_from_wcs(args->fit);
 
