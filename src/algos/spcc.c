@@ -224,7 +224,7 @@ int spcc_set_source_profile(struct photometric_cc_data *args) {
 	}
 	spcc_object *sensor = (spcc_object*) sensorlistitem->data;
 	spcc_object *filter = (spcc_object*) filterlistitem->data;
-	gchar *description_text = g_strdup_printf("Siril SPCC sensor source profile (linear). Sensor: %s, filters: %s", args->spcc_mono_sensor ? sensor->name : sensor->model, filter->model);
+	gchar *description_text = g_strdup_printf("Siril linear SPCC sensor source profile. Sensor: %s, filters: %s", args->spcc_mono_sensor ? sensor->name : sensor->model, filter->model);
 	cmsMLUsetASCII(description, "en", "US", description_text);
 	cmsWriteTag(profile, cmsSigProfileDescriptionTag, description);
 	cmsMLUfree(description);

@@ -889,9 +889,9 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 #endif
 	GError *error = NULL;
 	gsize length;
-    const gchar *host = "https://gea.esac.esa.int";
+	const gchar *host = "https://gea.esac.esa.int";
 	GString *querystring = NULL;
-    const gchar *pathinfo = "/tap-server/tap/async/";
+	const gchar *pathinfo = "/tap-server/tap/async/";
 	gchar *str = NULL, *url = NULL, *data = NULL, *buffer = NULL;
 	GString *datalink_url = NULL;
 	GOutputStream *output_stream = NULL;

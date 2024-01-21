@@ -163,37 +163,31 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 }
 
 static double find_min_d(double *arr, int size) {
-    if (size <= 0 || arr == NULL) {
-        // Handle the case of an empty array or invalid size
-        return 0.0;  // You can choose another value or use an error mechanism
-    }
-
-    double min_value = arr[0];  // Assume the first element is the minimum
-
-    for (int i = 1; i < size; i++) {
-        if (arr[i] < min_value) {
-            min_value = arr[i];  // Update the minimum value if a smaller element is found
-        }
-    }
-
-    return min_value;
+	if (size <= 0 || arr == NULL) {
+		// Handle the case of an empty array or invalid size
+		return 0.0;  // You can choose another value or use an error mechanism
+	}
+	double min_value = arr[0];  // Assume the first element is the minimum
+	for (int i = 1; i < size; i++) {
+		if (arr[i] < min_value) {
+			min_value = arr[i];  // Update the minimum value if a smaller element is found
+		}
+	}
+	return min_value;
 }
 
 static double find_max_d(double *arr, int size) {
-    if (size <= 0 || arr == NULL) {
-        // Handle the case of an empty array or invalid size
-        return 0.0;  // You can choose another value or use an error mechanism
-    }
-
-    double max_value = arr[0];  // Assume the first element is the minimum
-
-    for (int i = 1; i < size; i++) {
-        if (arr[i] > max_value) {
-            max_value = arr[i];  // Update the minimum value if a smaller element is found
-        }
-    }
-
-    return max_value;
+	if (size <= 0 || arr == NULL) {
+		// Handle the case of an empty array or invalid size
+		return 0.0;  // You can choose another value or use an error mechanism
+	}
+	double max_value = arr[0];  // Assume the first element is the minimum
+	for (int i = 1; i < size; i++) {
+		if (arr[i] > max_value) {
+			max_value = arr[i];  // Update the minimum value if a smaller element is found
+		}
+	}
+	return max_value;
 }
 
 static gchar *generate_title(const gchar *type, double arg, double br, double sig, gchar *wr, int nb_stars, float *kw) {
@@ -252,9 +246,9 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	}
 	for (int chan = 0 ; chan < 3 ; chan++) {
 		/* The idea here is that in narrowband mode we integrate the interpolated response (with no filtering
-			* included) over a very precise wavelength range, so as to get an accurate value. In broadband mode
-			* we include the effect of the filter in the resposne and we integrate over the full xp_sampled
-			* wavelength range. This principle is used in the flux and WB calcs too. */
+		 * included) over a very precise wavelength range, so as to get an accurate value. In broadband mode
+		 * we include the effect of the filter in the resposne and we integrate over the full xp_sampled
+		 * wavelength range. This principle is used in the flux and WB calcs too. */
 		minwl[chan] = args->nb_mode ? args->nb_center[chan] - (args->nb_bandwidth[chan]/2) : XPSAMPLED_MIN_WL;
 		maxwl[chan] = args->nb_mode ? args->nb_center[chan] + (args->nb_bandwidth[chan]/2) : XPSAMPLED_MAX_WL;
 	}
@@ -339,10 +333,9 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	}
 	wrg = white_flux[RLAYER]/white_flux[GLAYER];
 	wbg = white_flux[BLAYER]/white_flux[GLAYER];
-	// Robust estimation of linear best fit
-	// First sort the arrays so any DBL_MAX are at the end, after ngood
-	double arg, brg, abg, bbg, deviation[2] = { 0.0 };
 
+	// Robust estimation of linear best fit
+	double arg, brg, abg, bbg, deviation[2] = { 0.0 };
 	// Remove any stars that failed photometry
 	int n_rg = filterArrays(crg, irg, ngood);
 	int n_bg = filterArrays(cbg, ibg, ngood);
@@ -398,7 +391,6 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_plot_data *spl_datarg = NULL;
 		spcc_object *object = (spcc_object*) selected_white->data;
 
-
 		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, nb_stars, kw);
 		spl_datarg = malloc(sizeof(siril_plot_data));
 		init_siril_plot_data(spl_datarg);
@@ -453,11 +445,9 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 	if (ngood < 20)
 		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
-/* Commenting this out at least for now, I'm not sure how the new deviations compare with regard to the solution being imprecise.
- * The values seem comparable to what other SPCC implementations return.
-	else if (deviation[RLAYER] > 0.1 || deviation[GLAYER] > 0.1 || deviation[BLAYER] > 0.1)
+	else if (deviation[0] > 0.1 || deviation[1] > 0.1)
 		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
-*/
+
 	return 0;
 }
 

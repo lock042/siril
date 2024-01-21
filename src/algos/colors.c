@@ -698,12 +698,9 @@ float z1964(float w) {
 // wl and temperature bbTemp
 // from "Colour Rendering of Spectra", John Walker, Fourmilab. Public domain code, last updated March 9 2003
 /*
-float bb_spectrum(float wl, float bbTemp)
-{
-    float wlm = wl * 1e-9;   // Wavelength in meters
-
-    return (3.74183e-16f * pow(wlm, -5.f)) /
-           (expf(1.4388e-2f / (wlm * bbTemp)) - 1.f);
+float bb_spectrum(float wl, float bbTemp) {
+	float wlm = wl * 1e-9;   // Wavelength in meters
+	return (3.74183e-16f * pow(wlm, -5.f)) / (expf(1.4388e-2f / (wlm * bbTemp)) - 1.f);
 }
 */
 

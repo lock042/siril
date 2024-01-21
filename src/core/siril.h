@@ -477,21 +477,21 @@ struct ffit {
 /* Filter spectral responses are defined by unevenly spaced frequency samples
  * and accompanying spectral responses corresponding to the sampling points. */
 typedef struct _spcc_object {
-    gchar *model;
+	gchar *model;
 	gchar *name;
 	gchar *filepath;
 	gchar *comment; // optional comment
 	int index; // index in the JSON file
-    int type;
-    int quality;
+	int type;
+	int quality;
 	int channel;
-    gchar *manufacturer;
+	gchar *manufacturer;
 	gchar *source;
-    int version;
+	int version;
 	gboolean arrays_loaded;
-    double *x;  // Wavelength array
-    double *y;  // Quantity array
-    int n; // Number of points in x and y
+	double *x;  // Wavelength array
+	double *y;  // Quantity array
+	int n; // Number of points in x and y
 } spcc_object;
 
 typedef struct _osc_sensor {

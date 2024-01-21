@@ -58,7 +58,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 
 	// Load JSON file
 	if (!json_parser_load_from_file(parser, jsonFilePath, &error)) {
-		fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
+		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", error->message);
 		g_error_free(error);
 		g_object_unref(parser);
 		return 0;
@@ -68,7 +68,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	node = json_parser_get_root(parser);
 	// Ensure the root is an array
 	if (!JSON_NODE_HOLDS_ARRAY(node)) {
-		fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+		siril_log_color_message(_("Error: The JSON file should contain an array of objects.\n"), "red");
 		g_object_unref(parser);
 		return 0;
 	}
@@ -77,7 +77,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	array = json_node_get_array(node);
 	int num_objects = json_array_get_length(array);
 	if (index > num_objects) {
-		fprintf(stderr, "Error: index out of range.\n");
+		siril_debug_print("Error: index out of range.\n");
 		g_object_unref(parser);
 		return 0;
 	}
@@ -160,7 +160,7 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	data->n = json_array_get_length(wavelengthArray);
 	int valuesLength = json_array_get_length(valuesArray);
 	if (data->n != valuesLength) {
-		fprintf(stderr, "Error loading SPCC JSON file: arrays have not the same size (%d != %d)\n", data->n, valuesLength);
+		siril_log_color_message(_("Error loading SPCC JSON file: arrays have not the same size (%d != %d)\n"), "red", data->n, valuesLength);
 		goto validation_error;
 	}
 
@@ -237,7 +237,7 @@ static gboolean processJsonFile(const char *file_path) {
 
 	// Load JSON file
 	if (!json_parser_load_from_file(parser, file_path, &error)) {
-        fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
+        siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", error->message);
         g_error_free(error);
         g_object_unref(parser);
 		return FALSE;
@@ -247,7 +247,7 @@ static gboolean processJsonFile(const char *file_path) {
 	node = json_parser_get_root(parser);
 	// Ensure the root is an array
 	if (!JSON_NODE_HOLDS_ARRAY(node)) {
-		fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+		siril_debug_print("Error: The JSON file should contain an array of objects.\n");
 		g_object_unref(parser);
 		return FALSE;
 	}
@@ -291,7 +291,7 @@ static gboolean processJsonFile(const char *file_path) {
 					com.spcc_data.wb_ref = g_list_append(com.spcc_data.wb_ref, data);
 					break;
 				default:
-					g_warning("Unknown type: %d", data->type);
+					siril_debug_print("Unknown type: %d", data->type);
 					spcc_object_free(data, TRUE);
 					return FALSE;
 			}
@@ -304,7 +304,7 @@ static gboolean processJsonFile(const char *file_path) {
 				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
 				return TRUE;
 			} else {
-				siril_debug_print("Error reading JSON object in file %s\n", file_path);
+				siril_log_color_message(_("Error reading JSON object in file %s\n"), "red", file_path);
 				osc_sensor_free(osc, TRUE);
 				spcc_object_free(data, TRUE);
 				return FALSE;
@@ -431,7 +431,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 
 	// Load JSON file
 	if (!json_parser_load_from_file(parser, data->filepath, &error)) {
-		fprintf(stderr, "Error loading SPCC JSON file: %s\n", error->message);
+		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", error->message);
 		g_error_free(error);
 		g_object_unref(parser);
 		return FALSE;
@@ -441,7 +441,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	node = json_parser_get_root(parser);
 	// Ensure the root is an array
 	if (!JSON_NODE_HOLDS_ARRAY(node)) {
-		fprintf(stderr, "Error: The JSON file should contain an array of objects.\n");
+		siril_log_color_message(_("Error: The JSON file should contain an array of objects.\n"), "red");
 		g_object_unref(parser);
 		return FALSE;
 	}
@@ -450,7 +450,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	array = json_node_get_array(node);
 	int num_objects = json_array_get_length(array);
 	if (index > num_objects) {
-		fprintf(stderr, "Error: index out of range.\n");
+		siril_debug_print("Error: index out of range.\n");
 		g_object_unref(parser);
 		return FALSE;
 	}
@@ -474,7 +474,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	else if (!strcmp(wavelengthUnit, "m"))
 		scalefactor = 1.0e9;
 	else {
-		siril_debug_print("Error in JSON: unrecognised wavelength unit\n");
+		siril_log_color_message(_("Warning: error in JSON file %s: unrecognised wavelength unit\n"), "salmon", data->filepath);
 		g_object_unref(parser);
 		return FALSE;
 	}
@@ -527,7 +527,7 @@ static void processDirectory(const gchar *directory_path) {
 	GDir *dir = g_dir_open(directory_path, 0, &error);
 
 	if (dir == NULL) {
-		g_warning("Unable to open directory: %s", directory_path);
+		siril_debug_print("Unable to open directory: %s", directory_path);
 		g_error_free(error);
 		return;
 	}

@@ -882,13 +882,11 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	// saving state for undo before modifying fit structure
 	if (!com.script) {
 		if (args->for_photometry_spcc || args->for_photometry_cc) {
-			// WARNING: Do not make this "algo" string translatable: it is used to
-			// check whether SPCC has previously been applied
 			const char *algo;
 			if (args-> for_photometry_spcc) {
-				algo = "SPCC";
+				algo = _("SPCC");
 			} else {
-				algo = "PCC";
+				algo = _("PCC");
 			}
 			undo_save_state(args->fit, _("Photometric CC (algorithm: %s)"), algo);
 		} else {

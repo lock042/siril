@@ -3714,54 +3714,54 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
 	// The dataset wavelength range is always the same for all xpsampled spectra
 	// The spacing is always 2nm iaw the dataset
-    int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
-    long nrows;
+	int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
+	long nrows;
 	// We open a separate fptr so that multiple threads can operate on the file
 	// simultaneously, reading data from different HDUs corresponding to different sources.
 	fitsfile *fptr = NULL;
-    siril_fits_open_diskfile(&fptr, filename, READONLY, &status);
-    // HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
-    // so the first useful HDU (corresponding to the source at
-    // position 0 in the catalog) is HDU 2.
-    int hdu = i + 2;
-    fits_get_num_hdus(fptr, &num_hdus, &status);
-    if (hdu < 2 || hdu > num_hdus) {
-        siril_debug_print("HDU out of range: hdu = %d, num_hdus = %d\n", hdu, num_hdus);
-        goto error;
-    }
-    if (fits_movabs_hdu(fptr, hdu, NULL, &status)) {
-        fits_report_error(stderr, status);
-        goto error;
-    }
-    fits_get_num_rows(fptr, &nrows, &status);
-    if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
-        fits_report_error(stderr, status);
-        goto error;
-    }
-    if (fits_get_colnum(fptr, CASEINSEN, "flux", &fluxcol, &status)) {
-        fits_report_error(stderr, status);
-        goto error;
-    }
-    if (fits_read_col(fptr, TDOUBLE, fluxcol, 1, 1, 343, NULL, xps->y, &anynul, &status)) {
-        fits_report_error(stderr, status);
-        goto error;
-    }
+	siril_fits_open_diskfile(&fptr, filename, READONLY, &status);
+	// HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
+	// so the first useful HDU (corresponding to the source at
+	// position 0 in the catalog) is HDU 2.
+	int hdu = i + 2;
+	fits_get_num_hdus(fptr, &num_hdus, &status);
+	if (hdu < 2 || hdu > num_hdus) {
+		siril_debug_print("HDU out of range: hdu = %d, num_hdus = %d\n", hdu, num_hdus);
+		goto error;
+	}
+	if (fits_movabs_hdu(fptr, hdu, NULL, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	fits_get_num_rows(fptr, &nrows, &status);
+	if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	if (fits_get_colnum(fptr, CASEINSEN, "flux", &fluxcol, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	if (fits_read_col(fptr, TDOUBLE, fluxcol, 1, 1, 343, NULL, xps->y, &anynul, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
 
-    // Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
-    // for consistency with how we handle white references and camera photon counting
-    // behaviour.
-    for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
+	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
+	// for consistency with how we handle white references and camera photon counting
+	// behaviour.
+	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
 		xps->y[i] *= xps->x[i];
 	}
 	double norm = xps->y[82];
-    for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
+	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
 		xps->y[i] /= norm;
 	}
 
 	if (fits_close_file(fptr, &status))
-        fits_report_error(stderr, status);
+		fits_report_error(stderr, status);
 	return 0;
 error:
 	fits_close_file(fptr, &status);
-    return 1;
+	return 1;
 }
