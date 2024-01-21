@@ -1421,9 +1421,9 @@ static void manual_photometry_data (sequence *seq) {
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
-	comp_sta->cat_index = CAT_COMPSTARS;
-	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item *));
+	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item));
 
+	comp_sta->cat_index = CAT_COMPSTARS;
 	double ra, dec;
 	// Gather the selected stars by hand
 	int nb_ref_stars = 0;
@@ -1442,7 +1442,7 @@ static void manual_photometry_data (sequence *seq) {
 	// Allocating final sorted list to the required size
 	cat_item *result = calloc(nb_ref_stars + 1, sizeof(cat_item));
 	// Write the target star
-	fill_compstar_item(&result[0], sel_item[0].ra, sel_item[0].dec, 0.0, g_strdup_printf("V"), "Target");
+	fill_compstar_item(&result[0], sel_item[0].ra, sel_item[0].dec, 0.0, "V", "Target");
 	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"),
 			sel_item[0].ra,
 			sel_item[0].dec);
@@ -1464,7 +1464,7 @@ static void manual_photometry_data (sequence *seq) {
 	comp_sta->nbitems = nb_ref_stars;
 	comp_sta->nbincluded = nb_ref_stars;
 
-	// Fill the catalogue
+	// Fill the other catalogue
 	args->comp_stars = comp_sta;
 	args->nina_file = g_strdup("V_SirilstarList_user.csv");
 	args->target_star = &result[0];
@@ -1472,9 +1472,14 @@ static void manual_photometry_data (sequence *seq) {
 	args->delta_BV = 0.0;
 	args->cat = CAT_COMPSTARS;
 
-	// And finally create the csv file
+	// Finally create the csv file
 	write_nina_file(args);
-	siril_catalog_free_items (comp_sta);
+
+	// and free the stuff
+	siril_catalog_free (comp_sta);
+	siril_catalog_free_item (sel_item);
+	free(args);
+
 }
 
 void on_varWriteAsNina_clicked(GtkButton *button, gpointer user_data) {
