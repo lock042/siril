@@ -310,7 +310,6 @@ static gboolean processJsonFile(const char *file_path) {
 				return FALSE;
 			}
 		}
-		spcc_object_free(data, TRUE);
 	}
 	return TRUE;
 }
