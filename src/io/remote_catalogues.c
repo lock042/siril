@@ -810,7 +810,7 @@ void free_fetch_result(char *result) {
 
 static int submit_post_request(const char *url, const char *post_data, char **post_response) {
 	CURL *curl;
-	CURLcode res;
+	CURLcode res = CURLE_OK;
 	struct ucontent chunk;
 
 	chunk.data = malloc(1);  /* will be grown as needed by realloc above */
@@ -849,11 +849,13 @@ static int submit_post_request(const char *url, const char *post_data, char **po
 
 		// always cleanup
 		curl_easy_cleanup(curl);
+	} else {
+		res = CURLE_FAILED_INIT;
 	}
 
 	free(chunk.data);
 	curl_global_cleanup();
-    return (res ? 1 : 0);
+    return (res != CURLE_OK ? 1 : 0);
 }
 
 static int submit_async_request(const char *url, const char *post_data, char **job_id) {

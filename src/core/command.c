@@ -8691,6 +8691,8 @@ static int do_pcc(int nb, gboolean spectro) {
 		else siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
 	} else if (!plate_solve) {
 		siril_log_message(_("Image is already plate solved. Nothing will be done.\n"));
+		if (target_coords)
+			siril_world_cs_unref(target_coords);
 		return CMD_OK;
 	}
 
@@ -8718,6 +8720,8 @@ static int do_pcc(int nb, gboolean spectro) {
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				free(pcc_args);
 				free(args);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 			if (!oscsensor && !monosensor && !mono_or_osc) {
@@ -8725,6 +8729,8 @@ static int do_pcc(int nb, gboolean spectro) {
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				free(pcc_args);
 				free(args);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 			if (oscsensor || mono_or_osc == 1) {
@@ -8736,6 +8742,8 @@ static int do_pcc(int nb, gboolean spectro) {
 					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 					free(pcc_args);
 					free(args);
+					if (target_coords)
+						siril_world_cs_unref(target_coords);
 					return CMD_ARG_ERROR;
 				}
 				pcc_args->spcc_mono_sensor = FALSE;
@@ -8751,6 +8759,8 @@ static int do_pcc(int nb, gboolean spectro) {
 					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 					free(pcc_args);
 					free(args);
+					if (target_coords)
+						siril_world_cs_unref(target_coords);
 					return CMD_ARG_ERROR;
 				}
 				pcc_args->spcc_mono_sensor = TRUE;
@@ -8803,6 +8813,7 @@ static int do_pcc(int nb, gboolean spectro) {
 					siril_world_cs_unref(target_coords);
 				free(args);
 				free(pcc_args);
+				free(target_coords);
 				return CMD_INVALID_IMAGE;
 			}
 			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);
