@@ -32,7 +32,7 @@ xx/xx/xx
 * Removed glib-networking as a dependency (#1157)
 
 siril 1.2.1
-xx/xx/xx
+01/26/24
 
 * Fixed Anscombe VST noise reduction option for mono images
 * Fixed HEIF import (#1198)

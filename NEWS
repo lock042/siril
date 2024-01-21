@@ -30,7 +30,7 @@ siril 1.4.0 xx xx, xx
 * Fixed wavelets redraw. (#1236)
 * Removed glib-networking as a dependency (#1157)
 
-siril 1.2.1 xx xx, xx
+siril 1.2.1 January 26, 2024
 
 * Fixed Anscombe VST noise reduction option for mono images
 * Fixed HEIF import (#1198)
