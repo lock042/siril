@@ -594,7 +594,12 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 	double d = H.h11;
 	double det = a * d - b * c;
 	double detinv = 1. / det;
-	double CDinv[2][2] = { {detinv * d, -detinv * b}, {-detinv * c, detinv * a}};
+	double CD[2][2] = { {detinv * d, -detinv * b}, {-detinv * c, detinv * a}};
+	double CDinv[2][2] = { {a, b}, {c, d}};
+	a = CD[0][0];
+	b = CD[0][1];
+	c = CD[1][0];
+	d = CD[1][1];
 
 	// allocations
 	int size = (N + 1) * (N + 2) / 2;
@@ -687,6 +692,7 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 	update_SIP_keys(dis, A, B, AP, BP);
 	dis->flag = 0;
 	disset(dis);
+	// and free
 	free(va);
 	free(vb);
 	free(vap);
