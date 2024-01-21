@@ -310,23 +310,6 @@ static double get_resolution_from_trans(TRANS *trans) {
 	}
 }
 
-static void get_cdelt_from_trans(TRANS *trans, double flip, double *cdelt1, double *cdelt2) {
-	*cdelt1 = sqrt(trans->b * trans->b + trans->c * trans->c) / 3600 * -flip; // cdelt1 is < 0 when the image is not flipped
-	switch (trans->order) {
-		case AT_TRANS_LINEAR:
-			*cdelt2 = sqrt(trans->e * trans->e + trans->f * trans->f) / 3600;
-			break;
-		case AT_TRANS_QUADRATIC:
-			*cdelt2 = sqrt(trans->h * trans->h + trans->i * trans->i) / 3600;
-			break;
-		case AT_TRANS_CUBIC:
-			*cdelt2 = sqrt(trans->l * trans->l + trans->m * trans->m) / 3600;
-			break;
-		default:
-			break;
-	}
-}
-
 static void get_cd_from_trans(TRANS *trans, double cd[][2]) {
 	cd[0][0] = trans->b;
 	cd[0][1] = trans->c;
@@ -1168,11 +1151,10 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		goto clearup;
 	}
 
-	double ra0, dec0;
+	double ra0 = siril_world_cs_get_alpha(args->cat_center);
+	double dec0 = siril_world_cs_get_delta(args->cat_center);
 	// star coordinates were set with the origin at the grid center and y upwards
 	double center[2] = {0., 0.};
-
-	apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
 	int num_matched = trans.nm;
 	int trial = 0;
 
@@ -1180,6 +1162,8 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	conv = get_center_offset_from_trans(&trans);
 	siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, num_matched);
 	while (conv > CONV_TOLERANCE && trial < max_trials){
+		// we get the new projection center
+		apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
 		double resolution = get_resolution_from_trans(&trans);
 		double focal = RADCONV * solution->pixel_size / resolution;
 		siril_debug_print("Current focal: %0.2fmm\n", focal);
@@ -1208,7 +1192,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		}
 		print_trans(&trans);
 		num_matched = trans.nm;
-		apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
 		conv = get_center_offset_from_trans(&trans);
 		trial++;
 		siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, num_matched);
@@ -1233,61 +1216,14 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		solution->focal_length *= args->scalefactor;
 
 	solution->image_is_flipped = image_is_flipped_from_trans(&trans);
-	double flip = (solution->image_is_flipped) ? -1. : 1.; // when the image is not flipped, x positive in native coords is to the left (East)
 
-	/* compute cd matrix */
-	double ra1, dec1, ra2, dec2, cd[2][2];
-
-	/* first, convert center coordinates from deg to rad: */
-	dec0 *= DEGTORAD;
-	ra0 *= DEGTORAD;
-
-	// We will use 2 points at -flip*dx and dy from the computed center away from the image center
-	// to define the left(point1)  and the up (point2) directions
-	// (the -flip factor is used to make the step towards increasing ra)
-	// We use Appendix B.1 from WCS paper II (http://www.atnf.csiro.au/people/mcalabre/WCS/ccs.pdf):
-	// - we compute l', m', n' of each point (the 3D coordinates of the point on the unit sphere)
-	// - we then compute its l and m (the coordinates of the point on the unit sphere shifted to the native pole)
-	// l is the N coordinate (increasing dec, pointing to NCP), m is the E coordinate (increasing ra)
-	// we can then compute the 2 rotations wrt. N
-
-	// Note: the reason for all this is that close to Celestial poles, ra varies largely for small angular distances
-	// it's even undetermined (see https://www.atnf.csiro.au/people/mcalabre/WCS/notes_20040211.pdf) when exactly at poles
-	// So that if dec0 ≈ ±90deg, ra0 returned can take any value and this will go into the header as CRVAL1,
-	// which will in turn determine the first Euler angle of the spherical rotation to the native pole (that is ra0+90)
-	// We therefore need to have a CD matrix consistant with this ra0 value
-	// hence why we express the left and up vectors at the native pole though their (l,m) coordinates
-
-	/* make a step in direction crpix1 accounting for flip or not*/
-	double crpix1[] = {-flip * PLATESOLVE_STEP, 0. };
-	apply_match(solution->px_cat_center, crpix1, &trans, &ra1, &dec1);
-	siril_debug_print("alpha1: %0.8f, delta1: %0.8f\n", ra1, dec1);
-	dec1 *= DEGTORAD;
-	ra1 *= DEGTORAD;
-	double l1 = sin(dec1) * cos(dec0) - cos(dec1) * sin(dec0) * cos(ra1 - ra0);
-	double m1 = cos(dec1) * sin(ra1 - ra0);
-	siril_debug_print("l1: %0.8f, m1: %0.8f\n", l1, m1);
-	double crota1 = -atan2(l1, m1);
-
-	/* make a step in direction crpix2*/
-	double crpix2[] = { 0., PLATESOLVE_STEP};
-	apply_match(solution->px_cat_center, crpix2, &trans, &ra2, &dec2);
-	siril_debug_print("alpha2: %0.8f, delta2: %0.8f\n", ra2, dec2);
-	dec2 *= DEGTORAD;
-	ra2 *= DEGTORAD;
-	double l2 = sin(dec2) * cos(dec0) - cos(dec2) * sin(dec0) * cos(ra2 - ra0);
-	double m2 = cos(dec2) * sin(ra2 - ra0);
-	siril_debug_print("l2: %0.8f, m2: %0.8f\n", l2, m2);
-	double crota2 = atan2(m2, l2);
-	siril_debug_print("crota1: %0.2f, crota2: %0.2f\n", crota1 * RADTODEG, crota2 * RADTODEG);
-
-	double cdelt1 = 0., cdelt2 = 0.;
-	get_cdelt_from_trans(&trans, flip, &cdelt1, &cdelt2);
-
-	cd[0][0] =  cdelt1*cos(crota1);
-	cd[0][1] = -cdelt1*sin(crota1) * flip;
-	cd[1][0] =  cdelt2*sin(crota2) * flip;
-	cd[1][1] =  cdelt2*cos(crota2);
+	double cd[2][2];
+	get_cd_from_trans(&trans, cd);
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 2; j++) {
+			cd[i][j] *= ASECTODEG;
+		}
+	}
 
 	CHECK_FOR_CANCELLATION;
 

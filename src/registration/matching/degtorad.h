@@ -10,4 +10,6 @@
 
 #define RADtoASEC (3600.0 * 180.0 / M_PI)
 
+#define ASECTODEG (1. / 3600.)
+
 #endif   /* APPLY_MATCH_H */
