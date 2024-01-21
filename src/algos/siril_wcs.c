@@ -387,7 +387,28 @@ int extract_SIP_matrices(struct disprm *dis,
 		}
 	}
 	return order;
+}
 
+void update_SIP_keys(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]) {
+	if (!dis)
+		return;
+	for (int n = 0; n < dis->ndp; n++) {
+		if (!g_str_has_prefix(dis->dp[n].field + 4, "SIP"))
+			continue;
+		int mat  = dis->dp[n].j; // if 1, it's the A terms, if 2, it's the B terms
+		int fwd = (g_str_has_prefix(dis->dp[n].field + 8, "FWD")) ? 1 : 2; // if 1, it's A/B, if 2, it's AP/BP
+		int i, j;
+		sscanf(dis->dp[n].field + 12, "%d_%d", &i, &j);
+		if (mat == 1) {
+			dis->dp[n].value.f = (fwd == 1) ? A[i][j] : AP[i][j];
+		} else {
+			dis->dp[n].value.f = (fwd == 1) ? B[i][j] : BP[i][j];
+		}
+	}
 }
 
 void wcs_print(wcsprm_t *prm) {

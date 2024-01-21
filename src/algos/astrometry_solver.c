@@ -572,6 +572,135 @@ void print_updated_wcs_data(fits *fit) {
 	siril_debug_print("******************************************\n");
 }
 
+// binomial coeffs from https://stackoverflow.com/questions/35121401/binomial-coefficient-in-c-program-explanation
+static int Cnk(int n, int k)
+{
+	if(k == 0) return 1;
+	if(n < k)  return 0;
+	return (n * Cnk(n - 1, k - 1)) / k;
+}
+
+static void transform_disto_coeff(struct disprm *dis, Homography H) {
+	double A[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+	double B[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+	double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+	double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+	int N = extract_SIP_matrices(dis, A, B, AP, BP);
+	if (!N)
+		return;
+	double a = H.h00;
+	double b = H.h01;
+	double c = H.h10;
+	double d = H.h11;
+	double det = a * d - b * c;
+	double detinv = 1. / det;
+	double CDinv[2][2] = { {detinv * d, -detinv * b}, {-detinv * c, detinv * a}};
+
+	// allocations
+	int size = (N + 1) * (N + 2) / 2;
+	double *va = calloc(size, sizeof(double));
+	double *vb = calloc(size, sizeof(double));
+	double *vap = calloc(size, sizeof(double));
+	double *vbp = calloc(size, sizeof(double));
+	double *tva = calloc(size, sizeof(double));
+	double *tvb = calloc(size, sizeof(double));
+	double *tvap = calloc(size, sizeof(double));
+	double *tvbp = calloc(size, sizeof(double));
+	double **t = malloc(sizeof(double*) * size);
+	for (int i = 0; i < size; ++i) {
+		t[i] = calloc(size, sizeof(double));
+	}
+	// we will form the matrix T to transform the Aij/Bij/APij/BPij
+	// terms to the new coordinates system
+	int r = 0;
+	for (int i = 0; i <= N; i++) {
+		for (int j = i; j >= 0; j--) {
+			int k = i - j;
+			va[r] = A[j][k];
+			vb[r] = B[j][k];
+			vap[r] = AP[j][k];
+			vbp[r] = BP[j][k];
+			r++;
+		}
+	}
+	r = 0;
+	for (int i = 0; i <= N; i++) {
+		// printf("i:%d\n", i);
+		r += i;
+		for (int j = 0; j <= i; j++) {
+			int n = i - j;
+			// printf("j(cd):%d , n(ab):%d\n", j, n);
+			for (int l = 0; l <= j; l++) {
+				double m = Cnk(j, l) * pow(c, j - l) * pow(d, l);
+				// printf("%d: %d c^%d d^%d\n", l, Cnk(j, l), j - l, l);
+				for (int k = 0; k <= i - j; k++) {
+					t[r + l + k][r + j] += m * Cnk(n, k) * pow(a, n - k) * pow(b, k);
+					// printf("%d,%d: %d a^%d b^%d\n", r + l + k, r + j, Cnk(n, k), n - k, k);
+				}
+			}
+		}
+	}
+	// we can now make the products of matrix with the 4 vectors
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			// printf("%g ", t[i][j]);
+			tva[i] += t[i][j] * va[j];
+			tvb[i] += t[i][j] * vb[j];
+			tvap[i] += t[i][j] * vap[j];
+			tvbp[i] += t[i][j] * vbp[j];
+		}
+		// printf("\n");
+	}
+	// and reapply the inverse linear transform (we reuse the initial vectors)
+	for (int i = 0; i < size; i++) {
+		double v1[2] = { tva[i], tvb[i] };
+		double v2[2] = { tvap[i], tvbp[i] };
+		double v1r[2] = { 0., 0. };
+		double v2r[2] = { 0., 0. };
+		for (int j = 0; j < 2; j++) {
+			for (int k = 0; k < 2; k++) {
+				v1r[j] += CDinv[j][k] * v1[k];
+				v2r[j] += CDinv[j][k] * v2[k];
+			}
+		}
+		va[i]  = v1r[0];
+		vb[i]  = v1r[1];
+		vap[i] = v2r[0];
+		vbp[i] = v2r[1];
+	}
+
+	r = 0;
+	// we redispatch to the matrices
+	for (int i = 0; i <= N; i++) {
+		for (int j = i; j >= 0; j--) {
+			int k = i - j;
+			// printf("A%d%d:%g, %g\n", j, k, A[j][k], va[r]);
+			// printf("B%d%d:%g, %g\n", j, k, B[j][k], vb[r]);
+			A[j][k]  = va[r];
+			B[j][k]  = vb[r];
+			AP[j][k] = vap[r];
+			BP[j][k] = vbp[r];
+			r++;
+		}
+	}
+	// and update the dis structure
+	update_SIP_keys(dis, A, B, AP, BP);
+	dis->flag = 0;
+	disset(dis);
+	free(va);
+	free(vb);
+	free(vap);
+	free(vbp);
+	free(tva);
+	free(tvb);
+	free(tvap);
+	free(tvbp);
+	for (int i = 0; i < size; ++i) {
+		free(t[i]);
+	}
+	free(t);
+}
+
 /******
  *
  * Public functions
@@ -611,6 +740,7 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 
 	// and we update all the wcslib structures
 	if (fit->wcslib->lin.dispre) {
+		transform_disto_coeff(fit->wcslib->lin.dispre, H);
 		struct disprm *dis = fit->wcslib->lin.dispre;
 		for (int n = 0; n < dis->ndp; n++) { // update the OFFSET keywords to new CRPIX values
 			if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.1"))
@@ -1181,13 +1311,12 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	wcs_mat2cd(prm, cd);
 	prm->altlin = 2;
 	wcspcx(prm, 0, 0, NULL);
-	wcs_print(prm);
 	if (args->fit->wcslib)
 		wcsfree(args->fit->wcslib);
 	args->fit->wcslib = prm;
 	if (args->trans_order > AT_TRANS_LINEAR)
 		add_disto_to_wcslib(args->fit, &trans);
-
+	wcs_print(prm);
 	print_updated_wcs_data(args->fit);
 
 	CHECK_FOR_CANCELLATION;

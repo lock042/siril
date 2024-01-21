@@ -56,6 +56,11 @@ int extract_SIP_matrices(struct disprm *dis,
 		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
+void update_SIP_keys(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
 void wcs_print(wcsprm_t *prm);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */
