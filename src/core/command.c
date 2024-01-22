@@ -8388,7 +8388,7 @@ int process_pcc(int nb) {
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
-	int order = 1; // we default with no distorsions
+	int order = 3; // we default to cubic
 	siril_cat_index cat = CAT_AUTO;
 	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve' or 'seqplatesolve'
 	gboolean seqps = word[0][0] == 's';
@@ -8475,7 +8475,7 @@ int process_pcc(int nb) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
 			int value = g_ascii_strtoull(arg, &end, 10);
-			if (end == arg || value < 1 || value > 3) {
+			if (end == arg || value < 1 || value > 4) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				if (target_coords)
 					siril_world_cs_unref(target_coords);

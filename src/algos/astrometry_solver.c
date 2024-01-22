@@ -63,7 +63,7 @@
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-1 // convergence tolerance in arcsec from the projection center
 #define PLATESOLVE_STEP 100. // step made on CRPIX axes to compute the CD matrix
-#define NB_GRID_POINTS 5 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
+#define NB_GRID_POINTS 6 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
 
 #undef DEBUG		/* get some of diagnostic output */
 #define ASTROMETRY_DEBUG 1
@@ -362,58 +362,61 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	// The inverse APij/BPij coeffs are simply the values of revtrans
 	// For the inverse _10 and _01 terms, we need to substract 1., see definitions in eq (5) and (6))
 	double A[4][4] = {{ 0. }}, B[4][4] = {{ 0. }}, AP[4][4]  = {{ 0. }}, BP[4][4]  = {{ 0. }}; // we deal with images up to order 3
-	int N;
-	if (trans->order == AT_TRANS_QUADRATIC) {
-		N = 2;
-		Mvdecomp(cd_inv, trans->x20, trans->y20, &A[2][0], &B[2][0]);
-		Mvdecomp(cd_inv, trans->x11, trans->y11, &A[1][1], &B[1][1]);
-		Mvdecomp(cd_inv, trans->x02, trans->y02, &A[0][2], &B[0][2]);
+	int N = trans->order;
 
-		AP[0][0] = revtrans.x00;
-		AP[1][0] = revtrans.x10 - 1.;
-		AP[0][1] = revtrans.x01;
-		AP[2][0] = revtrans.x20;
-		AP[1][1] = revtrans.x11;
-		AP[0][2] = revtrans.x02;
+	Mvdecomp(cd_inv, trans->x20, trans->y20, &A[2][0], &B[2][0]);
+	Mvdecomp(cd_inv, trans->x11, trans->y11, &A[1][1], &B[1][1]);
+	Mvdecomp(cd_inv, trans->x02, trans->y02, &A[0][2], &B[0][2]);
 
-		BP[0][0] = revtrans.y00;
-		BP[1][0] = revtrans.y10;
-		BP[0][1] = revtrans.y01 - 1.;
-		BP[2][0] = revtrans.y20;
-		BP[1][1] = revtrans.y11;
-		BP[0][2] = revtrans.y02;
-	}
-	if (trans->order == AT_TRANS_CUBIC) {
-		N = 3;
-		Mvdecomp(cd_inv, trans->x20, trans->y20, &A[2][0], &B[2][0]);
-		Mvdecomp(cd_inv, trans->x11, trans->y11, &A[1][1], &B[1][1]);
-		Mvdecomp(cd_inv, trans->x02, trans->y02, &A[0][2], &B[0][2]);
+	AP[0][0] = revtrans.x00;
+	AP[1][0] = revtrans.x10 - 1.;
+	AP[0][1] = revtrans.x01;
+	AP[2][0] = revtrans.x20;
+	AP[1][1] = revtrans.x11;
+	AP[0][2] = revtrans.x02;
+
+	BP[0][0] = revtrans.y00;
+	BP[1][0] = revtrans.y10;
+	BP[0][1] = revtrans.y01 - 1.;
+	BP[2][0] = revtrans.y20;
+	BP[1][1] = revtrans.y11;
+	BP[0][2] = revtrans.y02;
+
+	if (trans->order >= AT_TRANS_CUBIC) {
 		Mvdecomp(cd_inv, trans->x30, trans->y30, &A[3][0], &B[3][0]);
 		Mvdecomp(cd_inv, trans->x21, trans->y21, &A[2][1], &B[2][1]);
 		Mvdecomp(cd_inv, trans->x12, trans->y12, &A[1][2], &B[1][2]);
 		Mvdecomp(cd_inv, trans->x03, trans->y03, &A[0][3], &B[0][3]);
 
-		AP[0][0] = revtrans.x00;
-		AP[1][0] = revtrans.x10 - 1.;
-		AP[0][1] = revtrans.x01;
-		AP[2][0] = revtrans.x20;
-		AP[1][1] = revtrans.x11;
-		AP[0][2] = revtrans.x02;
 		AP[3][0] = revtrans.x30;
 		AP[2][1] = revtrans.x21;
 		AP[1][2] = revtrans.x12;
 		AP[0][3] = revtrans.x03;
 
-		BP[0][0] = revtrans.y00;
-		BP[1][0] = revtrans.y10;
-		BP[0][1] = revtrans.y01 - 1.;
-		BP[2][0] = revtrans.y20;
-		BP[1][1] = revtrans.y11;
-		BP[0][2] = revtrans.y02;
 		BP[3][0] = revtrans.y30;
 		BP[2][1] = revtrans.y21;
 		BP[1][2] = revtrans.y12;
 		BP[0][3] = revtrans.y03;
+	}
+
+	if (trans->order >= AT_TRANS_QUARTIC) {
+		Mvdecomp(cd_inv, trans->x40, trans->y40, &A[4][0], &B[4][0]);
+		Mvdecomp(cd_inv, trans->x31, trans->y31, &A[3][1], &B[3][1]);
+		Mvdecomp(cd_inv, trans->x22, trans->y22, &A[2][2], &B[2][2]);
+		Mvdecomp(cd_inv, trans->x13, trans->y13, &A[1][3], &B[1][3]);
+		Mvdecomp(cd_inv, trans->x04, trans->y04, &A[0][4], &B[0][4]);
+
+		AP[4][0] = revtrans.x40;
+		AP[3][1] = revtrans.x31;
+		AP[2][2] = revtrans.x22;
+		AP[1][3] = revtrans.x13;
+		AP[0][4] = revtrans.x04;	
+
+		BP[4][0] = revtrans.y40;
+		BP[3][1] = revtrans.y31;
+		BP[2][2] = revtrans.y22;
+		BP[1][3] = revtrans.y13;
+		BP[0][4] = revtrans.y04;
 	}
 
 	// We can now fill the disprm structure and assign it to wcslib->lin
@@ -429,7 +432,7 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	char field[12];
 	for (int i = 0; i < 2; i++) {
 		strcpy(dis->dtype[i], "SIP");
-		sprintf(keyword, "DP%d", i + 1);
+		snprintf(keyword, 4, "DP%d", i + 1);
 		dpfill(dis->dp + ipx, keyword, "NAXES", i + 1, 0, 2, 0.0);
 		ipx ++;
 		dpfill(dis->dp + ipx, keyword, "AXIS.1", i + 1, 0, 1, 0.0);
@@ -443,7 +446,7 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 		for (int sipflag = 1; sipflag <= 2; sipflag++) { // fwd or rev
 			for (int p = 0; p <= N; p++) {
 				for (int q = 0; q <= N - p; q++) {
-					sprintf(field, "SIP.%s.%d_%d", (sipflag == 1) ? "FWD" : "REV", p, q);
+					snprintf(field, 12, "SIP.%s.%d_%d", (sipflag == 1) ? "FWD" : "REV", p, q);
 					if (i == 0)
 						dpfill(dis->dp + ipx, keyword, field, i + 1, 1, 0, (sipflag == 1) ? A[p][q] : AP[p][q]);
 					else
@@ -585,8 +588,8 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 	for (int i = 0; i <= N; i++) {
 		for (int j = i; j >= 0; j--) {
 			int k = i - j;
-			va[r] = A[j][k];
-			vb[r] = B[j][k];
+			va[r]  = A[j][k];
+			vb[r]  = B[j][k];
 			vap[r] = AP[j][k];
 			vbp[r] = BP[j][k];
 			r++;

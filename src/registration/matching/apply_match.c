@@ -152,6 +152,22 @@ int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double
 				  + trans->y30 * xval * xval * xval + trans->y21 * xval * xval * yval
 				  + trans->y12 * xval * yval * yval + trans->y03 * yval * yval * yval;
 		break;
+	case AT_TRANS_QUARTIC:
+		delta_ra  = trans->x00 + trans->x10 * xval + trans->x01 * yval
+				  + trans->x20 * xval * xval + trans->x11 * xval * yval + trans->x02 * yval * yval
+				  + trans->x30 * xval * xval * xval + trans->x21 * xval * xval * yval
+				  + trans->x12 * xval * yval * yval + trans->x03 * yval * yval * yval
+				  + trans->x40 * xval * xval * xval * xval + trans->x31 * xval * xval * xval * yval
+				  + trans->x22 * xval * xval * yval * yval + trans->x13 * xval * yval * yval * yval
+				  + trans->x04 * yval * yval * yval * yval;
+		delta_dec = trans->y00 + trans->y10 * xval + trans->y01 * yval
+				  + trans->y20 * xval * xval + trans->y11 * xval * yval + trans->y02 * yval * yval
+				  + trans->y30 * xval * xval * xval + trans->y21 * xval * xval * yval
+				  + trans->y12 * xval * yval * yval + trans->y03 * yval * yval * yval
+				  + trans->y40 * xval * xval * xval * xval + trans->y31 * xval * xval * xval * yval
+				  + trans->y22 * xval * xval * yval * yval + trans->y13 * xval * yval * yval * yval
+				  + trans->y04 * yval * yval * yval * yval;
+		break;
 	}
 
 	/*

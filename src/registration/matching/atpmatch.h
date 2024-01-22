@@ -82,9 +82,10 @@
     * calculate a TRANS structure; fail if we are given fewer,
     * or if we discard so many that we have fewer than this many
     */
-#define AT_MATCH_REQUIRE_LINEAR     3
-#define AT_MATCH_REQUIRE_QUADRATIC  6
+#define AT_MATCH_REQUIRE_LINEAR      3
+#define AT_MATCH_REQUIRE_QUADRATIC   6
 #define AT_MATCH_REQUIRE_CUBIC      10
+#define AT_MATCH_REQUIRE_QUARTIC    15
 
 
    /*
@@ -95,6 +96,7 @@
 #define AT_MATCH_STARTN_LINEAR      6
 #define AT_MATCH_STARTN_QUADRATIC  12
 #define AT_MATCH_STARTN_CUBIC      20
+#define AT_MATCH_STARTN_QUARTIC    30
 
    /*
     * when iterating to throw out mis-matched pairs of stars,

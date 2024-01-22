@@ -192,6 +192,7 @@ char *format, /* I: format part of printf statement */
  *      AT_TRANS_LINEAR      linear transformation
  *      AT_TRANS_QUADRATIC   linear plus quadratic terms
  *      AT_TRANS_CUBIC       linear plus quadratic plus cubic terms
+ *      AT_TRANS_QUARTIC      linear plus quadratic plus cubic terms plus order 4 terms
  *
  * RETURN:
  *    nothing
@@ -214,6 +215,7 @@ void atTransOrderSet(int order /* I: order for all TRANS structures */
  *      AT_TRANS_LINEAR      linear transformation
  *      AT_TRANS_QUADRATIC   linear plus quadratic terms
  *      AT_TRANS_CUBIC       linear plus quadratic plus cubic terms
+ *      AT_TRANS_QUARTIC      linear plus quadratic plus cubic terms plus order 4 terms
  *
  * RETURN:
  *    the order value
@@ -518,25 +520,38 @@ print_trans
 {
    switch (trans->order) {
 
-   case 1:  /* linear transformation */
+   case AT_TRANS_LINEAR:  /* linear transformation */
       siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e\ny00=%+15.9e y10=%+15.9e y01=%+15.9e\n",
             trans->x00, trans->x10, trans->x01, trans->y00, trans->y10, trans->y01);
       break;
 
-   case 2:  /* quadratic terms */
+   case AT_TRANS_QUADRATIC:  /* quadratic terms */
       siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e\n",
           trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02);
       siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e\n",
           trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02);
       break;
 
-   case 3:  /* cubic terms */
+   case AT_TRANS_CUBIC:  /* cubic terms */
       siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
          trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
          trans->x30, trans->x21, trans->x12, trans->x03);
       siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
          trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
          trans->y30, trans->y21, trans->y12, trans->y03);
+      break;
+
+   case AT_TRANS_QUARTIC:  /* order 4 terms */
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
+         trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
+         trans->x30, trans->x21, trans->x12, trans->x03);
+      siril_debug_print("x40=%+15.9e x31=%+15.9e 22=%+15.9e x13=%+15.9e x04=%+15.9e\n",
+         trans->x40, trans->x31, trans->x22, trans->x13, trans->x04);
+      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
+         trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
+         trans->y30, trans->y21, trans->y12, trans->y03);
+      siril_debug_print("y40=%+15.9e y31=%+15.9e 22=%+15.9e y13=%+15.9e y04=%+15.9e\n",
+         trans->y40, trans->y31, trans->y22, trans->y13, trans->y04);
       break;
 
    default:

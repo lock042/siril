@@ -670,13 +670,14 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the order of the solution:
 Linear assumes no distorsion is present in the image
-Quadratic and Cubic will include second- or third-order polynomial distorsions.
+Quadratic, Cubic and Quartic will include second-, third- or fourth-order polynomial distorsions.
 When selecting an order with distorsions, additional terms are added to the solution, using SIP convention</property>
-                        <property name="active">0</property>
+                        <property name="active">2</property>
                         <items>
                           <item>Linear</item>
                           <item>Quadratic (SIP)</item>
                           <item>Cubic (SIP)</item>
+                          <item>Quartic (SIP)</item>
                         </items>
                       </object>
                       <packing>
