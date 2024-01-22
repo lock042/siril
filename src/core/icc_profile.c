@@ -2206,7 +2206,6 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	cmsXYZ2xyY(&bluexyY, &blue);
 
 	double *horseshoe_x = malloc(322 * sizeof(double)), *horseshoe_y = malloc(322 * sizeof(double));
-//	fprintf(stderr, "w X Y Z x y\n");
 	for (int i = 0 ; i < 321 ; i++) {
 		double w = 380 + i;
 		cmsCIEXYZ XYZ = { x1931(w), y1931(w), z1931(w)};
@@ -2214,7 +2213,6 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 		cmsXYZ2xyY(&xyY, &XYZ);
 		horseshoe_x[i] = xyY.x;
 		horseshoe_y[i] = xyY.y;
-//		fprintf(stderr, "%f %f %f %f %f %f\n", w, XYZ.X, XYZ.Y, XYZ.Z, xyY.x, xyY.y);
 	}
 
 	horseshoe_x[321] = horseshoe_x[0];
