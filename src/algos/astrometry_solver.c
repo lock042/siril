@@ -185,7 +185,7 @@ gboolean has_any_keywords() {
 	return (gfit.focal_length > 0.0 ||
 			gfit.pixel_size_x > 0.f ||
 			gfit.pixel_size_y > 0.f ||
-			(has_wcs(&gfit) && gfit.wcslib->crval[0] != 0.0 && gfit.wcslib->crval[0] != 0.0) ||
+			(has_wcs(&gfit) && gfit.wcslib->crval[0] != 0.0 && gfit.wcslib->crval[1] != 0.0) ||
 			(gfit.wcsdata.objctra[0] != '\0' && gfit.wcsdata.objctdec[0] != '\0') ||
 			(gfit.wcsdata.ra != 0.0 && gfit.wcsdata.dec != 0.0));
 }
@@ -359,7 +359,7 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	// We will apply CD^-1 to each pair in the forward trans structure to obtain the Aij/Bij SIP coeffs (using defs of eq (1), (2) and (3))
 	// The inverse APij/BPij coeffs are simply the values of revtrans
 	// For the inverse _10 and _01 terms, we need to substract 1., see definitions in eq (5) and (6))
-	double A[4][4] = {{ 0. }}, B[4][4] = {{ 0. }}, AP[4][4]  = {{ 0. }}, BP[4][4]  = {{ 0. }}; // we deal with images up to order 3
+	double A[5][5] = {{ 0. }}, B[5][5] = {{ 0. }}, AP[5][5]  = {{ 0. }}, BP[5][5]  = {{ 0. }}; // we deal with images up to order 4
 	int N = trans->order;
 
 	Mvdecomp(cd_inv, trans->x20, trans->y20, &A[2][0], &B[2][0]);
@@ -1574,8 +1574,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	// In some cases asnet returns a dis struct with all coeffs null
 	if (args->fit->wcslib->lin.dispre) { // some distorsions were calculated, checked that the terms are not all null
-		int order = extract_SIP_order_and_matrices(args->fit->wcslib->lin.dispre, NULL, NULL, NULL, NULL);
-		if (!order) { // the computation of the distorsions has failed for the order specified, we remove it and warn the user
+		int N = extract_SIP_order_and_matrices(args->fit->wcslib->lin.dispre, NULL, NULL, NULL, NULL);
+		if (!N) { // the computation of the distorsions has failed for the order specified, we remove it and warn the user
 			disfree(args->fit->wcslib->lin.dispre);
 			args->fit->wcslib->lin.dispre = NULL;
 			args->fit->wcslib->flag = 0;
