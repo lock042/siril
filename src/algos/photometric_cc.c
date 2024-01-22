@@ -425,6 +425,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		spl_datarg->cfgdata.point.sz = 2;
 		spl_databg->cfgdata.point.radius = 1;
 		spl_databg->cfgdata.point.sz = 2;
+		spl_datarg->cfgdata.line.sz = 2;
+		spl_databg->cfgdata.line.sz = 2;
 
 		siril_add_idle(create_new_siril_plot_window, spl_datarg);
 		siril_add_idle(create_new_siril_plot_window, spl_databg);
