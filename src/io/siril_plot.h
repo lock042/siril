@@ -67,7 +67,7 @@ typedef struct siril_plot_data_struct {
 	gchar *xfmt; // x axis number format
 	gchar *yfmt; // y axis number format
 	gchar *savename; // chain to be prepended when interactively saving (png, dat)
-	gboolean forsequence; // using for saving 
+	gboolean forsequence; // using for saving
 	enum kplottype plottype;
 	enum kplotstype plotstype;
 	enum kplottype plotstypes[3];

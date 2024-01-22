@@ -168,11 +168,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="layout-style">end</property>
             <child>
               <object class="GtkCheckButton" id="spcc_plot_fits">
-                <property name="label" translatable="yes">Plot fits</property>
+                <property name="label" translatable="yes">Plot fits and chromaticity</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios</property>
+                <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios, and a CIE 1931 diagram showing the computed source profile compared to sRGB</property>
                 <property name="draw-indicator">True</property>
               </object>
               <packing>

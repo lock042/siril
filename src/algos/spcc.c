@@ -230,6 +230,8 @@ int spcc_set_source_profile(struct photometric_cc_data *args) {
 	cmsMLUfree(description);
 	cmsMLUfree(copyright);
 	g_free(description_text);
+	if (args->do_plot && profile)
+		siril_plot_colorspace(profile, TRUE);
 	if (args->fit->icc_profile) {
 		cmsCloseProfile(args->fit->icc_profile);
 		args->fit->icc_profile = NULL;
