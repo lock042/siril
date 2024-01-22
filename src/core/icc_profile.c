@@ -1696,6 +1696,10 @@ siril_close_dialog("icc_dialog");
 }
 
 void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
+	if (!target) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No color profile chosen, nothing to assign."));
+		return;
+	}
 	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile assignment"));
@@ -1755,6 +1759,10 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
+	if (!target) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No color profile chosen, nothing to assign."));
+		return;
+	}
 	on_clear_roi();
 	if (!gfit.color_managed || !gfit.icc_profile) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
@@ -1922,6 +1930,14 @@ void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 
 void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {
 	export_elle_stone_profiles();
+}
+
+void on_icc_plot_clicked(GtkButton *button, gpointer user_data) {
+	if (gfit.icc_profile && siril_color_profile_is_rgb (gfit.icc_profile)) {
+		siril_plot_colorspace(gfit.icc_profile, TRUE);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Chromaticity plot only works with RGB color profiles"));
+	}
 }
 
 static gboolean colorspace_comparison_image_set = FALSE;
@@ -2200,12 +2216,13 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 		horseshoe_y[i] = xyY.y;
 //		fprintf(stderr, "%f %f %f %f %f %f\n", w, XYZ.X, XYZ.Y, XYZ.Z, xyY.x, xyY.y);
 	}
+
 	horseshoe_x[321] = horseshoe_x[0];
 	horseshoe_y[321] = horseshoe_y[0];
 	double colorspace_x[4] = {redxyY.x, greenxyY.x, bluexyY.x, redxyY.x};
 	double colorspace_y[4] = {redxyY.y, greenxyY.y, bluexyY.y, redxyY.y};
-	double srgb_x[4] = {0.64, 0.3, 0.15, 0.64};
-	double srgb_y[4] = {0.33, 0.6, 0.06, 0.33};
+	double srgb_x[4] = {0.639998686, 0.300003784, 0.150002046, 0.639998686};
+	double srgb_y[4] = {0.330010138, 0.600003357, 0.059997204, 0.330010138};
 	siril_plot_data *spl_data = NULL;
 
 	gchar *title1 = g_strdup_printf(_("Source Color Profile Chromaticity Diagram\n"
