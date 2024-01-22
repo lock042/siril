@@ -66,7 +66,7 @@
 #define NB_GRID_POINTS 6 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
 
 #undef DEBUG		/* get some of diagnostic output */
-#define ASTROMETRY_DEBUG 1
+#define ASTROMETRY_DEBUG 0
 
 static gchar *asnet_version = NULL;
 
@@ -82,7 +82,7 @@ typedef struct {
 } solve_results;
 
 static void debug_print_catalog_files(s_star *star_list_A, s_star *star_list_B) {
-#ifdef ASTROMETRY_DEBUG
+#if ASTROMETRY_DEBUG
 	GFile *file = g_file_new_for_path("ABtars.csv");
 	g_autoptr(GError) error = NULL;
 	GOutputStream* output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
@@ -289,7 +289,7 @@ static double get_center_offset_from_trans(TRANS *trans) {
 	return sqrt(trans->x00 * trans->x00 + trans->y00 * trans->y00);
 }
 // 2x2 matrix vector multiplication
-void Mv(double matrix[2][2], double vector[2], double result[2]) {
+static void Mv(double matrix[2][2], double vector[2], double result[2]) {
 	for (int i = 0; i < 2; i++) {
 		result[i] = 0;
 		for (int j = 0; j < 2; j++) {
@@ -298,7 +298,7 @@ void Mv(double matrix[2][2], double vector[2], double result[2]) {
 	}
 }
 // and a helper function to simplify calling the M*v multiplication and decompose the result to its 2 values
-void Mvdecomp(double matrix[2][2], double v0, double v1, double *r0, double *r1) {
+static void Mvdecomp(double matrix[2][2], double v0, double v1, double *r0, double *r1) {
 	double vector[2] = { v0, v1 };
 	double result[2];
 	Mv(matrix, vector, result);
@@ -323,8 +323,6 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	struct s_star *uvgrid = create_grid_list(fit->rx, fit->ry, NB_GRID_POINTS);
 	struct s_star *xygrid = create_grid_list(fit->rx, fit->ry, NB_GRID_POINTS); // these coords are then converted using the pixel-to-sky transform
 	atApplyTrans(nbpoints, xygrid, trans);
-
-
 	// we then extract the CD matrix and invert it
 	double cd[2][2] = {{ 0. }}, cd_inv[2][2] = {{ 0. }};
 	get_cd_from_trans(trans, cd);
@@ -462,6 +460,8 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	fit->wcslib->lin.flag = 0;
 	disset(dis);
 	linset(&fit->wcslib->lin);
+	free_stars(&uvgrid);
+	free_stars(&xygrid);
 	return 0;
 }
 
@@ -539,7 +539,7 @@ static int Cnk(int n, int k)
 	// 	return (n * Cnk(n - 1, k - 1)) / k;
 }
 
-static void transform_disto_coeff(struct disprm *dis, Homography H) {
+static void transform_disto_coeff(struct disprm *dis, Homography *H) {
 	double A[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
 	double B[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
 	double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
@@ -547,10 +547,10 @@ static void transform_disto_coeff(struct disprm *dis, Homography H) {
 	int N = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
 	if (!N)
 		return;
-	double a = H.h00;
-	double b = H.h01;
-	double c = H.h10;
-	double d = H.h11;
+	double a = H->h00;
+	double b = H->h01;
+	double c = H->h10;
+	double d = H->h11;
 	double det = a * d - b * c;
 	double detinv = 1. / det;
 	double CD[2][2] = { {detinv * d, -detinv * b}, {-detinv * c, detinv * a}};
@@ -713,7 +713,7 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 
 	// and we update all the wcslib structures
 	if (fit->wcslib->lin.dispre) {
-		transform_disto_coeff(fit->wcslib->lin.dispre, H);
+		transform_disto_coeff(fit->wcslib->lin.dispre, &H);
 		struct disprm *dis = fit->wcslib->lin.dispre;
 		for (int n = 0; n < dis->ndp; n++) { // update the OFFSET keywords to new CRPIX values
 			if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.1"))

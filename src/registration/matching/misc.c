@@ -192,7 +192,7 @@ char *format, /* I: format part of printf statement */
  *      AT_TRANS_LINEAR      linear transformation
  *      AT_TRANS_QUADRATIC   linear plus quadratic terms
  *      AT_TRANS_CUBIC       linear plus quadratic plus cubic terms
- *      AT_TRANS_QUARTIC      linear plus quadratic plus cubic terms plus order 4 terms
+ *      AT_TRANS_QUARTIC     linear plus quadratic plus cubic terms plus order 4 terms
  *
  * RETURN:
  *    nothing
@@ -215,7 +215,7 @@ void atTransOrderSet(int order /* I: order for all TRANS structures */
  *      AT_TRANS_LINEAR      linear transformation
  *      AT_TRANS_QUADRATIC   linear plus quadratic terms
  *      AT_TRANS_CUBIC       linear plus quadratic plus cubic terms
- *      AT_TRANS_QUARTIC      linear plus quadratic plus cubic terms plus order 4 terms
+ *      AT_TRANS_QUARTIC     linear plus quadratic plus cubic terms plus order 4 terms
  *
  * RETURN:
  *    the order value

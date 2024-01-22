@@ -3255,7 +3255,6 @@ TRANS *trans, /* I: contains coefficients of transformation */
 double *newx, /* O: contains output x coord */
 double *newy /* O: contains output y coord */
 ) {
-	// double rsquared;
 
 	g_assert(star != NULL);
 	g_assert(trans != NULL);

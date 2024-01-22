@@ -126,7 +126,7 @@ static int prepare_to_recalc(int num_matched_A,
 // - a trans matrix (with the right order, set with trans_order) for astrometry solve which can be linear, quadratic or cubic
 // The flag for astrometry is used to check whether we are getting the right members to fill:
 // if TRUE, we should have a trans_order input and a TRANS* output
-// if FALSE, we should have a transformation_type input and a  Homography * output
+// if FALSE, we should have a transformation_type input and a Homography * output
 // The function starts by making sure we have the correct inputs/outputs set
 int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 		double min_scale, double max_scale, Homography *H, TRANS *t,

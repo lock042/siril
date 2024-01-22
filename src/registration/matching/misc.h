@@ -97,6 +97,11 @@ shDebug(int level, char *format, ...);
     *
     *      x' =  X00 + X10*x + X01*y + X20*xx + X11*xy + X02*yy + X30*xxx + X21*xxy + X12*xyy + X03*yyy
     *      y' =  Y00 + Y10*x + Y01*y + Y20*xx + Y11*xy + Y02*yy + Y30*xxx + Y21*xxy + Y12*xyy + Y03*yyy
+    * 
+    *   if linear plus quadratic plus cubic plus quartic,
+    *
+    *      x' =  X00 + X10*x + X01*y + X20*xx + X11*xy + X02*yy + X30*xxx + X21*xxy + X12*xyy + X03*yyy + X40*xxxx + X31*xxxy + X22*xxyy + X13*xyyy + X04*yyyy
+    *      y' =  Y00 + Y10*x + Y01*y + Y20*xx + Y11*xy + Y02*yy + Y30*xxx + Y21*xxy + Y12*xyy + Y03*yyy + Y40*xxxx + Y31*xxxy + Y22*xxyy + Y13*xyyy + Y04*yyyy
     *
     *
     *  The 'order' field of the TRANS structure signals which

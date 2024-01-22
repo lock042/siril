@@ -348,6 +348,7 @@ gchar *AstroTiff_build_header(fits *fit) {
 				for (int j = 0; j <= order - i; j++) {
 					char key[6];
 					g_snprintf(key, 6, "A_%d_%d", i, j);
+					// we add the key name as comment, otherwise wcspih fails to read the value (if no comment present)
 					siril_string_append_double_exp(str, A[i][j], key, key);
 				}
 			}
