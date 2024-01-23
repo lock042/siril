@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -860,9 +860,9 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 void update_icons_sequence_list(gboolean is_dark) {
 	GtkWidget *w;
 	if (is_dark) {
-		w = gtk_image_new_from_resource("/org/siril/ui/frame_dark.svg");
+		w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/frame_dark.svg");
 	} else {
-		w = gtk_image_new_from_file("/org/siril/ui/frame.svg");
+		w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/frame.svg");
 	}
 	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
 	gtk_widget_show(w);
