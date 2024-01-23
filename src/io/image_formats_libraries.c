@@ -1510,10 +1510,11 @@ int readpng(const char *name, fits* fit) {
 			png_byte* row = row_pointers[y];
 			for (int x = 0; x < width; x++) {
 				const png_byte* ptr = &(row[x * 4]);
-				*buf[RLAYER]++ = ptr[0] << 8;
-				*buf[GLAYER]++ = ptr[1] << 8;
-				*buf[BLAYER]++ = ptr[2] << 8;
+				*buf[RLAYER]++ = ptr[0];
+				*buf[GLAYER]++ = ptr[1];
+				*buf[BLAYER]++ = ptr[2];
 			}
+
 		}
 	}
 	// We define the number of channel we have
