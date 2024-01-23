@@ -1414,8 +1414,11 @@ void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 static void manual_photometry_data (sequence *seq) {
+	static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");		// Message in the console first...
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));  // ... then in the UI
+		gtk_widget_hide(dialog);
 		return;
 	}
 
@@ -1427,8 +1430,12 @@ static void manual_photometry_data (sequence *seq) {
 	double ra, dec;
 	// Gather the selected stars by hand
 	int nb_ref_stars = 0;
+	if (!seq->photometry[0] || !seq->photometry[1]) {
+		siril_log_color_message(_("One Variable star and one comparison star at least are required\nCannot create any file\n"), "salmon");
+		return;
+	}
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem xith convertion\n"), "salmon"); //y'a un PB sur la conversion pix->wcs
+		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem with convertion\n"), "salmon"); //y'a un PB sur la conversion pix->wcs
 		sel_item[r].ra = ra;
 		sel_item[r].dec = dec;
 		nb_ref_stars++;
