@@ -1101,6 +1101,7 @@ int readpng(const char *name, fits* fit) {
 				*buf[GLAYER]++ = ptr[1];
 				*buf[BLAYER]++ = ptr[2];
 			}
+
 		}
 	}
 	// We define the number of channel we have

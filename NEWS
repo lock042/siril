@@ -20,6 +20,7 @@ siril 1.2.1 January 26, 2024
 * Allowed moving file into workdir to be picked up for livestacking (#1223)
 * Fixed the way we check if there is enough space to use quick photometry (#1238)
 * Fixed platesolving close to poles (#1245)
+* Fixed bit depth evaluation for 8-bit images (#1244)
 * Fixed division by 0 in PixelMath (#1249)
 
 siril 1.2.0 September 15, 2023
