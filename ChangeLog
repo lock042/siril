@@ -51,6 +51,7 @@ xx/xx/xx
 * Fixed using wcs info when using light_curve command (#1195)
 * Allowed moving file into workdir to be picked up for livestacking (#1223)
 * Fixed the way we check if there is enough space to use quick photometry (#1238)
+* Fixed bit depth evaluation for 8-bit images (#1244)
 
 siril 1.2.0
 09/15/23
