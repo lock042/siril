@@ -29,6 +29,7 @@ siril 1.4.0 xx xx, xx
 * Fixed a crash when carrying out sequence geometry operations, caused by ROI (#1235)
 * Fixed wavelets redraw. (#1236)
 * Removed glib-networking as a dependency (#1157)
+* Added manual photometry output comparison stars file creation from UI (!614)
 
 siril 1.2.1 xx xx, xx
 
