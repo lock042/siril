@@ -890,11 +890,24 @@ gpointer plate_solver(gpointer p) {
 			args->scalefactor = 1.0;
 		}
 	} else {
-		stars = args->stars ? args->stars : com.stars;
-		if (stars)
-			while (stars[nb_stars])
-				nb_stars++;
-
+		if (args->stars) { //TODO: can't see a case where this argument is filled, can we remove?
+			stars = args->stars;
+			if (stars)
+				while (stars[nb_stars])
+					nb_stars++;
+		} else { // we need to make a copy of com.stars as we will alter the coordinates
+			stars = com.stars;
+			if (stars) {
+				while (com.stars[nb_stars])
+					nb_stars++;
+				stars = new_fitted_stars(nb_stars);
+				for (int s = 0; s < nb_stars; s++) {
+					stars[s] = new_psf_star();
+					stars[s]->xpos = com.stars[s]->xpos;
+					stars[s]->ypos = com.stars[s]->ypos;
+				}
+			}
+		}
 	}
 	CHECK_FOR_CANCELLATION;
 
@@ -1014,7 +1027,7 @@ gpointer plate_solver(gpointer p) {
 	args->new_center = solution.image_center;
 
 clearup:
-	if (stars && !args->manual) {
+	if (stars) {
 		for (int i = 0; i < nb_stars; i++)
 			free_psf(stars[i]);
 		free(stars);
