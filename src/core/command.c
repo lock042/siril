@@ -9409,7 +9409,7 @@ int process_icc_assign(int nb) {
 		profile = gfit.naxes[2] == 1 ? gray_linear() : siril_color_profile_linear_from_color_profile (com.icc.working_standard);
 	} else if (!g_ascii_strncasecmp(arg, "working", 7)) {
 		profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
-	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TYPE_REGULAR)) {
+	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
 	}
 	if (profile) {
@@ -9479,7 +9479,7 @@ int process_icc_convert_to(int nb) {
 		profile = gray_linear();
 	} else if (!g_ascii_strncasecmp(arg, "working", 7)) {
 		profile = copyICCProfile(gfit.naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
-	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TYPE_REGULAR)) {
+	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
 	}
 	if (profile) {
