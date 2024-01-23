@@ -444,7 +444,7 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 		for (int sipflag = 1; sipflag <= 2; sipflag++) { // fwd or rev
 			for (int p = 0; p <= N; p++) {
 				for (int q = 0; q <= N - p; q++) {
-					snprintf(field, 12, "SIP.%s.%d_%d", (sipflag == 1) ? "FWD" : "REV", p, q);
+					snprintf(field, 30, "SIP.%s.%d_%d", (sipflag == 1) ? "FWD" : "REV", p, q);
 					if (i == 0)
 						dpfill(dis->dp + ipx, keyword, field, i + 1, 1, 0, (sipflag == 1) ? A[p][q] : AP[p][q]);
 					else
