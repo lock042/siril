@@ -402,6 +402,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
 		siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
+		siril_plot_set_yfmt(spl_datarg, "%.1lf");
 		g_free(title1);
 
 		gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, nb_stars, kw);
@@ -419,6 +420,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
 		siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
+		siril_plot_set_yfmt(spl_databg, "%.1lf");
 		g_free(title2);
 
 		spl_datarg->cfgdata.point.radius = 1;
