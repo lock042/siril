@@ -414,8 +414,6 @@ void set_cutoff_sliders_max_values() {
 		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
-	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
-	 * Since 0.9.8 we have orig_bitpix, but it's not filled for SER and other images.
 	 */
 
 	max_val = (gfit.type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (gfit.orig_bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE));
