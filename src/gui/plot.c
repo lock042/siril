@@ -705,7 +705,6 @@ static int get_number_of_stars(const sequence *seq) {
 // the first will be the target
 static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **error, void *ptr) {
 	struct light_curve_args *lcargs = calloc(1, sizeof(struct light_curve_args));
-///	struct compstars_arg *args = (struct compstars_arg *) seq;
 
 	lcargs->seq = seq;
 	lcargs->layer = 0; // We don't care. This is not used in our case
@@ -1297,34 +1296,6 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	siril_widget_destroy(widgetdialog);
 }
 
-void on_ButtonCompStars_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return;
-	}
-
-	/* TODO
-	if (!com.target_star) {
-		siril_log_color_message(_("You have to identify the Variable star (Search in GUI or catsearch in ClI)\n"), "red");
-		return;
-	}
-
-	com.wide_field = FALSE;
-	com.used_cat = CAT_AAVSO;
-	get_compstars();
-
-	double dmag = 6.0;
-	do {		// This is the auto-sort process for GUI use
-		dmag = dmag * 0.9;
-	} while (sort_compstars (dmag, 0.5) > 8);
-
-	chk_compstars();
-	*/
-	set_cursor_waiting(FALSE);
-}
-
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;
 	set_cursor_waiting(TRUE);
@@ -1339,7 +1310,6 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
 }
-
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;
@@ -1432,10 +1402,12 @@ static void manual_photometry_data (sequence *seq) {
 	int nb_ref_stars = 0;
 	if (!seq->photometry[0] || !seq->photometry[1]) {
 		siril_log_color_message(_("One Variable star and one comparison star at least are required\nCannot create any file\n"), "salmon");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required"));  // ... then in the UI
+		gtk_widget_hide(dialog);
 		return;
 	}
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem with convertion\n"), "salmon"); //y'a un PB sur la conversion pix->wcs
+		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem with convertion\n"), "salmon"); // PB in the conversion pix->wcs
 		sel_item[r].ra = ra;
 		sel_item[r].dec = dec;
 		nb_ref_stars++;
@@ -1466,17 +1438,18 @@ static void manual_photometry_data (sequence *seq) {
 				item->dec);
 	}
 
-	// Fill the catalogue
+	// Fill the catalogue structure
 	comp_sta->cat_items = result;
 	comp_sta->nbitems = nb_ref_stars;
 	comp_sta->nbincluded = nb_ref_stars;
 
-	// Fill the other catalogue
+	// Fill the other catalogue  structure
 	args->comp_stars = comp_sta;
 	args->nina_file = g_strdup("V_SirilstarList_user.csv");
 	args->target_star = &result[0];
-	args->delta_Vmag = 0.0;		// Explicitely set these two variables
+	args->delta_Vmag = 0.0;		// Explicitely set these three variables
 	args->delta_BV = 0.0;
+	args->max_emag = 0.0;
 	args->cat = CAT_COMPSTARS;
 
 	// Finally create the csv file
