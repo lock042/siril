@@ -427,7 +427,7 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	// as the trans order should be the same for all images of the sequence
 	disinit(1, 2, dis, dpmax);
 	char keyword[4];
-	char field[12];
+	char field[30];
 	for (int i = 0; i < 2; i++) {
 		strcpy(dis->dtype[i], "SIP");
 		snprintf(keyword, 4, "DP%d", i + 1);
@@ -1071,7 +1071,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		free_stars(&star_list_B);
 		args->ret = new_star_match(stars, args->cstars, n, nobj,
 				scale_min, scale_max, NULL, &trans, TRUE,
-				UNDEFINED_TRANSFORMATION, args->trans_order, &star_list_A, &star_list_B);
+				UNDEFINED_TRANSFORMATION, AT_TRANS_LINEAR, &star_list_A, &star_list_B);
 		if (attempt == 2) {
 			scale_min = -1.0;
 			scale_max = -1.0;
@@ -1104,7 +1104,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 
 	/* try to get a better solution */
 	conv = get_center_offset_from_trans(&trans);
-	siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, num_matched);
+	siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, trans.nr);
 	while (conv > CONV_TOLERANCE && trial < max_trials){
 		// we get the new projection center
 		apply_match(solution->px_cat_center, center, &trans, &ra0, &dec0);
@@ -1134,16 +1134,70 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 			args->ret = 1;
 			break;
 		}
-		print_trans(&trans);
 		num_matched = trans.nm;
 		conv = get_center_offset_from_trans(&trans);
 		trial++;
-		siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, num_matched);
-		CHECK_FOR_CANCELLATION;
+		siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, trans.nr);
 	}
 	if (args->ret)	// after the break
 		goto clearup;
 	debug_print_catalog_files(star_list_A, star_list_B);
+
+	double cd[2][2];
+	get_cd_from_trans(&trans, cd);
+
+	// updating solution to higher order if required
+	if (args->trans_order > AT_TRANS_LINEAR) {
+		siril_debug_print("starting non linear match at order %d\n", args->trans_order);
+		TRANS newtrans = { 0 }; // we will fall back on the linear solution if not suceessfull at higher order
+		newtrans.order = args->trans_order;
+		int ret = atRecalcTrans(num_matched, star_list_A, num_matched, star_list_B, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &newtrans);
+		if (!ret) {
+			conv = get_center_offset_from_trans(&newtrans);
+			trial = 0;
+			siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, newtrans.nr);
+			while (conv > CONV_TOLERANCE && trial < max_trials && !ret) {
+				// we get the new projection center
+				apply_match(solution->px_cat_center, center, &newtrans, &ra0, &dec0);
+				// we will reproject the catalog at the new image center
+				siril_world_cs_unref(args->cat_center);
+				siril_world_cs_unref(solution->px_cat_center);
+				args->cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
+				solution->px_cat_center = siril_world_cs_new_from_a_d(ra0, dec0);
+				siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
+						siril_world_cs_alpha_format(args->cat_center, "%02d %02d %.3lf"),
+						siril_world_cs_delta_format(args->cat_center, "%c%02d %02d %.3lf"));
+				// this simply reprojects the catalog to the new center (no fetch)
+				if (get_catalog_stars(args, FALSE)) {
+					ret = 1;
+					break;
+				}
+				// Uses the indexes in star_list_B to update the stars positions according to the new projection
+				update_stars_positions(&star_list_B, num_matched, args->cstars);
+				// and recompute the trans structure
+				if (atRecalcTrans(num_matched, star_list_A, num_matched, star_list_B, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &newtrans)) {
+					ret = 1;
+					break;
+				}
+				conv = get_center_offset_from_trans(&newtrans);
+				trial++;
+				print_trans(&newtrans);
+				siril_debug_print("iteration %d - offset: %.3f, number of matches: %d\n", trial, conv, newtrans.nr);
+			}
+		}
+		if (!ret) {
+			trans = newtrans;
+			get_cd_from_trans(&trans, cd);
+		} else {
+			siril_log_color_message(_("%s could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "Siril", args->trans_order);
+		}
+	}
+
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 2; j++) {
+			cd[i][j] *= ASECTODEG;
+		}
+	}
 
 	double resolution = get_resolution_from_trans(&trans);
 	solution->focal_length = RADCONV * solution->pixel_size / resolution;
@@ -1160,14 +1214,6 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 		solution->focal_length *= args->scalefactor;
 
 	solution->image_is_flipped = image_is_flipped_from_trans(&trans);
-
-	double cd[2][2];
-	get_cd_from_trans(&trans, cd);
-	for (int i = 0; i < 2; i++) {
-		for (int j = 0; j < 2; j++) {
-			cd[i][j] *= ASECTODEG;
-		}
-	}
 
 	CHECK_FOR_CANCELLATION;
 
@@ -1580,12 +1626,12 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 			args->fit->wcslib->lin.dispre = NULL;
 			args->fit->wcslib->flag = 0;
 			wcsset(args->fit->wcslib);
-			siril_log_color_message(_("astrometry.net could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", com.pref.astrometry.sip_correction_order);
+			siril_log_color_message(_("%s could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
 		}
 	}
 	// In other cases, the dis struct is empyty, we still need to warn the user
 	if (com.pref.astrometry.sip_correction_order > 1 && !args->fit->wcslib->lin.dispre) {
-		siril_log_color_message(_("astrometry.net could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", com.pref.astrometry.sip_correction_order);
+		siril_log_color_message(_("%s could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
 	}
 
 	solution->image_is_flipped = image_is_flipped_from_wcs(args->fit);

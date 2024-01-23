@@ -3281,6 +3281,7 @@ double *newy /* O: contains output y coord */
 			  + trans->y20 * star->x * star->x + trans->y11 * star->x * star->y + trans->y02 * star->y * star->y
 			  + trans->y30 * star->x * star->x * star->x + trans->y21 * star->x * star->x * star->y
 			  + trans->y12 * star->x * star->y * star->y + trans->y03 * star->y * star->y * star->y;
+		break;
 
 	case AT_TRANS_QUARTIC:
 		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y
