@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,11 +27,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkImage" id="image1">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">edit-find</property>
-  </object>
   <object class="GtkAdjustment" id="AdjIPS_Dec_deg">
     <property name="upper">90</property>
     <property name="step-increment">1</property>
@@ -91,6 +86,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <object class="GtkAdjustment" id="adjustment_cc_bkg_y">
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">edit-find</property>
   </object>
   <object class="GtkListStore" id="liststoreIPS">
     <columns>
@@ -551,7 +551,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">9</property>
+                        <property name="top-attach">8</property>
                         <property name="width">2</property>
                       </packing>
                     </child>
@@ -568,8 +568,8 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">10</property>
-                        <property name="width">5</property>
+                        <property name="top-attach">9</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -584,7 +584,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">8</property>
+                        <property name="top-attach">10</property>
                       </packing>
                     </child>
                     <child>
@@ -661,6 +661,42 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="left-attach">1</property>
                         <property name="top-attach">8</property>
                         <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="ComboBoxIPS_order">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the order of the solution:
+Linear assumes no distorsion is present in the image
+Quadratic, Cubic and Quartic will include second-, third- or fourth-order polynomial distorsions.
+When selecting an order with distorsions, additional terms are added to the solution, using SIP convention</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item>Linear</item>
+                          <item>Quadratic (SIP)</item>
+                          <item>Cubic (SIP)</item>
+                          <item>Quartic (SIP)</item>
+                        </items>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">10</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_IPS_order">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
+                        <property name="halign">end</property>
+                        <property name="valign">center</property>
+                        <property name="label" translatable="yes">Solution order: </property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">10</property>
                       </packing>
                     </child>
                     <child>
@@ -1120,5 +1156,4 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       </object>
     </child>
   </object>
-
 </interface>
