@@ -22,17 +22,20 @@
 
 #include "io/siril_catalogues.h"
 
+#define ASYNC_JOB_TIMEOUT 60000000 // TODO: not used anymore
+
 // new queries
 #define VIZIER_TAP_QUERY "http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
 #define EXOPLANETARCHIVE_TAP_QUERY "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?format=csv&query=select+"
 #define SIMBAD_TAP_QUERY "https://simbad.u-strasbg.fr/simbad/sim-tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
+#define GAIA_DR3_TAP_QUERY "https://gea.esac.esa.int/tap-server/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY=SELECT+"
 #define IMCCE_QUERY "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?&-mime=text&-output=basic&-filter=0&-objFilter=111&-refsys=EQJ2000&-from=Siril"
 #define AAVSOCHART_QUERY "https://app.aavso.org/vsp/api/chart/?format=json"
-#define GAIA_DR3_QUERY "https://gea.esac.esa.int/tap-server/tap/async"
+#define GAIA_DR3_DATALINK_QUERY "https://gea.esac.esa.int/data-server/data"
 
 // only the first MAX_TAP_QUERY_COLUMNS columns are valid TAP queries
 // fields after this are used in other catalogues
-#define MAX_TAP_QUERY_COLUMNS 14
+#define MAX_TAP_QUERY_COLUMNS 13
 
 // The structure used to declare the columns to be queried from the tables
 // for TAP queries only!
@@ -46,6 +49,7 @@ gchar *fetch_url(const gchar *url, gsize *length);
 void free_fetch_result(gchar *result);
 
 int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat);
+int siril_catalog_get_data_from_online_catalogues(siril_catalogue *siril_cat, gchar **datalink_path);
 
 typedef enum _retrieval_type { // For use with Gaia DR3 Datalink query URLs
 	NO_DATALINK_RETRIEVAL,
@@ -57,9 +61,5 @@ typedef enum _retrieval_type { // For use with Gaia DR3 Datalink query URLs
 	RVS,
 	ALL
 } retrieval_type;
-
-#define ASYNC_JOB_TIMEOUT 60000000
-
-int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type, gchar** datalink_path, int max_datalink_sources);
 
 #endif

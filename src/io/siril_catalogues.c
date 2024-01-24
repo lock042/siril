@@ -73,7 +73,6 @@ const gchar *cat_columns[] = {
 	[CAT_FIELD_VDEC] = "vdec",
 	[CAT_FIELD_TYPE] = "type",
 	[CAT_FIELD_TEFF] = "teff",
-	[CAT_FIELD_XPSAMP] = "xpsamp",
 	[CAT_FIELD_GAIASOURCEID] = "source_id"
 };
 
@@ -131,7 +130,7 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 		case CAT_FIELD_TEFF:
 			return (item->teff) ? g_strdup_printf("%.6f", item->teff) : "";
 		case CAT_FIELD_GAIASOURCEID:
-			return (item->gaiasourceid) ? g_strdup_printf("%lu", item->gaiasourceid) : "";
+			return (item->gaiasourceid) ? g_strdup_printf("%llu", item->gaiasourceid) : "";
 		default:
 			return NULL;
 	}
@@ -142,11 +141,11 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 	switch (cat) {
 		case CAT_TYCHO2:
 		case CAT_NOMAD:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_GAIADR3:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF);
-		case CAT_GAIADR3_DIRECT:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF) |
-			(1 << CAT_FIELD_GAIASOURCEID);
+		case CAT_GAIADR3_4DL:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_GAIASOURCEID);
 		case CAT_PPMXL:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG);
 		case CAT_BSC:
@@ -233,8 +232,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("NOMAD");
 		case CAT_GAIADR3:
 			return _("Gaia DR3 (via Vizier)");
-		case CAT_GAIADR3_DIRECT:
-			return _("Gaia DR3 (direct)");
+		case CAT_GAIADR3_4DL:
+			return _("Gaia DR3 (DATALINK)");
 		case CAT_PPMXL:
 			return _("PPMXL");
 		case CAT_BSC:
@@ -290,6 +289,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 	switch (Catalog) {
 		case CAT_TYCHO2 ...	CAT_SIMBAD:
 		case CAT_EXOPLANETARCHIVE:
+		case CAT_GAIADR3_4DL:
 		case CAT_AAVSO_CHART:
 		case CAT_AN_STARS:
 		case CAT_LOCAL:

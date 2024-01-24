@@ -983,12 +983,19 @@ gpointer plate_solver(gpointer p) {
 		}
 		siril_catalog_free_items(args->ref_stars);
 		if (args->for_photometry_spcc) {
-			args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
-			siril_gaiadr3_datalink_query(args->ref_stars, XP_SAMPLED, &args->pcc->datalink_path, 5000);
+			args->ref_stars->cat_index = CAT_GAIADR3_4DL;
+			args->ref_stars->datalink_filter = XP_SAMPLED;
+			int nb = siril_catalog_conesearch(args->ref_stars);
+			if (nb > 0) {
+				sort_cat_items_by_mag(args->ref_stars);
+				if (siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE) > 0)
+					siril_catalog_get_data_from_online_catalogues(args->ref_stars, &args->pcc->datalink_path);
+			}
 		} else {
-			siril_catalog_conesearch(args->ref_stars);
+			int nb = siril_catalog_conesearch(args->ref_stars);
+			if (nb > 0)
+				nb_pcc_stars = siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 		}
-		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
 		args->ret = nb_pcc_stars == 0;
 

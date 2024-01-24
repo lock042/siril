@@ -8891,7 +8891,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	}
 
 	if (pcc_command) {
-		pcc_args->catalog = spectro ? CAT_GAIADR3_DIRECT : cat;
+		pcc_args->catalog = spectro ? CAT_GAIADR3_4DL : cat;
 		if (plate_solve) {
 			args->for_photometry_cc = TRUE;
 			args->pcc = pcc_args;
@@ -8945,6 +8945,8 @@ int process_conesearch(int nb) {
 				cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "gaiasp"))
+				cat = CAT_GAIADR3_4DL;
 			else if (!g_strcmp0(arg, "ppmxl"))
 				cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "bsc"))
@@ -9028,6 +9030,8 @@ int process_conesearch(int nb) {
 			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
 		}
 	}
+	if (cat == CAT_GAIADR3_4DL)
+		siril_cat->datalink_filter = XP_SAMPLED;
 	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
 	conesearch_args *args = init_conesearch();
 	args->fit = &gfit;

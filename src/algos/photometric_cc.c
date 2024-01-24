@@ -554,7 +554,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		}
 		// get r g b coefficient
 		// If the Gaia Teff field is populated (CAT_GAIADR3 and
-		// CAT_GAIADR3_DIRECT), use that as it should be more accurate.
+		// CAT_GAIADR3_4DL), use that as it should be more accurate.
 		// Otherwise, we convert from Johnson B-V
 		if (stars[i].teff == 0.f) {
 			bv = min(max(stars[i].BV, -0.4f), 2.f);
@@ -864,7 +864,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 			case CAT_GAIADR3:
 				mag = min(mag, 18.0);
 				break;
-			case CAT_GAIADR3_DIRECT:
+			case CAT_GAIADR3_4DL:
 				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
 				break;
 			case CAT_APASS:
@@ -883,11 +883,21 @@ gpointer photometric_cc_standalone(gpointer p) {
 	// preparing the catalogue query
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(args->fit, args->catalog, mag);
 	// don't set phot if we are using GAIADR3, we use this catalog in a different way
-	siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_DIRECT);
+	siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_4DL);
 
 	/* Fetching the catalog*/
 	if (args->spcc) {
-		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
+		siril_cat->datalink_filter = XP_SAMPLED;
+		siril_cat->cat_index = CAT_GAIADR3_4DL;
+		int nb = siril_catalog_conesearch(siril_cat); // fetches gaia catalog first with the correct datalink flag
+		if (nb > 0) {
+			sort_cat_items_by_mag(siril_cat);
+			if (!siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, FALSE)) {
+				retval = siril_catalog_get_data_from_online_catalogues(siril_cat, &args->datalink_path); // fetches gaia spectra
+			} else
+				retval = 1;
+		} else
+			retval = 1;
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	}
