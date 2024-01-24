@@ -1605,6 +1605,13 @@ int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
        return 0;
 }
 
+/* converts FITS/WCS coordinates to display coordinates */
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
+       *dx = fx - 0.5;
+       *dy = ry - fy + 0.5;
+       return 0;
+}
+
 gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser) {
 	gchar *filename = NULL;
     gchar *uri = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(chooser));
