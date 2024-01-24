@@ -810,3 +810,42 @@ int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b,
 	gsl_matrix_free (cov);
 	return retval;
 }
+
+double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper) {
+	uint32_t x0, y0, x1,y1;
+	if (area) {
+		x0 = area->x;
+		y0 = area->y;
+		x1 = area->x + area->w;
+		y1 = area->y + area->h;
+	} else {
+		x0 = y0 = 0;
+		x1 = gfit.rx;
+		y1 = gfit.ry;
+	}
+	size_t npixels = (x1 - x0) * (y1 - y0);
+	float *data = fit->fpdata[chan];
+	float *filtered_data = malloc(npixels * sizeof(float));
+	size_t count = 0;
+	for (uint32_t x = x0 ; x < x1 ; x++) {
+		for (uint32_t y = y0 ; y < y1 ; y++) {
+			size_t i = x + (y * fit->rx);
+			if (data[i] >= lower && data[i] <= upper) {
+				filtered_data[count++] = data[i];
+			}
+		}
+	}
+
+	// Check if there are any elements in the specified range
+	if (count == 0) {
+		free(filtered_data);
+		return 0.0; // No elements in the range, return 0 as median
+	}
+	// Sort the filtered data
+	double retval = quickmedian_float(filtered_data, count);
+
+	// Free the allocated memory for filtered_data
+	free(filtered_data);
+
+	return retval;
+}
