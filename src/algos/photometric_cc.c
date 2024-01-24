@@ -648,15 +648,26 @@ static int cmp_coeff(const void *a, const void *b) {
 /*
 Gets bg, min and max values per channel and sets the chennel with middle bg value
 */
-int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel) {
+int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel, float t0, float t1) {
 	// we cannot use compute_all_channels_statistics_single_image because of the area
 	for (int chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
+		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_MAD, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
-		bg[chan].value = stat->median;
+		// Compute the robust median as the median of all points within t{0,1} * MAD of the channel median
+		double sigma_c = MAD_NORM * stat->mad;
+		double median_c = stat->median;
+		double lower_c = median_c + t0 * sigma_c;
+		double upper_c = median_c + t1 * sigma_c;
+		double robust_median;
+		if (fit->type == DATA_USHORT) {
+			robust_median = robust_median_w(fit->pdata[chan], fit->rx * fit->ry, (float) lower_c, (float) upper_c);
+		} else {
+			robust_median = robust_median_f(fit->fpdata[chan], fit->rx * fit->ry, (float) lower_c, (float) upper_c);
+		}
+		bg[chan].value = robust_median;
 		bg[chan].channel = chan;
 		if (!area) {
 			mins[chan] = stat->min;
@@ -744,6 +755,10 @@ int photometric_cc(struct photometric_cc_data *args) {
 	float maxs[3];
 	int norm_channel;
 
+	// TODO! Link this to the GUI and a command arg
+	args->t0 = -2.8f;
+	args->t1 = 2.0f;
+
 	if (!isrgb(args->fit)) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
 		return 0;
@@ -755,7 +770,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	/* we use the median of each channel to sort them by level and select
 	 * the reference channel expressed in terms of order of middle median value */
-	if (get_stats_coefficients(args->fit, bkg_sel, bg, mins, maxs, &norm_channel)) {
+	if (get_stats_coefficients(args->fit, bkg_sel, bg, mins, maxs, &norm_channel, args->t0, args->t1)) {
 		siril_log_message(_("failed to compute statistics on image, aborting\n"));
 		free(args);
 		return 1;

@@ -35,6 +35,8 @@ struct photometric_cc_data {
 	pcc_star *stars;		// the list of stars with BV index in the image
 	int nb_stars;			// the number of stars in the array
 	float fwhm;			// representative FWHM for stars
+	float t0; // lower background tolerance, in sigma units
+	float t1; // upper background tolerance, in sigma units
 	gchar *datalink_path;	// to hold the datalink path for SPCC
 	gboolean spcc;			// set if doing SPCC
 	gboolean spcc_mono_sensor; // for SPCC
@@ -55,7 +57,7 @@ struct photometric_cc_data {
 };
 
 int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *bg, const float *mins, const float *maxs, int norm_channel);
-int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel);
+int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel, float t0, float t1);
 int photometric_cc(struct photometric_cc_data *args);
 gpointer photometric_cc_standalone(gpointer p);
 pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars);

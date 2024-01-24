@@ -38,6 +38,7 @@
 #include <float.h>
 #include <assert.h>
 #include <gsl/gsl_statistics.h>
+#include "algos/sorting.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -1156,5 +1157,54 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 		}
 		*noise = fSigma / nchans;
 	}
+	return retval;
+}
+
+double robust_median_w(WORD *data, size_t npixels, float lower, float upper) {
+	WORD *filtered_data = malloc(npixels * sizeof(WORD));
+	size_t count = 0;
+	WORD lowerw = roundf_to_WORD(lower);
+	WORD upperw = roundf_to_WORD(upper);
+	for (size_t i = 0; i < npixels; i++) {
+		if (data[i] >= lowerw && data[i] <= upperw) {
+			filtered_data[count++] = data[i];
+		}
+	}
+
+	// Check if there are any elements in the specified range
+	if (count == 0) {
+		free(filtered_data);
+		return 0.0; // No elements in the range, return 0 as median
+	}
+
+	double retval = quickmedian(filtered_data, count);
+
+	// Free the allocated memory for filtered_data
+	free(filtered_data);
+
+	return retval;
+}
+
+double robust_median_f(float *data, size_t npixels, float lower, float upper) {
+	float *filtered_data = malloc(npixels * sizeof(float));
+	size_t count = 0;
+
+	for (size_t i = 0; i < npixels; i++) {
+		if (data[i] >= lower && data[i] <= upper) {
+			filtered_data[count++] = data[i];
+		}
+	}
+
+	// Check if there are any elements in the specified range
+	if (count == 0) {
+		free(filtered_data);
+		return 0.0; // No elements in the range, return 0 as median
+	}
+	// Sort the filtered data
+	double retval = quickmedian_float(filtered_data, count);
+
+	// Free the allocated memory for filtered_data
+	free(filtered_data);
+
 	return retval;
 }
