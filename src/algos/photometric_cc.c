@@ -659,15 +659,17 @@ int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, f
 			return 1;
 		}
 		// Compute the robust median as the median of all points within t{0,1} * MAD of the channel median
-		double sigma_c = MAD_NORM * stat->mad;
 		double median_c = stat->median;
+		double sigma_c = MAD_NORM * stat->mad;
 		double lower_c = median_c + t0 * sigma_c;
 		double upper_c = median_c + t1 * sigma_c;
 		double robust_median;
+		// The robust median is calculated only using pixel values between lower_c and upper_c
+		int npixels = area ? area->w * area->h : fit->rx * fit->ry;
 		if (fit->type == DATA_USHORT) {
-			robust_median = robust_median_w(fit->pdata[chan], fit->rx * fit->ry, (float) lower_c, (float) upper_c);
+			robust_median = robust_median_w(fit->pdata[chan], npixels, (float) lower_c, (float) upper_c);
 		} else {
-			robust_median = robust_median_f(fit->fpdata[chan], fit->rx * fit->ry, (float) lower_c, (float) upper_c);
+			robust_median = robust_median_f(fit->fpdata[chan], npixels, (float) lower_c, (float) upper_c);
 		}
 		bg[chan].value = robust_median;
 		bg[chan].channel = chan;
