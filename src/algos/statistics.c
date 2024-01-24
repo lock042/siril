@@ -1160,14 +1160,30 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 	return retval;
 }
 
-double robust_median_w(WORD *data, size_t npixels, float lower, float upper) {
+double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float upper) {
+	uint32_t x0, y0, x1,y1;
+	if (area) {
+		x0 = area->x;
+		y0 = area->y;
+		x1 = area->x + area->w;
+		y1 = area->y + area->h;
+	} else {
+		x0 = y0 = 0;
+		x1 = gfit.rx;
+		y1 = gfit.ry;
+	}
+	size_t npixels = (x1 - x0) * (y1 - y0);
+	WORD *data = fit->pdata[chan];
 	WORD *filtered_data = malloc(npixels * sizeof(WORD));
 	size_t count = 0;
 	WORD lowerw = roundf_to_WORD(lower);
 	WORD upperw = roundf_to_WORD(upper);
-	for (size_t i = 0; i < npixels; i++) {
-		if (data[i] >= lowerw && data[i] <= upperw) {
-			filtered_data[count++] = data[i];
+	for (uint32_t x = x0 ; x < x1 ; x++) {
+		for (uint32_t y = y0 ; y < y1 ; y++) {
+			size_t i = x + (y * fit->rx);
+			if (data[i] >= lowerw && data[i] <= upperw) {
+				filtered_data[count++] = data[i];
+			}
 		}
 	}
 
@@ -1185,13 +1201,28 @@ double robust_median_w(WORD *data, size_t npixels, float lower, float upper) {
 	return retval;
 }
 
-double robust_median_f(float *data, size_t npixels, float lower, float upper) {
+double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper) {
+	uint32_t x0, y0, x1,y1;
+	if (area) {
+		x0 = area->x;
+		y0 = area->y;
+		x1 = area->x + area->w;
+		y1 = area->y + area->h;
+	} else {
+		x0 = y0 = 0;
+		x1 = gfit.rx;
+		y1 = gfit.ry;
+	}
+	size_t npixels = (x1 - x0) * (y1 - y0);
+	float *data = fit->fpdata[chan];
 	float *filtered_data = malloc(npixels * sizeof(float));
 	size_t count = 0;
-
-	for (size_t i = 0; i < npixels; i++) {
-		if (data[i] >= lower && data[i] <= upper) {
-			filtered_data[count++] = data[i];
+	for (uint32_t x = x0 ; x < x1 ; x++) {
+		for (uint32_t y = y0 ; y < y1 ; y++) {
+			size_t i = x + (y * fit->rx);
+			if (data[i] >= lower && data[i] <= upper) {
+				filtered_data[count++] = data[i];
+			}
 		}
 	}
 

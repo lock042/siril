@@ -102,16 +102,12 @@ static void start_photometric_cc(gboolean spcc) {
 		args->fit = &gfit;
 		args->for_photometry_cc = !spcc;
 		args->for_photometry_spcc = spcc;
-
-
 		args->pcc = pcc_args;
-		args->pcc->fit = &gfit;
-		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-		args->pcc->bg_area = get_bkg_selection();
 	}
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
+	pcc_args->bg_area = get_bkg_selection();
 	pcc_args->mag_mode = LIMIT_MAG_AUTO;
 
 	set_cursor_waiting(TRUE);

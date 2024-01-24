@@ -653,7 +653,7 @@ Gets bg, min and max values per channel and sets the chennel with middle bg valu
 int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel, float t0, float t1) {
 	// we cannot use compute_all_channels_statistics_single_image because of the area
 	for (int chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_MAD, MULTI_THREADED);
+		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC | STATS_MAD, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
@@ -665,11 +665,10 @@ int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, f
 		double upper_c = median_c + t1 * sigma_c;
 		double robust_median;
 		// The robust median is calculated only using pixel values between lower_c and upper_c
-		int npixels = area ? area->w * area->h : fit->rx * fit->ry;
 		if (fit->type == DATA_USHORT) {
-			robust_median = robust_median_w(fit->pdata[chan], npixels, (float) lower_c, (float) upper_c);
+			robust_median = robust_median_w(fit, area, chan, (float) lower_c, (float) upper_c);
 		} else {
-			robust_median = robust_median_f(fit->fpdata[chan], npixels, (float) lower_c, (float) upper_c);
+			robust_median = robust_median_f(fit, area, chan, (float) lower_c, (float) upper_c);
 		}
 		bg[chan].value = robust_median;
 		bg[chan].channel = chan;
