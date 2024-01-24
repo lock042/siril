@@ -63,6 +63,7 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);

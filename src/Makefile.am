@@ -370,8 +370,6 @@ siril_common_SOURCES = \
 	registration/matching/match.c \
 	registration/matching/atpmatch.c \
 	registration/matching/misc.c \
-	registration/matching/project_coords.c \
-	registration/matching/project_coords.h \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
 	registration/registration.c \

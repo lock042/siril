@@ -667,6 +667,7 @@ struct guiinf {
 	int selected_star;		// current selected star in the GtkListStore
 
 	gboolean show_wcs_grid;		// show the equatorial grid over the image
+	gboolean show_wcs_disto;		// show the distorsions (if present) include in the wcs solution
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 

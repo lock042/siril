@@ -8389,6 +8389,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
+	int order = 3; // we default to cubic
 	siril_cat_index cat = CAT_AUTO;
 	gboolean pcc_command = word[0][1] == 'c' || word[0][1] == 'p'; // not 'platesolve' or 'seqplatesolve'
 	gboolean seqps = !pcc_command && word[0][0] == 's';
@@ -8481,6 +8482,18 @@ static int do_pcc(int nb, gboolean spectro) {
 			if (arg[0] == '-' || arg[0] == '+')
 				mag_offset = value;
 			else target_mag = value;
+		}
+		else if (g_str_has_prefix(word[next_arg], "-order=")) {
+			char *arg = word[next_arg] + 7;
+			gchar *end;
+			int value = g_ascii_strtoull(arg, &end, 10);
+			if (end == arg || value < 1 || value > 4) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+			order = value;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
 			if (spectro) {
@@ -8637,6 +8650,7 @@ static int do_pcc(int nb, gboolean spectro) {
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
+		args->trans_order = order;
 		if (target_coords) {
 			args->cat_center = target_coords;
 		}
@@ -8858,6 +8872,7 @@ static int do_pcc(int nb, gboolean spectro) {
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
+		args->trans_order = order;
 		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 			noflip = TRUE;
 			siril_debug_print("forced no flip for solving an image from a sequence");
@@ -8868,8 +8883,10 @@ static int do_pcc(int nb, gboolean spectro) {
 		// preparing the catalogue query
 		args->ref_stars->cat_index = cat;
 		args->ref_stars->columns =  siril_catalog_columns(cat);
-		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
-		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+		if (target_coords) {
+			args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+			args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+		}
 		process_plate_solver_input(args);
 	}
 
@@ -9722,6 +9739,29 @@ int process_spcc_list(int nb) {
 		const spcc_object *object = (const spcc_object*) list->data;
 		siril_log_message("%s\n", is_osc_sensor ? object->model : object->name);
 		list = list->next;
+	}
+	return CMD_OK;
+}
+
+int process_disto(int nb) {
+	if (!has_wcs(&gfit) || !gfit.wcslib->lin.dispre) {
+		siril_log_color_message(_("This command only works on plate solved images with distorsions included\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	if (nb > 2)
+		return CMD_WRONG_N_ARG;
+	if (nb == 1) {
+		gui.show_wcs_disto	= TRUE;
+		redraw(REDRAW_OVERLAY);
+		return CMD_OK;
+	}
+	if (!strcmp(word[1], "clear")) {
+		gui.show_wcs_disto	= FALSE;
+		redraw(REDRAW_OVERLAY);
+		return CMD_OK;
+	} else {
+		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
 	}
 	return CMD_OK;
 }

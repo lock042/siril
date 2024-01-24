@@ -1313,9 +1313,18 @@ static void save_wcs_keywords(fits *fit) {
 	status = 0;
 
 	if (fit->wcslib) {
-		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
+		gboolean has_sip = fit->wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
+		if (!has_sip) {// no distorsions
+			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "TAN (gnomic) projection", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "TAN (gnomic) projection", &status);
+			status = 0;
+		} else {
+			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
+			status = 0;
+		}
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
 		status = 0;
@@ -1330,6 +1339,10 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcslib->crval[0]), "Axis1 reference value (deg)", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcslib->crval[1]), "Axis2 reference value (deg)", &status);
+		if (fit->wcslib->lonpole) {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->wcslib->lonpole), "Native longitude of celestial pole", &status);
+		}
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcslib->cdelt[0]), "X pixel size (deg)", &status);
@@ -1354,6 +1367,52 @@ static void save_wcs_keywords(fits *fit) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcslib->cd[3]), "Scale matrix (2, 2)", &status);
 			status = 0;
+		}
+		if (has_sip) {
+			// we deal with images up to order 6, we need 7 to hold 0_6 terms
+			double A[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double B[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			struct disprm *dis = fit->wcslib->lin.dispre;
+			int order = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
+			// we know the order of the distorsions, we can now write them
+			// A terms
+			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_snprintf(key, 6, "A_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &A[i][j], NULL, &status);
+				}
+			}
+			// B terms
+			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "SIP polynomial degree, axis 2, pixel-to-sky", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_snprintf(key, 6, "B_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &B[i][j], NULL, &status);
+				}
+			}
+			// AP terms
+			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "SIP polynomial degree, axis 1, sky-to-pixel", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[7];
+					g_snprintf(key, 7, "AP_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &AP[i][j], NULL, &status);
+				}
+			}
+			// BP terms
+			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "SIP polynomial degree, axis 2, sky-to-pixel", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[7];
+					g_snprintf(key, 7, "BP_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &BP[i][j], NULL, &status);
+				}
+			}
 		}
 	}
 	if (fit->wcsdata.pltsolvd) {
