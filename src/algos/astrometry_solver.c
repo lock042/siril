@@ -350,7 +350,7 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 	revtrans.order = trans->order;
 	int status = atRecalcTrans(nbpoints, xygrid, nbpoints, uvgrid, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &revtrans);
 	if (status) {
-		siril_log_color_message(_("Could not invert the SIP distorsion coefficients, try using a lower order or a linear solution\n"), "red");
+		siril_log_color_message(_("Could not invert the SIP distortion coefficients, try using a lower order or a linear solution\n"), "red");
 		free_stars(&uvgrid);
 		free_stars(&xygrid);
 		return 1;
@@ -1202,7 +1202,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 			trans = newtrans;
 			get_cd_from_trans(&trans, cd);
 		} else {
-			siril_log_color_message(_("%s could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "Siril", args->trans_order);
+			siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "Siril", args->trans_order);
 		}
 	}
 
@@ -1632,19 +1632,19 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	g_free(wcs_filename);
 
 	// In some cases asnet returns a dis struct with all coeffs null
-	if (args->fit->wcslib->lin.dispre) { // some distorsions were calculated, checked that the terms are not all null
+	if (args->fit->wcslib->lin.dispre) { // some distortions were calculated, checked that the terms are not all null
 		int N = extract_SIP_order_and_matrices(args->fit->wcslib->lin.dispre, NULL, NULL, NULL, NULL);
-		if (!N) { // the computation of the distorsions has failed for the order specified, we remove it and warn the user
+		if (!N) { // the computation of the distortions has failed for the order specified, we remove it and warn the user
 			disfree(args->fit->wcslib->lin.dispre);
 			args->fit->wcslib->lin.dispre = NULL;
 			args->fit->wcslib->flag = 0;
 			wcsset(args->fit->wcslib);
-			siril_log_color_message(_("%s could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
+			siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
 		}
 	}
 	// In other cases, the dis struct is empyty, we still need to warn the user
 	if (com.pref.astrometry.sip_correction_order > 1 && !args->fit->wcslib->lin.dispre) {
-		siril_log_color_message(_("%s could not find distorsion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
+		siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
 	}
 
 	solution->image_is_flipped = image_is_flipped_from_wcs(args->fit);

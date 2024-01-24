@@ -1540,7 +1540,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 static void draw_wcs_disto(const draw_data_t* dd) {
 	if (!gui.show_wcs_disto) return;
 	fits *fit = &gfit;
-	if (!has_wcs(fit) || !fit->wcslib->lin.dispre) return; // no platesolve or no distorsions
+	if (!has_wcs(fit) || !fit->wcslib->lin.dispre) return; // no platesolve or no distortions
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_line_width(cr, 3. / dd->zoom);
@@ -2077,7 +2077,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	/* celestial grid */
 	draw_wcs_grid(&dd);
 
-	/* distorsions */
+	/* distortions */
 	draw_wcs_disto(&dd);
 
 	/* detected objects */

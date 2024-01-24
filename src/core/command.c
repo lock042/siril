@@ -9518,7 +9518,7 @@ int process_icc_remove(int nb) {
 
 int process_disto(int nb) {
 	if (!has_wcs(&gfit) || !gfit.wcslib->lin.dispre) {
-		siril_log_color_message(_("This command only works on plate solved images with distorsions included\n"), "red");
+		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
 	if (nb > 2)

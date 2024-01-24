@@ -1313,7 +1313,7 @@ static void save_wcs_keywords(fits *fit) {
 
 	if (fit->wcslib) {
 		gboolean has_sip = fit->wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
-		if (!has_sip) {// no distorsions
+		if (!has_sip) {// no distortions
 			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "TAN (gnomic) projection", &status);
 			status = 0;
 			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "TAN (gnomic) projection", &status);
@@ -1375,7 +1375,7 @@ static void save_wcs_keywords(fits *fit) {
 			double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
 			struct disprm *dis = fit->wcslib->lin.dispre;
 			int order = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
-			// we know the order of the distorsions, we can now write them
+			// we know the order of the distortions, we can now write them
 			// A terms
 			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
