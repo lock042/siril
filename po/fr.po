@@ -7,11 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-08 13:14+0100\n"
+"POT-Creation-Date: 2024-01-24 10:54+0100\n"
 "PO-Revision-Date: 2024-01-08 14:25+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/"
-"siril-application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
+"application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -485,12 +485,12 @@ msgstr "Exporte le graphique affiché vers un fichier CSV."
 msgid "Export to CSV"
 msgstr "Exporter en CSV"
 
-#: src/gui/uifiles/siril.ui:1142 src/gui/callbacks.c:1041
+#: src/gui/uifiles/siril.ui:1142 src/gui/callbacks.c:1039
 msgid "16 bits"
 msgstr "16 bits"
 
 #: src/gui/uifiles/siril.ui:1150 src/gui/uifiles/siril.ui:9981
-#: src/gui/callbacks.c:1041
+#: src/gui/callbacks.c:1039
 msgid "32 bits"
 msgstr "32 bits"
 
@@ -963,7 +963,7 @@ msgstr "fichier rouge courrant"
 
 #: src/gui/uifiles/siril.ui:2750 src/gui/uifiles/StatWindow.ui:200
 #: src/gui/uifiles/color_calibration.ui:389 src/compositing/compositing.c:669
-#: src/gui/callbacks.c:865 src/gui/callbacks.c:1243
+#: src/gui/callbacks.c:863 src/gui/callbacks.c:1241
 msgid "Red"
 msgstr "Rouge"
 
@@ -972,7 +972,7 @@ msgid "current green file"
 msgstr "fichier vert courant"
 
 #: src/gui/uifiles/siril.ui:2918 src/gui/uifiles/StatWindow.ui:214
-#: src/gui/uifiles/color_calibration.ui:448 src/gui/callbacks.c:867
+#: src/gui/uifiles/color_calibration.ui:448 src/gui/callbacks.c:865
 msgid "Green"
 msgstr "Vert"
 
@@ -981,7 +981,7 @@ msgid "current blue file"
 msgstr "fichier bleu courant"
 
 #: src/gui/uifiles/siril.ui:3086 src/gui/uifiles/StatWindow.ui:228
-#: src/gui/uifiles/color_calibration.ui:507 src/gui/callbacks.c:869
+#: src/gui/uifiles/color_calibration.ui:507 src/gui/callbacks.c:867
 msgid "Blue"
 msgstr "Bleu"
 
@@ -1028,9 +1028,9 @@ msgstr "Supprimer tous les fichiers de la liste"
 #: src/gui/uifiles/file_information_dialog.ui:171
 #: src/gui/uifiles/composition_dialog.ui:96
 #: src/gui/uifiles/settings_window.ui:1741
-#: src/gui/uifiles/settings_window.ui:3886
-#: src/gui/uifiles/settings_window.ui:3900
-#: src/gui/uifiles/settings_window.ui:5377
+#: src/gui/uifiles/settings_window.ui:3924
+#: src/gui/uifiles/settings_window.ui:3965
+#: src/gui/uifiles/settings_window.ui:5400
 msgid "Clear"
 msgstr "Effacer"
 
@@ -1397,7 +1397,7 @@ msgstr ""
 "Les images sont manipulées sous forme de séquences. Siril peut trouver ces "
 "séquences dans le répertoire de travail."
 
-#: src/gui/uifiles/siril.ui:4343 src/gui/callbacks.c:2134
+#: src/gui/uifiles/siril.ui:4343 src/gui/callbacks.c:2132
 msgid "Sequence"
 msgstr "Séquence"
 
@@ -1566,7 +1566,7 @@ msgstr ""
 "Combien de fois la déviation standard la valeur du pixel doit différer pour "
 "être considérée comme défectueuse."
 
-#: src/gui/uifiles/siril.ui:4788 src/gui/uifiles/settings_window.ui:4995
+#: src/gui/uifiles/siril.ui:4788 src/gui/uifiles/settings_window.ui:5018
 msgid "Estimate"
 msgstr "Estimer"
 
@@ -3315,8 +3315,8 @@ msgstr ""
 "de script définis dans les préférences pointent sur des dossiers de scripts "
 "existants."
 
-#: src/gui/uifiles/siril.ui:9909 src/gui/uifiles/settings_window.ui:4386
-#: src/gui/uifiles/settings_window.ui:4707
+#: src/gui/uifiles/siril.ui:9909 src/gui/uifiles/settings_window.ui:4409
+#: src/gui/uifiles/settings_window.ui:4730
 msgid "Scripts"
 msgstr "Scripts"
 
@@ -3786,7 +3786,7 @@ msgstr "Décalage rotationnel"
 msgid "Rotational shift used to compute rotational gradient."
 msgstr "Décalage rotationnel utilisé pour calculer le gradient rotationnel."
 
-#: src/gui/uifiles/rgradient_dialog.ui:215 src/gui/uifiles/IPS_dialog.ui:1072
+#: src/gui/uifiles/rgradient_dialog.ui:215 src/gui/uifiles/IPS_dialog.ui:1108
 #: src/gui/uifiles/color_calibration.ui:281
 #: src/gui/uifiles/color_calibration.ui:670
 msgid "Use current selection"
@@ -4376,12 +4376,12 @@ msgid ""
 "filesize than TIFF compression at the expense of being slower and not "
 "providing the metadata that is available with TIFF."
 msgstr ""
-"Qualité. Une valeur de qualité = 100 permet une compression sans perte ("
-"notez que cela peut être assez lent). Les autres valeurs de qualité "
+"Qualité. Une valeur de qualité = 100 permet une compression sans perte "
+"(notez que cela peut être assez lent). Les autres valeurs de qualité "
 "fonctionnent de la même manière que la qualité JPEG, mais il n'y a pas de "
 "conversion directe (la même valeur de qualité ne donnera pas exactement la "
-"même qualité visuelle ou la même taille de fichier que pour un fichier JPEG)."
-"\n"
+"même qualité visuelle ou la même taille de fichier que pour un fichier "
+"JPEG).\n"
 "\n"
 "REMARQUE : la compression avec perte donne de mauvais résultats lors de "
 "l'enregistrement de données linéaires en raison de la plage dynamique très "
@@ -5254,8 +5254,8 @@ msgstr "Saisir le nombre d'ondes correspondant au point sélectionné"
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:188
 #: src/gui/uifiles/IPS_dialog.ui:206 src/gui/uifiles/IPS_dialog.ui:226
 #: src/gui/uifiles/IPS_dialog.ui:246 src/gui/uifiles/IPS_dialog.ui:266
-#: src/gui/uifiles/IPS_dialog.ui:977 src/gui/uifiles/IPS_dialog.ui:995
 #: src/gui/uifiles/IPS_dialog.ui:1013 src/gui/uifiles/IPS_dialog.ui:1031
+#: src/gui/uifiles/IPS_dialog.ui:1049 src/gui/uifiles/IPS_dialog.ui:1067
 #: src/gui/uifiles/settings_window.ui:507
 #: src/gui/uifiles/settings_window.ui:522 src/gui/uifiles/aavso_dialog.ui:315
 msgid "0"
@@ -6427,7 +6427,7 @@ msgid "Reject high"
 msgstr "Rejet haut"
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3642
-#: src/gui/uifiles/settings_window.ui:4372 src/core/icc_profile.c:1277
+#: src/gui/uifiles/settings_window.ui:4395 src/core/icc_profile.c:1277
 #: src/core/icc_profile.c:1279
 msgid "Color Management"
 msgstr "Gestion des couleurs"
@@ -6628,7 +6628,7 @@ msgid "Y"
 msgstr "Y"
 
 #: src/gui/uifiles/seqlist_dialog.ui:149
-#: src/gui/uifiles/settings_window.ui:4666
+#: src/gui/uifiles/settings_window.ui:4689
 msgid "Sel"
 msgstr "Sel"
 
@@ -6793,6 +6793,7 @@ msgid "Pixel size (µm):"
 msgstr "Pixel dim. (micron) :"
 
 #: src/gui/uifiles/IPS_dialog.ui:447 src/gui/uifiles/IPS_dialog.ui:462
+#: src/gui/uifiles/IPS_dialog.ui:692
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
@@ -6917,15 +6918,30 @@ msgstr ""
 "Utilisez la commande solve-field pour trouver la solution astrométrique au "
 "lieu du solveur interne de Siril"
 
-#: src/gui/uifiles/IPS_dialog.ui:681
+#: src/gui/uifiles/IPS_dialog.ui:670
+msgid ""
+"Select the order of the solution:\n"
+"Linear assumes no distorsion is present in the image\n"
+"Quadratic, Cubic and Quartic will include second-, third- or fourth-order "
+"polynomial distorsions.\n"
+"When selecting an order with distorsions, additional terms are added to the "
+"solution, using SIP convention"
+msgstr ""
+
+#: src/gui/uifiles/IPS_dialog.ui:695
+#, fuzzy
+msgid "Solution order: "
+msgstr "Résolution : "
+
+#: src/gui/uifiles/IPS_dialog.ui:717
 msgid "Image Parameters"
 msgstr "Paramètres de l'Image"
 
-#: src/gui/uifiles/IPS_dialog.ui:713
+#: src/gui/uifiles/IPS_dialog.ui:749
 msgid "Catalogue Limit Mag: "
 msgstr "Magnitude limite : "
 
-#: src/gui/uifiles/IPS_dialog.ui:725
+#: src/gui/uifiles/IPS_dialog.ui:761
 msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, "
 "lower is the value."
@@ -6933,11 +6949,11 @@ msgstr ""
 "Magnitude maximale utilisée dans les requêtes du catalogue. Plus le champ "
 "est large, plus la valeur doit être basse."
 
-#: src/gui/uifiles/IPS_dialog.ui:739 src/gui/uifiles/IPS_dialog.ui:796
+#: src/gui/uifiles/IPS_dialog.ui:775 src/gui/uifiles/IPS_dialog.ui:832
 msgid "Auto"
 msgstr "Auto"
 
-#: src/gui/uifiles/IPS_dialog.ui:743
+#: src/gui/uifiles/IPS_dialog.ui:779
 msgid ""
 "The limit magnitude is automatically determined using the approximation of "
 "the Field Of View."
@@ -6945,11 +6961,11 @@ msgstr ""
 "La magnitude limite est automatiquement déterminée en fonction de "
 "l'approximation du champ de l'image."
 
-#: src/gui/uifiles/IPS_dialog.ui:759
+#: src/gui/uifiles/IPS_dialog.ui:795
 msgid "Online Star Catalogue: "
 msgstr "Catalogue d'étoiles en ligne : "
 
-#: src/gui/uifiles/IPS_dialog.ui:771
+#: src/gui/uifiles/IPS_dialog.ui:807
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -6998,7 +7014,7 @@ msgstr ""
 "valable de la 7ème magnitude à la 17ème magnitude pour plus de 37 millions "
 "d'étoiles."
 
-#: src/gui/uifiles/IPS_dialog.ui:800
+#: src/gui/uifiles/IPS_dialog.ui:836
 msgid ""
 "The online catalogue is automatically determined using the approximation of "
 "the Field Of View and magnitude."
@@ -7006,7 +7022,7 @@ msgstr ""
 "Le catalogue en ligne est automatiquement déterminé en fonction de "
 "l'approximation du champ de l'image et de la magnitude."
 
-#: src/gui/uifiles/IPS_dialog.ui:815
+#: src/gui/uifiles/IPS_dialog.ui:851
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -7030,15 +7046,15 @@ msgstr ""
 "u', g', r ', i', z_s et Z. Il est valable aux magnitudes allant environ de 7 "
 "à 17 pour plus de 37 millions d'étoiles."
 
-#: src/gui/uifiles/IPS_dialog.ui:821 src/io/siril_catalogues.c:231
+#: src/gui/uifiles/IPS_dialog.ui:857 src/io/siril_catalogues.c:231
 msgid "APASS"
 msgstr "APASS"
 
-#: src/gui/uifiles/IPS_dialog.ui:835
+#: src/gui/uifiles/IPS_dialog.ui:871
 msgid "Photometric Star Catalogue: "
 msgstr "Catalogue photométrique : "
 
-#: src/gui/uifiles/IPS_dialog.ui:846
+#: src/gui/uifiles/IPS_dialog.ui:882
 msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
@@ -7046,7 +7062,7 @@ msgstr ""
 "Le catalogue NOMAD peut être installé localement pour ne pas dépendre d'une "
 "connexion Internet pour cette opération."
 
-#: src/gui/uifiles/IPS_dialog.ui:858
+#: src/gui/uifiles/IPS_dialog.ui:894
 msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to "
 "not rely on an Internet connection for this operation."
@@ -7055,15 +7071,15 @@ msgstr ""
 "localement afin de ne pas dépendre d'une connexion Internet pour cette "
 "opération."
 
-#: src/gui/uifiles/IPS_dialog.ui:879
+#: src/gui/uifiles/IPS_dialog.ui:915
 msgid "Catalogue Parameters"
 msgstr "Paramètres du catalogue"
 
-#: src/gui/uifiles/IPS_dialog.ui:900
+#: src/gui/uifiles/IPS_dialog.ui:936
 msgid "Manual detection"
 msgstr "Détection manuelle"
 
-#: src/gui/uifiles/IPS_dialog.ui:904
+#: src/gui/uifiles/IPS_dialog.ui:940
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -7078,15 +7094,15 @@ msgstr ""
 "Utilisez l'outil PSF Dynamique, ou la commande findstar, en ajustant les "
 "paramètres à votre image."
 
-#: src/gui/uifiles/IPS_dialog.ui:914 src/gui/uifiles/stars_list_window.ui:865
+#: src/gui/uifiles/IPS_dialog.ui:950 src/gui/uifiles/stars_list_window.ui:865
 msgid "Star Detection"
 msgstr "Détection d'étoiles"
 
-#: src/gui/uifiles/IPS_dialog.ui:940
+#: src/gui/uifiles/IPS_dialog.ui:976
 msgid "Automatic detection"
 msgstr "Auto-détection"
 
-#: src/gui/uifiles/IPS_dialog.ui:944
+#: src/gui/uifiles/IPS_dialog.ui:980
 msgid ""
 "Uncheck this button if you want to select the background reference by "
 "yourself. It can be useful when nebulae cover a large portion of the image."
@@ -7095,28 +7111,28 @@ msgstr ""
 "d'arrière-plan. Cela peut être utile lorsque les nébuleuses couvrent une "
 "grande partie de l'image."
 
-#: src/gui/uifiles/IPS_dialog.ui:974 src/gui/uifiles/color_calibration.ui:195
+#: src/gui/uifiles/IPS_dialog.ui:1010 src/gui/uifiles/color_calibration.ui:195
 msgid "x coordinate of the start of the background selection"
 msgstr "coordonnées x du début de la sélection du FDC"
 
-#: src/gui/uifiles/IPS_dialog.ui:992 src/gui/uifiles/color_calibration.ui:213
+#: src/gui/uifiles/IPS_dialog.ui:1028 src/gui/uifiles/color_calibration.ui:213
 msgid "y coordinate of the start of the background selection"
 msgstr "coordonnées y du début de la sélection du FDC"
 
-#: src/gui/uifiles/IPS_dialog.ui:1010 src/gui/uifiles/color_calibration.ui:230
+#: src/gui/uifiles/IPS_dialog.ui:1046 src/gui/uifiles/color_calibration.ui:230
 msgid "Width of the background selection"
 msgstr "Largeur de la sélection du FDC"
 
-#: src/gui/uifiles/IPS_dialog.ui:1028 src/gui/uifiles/color_calibration.ui:247
+#: src/gui/uifiles/IPS_dialog.ui:1064 src/gui/uifiles/color_calibration.ui:247
 msgid "Height of the background selection"
 msgstr "Hauteur de la sélection du FDC"
 
-#: src/gui/uifiles/IPS_dialog.ui:1046 src/gui/uifiles/color_calibration.ui:264
+#: src/gui/uifiles/IPS_dialog.ui:1082 src/gui/uifiles/color_calibration.ui:264
 #: src/gui/uifiles/color_calibration.ui:653
 msgid "Selected area"
 msgstr "Zone sélectionnée"
 
-#: src/gui/uifiles/IPS_dialog.ui:1076 src/gui/uifiles/color_calibration.ui:285
+#: src/gui/uifiles/IPS_dialog.ui:1112 src/gui/uifiles/color_calibration.ui:285
 msgid ""
 "You must specify a selection that represents the true background of the "
 "image, trying to exclude all stars or other stellar objects."
@@ -7125,7 +7141,7 @@ msgstr ""
 "l'image en essayant d'éviter d'inclure des étoiles ou d'autres objets "
 "stellaires."
 
-#: src/gui/uifiles/IPS_dialog.ui:1100
+#: src/gui/uifiles/IPS_dialog.ui:1136
 msgid "Background Reference"
 msgstr "Référence de fond du ciel"
 
@@ -9471,8 +9487,8 @@ msgstr ""
 "également être utilisée par les options d'exportation de fichiers."
 
 #: src/gui/uifiles/settings_window.ui:3690
-#: src/gui/uifiles/settings_window.ui:4036
-#: src/gui/uifiles/settings_window.ui:4116
+#: src/gui/uifiles/settings_window.ui:4059
+#: src/gui/uifiles/settings_window.ui:4139
 msgid "sRGB"
 msgstr "sRGB"
 
@@ -9584,46 +9600,54 @@ msgstr "Profil d'épreuvage en sortie :"
 msgid "Rendering intent:"
 msgstr "Intention de rendu :"
 
-#: src/gui/uifiles/settings_window.ui:3890
-msgid "Clear the profile and revert to the default"
-msgstr "Effacer le profil et revenir à la valeur par défaut"
-
-#: src/gui/uifiles/settings_window.ui:3904
-msgid "Clear the profile: soft proofing will be unavailable"
-msgstr "Effacer le profil : l'épreuvage à l'écran ne sera pas disponible"
-
-#: src/gui/uifiles/settings_window.ui:3916
+#: src/gui/uifiles/settings_window.ui:3888
 msgid "Select the display intent. The default is perceptual rendering."
 msgstr ""
 "Sélectionnez l'intention d'affichage. La valeur par défaut est le rendu "
 "perceptuel."
 
-#: src/gui/uifiles/settings_window.ui:3919
-#: src/gui/uifiles/settings_window.ui:4066
+#: src/gui/uifiles/settings_window.ui:3891
+#: src/gui/uifiles/settings_window.ui:4089
 msgid "Perceptual"
 msgstr "Perception"
 
-#: src/gui/uifiles/settings_window.ui:3920
-#: src/gui/uifiles/settings_window.ui:4067
+#: src/gui/uifiles/settings_window.ui:3892
+#: src/gui/uifiles/settings_window.ui:4090
 msgid "Relative Colorimetric"
 msgstr "Colorimétrie relative"
 
-#: src/gui/uifiles/settings_window.ui:3921
-#: src/gui/uifiles/settings_window.ui:4068
+#: src/gui/uifiles/settings_window.ui:3893
+#: src/gui/uifiles/settings_window.ui:4091
 msgid "Saturation"
 msgstr "Saturation"
 
-#: src/gui/uifiles/settings_window.ui:3922
-#: src/gui/uifiles/settings_window.ui:4069
+#: src/gui/uifiles/settings_window.ui:3894
+#: src/gui/uifiles/settings_window.ui:4092
 msgid "Absolute Colorimetric"
 msgstr "Colorimétrie absolue"
 
-#: src/gui/uifiles/settings_window.ui:3933
-#: src/gui/uifiles/settings_window.ui:3948
+#: src/gui/uifiles/settings_window.ui:3905
+msgid "Black point compensation"
+msgstr "Compensation du point noir"
+
+#: src/gui/uifiles/settings_window.ui:3909
+msgid ""
+"Enable BPC for rendering. This is not normally required but may be useful if "
+"an image has a malformed source profile."
+msgstr ""
+"Activer le BPC pour le rendu. Cela n'est normalement pas nécessaire, mais "
+"peut être utile si une image a un profil source malformé."
+
+#: src/gui/uifiles/settings_window.ui:3928
+msgid "Clear the profile and revert to the default"
+msgstr "Effacer le profil et revenir à la valeur par défaut"
+
+#: src/gui/uifiles/settings_window.ui:3939
+#: src/gui/uifiles/settings_window.ui:3980
 msgid "active"
 msgstr "actif"
 
-#: src/gui/uifiles/settings_window.ui:3937
+#: src/gui/uifiles/settings_window.ui:3943
 msgid ""
 "Whether or not to use the custom monitor profile. This will take effect when "
 "Apply is clicked. The setting is ignored if no custom monitor profile is set."
@@ -9632,7 +9656,11 @@ msgstr ""
 "lorsque l'on clique sur Appliquer. Le paramètre est ignoré si aucun profil "
 "de moniteur personnalisé n'est défini."
 
-#: src/gui/uifiles/settings_window.ui:3952
+#: src/gui/uifiles/settings_window.ui:3969
+msgid "Clear the profile: soft proofing will be unavailable"
+msgstr "Effacer le profil : l'épreuvage à l'écran ne sera pas disponible"
+
+#: src/gui/uifiles/settings_window.ui:3984
 msgid ""
 "Whether or not to use the custom soft proofing profile. This will take "
 "effect when Apply is clicked. The setting is ignored if no custom monitor "
@@ -9642,23 +9670,11 @@ msgstr ""
 "lorsque l'on clique sur Appliquer. Le paramètre est ignoré si aucun profil "
 "de moniteur personnalisé n'est défini."
 
-#: src/gui/uifiles/settings_window.ui:3963
-msgid "Black point compensation"
-msgstr "Compensation du point noir"
-
-#: src/gui/uifiles/settings_window.ui:3967
-msgid ""
-"Enable BPC for rendering. This is not normally required but may be useful if "
-"an image has a malformed source profile."
-msgstr ""
-"Activer le BPC pour le rendu. Cela n'est normalement pas nécessaire, mais "
-"peut être utile si une image a un profil source malformé."
-
-#: src/gui/uifiles/settings_window.ui:3985
+#: src/gui/uifiles/settings_window.ui:4008
 msgid "Custom Profiles"
 msgstr "Profils personnalisés"
 
-#: src/gui/uifiles/settings_window.ui:4002
+#: src/gui/uifiles/settings_window.ui:4025
 msgid ""
 "This section contains settings affecting how color spaces are applied to "
 "saved files\n"
@@ -9672,11 +9688,11 @@ msgstr ""
 "Ces options n'affectent pas les profils enregistrés dans les fichiers FITS, "
 "qui sont configurés dans les options FITS"
 
-#: src/gui/uifiles/settings_window.ui:4021
+#: src/gui/uifiles/settings_window.ui:4044
 msgid "Export high bit depth images using:"
 msgstr "Exporter les hautes précisions en utilisant :"
 
-#: src/gui/uifiles/settings_window.ui:4032
+#: src/gui/uifiles/settings_window.ui:4055
 msgid ""
 "Selects which color space to export >8bpp bit depth images to. The ICC color "
 "profile will be embedded in the file.\n"
@@ -9689,33 +9705,33 @@ msgstr ""
 "Remarque : si le format ne prend pas en charge l'intégration du profil ICC, "
 "les images seront toujours exportées en sRGB."
 
-#: src/gui/uifiles/settings_window.ui:4037
-#: src/gui/uifiles/settings_window.ui:4117
+#: src/gui/uifiles/settings_window.ui:4060
+#: src/gui/uifiles/settings_window.ui:4140
 msgid "Working gamut"
 msgstr "Gamut de travail"
 
-#: src/gui/uifiles/settings_window.ui:4038
-#: src/gui/uifiles/settings_window.ui:4118
+#: src/gui/uifiles/settings_window.ui:4061
+#: src/gui/uifiles/settings_window.ui:4141
 msgid "Image's current ICC profile"
 msgstr "Profil ICC actuel de l'image"
 
-#: src/gui/uifiles/settings_window.ui:4052
+#: src/gui/uifiles/settings_window.ui:4075
 msgid "Conversion and export intent:"
 msgstr "Conversion et intention d'exportation :"
 
-#: src/gui/uifiles/settings_window.ui:4063
+#: src/gui/uifiles/settings_window.ui:4086
 msgid "Select the color management intent for conversion / export"
 msgstr ""
 "Sélectionner l'intention de gestion des couleurs pour la conversion / "
 "l'exportation"
 
-#: src/gui/uifiles/settings_window.ui:4080
+#: src/gui/uifiles/settings_window.ui:4103
 msgid "Treat non color-managed files as sRGB for export to supported formats"
 msgstr ""
 "Traiter les fichiers non gérés en couleur comme sRGB pour l'exportation vers "
 "les formats pris en charge"
 
-#: src/gui/uifiles/settings_window.ui:4084
+#: src/gui/uifiles/settings_window.ui:4107
 msgid ""
 "For files with no assigned color profile, when exporting to TIFF / PNG / "
 "JPG, embed a sRGB (or Gray with sRGB TRC) ICC profile. This does not give a "
@@ -9730,11 +9746,11 @@ msgstr ""
 "l'ouverture des fichiers exportés dans d'autres applications.\n"
 "Si cette option n'est pas cochée, aucun profil ICC ne sera intégré."
 
-#: src/gui/uifiles/settings_window.ui:4101
+#: src/gui/uifiles/settings_window.ui:4124
 msgid "Export 8-bit images using:"
 msgstr "Exporter des images 8 bits en utilisant :"
 
-#: src/gui/uifiles/settings_window.ui:4112
+#: src/gui/uifiles/settings_window.ui:4135
 msgid ""
 "Selects which color space to export 8-bit images to, if the format supports "
 "ICC profiles. The ICC color profile will be embedded in the file.\n"
@@ -9747,19 +9763,19 @@ msgstr ""
 "Remarque : si le format ne prend pas en charge l'intégration du profil ICC, "
 "les images seront toujours exportées en sRGB."
 
-#: src/gui/uifiles/settings_window.ui:4135
+#: src/gui/uifiles/settings_window.ui:4158
 msgid "File Import / Export Options"
 msgstr "Options d'importation/exportation de fichiers"
 
-#: src/gui/uifiles/settings_window.ui:4169
+#: src/gui/uifiles/settings_window.ui:4192
 msgid "Auto assign working color space:"
 msgstr "Attribution automatique de l'espace colorimétrique de travail :"
 
-#: src/gui/uifiles/settings_window.ui:4182
+#: src/gui/uifiles/settings_window.ui:4205
 msgid "Convert other color profiles to the working profile?"
 msgstr "Convertir d'autres profils de couleur en profil de travail ?"
 
-#: src/gui/uifiles/settings_window.ui:4193
+#: src/gui/uifiles/settings_window.ui:4216
 msgid ""
 "This option sets the behaviour if an image is loaded and it already contains "
 "an ICC profile."
@@ -9767,40 +9783,40 @@ msgstr ""
 "Cette option définit le comportement à adopter lorsqu'une image est chargée "
 "et qu'elle contient déjà un profil ICC."
 
-#: src/gui/uifiles/settings_window.ui:4196
-#: src/gui/uifiles/settings_window.ui:4250
+#: src/gui/uifiles/settings_window.ui:4219
+#: src/gui/uifiles/settings_window.ui:4273
 msgid "Never"
 msgstr "Jamais"
 
-#: src/gui/uifiles/settings_window.ui:4197
+#: src/gui/uifiles/settings_window.ui:4220
 msgid "Ask every time"
 msgstr "Demander à chaque fois"
 
-#: src/gui/uifiles/settings_window.ui:4198
+#: src/gui/uifiles/settings_window.ui:4221
 msgid "Always"
 msgstr "Toujours"
 
-#: src/gui/uifiles/settings_window.ui:4208
+#: src/gui/uifiles/settings_window.ui:4231
 msgid "On load"
 msgstr "Au chargement"
 
-#: src/gui/uifiles/settings_window.ui:4222
+#: src/gui/uifiles/settings_window.ui:4245
 msgid "On stacking"
 msgstr "À l'empilement"
 
-#: src/gui/uifiles/settings_window.ui:4236
+#: src/gui/uifiles/settings_window.ui:4259
 msgid "On stretching"
 msgstr "Lors de l'étirement"
 
-#: src/gui/uifiles/settings_window.ui:4265
+#: src/gui/uifiles/settings_window.ui:4288
 msgid "Output of RGB composition / PixelMath"
 msgstr "En sortie de composition RVB / PixelMath"
 
-#: src/gui/uifiles/settings_window.ui:4279
+#: src/gui/uifiles/settings_window.ui:4302
 msgid "Pedantically assign linear ICC profiles"
 msgstr "Attribuer de manière rigoureuse des profils ICC linéaires"
 
-#: src/gui/uifiles/settings_window.ui:4283
+#: src/gui/uifiles/settings_window.ui:4306
 msgid ""
 "When assigning an ICC image to:\n"
 "* a loaded image that doesn't show stretches in HISTORY\n"
@@ -9817,15 +9833,15 @@ msgstr ""
 "assigner un profil ICC linéaire. C'est techniquement correct, mais "
 "généralement inutile."
 
-#: src/gui/uifiles/settings_window.ui:4304
+#: src/gui/uifiles/settings_window.ui:4327
 msgid "Auto Conversion / Assignment Options"
 msgstr "Conversion automatique / Options d'affectation"
 
-#: src/gui/uifiles/settings_window.ui:4333
+#: src/gui/uifiles/settings_window.ui:4356
 msgid "Export built-in profiles"
 msgstr "Exporter les profils intégrés"
 
-#: src/gui/uifiles/settings_window.ui:4337
+#: src/gui/uifiles/settings_window.ui:4360
 msgid ""
 "Export the built-in profiles to the working directory. Elle Stone's profiles "
 "are distributed with the CC BY-SA-3.0 licence. As they are built into the "
@@ -9837,11 +9853,11 @@ msgstr ""
 "intégrés dans le binaire Siril, cette fonction d'exportation permet de "
 "respecter la disposition \"share-alike\" de la licence."
 
-#: src/gui/uifiles/settings_window.ui:4354
+#: src/gui/uifiles/settings_window.ui:4377
 msgid "<b>Built-in Profiles</b>"
 msgstr "<b>Profils embarqués</b>"
 
-#: src/gui/uifiles/settings_window.ui:4417
+#: src/gui/uifiles/settings_window.ui:4440
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
@@ -9853,23 +9869,23 @@ msgstr ""
 "avec autant de lignes que vous le souhaitez. Cependant, vous devez garder à "
 "l'esprit que plus les chemins sont vérifiés, plus le démarrage est long."
 
-#: src/gui/uifiles/settings_window.ui:4430
+#: src/gui/uifiles/settings_window.ui:4453
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>Répertoire des scripts</b>"
 
-#: src/gui/uifiles/settings_window.ui:4447
+#: src/gui/uifiles/settings_window.ui:4470
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr "Réanalyse les dossiers de scripts et met à jour le menu des scripts."
 
-#: src/gui/uifiles/settings_window.ui:4478
+#: src/gui/uifiles/settings_window.ui:4501
 msgid "Show warning before script execution"
 msgstr "Afficher un avertissement avant l'exécution du script"
 
-#: src/gui/uifiles/settings_window.ui:4494
+#: src/gui/uifiles/settings_window.ui:4517
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr "La commande \"Requires\" est obligatoire dans les scripts"
 
-#: src/gui/uifiles/settings_window.ui:4498
+#: src/gui/uifiles/settings_window.ui:4521
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -9885,16 +9901,16 @@ msgstr ""
 "<span foreground=\"red\"><b>ATTENTION : ne décocher cette option que si vous "
 "savez ce que vous faites !</b></span>"
 
-#: src/gui/uifiles/settings_window.ui:4519
-#: src/gui/uifiles/settings_window.ui:5255
+#: src/gui/uifiles/settings_window.ui:4542
+#: src/gui/uifiles/settings_window.ui:5278
 msgid "Warning Dialogs"
 msgstr "Avertissements"
 
-#: src/gui/uifiles/settings_window.ui:4547
+#: src/gui/uifiles/settings_window.ui:4570
 msgid "Enable use of the siril-scripts online repository"
 msgstr "Permettre l'utilisation du dépôt en ligne siril-scripts"
 
-#: src/gui/uifiles/settings_window.ui:4551
+#: src/gui/uifiles/settings_window.ui:4574
 msgid ""
 "Siril will fetch and update scripts from the official siril-scripts "
 "repository. These will be available offline and specific scripts can be "
@@ -9915,19 +9931,19 @@ msgstr ""
 "dépôt n'interviendra que lorsque vous cliquerez sur le bouton Appliquer, de "
 "la manière habituelle."
 
-#: src/gui/uifiles/settings_window.ui:4572
+#: src/gui/uifiles/settings_window.ui:4595
 msgid "Automatic updates"
 msgstr "Mises à jour automatiques"
 
-#: src/gui/uifiles/settings_window.ui:4576
+#: src/gui/uifiles/settings_window.ui:4599
 msgid "Automatically update the repository at startup."
 msgstr "Mettre à jour automatiquement le dépôt au démarrage."
 
-#: src/gui/uifiles/settings_window.ui:4587
+#: src/gui/uifiles/settings_window.ui:4610
 msgid "Manual update"
 msgstr "Mise à jour manuelle"
 
-#: src/gui/uifiles/settings_window.ui:4592
+#: src/gui/uifiles/settings_window.ui:4615
 msgid ""
 "Update the scripts repository now. If there are any pending changes, the "
 "commit messages will be shown and you will be asked to confirm applying the "
@@ -9937,7 +9953,7 @@ msgstr ""
 "attente, les messages de validation seront affichés et il vous sera demandé "
 "de confirmer l'application des modifications."
 
-#: src/gui/uifiles/settings_window.ui:4619
+#: src/gui/uifiles/settings_window.ui:4642
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to view the script description and code."
@@ -9946,28 +9962,28 @@ msgstr ""
 "le menu Scripts. Double-cliquez sur une ligne pour afficher la description "
 "et le code du script."
 
-#: src/gui/uifiles/settings_window.ui:4634
+#: src/gui/uifiles/settings_window.ui:4657
 msgid "Category"
 msgstr "Catégorie"
 
-#: src/gui/uifiles/settings_window.ui:4650
+#: src/gui/uifiles/settings_window.ui:4673
 msgid "Script"
 msgstr "Script"
 
-#: src/gui/uifiles/settings_window.ui:4693
+#: src/gui/uifiles/settings_window.ui:4716
 msgid "<b>Siril Scripts Repository</b>"
 msgstr "<b>Répertoires des scripts</b>"
 
-#: src/gui/uifiles/settings_window.ui:4721
-#: src/gui/uifiles/settings_window.ui:5084
+#: src/gui/uifiles/settings_window.ui:4744
+#: src/gui/uifiles/settings_window.ui:5107
 msgid "Performances"
 msgstr "Performances"
 
-#: src/gui/uifiles/settings_window.ui:4752
+#: src/gui/uifiles/settings_window.ui:4775
 msgid "Ratio of available"
 msgstr "Ratio de disponible"
 
-#: src/gui/uifiles/settings_window.ui:4756
+#: src/gui/uifiles/settings_window.ui:4779
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -9985,11 +10001,11 @@ msgstr ""
 "Si vous n'avez pas de mémoire paginée une valeur de 1 ou supérieure "
 "entraînera probablement un crash de siril ou du système d'exploitation."
 
-#: src/gui/uifiles/settings_window.ui:4772
+#: src/gui/uifiles/settings_window.ui:4795
 msgid "Fixed amount (GB)"
 msgstr "Montant fixe (Go)"
 
-#: src/gui/uifiles/settings_window.ui:4776
+#: src/gui/uifiles/settings_window.ui:4799
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -10001,7 +10017,7 @@ msgstr ""
 "Configurer une quantité de mémoire supérieure à celle disponible sur votre "
 "système peut provoquer un crash de Siril ou du système d'exploitation."
 
-#: src/gui/uifiles/settings_window.ui:4792
+#: src/gui/uifiles/settings_window.ui:4815
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -10016,15 +10032,15 @@ msgstr ""
 "mémoire utilisé pour l’empilement au-dessus de 1, il faudra utiliser de la "
 "mémoire disque, ce qui est très lent et non recommandé"
 
-#: src/gui/uifiles/settings_window.ui:4837
+#: src/gui/uifiles/settings_window.ui:4860
 msgid "<b>Memory management</b>"
 msgstr "<b>Gestion de la mémoire</b>"
 
-#: src/gui/uifiles/settings_window.ui:4870
+#: src/gui/uifiles/settings_window.ui:4893
 msgid "Default bit depth for HD AutoStretch"
 msgstr "Profondeur de bit par défaut pour l'auto-ajustement HD"
 
-#: src/gui/uifiles/settings_window.ui:4886
+#: src/gui/uifiles/settings_window.ui:4909
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -10042,24 +10058,24 @@ msgstr ""
 "changement de mode de visualisation, et peut être appliquée maintenant en "
 "utilisant le bouton à droite."
 
-#: src/gui/uifiles/settings_window.ui:4903
+#: src/gui/uifiles/settings_window.ui:4926
 msgid "Apply bit depth"
 msgstr "Appliquer la profondeur de bit"
 
-#: src/gui/uifiles/settings_window.ui:4907
+#: src/gui/uifiles/settings_window.ui:4930
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr ""
 "Définissez maintenant la profondeur de bits auto-ajustement HD sélectionnée"
 
-#: src/gui/uifiles/settings_window.ui:4930
+#: src/gui/uifiles/settings_window.ui:4953
 msgid "HD AutoStretch"
 msgstr "Auto ajustement HD"
 
-#: src/gui/uifiles/settings_window.ui:4960
+#: src/gui/uifiles/settings_window.ui:4983
 msgid "Multithreaded FFTW"
 msgstr "FFTW multithreadée"
 
-#: src/gui/uifiles/settings_window.ui:4964
+#: src/gui/uifiles/settings_window.ui:4987
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -10070,11 +10086,11 @@ msgstr ""
 "augmente le temps de planification initial la première fois que la FFTW "
 "travaille sur une image d'une taille donnée."
 
-#: src/gui/uifiles/settings_window.ui:4979 src/core/settings.c:328
+#: src/gui/uifiles/settings_window.ui:5002 src/core/settings.c:328
 msgid "FFTW planning strategy"
 msgstr "Stratégie de planification de la FFTW"
 
-#: src/gui/uifiles/settings_window.ui:4990
+#: src/gui/uifiles/settings_window.ui:5013
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -10110,23 +10126,23 @@ msgstr ""
 "générée par les autres stratégies n'en vaut pas la peine pour une seule "
 "transformée de Fourier."
 
-#: src/gui/uifiles/settings_window.ui:4996
+#: src/gui/uifiles/settings_window.ui:5019
 msgid "Measure"
 msgstr "Mesure"
 
-#: src/gui/uifiles/settings_window.ui:4997
+#: src/gui/uifiles/settings_window.ui:5020
 msgid "Patient"
 msgstr "Patient"
 
-#: src/gui/uifiles/settings_window.ui:4998
+#: src/gui/uifiles/settings_window.ui:5021
 msgid "Exhaustive"
 msgstr "Exhaustive"
 
-#: src/gui/uifiles/settings_window.ui:5011
+#: src/gui/uifiles/settings_window.ui:5034
 msgid "FFTW planning time limit (seconds)"
 msgstr "Limite de temps de planification de la FFTW (secondes)"
 
-#: src/gui/uifiles/settings_window.ui:5022
+#: src/gui/uifiles/settings_window.ui:5045
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -10139,11 +10155,11 @@ msgstr ""
 "ininterrompue. S'il est défini à 0, un niveau de planification minimum "
 "d'Estimation sera toujours effectué."
 
-#: src/gui/uifiles/settings_window.ui:5037
+#: src/gui/uifiles/settings_window.ui:5060
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "Taille minimale de la PSF pour utiliser les convolutions par FFT"
 
-#: src/gui/uifiles/settings_window.ui:5048
+#: src/gui/uifiles/settings_window.ui:5071
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -10163,16 +10179,16 @@ msgstr ""
 "définit la taille minimale pour laquelle les transformations de Fourier "
 "seront utilisées."
 
-#: src/gui/uifiles/settings_window.ui:5070
+#: src/gui/uifiles/settings_window.ui:5093
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Options FFTW</b>"
 
-#: src/gui/uifiles/settings_window.ui:5098
-#: src/gui/uifiles/settings_window.ui:5513
+#: src/gui/uifiles/settings_window.ui:5121
+#: src/gui/uifiles/settings_window.ui:5536
 msgid "Miscellaneous"
 msgstr "Divers"
 
-#: src/gui/uifiles/settings_window.ui:5126
+#: src/gui/uifiles/settings_window.ui:5149
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -10180,40 +10196,40 @@ msgstr ""
 "Sélectionner un répertoire existant. Soyez sûr d'avoir les droits en "
 "écriture et assez de place."
 
-#: src/gui/uifiles/settings_window.ui:5129
+#: src/gui/uifiles/settings_window.ui:5152
 msgid "Select Swap Directory"
 msgstr "Sélectionner le Répertoire de Swap"
 
-#: src/gui/uifiles/settings_window.ui:5142
+#: src/gui/uifiles/settings_window.ui:5165
 msgid "available mem"
 msgstr "mem disonible"
 
-#: src/gui/uifiles/settings_window.ui:5154
+#: src/gui/uifiles/settings_window.ui:5177
 msgid "Restore to Default"
 msgstr "Restaurer"
 
-#: src/gui/uifiles/settings_window.ui:5158
+#: src/gui/uifiles/settings_window.ui:5181
 msgid "Restore the default swap storage directory"
 msgstr "Restaurer le répertoire de stockage par défaut du swap"
 
-#: src/gui/uifiles/settings_window.ui:5177
+#: src/gui/uifiles/settings_window.ui:5200
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Répertoire swap</b>"
 
-#: src/gui/uifiles/settings_window.ui:5204
+#: src/gui/uifiles/settings_window.ui:5227
 msgid "Don't ask before quitting"
 msgstr "Quitter sans confirmation"
 
-#: src/gui/uifiles/settings_window.ui:5219
+#: src/gui/uifiles/settings_window.ui:5242
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 "Ne pas demander avant de sauvegarder lorsque l'affichage n'est pas linéaire"
 
-#: src/gui/uifiles/settings_window.ui:5234
+#: src/gui/uifiles/settings_window.ui:5257
 msgid "Don't explain about ROI processing in related dialogs"
 msgstr "Ne pas donner l'explication des ROI dans les dialogues connexes"
 
-#: src/gui/uifiles/settings_window.ui:5238
+#: src/gui/uifiles/settings_window.ui:5261
 msgid ""
 "Suppress info dialog explaining about ROI processing when opening an "
 "appropriate dialog"
@@ -10221,15 +10237,15 @@ msgstr ""
 "Suppression de la boîte de dialogue expliquant le traitement avec ROI lors "
 "de l'ouverture d'une boîte de dialogue appropriée"
 
-#: src/gui/uifiles/settings_window.ui:5277
+#: src/gui/uifiles/settings_window.ui:5300
 msgid "Play introduction"
 msgstr "Jouer l'introduction"
 
-#: src/gui/uifiles/settings_window.ui:5291
+#: src/gui/uifiles/settings_window.ui:5314
 msgid "Introduction Tips"
 msgstr "Astuces de l'introduction"
 
-#: src/gui/uifiles/settings_window.ui:5322
+#: src/gui/uifiles/settings_window.ui:5345
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -10250,15 +10266,15 @@ msgstr ""
 "sélectionner l'un ou l'autre des exécutables : Siril trouvera "
 "automatiquement l'autre s'il existe."
 
-#: src/gui/uifiles/settings_window.ui:5330
+#: src/gui/uifiles/settings_window.ui:5353
 msgid "Select StarNet executable"
 msgstr "Sélectionner l'exécutable StarNet"
 
-#: src/gui/uifiles/settings_window.ui:5344
+#: src/gui/uifiles/settings_window.ui:5367
 msgid "Must point to a valid StarNet executable."
 msgstr "Doit pointer vers un exécutable StarNet valide."
 
-#: src/gui/uifiles/settings_window.ui:5358
+#: src/gui/uifiles/settings_window.ui:5381
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -10269,11 +10285,11 @@ msgstr ""
 "s'il est laissé vide, le fichier de poids <b>doit</b> se trouver dans le "
 "même répertoire que l'exécutable StarNet."
 
-#: src/gui/uifiles/settings_window.ui:5364
+#: src/gui/uifiles/settings_window.ui:5387
 msgid "Select StarNet weights file"
 msgstr "Sélectionner le fichier de poids StarNet"
 
-#: src/gui/uifiles/settings_window.ui:5381
+#: src/gui/uifiles/settings_window.ui:5404
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -10282,7 +10298,7 @@ msgstr ""
 "fichier des poids <b>doit</b> se trouver dans le même répertoire que "
 "l'exécutable StarNet."
 
-#: src/gui/uifiles/settings_window.ui:5396
+#: src/gui/uifiles/settings_window.ui:5419
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -10290,23 +10306,23 @@ msgstr ""
 "Peut pointer vers un fichier de poids de réseau neuronal StarNet.\n"
 "Versions de StarNet basées sur Torch uniquement."
 
-#: src/gui/uifiles/settings_window.ui:5423
+#: src/gui/uifiles/settings_window.ui:5446
 msgid "Software Location"
 msgstr "Emplacement des logiciels"
 
-#: src/gui/uifiles/settings_window.ui:5446
+#: src/gui/uifiles/settings_window.ui:5469
 msgid "Copyright when saving image as TIFF"
 msgstr "Copyright lors de l'enregistrement de l'image au format TIFF"
 
-#: src/gui/uifiles/settings_window.ui:5458
+#: src/gui/uifiles/settings_window.ui:5481
 msgid "Copyright TIFF"
 msgstr "Copyright TIFF"
 
-#: src/gui/uifiles/settings_window.ui:5480
+#: src/gui/uifiles/settings_window.ui:5503
 msgid "Check update at startup"
 msgstr "Vérification des mises à jour au démarrage"
 
-#: src/gui/uifiles/settings_window.ui:5496
+#: src/gui/uifiles/settings_window.ui:5519
 msgid "Update"
 msgstr "Mise à jour"
 
@@ -10785,65 +10801,71 @@ msgstr "Aucune séquence `%s' trouvée.\n"
 
 #. determinant of rotation matrix (ad - bc)
 #. center is less than 10" off from a pole
-#: src/algos/astrometry_solver.c:189
+#: src/algos/astrometry_solver.c:215
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr ""
 "La position en amont par rapport au Nord est indéterminée (trop proche d'un "
 "pôle)\n"
 
-#: src/algos/astrometry_solver.c:211
+#: src/algos/astrometry_solver.c:237
 #, c-format
 msgid "Up is %+.2lf deg ClockWise wrt. N%s\n"
 msgstr ""
 "Le haut est à %+.2lf deg (sens des aiguilles d'une montre) par rapport au "
 "Nord%s\n"
 
-#: src/algos/astrometry_solver.c:211
+#: src/algos/astrometry_solver.c:237
 msgid " (flipped)"
 msgstr " (inversée)"
 
-#: src/algos/astrometry_solver.c:216
+#: src/algos/astrometry_solver.c:242
 #, c-format
 msgid "Resolution:%*.3lf arcsec/px\n"
 msgstr "Résolution : %*.3lf arcsec/px\n"
 
-#: src/algos/astrometry_solver.c:218
+#: src/algos/astrometry_solver.c:244
 #, c-format
 msgid "Focal length:%*.2lf mm\n"
 msgstr "Focale : %*.2lf mm\n"
 
-#: src/algos/astrometry_solver.c:219
+#: src/algos/astrometry_solver.c:245
 #, c-format
 msgid "Pixel size:%*.2lf µm\n"
 msgstr "Pixel dim. : %*.2lf µm\n"
 
-#: src/algos/astrometry_solver.c:222
+#: src/algos/astrometry_solver.c:248
 #, c-format
 msgid "Field of view:    %s x %s\n"
 msgstr "Champ de vision :   %s x %s\n"
 
-#: src/algos/astrometry_solver.c:228
+#: src/algos/astrometry_solver.c:254
 #, c-format
 msgid "Image center: alpha: %s, delta: %s\n"
 msgstr "Centre de l'image : alpha : %s, delta : %s\n"
 
-#: src/algos/astrometry_solver.c:412 src/algos/astrometry_solver.c:434
+#: src/algos/astrometry_solver.c:353
+msgid ""
+"Could not invert the SIP distorsion coefficients, try using a lower order or "
+"a linear solution\n"
+msgstr ""
+
+#: src/algos/astrometry_solver.c:759 src/algos/astrometry_solver.c:790
 msgid "Cancelled"
 msgstr "Annulé"
 
-#: src/algos/astrometry_solver.c:419
+#: src/algos/astrometry_solver.c:766
 #, c-format
 msgid "Fetched %d stars from %s catalogue\n"
 msgstr "Recherche de %d étoiles dans le catalogue %s\n"
 
-#: src/algos/astrometry_solver.c:448
+#: src/algos/astrometry_solver.c:804
 #, c-format
 msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
 "Résoudre l'image avec astrometry.net pour un champ de vision de %.2f degrés\n"
 
-#: src/algos/astrometry_solver.c:450
+#: src/algos/astrometry_solver.c:806
 #, c-format
 msgid ""
 "Plate solving image from local catalogues for a field of view of %.2f "
@@ -10852,11 +10874,11 @@ msgstr ""
 "La résolution astrométrique provenant d'un catalogue local pour un champ de "
 "vision de %.2f degrés%s, en utilisant une magnitude limite de %.2f\n"
 
-#: src/algos/astrometry_solver.c:453 src/algos/astrometry_solver.c:458
+#: src/algos/astrometry_solver.c:809 src/algos/astrometry_solver.c:814
 msgid " (uncentered)"
 msgstr " (non centré)"
 
-#: src/algos/astrometry_solver.c:455
+#: src/algos/astrometry_solver.c:811
 #, c-format
 msgid ""
 "Plate solving image from an online catalogue for a field of view of %.2f "
@@ -10865,47 +10887,47 @@ msgstr ""
 "La résolution astrométrique provenant d'un catalogue en ligne pour un champ "
 "de vision de %.2f degrés%s, en utilisant une magnitude limite de %.2f\n"
 
-#: src/algos/astrometry_solver.c:479
+#: src/algos/astrometry_solver.c:835
 #, c-format
 msgid "Down-sampling image for faster star detection by a factor %.2f\n"
 msgstr ""
 "Sous-échantillonnage de l'image pour une détection plus rapide des étoiles "
 "par un facteur %.2f\n"
 
-#: src/algos/astrometry_solver.c:491
+#: src/algos/astrometry_solver.c:847
 msgid "Failed to downsample image, aborting\n"
 msgstr "Échec du sous-échantillonnage de l'image, abandon de la procédure\n"
 
-#: src/algos/astrometry_solver.c:492
+#: src/algos/astrometry_solver.c:848
 msgid "Not enough memory"
 msgstr "Mémoire insuffisante"
 
-#: src/algos/astrometry_solver.c:546
+#: src/algos/astrometry_solver.c:915
 #, c-format
 msgid "There are not enough stars picked in the image. At least %d are needed."
 msgstr ""
 "Il n'y a pas assez d'étoiles sélectionnées dans l'image. Au moins %d sont "
 "nécessaires."
 
-#: src/algos/astrometry_solver.c:552
+#: src/algos/astrometry_solver.c:921
 #, c-format
 msgid "Using %d detected stars from image.\n"
 msgstr "Utilisation de %d étoiles détectées dans l'image.\n"
 
-#: src/algos/astrometry_solver.c:587 src/gui/callbacks.c:1764
+#: src/algos/astrometry_solver.c:956 src/gui/callbacks.c:1762
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
 "Enregistrement de la longueur focale %.2f et de la taille de pixel %.2f "
 "comme valeurs par défaut\n"
 
-#: src/algos/astrometry_solver.c:609
+#: src/algos/astrometry_solver.c:978
 #, c-format
 msgid "Getting stars from local catalogues for PCC, limit magnitude %.2f\n"
 msgstr ""
 "Obtenir des étoiles des catalogues locaux pour PCC, magnitude limite %.2f\n"
 
-#: src/algos/astrometry_solver.c:620
+#: src/algos/astrometry_solver.c:989
 msgid ""
 "Using plate solving to identify catalogue stars in the image failed, is "
 "plate solving wrong?\n"
@@ -10913,7 +10935,7 @@ msgstr ""
 "L'utilisation de l'astrométrie pour identifier les étoiles du catalogue dans "
 "l'image a échoué, la résolution astrométrique est-elle erronée ?\n"
 
-#: src/algos/astrometry_solver.c:638
+#: src/algos/astrometry_solver.c:1007
 #, c-format
 msgid ""
 "An astrometric solution was found but photometry analysis of the %d stars "
@@ -10925,59 +10947,73 @@ msgstr ""
 "l'image ou si elles sont trop faibles pour avoir des informations sur "
 "l'indice B-V (mag > 18).\n"
 
-#: src/algos/astrometry_solver.c:643 src/algos/photometric_cc.c:482
+#: src/algos/astrometry_solver.c:1012 src/algos/photometric_cc.c:482
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "L'étalonnage photométrique des couleurs a réussi\n"
 
-#: src/algos/astrometry_solver.c:651
+#: src/algos/astrometry_solver.c:1020
 msgid "Flipping image and updating astrometry data.\n"
 msgstr "Retournement de l'image et mise à jour des données astrométriques.\n"
 
-#: src/algos/astrometry_solver.c:679
+#: src/algos/astrometry_solver.c:1048
 #, c-format
 msgid "Photometry failed: %s\n"
 msgstr "La photométrie a échoué : %s\n"
 
-#: src/algos/astrometry_solver.c:681
+#: src/algos/astrometry_solver.c:1050
 #, c-format
 msgid "Plate solving failed: %s\n"
 msgstr "L'astrométrie a échoué : %s\n"
 
-#: src/algos/astrometry_solver.c:730
+#: src/algos/astrometry_solver.c:1098
 msgid "Could not match stars from the catalogue"
 msgstr "Impossible de faire correspondre les étoiles du catalogue"
 
-#: src/algos/astrometry_solver.c:741
+#: src/algos/astrometry_solver.c:1106
 msgid "Transformation matrix is invalid, solve failed"
 msgstr "La matrice de transformation n'est pas valide, la résolution a échoué"
 
-#: src/algos/astrometry_solver.c:782
-msgid "Updating homography failed."
+#: src/algos/astrometry_solver.c:1138
+#, fuzzy
+msgid "Reprojecting catalog failed."
+msgstr "échec du prétraitement\n"
+
+#: src/algos/astrometry_solver.c:1146
+#, fuzzy
+msgid "Updating trans failed."
 msgstr "Échec de la mise à jour de l'homographie."
 
-#: src/algos/astrometry_solver.c:875 src/algos/photometric_cc.c:470
+#: src/algos/astrometry_solver.c:1205 src/algos/astrometry_solver.c:1642
+#: src/algos/astrometry_solver.c:1647
+#, c-format
+msgid ""
+"%s could not find distorsion polynomials for the order specified (%d) and "
+"returned a linear solution, try with a lower order\n"
+msgstr ""
+
+#: src/algos/astrometry_solver.c:1235 src/algos/photometric_cc.c:470
 msgid "Photometric CC"
 msgstr "Photométrie"
 
-#: src/algos/astrometry_solver.c:875 src/algos/astrometry_solver.c:1260
+#: src/algos/astrometry_solver.c:1235 src/algos/astrometry_solver.c:1622
 msgid "Plate Solve"
 msgstr "Résolution astrométrique"
 
-#: src/algos/astrometry_solver.c:998 src/algos/astrometry_solver.c:1022
+#: src/algos/astrometry_solver.c:1360 src/algos/astrometry_solver.c:1384
 #, c-format
 msgid "cygwin/bin was not found at %s - ignoring\n"
 msgstr "cygwin/bin n'a pas été trouvé à %s - ignorer\n"
 
-#: src/algos/astrometry_solver.c:1075
+#: src/algos/astrometry_solver.c:1437
 msgid "solve-field was not found, set its path in the preferences\n"
 msgstr ""
 "solve-field n'a pas été trouvé, définissez son chemin dans les préférences\n"
 
-#: src/algos/astrometry_solver.c:1093
+#: src/algos/astrometry_solver.c:1455
 msgid "Failed to create the input data for solve-field\n"
 msgstr "Échec de la création des données d'entrée pour solve-field\n"
 
-#: src/algos/astrometry_solver.c:1140
+#: src/algos/astrometry_solver.c:1502
 #, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
@@ -10986,37 +11022,37 @@ msgstr ""
 "Résolution d'Astrometry.net avec un champ de recherche à RA : %s, Dec : %s, "
 "dans un rayon de %s degrés pour les échelles [%s, %s].\n"
 
-#: src/algos/astrometry_solver.c:1144
+#: src/algos/astrometry_solver.c:1506
 #, c-format
 msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
 msgstr "Astrometry.net résout aveuglément pour les échelles [%s, %s].\n"
 
-#: src/algos/astrometry_solver.c:1222
+#: src/algos/astrometry_solver.c:1584
 msgid "No astrometric solution found\n"
 msgstr "Aucune solution astrométrique trouvée\n"
 
-#: src/algos/astrometry_solver.c:1254
+#: src/algos/astrometry_solver.c:1616
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr ""
 "Impossible de lire la solution depuis solve-field (attendu dans le fichier "
 "%s)\n"
 
-#: src/algos/astrometry_solver.c:1289
+#: src/algos/astrometry_solver.c:1667
 msgid "Local astrometry.net solve succeeded.\n"
 msgstr "La résolution locale de astrometry.net a réussi.\n"
 
-#: src/algos/astrometry_solver.c:1314
+#: src/algos/astrometry_solver.c:1692
 msgid "Warning: using the current selection to detect stars\n"
 msgstr "Attention : utiliser la sélection actuelle pour détecter les étoiles\n"
 
-#: src/algos/astrometry_solver.c:1358
+#: src/algos/astrometry_solver.c:1736
 msgid "Selection is not used in manual star selection mode\n"
 msgstr ""
 "La sélection n'est pas utilisée en mode de sélection des étoiles manuelle "
 "des étoiles\n"
 
-#: src/algos/astrometry_solver.c:1394 src/core/command.c:8574
+#: src/algos/astrometry_solver.c:1772 src/core/command.c:8588
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
@@ -11024,24 +11060,24 @@ msgstr ""
 "Impossible de faire la résolution astrométrique, aucune coordonnée de la "
 "cible n'est passée et l'en-tête de l'image n'en contient pas non plus.\n"
 
-#: src/algos/astrometry_solver.c:1402 src/core/command.c:8621
+#: src/algos/astrometry_solver.c:1780 src/core/command.c:8635
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
 "Taille de pixel non trouvée dans l'image ou dans les paramètres, impossible "
 "de poursuivre.\n"
 
-#: src/algos/astrometry_solver.c:1412 src/core/command.c:8645
+#: src/algos/astrometry_solver.c:1790 src/core/command.c:8659
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
 "La longueur focale n'a pas été trouvée dans l'image ou dans les paramètres, "
 "impossible de poursuivre.\n"
 
-#: src/algos/astrometry_solver.c:1446
+#: src/algos/astrometry_solver.c:1824
 #, c-format
 msgid "Image %s did not solve\n"
 msgstr "L'image %s n'a pas été résolue\n"
 
-#: src/algos/astrometry_solver.c:1486
+#: src/algos/astrometry_solver.c:1864
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
@@ -11284,8 +11320,8 @@ msgstr "Pas de fichier de sortie csv à créer\n"
 msgid "No variable star selected\n"
 msgstr "Aucune étoile variable sélectionnée\n"
 
-#: src/algos/comparison_stars.c:353 src/core/command.c:8734
-#: src/core/command.c:8847 src/core/command.c:8864 src/core/command.c:9034
+#: src/algos/comparison_stars.c:353 src/core/command.c:8751
+#: src/core/command.c:8864 src/core/command.c:8881 src/core/command.c:9051
 #: src/gui/plot.c:1299
 msgid "This command only works on plate solved images\n"
 msgstr ""
@@ -12585,7 +12621,7 @@ msgstr "=En-tête FITS pour l'image actuellement chargée=\n"
 #: src/core/command.c:5858 src/core/command.c:5907 src/core/command.c:6074
 #: src/core/command.c:6084 src/core/command.c:6120 src/core/command.c:6343
 #: src/core/command.c:6484 src/core/command.c:6726 src/core/command.c:7054
-#: src/core/command.c:7846
+#: src/core/command.c:7846 src/core/command.c:9536
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr "Paramètre %s inconnu, abandon.\n"
@@ -12595,9 +12631,9 @@ msgstr "Paramètre %s inconnu, abandon.\n"
 #: src/core/command.c:2248 src/core/command.c:2761 src/core/command.c:2768
 #: src/core/command.c:2778 src/core/command.c:2786 src/core/command.c:2794
 #: src/core/command.c:2869 src/core/command.c:3957 src/core/command.c:4701
-#: src/core/command.c:4706 src/core/command.c:7925 src/core/command.c:8506
-#: src/core/command.c:8808 src/core/command.c:9010 src/core/command.c:9078
-#: src/core/command.c:9119
+#: src/core/command.c:4706 src/core/command.c:7925 src/core/command.c:8519
+#: src/core/command.c:8825 src/core/command.c:9027 src/core/command.c:9095
+#: src/core/command.c:9136
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "Argument non valide %s, abandon.\n"
@@ -13176,7 +13212,7 @@ msgstr ""
 "Ce type de séquence ne peut pas être créé par Siril, annulation de la "
 "fusion\n"
 
-#: src/core/command.c:2629 src/core/command.c:7643 src/io/single_image.c:207
+#: src/core/command.c:2629 src/core/command.c:7643 src/io/single_image.c:208
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr ""
@@ -13199,7 +13235,7 @@ msgstr ""
 "premier HDU, pas un cube FITS.\n"
 
 #: src/core/command.c:2646 src/core/command.c:2660 src/core/command.c:4723
-#: src/core/command.c:8989 src/pixelMath/pixel_math_runner.c:1120
+#: src/core/command.c:9006 src/pixelMath/pixel_math_runner.c:1120
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "Impossible d'ouvrir le fichier : %s\n"
@@ -13221,10 +13257,11 @@ msgstr "Impossible de sauvegarder l'image miroir : %s\n"
 #: src/core/command.c:2708 src/core/command.c:3912 src/core/command.c:3919
 #: src/core/command.c:3924 src/core/command.c:5185 src/core/command.c:5194
 #: src/core/command.c:5203 src/core/command.c:5643 src/core/command.c:6319
-#: src/core/command.c:6460 src/core/command.c:7043 src/core/command.c:8441
-#: src/core/command.c:8452 src/core/command.c:8464 src/core/command.c:8488
-#: src/core/command.c:8772 src/core/command.c:8884 src/core/command.c:8893
-#: src/core/command.c:8902 src/core/command.c:8911 src/core/command.c:8918
+#: src/core/command.c:6460 src/core/command.c:7043 src/core/command.c:8442
+#: src/core/command.c:8453 src/core/command.c:8465 src/core/command.c:8479
+#: src/core/command.c:8501 src/core/command.c:8789 src/core/command.c:8901
+#: src/core/command.c:8910 src/core/command.c:8919 src/core/command.c:8928
+#: src/core/command.c:8935
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "Argument non valide pour %s, abandon.\n"
@@ -13612,7 +13649,8 @@ msgstr "Argument manquant à la commande\n"
 
 #: src/core/command.c:4100
 msgid "Could not find stars in the reference image, aborting.\n"
-msgstr "Impossible de trouver des étoiles dans l'image de référence, abandon.\n"
+msgstr ""
+"Impossible de trouver des étoiles dans l'image de référence, abandon.\n"
 
 #: src/core/command.c:4110
 #, c-format
@@ -14283,7 +14321,7 @@ msgstr "Séquence empilée avec succès.\n"
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "Arguments manquants pour l'empilement des rejets.\n"
 
-#: src/core/command.c:7636 src/core/command.c:9185 src/core/preprocess.c:663
+#: src/core/command.c:7636 src/core/command.c:9202 src/core/preprocess.c:663
 #: src/core/preprocess.c:988
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "Impossible de charger l'image de référence de la séquence, abandon.\n"
@@ -14560,36 +14598,36 @@ msgstr "Remplacer la sélection précédente\n"
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "Les images doivent avoir les mêmes dimensions et être monochromes\n"
 
-#: src/core/command.c:8402
+#: src/core/command.c:8403
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr ""
 "Le SER ne peut pas contenir d'informations WCS, la résolution astrométrique "
 "sera exportée au format FITS cube.\n"
 
-#: src/core/command.c:8412 src/core/command.c:8424 src/core/command.c:9097
-#: src/core/command.c:9109
+#: src/core/command.c:8413 src/core/command.c:8425 src/core/command.c:9114
+#: src/core/command.c:9126
 msgid "Could not parse target coordinates\n"
 msgstr "Impossible d'analyser les coordonnées de la cible\n"
 
-#: src/core/command.c:8494
+#: src/core/command.c:8507
 msgid "Catalog can only be NOMAD or APASS for photometric usage\n"
 msgstr ""
 "Le catalogue ne peut être que NOMAD ou APASS pour une utilisation "
 "photométrique.\n"
 
-#: src/core/command.c:8502
+#: src/core/command.c:8515
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr ""
 "La spécification d'un catalogue n'a aucun effet pour la résolution de "
 "astrometry.net\n"
 
-#: src/core/command.c:8517
+#: src/core/command.c:8530
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr "Utilisation de %s à distance au lieu du catalogue NOMAD local\n"
 
-#: src/core/command.c:8525
+#: src/core/command.c:8538
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
@@ -14597,20 +14635,20 @@ msgstr ""
 "Le solveur local astrometry.net n'a pas été trouvé, annulation. Veuillez "
 "vérifier les paramètres.\n"
 
-#: src/core/command.c:8579
+#: src/core/command.c:8593
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr ""
 "Utilisation des coordonnées de la cible depuis l'en-tête de l'image : %f, "
 "%f\n"
 
-#: src/core/command.c:8587
+#: src/core/command.c:8601
 msgid "Photometric color correction will use plate solving first\n"
 msgstr ""
 "L'étalonnage des couleurs par photométrie procède d'abord à une résolution "
 "astrométrique\n"
 
-#: src/core/command.c:8588
+#: src/core/command.c:8602
 msgid ""
 "Photometric color correction will use WCS information and bypass internal "
 "plate solver\n"
@@ -14618,78 +14656,78 @@ msgstr ""
 "L'étalonnage des couleurs par photométrique utilise les informations du WCS "
 "et ignore l'astrométrie interne\n"
 
-#: src/core/command.c:8590
+#: src/core/command.c:8604
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr "L'image est déjà résolue. Rien ne sera fait.\n"
 
-#: src/core/command.c:8611 src/core/command.c:8635
+#: src/core/command.c:8625 src/core/command.c:8649
 msgid ""
 "Focal length and pixel size are only used for plate solving, ignored now\n"
 msgstr ""
 "La longueur focale et la taille des pixels ne sont utilisées que pour la "
 "résolution astrométrique, elles sont ignorées maintenant.\n"
 
-#: src/core/command.c:8614
+#: src/core/command.c:8628
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr "Utilisation de la taille de pixel fournie : %.2f\n"
 
-#: src/core/command.c:8628
+#: src/core/command.c:8642
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr "Utilisation de la taille de pixel des préférences : %.2f\n"
 
-#: src/core/command.c:8630
+#: src/core/command.c:8644
 #, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr "Utilisation de la taille de pixel de l'image : %.2f\n"
 
-#: src/core/command.c:8638
+#: src/core/command.c:8652
 #, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr "En utilisant la distance focale fournie : %.2f\n"
 
-#: src/core/command.c:8652
+#: src/core/command.c:8666
 #, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr "Utilisation de la distance focale à partir des préférences : %.2f\n"
 
-#: src/core/command.c:8654
+#: src/core/command.c:8668
 #, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr "Utilisation de la longueur focale de l'image : %.2f\n"
 
-#: src/core/command.c:8659 src/core/command.c:8671
+#: src/core/command.c:8673 src/core/command.c:8685
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
 "Les arguments d'altération de la magnitude sont inutiles pour la résolution "
 "d'astrométrie.net\n"
 
-#: src/core/command.c:8768
+#: src/core/command.c:8785
 msgid ""
 "This option only works on images that have observation date information\n"
 msgstr ""
 "Cette option ne fonctionne que pour les images comportant des informations "
 "sur la date d'observation.\n"
 
-#: src/core/command.c:8778
+#: src/core/command.c:8795
 msgid "The observatory should be coded as a 3-letter word\n"
 msgstr "L'observatoire doit être codé sous la forme d'un mot de 3 lettres\n"
 
-#: src/core/command.c:8791
+#: src/core/command.c:8808
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr ""
 "Valeurs de paramètres erronées. Le paramètre log doit être égal à on ou off, "
 "ce qui entraîne l'annulation de l'opération.\n"
 
-#: src/core/command.c:8801
+#: src/core/command.c:8818
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr ""
 "Valeurs de paramètres incorrectes. Le paramètre auto doit être réglé sur on "
 "ou off, ce qui entraîne l'abandon.\n"
 
-#: src/core/command.c:8827
+#: src/core/command.c:8844
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
@@ -14697,33 +14735,33 @@ msgstr ""
 "N'a pas spécifié de code d'observatoire, utilise le géocentrique par défaut, "
 "les positions peuvent ne pas être exactes.\n"
 
-#: src/core/command.c:8923 src/core/command.c:8967
+#: src/core/command.c:8940 src/core/command.c:8984
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "Option inconnue fournie : %s\n"
 
-#: src/core/command.c:8978 src/core/command.c:8999
+#: src/core/command.c:8995 src/core/command.c:9016
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
 "Le livestacking doit d'abord être initialisé avec la commande START_LS\n"
 
-#: src/core/command.c:8982
+#: src/core/command.c:8999
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
 "Le livestacking a été configuré pour utiliser la surveillance des fichiers, "
 "pas cette commande\n"
 
-#: src/core/command.c:9024
+#: src/core/command.c:9041
 #, c-format
 msgid "String in: %s\n"
 msgstr "Chaîne d'entrée : %s\n"
 
-#: src/core/command.c:9025
+#: src/core/command.c:9042
 #, c-format
 msgid "String out: %s\n"
 msgstr "Chaîne de sortie : %s\n"
 
-#: src/core/command.c:9194
+#: src/core/command.c:9211
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
@@ -14731,49 +14769,49 @@ msgstr ""
 "Erreur : Le mode CFA ne peut pas être utilisé avec des images couleur ou des "
 "images mono sans motif de Bayer.\n"
 
-#: src/core/command.c:9234
+#: src/core/command.c:9251
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr ""
 "Une option incorrecte suit -layer=, ce qui entraîne l'annulation de "
 "l'opération.\n"
 
-#: src/core/command.c:9265
+#: src/core/command.c:9282
 msgid "Error: Could not parse -from values.\n"
 msgstr "Erreur : Impossible d'analyser les valeurs de l'option -from.\n"
 
-#: src/core/command.c:9273
+#: src/core/command.c:9290
 msgid "Error: Could not parse -to values.\n"
 msgstr "Erreur : Impossible d'analyser les valeurs de l'option -to.\n"
 
-#: src/core/command.c:9281
+#: src/core/command.c:9298
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "Erreur : Impossible d'analyser les valeurs de l'option -wn1at.\n"
 
-#: src/core/command.c:9289
+#: src/core/command.c:9306
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "Erreur : Impossible d'analyser les valeurs de l'option -wn2at.\n"
 
-#: src/core/command.c:9295
+#: src/core/command.c:9312
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "Erreur : cette option ne peut pas être utilisée pour les séquences.\n"
 
-#: src/core/command.c:9325
+#: src/core/command.c:9342
 msgid "Error: sequence has variable sized images.\n"
 msgstr "Erreur : la séquence contient des images de taille variable.\n"
 
-#: src/core/command.c:9405
+#: src/core/command.c:9422
 msgid "Error opening target ICC profile.\n"
 msgstr "Erreur d'ouverture du profil ICC cible.\n"
 
-#: src/core/command.c:9409
+#: src/core/command.c:9426
 msgid "Color profile assignment complete.\n"
 msgstr "Attribution du profil de couleur terminée.\n"
 
-#: src/core/command.c:9412 src/core/command.c:9476
+#: src/core/command.c:9429 src/core/command.c:9493
 msgid "Error opening ICC profile.\n"
 msgstr "Erreur d'ouverture du profil ICC.\n"
 
-#: src/core/command.c:9429
+#: src/core/command.c:9446
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
@@ -14781,7 +14819,7 @@ msgstr ""
 "L'image n'a pas de profil de couleur attribué pour la conversion. Attribuez "
 "d'abord un profil.\n"
 
-#: src/core/command.c:9443
+#: src/core/command.c:9460
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
@@ -14789,9 +14827,16 @@ msgstr ""
 "L'intention spécifiée n'est pas reconnue. Spécifier l'une des options "
 "suivantes : \"perceptual\", \"relative\", \"saturation\" ou \"absolute\"\n"
 
-#: src/core/command.c:9474
+#: src/core/command.c:9491
 msgid "Color space conversion complete.\n"
 msgstr "La conversion de l'espace de couleur est terminée.\n"
+
+#: src/core/command.c:9521
+#, fuzzy
+msgid ""
+"This command only works on plate solved images with distorsions included\n"
+msgstr ""
+"Cette commande ne fonctionne que sur les images résolues par astrométrie\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -15410,10 +15455,18 @@ msgstr ""
 "séparément. C'est plus lent mais cela éliminera les artefacts"
 
 #: src/core/command_def.h:35
+msgid ""
+"Shows distorsion field on a plate-solved image which solution includes "
+"distorsion terms\n"
+"\n"
+"Pass option <b>clear</b> to disable"
+msgstr ""
+
+#: src/core/command_def.h:36
 msgid "Dumps the FITS header of the loaded image in the console"
 msgstr "Affiche l'en-tête FITS de l'image chargée dans la console"
 
-#: src/core/command_def.h:37
+#: src/core/command_def.h:38
 msgid ""
 "Computes the entropy of the loaded image on the displayed layer, only in the "
 "selected area if one has been selected or in the whole image. The entropy is "
@@ -15424,11 +15477,11 @@ msgstr ""
 "entière. L'entropie est une façon de mesurer le bruit ou les détails d'une "
 "image"
 
-#: src/core/command_def.h:38
+#: src/core/command_def.h:39
 msgid "Quits the application"
 msgstr "Quitter l'application"
 
-#: src/core/command_def.h:39
+#: src/core/command_def.h:40
 msgid ""
 "Extracts <b>NbPlans</b> planes of wavelet domain of the loaded image.\n"
 "See also WAVELET and WRECONS. For color extraction, see SPLIT"
@@ -15437,7 +15490,7 @@ msgstr ""
 "chargée.\n"
 "Voir également WAVELET et WRECONS. Pour l'extraction des couleurs, voir SPLIT"
 
-#: src/core/command_def.h:40
+#: src/core/command_def.h:41
 msgid ""
 "Extracts green signal from the loaded CFA image. It reads the Bayer matrix "
 "information from the image or the preferences and exports only the averaged "
@@ -15450,7 +15503,7 @@ msgstr ""
 "de taille réduite. Un nouveau fichier est créé, son nom est préfixé par "
 "\"Green_\""
 
-#: src/core/command_def.h:41
+#: src/core/command_def.h:42
 msgid ""
 "Extracts H-Alpha signal from the loaded CFA image. It reads the Bayer matrix "
 "information from the image or the preferences and exports only the red "
@@ -15462,7 +15515,7 @@ msgstr ""
 "uniquement les données du filtre rouge dans un nouveau fichier FITS de "
 "taille réduite. Un nouveau fichier est créé, son nom est préfixé par \"Ha_\""
 
-#: src/core/command_def.h:42
+#: src/core/command_def.h:43
 msgid ""
 "Extracts H-Alpha and O-III signals from the loaded CFA image. It reads the "
 "Bayer matrix information from the image or the preferences and exports only "
@@ -15490,7 +15543,7 @@ msgstr ""
 "rééchantillonnage ne sera effectué et l'image OIII aura deux fois la hauteur "
 "et la largeur de l'image Ha"
 
-#: src/core/command_def.h:44
+#: src/core/command_def.h:45
 msgid ""
 "Divides the loaded image by the image given in argument. The resulting image "
 "is multiplied by the value of the <b>scalar</b> argument. See also IDIV"
@@ -15498,7 +15551,7 @@ msgstr ""
 "Divise l'image chargée par l'image donnée en argument. L'image résultante "
 "est multipliée par la valeur de l'argument <b>scalar</b>. Voir aussi IDIV"
 
-#: src/core/command_def.h:45
+#: src/core/command_def.h:46
 msgid ""
 "Same command as FILL but this is a symmetric fill of a region defined by the "
 "mouse or with BOXSELECT. Used to process an image in the Fourier (FFT) domain"
@@ -15507,7 +15560,7 @@ msgstr ""
 "région définie par la souris ou avec BOXSELECT. Utilisé pour traiter une "
 "image dans le domaine de Fourier (FFT)"
 
-#: src/core/command_def.h:46
+#: src/core/command_def.h:47
 msgid ""
 "Applies a Fast Fourier Transform to the loaded image. <b>modulus</b> and "
 "<b>phase</b> given in argument are the names of the saved in FITS files"
@@ -15516,7 +15569,7 @@ msgstr ""
 "b> et <b>phase</b> donnés en argument sont les noms des fichiers enregistrés "
 "au format FITS"
 
-#: src/core/command_def.h:47
+#: src/core/command_def.h:48
 msgid ""
 "Retrieves corrected image applying an inverse transformation. The "
 "<b>modulus</b> and <b>phase</b> arguments are the input file names, the "
@@ -15526,7 +15579,7 @@ msgstr ""
 "arguments <b>modulus</b> et <b>phase</b> sont les noms des fichiers "
 "d'entrée, le résultat sera la nouvelle image chargée"
 
-#: src/core/command_def.h:48
+#: src/core/command_def.h:49
 msgid ""
 "Fills the loaded image entirely or only the selection if there is one with "
 "pixels having the <b>value</b> intensity expressed in ADU"
@@ -15534,7 +15587,7 @@ msgstr ""
 "Remplit l'image chargée entièrement ou seulement la sélection s'il y en a "
 "une avec des pixels ayant l'intensité <b>value</b> exprimée en ADU"
 
-#: src/core/command_def.h:49
+#: src/core/command_def.h:50
 msgid ""
 "Applies an automatic detection and replacement of cold and hot pixels in the "
 "loaded image, with the thresholds passed in arguments in sigma units"
@@ -15542,11 +15595,11 @@ msgstr ""
 "Détection et remplacement automatique des pixels froids et chauds dans "
 "l'image chargée, avec les seuils transmis en arguments en unités sigma"
 
-#: src/core/command_def.h:50
+#: src/core/command_def.h:51
 msgid "Same command as FIND_COSME but for CFA images"
 msgstr "Même commande que FIND_COSME mais pour les images CFA"
 
-#: src/core/command_def.h:51
+#: src/core/command_def.h:52
 msgid ""
 "Saves a list file <b>filename</b> (text format) in the working directory "
 "which contains the coordinates of the pixels which have an intensity "
@@ -15563,7 +15616,7 @@ msgstr ""
 "cette liste de mauvais pixels à une image chargée, voir aussi SEQCOSME pour "
 "l'appliquer à une séquence"
 
-#: src/core/command_def.h:52
+#: src/core/command_def.h:53
 msgid ""
 "Automatically finds comparison stars in the field of the plate solved loaded "
 "image, for photometric analysis of a star's light curve according to\n"
@@ -15608,7 +15661,7 @@ msgstr ""
 "\n"
 "Voir aussi LIGHT_CURVE"
 
-#: src/core/command_def.h:53
+#: src/core/command_def.h:54
 msgid ""
 "Detects stars in the currently loaded image, having a level greater than a "
 "threshold computed by Siril.\n"
@@ -15644,7 +15697,7 @@ msgstr ""
 "\n"
 "Voir aussi la commande CLEARSTAR"
 
-#: src/core/command_def.h:54
+#: src/core/command_def.h:55
 msgid ""
 "Fixes the Fujifilm X-Trans Auto Focus pixels in the loaded image.\n"
 "\n"
@@ -15661,7 +15714,7 @@ msgstr ""
 "compense ce phénomène et augmente les valeurs de ces photosites spécifiques, "
 "ce qui donne un carré visible au milieu des images sombres/biaisées"
 
-#: src/core/command_def.h:55
+#: src/core/command_def.h:56
 msgid ""
 "Tries to remove the horizontal or vertical banding in the loaded image.\n"
 "<b>amount</b> defines the amount of correction, between 0 and 4.\n"
@@ -15680,7 +15733,7 @@ msgstr ""
 "L'option <b>-vertical</b> permet d'effectuer la suppression des bandes "
 "verticales, horizontal est la valeur par défaut"
 
-#: src/core/command_def.h:56
+#: src/core/command_def.h:57
 msgid ""
 "Performs a median filter of size <b>ksize</b> x <b>ksize</b> (<b>ksize</b> "
 "MUST be odd) to the loaded image with a modulation parameter <b>modulation</"
@@ -15698,12 +15751,12 @@ msgstr ""
 "est la valeur médiane du pixel filtré. Une valeur de modulation de 1 "
 "n'appliquera aucune modulation"
 
-#: src/core/command_def.h:57
+#: src/core/command_def.h:58
 msgid "Multiplies the loaded image by the <b>scalar</b> given in argument"
 msgstr ""
 "Multiplie l'image en mémoire par l'image <b>filename</b> donnée en argument"
 
-#: src/core/command_def.h:59
+#: src/core/command_def.h:60
 msgid ""
 "Applies to the loaded image a Gaussian blur with the given <b>sigma</b>.\n"
 "\n"
@@ -15713,7 +15766,7 @@ msgstr ""
 "\n"
 "Voir aussi UNSHARP, la même chose avec un paramètre de flou"
 
-#: src/core/command_def.h:60
+#: src/core/command_def.h:61
 msgid ""
 "Gets a value from the settings using its name, or list all with <b>-a</b> "
 "(name and value list) or with <b>-A</b> (detailed list)\n"
@@ -15726,7 +15779,7 @@ msgstr ""
 "\n"
 "Voir aussi SET pour mettre à jour les valeurs"
 
-#: src/core/command_def.h:61
+#: src/core/command_def.h:62
 msgid ""
 "Prints information about the reference image of the sequence given in "
 "argument. First image has index 0"
@@ -15734,7 +15787,7 @@ msgstr ""
 "Affiche des informations sur l'image de référence de la séquence donnée en "
 "argument. La première image a l'index 0"
 
-#: src/core/command_def.h:62
+#: src/core/command_def.h:63
 msgid ""
 "Generalised hyperbolic stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -15789,7 +15842,7 @@ msgstr ""
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
 "B, RG, RB ou GB. La valeur par défaut est tous les canaux"
 
-#: src/core/command_def.h:63
+#: src/core/command_def.h:64
 msgid ""
 "Equalizes the mean intensity of RGB layers in the loaded CFA image. This is "
 "the same process used on flats during calibration when the option equalize "
@@ -15799,11 +15852,11 @@ msgstr ""
 "s'agit du même processus que celui utilisé sur les images flats lors de la "
 "calibration, lorsque l'option \"equalize CFA\" est utilisée"
 
-#: src/core/command_def.h:65
+#: src/core/command_def.h:66
 msgid "Lists the available commands or help for one command"
 msgstr "Liste des commandes disponibles ou aide pour une commande"
 
-#: src/core/command_def.h:66
+#: src/core/command_def.h:67
 msgid ""
 "Calculates the histogram of the <b>layer</b> of the loaded image and "
 "produces file histo_[channel name].dat in the working directory.\n"
@@ -15813,7 +15866,7 @@ msgstr ""
 "fichier histo_[nom du canal].dat dans le répertoire de travail.\n"
 "layer = 0, 1 ou 2 avec 0=rouge, 1=vert et 2=bleu"
 
-#: src/core/command_def.h:68
+#: src/core/command_def.h:69
 msgid ""
 "Adds the image <b>filename</b> to the loaded image.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
@@ -15821,7 +15874,7 @@ msgstr ""
 "Ajoute l'image <b>filename</b> à l'image chargée.\n"
 "Le résultat sera en 32 bits par canal si les préférences le permettent"
 
-#: src/core/command_def.h:69
+#: src/core/command_def.h:70
 msgid ""
 "Assigns the ICC profile specified in the argument to the current image.\n"
 "One of the following special arguments may be provided to use the respective "
@@ -15840,7 +15893,7 @@ msgstr ""
 "profil intégré est spécifié avec une image monochrome chargée, le profil de "
 "Gris avec le TRC correspondant sera utilisé"
 
-#: src/core/command_def.h:70
+#: src/core/command_def.h:71
 msgid ""
 "Converts the current image to the specified ICC profile.\n"
 "One of the following special arguments may be provided to use the respective "
@@ -15871,11 +15924,11 @@ msgstr ""
 "<b>perceptual</b>, <b>relative</b> (pour colorimétrique relative), "
 "<b>saturation</b> ou <b>absolute</b> (pour une colorimétrie absolue)"
 
-#: src/core/command_def.h:71
+#: src/core/command_def.h:72
 msgid "Removes the ICC profile from the current image, if it has one"
 msgstr "Supprime le profil ICC de l'image actuelle, si elle en possède un"
 
-#: src/core/command_def.h:72
+#: src/core/command_def.h:73
 msgid ""
 "Divides the loaded image by the image <b>filename</b>.\n"
 "Result will be in 32 bits per channel if allowed in the preferences.\n"
@@ -15887,7 +15940,7 @@ msgstr ""
 "\n"
 "Voir aussi FDIV"
 
-#: src/core/command_def.h:73
+#: src/core/command_def.h:74
 msgid ""
 "Splits the loaded image in a nine-panel mosaic showing the image corners and "
 "the center for a closer inspection (GUI only)"
@@ -15896,7 +15949,7 @@ msgstr ""
 "et le centre de l'image pour une inspection plus approfondie (interface "
 "graphique uniquement)"
 
-#: src/core/command_def.h:74
+#: src/core/command_def.h:75
 msgid ""
 "Inverts a generalised hyperbolic stretch. It provides the inverse "
 "transformation of GHT, if provided with the same parameters, undoes a GHT "
@@ -15909,7 +15962,7 @@ msgstr ""
 "généralisé, ce qui permet de revenir à une image linéaire. Il peut également "
 "fonctionner de la même manière que le GHT, mais pour des images en négatif"
 
-#: src/core/command_def.h:75
+#: src/core/command_def.h:76
 msgid ""
 "Inverts a midtones transfer function. It provides the inverse transformation "
 "of MTF, if provided with the same parameters, undoes a MTF command, possibly "
@@ -15922,7 +15975,7 @@ msgstr ""
 "image linéaire. Elle peut également fonctionner de la même manière que la "
 "MTF, mais pour les images en négatif"
 
-#: src/core/command_def.h:76
+#: src/core/command_def.h:77
 msgid ""
 "Inverts a modified arcsinh stretch. It provides the inverse transformation "
 "of MODASINH, if provided with the same parameters, undoes a MODASINH "
@@ -15935,7 +15988,7 @@ msgstr ""
 "également fonctionner de la même manière que MODASINH, mais pour des images "
 "en négatif"
 
-#: src/core/command_def.h:77
+#: src/core/command_def.h:78
 msgid ""
 "Multiplies image <b>filename</b> by the loaded image.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
@@ -15943,7 +15996,7 @@ msgstr ""
 "Multiplie l'image <b>filename</b> par l'image chargée.\n"
 "Le résultat sera en 32 bits par canal si les préférences le permettent"
 
-#: src/core/command_def.h:78
+#: src/core/command_def.h:79
 msgid ""
 "Subtracts the loaded image by the image <b>filename</b>.\n"
 "Result will be in 32 bits per channel if allowed in the preferences, so "
@@ -15955,7 +16008,7 @@ msgstr ""
 "qui permet de stocker des valeurs négatives. Pour couper une valeur "
 "négative, utilisez le mode 16 bits ou la commande THRESHLO"
 
-#: src/core/command_def.h:80
+#: src/core/command_def.h:81
 msgid ""
 "Analyses several stars with aperture photometry in a sequence of images and "
 "produces a light curve for one, calibrated by the others. The first "
@@ -15990,7 +16043,7 @@ msgstr ""
 "\n"
 "Voir aussi SEQPSF pour les opérations sur une seule étoile"
 
-#: src/core/command_def.h:81
+#: src/core/command_def.h:82
 msgid ""
 "Computes and applies a linear function between a <b>reference</b> image and "
 "the loaded image.\n"
@@ -16004,7 +16057,7 @@ msgstr ""
 "L'algorithme ignorera tous les pixels de référence dont les valeurs sont en "
 "dehors de la plage [<b>low</b>, <b>high</b>]"
 
-#: src/core/command_def.h:82
+#: src/core/command_def.h:83
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -16015,7 +16068,7 @@ msgstr ""
 "de résultats JPEG ou d'autres fichiers qui peuvent se retrouver dans le "
 "répertoire"
 
-#: src/core/command_def.h:83
+#: src/core/command_def.h:84
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "The argument <b>[channels]</b> may optionally be used to specify the "
@@ -16033,7 +16086,7 @@ msgstr ""
 "l'étirement linéaire au canal de saturation de l'image. Cet argument ne "
 "fonctionne que si tous les canaux sont sélectionnés"
 
-#: src/core/command_def.h:84
+#: src/core/command_def.h:85
 msgid ""
 "Process the provided image for live stacking. Only possible after START_LS. "
 "The process involves calibrating the incoming file if configured in "
@@ -16048,7 +16101,7 @@ msgstr ""
 "fichier live_stack_00001.fit jusqu'à ce qu'une nouvelle option permettant de "
 "le modifier soit ajoutée"
 
-#: src/core/command_def.h:85
+#: src/core/command_def.h:86
 msgid ""
 "Loads the image <b>filename</b> from the current working directory, which "
 "becomes the 'currently loaded image' used in many of the single-image "
@@ -16065,7 +16118,7 @@ msgstr ""
 "Ce schéma est applicable à toutes les commandes Siril impliquant la lecture "
 "de fichiers"
 
-#: src/core/command_def.h:86
+#: src/core/command_def.h:87
 msgid ""
 "Computes and applies a logarithmic scale to the loaded image, using the "
 "following formula: log(1 - (value - min) / (max - min)), with min and max "
@@ -16075,11 +16128,11 @@ msgstr ""
 "utilisant la formule suivante : log(1 - (valeur - min) / (max - min)), min "
 "et max étant les valeurs minimale et maximale du pixel pour le canal"
 
-#: src/core/command_def.h:87
+#: src/core/command_def.h:88
 msgid "Lists files and directories in the working directory"
 msgstr "Liste les fichiers et dossiers du répertoire de travail"
 
-#: src/core/command_def.h:89
+#: src/core/command_def.h:90
 msgid ""
 "Dumps metadata and statistics of the currently loaded image in JSON form. "
 "The file name is required, even if the image is already loaded. Image data "
@@ -16098,7 +16151,7 @@ msgstr ""
 "JSON est créé avec le nom de fichier par défaut '$(FITS_file_without_ext)."
 "json' et peut être modifié avec l'option <b>-out=</b>"
 
-#: src/core/command_def.h:91
+#: src/core/command_def.h:92
 msgid ""
 "Generates a PSF for use with deconvolution, any of the three methods exposed "
 "by RL, SB or WIENER commands. One of the following must be given as the "
@@ -16216,7 +16269,7 @@ msgstr ""
 "exigences d'extension de nom de fichier s'appliquent que pour <b>makepsf "
 "save <i>filename</i></b>"
 
-#: src/core/command_def.h:92
+#: src/core/command_def.h:93
 msgid ""
 "Merges several sequences of the same type (FITS images, FITS sequence or "
 "SER) and same image properties into a new sequence with base name <b>newseq</"
@@ -16233,7 +16286,7 @@ msgstr ""
 "avec le nom .seq exact ou avec seulement le nom de base, avec ou sans '_' à "
 "la fin"
 
-#: src/core/command_def.h:93
+#: src/core/command_def.h:94
 msgid ""
 "Flips the loaded image about the horizontal axis. Option <b>-bottomup</b> "
 "will only flip it if it's not already bottom-up"
@@ -16241,7 +16294,7 @@ msgstr ""
 "Retourne l'image chargée autour de l'axe horizontal. L'option <b>-bottomup</"
 "b> ne l'inversera que si elle n'est pas déjà bottom-up"
 
-#: src/core/command_def.h:94
+#: src/core/command_def.h:95
 msgid ""
 "Flips the image about the horizontal axis, only if needed (if it's not "
 "already bottom-up). It takes the image file name as argument, allowing it to "
@@ -16254,11 +16307,11 @@ msgstr ""
 "aucune inversion n'est nécessaire. L'image est écrasée si un retournement "
 "est effectué"
 
-#: src/core/command_def.h:95
+#: src/core/command_def.h:96
 msgid "Flips the image about the vertical axis"
 msgstr "Fait pivoter l'image autour d'un axe vertical"
 
-#: src/core/command_def.h:96
+#: src/core/command_def.h:97
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -16309,7 +16362,7 @@ msgstr ""
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
 "B, RG, RB ou GB. La valeur par défaut est tous les canaux"
 
-#: src/core/command_def.h:97
+#: src/core/command_def.h:98
 msgid ""
 "Applies midtones transfer function to the current loaded image.\n"
 "\n"
@@ -16332,7 +16385,7 @@ msgstr ""
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
 "B, RG, RB ou GB. La valeur par défaut est tous les canaux"
 
-#: src/core/command_def.h:99
+#: src/core/command_def.h:100
 msgid ""
 "Changes pixel values of the currently loaded image to a negative view, like "
 "1-value for 32 bits, 65535-value for 16 bits. This does not change the "
@@ -16342,7 +16395,7 @@ msgstr ""
 "négative, comme une 1-pixel pour 32 bits, une 65535-pixel pour 16 bits. Cela "
 "ne change pas le mode d'affichage"
 
-#: src/core/command_def.h:100
+#: src/core/command_def.h:101
 msgid ""
 "Creates a new image filled with zeros with a size of <b>width</b> x "
 "<b>height</b>.\n"
@@ -16358,7 +16411,7 @@ msgstr ""
 "<b>nb_channel</b> valant 1 ou 3. Elle n'est pas enregistrée, mais devient "
 "l'image chargée et elle s'affiche et peut être sauvegardé par la suite"
 
-#: src/core/command_def.h:101
+#: src/core/command_def.h:102
 msgid ""
 "Replaces null values by <b>level</b> values. Useful before an idiv or fdiv "
 "operation, mostly for 16-bit images"
@@ -16366,7 +16419,7 @@ msgstr ""
 "Remplace les valeurs nulles par des valeurs de <b>level</b>. Utile avant une "
 "opération idiv ou fdiv, principalement pour les images 16 bits"
 
-#: src/core/command_def.h:103
+#: src/core/command_def.h:104
 msgid ""
 "Adds the constant <b>value</b> (specified in ADU) to the current image. This "
 "constant can take a negative value.\n"
@@ -16380,7 +16433,7 @@ msgstr ""
 "En mode 16 bits, les valeurs des pixels qui tombent en dehors de [0, 65535] "
 "sont tronqués. En mode 32 bits, aucun écrêtage ne se produit"
 
-#: src/core/command_def.h:105
+#: src/core/command_def.h:106
 msgid ""
 "Parses the string <b>str</b> using the information contained in the header "
 "of the image currently loaded. Main purpose of this command is to debug path "
@@ -16415,7 +16468,8 @@ msgstr ""
 "Le mot clé <i>$seqname$</i> peut également être utilisé lors du chargement "
 "d'une séquence"
 
-#: src/core/command_def.h:106
+#: src/core/command_def.h:107
+#, fuzzy
 msgid ""
 "Run the Photometric Color Correction on the loaded image.\n"
 "If the image has already been plate solved, the PCC can reuse the "
@@ -16434,6 +16488,9 @@ msgid ""
 "down, the image will be flipped if a plate solving is run.\n"
 "For faster star detection in big images, downsampling the image is possible "
 "with <b>-downscale</b>.\n"
+"The solve can account for distorsions using SIP convention with polynomials "
+"up to order 4. By default, cubic distorsion is included. This can be changed "
+"with the option <b>-order=</b> giving a value between 1 and 4.\n"
 "\n"
 "The limit magnitude of stars used for plate solving and PCC is automatically "
 "computed from the size of the field of view, but can be altered by passing a "
@@ -16474,7 +16531,8 @@ msgstr ""
 "catalogue NOMAD distant (la version complète) peut être forcé en fournissant "
 "<b>-catalog=nomad</b>"
 
-#: src/core/command_def.h:107
+#: src/core/command_def.h:108
+#, fuzzy
 msgid ""
 "Plate solve the loaded image.\n"
 "If the image has already been plate solved nothing will be done, unless the "
@@ -16504,7 +16562,10 @@ msgid ""
 "option is passed: if local catalogs are installed, they are used, otherwise "
 "the choice is based on the field of view and limit magnitude. If the option "
 "is passed, it forces the use of the remote catalog given in argument, with "
-"possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
+"possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass.\n"
+"The solve can account for distorsions using SIP convention with polynomials "
+"up to order 4. By default, cubic distorsion is included. This can be changed "
+"with the option <b>-order=</b> giving a value between 1 and 4"
 msgstr ""
 "Résouds l'astrométrie de l'image chargée.\n"
 "Si l'image a déjà été résolue, rien ne sera fait, à moins que l'argument <b>-"
@@ -16542,7 +16603,7 @@ msgstr ""
 "distant donné en argument, avec les valeurs possibles : tycho2, nomad, gaia, "
 "ppmxl, brightstars, apass"
 
-#: src/core/command_def.h:108
+#: src/core/command_def.h:109
 msgid ""
 "This command evaluates the expression given in argument as in PixelMath "
 "tool. The full expression must be between double quotes and variables (that "
@@ -16563,7 +16624,7 @@ msgstr ""
 "valeurs <b>low</b> et <b>high</b> dans la plage [0, 1]. Si aucune valeur "
 "basse et haute n'est fournie, les valeurs par défaut sont définies sur 0 et 1"
 
-#: src/core/command_def.h:109
+#: src/core/command_def.h:110
 msgid ""
 "Generates an intensity profile plot between 2 points in the image, also "
 "known as a <i>cut</i>. The arguments may be provided in any order. The "
@@ -16656,7 +16717,7 @@ msgstr ""
 "L'argument <b>\"-title=<i>Mon Titre\"</i></b> définit un titre personnalisé "
 "\"Mon Titre\""
 
-#: src/core/command_def.h:110
+#: src/core/command_def.h:111
 msgid ""
 "Performs a PSF (Point Spread Function) on the selected star and display the "
 "results. For headless operation, the selection can be given in pixels using "
@@ -16672,7 +16733,7 @@ msgstr ""
 "lorsqu'il est exécuté à partir de l'interface graphique avec l'un des canaux "
 "actifs dans la vue"
 
-#: src/core/command_def.h:111
+#: src/core/command_def.h:112
 msgid ""
 "Builds a Bayer masked colour image from 4 separate images containing the "
 "data from Bayer subchannels CFA0, CFA1, CFA2 and CFA3. (The corresponding "
@@ -16691,7 +16752,7 @@ msgstr ""
 "modèle de matrice Bayer à recréer : <i>bayerpattern</i> doit être l'un des "
 "'RGGB', 'BGGR', 'GRBG' ou 'GBRG'"
 
-#: src/core/command_def.h:112
+#: src/core/command_def.h:113
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -16782,11 +16843,11 @@ msgstr ""
 "S'il est créé, le nom de la séquence de sortie commence par le préfixe "
 "\"r_\" sauf indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:113
+#: src/core/command_def.h:114
 msgid "Rescans the scripts folders and updates the Scripts menu"
 msgstr "Re-scan les dossiers de scripts et met à jour le menu Scripts"
 
-#: src/core/command_def.h:114
+#: src/core/command_def.h:115
 msgid ""
 "Returns an error if the version of Siril is older than the one passed in "
 "argument"
@@ -16794,7 +16855,7 @@ msgstr ""
 "Retourne une erreur si la version de Siril est plus ancienne que celle "
 "donnée en argument"
 
-#: src/core/command_def.h:115
+#: src/core/command_def.h:116
 msgid ""
 "Resamples the loaded image, either with a factor <b>factor</b> or for the "
 "target width or height provided by either of <b>-width=</b> or <b>-height=</"
@@ -16828,7 +16889,7 @@ msgstr ""
 "défaut, pour éviter les artefacts, mais il peut être désactivé avec "
 "l'argument <b>-noclamp</b>"
 
-#: src/core/command_def.h:116
+#: src/core/command_def.h:117
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
@@ -16841,7 +16902,7 @@ msgstr ""
 "composed_rgb.fit ou composed_lrgb.fit à moins qu'un autre nom ne soit fourni "
 "dans l'argument optionnel"
 
-#: src/core/command_def.h:117
+#: src/core/command_def.h:118
 msgid ""
 "Creates two images, with a radial shift (<b>dR</b> in pixels) and a "
 "rotational shift (<b>dalpha</b> in degrees) with respect to the point "
@@ -16859,7 +16920,7 @@ msgstr ""
 "opposé. Les deux images sont ensuite ajoutées pour créer l'image finale. Ce "
 "processus est également appelé filtre Larson Sekanina"
 
-#: src/core/command_def.h:118
+#: src/core/command_def.h:119
 msgid ""
 "Restores an image using the Richardson-Lucy method.\n"
 "\n"
@@ -16901,7 +16962,7 @@ msgstr ""
 "Le critère d'arrêt peut être activé en spécifiant une limite d'arrêt avec "
 "<b>-stop=</b>"
 
-#: src/core/command_def.h:119
+#: src/core/command_def.h:120
 msgid ""
 "Applies a chromatic noise reduction filter. It removes green tint in the "
 "current image. This filter is based on PixInsight's SCNR and it is also the "
@@ -16924,7 +16985,7 @@ msgstr ""
 "deux derniers peuvent prendre un argument <b>amount</b> , une valeur "
 "comprise entre 0 et 1, la valeur par défaut étant 1"
 
-#: src/core/command_def.h:120
+#: src/core/command_def.h:121
 msgid ""
 "Rotates the loaded image by an angle of <b>degree</b> value. The option <b>-"
 "nocrop</b> can be added to avoid cropping to the image size (black borders "
@@ -16961,7 +17022,7 @@ msgstr ""
 "défaut, pour éviter les artefacts, mais il peut être désactivé avec "
 "l'argument <b>-noclamp</b>"
 
-#: src/core/command_def.h:121
+#: src/core/command_def.h:122
 msgid ""
 "Rotates the loaded image of an angle of 180° around its center. This is "
 "equivalent to the command \"ROTATE 180\" or \"ROTATE -180\""
@@ -16969,7 +17030,7 @@ msgstr ""
 "Fait pivoter l'image chargée d'un angle de 180° autour de son centre. Ceci "
 "est équivalent à la commande \"ROTATE 180\" ou \"ROTATE -180\""
 
-#: src/core/command_def.h:123
+#: src/core/command_def.h:124
 msgid ""
 "Enhances the color saturation of the loaded image. Try iteratively to obtain "
 "best results.\n"
@@ -16997,7 +17058,7 @@ msgstr ""
 "orange, 1 pour orange à jaune, 2 pour jaune à cyan, 3 pour cyan, 4 pour cyan "
 "à magenta, 5 pour magenta à rose, 6 pour tous (par défaut)"
 
-#: src/core/command_def.h:124
+#: src/core/command_def.h:125
 msgid ""
 "Saves current image to <b>filename</b>.fit (or .fits, depending on your "
 "preferences, see SETEXT) in the current working directory. The image remains "
@@ -17009,7 +17070,7 @@ msgstr ""
 "reste chargée. <b>filename</b> peut contenir un chemin tant que le "
 "répertoire existe déjà"
 
-#: src/core/command_def.h:125
+#: src/core/command_def.h:126
 msgid ""
 "Saves current image under the form of a bitmap file with 8-bit per channel: "
 "<b>filename</b>.bmp (BMP 24-bit)"
@@ -17017,7 +17078,7 @@ msgstr ""
 "Enregistre l'image actuelle sous la forme d'un fichier bitmap avec 8 bits "
 "par canal : <b>filename</b>.bmp (BMP 24 bits)"
 
-#: src/core/command_def.h:126
+#: src/core/command_def.h:127
 msgid ""
 "Saves current image into a JPG file: <b>filename</b>.jpg.\n"
 "\n"
@@ -17031,7 +17092,7 @@ msgstr ""
 "facultative <b>quality</b>, 100 étant la meilleure valeur par défaut, tandis "
 "qu'une valeur inférieure augmente le taux de compression"
 
-#: src/core/command_def.h:127
+#: src/core/command_def.h:128
 msgid ""
 "Saves current image into a JPG XL file: <b>filename</b>.jxl.\n"
 "\n"
@@ -17051,7 +17112,7 @@ msgid ""
 "provided to force output to be 8 bits per pixel"
 msgstr ""
 
-#: src/core/command_def.h:128
+#: src/core/command_def.h:129
 msgid ""
 "Saves current image into a PNG file: <b>filename</b>.png, with 16 bits per "
 "channel if the loaded image is 16 or 32 bits, and 8 bits per channel if the "
@@ -17061,7 +17122,7 @@ msgstr ""
 "par canal si l'image chargée est en 16 ou 32 bits, et 8 bits canal si "
 "l'image chargée est en 8 bits"
 
-#: src/core/command_def.h:129
+#: src/core/command_def.h:130
 msgid ""
 "Saves current image under the form of a NetPBM file format with 16-bit per "
 "channel.\n"
@@ -17075,7 +17136,7 @@ msgstr ""
 "L'extension de la sortie sera <b>filename</b>.ppm pour l'image RVB et "
 "<b>filename</b>.pgm pour l'image en niveaux de gris"
 
-#: src/core/command_def.h:130
+#: src/core/command_def.h:131
 msgid ""
 "Saves current image under the form of a uncompressed TIFF file with 16-bit "
 "per channel: <b>filename</b>.tif. The option <b>-astro</b> allows saving in "
@@ -17090,7 +17151,7 @@ msgstr ""
 "\n"
 "Voir aussi SAVETIF32 et SAVETIF8"
 
-#: src/core/command_def.h:131
+#: src/core/command_def.h:132
 msgid ""
 "Same command as SAVETIF but the output file is saved in 32-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-TIFF "
@@ -17101,7 +17162,7 @@ msgstr ""
 "d'enregistrer au format Astro-TIFF, tandis que <b>-deflate</b> permet la "
 "compression"
 
-#: src/core/command_def.h:132
+#: src/core/command_def.h:133
 msgid ""
 "Same command as SAVETIF but the output file is saved in 8-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-TIFF "
@@ -17111,7 +17172,7 @@ msgstr ""
 "par canal : <b>filename</b>.tif. L'option <b>-astro</b> permet d'enregistrer "
 "au format Astro-TIFF, tandis que <b>-deflate</b> permet la compression"
 
-#: src/core/command_def.h:133
+#: src/core/command_def.h:134
 msgid ""
 "Restores an image using the Split Bregman method.\n"
 "\n"
@@ -17135,7 +17196,7 @@ msgstr ""
 "régularisation (valeur inférieure = plus de régularisation, par défaut = "
 "3000)"
 
-#: src/core/command_def.h:134
+#: src/core/command_def.h:135
 msgid ""
 "This command allows easy mass selection of images in the sequence "
 "<b>sequencename</b> (from <b>from</b> to <b>to</b> included). This is a "
@@ -17147,7 +17208,7 @@ msgstr ""
 "d'une sélection pour un traitement ultérieur.\n"
 "Voir aussi DÉSÉLECTIONNER"
 
-#: src/core/command_def.h:135
+#: src/core/command_def.h:136
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -17229,7 +17290,7 @@ msgstr ""
 "Voir la référence de commande pour la documentation complète sur cette "
 "commande"
 
-#: src/core/command_def.h:136
+#: src/core/command_def.h:137
 msgid ""
 "This command clears selection, registration and/or statistics data stored "
 "for the sequence <b>sequencename</b>.\n"
@@ -17245,7 +17306,7 @@ msgstr ""
 "ou la sélection avec les options <b>-reg</b>, <b>-stat</b> et <b>-sel</b> "
 "respectivement. Tous sont effacés si aucune option n'est passée"
 
-#: src/core/command_def.h:137
+#: src/core/command_def.h:138
 msgid ""
 "Same command as COSME but for the the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -17259,7 +17320,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"cosme_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:138
+#: src/core/command_def.h:139
 msgid ""
 "Same command as COSME_CFA but for the the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -17273,7 +17334,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"cosme_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:139
+#: src/core/command_def.h:140
 msgid ""
 "Crops the sequence given in argument <b>sequencename</b>. Only selected "
 "images in the sequence are processed.\n"
@@ -17293,7 +17354,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"cropped_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:140
+#: src/core/command_def.h:141
 msgid ""
 "Same command as EXTRACT_HA but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17305,7 +17366,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"Ha_\", sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:141
+#: src/core/command_def.h:142
 msgid ""
 "Same command as EXTRACT_GREEN but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17317,7 +17378,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"Green_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:142
+#: src/core/command_def.h:143
 msgid ""
 "Same command as EXTRACT_HAOIII but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17328,7 +17389,7 @@ msgstr ""
 "Les noms des séquences de sortie commencent par le préfixe \"Ha_\" et "
 "\"OIII_\""
 
-#: src/core/command_def.h:143
+#: src/core/command_def.h:144
 msgid ""
 "Same command as FINDSTAR but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17341,7 +17402,7 @@ msgstr ""
 "fichiers de liste d'étoiles sont enregistrés avec le nom par défaut "
 "<i>seqname_seqnb.lst</i>"
 
-#: src/core/command_def.h:144
+#: src/core/command_def.h:145
 msgid ""
 "Same command as FIND_COSME but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17353,7 +17414,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"cc_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:145
+#: src/core/command_def.h:146
 msgid ""
 "Same command as FIND_COSME_CFA but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17365,7 +17426,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"cc_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:146
+#: src/core/command_def.h:147
 msgid ""
 "Same command as FIXBANDING but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17377,7 +17438,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"unband_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:147
+#: src/core/command_def.h:148
 msgid ""
 "Same command as GHT but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
@@ -17387,14 +17448,14 @@ msgstr ""
 "argument. De plus, l'argument facultatif <b>-prefix=</b> peut être utilisé "
 "pour définir un préfixe personnalisé"
 
-#: src/core/command_def.h:148
+#: src/core/command_def.h:149
 msgid ""
 "Prints the FITS header value for the given key for all images in the sequence"
 msgstr ""
 "Imprime la valeur de l'en-tête FITS pour la clé donnée pour toutes les "
 "images de la séquence"
 
-#: src/core/command_def.h:149
+#: src/core/command_def.h:150
 msgid ""
 "Same command as INVGHT but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
@@ -17404,7 +17465,7 @@ msgstr ""
 "spécifiée comme premier argument. En outre, l'argument facultatif <b>-"
 "prefix=</b> peut être utilisé pour définir un préfixe personnalisé"
 
-#: src/core/command_def.h:150
+#: src/core/command_def.h:151
 msgid ""
 "Same command as INVMODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
@@ -17414,7 +17475,7 @@ msgstr ""
 "être spécifiée comme premier argument. En outre, l'argument facultatif <b>-"
 "prefix=</b> peut être utilisé pour définir un préfixe personnalisé"
 
-#: src/core/command_def.h:151
+#: src/core/command_def.h:152
 msgid ""
 "Same command as LINSTRETCH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
@@ -17424,7 +17485,7 @@ msgstr ""
 "être spécifiée comme premier argument. En outre, l'argument facultatif <b>-"
 "prefix=</b> peut être utilisé pour définir un préfixe personnalisé"
 
-#: src/core/command_def.h:152
+#: src/core/command_def.h:153
 msgid ""
 "Same command as MERGE_CFA but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17457,7 +17518,7 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"mCFA_\" et un "
 "nombre sauf indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:153
+#: src/core/command_def.h:154
 msgid ""
 "Same command as MODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
@@ -17467,7 +17528,7 @@ msgstr ""
 "être spécifiée comme premier argument. En outre, l'argument facultatif <b>-"
 "prefix=</b> peut être utilisé pour définir un préfixe personnalisé"
 
-#: src/core/command_def.h:154
+#: src/core/command_def.h:155
 msgid ""
 "Same command as MTF but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17479,7 +17540,8 @@ msgstr ""
 "Le nom de la séquence de sortie commence par le préfixe \"mtf_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
-#: src/core/command_def.h:155
+#: src/core/command_def.h:156
+#, fuzzy
 msgid ""
 "Plate solve a sequence. A new sequence will be created with the prefix "
 "\"ps_\". If the input sequence is SER, providing the metadata is mandatory "
@@ -17514,7 +17576,10 @@ msgid ""
 "option is passed: if local catalogs are installed, they are used, otherwise "
 "the choice is based on the field of view and limit magnitude. If the option "
 "is passed, it forces the use of the remote catalog given in argument, with "
-"possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
+"possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass.\n"
+"The solve can account for distorsions using SIP convention with polynomials "
+"up to order 4. By default, cubic distorsion is included. This can be changed "
+"with the option <b>-order=</b> giving a value between 1 and 4"
 msgstr ""
 "Astrométrie d'une séquence. Une nouvelle séquence sera créée avec le préfixe "
 "\"ps_\". Si la séquence d'entrée est en SER, la fourniture des métadonnées "
@@ -17554,7 +17619,7 @@ msgstr ""
 "distant donné en argument, avec les valeurs possibles : tycho2, nomad, gaia, "
 "ppmxl, brightstars, apass"
 
-#: src/core/command_def.h:156
+#: src/core/command_def.h:157
 msgid ""
 "Generates an intensity profile plot between 2 points in each image in the "
 "sequence. After the mandatory first argument stating the sequence to "
@@ -17572,7 +17637,7 @@ msgstr ""
 "(1/5)\", le titre donné doit se terminer par () (par exemple \"Ma séquence "
 "()\" et les numéros seront renseignés automatiquement)"
 
-#: src/core/command_def.h:157
+#: src/core/command_def.h:158
 msgid ""
 "Same command as PSF but runs on sequences. This is similar to the one-star "
 "registration, except results can be used for photometry analysis rather than "
@@ -17636,7 +17701,7 @@ msgstr ""
 "permettant de fournir les coordonnées en pixels de l'étoile cible et -wcs= "
 "permettant de fournir les coordonnées équatoriales J2000"
 
-#: src/core/command_def.h:158
+#: src/core/command_def.h:159
 msgid ""
 "The same as the RL command, but applies to a sequence which must be "
 "specified as the first argument"
@@ -17644,7 +17709,7 @@ msgstr ""
 "Identique à la commande RL, mais s'applique à une séquence qui doit être "
 "spécifiée comme premier argument"
 
-#: src/core/command_def.h:159
+#: src/core/command_def.h:160
 msgid ""
 "The same as the SB command, but applies to a sequence which must be "
 "specified as the first argument"
@@ -17652,7 +17717,7 @@ msgstr ""
 "Identique à la commande SB, mais s'applique à une séquence qui doit être "
 "spécifiée comme premier argument"
 
-#: src/core/command_def.h:160
+#: src/core/command_def.h:161
 msgid ""
 "Same as SETMAG command but for the loaded sequence.\n"
 "\n"
@@ -17681,7 +17746,7 @@ msgstr ""
 "Pour réinitialiser l'étoile de référence et le décalage de magnitude, voir "
 "SEQUNSETMAG"
 
-#: src/core/command_def.h:161
+#: src/core/command_def.h:162
 msgid ""
 "Same command as SPLIT_CFA but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -17697,7 +17762,7 @@ msgstr ""
 "<i>Limitation :</i> la séquence génère toujours une séquence de fichiers "
 "FITS, quel que soit le type de séquence d'entrée"
 
-#: src/core/command_def.h:162
+#: src/core/command_def.h:163
 msgid ""
 "This command calls <a href=\"https://www.starnetastro.com/\">Starnet++</a> "
 "to remove stars from the sequence <b>sequencename</b>. See STARNET"
@@ -17706,7 +17771,7 @@ msgstr ""
 "a> pour supprimer les étoiles de la séquence <b>sequencename</b>. Voir "
 "STARNET"
 
-#: src/core/command_def.h:163
+#: src/core/command_def.h:164
 msgid ""
 "Same command as STAT for sequence <b>sequencename</b>.\n"
 "\n"
@@ -17736,7 +17801,7 @@ msgstr ""
 "Si <b>-cfa</b> est passé et que les images sont CFA, les statistiques sont "
 "faites sur les extractions par filtre"
 
-#: src/core/command_def.h:164
+#: src/core/command_def.h:165
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -17754,7 +17819,7 @@ msgstr ""
 "indication contraire avec l'option <b>-prefix=</b>. Seules les images "
 "sélectionnées dans la séquence sont traitées"
 
-#: src/core/command_def.h:165
+#: src/core/command_def.h:166
 msgid ""
 "Same command as TILT but for the sequence <b>sequencename</b>. It generally "
 "gives better results"
@@ -17762,7 +17827,7 @@ msgstr ""
 "Même commande que TILT mais pour la séquence <b>sequencename</b>. Elle donne "
 "généralement de meilleurs résultats"
 
-#: src/core/command_def.h:166
+#: src/core/command_def.h:167
 msgid ""
 "Resets the magnitude calibration and reference star for the sequence. See "
 "SEQSETMAG"
@@ -17770,7 +17835,7 @@ msgstr ""
 "Réinitialise l'étalonnage de la magnitude et l'étoile de référence de la "
 "séquence. Voir SEQSETMAG"
 
-#: src/core/command_def.h:167
+#: src/core/command_def.h:168
 msgid ""
 "The same as the <b>WIENER</b> command, but applies to a sequence which must "
 "be specified as the first argument"
@@ -17778,7 +17843,7 @@ msgstr ""
 "Identique à la commande <b>WIENER</b>, mais s'applique à une séquence qui "
 "doit être spécifiée comme premier argument"
 
-#: src/core/command_def.h:168
+#: src/core/command_def.h:169
 msgid ""
 "Updates a setting value, using its variable name, with the given value, or a "
 "set of values using an existing ini file with <b>-import=</b> option.\n"
@@ -17789,7 +17854,7 @@ msgstr ""
 "existant avec l'option <b>-import=</b>.\n"
 "Voir GET pour obtenir des valeurs ou la liste des variables"
 
-#: src/core/command_def.h:169
+#: src/core/command_def.h:170
 msgid ""
 "Forbids images to be saved with 32 bits per channel on processing, use 16 "
 "bits instead"
@@ -17797,12 +17862,12 @@ msgstr ""
 "Empêche d'enregistrer les images avec 32 bits par canal lors du traitement, "
 "utiliser 16 bits à la place"
 
-#: src/core/command_def.h:170
+#: src/core/command_def.h:171
 msgid "Allows images to be saved with 32 bits per channel on processing"
 msgstr ""
 "Permet d'enregistrer les images en 32 bits par canal lors du traitement"
 
-#: src/core/command_def.h:171
+#: src/core/command_def.h:172
 msgid ""
 "Defines if images are compressed or not.\n"
 "\n"
@@ -17827,7 +17892,7 @@ msgstr ""
 "Par exemple, \"setcompress 1 -type=rice 16\" définit la compression du riz "
 "avec une quantification de 16"
 
-#: src/core/command_def.h:172
+#: src/core/command_def.h:173
 msgid ""
 "Defines the number of processing threads used for calculation.\n"
 "\n"
@@ -17846,7 +17911,7 @@ msgstr ""
 "utilisé pour limiter la puissance de traitement. Ceci est réinitialisé à "
 "chaque démarrage de Siril. Voir aussi SETMEM"
 
-#: src/core/command_def.h:173
+#: src/core/command_def.h:174
 msgid ""
 "Sets the extension used and recognized by sequences.\n"
 "\n"
@@ -17856,7 +17921,7 @@ msgstr ""
 "\n"
 "L'argument <b>extension</b> peut être \"fit\", \"fts\" ou \"fits\""
 
-#: src/core/command_def.h:174
+#: src/core/command_def.h:175
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -17922,7 +17987,7 @@ msgstr ""
 "objets qui n'ont pas la forme d'étoiles d'être toujours acceptés (désactivé "
 "par défaut)"
 
-#: src/core/command_def.h:175
+#: src/core/command_def.h:176
 msgid ""
 "Calibrates the magnitudes by selecting a star and giving the known apparent "
 "magnitude.\n"
@@ -17942,7 +18007,7 @@ msgstr ""
 "d'observation soit significatif.\n"
 "Pour réinitialiser la constante de magnitude, voir UNSETMAG"
 
-#: src/core/command_def.h:176
+#: src/core/command_def.h:177
 msgid ""
 "Sets a new ratio of used memory on free memory.\n"
 "\n"
@@ -17963,7 +18028,7 @@ msgstr ""
 "plantage du système. Une quantité fixe de mémoire peut également être "
 "définie dans les paramètres génériques, avec SET, au lieu d'un ratio"
 
-#: src/core/command_def.h:177
+#: src/core/command_def.h:178
 msgid ""
 "Gets or sets photometry settings, mostly used by SEQPSF. If arguments are "
 "provided, they will update the settings. None are mandatory, any can be "
@@ -17983,7 +18048,7 @@ msgstr ""
 "place. Le gain est utilisé uniquement s'il n'est pas disponible dans l'en-"
 "tête FITS"
 
-#: src/core/command_def.h:178
+#: src/core/command_def.h:179
 msgid ""
 "Sets the reference image of the sequence given in first argument. "
 "<b>image_number</b> is the sequential number of the image in the sequence, "
@@ -17993,7 +18058,7 @@ msgstr ""
 "<b>image_number</b> est le numéro séquentiel de l'image dans la séquence, "
 "pas le numéro dans le nom du fichier, commençant à 1"
 
-#: src/core/command_def.h:179
+#: src/core/command_def.h:180
 msgid ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
@@ -18018,7 +18083,7 @@ msgstr ""
 "\n"
 "Ceci n'est disponible qu'à partir de l'interface graphique de Siril"
 
-#: src/core/command_def.h:180
+#: src/core/command_def.h:181
 msgid ""
 "Splits the loaded color image into three distinct files (one for each color) "
 "and saves them in <b>file1</b>.fit, <b>file2</b>.fit and <b>file3</b>.fit "
@@ -18033,7 +18098,7 @@ msgstr ""
 "CieLAB. Si aucune option n'est fournie, l'extraction est de type RVB, ce qui "
 "signifie qu'aucune conversion n'est effectuée"
 
-#: src/core/command_def.h:181
+#: src/core/command_def.h:182
 msgid ""
 "Splits the loaded CFA image into four distinct files (one for each channel) "
 "and saves them in files"
@@ -18041,7 +18106,7 @@ msgstr ""
 "Divise l'image CFA chargée en quatre fichiers distincts (un pour chaque "
 "canal) et les enregistre dans des fichiers"
 
-#: src/core/command_def.h:182
+#: src/core/command_def.h:183
 msgid ""
 "Searches and displays Solar System objects in the current loaded and plate "
 "solved image's field of view, using the online IMCCE SkyBoT cone search "
@@ -18052,7 +18117,7 @@ msgstr ""
 "l'outil de recherche IMCCE SkyBoT en ligne. Utilisez <b>-mag=</b> pour "
 "modifier la magnitude limite, par défaut à 20"
 
-#: src/core/command_def.h:183
+#: src/core/command_def.h:184
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -18161,7 +18226,7 @@ msgstr ""
 "Voir la référence de commande pour la documentation complète sur cette "
 "commande"
 
-#: src/core/command_def.h:184
+#: src/core/command_def.h:185
 msgid ""
 "Opens all sequences in the current directory and stacks them with the "
 "optionally specified stacking type and filtering or with sum stacking. See "
@@ -18172,7 +18237,7 @@ msgstr ""
 "l'empilement par somme. Voir la commande STACK pour la description des "
 "options"
 
-#: src/core/command_def.h:185
+#: src/core/command_def.h:186
 msgid ""
 "Calls <a href=\"https://www.starnetastro.com/\">StarNet</a> to remove stars "
 "from the loaded image.\n"
@@ -18223,7 +18288,7 @@ msgstr ""
 "l'auteur de StarNet recommande <i>fortement</i> que le pas par défaut de 256 "
 "soit utilisée"
 
-#: src/core/command_def.h:186
+#: src/core/command_def.h:187
 msgid ""
 "Initializes a livestacking session, using the optional calibration files and "
 "waits for input files to be provided by the LIVESTACK command until STOP_LS "
@@ -18248,7 +18313,7 @@ msgstr ""
 "START_LS, seuls LIVESTACK, STOP_LS et EXIT peuvent être appelés jusqu'à ce "
 "que STOP_LS soit appelé pour renvoyer Siril dans son état normal</i>"
 
-#: src/core/command_def.h:187
+#: src/core/command_def.h:188
 msgid ""
 "Returns statistics of the current image, the basic list by default or the "
 "main list if <b>main</b> is passed. If a selection is made, statistics are "
@@ -18261,11 +18326,11 @@ msgstr ""
 "et que l'image est CFA, les statistiques sont faites sur des extractions par "
 "filtre"
 
-#: src/core/command_def.h:188
+#: src/core/command_def.h:189
 msgid "Stops the live stacking session. Only possible after START_LS"
 msgstr "Arrête la session de livestacking. Uniquement possible après START_LS"
 
-#: src/core/command_def.h:189
+#: src/core/command_def.h:190
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -18287,7 +18352,7 @@ msgstr ""
 "avec <b>-dither</b>.\n"
 "Pour RBF, le paramètre de lissage supplémentaire est également disponible"
 
-#: src/core/command_def.h:190
+#: src/core/command_def.h:191
 msgid ""
 "Fixes imperfect stars from the loaded image. No matter how much coma, "
 "tracking drift or other distortion your stars have, if Siril's star finder "
@@ -18327,7 +18392,7 @@ msgstr ""
 "\n"
 "Aucun paramètre n'est requis pour cette commande"
 
-#: src/core/command_def.h:191
+#: src/core/command_def.h:192
 msgid ""
 "Re-profiles clipped stars of the loaded image to desaturate them, scaling "
 "the output so that all pixel values are &lt;= 1.0"
@@ -18336,21 +18401,21 @@ msgstr ""
 "mettant à l'échelle la sortie de manière à ce que toutes les valeurs de "
 "pixels soient &lt;= 1,0"
 
-#: src/core/command_def.h:192
+#: src/core/command_def.h:193
 msgid ""
 "Replaces values below <b>level</b> in the loaded image with <b>level</b>"
 msgstr ""
 "Remplace les valeurs inférieures a <b>level</b> dans l'image chargée par "
 "<b>level</b>"
 
-#: src/core/command_def.h:193
+#: src/core/command_def.h:194
 msgid ""
 "Replaces values above <b>level</b> in the loaded image with <b>level</b>"
 msgstr ""
 "Remplace les valeurs supérieures a <b>level</b> dans l'image chargée par "
 "<b>level</b>"
 
-#: src/core/command_def.h:194
+#: src/core/command_def.h:195
 msgid ""
 "Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
 "with <b>hi</b> in the loaded image"
@@ -18358,7 +18423,7 @@ msgstr ""
 "Remplace les valeurs inférieures à <b>lo</b> par <b>lo</b> et les valeurs "
 "supérieures à <b>hi</b> par <b>hi</b> dans l'image chargée"
 
-#: src/core/command_def.h:195
+#: src/core/command_def.h:196
 msgid ""
 "Computes the sensor tilt as the FWHM difference between the best and worst "
 "corner truncated mean values. The <b>clear</b> option allows to clear the "
@@ -18368,7 +18433,7 @@ msgstr ""
 "moyennes tronquéesdes meilleures et des pires fwhm.. L'option <b>clear</b> "
 "permet d'effacer le dessin"
 
-#: src/core/command_def.h:197
+#: src/core/command_def.h:198
 msgid ""
 "Allows easy mass unselection of images in the sequence <b>sequencename</b> "
 "(from <b>from</b> to <b>to</b> included). See SELECT"
@@ -18376,11 +18441,11 @@ msgstr ""
 "Permet une dé-sélection de masse facile des images de la séquence "
 "<b>sequencename</b> (de <b>from</b> à <b>to</b> inclus). Voir SELECT"
 
-#: src/core/command_def.h:198
+#: src/core/command_def.h:199
 msgid "Resets the magnitude calibration to 0. See SETMAG"
 msgstr "Remet l'étalonnage de la magnitude à 0. Voir SETMAG"
 
-#: src/core/command_def.h:199
+#: src/core/command_def.h:200
 msgid ""
 "Applies an unsharp mask, actually a Gaussian filtered image  with sigma "
 "<b>sigma</b> and a blend with the parameter <b>amount</b> used as such: out "
@@ -18394,7 +18459,7 @@ msgstr ""
 "\n"
 "Voir aussi GAUSS, le même sans mélange"
 
-#: src/core/command_def.h:201
+#: src/core/command_def.h:202
 msgid ""
 "Displays the loaded image with <b>low</b> and <b>high</b> as the low and "
 "high threshold, GUI only"
@@ -18402,7 +18467,7 @@ msgstr ""
 "Affiche l'image chargée avec <b>low</b> et <b>high</b> comme seuil bas et "
 "haut, GUI uniquement"
 
-#: src/core/command_def.h:203
+#: src/core/command_def.h:204
 msgid ""
 "Computes the wavelet transform of the loaded image on (<b>nbr_layers</"
 "b>=1...6) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) "
@@ -18420,7 +18485,7 @@ msgstr ""
 "\n"
 "Voir aussi EXTRACT"
 
-#: src/core/command_def.h:204
+#: src/core/command_def.h:205
 msgid ""
 "Restores an image using the Wiener deconvolution method.\n"
 "\n"
@@ -18438,7 +18503,7 @@ msgstr ""
 "Le paramètre <b>-alpha=</b> fournit le facteur de régularisation modélisé "
 "par le bruit gaussien"
 
-#: src/core/command_def.h:205
+#: src/core/command_def.h:206
 msgid ""
 "Reconstructs to current image from the layers previously computed with "
 "wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> "
@@ -20485,15 +20550,15 @@ msgstr ""
 msgid "Filename is too long, not expanding it\n"
 msgstr "Nom de fichier trop long, ne fera rien\n"
 
-#: src/core/utils.c:1197 src/io/image_format_fits.c:3437
-#: src/io/image_format_fits.c:3442 src/io/ser.c:1368
+#: src/core/utils.c:1197 src/io/image_format_fits.c:3496
+#: src/io/image_format_fits.c:3501 src/io/ser.c:1368
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "pixel"
 msgstr[1] "pixels"
 
-#: src/core/utils.c:1198 src/io/image_format_fits.c:3438
-#: src/io/image_format_fits.c:3443 src/io/ser.c:1369
+#: src/core/utils.c:1198 src/io/image_format_fits.c:3497
+#: src/io/image_format_fits.c:3502 src/io/ser.c:1369
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "canal"
@@ -21048,11 +21113,11 @@ msgstr "Cyril Richard <cyril@free-astro.org>"
 msgid "Visit the Siril website"
 msgstr "Visiter le site de Siril"
 
-#: src/gui/astrometry_solver.c:325
+#: src/gui/astrometry_solver.c:330
 msgid "Photometry failed.\n"
 msgstr "Échec de la photométrie.\n"
 
-#: src/gui/astrometry_solver.c:327
+#: src/gui/astrometry_solver.c:332
 msgid ""
 "Photometry could not be performed. You can try to adjust the settings in the "
 "Siril preferences."
@@ -21060,7 +21125,7 @@ msgstr ""
 "La photométrie n'a pas pu être réalisée. Vous pouvez essayer d'ajuster les "
 "paramètres dans les préférences de Siril."
 
-#: src/gui/astrometry_solver.c:331
+#: src/gui/astrometry_solver.c:336
 msgid ""
 "Plate Solving failed. The image could not be aligned with the reference "
 "stars.\n"
@@ -21068,7 +21133,7 @@ msgstr ""
 "La résolution astrométrique a échoué. L'image n'a pas pu être alignée sur "
 "les étoiles de référence.\n"
 
-#: src/gui/astrometry_solver.c:334
+#: src/gui/astrometry_solver.c:339
 msgid ""
 "This is usually because the initial parameters (pixel size, focal length, "
 "initial coordinates) are too far from the real metadata of the image.\n"
@@ -21090,42 +21155,42 @@ msgstr ""
 "Enfin, gardez à l'esprit que la résolution astrométrique devrait seulement "
 "s'utiliser sur des images linéaires."
 
-#: src/gui/astrometry_solver.c:470
+#: src/gui/astrometry_solver.c:475
 msgid "No object found\n"
 msgstr "Aucun objet trouvé\n"
 
-#: src/gui/astrometry_solver.c:569
+#: src/gui/astrometry_solver.c:574
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr ""
 "Il n'y a pas de coordonnées disponibles avec ce nom, essayez avec un autre "
 "nom\n"
 
-#: src/gui/astrometry_solver.c:570 src/gui/astrometry_solver.c:666
+#: src/gui/astrometry_solver.c:575 src/gui/astrometry_solver.c:680
 msgid "No coordinates"
 msgstr "Aucune coordonnées"
 
-#: src/gui/astrometry_solver.c:580
+#: src/gui/astrometry_solver.c:585
 msgid "There are no keywords stored in the FITS header.\n"
 msgstr "Il n'y a aucun mot clé stocké dans l'entête du fichier.\n"
 
-#: src/gui/astrometry_solver.c:581
+#: src/gui/astrometry_solver.c:586
 msgid "No metadata"
 msgstr "Aucune métadonnée"
 
-#: src/gui/astrometry_solver.c:667
+#: src/gui/astrometry_solver.c:681
 msgid "Please enter object coordinates."
 msgstr "Veuillez saisir les coordonnées de l'objet."
 
-#: src/gui/astrometry_solver.c:683
+#: src/gui/astrometry_solver.c:697
 msgid "Selection is not used with the astrometry.net solver\n"
 msgstr "La sélection n'est pas utilisée avec le solveur astrometry.net\n"
 
-#: src/gui/astrometry_solver.c:726
+#: src/gui/astrometry_solver.c:740
 msgid "Astrometric solution detected"
 msgstr "Solution astrométrique detectée"
 
-#: src/gui/astrometry_solver.c:727
+#: src/gui/astrometry_solver.c:741
 msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
@@ -21133,17 +21198,17 @@ msgstr ""
 "La solution astrométrique contenue dans l'image va être effacée par la "
 "transformation géométrique et aucun retour en arrière n'est possible."
 
-#: src/gui/astrometry_solver.c:729
+#: src/gui/astrometry_solver.c:743
 msgid "Process"
 msgstr "Traiter"
 
 #. 2 = GAIA, 3 = PPMXL
 #. 1 = APASS
-#: src/gui/astrometry_solver.c:755 src/gui/photometric_cc.c:246
+#: src/gui/astrometry_solver.c:769 src/gui/photometric_cc.c:246
 msgid "(online catalogue)"
 msgstr "(catalogue en ligne)"
 
-#: src/gui/astrometry_solver.c:756 src/gui/photometric_cc.c:247
+#: src/gui/astrometry_solver.c:770 src/gui/photometric_cc.c:247
 msgid "(local catalogue)"
 msgstr "(catalogue local)"
 
@@ -21223,87 +21288,87 @@ msgstr ""
 msgid "_Do not show this dialog again"
 msgstr "_Ne plus afficher cette fenêtre"
 
-#: src/gui/callbacks.c:422
+#: src/gui/callbacks.c:420
 #, c-format
 msgid "Setting MAX value for cutoff sliders adjustments (%f)\n"
 msgstr "Ajuste la valeur maximale pour les curseurs d'ajustement (%f)\n"
 
-#: src/gui/callbacks.c:447
+#: src/gui/callbacks.c:445
 #, c-format
 msgid "Setting ranges scalemin=%d, scalemax=%d\n"
 msgstr "Défini scalemin=%d, scalemax=%d\n"
 
-#: src/gui/callbacks.c:474
+#: src/gui/callbacks.c:472
 msgid ""
 "Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"
 msgstr ""
 "L'image actuelle n'est pas en 32 bits. La fonction auto-ajustement standard "
 "de 16 bits sera utilisée.\n"
 
-#: src/gui/callbacks.c:477 src/gui/callbacks.c:503
+#: src/gui/callbacks.c:475 src/gui/callbacks.c:501
 #, c-format
 msgid "The AutoStretch display mode will use a %d bit LUT\n"
 msgstr "Le mode d'affichage auto-ajustement utilise une table de %d bits\n"
 
-#: src/gui/callbacks.c:481 src/gui/callbacks.c:506
+#: src/gui/callbacks.c:479 src/gui/callbacks.c:504
 msgid "The AutoStretch display mode will use a 16 bit LUT\n"
 msgstr "Le mode d'affichage auto-ajustement utilise une table de 16 bits\n"
 
-#: src/gui/callbacks.c:517
+#: src/gui/callbacks.c:515
 #, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
 msgstr ""
 "Réglage de la profondeur de bits du mode d'affichage auto-ajustement HD à "
 "%d...\n"
 
-#: src/gui/callbacks.c:596
+#: src/gui/callbacks.c:594
 #, c-format
 msgid "%s, %d/%d images selected"
 msgstr "%s, %d/%d images sélectionnées"
 
-#: src/gui/callbacks.c:598
+#: src/gui/callbacks.c:596
 msgid "Sequence: "
 msgstr "Séquence : "
 
-#: src/gui/callbacks.c:605
+#: src/gui/callbacks.c:603
 msgid "Image: "
 msgstr "Image : "
 
-#: src/gui/callbacks.c:609
+#: src/gui/callbacks.c:607
 msgid "- none -"
 msgstr "- néant -"
 
-#: src/gui/callbacks.c:626
+#: src/gui/callbacks.c:624
 msgid ""
 "This sequence name already exists!! Please change the name before converting."
 msgstr ""
 "Ce nom de séquence existe déjà ! ! S'il vous plaît changer le nom avant de "
 "convertir."
 
-#: src/gui/callbacks.c:861
+#: src/gui/callbacks.c:859
 msgid "Luminance"
 msgstr "Luminance"
 
-#: src/gui/callbacks.c:893
+#: src/gui/callbacks.c:891
 #, c-format
 msgid "W: %dpx H: %dpx ratio: %.4f"
 msgstr "L : %dpx H : %dpx ratio : %.4f"
 
-#: src/gui/callbacks.c:933
+#: src/gui/callbacks.c:931
 #, c-format
 msgid "fwhm: %.2f px, r: %.2f"
 msgstr "fwhm : %.2f px, r : %.2f"
 
-#: src/gui/callbacks.c:935 src/gui/callbacks.c:937
+#: src/gui/callbacks.c:933 src/gui/callbacks.c:935
 #, c-format
 msgid "fwhm: N/A"
 msgstr "fwhm : N/A"
 
-#: src/gui/callbacks.c:1001
+#: src/gui/callbacks.c:999
 msgid "Cannot convert a sequence file"
 msgstr "Impossible de convertir un fichier de séquence"
 
-#: src/gui/callbacks.c:1002
+#: src/gui/callbacks.c:1000
 msgid ""
 "A sequence file cannot be converted to 32 bits. This operation can only be "
 "done on a single file."
@@ -21311,11 +21376,11 @@ msgstr ""
 "Un fichier de séquence ne peut pas être converti en 32 bits. Cette opération "
 "ne peut être effectuée que sur des fichiers uniques."
 
-#: src/gui/callbacks.c:1007
+#: src/gui/callbacks.c:1005
 msgid "Precision loss"
 msgstr "Perte de précision"
 
-#: src/gui/callbacks.c:1008
+#: src/gui/callbacks.c:1006
 msgid ""
 "Converting the image from 32 bits to 16 bits may lead to a loss of numerical "
 "accuracy. Getting back to 32 bits will not recover this loss.\n"
@@ -21326,34 +21391,34 @@ msgstr ""
 "récupérer cette perte.\n"
 "Voulez-vous vraiment convertir vos données ?"
 
-#: src/gui/callbacks.c:1010
+#: src/gui/callbacks.c:1008
 msgid "Convert to 16 bits"
 msgstr "Convertir en 16 bits"
 
-#: src/gui/callbacks.c:1240
+#: src/gui/callbacks.c:1238
 msgid "B&W"
 msgstr "N&B"
 
-#: src/gui/callbacks.c:1389 src/io/siril_catalogues.c:271
+#: src/gui/callbacks.c:1387 src/io/siril_catalogues.c:271
 msgid "unknown"
 msgstr "inconnu"
 
-#: src/gui/callbacks.c:1429
+#: src/gui/callbacks.c:1427
 #, c-format
 msgid "Binning %d x %d is not supported\n"
 msgstr "Ce binning %d x %d n'est pas supporté\n"
 
-#: src/gui/callbacks.c:1571
+#: src/gui/callbacks.c:1569
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr "L'extension par défaut des FITS est définie à %s\n"
 
-#: src/gui/callbacks.c:1594
+#: src/gui/callbacks.c:1592
 #, c-format
 msgid "Welcome to %s"
 msgstr "Bienvenue dans %s"
 
-#: src/gui/callbacks.c:1597
+#: src/gui/callbacks.c:1595
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -21366,37 +21431,37 @@ msgstr ""
 "pouvez rejouer cette introduction à tout moment dans l'onglet Divers de la "
 "boîte de dialogue des préférences."
 
-#: src/gui/callbacks.c:1600
+#: src/gui/callbacks.c:1598
 msgid "See Introduction"
 msgstr "Voir l'Introduction"
 
-#: src/gui/callbacks.c:1856
+#: src/gui/callbacks.c:1854
 msgid "Closing application"
 msgstr "Fermeture de l'application"
 
-#: src/gui/callbacks.c:1857
+#: src/gui/callbacks.c:1855
 msgid "Are you sure you want to quit?"
 msgstr "Êtes vous sûr de vouloir quitter ?"
 
-#: src/gui/callbacks.c:1857
+#: src/gui/callbacks.c:1855
 msgid "Exit"
 msgstr "Quitter"
 
-#: src/gui/callbacks.c:2017
+#: src/gui/callbacks.c:2015
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr "Séquence %s sélectionnée %s..."
 
-#: src/gui/callbacks.c:2066
+#: src/gui/callbacks.c:2064
 msgid "Searching for sequences in the current working directory..."
 msgstr "Cherche des séquences dans le répertoire de travail..."
 
-#: src/gui/callbacks.c:2115
+#: src/gui/callbacks.c:2113
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 "Cela efface les données suivantes, et il n'y a pas d'annulation possible :\n"
 
-#: src/gui/callbacks.c:2116
+#: src/gui/callbacks.c:2114
 msgid ""
 "\n"
 "- Registration"
@@ -21404,7 +21469,7 @@ msgstr ""
 "\n"
 "- Alignement"
 
-#: src/gui/callbacks.c:2117
+#: src/gui/callbacks.c:2115
 msgid ""
 "\n"
 "- Statistics"
@@ -21412,7 +21477,7 @@ msgstr ""
 "\n"
 "- Statistiques"
 
-#: src/gui/callbacks.c:2118
+#: src/gui/callbacks.c:2116
 msgid ""
 "\n"
 "- Selection"
@@ -21420,19 +21485,19 @@ msgstr ""
 "\n"
 "- Sélection"
 
-#: src/gui/callbacks.c:2122
+#: src/gui/callbacks.c:2120
 msgid "Clear Sequence Data?"
 msgstr "Effacer les données de la séquence ?"
 
-#: src/gui/callbacks.c:2122
+#: src/gui/callbacks.c:2120
 msgid "Clear Data"
 msgstr "Effacer Données"
 
-#: src/gui/callbacks.c:2134
+#: src/gui/callbacks.c:2132
 msgid "The requested data of the sequence has been cleaned."
 msgstr "Les données demandées de la séquence ont été nettoyées."
 
-#: src/gui/callbacks.c:2142
+#: src/gui/callbacks.c:2140
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
@@ -21442,19 +21507,19 @@ msgstr ""
 "signifie que le fichier contenant les objets ajoutés manuellement sera "
 "supprimé. Cette opération ne peut pas être annulée."
 
-#: src/gui/callbacks.c:2144
+#: src/gui/callbacks.c:2142
 msgid "SOLAR SYSTEM"
 msgstr "SYSTÈME SOLAIRE"
 
-#: src/gui/callbacks.c:2144
+#: src/gui/callbacks.c:2142
 msgid "DEEP SKY"
 msgstr "CIEL PROFOND"
 
-#: src/gui/callbacks.c:2146
+#: src/gui/callbacks.c:2144
 msgid "Catalog deletion"
 msgstr "Suppression du catalogue"
 
-#: src/gui/callbacks.c:2146
+#: src/gui/callbacks.c:2144
 msgid "Purge Catalogue"
 msgstr "Purger le Catalogue"
 
@@ -21463,7 +21528,7 @@ msgid "Create a comparison stars list"
 msgstr "Créer une liste d'étoiles de comparaison"
 
 #: src/gui/compstars.c:42 src/gui/nina_light_curve.c:42
-#: src/io/image_formats_libraries.c:2288
+#: src/io/image_formats_libraries.c:2289
 msgid "_OK"
 msgstr "_OK"
 
@@ -23244,7 +23309,8 @@ msgstr ""
 
 #: src/gui/siril_intro.c:40
 msgid "The documentation set is also available via the menu \"Siril Manual\""
-msgstr "La documentation est également disponible via le menu \"Documentation\""
+msgstr ""
+"La documentation est également disponible via le menu \"Documentation\""
 
 #: src/gui/siril_intro.c:41
 msgid ""
@@ -23847,7 +23913,7 @@ msgstr ""
 "Impossible d'ouvrir le fichier FITS %s : ne semble pas être une séquence "
 "FITS\n"
 
-#: src/io/fits_sequence.c:205 src/io/image_format_fits.c:2226
+#: src/io/fits_sequence.c:205 src/io/image_format_fits.c:2285
 msgid ""
 "FITS images with 64 bits signed integer per pixel.channel are not "
 "supported.\n"
@@ -23860,7 +23926,7 @@ msgid "Your version of cfitsio does not support multi-threading\n"
 msgstr "Votre version de cfitsio ne supporte pas le multi-threading\n"
 
 #: src/io/fits_sequence.c:276 src/io/image_format_fits.c:936
-#: src/io/image_format_fits.c:1006 src/io/image_format_fits.c:2107
+#: src/io/image_format_fits.c:1006 src/io/image_format_fits.c:2166
 msgid "Unknown FITS data format in internal conversion\n"
 msgstr "Format FITS inconnu dans la conversion interne\n"
 
@@ -24257,7 +24323,7 @@ msgid "Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lecture du fichier WISF : %s, %ld canal(aux), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:1122 src/io/image_formats_libraries.c:1412
-#: src/io/image_formats_libraries.c:2820 src/io/image_formats_libraries.c:2828
+#: src/io/image_formats_libraries.c:2821 src/io/image_formats_libraries.c:2829
 #, c-format
 msgid "Sorry but Siril cannot open the file: %s.\n"
 msgstr "Désolé mais Siril ne peut pas ouvrir le fichier : %s.\n"
@@ -24303,59 +24369,59 @@ msgstr ""
 msgid "Error opening the file %s\n"
 msgstr "Erreur lors de l'ouverture du fichier %s\n"
 
-#: src/io/image_formats_libraries.c:1567
+#: src/io/image_formats_libraries.c:1568
 #, c-format
 msgid "Reading PNG: %d-bit file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lecture du fichier PNG : %d-bit %s, %ld canal(aux), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1857
+#: src/io/image_formats_libraries.c:1858
 #, c-format
 msgid "Saving PNG: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Fichier PNG enregistré : fichier %s, %ld canal(aux), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:1992
+#: src/io/image_formats_libraries.c:1993
 msgid "Siril cannot open this file in CFA mode: no RAW data available.\n"
 msgstr ""
 "Siril ne peut pas ouvrir ce fichier en mode CFA : pas de données RAW "
 "disponibles.\n"
 
-#: src/io/image_formats_libraries.c:2021
+#: src/io/image_formats_libraries.c:2022
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
 msgstr "Décode %s %s file (ISO=%g, Exposition=1/%0.1f sec)\n"
 
-#: src/io/image_formats_libraries.c:2024
+#: src/io/image_formats_libraries.c:2025
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=%0.1f sec)\n"
 msgstr "Décode %s %s file (ISO=%g, Exposition=%0.1f sec)\n"
 
-#: src/io/image_formats_libraries.c:2047
+#: src/io/image_formats_libraries.c:2048
 #, c-format
 msgid "Filter pattern: %s\n"
 msgstr "Motif du Filtre : %s\n"
 
-#: src/io/image_formats_libraries.c:2126
+#: src/io/image_formats_libraries.c:2127
 #, c-format
 msgid "Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lecture du fichier RAW : %s, %ld canal(aux), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:2177
+#: src/io/image_formats_libraries.c:2178
 msgid "primary"
 msgstr "primaire"
 
-#: src/io/image_formats_libraries.c:2286
+#: src/io/image_formats_libraries.c:2287
 msgid "Load HEIF image content"
 msgstr "Chargement du contenu de l'image HEIF"
 
-#: src/io/image_formats_libraries.c:2288 src/pixelMath/pixel_math_runner.c:1094
+#: src/io/image_formats_libraries.c:2289 src/pixelMath/pixel_math_runner.c:1094
 msgid "_Cancel"
 msgstr "_Annuler"
 
-#: src/io/image_formats_libraries.c:2294
+#: src/io/image_formats_libraries.c:2295
 msgid "Select image"
 msgstr "Sélectionner l'image"
 
-#: src/io/image_formats_libraries.c:2509
+#: src/io/image_formats_libraries.c:2510
 msgid ""
 "Error: the specified NCLX TRC is not yet supported in Siril. A linear TRC "
 "will be used: you may need to fix this file up manually.\n"
@@ -24364,54 +24430,54 @@ msgstr ""
 "TRC linéaire sera utilisée : il se peut que vous deviez corriger ce fichier "
 "manuellement.\n"
 
-#: src/io/image_formats_libraries.c:2557
+#: src/io/image_formats_libraries.c:2558
 msgid "Input file contains no readable images.\n"
 msgstr "Le fichier ne contient aucune image lisible.\n"
 
-#: src/io/image_formats_libraries.c:2590
+#: src/io/image_formats_libraries.c:2591
 #, c-format
 msgid "This is a sequence of %d images: loading the primary one.\n"
 msgstr ""
 "Il s'agit d'une séquence de %d images : chargement de l'image primaire.\n"
 
-#: src/io/image_formats_libraries.c:2625
+#: src/io/image_formats_libraries.c:2626
 msgid ""
 "Error getting ICC profile from HEIF file. Continuing: you will need to "
 "manually assign an ICC profile\n"
 msgstr ""
-"Erreur lors de l'obtention d'un profil ICC à partir d'un fichier HEIF. Suite "
-": vous devez assigner manuellement un profil ICC.\n"
+"Erreur lors de l'obtention d'un profil ICC à partir d'un fichier HEIF. "
+"Suite : vous devez assigner manuellement un profil ICC.\n"
 
-#: src/io/image_formats_libraries.c:2648
+#: src/io/image_formats_libraries.c:2649
 msgid "Input image has undefined bit-depth.\n"
 msgstr "L'image d'entrée a une profondeur de bits indéfinie.\n"
 
-#: src/io/image_formats_libraries.c:2806
+#: src/io/image_formats_libraries.c:2807
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
 msgstr ""
 "Lecture du fichier HEIF : %s, %ld canal(aux), %ux%u pixels, profondeur de "
 "bits %d\n"
 
-#: src/io/image_formats_libraries.c:2926
+#: src/io/image_formats_libraries.c:2927
 #, c-format
 msgid "Reading JPEG XL: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lecture du fichier JPG XL : %s, %ld canal(aux), %ux%u pixels\n"
 
-#: src/io/image_formats_libraries.c:2946
+#: src/io/image_formats_libraries.c:2947
 msgid "Error interleaving image\n"
 msgstr "Image d'entrelacement des erreurs\n"
 
-#: src/io/image_formats_libraries.c:3056
+#: src/io/image_formats_libraries.c:3057
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
 msgstr ""
-"Fichier JPG XL enregistré : fichier %s, sans perte, effort=%d %ld canal(aux)"
-", %ux%u pixels, profondeur de bit : %d\n"
+"Fichier JPG XL enregistré : fichier %s, sans perte, effort=%d %ld "
+"canal(aux), %ux%u pixels, profondeur de bit : %d\n"
 
-#: src/io/image_formats_libraries.c:3059
+#: src/io/image_formats_libraries.c:3060
 #, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
@@ -24420,7 +24486,7 @@ msgstr ""
 "Fichier JPG XL enregistré : fichier %s, qualité=%.3f, effort=%d %ld "
 "canal(aux), %ux%u pixels, profondeur de bit : %d\n"
 
-#: src/io/image_formats_libraries.c:3067
+#: src/io/image_formats_libraries.c:3068
 msgid "Save complete.\n"
 msgstr "Enregistrement terminé.\n"
 
@@ -24462,43 +24528,43 @@ msgstr "Le format %d de l'image FITS n'est pas supportée par Siril.\n"
 msgid "Fitsio error reading data, file: %s.\n"
 msgstr "Erreur fitsio lors de la lecture des données, fichier : %s.\n"
 
-#: src/io/image_format_fits.c:1754
+#: src/io/image_format_fits.c:1813
 msgid "Warning: error encountered writing ICC profile to FITS.\n"
 msgstr ""
 "Attention : une erreur s'est produite lors de l'écriture du profil ICC dans "
 "le fichier FITS.\n"
 
-#: src/io/image_format_fits.c:1940
+#: src/io/image_format_fits.c:1999
 #, c-format
 msgid "%s.[any_allowed_extension] not found.\n"
 msgstr "%s.[extension] non trouvé.\n"
 
-#: src/io/image_format_fits.c:1947
+#: src/io/image_format_fits.c:2006
 #, c-format
 msgid ""
 "The file %s is not a FITS file or doesn't exists with FITS extensions.\n"
 msgstr "Le fichier %s n'est pas un fichier FITS valide.\n"
 
-#: src/io/image_format_fits.c:1974
+#: src/io/image_format_fits.c:2033
 #, c-format
 msgid "Reading FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "Lecture FITS : fichier %s, %ld canal(aux), %ux%u pixels, %dbits\n"
 
-#: src/io/image_format_fits.c:2089
+#: src/io/image_format_fits.c:2148
 #, c-format
 msgid "FITS read partial: there is no layer %d in the image %s\n"
 msgstr "Lecture partielle du FITS : il n'y pas de canal %d dans l'image %s\n"
 
-#: src/io/image_format_fits.c:2097
+#: src/io/image_format_fits.c:2156
 #, c-format
 msgid "Unsupported FITS image format (%ld axes).\n"
 msgstr "Format d'image FITS non supporté (%ld axes).\n"
 
-#: src/io/image_format_fits.c:2200
+#: src/io/image_format_fits.c:2259
 msgid "FITSIO error getting image parameters.\n"
 msgstr "FITSIO erreur lors de la récupération des paramètres.\n"
 
-#: src/io/image_format_fits.c:2213
+#: src/io/image_format_fits.c:2272
 #, c-format
 msgid ""
 "The FITS image contains more than 3 channels (%ld). Opening only the three "
@@ -24507,56 +24573,56 @@ msgstr ""
 "L'image FITS contient plus de 3 canaux (%ld). Ouverture des 3 premiers "
 "seulement.\n"
 
-#: src/io/image_format_fits.c:2342
+#: src/io/image_format_fits.c:2401
 msgid "Unknown FITS compression method in internal conversion\n"
 msgstr "Méthode de compression FITS inconnue dans la conversion interne\n"
 
-#: src/io/image_format_fits.c:2497
+#: src/io/image_format_fits.c:2556
 #, c-format
 msgid "Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr ""
 "Fichier FITS enregistré : fichier %s, %ld canal(aux), %ux%u pixels, %dbits\n"
 
-#: src/io/image_format_fits.c:2594
+#: src/io/image_format_fits.c:2653
 #, c-format
 msgid "ERROR: trying to save a FITS image with an unsupported format (%d).\n"
 msgstr ""
 "ERREUR : Impossible d'enregistrer l'image FITS avec un format non supporté "
 "(%d).\n"
 
-#: src/io/image_format_fits.c:3411
+#: src/io/image_format_fits.c:3470
 #, c-format
 msgid "Selecting the primary header failed, is the FITS file '%s' malformed?\n"
 msgstr ""
 "La sélection de l'en-tête principal a échoué, le fichier FITS '%s' est-il "
 "mal formé ?\n"
 
-#: src/io/image_format_fits.c:3439 src/io/ser.c:1370
+#: src/io/image_format_fits.c:3498 src/io/ser.c:1370
 msgid "frame"
 msgid_plural "frames"
 msgstr[0] "image"
 msgstr[1] "images"
 
-#: src/io/image_format_fits.c:3439 src/io/image_format_fits.c:3444
+#: src/io/image_format_fits.c:3498 src/io/image_format_fits.c:3503
 #: src/io/ser.c:1370
 msgid "(Monochrome Preview)"
 msgstr "(Aperçu monochrome)"
 
-#: src/io/image_format_fits.c:3559
+#: src/io/image_format_fits.c:3618
 msgid "Opening image failed\n"
 msgstr "Échec de l'ouverture de l'image\n"
 
-#: src/io/image_format_fits.c:3564
+#: src/io/image_format_fits.c:3623
 msgid "Stacking error: images with > 3 dimensions are not supported\n"
 msgstr ""
 "Erreur d'empilement : les images avec des dimensions > 3 ne sont pas "
 "supportées\n"
 
-#: src/io/image_format_fits.c:3574
+#: src/io/image_format_fits.c:3633
 msgid "Stacking error: input images have different sizes\n"
 msgstr "Erreur d'empilement : les images sont de tailles différentes\n"
 
-#: src/io/image_format_fits.c:3587
+#: src/io/image_format_fits.c:3646
 msgid "Stacking error: input images have different precision\n"
 msgstr ""
 "Erreur d'empilement : les images d'entrée ont une précision différente\n"
@@ -25201,16 +25267,16 @@ msgstr "Pour les images dématricées, le canal doit être R, V ou B (0 à 2).\n
 msgid "Trying to add an image of different size in a SER\n"
 msgstr "Essaye d'ajouter une image de taille différente dans le fichier SER\n"
 
-#: src/io/single_image.c:217
+#: src/io/single_image.c:218
 msgid "Cannot open a sequence from here\n"
 msgstr "Impossible de charger la séquence\n"
 
-#: src/io/single_image.c:230
+#: src/io/single_image.c:231
 #, c-format
 msgid "Opening %s failed.\n"
 msgstr "Échec de l'ouverture de %s.\n"
 
-#: src/io/single_image.c:275
+#: src/io/single_image.c:276
 msgid ""
 "Cannot open another file while the processing thread is still operating on "
 "the current one!\n"
@@ -25218,11 +25284,11 @@ msgstr ""
 "Impossible d'ouvrir un autre fichier alors que le thread de traitement "
 "fonctionne toujours sur celui en cours !\n"
 
-#: src/io/single_image.c:287
+#: src/io/single_image.c:288
 msgid "Error opening file"
 msgstr "Erreur lors de l'ouverture du fichier"
 
-#: src/io/single_image.c:288
+#: src/io/single_image.c:289
 msgid ""
 "There was an error when opening this image. See the log for more information."
 msgstr "Impossible d'ouvrir cette image. Vérifier les log."
