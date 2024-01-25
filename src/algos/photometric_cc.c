@@ -652,6 +652,7 @@ Gets bg, min and max values per channel and sets the chennel with middle bg valu
 */
 int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel, float t0, float t1) {
 	// we cannot use compute_all_channels_statistics_single_image because of the area
+	siril_log_message(_("Computing background reference with tolerance +%.2fσ / -%.2fσ.\n"), t1, -t0);
 	for (int chan = 0; chan < 3; chan++) {
 		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC | STATS_MAD, MULTI_THREADED);
 		if (!stat) {
@@ -757,10 +758,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 	float mins[3];
 	float maxs[3];
 	int norm_channel;
-
-	// TODO! Link this to the GUI and a command arg
-	args->t0 = -2.8f;
-	args->t1 = 2.0f;
 
 	if (!isrgb(args->fit)) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));

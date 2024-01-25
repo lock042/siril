@@ -50,7 +50,8 @@
 static gboolean spcc_filters_initialized = FALSE;
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
-int set_spcc_args(struct photometric_cc_data *args);
+static void set_bg_sigma(struct photometric_cc_data *args);
+static int set_spcc_args(struct photometric_cc_data *args);
 void get_whitepoint_from_ui(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data);
@@ -78,6 +79,7 @@ static void start_photometric_cc(gboolean spcc) {
 
 	struct astrometry_data *args = NULL;
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	set_bg_sigma(pcc_args);
 	if (spcc) {
 		pcc_args->catalog = CAT_GAIADR3_4DL;
 		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
@@ -410,7 +412,14 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
 }
 
-int set_spcc_args(struct photometric_cc_data *args) {
+static void set_bg_sigma(struct photometric_cc_data *args) {
+	GtkWidget *lower_widget = lookup_widget("bg_tol_lower");
+	GtkWidget *upper_widget = lookup_widget("bg_tol_upper");
+	args->t0 = 0.f - gtk_spin_button_get_value(GTK_SPIN_BUTTON(lower_widget));
+	args->t1 = gtk_spin_button_get_value(GTK_SPIN_BUTTON(upper_widget));
+}
+
+static int set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *mono_sensor_check = lookup_widget("spcc_toggle_sensor_type");
 	GtkWidget *dslr_check = lookup_widget("osc_is_dslr");
 	GtkWidget *whiteref = lookup_widget("combo_spcc_whitepoint");

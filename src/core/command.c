@@ -8401,6 +8401,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	gboolean nb_mode = FALSE; // for SPCC
 	double wl[3] = { -1.0 }; // for SPCC
 	double bw[3] = { -1.0 }; // for SPCC
+	double t0 = -2.8, t1 = 2.0; // background correction tolerance
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -8454,6 +8455,22 @@ static int do_pcc(int nb, gboolean spectro) {
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
+		}
+		else if (g_str_has_prefix(word[next_arg], "-bgtol=")) {
+			char *arg = word[next_arg] + 7;
+			gchar *end;
+			t0 = g_ascii_strtod(arg, &end);
+			gchar *arg2 = end + 1;
+			t1 = g_ascii_strtod(arg2, &end);
+			if (end == arg || end == arg2 || t0 < 0.1 || t0 > 10.0 || t1 < 0.1 || t1 > 10.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				return CMD_ARG_ERROR;
+			}
+			t0 = 0.0 - t0;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
 			char *arg = word[next_arg] + 11;
@@ -8723,6 +8740,8 @@ static int do_pcc(int nb, gboolean spectro) {
 		pcc_args->fit = &gfit;
 		pcc_args->bg_auto = TRUE;
 		pcc_args->spcc = spectro;
+		pcc_args->t0 = t0;
+		pcc_args->t1 = t1;
 		if (spectro) {
 			pcc_args->nb_mode = nb_mode;
 			if (nb_mode) {
