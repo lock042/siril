@@ -25,7 +25,7 @@
 #include "core/siril_world_cs.h"
 
 // number of columns that can be defined in a catalogue
-#define MAX_CAT_COLUMNS 20
+#define MAX_CAT_COLUMNS 21
 #define CAT_AN_INDEX_OFFSET 60
 
 // all catalogues that can be used
@@ -54,7 +54,7 @@ typedef enum {
 	CAT_PGC = 20,
 // Other TAP Queries
 	CAT_EXOPLANETARCHIVE = 30,
-	CAT_GAIADR3_4DL = 31, // For direct queries to Gaia DR3 lite, with a subsequent datalink query afterwards
+	CAT_GAIADR3_DIRECT = 31, // For direct queries to Gaia rather than using Vizier
 // Non TAP Queries (stars)
 	CAT_AAVSO_CHART = 40,
 // Non TAP Queries (others)
@@ -91,6 +91,7 @@ typedef enum {
 	CAT_FIELD_E_BMAG,
 	CAT_FIELD_DIAMETER,
 	CAT_FIELD_TEFF,
+	CAT_FIELD_XPSAMP,
 	CAT_FIELD_GAIASOURCEID,
 	CAT_FIELD_ALIAS,
 	CAT_FIELD_DATEOBS,
@@ -122,7 +123,7 @@ typedef struct {
 	gchar *alias; // aliases given in annotation catalogues, '/'-separated
 	gchar *type; // type of the object, for solsys and compstars
 	float teff; // GAIA Teff term
-	int64_t gaiasourceid; // GAIA source ID, for constructing Datalink queries
+	uint64_t gaiasourceid; // GAIA source ID, for constructing Datalink queries
 
 	// computed
 	float x, y;	// image coordinates
@@ -135,7 +136,6 @@ typedef struct {
 	double center_dec;
 	double radius; // fov radius (in degrees)
 	double limitmag; // limiting magnitude
-	int datalink_filter; // filter to be applied when querying an online database
 	GDateTime *dateobs; // date-obs in JD
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry

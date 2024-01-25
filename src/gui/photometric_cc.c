@@ -81,7 +81,7 @@ static void start_photometric_cc(gboolean spcc) {
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
 	set_bg_sigma(pcc_args);
 	if (spcc) {
-		pcc_args->catalog = CAT_GAIADR3_4DL;
+		pcc_args->catalog = CAT_GAIADR3_DIRECT;
 		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
 		if (set_spcc_args(pcc_args)) {
