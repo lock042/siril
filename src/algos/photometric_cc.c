@@ -298,7 +298,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		// Calculate catalogue flux ratios
 		double ref_flux[3];
 		xpsampled star_spectrum = init_xpsampled();
-		get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
+		get_xpsampled(&star_spectrum, args->datalink_path, i);
 
 		xpsampled flux_expected = init_xpsampled();
 		for (int chan = 0 ; chan < 3 ; chan++) {
@@ -391,7 +391,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_plot_data *spl_datarg = NULL;
 		spcc_object *object = (spcc_object*) selected_white->data;
 
-		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, nb_stars, kw);
+		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngood, kw);
 		spl_datarg = malloc(sizeof(siril_plot_data));
 		init_siril_plot_data(spl_datarg);
 		siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
@@ -405,7 +405,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		siril_plot_set_yfmt(spl_datarg, "%.1lf");
 		g_free(title1);
 
-		gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, nb_stars, kw);
+		gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngood, kw);
 		double best_fit_bgx[2] = {find_min_d(cbg, ngood), find_max_d(cbg, ngood)};
 		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
 		siril_plot_data *spl_databg = NULL;
