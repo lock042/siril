@@ -996,7 +996,7 @@ gpointer plate_solver(gpointer p) {
 			if (nb > 0)
 				nb_pcc_stars = siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 		}
-		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
+		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars, args->pcc->datalink_path);
 		args->ret = nb_pcc_stars == 0;
 
 		if (args->ret) {

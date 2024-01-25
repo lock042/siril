@@ -3824,3 +3824,36 @@ error:
 	fits_close_file(fptr, &status);
 	return 1;
 }
+
+int64_t *get_source_ids_from_fits(gchar *fitfilename, int *nbsourcesread) {
+	int64_t *source_ids = NULL;
+	fitsfile *fptr = NULL;
+	int num_hdus = 0, nbsources = 0;
+	int status = 0;
+	*nbsourcesread = 0;
+	siril_fits_open_diskfile(&fptr, fitfilename, READONLY, &status);
+	if (status)
+		goto return_on_error;
+	fits_get_num_hdus(fptr, &num_hdus, &status);
+	if (status)
+		goto return_on_error;
+	nbsources = (num_hdus - 1);
+	source_ids = malloc(nbsources * sizeof(int64_t));
+	fits_movabs_hdu(fptr, 1, NULL, &status); // we point to the first HDU (HDU 1 is just the dummy header, the rel move will get us to the sources)
+	if (status)
+		goto return_on_error;
+	for (int i = 0; i < nbsources; i ++) {
+		char idstr[FLEN_VALUE];
+		fits_movrel_hdu(fptr, 1, NULL, &status); // we move to the next hdu
+		fits_read_key(fptr, TSTRING, "SOURCEID", &(idstr), NULL, &status); // source_id is stored as string in XPSAMPLED FITS...
+		source_ids[i] = g_ascii_strtoll(idstr, NULL, 10);
+		// siril_debug_print("index: %d - sourceidstr = %s, sourceid = %lld\n", i, idstr, source_ids[i]);
+	}
+	fits_close_file(fptr, &status);
+	*nbsourcesread = nbsources;
+	return source_ids;
+return_on_error:
+	fits_report_error(stderr, status);
+	fits_close_file(fptr, &status);
+	return NULL;
+}

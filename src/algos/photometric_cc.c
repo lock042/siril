@@ -261,8 +261,12 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
 	for (int i = 0; i < nb_stars; i++) {
-		if (!get_thread_run())
+		if (!get_thread_run() )
 			continue;
+		if (stars[i].index == -1) {// we don't have spectrum, no need to fit a psf
+			siril_debug_print("star %d has no spectrum associated\n", i);
+			continue;
+		}
 		rectangle area = { 0 };
 
 		// Calculate image flux ratios
@@ -900,7 +904,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 	/* project using WCS */
 	siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, FALSE);
-	stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
+	stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars, args->datalink_path);
+	printf("nbstars:%d\n", nb_stars);
 	retval |= nb_stars == 0;
 
 	siril_catalog_free(siril_cat);
@@ -934,10 +939,21 @@ gpointer photometric_cc_standalone(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+static int find_source_index(int64_t *source_ids, int nb, int64_t source_id) {
+	for (int i = 0; i < nb; i++) {
+		if (source_ids[i] == source_id)
+			return i;
+	}
+	return -1; // source id was not found
+}
+
 // TODO: remove pcc_star?
 // This interface enables for now to use new catalogues and pcc_star where required
-pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars) {
+pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars, gchar *fitfilename) {
 	*nbstars = 0;
+	int64_t *source_ids = NULL;
+	int nbsources = 0;
+	gboolean has_spectra = (fitfilename != NULL);
 
 	if (!siril_cat || !siril_cat->nbincluded)
 		return NULL;
@@ -946,12 +962,24 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 	}
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || !has_field(siril_cat, BMAG))
 		return NULL;
-	pcc_star *results = malloc(siril_cat->nbincluded * sizeof(pcc_star));
 
+	if (has_spectra) {
+		// we have a fitsfile for spectra, we need to find the correspondences
+		// we list all the sources ids present in the FITS file
+		siril_debug_print("reading source ids from spectrum FITS");
+		source_ids = get_source_ids_from_fits(fitfilename, &nbsources);
+		if (!nbsources) {
+			siril_debug_print("problem reading the sources id, aborting\n");
+			return NULL;
+		}
+		printf("nbsources read:%d\n", nbsources);
+	}
+
+	pcc_star *results = malloc(siril_cat->nbincluded * sizeof(pcc_star));
 	int n = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		if (n >= siril_cat->nbincluded) {
-			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated");
+			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated\n");
 			break;
 		}
 		if (siril_cat->cat_items[i].included) {
@@ -960,7 +988,7 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 			results[n].mag = siril_cat->cat_items[i].mag;
 			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
 			results[n].teff = siril_cat->cat_items[i].teff; // Gaia Teff / K, computed from the sampled spectrum (better than from B-V)
-			results[n].index = i; // For matching the right HDU in the Datalink query, in case of excluded stars
+			results[n].index = (has_spectra) ? find_source_index(source_ids, nbsources, siril_cat->cat_items[i].gaiasourceid) : -1; // For matching the right HDU in the Datalink query, in case of excluded stars
 			n++;
 		}
 	}

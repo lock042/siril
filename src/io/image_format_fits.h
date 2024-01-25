@@ -78,6 +78,6 @@ int check_loaded_fits_params(fits *ref, ...);
 void merge_fits_headers_to_result2(fits *result, fits **f);
 void merge_fits_headers_to_result(fits *result, fits *f1, ...);
 int get_xpsampled(xpsampled* xps, gchar *filename, int i);
-
+int64_t *get_source_ids_from_fits(gchar *fitfilename, int *nbsourcesread);
 
 #endif

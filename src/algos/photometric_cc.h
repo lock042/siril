@@ -60,7 +60,7 @@ int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *
 int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel, float t0, float t1);
 int photometric_cc(struct photometric_cc_data *args);
 gpointer photometric_cc_standalone(gpointer p);
-pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars);
+pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars, gchar *fitfilepath);
 int get_favourite_spccobject(GList *list, const gchar *favourite);
 int get_favourite_oscsensor(GList *list, const gchar *favourite);
 
