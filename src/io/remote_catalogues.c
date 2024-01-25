@@ -415,9 +415,9 @@ static gchar *siril_catalog_datalink_get_postdata(siril_catalogue *siril_cat) {
 			for (int i = 0; i < siril_cat->nbitems; i++) {
 				if (siril_cat->cat_items[i].included) {
 					if (!isfirst)
-						g_string_append_printf(datalink_data, "%%2C%llu", siril_cat->cat_items[i].gaiasourceid);
+						g_string_append_printf(datalink_data, "%%2C%" G_GUINT64_FORMAT, siril_cat->cat_items[i].gaiasourceid);
 					else {
-						g_string_append_printf(datalink_data, "%llu", siril_cat->cat_items[i].gaiasourceid);
+						g_string_append_printf(datalink_data, "%" G_GUINT64_FORMAT, siril_cat->cat_items[i].gaiasourceid);
 						isfirst = FALSE;
 					}
 				}
