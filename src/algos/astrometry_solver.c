@@ -988,7 +988,7 @@ gpointer plate_solver(gpointer p) {
 			int nb = siril_catalog_conesearch(args->ref_stars);
 			if (nb > 0) {
 				sort_cat_items_by_mag(args->ref_stars);
-				if (siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE) > 0)
+				if (!siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE))
 					siril_catalog_get_data_from_online_catalogues(args->ref_stars, &args->pcc->datalink_path);
 			}
 		} else {
