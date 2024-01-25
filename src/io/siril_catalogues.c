@@ -130,7 +130,7 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 		case CAT_FIELD_TEFF:
 			return (item->teff) ? g_strdup_printf("%.6f", item->teff) : "";
 		case CAT_FIELD_GAIASOURCEID:
-			return (item->gaiasourceid) ? g_strdup_printf("%llu", item->gaiasourceid) : "";
+			return (item->gaiasourceid) ? g_strdup_printf("%" G_GUINT64_FORMAT, item->gaiasourceid) : "";
 		default:
 			return NULL;
 	}
