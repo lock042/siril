@@ -276,7 +276,7 @@ siril_catalogue *vsx_to_discard(struct compstars_arg *args){
 	}
 
 	siril_catalogue *siril_cat_vsx = NULL;
-	if (args->discarded_vsx){
+	if ((com.pref.phot_set.disc_cat_fudge & ( 1 << 0 )) >> 0){
 		// preparing the query
 		siril_cat_vsx = siril_catalog_fill_from_fit(&gfit, CAT_VSX, max(args->target_star->mag + 6.0, 17.0));
 		siril_cat_vsx->radius = radius * 60.; // overwriting to account for narrow argument
@@ -326,10 +326,14 @@ int sort_compstars(struct compstars_arg *args) {
 	ymax = (double)gfit.ry * (1. - BORDER_RATIO);
 
 	const gchar *startype = (args->cat == CAT_NOMAD || args->cat == CAT_APASS) ? "Comp1" : "Comp2";
-
+	int cat2discard = com.pref.phot_set.disc_cat_fudge;
+	siril_log_message(_("cat2discard: %i, b0: %i, b1: %i, b2: %i\n"), cat2discard,
+				(cat2discard & ( 1 << 0 )) >> 0,
+				(cat2discard & ( 1 << 1 )) >> 1,
+				(cat2discard & ( 1 << 2 )) >> 2);
 	siril_catalogue *siril_cat_vsx = NULL;
-	args->discarded_vsx = TRUE; // Hard coded to TRUE for now. Will be used later
-	if (args->discarded_vsx)
+//	args->discarded_vsx = TRUE; // Hard coded to TRUE for now. Will be used later
+	if (cat2discard)
 		siril_cat_vsx = vsx_to_discard(args);	// the catalog of variable stars to be discarded
 	int nb_disc = 0;
 
@@ -347,13 +351,13 @@ int sort_compstars(struct compstars_arg *args) {
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
 				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors 
 				((args->cat == CAT_APASS) ? (item->e_mag > 0. && item->e_mag <= args->max_emag) : TRUE) &&	// Criteria #3: e_mag smaller than threshold, for catalogues that have the info
-				((args->discarded_vsx) ? !is_var : TRUE)) {// Criteria #4: not a variable star (VSX)
+				((cat2discard) ? !is_var : TRUE)) {// Criteria #4: not a variable star (VSX)
 			sorter[nb_phot_stars] = (compstar_dist){i, compute_coords_distance(siril_cat->center_ra, siril_cat->center_dec, item->ra, item->dec)};
 			nb_phot_stars++;
 		}
 	}
 
-	if (args->discarded_vsx) {
+	if (cat2discard) {
 		siril_log_message(_("-> %i variable stars were discarded in the list from %s \n"), nb_disc, catalog_to_str(args->cat));
 		siril_catalog_free(siril_cat_vsx);
 	}

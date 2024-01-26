@@ -128,6 +128,11 @@ struct phot_config {
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
 				// minval and maxval are stored as int, but adapted to image type
 				// when used, so normalized to 1 for float, hence the double type
+	int disc_cat_fudge; 	// encodes the catalogues to be used to discard the variable stars from the comparison stars list
+				// consider this integer in its binary form:
+				// b0 (LSB) sets (or not) the VSX catologue
+				// b1 sets (or not) the GCVS catologue
+				// b2 sets (or not) the Varisum catologue
 };
 
 struct analysis_config {

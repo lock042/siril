@@ -25,7 +25,6 @@ struct compstars_arg {
 	gchar *AAVSO_chartid;
 	gchar *AAVSO_uri;
 	gboolean has_GUI;
-	gboolean discarded_vsx;
 	int retval;
 };
 
