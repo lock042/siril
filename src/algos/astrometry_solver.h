@@ -43,6 +43,7 @@ struct astrometry_data {
 	int rx_solver;		// width of the image being solved (accounting for downscale if any)
 	int ry_solver;		// height of the image being solved (accounting for downscale if any)
 	double scalefactor;	// scale factor accounting for downscale if any
+	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
 
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration

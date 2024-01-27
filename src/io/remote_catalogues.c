@@ -342,7 +342,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 		case CAT_AAVSO_CHART:
 			url = g_string_new(AAVSOCHART_QUERY);
 			fmtstr = g_strdup_printf("&ra=%s&dec=%s&fov=%s&maglimit=%s", rafmt, decfmt, radiusfmt, limitmagfmt);
-			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag);
+			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, 2. * siril_cat->radius, siril_cat->limitmag);
 			g_free(fmtstr);
 			return g_string_free(url, FALSE);
 		////////////////////////////

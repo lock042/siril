@@ -128,7 +128,7 @@ typedef struct {
 	siril_cat_index cat_index;
 	double center_ra;
 	double center_dec;
-	double radius; // fov radius (in degrees)
+	double radius; // fov radius (in arcmin)
 	double limitmag; // limiting magnitude
 	GDateTime *dateobs; // date-obs in JD
 	gchar *IAUcode; // observatory code

@@ -47,7 +47,7 @@ have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
-enable_libcurl     = get_option('libcurl')
+enable_libcurl   = get_option('libcurl')
 enable_json_glib = get_option('json_glib')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')

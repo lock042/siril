@@ -124,10 +124,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Image: ");
+			markup = g_markup_printf_escaped (format_green, _("Image: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Image: ");
+			markup = g_markup_printf_escaped (format_white, _("Image: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 		g_free(filename);
@@ -138,10 +138,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Sequence: ");
+			markup = g_markup_printf_escaped (format_green, _("Sequence: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Sequence: ");
+			markup = g_markup_printf_escaped (format_white, _("Sequence: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 		g_free(seq_basename);
@@ -414,11 +414,9 @@ void set_cutoff_sliders_max_values() {
 		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
-	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
-	 * Since 0.9.8 we have orig_bitpix, but it's not filled for SER and other images.
 	 */
 
-	max_val = (gfit.type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (double)get_normalized_value(&gfit));
+	max_val = (gfit.type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (gfit.orig_bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE));
 	siril_debug_print(_("Setting MAX value for cutoff sliders adjustments (%f)\n"), max_val);
 	gtk_adjustment_set_lower(adj1, 0.0);
 	gtk_adjustment_set_lower(adj2, 0.0);

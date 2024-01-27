@@ -1113,14 +1113,14 @@ static void validate_combos() {
 
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
 	requires_seqlist_update = TRUE;
-	reset_plot_zoom(&pdd);
+	reset_plot_zoom();
 	drawPlot();
 	validate_combos();
 }
 
 void reset_plot() {
 	free_plot_data();
-	reset_plot_zoom(&pdd);
+	reset_plot_zoom();
 	int layer;
 	if (sourceCombo) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
@@ -2190,7 +2190,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
 		enum border_type border = is_over_selection_border(x, y);
 		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
-			reset_plot_zoom(&pdd);
+			reset_plot_zoom();
 			return TRUE;
 		} else if (is_inside_selection(x, y)) { // start moving selection
 			pdd.action = SELACTION_MOVING;
@@ -2311,7 +2311,7 @@ void on_menu_plot_item2_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		}
 	} else {
 		select_unselect_frames_from_list(pdd.selected, TRUE);
-		reset_plot_zoom(&pdd);
+		reset_plot_zoom();
 		drawPlot();
 	}
 }
@@ -2320,7 +2320,7 @@ void on_menu_plot_item3_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		return;
 	} else {
 		select_unselect_frames_from_list(pdd.selected, FALSE);
-		reset_plot_zoom(&pdd);
+		reset_plot_zoom();
 		drawPlot();
 	}
 }
