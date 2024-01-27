@@ -9455,7 +9455,7 @@ msgstr "Annotations utilisateur des objets temporaires :"
 
 #: src/gui/uifiles/settings_window.ui:3591
 msgid "Overlay Colors"
-msgstr "Couleurs des incrustations"
+msgstr "Couleurs d'incrustation"
 
 #: src/gui/uifiles/settings_window.ui:3658
 msgid "This section contains options relating to working color spaces"
@@ -10808,7 +10808,7 @@ msgstr "Aucune séquence `%s' trouvée.\n"
 #: src/algos/astrometry_solver.c:215
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr ""
-"La position en amont par rapport au Nord est indéterminée (trop proche d'un "
+"La position en amont par rapport au N est indéterminée (trop proche d'un "
 "pôle)\n"
 
 #: src/algos/astrometry_solver.c:237
@@ -13680,7 +13680,7 @@ msgid ""
 msgstr ""
 "Aucune image de la séquence n'a été trouvée avec les informations WCS "
 "requises pour la sélection de l'étoile par les coordonnées équatoriales, "
-"résolvez la référence ou l'image actuellement chargée.\n"
+"faites l'astrométrie de l'image de référence ou l'image actuelle.\n"
 
 #: src/core/command.c:4265
 #, c-format
@@ -20175,7 +20175,7 @@ msgstr "configurer la couleur des échantillons de l'extraction de gradient"
 
 #: src/core/settings.c:434
 msgid "configure standard annotation color"
-msgstr "configurer la couleur des annotations standards"
+msgstr "configurer la couleur standard des annotations"
 
 #: src/core/settings.c:435
 msgid "configure dso annotation color"
