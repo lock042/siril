@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-01-27 10:44+0100\n"
-"PO-Revision-Date: 2024-01-08 20:37+0000\n"
+"PO-Revision-Date: 2024-02-01 09:42+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -8493,18 +8493,16 @@ msgid "Histogram Display"
 msgstr "Affichage de l'histogramme"
 
 #: src/gui/siril3.glade:30816
-#, fuzzy
 msgid "Background extraction samples:"
-msgstr "Extraction de gradient"
+msgstr "Échantillons de l'extraction de gradient :"
 
 #: src/gui/siril3.glade:30828
-#, fuzzy
 msgid "Standard annotations:"
-msgstr "afficher les étoiles dans les annotations"
+msgstr "Annotations standards :"
 
 #: src/gui/siril3.glade:30857
 msgid "Overlay Colors"
-msgstr ""
+msgstr "Couleurs d'incrustation"
 
 #: src/gui/siril3.glade:30929
 msgid ""
@@ -9418,6 +9416,8 @@ msgstr "Impossible de créer le fichier catalogue %s pour l'astrométrie (%s)\n"
 #: src/algos/astrometry_solver.c:824
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr ""
+"La position en amont par rapport au N est indéterminée (trop proche d'un "
+"pôle)\n"
 
 #: src/algos/astrometry_solver.c:826
 #, c-format
@@ -11871,9 +11871,8 @@ msgid "Missing argument to command\n"
 msgstr "Argument manquant à la commande\n"
 
 #: src/core/command.c:4036
-#, fuzzy
 msgid "Could not find stars in the reference image, aborting.\n"
-msgstr "Impossible de trouver des étoiles dans la première image, abandon.\n"
+msgstr "Impossible de trouver des étoiles dans l'image de référence, abandon.\n"
 
 #: src/core/command.c:4046
 #, c-format
@@ -11892,15 +11891,14 @@ msgstr ""
 "préconfigurés de %.1f et %.1f.\n"
 
 #: src/core/command.c:4079
-#, fuzzy
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
 "current\n"
 msgstr ""
-"Aucune image de la séquence n'a été trouvée avec les information WCS "
-"requises pour la sélection d'étoiles par coordonnées équatoriales, nécessite "
-"la résolution astrométrique de la référence ou de la première image.\n"
+"Aucune image de la séquence n'a été trouvée avec les informations WCS "
+"requises pour la sélection de l'étoile par les coordonnées équatoriales, "
+"faites l'astrométrie de l'image de référence ou l'image actuelle.\n"
 
 #: src/core/command.c:4200
 #, c-format
@@ -17551,13 +17549,12 @@ msgid "default histogram display mode"
 msgstr "mode d'affichage de l'histogramme par défaut"
 
 #: src/core/settings.c:393
-#, fuzzy
 msgid "configure background samples color"
-msgstr "Échantillons insuffisants.\n"
+msgstr "configurer la couleur des échantillons de l'extraction de gradient"
 
 #: src/core/settings.c:394
 msgid "configure standard annotation color"
-msgstr ""
+msgstr "configurer la couleur standard des annotations"
 
 #: src/core/settings.c:396
 msgid "index of the compass position over grid"
