@@ -256,9 +256,8 @@ static int compare_items_by_dist(const void* item1, const void* item2) {
 	return 0;
 }
 
-// Creates the catalogue of stars to be discarded
-siril_catalogue *vsx_to_discard(struct compstars_arg *args){
-	siril_log_color_message(_("Discarding the variable stars from %s\n"), "salmon", catalog_to_str(args->cat));
+// Creates the temporary catalogue of stars to be discarded
+siril_catalogue *var_cat_to_discard(struct compstars_arg *args, siril_cat_index cat_index){
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
 
@@ -275,25 +274,25 @@ siril_catalogue *vsx_to_discard(struct compstars_arg *args){
 		radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	}
 
-	siril_catalogue *siril_cat_vsx = NULL;
+	siril_catalogue *siril_cat_var = NULL;
 	if ((com.pref.phot_set.disc_cat_fudge & ( 1 << 0 )) >> 0){
 		// preparing the query
-		siril_cat_vsx = siril_catalog_fill_from_fit(&gfit, CAT_VSX, max(args->target_star->mag + 6.0, 17.0));
-		siril_cat_vsx->radius = radius * 60.; // overwriting to account for narrow argument
+		siril_cat_var = siril_catalog_fill_from_fit(&gfit, cat_index, max(args->target_star->mag + 6.0, 17.0));
+		siril_cat_var->radius = radius * 60.; // overwriting to account for narrow argument
 
 		// and retrieving its results
-		int nbr_vsx = siril_catalog_conesearch(siril_cat_vsx);
-		siril_log_message(_("-> %i variable stars found from %s\n"), nbr_vsx, catalog_to_str(CAT_VSX));
+		int nbr_vsx = siril_catalog_conesearch(siril_cat_var);
+		siril_log_message(_("-> %i variable stars found from %s\n"), nbr_vsx, catalog_to_str(cat_index));
 	}
-	return siril_cat_vsx;
+	return siril_cat_var;
 }
 
 // Checks if a star belongs to a given catalog
-static int is_vsx (cat_item *item, siril_catalogue *siril_cat_vsx){
-	if (!siril_cat_vsx) return 0;	// Does the catalog-to-be-discarded exist?
-	if (siril_cat_vsx->nbitems > 0){
-		for (int i = 0; i < siril_cat_vsx->nbitems; i++)
-				if(is_same_star(&siril_cat_vsx->cat_items[i], item, 14.0)) return 1;	
+static int is_var_star (cat_item *item, siril_catalogue *siril_cat){
+	if (!siril_cat) return 0;	// Does the catalog-to-be-discarded exist?
+	if (siril_cat->nbitems > 0){
+		for (int i = 0; i < siril_cat->nbitems; i++)
+				if(is_same_star(&siril_cat->cat_items[i], item, 14.0)) return 1;	
 	} else {
 		siril_log_color_message(_("No variable stars from the catalog %s to discard\n"), "red", catalog_to_str(CAT_VSX));
 		return 0;
@@ -327,23 +326,31 @@ int sort_compstars(struct compstars_arg *args) {
 
 	const gchar *startype = (args->cat == CAT_NOMAD || args->cat == CAT_APASS) ? "Comp1" : "Comp2";
 	int cat2discard = com.pref.phot_set.disc_cat_fudge;
-	siril_log_message(_("cat2discard: %i, b0: %i, b1: %i, b2: %i\n"), cat2discard,
-				(cat2discard & ( 1 << 0 )) >> 0,
-				(cat2discard & ( 1 << 1 )) >> 1,
-				(cat2discard & ( 1 << 2 )) >> 2);
-	siril_catalogue *siril_cat_vsx = NULL;
-//	args->discarded_vsx = TRUE; // Hard coded to TRUE for now. Will be used later
-	if (cat2discard)
-		siril_cat_vsx = vsx_to_discard(args);	// the catalog of variable stars to be discarded
+			
+	siril_catalogue *siril_cat_var = NULL;
+	if (cat2discard) {// Any catalogue of variable star to discard available?
+		siril_log_color_message(_("Discarding the variable stars from %s\n"), "salmon", catalog_to_str(args->cat));		
+		if ((cat2discard & ( 1 << 0 )) >> 0) {		// First, the case of VSX
+			siril_cat_var = var_cat_to_discard(args, CAT_VSX);
+		}
+		if ((cat2discard & ( 1 << 1 )) >> 1) {		// Then, the case of GCVS
+			if (!siril_cat_var) siril_cat_var = var_cat_to_discard(args, CAT_GCVS);	// the catalog of variable stars to be discarded
+			else siril_catalog_concat (siril_cat_var, var_cat_to_discard(args, CAT_GCVS));
+		}
+		if ((cat2discard & ( 1 << 1 )) >> 2) {		// And finally, the case of VARISUM
+			if (!siril_cat_var) siril_cat_var = var_cat_to_discard(args, CAT_VARISUM);	// the catalog of variable stars to be discarded
+			else siril_catalog_concat (siril_cat_var, var_cat_to_discard(args, CAT_VARISUM));
+		}
+	}
+	
 	int nb_disc = 0;
-
 	for (int i = 0; i < args->cat_stars->nbitems; i++) {
 		cat_item *item = &siril_cat->cat_items[i];
 		if (!item->included || is_same_star(args->target_star, item, 3.0)) // included means inside the image after wcs projection
 			continue;
 		double d_mag = fabs(item->mag - args->target_star->mag);
 		double BVi = item->bmag - item->mag; // B-V index
-		int is_var = is_vsx(item, siril_cat_vsx);
+		int is_var = is_var_star(item, siril_cat_var);
 		if (is_var) nb_disc++;
 		// Criteria #0: the star has to be within the image and far from the borders
 		// (discards BORDER_RATIO of the width/height on both borders)
@@ -359,7 +366,7 @@ int sort_compstars(struct compstars_arg *args) {
 
 	if (cat2discard) {
 		siril_log_message(_("-> %i variable stars were discarded in the list from %s \n"), nb_disc, catalog_to_str(args->cat));
-		siril_catalog_free(siril_cat_vsx);
+		siril_catalog_free(siril_cat_var);
 	}
 
 	if (nb_phot_stars > 0) {

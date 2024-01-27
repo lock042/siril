@@ -154,6 +154,14 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_PMDEC] = g_strdup("pmdec");
 			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("main_id");
 			break;
+		case CAT_VARISUM:
+			tap->catcode = g_strdup("%22I/358/varisum%22");
+			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);
+			tap->tap_columns[CAT_FIELD_RA] = g_strdup("RA_ICRS");
+			tap->tap_columns[CAT_FIELD_DEC] = g_strdup("DE_ICRS");
+			tap->tap_columns[CAT_FIELD_MAG] = g_strdup("Gmagmax");
+			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("Source");
+			break;
 		case CAT_PGC:
 			tap->catcode = g_strdup("%22VII/237/pgc%22");
 			tap->tap_server = g_strdup(VIZIER_TAP_QUERY);

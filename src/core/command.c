@@ -8754,6 +8754,8 @@ int process_conesearch(int nb) {
 				cat = CAT_GCVS;
 			else if (!g_strcmp0(arg, "vsx"))
 				cat = CAT_VSX;
+			else if (!g_strcmp0(arg, "varisum"))
+				cat = CAT_VARISUM;
 			else if (!g_strcmp0(arg, "simbad"))
 				cat = CAT_SIMBAD;
 			else if (!g_strcmp0(arg, "exo"))
