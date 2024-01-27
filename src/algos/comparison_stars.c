@@ -265,6 +265,8 @@ siril_catalogue *var_cat_to_discard(struct compstars_arg *args, siril_cat_index 
 	uint64_t sqr_radius = 0;
 	double radius = 0.0;
 
+	siril_log_message(_("->cat_index %i \n"), cat_index);
+
 	if (args->narrow_fov) {
 		// Limited to the image smallest dimension, to avoid the corners with their potential vignettage
 		radius = resolution * min(gfit.rx, gfit.ry) / 2.0;	// in degrees
@@ -275,7 +277,7 @@ siril_catalogue *var_cat_to_discard(struct compstars_arg *args, siril_cat_index 
 	}
 
 	siril_catalogue *siril_cat_var = NULL;
-	if ((com.pref.phot_set.disc_cat_fudge & ( 1 << 0 )) >> 0){
+	if (com.pref.phot_set.disc_cat_fudge){
 		// preparing the query
 		siril_cat_var = siril_catalog_fill_from_fit(&gfit, cat_index, max(args->target_star->mag + 6.0, 17.0));
 		siril_cat_var->radius = radius * 60.; // overwriting to account for narrow argument
@@ -337,7 +339,8 @@ int sort_compstars(struct compstars_arg *args) {
 			if (!siril_cat_var) siril_cat_var = var_cat_to_discard(args, CAT_GCVS);	// the catalog of variable stars to be discarded
 			else siril_catalog_concat (siril_cat_var, var_cat_to_discard(args, CAT_GCVS));
 		}
-		if ((cat2discard & ( 1 << 1 )) >> 2) {		// And finally, the case of VARISUM
+		if ((cat2discard & ( 1 << 2 )) >> 2) {		// And finally, the case of VARISUM
+			siril_log_color_message(_("Varsum is here\n"), "salmon");
 			if (!siril_cat_var) siril_cat_var = var_cat_to_discard(args, CAT_VARISUM);	// the catalog of variable stars to be discarded
 			else siril_catalog_concat (siril_cat_var, var_cat_to_discard(args, CAT_VARISUM));
 		}
