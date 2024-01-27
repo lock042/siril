@@ -256,7 +256,7 @@ static int compare_items_by_dist(const void* item1, const void* item2) {
 	return 0;
 }
 
-// Creates the temporary catalogue of stars to be discarded
+// Creates a temporary catalogue of stars to be discarded
 siril_catalogue *var_cat_to_discard(struct compstars_arg *args, siril_cat_index cat_index){
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
@@ -264,8 +264,6 @@ siril_catalogue *var_cat_to_discard(struct compstars_arg *args, siril_cat_index 
 	double resolution = get_wcs_image_resolution(&gfit);
 	uint64_t sqr_radius = 0;
 	double radius = 0.0;
-
-	siril_log_message(_("->cat_index %i \n"), cat_index);
 
 	if (args->narrow_fov) {
 		// Limited to the image smallest dimension, to avoid the corners with their potential vignettage
@@ -294,7 +292,7 @@ static int is_var_star (cat_item *item, siril_catalogue *siril_cat){
 	if (!siril_cat) return 0;	// Does the catalog-to-be-discarded exist?
 	if (siril_cat->nbitems > 0){
 		for (int i = 0; i < siril_cat->nbitems; i++)
-				if(is_same_star(&siril_cat->cat_items[i], item, 14.0)) return 1;	
+				if(is_same_star(&siril_cat->cat_items[i], item, 3.0)) return 1;	
 	} else {
 		siril_log_color_message(_("No variable stars from the catalog %s to discard\n"), "red", catalog_to_str(CAT_VSX));
 		return 0;
@@ -328,9 +326,10 @@ int sort_compstars(struct compstars_arg *args) {
 
 	const gchar *startype = (args->cat == CAT_NOMAD || args->cat == CAT_APASS) ? "Comp1" : "Comp2";
 	int cat2discard = com.pref.phot_set.disc_cat_fudge;
-			
+
+	// Merge the used catalogues of variable stars		
 	siril_catalogue *siril_cat_var = NULL;
-	if (cat2discard) {// Any catalogue of variable star to discard available?
+	if (cat2discard) {// Any catalogue of variable stars to discard available?
 		siril_log_color_message(_("Discarding the variable stars from %s\n"), "salmon", catalog_to_str(args->cat));		
 		if ((cat2discard & ( 1 << 0 )) >> 0) {		// First, the case of VSX
 			siril_cat_var = var_cat_to_discard(args, CAT_VSX);
@@ -340,7 +339,6 @@ int sort_compstars(struct compstars_arg *args) {
 			else siril_catalog_concat (siril_cat_var, var_cat_to_discard(args, CAT_GCVS));
 		}
 		if ((cat2discard & ( 1 << 2 )) >> 2) {		// And finally, the case of VARISUM
-			siril_log_color_message(_("Varsum is here\n"), "salmon");
 			if (!siril_cat_var) siril_cat_var = var_cat_to_discard(args, CAT_VARISUM);	// the catalog of variable stars to be discarded
 			else siril_catalog_concat (siril_cat_var, var_cat_to_discard(args, CAT_VARISUM));
 		}
