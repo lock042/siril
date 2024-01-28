@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1602,6 +1602,13 @@ int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
                return 1;
        *sx = dx;
        *sy = ry - dy;
+       return 0;
+}
+
+/* converts FITS/WCS coordinates to display coordinates */
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
+       *dx = fx - 0.5;
+       *dy = ry - fy + 0.5;
        return 0;
 }
 

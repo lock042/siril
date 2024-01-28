@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,6 +61,7 @@ static GActionEntry image_entries[] = {
 	{ "statistics", statistics_activate },
 	{ "evaluate-noise", noise_activate },
 	{ "ccd-inspector", ccd_inspector_activate },
+	{ "show-tilt", show_tilt_activate, NULL, "false", show_tilt_state },
 	{ "astrometry", astrometry_activate },
 	{ "photometry", photometry_activate, NULL, "false", photometry_state },
 	{ "cut", cut_activate },
@@ -170,6 +171,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"statistics",
 		"evaluate-noise",
 		"ccd-inspector",
+		"show-tilt",
 		"astrometry",
 		"photometry",
 		"image-information",

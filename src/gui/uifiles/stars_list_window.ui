@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,29 +27,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkImage" id="image2">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="tooltip-text" translatable="yes">Compute the image tilt. Tilt is shown as an overlay and overall tilt information is written to the Console tab. The tilt overlay can be cleared using the Remove button</property>
-    <property name="resource">/org/siril/ui/pixmaps/tilt_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image_export">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="tooltip-text" translatable="yes">Export list of stars to a file</property>
-    <property name="resource">/org/siril/ui/pixmaps/export_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image_starfinder">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="tooltip-text" translatable="yes">Detect stars in the current loaded image (not sequence image) and compute PSF</property>
-    <property name="resource">/org/siril/ui/pixmaps/starfinder_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image_sum">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="tooltip-text" translatable="yes">Average PSF parameters for selected stars</property>
-    <property name="resource">/org/siril/ui/pixmaps/sum_dark.svg</property>
+  <object class="GtkAdjustment" id="adj_min_beta">
+    <property name="upper">10</property>
+    <property name="value">1.5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_convergence">
     <property name="lower">1</property>
@@ -96,11 +78,23 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.5</property>
   </object>
-  <object class="GtkAdjustment" id="adj_min_beta">
-    <property name="upper">10</property>
-    <property name="value">1.5</property>
-    <property name="step-increment">0.01</property>
-    <property name="page-increment">0.10</property>
+  <object class="GtkImage" id="image_export">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Export list of stars to a file</property>
+    <property name="resource">/org/siril/ui/pixmaps/export_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_starfinder">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Detect stars in the current loaded image (not sequence image) and compute PSF</property>
+    <property name="resource">/org/siril/ui/pixmaps/starfinder_dark.svg</property>
+  </object>
+  <object class="GtkImage" id="image_sum">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Average PSF parameters for selected stars</property>
+    <property name="resource">/org/siril/ui/pixmaps/sum_dark.svg</property>
   </object>
   <object class="GtkListStore" id="liststore_stars">
     <columns>
@@ -920,20 +914,6 @@ Use only to display optical distorsions or double stars, not for registration or
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkToolButton" id="tilt_button">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Estimate sensor tilt</property>
-                    <property name="use-underline">True</property>
-                    <property name="icon-widget">image2</property>
-                    <signal name="clicked" handler="on_tilt_button_clicked" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="homogeneous">True</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkToolButton" id="sum_button">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -1044,5 +1024,4 @@ Use only to display optical distorsions or double stars, not for registration or
       <action-widget response="0">button_stars_list_ok</action-widget>
     </action-widgets>
   </object>
-
 </interface>

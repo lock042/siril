@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1540,6 +1540,46 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	draw_compass(dd);
 }
 
+static void draw_wcs_disto(const draw_data_t* dd) {
+	if (!gui.show_wcs_disto) return;
+	fits *fit = &gfit;
+	if (!has_wcs(fit) || !fit->wcslib->lin.dispre) return; // no platesolve or no distortions
+	cairo_t *cr = dd->cr;
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_set_line_width(cr, 3. / dd->zoom);
+	cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
+
+	int nbpoints = 20;
+	double radius = (dd->zoom < 1. )?  3. : 3. / dd->zoom;
+
+	double paceX = (double)fit->rx / (double)(nbpoints - 1);
+	double paceY = (double)fit->ry / (double)(nbpoints - 1);
+	double currX = 0.5; // coords in fits/wcs conventions start at (0.5, 0.5) for the bottom left corner
+	double currY = 0.5;
+	for (int i = 0; i < nbpoints; i++) {
+		currY = 0.5;
+		for (int j = 0; j < nbpoints; j++) {
+			double rawcrd[2] = { currX, currY };
+			double discrd[2] = {0., 0.};
+			int status = disp2x(fit->wcslib->lin.dispre, rawcrd, discrd);
+			if (!status) {
+				double disX = (discrd[0] - rawcrd[0]) * 5. +  rawcrd[0];
+				double disY = (discrd[1] - rawcrd[1]) * 5. +  rawcrd[1];
+				double startX, startY, endX, endY;
+				fits_to_display(currX, currY, &startX, &startY, fit->ry);
+				fits_to_display(disX, disY, &endX, &endY, fit->ry);
+				cairo_arc(cr, startX, startY, radius,  0., 2. * M_PI);
+				cairo_fill(cr);
+				cairo_move_to(cr, startX, startY);
+				cairo_line_to(cr, endX, endY);
+				cairo_stroke(cr);
+			}
+			currY += paceY;
+		}
+		currX += paceX;
+	}
+}
+
 static gdouble x_circle(gdouble x, gdouble radius, gdouble angle) {
 	return x + radius * cos(angle);
 }
@@ -2039,6 +2079,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* celestial grid */
 	draw_wcs_grid(&dd);
+
+	/* distortions */
+	draw_wcs_disto(&dd);
 
 	/* detected objects */
 	draw_annotates(&dd);

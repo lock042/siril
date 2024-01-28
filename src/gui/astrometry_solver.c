@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -118,6 +118,11 @@ static double get_pixel() {
 	GtkEntry *pixel_entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
 	const gchar *value = gtk_entry_get_text(pixel_entry);
 	return g_ascii_strtod(value, NULL);	// 0 is parse error
+}
+
+static int get_order() {
+	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"));
+	return gtk_combo_box_get_active(GTK_COMBO_BOX(box)) + 1;
 }
 
 static int get_server_from_combobox() {
@@ -617,17 +622,23 @@ void on_localasnet_check_button_toggled(GtkToggleButton *button, gpointer user) 
 	GtkWidget *downsample = lookup_widget("downsample_ips_button");
 	GtkWidget *autocrop = lookup_widget("autocrop_ips_button");
 	GtkExpander *catalogues = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
+	GtkWidget *order_box = lookup_widget("ComboBoxIPS_order");
+	GtkWidget *order_label = lookup_widget("label_IPS_order");
 	if (gtk_toggle_button_get_active(button)) {
 		// gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(downsample), FALSE);
 		// gtk_widget_set_sensitive(downsample, FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(autocrop), FALSE);
 		gtk_widget_set_sensitive(autocrop, FALSE);
 		gtk_expander_set_expanded(catalogues, FALSE);
+		gtk_widget_set_visible(order_box, FALSE);
+		gtk_widget_set_visible(order_label, FALSE);
 	}
 	else {
 		gtk_widget_set_sensitive(downsample, TRUE);
 		gtk_widget_set_sensitive(autocrop, TRUE);
 		gtk_expander_set_expanded(catalogues, TRUE);
+		gtk_widget_set_visible(order_box, TRUE);
+		gtk_widget_set_visible(order_label, TRUE);
 	}
 }
 
@@ -641,6 +652,7 @@ void open_astrometry_dialog() {
 
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->fit = &gfit;
+	args->trans_order = 3; // TODO add the GUI element
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
 	args->manual = is_detection_manual();
@@ -655,6 +667,8 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 
 	GtkToggleButton *lasnet = GTK_TOGGLE_BUTTON(lookup_widget("localasnet_check_button"));
 	gboolean use_local_asnet = gtk_toggle_button_get_active(lasnet);
+
+	args->trans_order = (use_local_asnet) ? -1 : get_order();
 
 	SirilWorldCS *catalog_center = get_center_of_catalog();
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 &&

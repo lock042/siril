@@ -1,7 +1,7 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
 # Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
-# Reference site is https://free-astro.org/index.php/Siril
+# Reference site is https://siril.org
 #
 # Siril is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
-enable_libcurl     = get_option('libcurl')
+enable_libcurl   = get_option('libcurl')
 enable_json_glib = get_option('json_glib')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')

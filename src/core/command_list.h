@@ -43,6 +43,7 @@ static command commands[] = {
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
+	{"disto", 0, "disto [clear]", process_disto, STR_DISTO, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"dumpheader", 0, "dumpheader", process_dumpheader, STR_DUMPHEADER, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -123,8 +124,8 @@ static command commands[] = {
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"parse", 1, "parse str [-r]", process_parse, STR_PARSE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
-	{"platesolve", 0, "platesolve [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale]", process_pcc, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale] [-order=]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
+	{"platesolve", 0, "platesolve [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale] [-order=]", process_pcc, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-all] [-prefix=] [-fitseq]", process_preprocess, STR_CALIBRATE, TRUE, REQ_CMD_NONE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
@@ -185,7 +186,7 @@ static command commands[] = {
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF CMD_CAT(MTF) STR_MTF, TRUE, REQ_CMD_NONE},
 	{"seqprofile", 3, "seqprofile sequence -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] [-savedat] [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [{-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y] [\"-title=My Plot\"]", process_seq_profile, STR_SEQPROFILE CMD_CAT(PROFILE) STR_PROFILE, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
-	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-noflip] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale]", process_pcc, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
+	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-noflip] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale] [-order=]", process_pcc, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqrl", 1, "seqrl sequencename [-loadpsf=] [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul]", process_seq_rl, STR_SEQRL CMD_CAT(RL) STR_RL, TRUE, REQ_CMD_NONE},
 	{"seqsb", 1, "sb sequencename [-loadpsf=] [-alpha=] [-iters=]", process_seq_sb, STR_SEQSB CMD_CAT(SB) STR_SB, TRUE, REQ_CMD_NONE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA CMD_CAT(SPLIT_CFA) STR_SPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
