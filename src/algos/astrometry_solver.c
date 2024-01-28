@@ -763,6 +763,7 @@ static int get_catalog_stars(struct astrometry_data *args, gboolean do_fetch) {
 	if (do_fetch) {
 		if (siril_catalog_conesearch(args->ref_stars) <= 0)
 			return 1;
+		sort_cat_items_by_mag(args->ref_stars);
 		siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cat_index));
 	} else { // the stars were already fetched, we just reset the projection
 		siril_catalog_reset_projection(args->ref_stars);
