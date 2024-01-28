@@ -50,7 +50,7 @@ option('libjpeg',
 
 option('libjxl',
  type : 'boolean',
- value : 'true',
+ value : true,
  description: 'build with JPEG XL support'
 )
 
