@@ -39,7 +39,7 @@
 
 #define DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
-#define SIRIL_DOWNLOAD DOMAIN"download/"VERSION
+#define SIRIL_DOWNLOAD DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 
 static gchar *get_changelog(gchar *str);
@@ -341,9 +341,22 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			msg = siril_log_message(_("No update check: cannot fetch version file\n"));
 	} else {
 		if (compare_version(current_version, last_version_available) < 0) {
-			msg = siril_log_message(_("New version is available. You can download it at "
-							"<a href=\"%s\">%s</a>\n"),
-					SIRIL_DOWNLOAD, SIRIL_DOWNLOAD);
+			gchar *url;
+
+			if (last_version_available.patched_version != 0) {
+				const gchar *str;
+				if (last_version_available.beta_version || last_version_available.rc_version) {
+					str = "%s%d.%d.%d-%d";
+				} else {
+					str = "%s%d.%d.%d.%d";
+				}
+				url = g_strdup_printf(str, SIRIL_DOWNLOAD, last_version_available.major_version, last_version_available.minor_version, last_version_available.micro_version, last_version_available.patched_version);
+			} else {
+				url = g_strdup_printf("%s%d.%d.%d",
+						SIRIL_DOWNLOAD, last_version_available.major_version, last_version_available.minor_version, last_version_available.micro_version);
+			}
+
+			msg = siril_log_message(_("New version is available. You can download it at <a href=\"%s\">%s</a>\n"), url, url);
 			changelog = get_changelog(version);
 			if (changelog) {
 				*data = parse_changelog(changelog);
