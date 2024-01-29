@@ -268,6 +268,7 @@ static int undo_get_data(fits *fit, historic *hist) {
 	fit->icc_profile = copyICCProfile(hist->icc_profile);
 	color_manage(fit, (fit->icc_profile != NULL));
 	fits_change_depth(fit, hist->nchans);
+
 	if (hist->type == DATA_USHORT) {
 		if (gfit.type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];

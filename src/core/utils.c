@@ -1792,3 +1792,30 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 	*bit_depth = bitdepth;
 	return 0;
 }
+
+int count_lines_in_textfile(const gchar *filename) {
+    GError *error = NULL;
+    gchar *contents;
+    gsize length;
+    gint line_count = 0;
+
+    // Read the contents of the file
+    if (!g_file_get_contents(filename, &contents, &length, &error)) {
+        g_printerr("Error reading file: %s\n", error->message);
+        g_error_free(error);
+        return -1;
+    }
+
+    // Count the lines in the CSV file
+    gchar **lines = g_strsplit_set(contents, "\n", 0);
+    for (gchar **line = lines; *line; ++line) {
+        if (**line != '\0')  // Non-empty line
+            ++line_count;
+    }
+
+    // Free allocated memory
+    g_strfreev(lines);
+    g_free(contents);
+
+    return line_count;
+}

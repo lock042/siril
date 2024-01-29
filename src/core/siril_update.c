@@ -21,7 +21,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_LIBCURL)
+#if defined(HAVE_LIBCURL)
 #include <json-glib/json-glib.h>
 #include <curl/curl.h>
 
