@@ -40,6 +40,14 @@ void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blu
 
 double BV_to_T(double BV);
 
+float x1931(float w);
+float y1931(float w);
+float z1931(float w);
+float x1964(float w);
+float y1964(float w);
+float z1964(float w);
+cmsCIExyY wl_to_xyY(double wl);
+
 int pos_to_neg(fits *fit);
 
 int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string);

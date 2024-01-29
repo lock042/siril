@@ -185,9 +185,6 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		}
 	}
 
-	// Must turn off error handler or it aborts on error
-	gsl_set_error_handler_off();
-
 	/* Smoothing */
 	smoothing = 1e-4 * pow(10.0, (smoothing-0.5) * 3);
 
@@ -381,9 +378,6 @@ static gboolean computeBackground_Polynom(GSList *list, double *background, int 
 
 		k++;
 	}
-
-	// Must turn off error handler or it aborts on error
-	gsl_set_error_handler_off();
 
 	gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n, nbParam);
 	int status = gsl_multifit_wlinear(J, w, y, c, cov, &chisq, work);

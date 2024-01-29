@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
+#include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/settings.h"
 #include "core/siril_log.h"
@@ -36,6 +37,7 @@
 #include "gui/script_menu.h"
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
+#include "gui/photometric_cc.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "io/single_image.h"
@@ -201,8 +203,11 @@ static void update_scripts_preferences() {
 #ifdef HAVE_LIBGIT2
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
 	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
+	com.pref.spcc.use_spcc_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")));
+	com.pref.spcc.auto_spcc_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")));
 #else
 	com.pref.use_scripts_repository = FALSE;
+	com.pref.use_spcc_repository = FALSE;
 #endif
 }
 
@@ -271,8 +276,9 @@ static void update_color_management_preferences() {
 	com.pref.icc.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
 	com.pref.icc.default_to_srgb = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")));
 	com.pref.icc.working_gamut = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("working_gamut")));
-	com.pref.icc.export_8bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
-	com.pref.icc.export_16bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
+	com.pref.icc.export_8bit_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
+	com.pref.icc.export_16bit_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
+	com.pref.icc.cmf = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_cmf_pref")));
 	com.pref.icc.custom_monitor_profile_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_monitor_profile_active")));
 	com.pref.icc.soft_proofing_profile_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_proofing_profile_active")));
 	com.pref.icc.rendering_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")));
@@ -759,6 +765,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_cmf_pref")), pref->icc.cmf);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_monitor_profile_active")), pref->icc.custom_monitor_profile_active);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_proofing_profile_active")), pref->icc.soft_proofing_profile_active);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")), pref->icc.default_to_srgb);
@@ -782,6 +789,8 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")), pref->spcc.use_spcc_repository);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")), pref->spcc.auto_spcc_update);
 
 	/* tab Performances */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
@@ -804,12 +813,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
-#ifdef HAVE_JSON_GLIB
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
-#else
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), FALSE);
-	gtk_widget_set_sensitive(lookup_widget("miscAskUpdateStartup"), FALSE);
-#endif
 }
 
 static void set_icc_filechooser_directories() {
@@ -864,6 +868,8 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_set_file_filter("pref_soft_proofing_profile", "icc_filter");
 	siril_set_file_filter("filechooser_starnet", "all_files");
 	siril_set_file_filter("filechooser_starnet_weights", "all_files");
+	GtkLabel* spcc_path_label = GTK_LABEL(lookup_widget("label_spcc_repo_path"));
+	gtk_label_set_text(spcc_path_label, siril_get_spcc_repo_path());
 
 	set_icc_filechooser_directories();
 	update_preferences_from_model();

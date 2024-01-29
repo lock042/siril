@@ -173,9 +173,7 @@ int readinitfile(gchar *fname) {
 		}
 		return 1;
 	}
-#ifndef HAVE_JSON_GLIB
 	com.pref.check_update = FALSE;
-#endif
 	if (read_keyfile(kf) == 0)
 		siril_log_message(_("Warning: nothing could be read from the settings file\n"));
 	g_key_file_free(kf);

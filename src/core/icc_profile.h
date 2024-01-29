@@ -94,5 +94,6 @@ void initialize_icc_preferences_widgets();
 gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event, gpointer userdata);
 void enable_iso12646_conditions();
 void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gboolean revert_rendering_mode);
+void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

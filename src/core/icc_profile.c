@@ -22,6 +22,7 @@
 #include "algos/lcms_acceleration/lcms2_fast_float.h"
 #include "algos/lcms_acceleration/lcms2_threaded.h"
 #include "core/siril.h"
+#include "algos/colors.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"
@@ -38,10 +39,12 @@
 #include "gui/siril-window.h"
 #include "gui/registration_preview.h"
 #include "gui/utils.h"
+#include "gui/siril_plot.h"
 #include "gui/siril_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/siril_plot.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "core/proto.h"
@@ -1693,6 +1696,10 @@ siril_close_dialog("icc_dialog");
 }
 
 void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
+	if (!target) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No color profile chosen, nothing to assign."));
+		return;
+	}
 	on_clear_roi();
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile assignment"));
@@ -1752,6 +1759,10 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
+	if (!target) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No color profile chosen, nothing to assign."));
+		return;
+	}
 	on_clear_roi();
 	if (!gfit.color_managed || !gfit.icc_profile) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
@@ -1919,6 +1930,14 @@ void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 
 void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {
 	export_elle_stone_profiles();
+}
+
+void on_icc_plot_clicked(GtkButton *button, gpointer user_data) {
+	if (gfit.icc_profile && siril_color_profile_is_rgb (gfit.icc_profile)) {
+		siril_plot_colorspace(gfit.icc_profile, TRUE);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Chromaticity plot only works with RGB color profiles"));
+	}
 }
 
 static gboolean colorspace_comparison_image_set = FALSE;
@@ -2147,4 +2166,90 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 	if (mode_changed)
 		redraw(REMAP_ALL);
 	gtk_widget_queue_draw(lookup_widget("control_window"));
+}
+
+void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
+	SirilMatrix3_d matrix = { { { 0.0 } } };
+	cmsCIEXYZ red, green, blue;
+	cmsCIExyY redxyY, greenxyY, bluexyY;
+	char *description = NULL;
+	int length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
+	if (length) {
+		description = (char*) malloc(length * sizeof(char));
+		cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", description, length);
+	}
+
+	if (!(siril_color_profile_is_rgb (profile))) {
+		siril_log_message(_("This ICC profile is not RGB. Unable to plot the colorspace.\n"));
+		return;
+	}
+	if (! siril_color_profile_get_rgb_matrix_colorants (profile, &matrix)) {
+		siril_log_message(_("Error reading chromaticities\n"));
+		return;
+	}
+//	whitepoint = cmsReadTag (profile, cmsSigMediaWhitePointTag);
+
+	red.X = matrix.coeff[0][0];
+	red.Y = matrix.coeff[0][1];
+	red.Z = matrix.coeff[0][2];
+
+	green.X = matrix.coeff[1][0];
+	green.Y = matrix.coeff[1][1];
+	green.Z = matrix.coeff[1][2];
+
+	blue.X = matrix.coeff[2][0];
+	blue.Y = matrix.coeff[2][1];
+	blue.Z = matrix.coeff[2][2];
+
+	cmsXYZ2xyY(&redxyY, &red);
+	cmsXYZ2xyY(&greenxyY, &green);
+	cmsXYZ2xyY(&bluexyY, &blue);
+
+	double *horseshoe_x = malloc(322 * sizeof(double)), *horseshoe_y = malloc(322 * sizeof(double));
+	for (int i = 0 ; i < 321 ; i++) {
+		double w = 380 + i;
+		cmsCIEXYZ XYZ = { x1931(w), y1931(w), z1931(w)};
+		cmsCIExyY xyY;
+		cmsXYZ2xyY(&xyY, &XYZ);
+		horseshoe_x[i] = xyY.x;
+		horseshoe_y[i] = xyY.y;
+	}
+
+	horseshoe_x[321] = horseshoe_x[0];
+	horseshoe_y[321] = horseshoe_y[0];
+	double colorspace_x[4] = {redxyY.x, greenxyY.x, bluexyY.x, redxyY.x};
+	double colorspace_y[4] = {redxyY.y, greenxyY.y, bluexyY.y, redxyY.y};
+	double srgb_x[4] = {0.639998686, 0.300003784, 0.150002046, 0.639998686};
+	double srgb_y[4] = {0.330010138, 0.600003357, 0.059997204, 0.330010138};
+	siril_plot_data *spl_data = NULL;
+
+	gchar *title1 = g_strdup_printf(_("Source Color Profile Chromaticity Diagram\n"
+					"<span size=\"small\">"
+					"%s"
+					"</span>"), description);
+	free(description);
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_xlabel(spl_data, _("CIE x"));
+	siril_plot_set_savename(spl_data, "color_profile");
+	siril_plot_set_title(spl_data, title1);
+	siril_plot_set_ylabel(spl_data, _("CIE y"));
+	siril_plot_add_xydata(spl_data, _("Color profile"), 4, colorspace_x, colorspace_y, NULL, NULL);
+	siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_LINES);
+	siril_plot_add_xydata(spl_data, _("CIE 1931"), 322, horseshoe_x, horseshoe_y, NULL, NULL);
+	siril_plot_set_nth_plot_type(spl_data, 2, KPLOT_LINES);
+	siril_plot_set_nth_color(spl_data, 2, (double[3]) { 0.0, 0.0, 0.0 } );
+	if (compare_srgb) {
+		siril_plot_add_xydata(spl_data, _("sRGB"), 4, srgb_x, srgb_y, NULL, NULL);
+		siril_plot_set_nth_plot_type(spl_data, 2, KPLOT_LINES);
+	}
+	spl_data->datamin = (point) { 0.0, 0.0 };
+	spl_data->datamax = (point) { 0.8, 0.9 };
+	spl_data->cfgdata.line.sz = 2;
+
+	free(horseshoe_x);
+	free(horseshoe_y);
+
+	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_idle(end_generic, NULL);
 }
