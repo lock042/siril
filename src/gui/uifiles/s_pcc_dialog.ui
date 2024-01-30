@@ -161,6 +161,7 @@
               <object class="GtkExpander" id="spcc_options">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="margin-start">5</property>
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
@@ -764,6 +765,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
               <object class="GtkExpander" id="labelPCCCatalogParameters">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="margin-start">5</property>
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
@@ -889,6 +891,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
               <object class="GtkExpander" id="frame_cc_background">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="margin-start">5</property>
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
@@ -896,6 +899,69 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkLabel" id="label1">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Tolerance / σ</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="bg_tol_upper">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Include background samples this many σ above the median. Default is 2.00</property>
+                            <property name="halign">start</property>
+                            <property name="width-chars">5</property>
+                            <property name="text" translatable="yes">2,00</property>
+                            <property name="adjustment">adj_bg_sigma_lower</property>
+                            <property name="digits">2</property>
+                            <property name="value">2</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="bg_tol_lower">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Include background samples this many σ below the median. Default is 2.8</property>
+                            <property name="halign">start</property>
+                            <property name="width-chars">5</property>
+                            <property name="text" translatable="yes">2,80</property>
+                            <property name="adjustment">adj_bg_sigma_upper</property>
+                            <property name="digits">2</property>
+                            <property name="value">2.7999999999999998</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
                     <child>
                       <object class="GtkCheckButton" id="button_cc_bkg_auto">
                         <property name="label" translatable="yes">Automatic detection</property>
@@ -911,7 +977,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">0</property>
+                        <property name="position">1</property>
                       </packing>
                     </child>
                     <child>
@@ -1048,68 +1114,11 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="position">0</property>
                           </packing>
                         </child>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="orientation">vertical</property>
-                            <property name="spacing">5</property>
-                            <child>
-                              <object class="GtkLabel" id="label1">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Tolerance / σ</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="bg_tol_upper">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Include background samples this many σ above the median. Default is 2.00</property>
-                                <property name="text" translatable="yes">2,00</property>
-                                <property name="adjustment">adj_bg_sigma_lower</property>
-                                <property name="digits">2</property>
-                                <property name="value">2</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="bg_tol_lower">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Include background samples this many σ below the median. Default is 2.8</property>
-                                <property name="text" translatable="yes">2,80</property>
-                                <property name="adjustment">adj_bg_sigma_upper</property>
-                                <property name="digits">2</property>
-                                <property name="value">2.7999999999999998</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                   </object>
