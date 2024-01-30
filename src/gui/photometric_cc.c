@@ -55,6 +55,7 @@ static int set_spcc_args(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
+void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
@@ -284,7 +285,10 @@ void initialize_spectrophotometric_cc_dialog() {
 
 	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
+	g_signal_handlers_block_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
 	gtk_switch_set_active(monoselector, com.pref.spcc.is_mono);
+	g_signal_handlers_unblock_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
+	on_spcc_sensor_switch_state_set(monoselector, com.pref.spcc.is_mono, lookup_widget("spcc_label_switch"));
 	GtkToggleButton *dslrtoggle = GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr"));
 	g_signal_handlers_block_by_func(G_OBJECT(dslrtoggle), on_osc_is_dslr_toggled, NULL);
 	gtk_toggle_button_set_active(dslrtoggle, com.pref.spcc.is_dslr);
