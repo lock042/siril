@@ -94,8 +94,7 @@ static void start_photometric_cc(gboolean spcc) {
 	}
 
 	if (gfit.wcslib->lin.dispre == NULL) {
-		siril_log_color_message(_("Found linear plate solve data. For better result you should redo platesolving\n"), "red");
-		return;
+		siril_log_color_message(_("Found linear plate solve data. For better result you should redo platesolving\n"), "salmon");
 	}
 
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
