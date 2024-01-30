@@ -683,21 +683,20 @@ int get_stats_coefficients(fits *fit, rectangle *area, float *bg, float t0, floa
 }
 
 int apply_photometric_color_correction(fits *fit, const float *kw, const float *bg) {
-	float scale[3];
 	float offset[3];
+	float bg_mean = (bg[RLAYER] + bg[GLAYER] + bg[BLAYER]) / 3.f;
 
 	for (int chan = 0; chan < 3; chan++) {
-		scale[chan] = kw[chan];
-		if (isnan(scale[chan])) { // Check for NaN... If they are NaN the result image is junk
+		if (isnan(kw[chan])) { // Check for NaN... If they are NaN the result image is junk
 			siril_log_color_message(_("Error computing coefficients: aborting...\n"), "red");
 			return 1;
 		}
-		offset[chan] = (-bg[chan] * kw[chan] + bg[GLAYER]); // FIXME: how we could evaluate the right channel?
+		offset[chan] = (-bg[chan] * kw[chan] + bg_mean);
 	}
 	siril_log_message("After renormalization, the following coefficients are applied\n");
 	siril_log_color_message(_("White balance factors:\n"), "green");
 	for (int chan = 0; chan < 3; chan++) {
-		siril_log_message("K%d: %5.3f\n", chan, scale[chan]);
+		siril_log_message("K%d: %5.3f\n", chan, kw[chan]);
 	}
 	siril_log_color_message(_("Background reference:\n"), "green");
 	for (int chan = 0; chan < 3; chan++) {
@@ -709,13 +708,13 @@ int apply_photometric_color_correction(fits *fit, const float *kw, const float *
 		if (fit->type == DATA_USHORT) {
 			WORD *buf = fit->pdata[chan];
 			for (size_t i = 0; i < n; ++i) {
-				buf[i] = roundf_to_WORD((float)buf[i] * scale[chan] + offset[chan]);
+				buf[i] = roundf_to_WORD((float)buf[i] * kw[chan] + offset[chan]);
 			}
 		}
 		else if (fit->type == DATA_FLOAT) {
 			float *buf = fit->fpdata[chan];
 			for (size_t i = 0; i < n; ++i) {
-				buf[i] = buf[i] * scale[chan] + offset[chan];
+				buf[i] = buf[i] * kw[chan] + offset[chan];
 			}
 		}
 		else return 1;
