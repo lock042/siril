@@ -770,6 +770,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-bottom">5</property>
                     <property name="label" translatable="yes">SPCC Parameters</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -896,6 +897,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-bottom">5</property>
                     <property name="label" translatable="yes">Catalogue Parameters</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -927,7 +929,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="orientation">vertical</property>
-                        <property name="spacing">5</property>
+                        <property name="spacing">6</property>
                         <child>
                           <object class="GtkLabel" id="label1">
                             <property name="visible">True</property>
@@ -1006,7 +1008,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="spacing">10</property>
+                        <property name="spacing">6</property>
                         <child>
                           <object class="GtkBox" id="box_cc_manual_bkg">
                             <property name="visible">True</property>
@@ -1149,6 +1151,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-bottom">5</property>
                     <property name="label" translatable="yes">Background Reference</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
