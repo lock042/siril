@@ -77,6 +77,14 @@ static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitud
 	}
 }
 
+void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
+	GtkWidget *spinmag;
+
+	spinmag = lookup_widget("GtkSpinPCC_Mag_Limit");
+	gtk_widget_set_sensitive(spinmag, !gtk_toggle_button_get_active(button));
+}
+
+
 static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 

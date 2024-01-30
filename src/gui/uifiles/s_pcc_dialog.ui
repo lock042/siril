@@ -813,7 +813,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_GtkCheckButton_Mag_Limit_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_S_PCC_Mag_Limit_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
