@@ -465,7 +465,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	return 0;
 }
 
-static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float *kw, int norm_channel) {
+static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float *kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
 	pcc_star *stars = args->stars;
@@ -575,9 +575,9 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		TempK2rgb(&r, &g, &b, stars[i].teff, transform);
 		/* get Color calibration factors for current star */
 
-		data[RLAYER][i] = (flux[norm_channel] / flux[RLAYER]) * r;
-		data[GLAYER][i] = (flux[norm_channel] / flux[GLAYER]) * g;
-		data[BLAYER][i] = (flux[norm_channel] / flux[BLAYER]) * b;
+		data[RLAYER][i] = (1.f / flux[RLAYER]) * r;
+		data[GLAYER][i] = (1.f / flux[GLAYER]) * g;
+		data[BLAYER][i] = (1.f / flux[BLAYER]) * b;
 
 		if (xisnanf(data[RLAYER][i]) || xisnanf(data[GLAYER][i]) || xisnanf(data[BLAYER][i])) {
 			data[RLAYER][i] = FLT_MAX;
@@ -632,10 +632,10 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		return 1;
 	}
 	/* normalize factors */
-	float norm = kw[norm_channel];
-	kw[RLAYER] /= norm;
-	kw[GLAYER] /= norm;
-	kw[BLAYER] /= norm;
+	double maxk = max(max(kw[RLAYER], kw[GLAYER]), kw[BLAYER]);
+	kw[RLAYER] /= maxk;
+	kw[GLAYER] /= maxk;
+	kw[BLAYER] /= maxk;
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
@@ -650,20 +650,10 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	return 0;
 }
 
-static int cmp_coeff(const void *a, const void *b) {
-	const coeff *a1 = (const coeff *) a;
-	const coeff *a2 = (const coeff *) b;
-	if (a1->value > a2->value)
-		return 1;
-	if (a1->value < a2->value)
-		return -1;
-	return 0;
-}
-
 /*
 Gets bg, min and max values per channel and sets the chennel with middle bg value
 */
-int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel, float t0, float t1) {
+int get_stats_coefficients(fits *fit, rectangle *area, float *bg, float t0, float t1) {
 	// we cannot use compute_all_channels_statistics_single_image because of the area
 	siril_log_message(_("Computing background reference with tolerance +%.2fσ / -%.2fσ.\n"), t1, -t0);
 	for (int chan = 0; chan < 3; chan++) {
@@ -684,47 +674,17 @@ int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, f
 		} else {
 			robust_median = robust_median_f(fit, area, chan, (float) lower_c, (float) upper_c);
 		}
-		bg[chan].value = robust_median;
-		bg[chan].channel = chan;
-		if (!area) {
-			mins[chan] = stat->min;
-			maxs[chan] = stat->max;
-		}
+		bg[chan] = robust_median;
+
 		free_stats(stat);
 	}
-	coeff tmp[3];
-	memcpy(tmp, bg, 3 * sizeof(coeff));
-	/* ascending order */
-	qsort(tmp, 3, sizeof(tmp[0]), cmp_coeff);
-	//selecting middle channel for norm
-	*norm_channel = tmp[1].channel;
 
-	// if no selection for background we have all the stats required
-	if (!area) return 0;
-
-	// otherwise, we compute image min/max
-	for (int chan = 0; chan < 3; chan++) {
-		const imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_MINMAX, MULTI_THREADED);
-		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 1;
-		}
-		mins[chan] = stat->min;
-		maxs[chan] = stat->max;
-	}
 	return 0;
 }
 
-int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *bg, const float *mins, const float *maxs, int norm_channel) {
-	float maximum = -FLT_MAX;
-	float minimum = FLT_MAX;
+int apply_photometric_color_correction(fits *fit, const float *kw, const float *bg) {
 	float scale[3];
 	float offset[3];
-
-	for (int chan = 0; chan < 3; chan++) {
-		maximum = max(maximum, kw[chan] * (maxs[chan] - bg[chan].value) + bg[norm_channel].value);
-		minimum = min(minimum, kw[chan] * (mins[chan] - bg[chan].value) + bg[norm_channel].value);
-	}
 
 	for (int chan = 0; chan < 3; chan++) {
 		scale[chan] = kw[chan];
@@ -732,7 +692,7 @@ int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *
 			siril_log_color_message(_("Error computing coefficients: aborting...\n"), "red");
 			return 1;
 		}
-		offset[chan] = (-bg[chan].value * kw[chan] + bg[norm_channel].value - minimum);
+		offset[chan] = (-bg[chan] * kw[chan] + bg[GLAYER]); // FIXME: how we could evaluate the right channel?
 	}
 	siril_log_message("After renormalization, the following coefficients are applied\n");
 	siril_log_color_message(_("White balance factors:\n"), "green");
@@ -767,10 +727,7 @@ int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *
 /* run the PCC using the existing star list of the image from the provided file */
 int photometric_cc(struct photometric_cc_data *args) {
 	float kw[3];
-	coeff bg[3];
-	float mins[3];
-	float maxs[3];
-	int norm_channel;
+	float bg[3];
 
 	// Moved here from gui/photometric_cc.c so it always applies. Once the command always calls photometric_cc_standalone()
 	// it can move there, rather than after the catalog download
@@ -789,13 +746,11 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	/* we use the median of each channel to sort them by level and select
 	 * the reference channel expressed in terms of order of middle median value */
-	if (get_stats_coefficients(args->fit, bkg_sel, bg, mins, maxs, &norm_channel, args->t0, args->t1)) {
+	if (get_stats_coefficients(args->fit, bkg_sel, bg, args->t0, args->t1)) {
 		siril_log_message(_("failed to compute statistics on image, aborting\n"));
 		free(args);
 		return 1;
 	}
-	if (!args->spcc)
-		siril_log_message(_("Normalizing on %s channel.\n"), (norm_channel == 0) ? _("red") : ((norm_channel == 1) ? _("green") : _("blue")));
 
 	/* set photometry parameters to values adapted to the image */
 	struct phot_config backup = com.pref.phot_set;
@@ -810,10 +765,10 @@ int photometric_cc(struct photometric_cc_data *args) {
 	if (args->spcc)
 		ret = get_spcc_white_balance_coeffs(args, kw);
 	else
-		ret = get_pcc_white_balance_coeffs(args, kw, norm_channel);
+		ret = get_pcc_white_balance_coeffs(args, kw);
 
 	if (!ret) {
-		ret = apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
+		ret = apply_photometric_color_correction(args->fit, kw, bg);
 		if (!ret) {
 /*
  *	This is temporarily removed pending fixing the source profile calc in a separate MR
