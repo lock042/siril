@@ -671,7 +671,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="spcc_plot_fits">
-                        <property name="label" translatable="yes">Plot fits and chromaticity</property>
+                        <property name="label" translatable="yes">Plot fits</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
