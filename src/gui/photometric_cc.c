@@ -92,10 +92,6 @@ static void start_photometric_cc(gboolean spcc) {
 		return;
 	}
 
-	if (gfit.wcslib->lin.dispre == NULL) {
-		siril_log_color_message(_("Found linear plate solve data. For better result you should redo platesolving\n"), "salmon");
-	}
-
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
 	set_bg_sigma(pcc_args);
 	if (spcc) {
@@ -109,13 +105,13 @@ static void start_photometric_cc(gboolean spcc) {
 	} else {
 		pcc_args->catalog = get_photometry_catalog_from_GUI();
 		pcc_args->spcc = FALSE;
-	}
-	if (local_catalogues_available()) {
-		if (pcc_args->catalog == CAT_NOMAD) {
-			pcc_args->catalog = CAT_LOCAL;
-			siril_debug_print("using local star catalogs\n");
+		if (local_catalogues_available()) {
+			if (pcc_args->catalog == CAT_NOMAD) {
+				pcc_args->catalog = CAT_LOCAL;
+				siril_debug_print("using local star catalogs\n");
+			}
+			else siril_log_message(_("Using remote APASS instead of local NOMAD catalog\n"));
 		}
-		else siril_log_message(_("Using remote APASS instead of local NOMAD catalog\n"));
 	}
 
 	pcc_args->fit = &gfit;

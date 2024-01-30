@@ -772,6 +772,12 @@ int photometric_cc(struct photometric_cc_data *args) {
 	float maxs[3];
 	int norm_channel;
 
+	// Moved here from gui/photometric_cc.c so it always applies. Once the command always calls photometric_cc_standalone()
+	// it can move there, rather than after the catalog download
+	if (args->fit->wcslib->lin.dispre == NULL) {
+		siril_log_color_message(_("Found linear plate solve data. For better result you should redo platesolving\n"), "salmon");
+	}
+
 	if (!isrgb(args->fit)) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
 		return 0;
