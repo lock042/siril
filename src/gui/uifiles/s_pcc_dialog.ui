@@ -256,33 +256,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkToggleButton" id="spcc_toggle_sensor_type">
-                        <property name="label" translatable="yes">Mono sensor</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Choose OSC or mono sensor</property>
-                        <property name="active">True</property>
-                        <signal name="toggled" handler="on_spcc_toggle_sensor_type_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label_spcc_sensor_type">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">Sensor Type:</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkComboBoxText" id="combo_spcc_sensors_osc">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -442,21 +415,6 @@
                       <packing>
                         <property name="left-attach">3</property>
                         <property name="top-attach">8</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="osc_is_dslr">
-                        <property name="label" translatable="yes">DSLR</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Set whether the OSC sensor is a DSLR. This allows setting the LPF for astro-modified or unmodifed DSLRs, for example</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_osc_is_dslr_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
@@ -712,21 +670,6 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="spcc_toggle_nb">
-                        <property name="label" translatable="yes">Narrowband mode</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Set narrowband mode. This is suitable for composited narrowband images such as HOO as well as for OSC images taken with dual narrowband filters etc.</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_spcc_toggle_nb_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">3</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkCheckButton" id="spcc_plot_fits">
                         <property name="label" translatable="yes">Plot fits and chromaticity</property>
                         <property name="visible">True</property>
@@ -740,6 +683,85 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="left-attach">0</property>
                         <property name="top-attach">10</property>
                         <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_sensor_type">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Sensor Type:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkSwitch" id="spcc_sensor_switch">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="halign">start</property>
+                            <property name="valign">start</property>
+                            <signal name="state-set" handler="on_spcc_sensor_switch_state_set" object="spcc_label_switch" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="spcc_label_switch">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">mono</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="osc_is_dslr">
+                        <property name="label" translatable="yes">DSLR</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Set whether the OSC sensor is a DSLR. This allows setting the LPF for astro-modified or unmodifed DSLRs, for example</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_osc_is_dslr_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="spcc_toggle_nb">
+                        <property name="label" translatable="yes">Narrowband mode</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Set narrowband mode. This is suitable for composited narrowband images such as HOO as well as for OSC images taken with dual narrowband filters etc.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_spcc_toggle_nb_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                   </object>
