@@ -65,6 +65,18 @@ void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("s_pcc_dialog");
 }
 
+static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
+	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("S_PCC_Mag_Limit"));
+	gboolean autob = gtk_toggle_button_get_active(autobutton);
+	if (autob)
+		*mag_mode = LIMIT_MAG_AUTO;
+	else {
+		GtkSpinButton *magButton = GTK_SPIN_BUTTON(lookup_widget("GtkSpinPCC_Mag_Limit"));
+		*magnitude_arg = gtk_spin_button_get_value(magButton);
+		*mag_mode = LIMIT_MAG_ABSOLUTE;
+	}
+}
+
 static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 

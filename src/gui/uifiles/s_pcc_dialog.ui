@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
-  <object class="GtkAdjustment" id="AdjIPS_Mag_Limit">
+  <object class="GtkAdjustment" id="Adj_pcc_Mag_Limit">
     <property name="lower">4</property>
     <property name="upper">25</property>
     <property name="value">12</property>
@@ -775,7 +775,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                     <property name="row-spacing">5</property>
                     <property name="column-spacing">5</property>
                     <child>
-                      <object class="GtkLabel" id="GtkLabelMag">
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
@@ -787,7 +787,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSpinButton" id="GtkSpinIPS_Mag_Limit">
+                      <object class="GtkSpinButton" id="GtkSpinPCC_Mag_Limit">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can-focus">True</property>
@@ -795,6 +795,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="halign">start</property>
                         <property name="text">12</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">Adj_pcc_Mag_Limit</property>
                         <property name="value">12</property>
                       </object>
                       <packing>
@@ -803,7 +804,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="GtkCheckButton_Mag_Limit">
+                      <object class="GtkCheckButton" id="S_PCC_Mag_Limit">
                         <property name="label" translatable="yes">Auto</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>

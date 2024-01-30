@@ -697,7 +697,7 @@ When selecting an order with distorsions, additional terms are added to the solu
                     <property name="row-spacing">5</property>
                     <property name="column-spacing">5</property>
                     <child>
-                      <object class="GtkLabel" id="GtkLabelMag">
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
@@ -717,6 +717,7 @@ When selecting an order with distorsions, additional terms are added to the solu
                         <property name="halign">start</property>
                         <property name="text">12</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">AdjIPS_Mag_Limit</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>

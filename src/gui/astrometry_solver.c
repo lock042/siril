@@ -86,14 +86,13 @@ static void initialize_ips_dialog() {
 	gtk_label_set_text(GTK_LABEL(lookup_widget("photometric_catalog_label")), "");
 }
 
-void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
+static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
 	gboolean autob = gtk_toggle_button_get_active(autobutton);
 	if (autob)
 		*mag_mode = LIMIT_MAG_AUTO;
 	else {
-		GtkSpinButton *magButton = GTK_SPIN_BUTTON(
-				lookup_widget("GtkSpinIPS_Mag_Limit"));
+		GtkSpinButton *magButton = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Mag_Limit"));
 		*magnitude_arg = gtk_spin_button_get_value(magButton);
 		*mag_mode = LIMIT_MAG_ABSOLUTE;
 	}
