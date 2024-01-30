@@ -2141,7 +2141,7 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	cmsCIEXYZTRIPLE XYZtriple = { 0 };
 	cmsCIEXYZ whitepoint = { 0 };
-	cmsCIExyY redxyY, greenxyY, bluexyY;
+	cmsCIExyY redxyY, greenxyY, bluexyY, whitexyY;
 	char *description = NULL;
 	int length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
 	if (length) {
@@ -2161,16 +2161,9 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	cmsXYZ2xyY(&redxyY, &XYZtriple.Red);
 	cmsXYZ2xyY(&greenxyY, &XYZtriple.Green);
 	cmsXYZ2xyY(&bluexyY, &XYZtriple.Blue);
-
-	printf("R: %f, %f, %f\n", XYZtriple.Red.X, XYZtriple.Red.Y, XYZtriple.Red.Z);
-	printf("G: %f, %f, %f\n", XYZtriple.Green.X, XYZtriple.Green.Y, XYZtriple.Green.Z);
-	printf("B: %f, %f, %f\n", XYZtriple.Blue.X, XYZtriple.Blue.Y, XYZtriple.Blue.Z);
-	printf("W: %f, %f, %f\n", whitepoint.X, whitepoint.Y, whitepoint.Z);
-
-	printf("R: %f, %f, %f\n", redxyY.x, redxyY.y, redxyY.Y);
-	printf("G: %f, %f, %f\n", greenxyY.x, greenxyY.y, greenxyY.Y);
-	printf("B: %f, %f, %f\n", bluexyY.x, bluexyY.y, bluexyY.Y);
-
+	cmsXYZ2xyY(&whitexyY, &whitepoint);
+	double white_x = whitexyY.x;
+	double white_y = whitexyY.y;
 	double *horseshoe_x = malloc(322 * sizeof(double)), *horseshoe_y = malloc(322 * sizeof(double));
 	for (int i = 0 ; i < 321 ; i++) {
 		double w = 380 + i;
@@ -2200,14 +2193,22 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_savename(spl_data, "color_profile");
 	siril_plot_set_title(spl_data, title1);
 	siril_plot_set_ylabel(spl_data, _("CIE y"));
+	int n = 1;
 	siril_plot_add_xydata(spl_data, _("Color profile"), 4, colorspace_x, colorspace_y, NULL, NULL);
-	siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_LINES);
+	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
+	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.5, 1.0 } );
+	n++;
+	siril_plot_add_xydata(spl_data, _("Color profile whitepoint"), 1, &white_x, &white_y, NULL, NULL);
+	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_POINTS);
+	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.5, 1.0 } );
+	n++;
 	siril_plot_add_xydata(spl_data, _("CIE 1931"), 322, horseshoe_x, horseshoe_y, NULL, NULL);
-	siril_plot_set_nth_plot_type(spl_data, 2, KPLOT_LINES);
-	siril_plot_set_nth_color(spl_data, 2, (double[3]) { 0.0, 0.0, 0.0 } );
+	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
+	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.0, 0.0 } );
+	n++;
 	if (compare_srgb) {
 		siril_plot_add_xydata(spl_data, _("sRGB"), 4, srgb_x, srgb_y, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_data, 2, KPLOT_LINES);
+		siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
 	}
 	spl_data->datamin = (point) { 0.0, 0.0 };
 	spl_data->datamax = (point) { 0.8, 0.9 };
