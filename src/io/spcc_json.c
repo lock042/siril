@@ -513,7 +513,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 static void processDirectory(const gchar *directory_path) {
 	if (!directory_path)
 		return;
-	GError *error;
+	GError *error = NULL;
 	GDir *dir = g_dir_open(directory_path, 0, &error);
 
 	if (dir == NULL) {
