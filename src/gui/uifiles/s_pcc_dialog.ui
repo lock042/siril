@@ -732,21 +732,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="osc_is_dslr">
-                        <property name="label" translatable="yes">DSLR</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Set whether the OSC sensor is a DSLR. This allows setting the LPF for astro-modified or unmodifed DSLRs, for example</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_osc_is_dslr_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">1</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>

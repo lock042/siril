@@ -109,10 +109,12 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	if (!data->name) {
 		goto validation_error;
 	}
-	if (json_object_has_member(object, "comment"))
+	if (json_object_has_member(object, "comment")) {
 		data->comment = g_strdup(json_object_get_string_member(object, "comment"));
-	else
-		data->comment = NULL;
+	}
+	if (json_object_has_member(object, "is_dslr")) {
+		data->is_dslr = json_object_get_boolean_member(object, "is_dslr");
+	}
 	data->quality = json_object_get_int_member(object, "dataQualityMarker");
 	if (!data->quality) {
 		goto validation_error;
@@ -185,10 +187,10 @@ static int compare_spcc_chan(const void *a, const void *b) {
 
 static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor *data) {
 	gboolean retbool = TRUE;
+	gboolean found_dslr = FALSE;
 
 	if (!jsonFilePath)
 		return FALSE;
-
 	for (int i = 0 ; i < 3 ; i++) {
 		if (load_spcc_object_from_file(jsonFilePath, &data->channel[i], i, TRUE) != 1) {
 			retbool = FALSE;
@@ -197,16 +199,22 @@ static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor 
 			}
 			return FALSE;
 		}
+		if (data->channel[i].is_dslr) {
+			found_dslr = TRUE;
+		}
 	}
+
 	int chan[3];
 	gboolean correct_channels = TRUE;
+	// Check if channels are in the correct order and assign is_dslr consistently
 	for (int i = 0 ; i < 3 ; i++) {
 		chan[i] = data->channel[i].channel;
 		if (chan[i] != i) {
 			correct_channels = FALSE;
 		}
+		data->channel[i].is_dslr = found_dslr;
 	}
-	// Ensure the channels are in the correct order
+	// Ensure the channels are in the correct order, if needed
 	if (!correct_channels) {
 		qsort(data->channel, 3, sizeof(spcc_object), compare_spcc_chan);
 		for (int i = 0 ; i < 3 ; i++) {

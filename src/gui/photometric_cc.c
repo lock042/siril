@@ -53,7 +53,6 @@ void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
 static void set_bg_sigma(struct photometric_cc_data *args);
 static int set_spcc_args(struct photometric_cc_data *args);
 void populate_spcc_combos();
-void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
 
@@ -282,22 +281,17 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
+	populate_spcc_combos();
 	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 	g_signal_handlers_block_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
 	gtk_switch_set_active(monoselector, com.pref.spcc.is_mono);
 	g_signal_handlers_unblock_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
 	on_spcc_sensor_switch_state_set(monoselector, com.pref.spcc.is_mono, lookup_widget("spcc_label_switch"));
-	GtkToggleButton *dslrtoggle = GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr"));
-	g_signal_handlers_block_by_func(G_OBJECT(dslrtoggle), on_osc_is_dslr_toggled, NULL);
-	gtk_toggle_button_set_active(dslrtoggle, com.pref.spcc.is_dslr);
-	g_signal_handlers_unblock_by_func(G_OBJECT(dslrtoggle), on_osc_is_dslr_toggled, NULL);
-	on_osc_is_dslr_toggled(dslrtoggle, NULL);
 	g_signal_handlers_block_by_func(G_OBJECT(spcc_toggle_nb), on_spcc_toggle_nb_toggled, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(spcc_toggle_nb), com.pref.spcc.nb_mode);
 	g_signal_handlers_unblock_by_func(G_OBJECT(spcc_toggle_nb), on_spcc_toggle_nb_toggled, NULL);
 	populate_nb_spinbuttons();
-	populate_spcc_combos();
 }
 
 int get_photometry_catalog_from_GUI() {
@@ -390,7 +384,6 @@ static void set_bg_sigma(struct photometric_cc_data *args) {
 
 static int set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *mono_sensor_check = lookup_widget("spcc_sensor_switch");
-	GtkWidget *dslr_check = lookup_widget("osc_is_dslr");
 	GtkWidget *whiteref = lookup_widget("combo_spcc_whitepoint");
 	GtkWidget *monosensor = lookup_widget("combo_spcc_sensors_mono");
 	GtkWidget *oscsensor = lookup_widget("combo_spcc_sensors_osc");
@@ -409,7 +402,6 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *nb_b_bw = lookup_widget("spcc_nb_b_bw");
 
 	args->spcc_mono_sensor = gtk_switch_get_active(GTK_SWITCH(mono_sensor_check));
-	args->is_dslr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dslr_check));
 	args->selected_white_ref = gtk_combo_box_get_active(GTK_COMBO_BOX(whiteref));
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
 	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(oscsensor));
@@ -417,6 +409,9 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_g = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_g));
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
+	GList *osc = g_list_nth(com.spcc_data.osc_sensors, args->selected_sensor_osc);
+	osc_sensor *oscsen = (osc_sensor*) osc->data;
+	args->is_dslr = oscsen->channel[0].is_dslr;
 	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
 	args->do_plot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_plot));
 	args->nb_mode = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nb_mode));
@@ -510,56 +505,51 @@ void populate_spcc_combos() {
 	// Initialize filters if required
 	if (!spcc_filters_initialized) {
 		load_all_spcc_metadata();
+		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
 		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
 		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
 		fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
-		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
 		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
 		fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
 		GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 		gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
-		GtkToggleButton *dslrbutton = GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr"));
-		gtk_toggle_button_set_active(dslrbutton, com.pref.spcc.is_dslr);
 		spcc_filters_initialized = TRUE;
 	}
 }
 
-void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data) {
+static void set_osc_lpf_visibility() {
 	gboolean sensor_is_osc = !gtk_switch_get_active(GTK_SWITCH(lookup_widget("spcc_sensor_switch")));
-	gboolean osc_is_dslr = gtk_toggle_button_get_active(button);
-	com.pref.spcc.is_dslr = osc_is_dslr;
+	gboolean is_dslr;
+	GList *osc = g_list_nth(com.spcc_data.osc_sensors, gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))));
+	if (osc) {
+		osc_sensor *oscsensor = (osc_sensor*) osc->data;
+		is_dslr = oscsensor->channel[0].is_dslr;
+	} else {
+		is_dslr = com.pref.spcc.is_dslr;
+	}
 	GtkWidget *widget = lookup_widget("label_spcc_filters_lpf");
-	gtk_widget_set_visible(widget, (osc_is_dslr && sensor_is_osc));
+	gtk_widget_set_visible(widget, (is_dslr && sensor_is_osc));
 	widget = lookup_widget("combo_spcc_filters_lpf");
-	gtk_widget_set_visible(widget, (osc_is_dslr && sensor_is_osc));
+	gtk_widget_set_visible(widget, (is_dslr && sensor_is_osc));
 	widget = lookup_widget("details_spcc_filters_lpf");
-	gtk_widget_set_visible(widget, (osc_is_dslr && sensor_is_osc));
+	gtk_widget_set_visible(widget, (is_dslr && sensor_is_osc));
 }
 
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data) {
-	gboolean osc_is_dslr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("osc_is_dslr")));
 	com.pref.spcc.is_mono = state;
 	GtkLabel *label = GTK_LABEL(user_data);
     GtkWidget *w;
 
-    state ? gtk_label_set_text(label, _("mono")) : gtk_label_set_text(label, _("osc"));
+    state ? gtk_label_set_text(label, _("mono")) : gtk_label_set_text(label, _("one-shot color (OSC)"));
 
-	w = lookup_widget("osc_is_dslr");
-	gtk_widget_set_visible(w, !state);
 	w = lookup_widget("label_spcc_sensors_osc");
 	gtk_widget_set_visible(w, !state);
 	w = lookup_widget("combo_spcc_sensors_osc");
 	gtk_widget_set_visible(w, !state);
 	w = lookup_widget("details_spcc_sensors_osc");
 	gtk_widget_set_visible(w, !state);
-	w = lookup_widget("label_spcc_filters_lpf");
-	gtk_widget_set_visible(w, (!state && osc_is_dslr));
-	w = lookup_widget("combo_spcc_filters_lpf");
-	gtk_widget_set_visible(w, (!state && osc_is_dslr));
-	w = lookup_widget("details_spcc_filters_lpf");
-	gtk_widget_set_visible(w, (!state && osc_is_dslr));
 	w = lookup_widget("label_spcc_filters_osc");
 	gtk_widget_set_visible(w, !state && !com.pref.spcc.nb_mode);
 	w = lookup_widget("combo_spcc_filters_osc");
@@ -590,6 +580,7 @@ void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer
 	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
 	w = lookup_widget("details_spcc_filters_b");
 	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	set_osc_lpf_visibility();
 }
 
 void on_osc_filter_enable_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -925,6 +916,7 @@ void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
 			com.pref.spcc.lpfpref = g_strdup(object->name);
 		}
 	}
+	set_osc_lpf_visibility();
 }
 
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data) {
