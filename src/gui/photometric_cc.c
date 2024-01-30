@@ -52,7 +52,6 @@ static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
 static void set_bg_sigma(struct photometric_cc_data *args);
 static int set_spcc_args(struct photometric_cc_data *args);
-void get_whitepoint_from_ui(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_spcc_toggle_sensor_type_toggled(GtkToggleButton *button, gpointer user_data);
 void on_osc_is_dslr_toggled(GtkToggleButton *button, gpointer user_data);
@@ -62,22 +61,23 @@ void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
 }
 
+void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("s_pcc_dialog");
+}
+
 static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
-	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
-	gboolean plate_solve;
 
 	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("There is no valid WCS information in the header. Let's make a plate solving.\n"), "salmon");
-		plate_solve = TRUE;
-	} else {
-		plate_solve = gtk_toggle_button_get_active(force_platesolve_button);
-		if (plate_solve)
-			siril_log_message(_("Plate solving will be recomputed for image\n"));
-		else siril_log_message(_("Existing plate solve (WCS information) will be reused for image\n"));
+		siril_log_color_message(_("There is no valid WCS information in the header. Please platesolve first.\n"), "red");
+		return;
 	}
 
-	struct astrometry_data *args = NULL;
+	if (gfit.wcslib->lin.dispre == NULL) {
+		siril_log_color_message(_("Found linear plate solve data. For better result you should redo platesolving\n"), "red");
+		return;
+	}
+
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
 	set_bg_sigma(pcc_args);
 	if (spcc) {
@@ -95,23 +95,9 @@ static void start_photometric_cc(gboolean spcc) {
 	if (local_catalogues_available()) {
 		if (pcc_args->catalog == CAT_NOMAD) {
 			pcc_args->catalog = CAT_LOCAL;
-			siril_debug_print("using local star catalogues\n");
+			siril_debug_print("using local star catalogs\n");
 		}
-		else siril_log_message(_("Using remote APASS instead of local NOMAD catalogue\n"));
-	}
-
-	int order = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"))) + 1;
-	if (!plate_solve && gfit.wcslib->lin.dispre == NULL && order > 1) {
-		siril_log_message(_("Found linear plate solve data: will redo plate solving to account for distortion and ensure correct calibration of stars near image corners.\n"));
-		plate_solve = TRUE;
-	}
-
-	if (plate_solve) {
-		args = calloc(1, sizeof(struct astrometry_data));
-		args->fit = &gfit;
-		args->for_photometry_cc = !spcc;
-		args->for_photometry_spcc = spcc;
-		args->pcc = pcc_args;
+		else siril_log_message(_("Using remote APASS instead of local NOMAD catalog\n"));
 	}
 
 	pcc_args->fit = &gfit;
@@ -121,17 +107,9 @@ static void start_photometric_cc(gboolean spcc) {
 
 	set_cursor_waiting(TRUE);
 
-	if (plate_solve) {
-		if (!fill_plate_solver_structure_from_GUI(args)) {
-			pcc_args->mag_mode = args->mag_mode;
-			pcc_args->magnitude_arg = args->magnitude_arg;
-			start_in_new_thread(plate_solver, args);
-		}
-	} else {
-		get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		start_in_new_thread(photometric_cc_standalone, pcc_args);
-	}
+	get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	start_in_new_thread(photometric_cc_standalone, pcc_args);
 }
 
 static rectangle get_bkg_selection() {
@@ -161,62 +139,44 @@ static gboolean is_selection_ok() {
  */
 
 void initialize_photometric_cc_dialog() {
-	GtkWidget *button_ips_ok, *button_cc_ok, *button_spcc_ok, *catalog_label,
-			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
-			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*labelIPScatparams, *spcc_do_plot, *spcc_nb_controls, *spcc_toggle_nb;
+	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
+			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
+			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
+			*spcc_toggle_nb;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
-	button_ips_ok = lookup_widget("buttonIPS_ok");
 	button_cc_ok = lookup_widget("button_cc_ok");
 	button_spcc_ok = lookup_widget("button_spcc_ok");
 	catalog_label = lookup_widget("GtkLabelCatalog");
-	astrometry_catalog_label = lookup_widget("astrometry_catalog_label");
 	pcc_catalog_label = lookup_widget("photometric_catalog_label");
 	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
-	catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
-	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
-	force_platesolve = lookup_widget("force_astrometry_button");
-	lasnet = lookup_widget("localasnet_check_button");
 	spcc_options = lookup_widget("spcc_options");
-	stardet = lookup_widget("Frame_IPS_star_detection");
-	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
 	spcc_nb_controls = lookup_widget("spcc_nb_controls");
 	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 
-	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
+	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
 	selection_cc_black_adjustment[0] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_x"));
 	selection_cc_black_adjustment[1] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_y"));
 	selection_cc_black_adjustment[2] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_w"));
 	selection_cc_black_adjustment[3] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_h"));
 
-	gtk_widget_set_visible(button_ips_ok, FALSE);
 	gtk_widget_set_visible(button_cc_ok, TRUE);
 	gtk_widget_set_visible(button_spcc_ok, FALSE);
 	gtk_widget_set_visible(catalog_label, FALSE);
-	gtk_widget_set_visible(astrometry_catalog_label, TRUE);
 	gtk_widget_set_visible(pcc_catalog_label, TRUE);
 	gtk_widget_set_visible(catalog_label_pcc, TRUE);
-	gtk_widget_set_visible(stardet, TRUE);
-	gtk_widget_set_visible(catalog_box_ips, FALSE);
 	gtk_widget_set_visible(catalog_box_pcc, TRUE);
-	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
-	gtk_widget_set_visible(force_platesolve, TRUE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
-	gtk_widget_set_visible(lasnet, FALSE);
 	gtk_widget_set_visible(spcc_options, FALSE);
 	gtk_widget_set_visible(spcc_do_plot, FALSE);
 	gtk_widget_set_visible(spcc_nb_controls, FALSE);
 	gtk_widget_set_visible(spcc_toggle_nb, FALSE);
 	gtk_widget_grab_focus(button_cc_ok);
-	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), TRUE);
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));
 
@@ -249,63 +209,45 @@ void populate_nb_spinbuttons() {
 }
 
 void initialize_spectrophotometric_cc_dialog() {
-	GtkWidget *button_ips_ok, *button_cc_ok, *button_spcc_ok, *catalog_label,
-			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
-			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*labelIPScatparams, *spcc_do_plot, *spcc_nb_controls, *spcc_toggle_nb;
+	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
+			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
+			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
+			*spcc_toggle_nb;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
-	button_ips_ok = lookup_widget("buttonIPS_ok");
 	button_cc_ok = lookup_widget("button_cc_ok");
 	button_spcc_ok = lookup_widget("button_spcc_ok");
 	catalog_label = lookup_widget("GtkLabelCatalog");
-	astrometry_catalog_label = lookup_widget("astrometry_catalog_label");
 	pcc_catalog_label = lookup_widget("photometric_catalog_label");
 	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
-	catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
-	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
-	force_platesolve = lookup_widget("force_astrometry_button");
-	lasnet = lookup_widget("localasnet_check_button");
 	spcc_options = lookup_widget("spcc_options");
-	stardet = lookup_widget("Frame_IPS_star_detection");
-	labelIPScatparams = lookup_widget("labelIPSCatalogParameters");
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
 	spcc_nb_controls = lookup_widget("spcc_nb_controls");
 	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 
-	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
+	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
 	selection_cc_black_adjustment[0] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_x"));
 	selection_cc_black_adjustment[1] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_y"));
 	selection_cc_black_adjustment[2] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_w"));
 	selection_cc_black_adjustment[3] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_h"));
 
-	gtk_widget_set_visible(button_ips_ok, FALSE);
 	gtk_widget_set_visible(button_cc_ok, FALSE);
 	gtk_widget_set_visible(button_spcc_ok, TRUE);
 	gtk_widget_set_visible(catalog_label, FALSE);
-	gtk_widget_set_visible(astrometry_catalog_label, FALSE);
 	gtk_widget_set_visible(pcc_catalog_label, FALSE);
 	gtk_widget_set_visible(catalog_label_pcc, FALSE);
-	gtk_widget_set_visible(stardet, FALSE);
-	gtk_widget_set_visible(catalog_box_ips, FALSE);
 	gtk_widget_set_visible(catalog_box_pcc, FALSE);
-	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
-	gtk_widget_set_visible(force_platesolve, TRUE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
-	gtk_widget_set_visible(lasnet, FALSE);
 	gtk_widget_set_visible(spcc_options, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
 	gtk_widget_grab_focus(button_cc_ok);
 	gtk_widget_set_visible(spcc_nb_controls, com.pref.spcc.nb_mode);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(spcc_toggle_nb), com.pref.spcc.nb_mode);
 	gtk_widget_set_visible(spcc_toggle_nb, TRUE);
-	gtk_expander_set_expanded(GTK_EXPANDER(labelIPScatparams), FALSE);
 	gtk_expander_set_expanded(GTK_EXPANDER(spcc_options), TRUE);
 
 	gtk_window_set_title(parent, _("Spectrophotometric Color Calibration"));
@@ -728,7 +670,7 @@ void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("spcc_details_comment_label")), comment_visible);
 	cbdata = object;
 
-	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("IPS_dialog")));
+	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("s_pcc_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */
 	gtk_widget_show(win);
 	return;

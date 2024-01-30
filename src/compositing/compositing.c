@@ -1663,11 +1663,11 @@ void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
 			initialize_calibration_interface();
 		break;
 		case 1:
-			win = lookup_widget("ImagePlateSolver_Dial");
+			win = lookup_widget("astrometry_dialog");
 			initialize_photometric_cc_dialog();
 		break;
 		case 2:
-			win = lookup_widget("ImagePlateSolver_Dial");
+			win = lookup_widget("astrometry_dialog");
 			initialize_spectrophotometric_cc_dialog();
 	}
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));

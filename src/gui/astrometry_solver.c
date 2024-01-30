@@ -55,54 +55,29 @@ static void unselect_all_items();
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data);
 
 static void initialize_ips_dialog() {
-	GtkWidget *button_ips_ok, *button_cc_ok, *button_spcc_ok, *catalog_label,
-			*astrometry_catalog_label, *pcc_catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *stardet,
-			*catalog_label_pcc, *force_platesolve, *lasnet, *spcc_options,
-			*flip_image, *spcc_do_plot, *spcc_nb_controls, *spcc_toggle_nb;
+	GtkWidget *button_ips_ok, *catalog_label, *astrometry_catalog_label,
+			*catalog_box_ips, *catalog_auto, *stardet, *lasnet, *flip_image;
 	GtkWindow *parent;
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
-	button_cc_ok = lookup_widget("button_cc_ok");
-	button_spcc_ok = lookup_widget("button_spcc_ok");
 	catalog_label = lookup_widget("GtkLabelCatalog");
 	astrometry_catalog_label = lookup_widget("astrometry_catalog_label");
-	pcc_catalog_label = lookup_widget("photometric_catalog_label");
-	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
 	catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
-	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
-	frame_cc_bkg = lookup_widget("frame_cc_background");
-	force_platesolve = lookup_widget("force_astrometry_button");
 	flip_image = lookup_widget("checkButton_IPS_flip");
 	lasnet = lookup_widget("localasnet_check_button");
-	spcc_options = lookup_widget("spcc_options");
 	stardet = lookup_widget("Frame_IPS_star_detection");
-	spcc_do_plot = lookup_widget("spcc_plot_fits");
-	spcc_nb_controls = lookup_widget("spcc_nb_controls");
-	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 
-	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
+	parent = GTK_WINDOW(lookup_widget("astrometry_dialog"));
 
 	gtk_widget_set_visible(button_ips_ok, TRUE);
-	gtk_widget_set_visible(button_cc_ok, FALSE);
-	gtk_widget_set_visible(button_spcc_ok, FALSE);
 	gtk_widget_set_visible(catalog_label, TRUE);
 	gtk_widget_set_visible(astrometry_catalog_label, TRUE);
-	gtk_widget_set_visible(pcc_catalog_label, FALSE);
-	gtk_widget_set_visible(catalog_label_pcc, FALSE);
 	gtk_widget_set_visible(stardet, FALSE);
 	gtk_widget_set_visible(catalog_box_ips, TRUE);
-	gtk_widget_set_visible(catalog_box_pcc, FALSE);
 	gtk_widget_set_visible(catalog_auto, TRUE);
-	gtk_widget_set_visible(frame_cc_bkg, FALSE);
-	gtk_widget_set_visible(force_platesolve, FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(flip_image), single_image_is_loaded());
 	gtk_widget_set_visible(lasnet, TRUE);
-	gtk_widget_set_visible(spcc_options, FALSE);
-	gtk_widget_set_visible(spcc_do_plot, FALSE);
-	gtk_widget_set_visible(spcc_nb_controls, FALSE);
-	gtk_widget_set_visible(spcc_toggle_nb, FALSE);
 	gtk_widget_grab_focus(button_ips_ok);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
@@ -557,9 +532,8 @@ void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length
 }
 
 void on_buttonIPS_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("ImagePlateSolver_Dial");
+	siril_close_dialog("astrometry_dialog");
 }
-
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 	GtkTreeModel *treeModel = gtk_tree_view_get_model(tree_view);
 	GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
@@ -663,7 +637,7 @@ void on_localasnet_check_button_toggled(GtkToggleButton *button, gpointer user) 
 void open_astrometry_dialog() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		initialize_ips_dialog();
-		siril_open_dialog("ImagePlateSolver_Dial");
+		siril_open_dialog("astrometry_dialog");
 		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	}
 }
