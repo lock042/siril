@@ -996,6 +996,7 @@ clearup:
 		com.child_is_running = EXT_NONE;
 		if (g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
+		siril_catalog_free(args->ref_stars);
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
