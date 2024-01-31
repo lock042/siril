@@ -458,7 +458,7 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 	GList *current = list;
 	while (current != NULL) {
 		osc_sensor *haystack = current->data;
-		if (g_strcmp0(haystack->channel[0].name, favourite) == 0) {
+		if (g_strcmp0(haystack->channel[0].model, favourite) == 0) {
 			return g_list_position(list, current);  // Found a match, return the GList node
 		}
 		current = current->next;
@@ -847,7 +847,7 @@ void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
 		GList *list = g_list_nth(com.spcc_data.osc_sensors, index);
 		if (list) {
 			spcc_object* object = (spcc_object*) list->data;
-			com.pref.spcc.oscsensorpref = g_strdup(object->name);
+			com.pref.spcc.oscsensorpref = g_strdup(object->model);
 		}
 	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_mono"))) {
 		int index = gtk_combo_box_get_active(combo);
