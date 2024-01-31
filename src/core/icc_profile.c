@@ -730,39 +730,26 @@ cmsBool fit_icc_is_linear(fits *fit) {
 	return TRUE;
 }
 
-	/* Adapted from GIMP code */
-static gboolean
-	siril_color_profile_get_rgb_matrix_colorants (cmsHPROFILE *profile,
-												SirilMatrix3_d *matrix)
-	{
-	cmsCIEXYZ   *red;
-	cmsCIEXYZ   *green;
-	cmsCIEXYZ   *blue;
-
-	red   = cmsReadTag (profile, cmsSigRedColorantTag);
-	green = cmsReadTag (profile, cmsSigGreenColorantTag);
-	blue  = cmsReadTag (profile, cmsSigBlueColorantTag);
-
-	if (red && green && blue)
-		{
-		if (matrix) {
-			matrix->coeff[0][0] = red->X;
-			matrix->coeff[0][1] = red->Y;
-			matrix->coeff[0][2] = red->Z;
-
-			matrix->coeff[1][0] = green->X;
-			matrix->coeff[1][1] = green->Y;
-			matrix->coeff[1][2] = green->Z;
-
-			matrix->coeff[2][0] = blue->X;
-			matrix->coeff[2][1] = blue->Y;
-			matrix->coeff[2][2] = blue->Z;
-		}
-
-		return TRUE;
+static gboolean siril_color_profile_get_rgb_matrix_colorants (cmsHPROFILE *profile, cmsCIEXYZTRIPLE *XYZtriple, cmsCIEXYZ *whitepoint) {
+	cmsFloat64Number prior_adaptation_state = cmsSetAdaptationStateTHR(com.icc.context_single, 0);
+	double redrgb[3] = { 1.0, 0.0, 0.0 };
+	double greenrgb[3] = { 0.0, 1.0, 0.0 };
+	double bluergb[3] = { 0.0, 0.0, 1.0 };
+	double whitergb[3] = { 1.0, 1.0, 1.0 };
+	cmsHPROFILE profileXYZ = cmsCreateXYZProfile();
+	cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single, profile, TYPE_RGB_DBL, profileXYZ, TYPE_XYZ_DBL, INTENT_ABSOLUTE_COLORIMETRIC, cmsFLAGS_NOCACHE);
+	cmsCloseProfile(profileXYZ);
+	if (!transform) {
+		cmsSetAdaptationStateTHR(com.icc.context_single, prior_adaptation_state);
+		return FALSE;
 	}
-
-	return FALSE;
+	cmsDoTransform(transform, &redrgb, &XYZtriple->Red, 1);
+	cmsDoTransform(transform, &greenrgb, &XYZtriple->Green, 1);
+	cmsDoTransform(transform, &bluergb, &XYZtriple->Blue, 1);
+	cmsDoTransform(transform, &whitergb, whitepoint, 1);
+	cmsDeleteTransform(transform);
+	cmsSetAdaptationStateTHR(com.icc.context_single, prior_adaptation_state);
+	return TRUE;
 }
 
 static void
@@ -820,19 +807,17 @@ static void
 }
 
 cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) {
-	cmsHPROFILE       target_profile;
-	SirilMatrix3_d       matrix = { { { 0, } } };
-	cmsCIEXYZ        *whitepoint;
-	cmsToneCurve     *curve;
+	cmsHPROFILE target_profile;
+	cmsCIEXYZTRIPLE XYZtriple;
+	cmsCIEXYZ whitepoint;
+	cmsToneCurve *curve;
 
 	if (siril_color_profile_is_rgb (profile)) {
-		if (! siril_color_profile_get_rgb_matrix_colorants (profile, &matrix))
+		if (! siril_color_profile_get_rgb_matrix_colorants (profile, &XYZtriple, &whitepoint))
 			return NULL;
 	} else if (! siril_color_profile_is_gray (profile)) {
 		return NULL;
 	}
-
-	whitepoint = cmsReadTag (profile, cmsSigMediaWhitePointTag);
 
 	target_profile = cmsCreateProfilePlaceholder (0);
 
@@ -840,7 +825,7 @@ cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) 
 	cmsSetDeviceClass (target_profile, cmsSigDisplayClass);
 	cmsSetPCS (target_profile, cmsSigXYZData);
 
-	cmsWriteTag (target_profile, cmsSigMediaWhitePointTag, whitepoint);
+	cmsWriteTag (target_profile, cmsSigMediaWhitePointTag, &whitepoint);
 
 	curve = cmsBuildGamma (NULL, 1.00);
 
@@ -851,27 +836,12 @@ cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) 
 									siril_color_profile_get_description (profile));
 
 	if (siril_color_profile_is_rgb (profile)) {
-		cmsCIEXYZ red;
-		cmsCIEXYZ green;
-		cmsCIEXYZ blue;
 
 		cmsSetColorSpace (target_profile, cmsSigRgbData);
 
-		red.X = matrix.coeff[0][0];
-		red.Y = matrix.coeff[0][1];
-		red.Z = matrix.coeff[0][2];
-
-		green.X = matrix.coeff[1][0];
-		green.Y = matrix.coeff[1][1];
-		green.Z = matrix.coeff[1][2];
-
-		blue.X = matrix.coeff[2][0];
-		blue.Y = matrix.coeff[2][1];
-		blue.Z = matrix.coeff[2][2];
-
-		cmsWriteTag (target_profile, cmsSigRedColorantTag,   &red);
-		cmsWriteTag (target_profile, cmsSigGreenColorantTag, &green);
-		cmsWriteTag (target_profile, cmsSigBlueColorantTag,  &blue);
+		cmsWriteTag (target_profile, cmsSigRedColorantTag,   &XYZtriple.Red);
+		cmsWriteTag (target_profile, cmsSigGreenColorantTag, &XYZtriple.Green);
+		cmsWriteTag (target_profile, cmsSigBlueColorantTag,  &XYZtriple.Blue);
 
 		cmsWriteTag (target_profile, cmsSigRedTRCTag,   curve);
 		cmsWriteTag (target_profile, cmsSigGreenTRCTag, curve);
@@ -2169,9 +2139,9 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 }
 
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
-	SirilMatrix3_d matrix = { { { 0.0 } } };
-	cmsCIEXYZ red, green, blue;
-	cmsCIExyY redxyY, greenxyY, bluexyY;
+	cmsCIEXYZTRIPLE XYZtriple = { 0 };
+	cmsCIEXYZ whitepoint = { 0 };
+	cmsCIExyY redxyY, greenxyY, bluexyY, whitexyY;
 	char *description = NULL;
 	int length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
 	if (length) {
@@ -2183,28 +2153,17 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 		siril_log_message(_("This ICC profile is not RGB. Unable to plot the colorspace.\n"));
 		return;
 	}
-	if (! siril_color_profile_get_rgb_matrix_colorants (profile, &matrix)) {
+	if (! siril_color_profile_get_rgb_matrix_colorants (profile, &XYZtriple, &whitepoint)) {
 		siril_log_message(_("Error reading chromaticities\n"));
 		return;
 	}
-//	whitepoint = cmsReadTag (profile, cmsSigMediaWhitePointTag);
 
-	red.X = matrix.coeff[0][0];
-	red.Y = matrix.coeff[0][1];
-	red.Z = matrix.coeff[0][2];
-
-	green.X = matrix.coeff[1][0];
-	green.Y = matrix.coeff[1][1];
-	green.Z = matrix.coeff[1][2];
-
-	blue.X = matrix.coeff[2][0];
-	blue.Y = matrix.coeff[2][1];
-	blue.Z = matrix.coeff[2][2];
-
-	cmsXYZ2xyY(&redxyY, &red);
-	cmsXYZ2xyY(&greenxyY, &green);
-	cmsXYZ2xyY(&bluexyY, &blue);
-
+	cmsXYZ2xyY(&redxyY, &XYZtriple.Red);
+	cmsXYZ2xyY(&greenxyY, &XYZtriple.Green);
+	cmsXYZ2xyY(&bluexyY, &XYZtriple.Blue);
+	cmsXYZ2xyY(&whitexyY, &whitepoint);
+	double white_x = whitexyY.x;
+	double white_y = whitexyY.y;
 	double *horseshoe_x = malloc(322 * sizeof(double)), *horseshoe_y = malloc(322 * sizeof(double));
 	for (int i = 0 ; i < 321 ; i++) {
 		double w = 380 + i;
@@ -2234,14 +2193,22 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_savename(spl_data, "color_profile");
 	siril_plot_set_title(spl_data, title1);
 	siril_plot_set_ylabel(spl_data, _("CIE y"));
+	int n = 1;
 	siril_plot_add_xydata(spl_data, _("Color profile"), 4, colorspace_x, colorspace_y, NULL, NULL);
-	siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_LINES);
+	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
+	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.5, 1.0 } );
+	n++;
+	siril_plot_add_xydata(spl_data, _("Color profile whitepoint"), 1, &white_x, &white_y, NULL, NULL);
+	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_POINTS);
+	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.5, 1.0 } );
+	n++;
 	siril_plot_add_xydata(spl_data, _("CIE 1931"), 322, horseshoe_x, horseshoe_y, NULL, NULL);
-	siril_plot_set_nth_plot_type(spl_data, 2, KPLOT_LINES);
-	siril_plot_set_nth_color(spl_data, 2, (double[3]) { 0.0, 0.0, 0.0 } );
+	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
+	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.0, 0.0 } );
+	n++;
 	if (compare_srgb) {
 		siril_plot_add_xydata(spl_data, _("sRGB"), 4, srgb_x, srgb_y, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_data, 2, KPLOT_LINES);
+		siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
 	}
 	spl_data->datamin = (point) { 0.0, 0.0 };
 	spl_data->datamax = (point) { 0.8, 0.9 };
