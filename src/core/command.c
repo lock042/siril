@@ -8797,30 +8797,29 @@ int process_platesolve(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	if (!target_coords) {
-		if (seq) {
-			// loading the sequence reference image's metadata
-			int image_to_load = sequence_find_refimage(seq);
-			fits reffit = { 0 };
-			if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-				siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-				return CMD_SEQUENCE_NOT_FOUND;
-			}
-			target_coords = get_eqs_from_header(&reffit);
-			clearfits(&reffit);
-		} else {
-			target_coords = get_eqs_from_header(&gfit);
+	fits reffit = { 0 };
+	fits *preffit = &reffit;
+	if (seqps) {
+		int image_to_load = sequence_find_refimage(seq);
+		if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+			return CMD_SEQUENCE_NOT_FOUND;
 		}
-		if (cat != CAT_ASNET) {
-			if (!target_coords) {
+	} else
+		preffit = &gfit;
+
+	if (!target_coords) {
+		target_coords = get_eqs_from_header(preffit);
+		if (cat != CAT_ASNET && !target_coords) {
 				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
+				if (seqps)
+					clearfits(preffit);
 				return CMD_INVALID_IMAGE;
 			}
-		}
 		if (target_coords) {
 			siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
-					siril_world_cs_get_alpha(target_coords),
-					siril_world_cs_get_delta(target_coords));
+			siril_world_cs_get_alpha(target_coords),
+			siril_world_cs_get_delta(target_coords));
 		}
 	}
 
@@ -8831,13 +8830,15 @@ int process_platesolve(int nb) {
 		args->pixel_size = forced_pixsize;
 		siril_log_message(_("Using provided pixel size: %.2f\n"), args->pixel_size);
 	} else {
-		args->pixel_size = max(gfit.pixel_size_x, gfit.pixel_size_y);
+		args->pixel_size = max(preffit->pixel_size_x, preffit->pixel_size_y);
 		if (args->pixel_size <= 0.0) {
 			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
 			if (args->pixel_size <= 0.0) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
+				if (seqps)
+					clearfits(preffit);
 				free(args);
 				return CMD_INVALID_IMAGE;
 			}
@@ -8850,7 +8851,7 @@ int process_platesolve(int nb) {
 		args->focal_length = forced_focal;
 		siril_log_message(_("Using provided focal length: %.2f\n"), args->focal_length);
 	} else {
-		args->focal_length = gfit.focal_length;
+		args->focal_length = preffit->focal_length;
 		if (args->focal_length <= 0.0) {
 			args->focal_length = com.pref.starfinder_conf.focal_length;
 			if (args->focal_length <= 0.0) {
@@ -8858,7 +8859,8 @@ int process_platesolve(int nb) {
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
 				free(args);
-				free(target_coords);
+				if (seqps)
+					clearfits(preffit);
 				return CMD_INVALID_IMAGE;
 			}
 			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);
@@ -8884,6 +8886,8 @@ int process_platesolve(int nb) {
 		args->mag_mode = LIMIT_MAG_AUTO;
 	}
 
+	if (seqps)
+		clearfits(preffit);
 	args->downsample = downsample;
 	args->autocrop = autocrop;
 	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)

@@ -424,6 +424,26 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 }
 
 // copies all the data from an item to another item
+void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to) {
+	if (!from || !to) {
+		siril_debug_print("no catalogue to copy from or to\n");
+		return;
+	}
+	memcpy(to, from, sizeof(siril_catalogue));
+	if (from->header)
+		to->header = g_strdup(from->header);
+	if (from->IAUcode)
+		to->IAUcode = g_strdup(from->IAUcode);
+	if (from->dateobs)
+		to->dateobs = g_date_time_add(from->dateobs, 0); // makes a copy
+	if (from->cat_items) {
+		to->cat_items = calloc(to->nbitems, sizeof(cat_item));
+		for (int i = 0; i < to->nbitems; i++ )
+			siril_catalogue_copy_item(from->cat_items + i, to->cat_items + i);
+	}
+}
+
+// copies all the data from an item to another item
 void siril_catalogue_copy_item(cat_item *from, cat_item *to) {
 	if (!from || !to) {
 		siril_debug_print("no item to copy from or to\n");

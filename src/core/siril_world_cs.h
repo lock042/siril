@@ -31,6 +31,7 @@
 typedef struct _SirilWorldCS SirilWorldCS;
 
 SirilWorldCS *siril_world_cs_ref(SirilWorldCS *world_cs);
+SirilWorldCS *siril_world_cs_copy(SirilWorldCS *world_cs);
 void siril_world_cs_unref(SirilWorldCS *world_cs);
 
 SirilWorldCS* siril_world_cs_new_from_a_d(gdouble alpha, gdouble delta);

@@ -115,10 +115,16 @@ static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args
 	}
 	memcpy(ret, args, sizeof(struct astrometry_data));
 	if (args->cat_center)
-		ret->cat_center = siril_world_cs_ref(args->cat_center);
+		ret->cat_center = siril_world_cs_copy(args->cat_center);
+	if (args->ref_stars) {
+		ret->ref_stars = calloc(1, sizeof(siril_catalogue));
+		siril_catalogue_copy(args->ref_stars, ret->ref_stars);
+		if (args->cstars) {
+			ret->cstars = convert_siril_cat_to_psf_stars(args->ref_stars, &args->n_cat);
+		}
+	}
 	ret->fit = NULL;
 	ret->filename = NULL;
-	/* assuming catalog stays the same */
 	return ret;
 }
 
@@ -981,22 +987,20 @@ clearup:
 		siril_world_cs_unref(solution.px_cat_center);
 	if (args->cat_center)
 		siril_world_cs_unref(args->cat_center);
-	if (!args->for_sequence) {
-		if (args->cstars)
-			free_fitted_stars(args->cstars);
-	}
+	if (args->cstars)
+		free_fitted_stars(args->cstars);
+	if (args->ref_stars)
+		siril_catalog_free(args->ref_stars);
 	g_free(args->filename);
-
 	int retval = args->ret;
 	if (com.script && retval) {
 		siril_log_message(_("Plate solving failed: %s\n"), args->message);
 		g_free(args->message);
 	}
 	if (!args->for_sequence) {
-		com.child_is_running = EXT_NONE;
-		if (g_unlink("stop"))
+		if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
-		siril_catalog_free(args->ref_stars);
+		com.child_is_running = EXT_NONE;
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
@@ -1042,7 +1046,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 	}
 
 	double conv = DBL_MAX;
-	solution->px_cat_center = siril_world_cs_ref(args->cat_center);
+	solution->px_cat_center = siril_world_cs_copy(args->cat_center);
 
 	if (!check_affine_TRANS_sanity(&trans)) {
 		args->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
@@ -1743,10 +1747,12 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->cstars)
 		free_fitted_stars(aargs->cstars);
+	if (aargs->ref_stars)
+		siril_catalog_free(aargs->ref_stars);
 	free (aargs);
-	com.child_is_running = EXT_NONE;
-	if (g_unlink("stop"))
+	if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
+	com.child_is_running = EXT_NONE;
 	return 0;
 }
 
