@@ -297,24 +297,15 @@ gboolean end_plate_solver(gpointer p) {
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {
-		char *title;
-		if (args->ret == ERROR_PHOTOMETRY) {
-			title = siril_log_color_message(_("Photometry failed.\n"), "red");
-			if (!args->message) {
-				args->message = g_strdup(_("Photometry could not be performed. "
-						"You can try to adjust the settings in the Siril preferences."));
-			}
-		} else {
-			title = siril_log_color_message(_("Plate Solving failed. "
+		char *title = siril_log_color_message(_("Plate Solving failed. "
 					"The image could not be aligned with the reference stars.\n"), "red");
-			if (!args->message) {
-				args->message = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
-						"are too far from the real metadata of the image.\n\n"
-						"You could also try to look into another catalogue, or try to click on the \"Downsampling\" button, especially for image done with Drizzle.\n\n"
-						"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
-			}
-		}
+		if (!args->message) {
+			args->message = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
+					"are too far from the real metadata of the image.\n\n"
+					"You could also try to look into another catalogue, or try to click on the \"Downsampling\" button, especially for image done with Drizzle.\n\n"
+					"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
 
+		}
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 		g_free(args->message);
 	} else {
@@ -324,12 +315,11 @@ gboolean end_plate_solver(gpointer p) {
 		update_coordinates(args->new_center);
 		delete_selected_area();
 		refresh_annotations(FALSE);
+		close_astrometry_dialog();
 		/* ****** */
-
-		if (args->flip_image || args->for_photometry_cc)
+		if (args->flip_image)
 			redraw(REMAP_ALL);
 		else redraw(REDRAW_OVERLAY);
-
 		siril_world_cs_unref(args->new_center);
 	}
 	if (args->image_flipped)
@@ -341,7 +331,6 @@ gboolean end_plate_solver(gpointer p) {
 
 static void start_image_plate_solve() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
-	args->for_photometry_cc = FALSE;
 	args->verbose = TRUE;
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -621,6 +610,10 @@ void open_astrometry_dialog() {
 	}
 }
 
+void close_astrometry_dialog() {
+	siril_close_dialog("astrometry_dialog");
+}
+
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->fit = &gfit;
 	args->trans_order = 3; // TODO add the GUI element
@@ -632,7 +625,6 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->flip_image = flip_image_after_ps();
 	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
 	args->ref_stars = calloc(1, sizeof(siril_catalogue));
-	args->ref_stars->phot = args->for_photometry_cc;
 
 	process_plate_solver_input(args);
 
@@ -660,7 +652,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->ref_stars->center_dec = siril_world_cs_get_delta(catalog_center);
 	}
 
-	if (!args->for_photometry_cc && use_local_asnet) {
+	if (use_local_asnet) {
 		// non-cropped version of the fov
 		args->used_fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
 		args->uncentered = FALSE;
@@ -683,11 +675,8 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	args->ref_stars->cat_index = args->for_photometry_cc ?
-		get_photometry_catalog_from_GUI() :
-		get_astrometry_catalog(args->used_fov, args->ref_stars->limitmag, auto_cat);
+	args->ref_stars->cat_index = get_astrometry_catalog(args->used_fov, args->ref_stars->limitmag, auto_cat);
 	gboolean has_local_cat = local_catalogues_available();
-
 
 	if (auto_cat) {
 		if (has_local_cat) {

@@ -863,7 +863,7 @@ gpointer plate_solver(gpointer p) {
 		// capping the detection to max usable number of stars
 		if (args->n_cat == 0)
 				args->n_cat = BRIGHTEST_STARS;
-		int max_stars = (args->for_photometry_cc || args->for_photometry_spcc) ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
+		int max_stars = min(args->n_cat, BRIGHTEST_STARS);
 
 #ifdef _WIN32
 		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
@@ -959,69 +959,7 @@ gpointer plate_solver(gpointer p) {
 	}
 	print_image_center(&solution);
 
-	/* 5. Run photometric color correction, if enabled */
-	if (args->for_photometry_cc || args->for_photometry_spcc) {
-		pcc_star *pcc_stars = NULL;
-		int nb_pcc_stars;
-		// We relaunch the conesearch with phot flag set to TRUE
-		// For local catalogue, we fetch a whole new set at updated center and res
-		// For online catalogue, we re-read the same catalogue from cache with the new phot flag
-		// In both cases, we free the cat_items members before fetching
-		// and we project with the platesolve wcs
-		args->ref_stars->phot = TRUE;
-		if (args->ref_stars->cat_index == CAT_LOCAL) {
-			// we update the ref_stars structure to query again the local catalogues
-			args->ref_stars->center_ra = siril_world_cs_get_alpha(solution.image_center);
-			args->ref_stars->center_dec = siril_world_cs_get_delta(solution.image_center);
-			double res = get_resolution(solution.focal_length, args->pixel_size);
-			args->ref_stars->radius = get_radius_deg(res, args->fit->rx, args->fit->ry) * 60.;
-			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
-			if (args->verbose)
-				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->ref_stars->limitmag);
-		}
-		siril_catalog_free_items(args->ref_stars);
-		if (args->for_photometry_spcc) {
-			args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
-			siril_gaiadr3_datalink_query(args->ref_stars, XP_SAMPLED, &args->pcc->datalink_path, 5000);
-		} else {
-			siril_catalog_conesearch(args->ref_stars);
-		}
-		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
-		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
-		args->ret = nb_pcc_stars == 0;
-
-		if (args->ret) {
-			if (pcc_stars)
-				free(pcc_stars);
-			args->message = g_strdup(_("Using plate solving to identify catalogue stars in the image failed, is plate solving wrong?\n"));
-			args->ret = ERROR_PHOTOMETRY;
-			goto clearup;
-		}
-		args->pcc->stars = pcc_stars;
-		args->pcc->nb_stars = nb_pcc_stars;
-		args->pcc->fwhm = filtered_FWHM_average(stars, nb_stars);
-		if (args->downsample)
-			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
-
-		if (photometric_cc(args->pcc)) {
-			args->ret = ERROR_PHOTOMETRY;
-		}
-
-		args->pcc = NULL; // freed in PCC code
-		free(pcc_stars);
-		pcc_stars = NULL;
-		if (args->ret) {
-			args->message = g_strdup_printf(_("An astrometric solution was found but photometry analysis of the %d stars failed. This generally happens if they are saturated in the image or if they are too faint to have B-V index information (mag > 18)\n"), nb_pcc_stars);
-			//goto clearup; // still flip
-		} else {
-			if (!args->for_sequence) {
-				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-				siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
-			}
-		}
-	}
-
-	/* 6. Flip image if needed */
+	/* 5. Flip image if needed */
 	if (args->flip_image && solution.image_is_flipped) {
 		if (args->verbose)
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
@@ -1030,7 +968,7 @@ gpointer plate_solver(gpointer p) {
 		args->image_flipped = TRUE;
 	}
 
-	/* 7. Clean-up */
+	/* 6. Clean-up */
 	args->new_center = solution.image_center;
 
 clearup:
@@ -1051,11 +989,7 @@ clearup:
 
 	int retval = args->ret;
 	if (com.script && retval) {
-		if (retval == ERROR_PHOTOMETRY) {
-			siril_log_message(_("Photometry failed: %s\n"), args->message);
-		} else {
-			siril_log_message(_("Plate solving failed: %s\n"), args->message);
-		}
+		siril_log_message(_("Plate solving failed: %s\n"), args->message);
 		g_free(args->message);
 	}
 	if (!args->for_sequence) {
@@ -1239,17 +1173,7 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 
 	// saving state for undo before modifying fit structure
 	if (!com.script) {
-		if (args->for_photometry_spcc || args->for_photometry_cc) {
-			const char *algo;
-			if (args-> for_photometry_spcc) {
-				algo = _("SPCC");
-			} else {
-				algo = _("PCC");
-			}
-			undo_save_state(args->fit, _("Photometric CC (algorithm: %s)"), algo);
-		} else {
-			undo_save_state(args->fit, _("Plate Solve"));
-		}
+		undo_save_state(args->fit, _("Plate Solve"));
 	}
 
 	solution->crpix[0] = args->rx_solver * 0.5;
@@ -1778,42 +1702,11 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	// load ref metadata in fit
 	if (seq_read_frame_metadata(arg->seq, sequence_find_refimage(arg->seq), &fit))
 		return 1;
-	if (!args->cat_center) {
-		args->cat_center = get_eqs_from_header(&fit);
-		if (args->cat_center) {
-			args->ref_stars->center_ra = siril_world_cs_get_alpha(args->cat_center);
-			args->ref_stars->center_dec = siril_world_cs_get_delta(args->cat_center);
-		}
-	}
-	if (args->ref_stars->cat_index != CAT_ASNET && !args->cat_center) {
-		siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
-		return 1;
-	}
-	if (args->pixel_size <= 0.0) {
-		args->pixel_size = max(fit.pixel_size_x, fit.pixel_size_y);
-		if (args->pixel_size <= 0.0) {
-			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
-			if (args->pixel_size <= 0.0) {
-				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
-				return 1;
-			}
-		}
-	}
-	if (args->focal_length <= 0.0) {
-		args->focal_length = fit.focal_length;
-		if (args->focal_length <= 0.0) {
-			args->focal_length = com.pref.starfinder_conf.focal_length;
-			if (args->focal_length <= 0.0) {
-				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
-				return 1;
-			}
-		}
-	}
-
 	seq_prepare_hook(arg);
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
+	args->fit = NULL;
 	if (args->ref_stars->cat_index == CAT_ASNET) {
 		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder

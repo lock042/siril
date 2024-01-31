@@ -4,6 +4,7 @@
 src/gui/uifiles/cosmetic_dialog.ui
 src/gui/uifiles/binxy_dialog.ui
 src/gui/uifiles/siril.ui
+src/gui/uifiles/astrometry_dialog.ui
 src/gui/uifiles/CLAHE_dialog.ui
 src/gui/uifiles/cut_dialog.ui
 src/gui/uifiles/cut_coords_dialog.ui
@@ -32,7 +33,6 @@ src/gui/uifiles/linearmatch_dialog.ui
 src/gui/uifiles/icc_dialog.ui
 src/gui/uifiles/icc_gamut_dialog.ui
 src/gui/uifiles/seqlist_dialog.ui
-src/gui/uifiles/IPS_dialog.ui
 src/gui/uifiles/StatWindow.ui
 src/gui/uifiles/stars_list_window.ui
 src/gui/uifiles/livestacking_player.ui

@@ -45,10 +45,6 @@ struct astrometry_data {
 	double scalefactor;	// scale factor accounting for downscale if any
 	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
 
-	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
-	gboolean for_photometry_spcc; // proceed to SPCC after a successful plate solve
-	struct photometric_cc_data *pcc;// PCC configuration
-
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
@@ -68,6 +64,7 @@ struct astrometry_data {
 };
 
 void open_astrometry_dialog();
+void close_astrometry_dialog();
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
