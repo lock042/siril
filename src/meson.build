@@ -34,6 +34,7 @@ src_files = [
   'algos/pave.c',
   'algos/photometry.c',
   'algos/photometric_cc.c',
+  'algos/spcc.c',
   'algos/PSF.c',
   'algos/quality.c',
   'algos/quality_float.c',
@@ -173,6 +174,7 @@ src_files = [
   'io/siril_plot.c',
   'io/SirilXISFReader.cpp',
   'io/SirilJpegXLWrapper.cpp',
+  'io/spcc_json.c',
 
   'livestacking/gui.c',
   'livestacking/livestacking.c',

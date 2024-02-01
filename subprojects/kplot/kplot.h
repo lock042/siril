@@ -23,6 +23,7 @@ struct 	kpair {
 };
 
 enum	kplottype {
+	KPLOT_UNDEFINED = -1,
 	KPLOT_POINTS,
 	KPLOT_MARKS,
 	KPLOT_HYPHENS,

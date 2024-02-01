@@ -46,6 +46,7 @@ struct astrometry_data {
 	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
 
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
+	gboolean for_photometry_spcc; // proceed to SPCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration
 
 	/* program-processed input, by process_plate_solver_input() */

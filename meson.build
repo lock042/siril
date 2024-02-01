@@ -48,7 +48,6 @@ have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
-enable_json_glib = get_option('json_glib')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
@@ -234,6 +233,7 @@ m_dep = cc.find_library('m', required : false)
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
 wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
+json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -339,12 +339,6 @@ elif have_fftw3fthreadsnolinkerarg
   message('FFTW linked against pthreads')
 else
   message('FFTW does not support multithreading')
-endif
-
-
-json_glib_dep = no_dep
-if enable_json_glib
-  json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 endif
 
 exiv_dep = no_dep
@@ -506,12 +500,6 @@ if gsl_dep.found()
 else
   conf_data.set('HAVE_GSL_1', 0, description : 'Use GSL 1.')
   conf_data.set('HAVE_GSL_2', 0, description : 'Use GSL 2.')
-endif
-
-if json_glib_dep.found()
-  conf_data.set('HAVE_JSON_GLIB', true, description : 'Using json glib')
-else
-  conf_data.set('HAVE_JSON_GLIB', false, description : 'Using json glib')
 endif
 
 if exiv_dep.found()
@@ -704,7 +692,6 @@ summary(
 
 summary(
   {
-    'json glib'         : json_glib_dep.found(),
     'exiv2'             : exiv_dep.found(),
     'libraw'            : libraw_dep.found(),
     'TIFF'              : libtiff_dep.found(),

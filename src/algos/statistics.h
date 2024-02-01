@@ -68,4 +68,6 @@ int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels);
 
 int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise);
 
+double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float upper);
+double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper);
 #endif
