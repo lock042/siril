@@ -58,7 +58,7 @@ cp /etc/fonts/fonts.conf etc/fonts/
 
 # Bundle ssl certificates
 mkdir -p etc/ssl/
-cp /etc/ssl/* etc/ssl/
+cp -rf /etc/ssl/* etc/ssl/
 
 # Compile GLib schemas if the subdirectory is present in the AppImage
 # AppRun has to export GSETTINGS_SCHEMA_DIR for this to work
