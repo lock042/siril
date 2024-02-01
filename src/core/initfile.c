@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -173,9 +173,7 @@ int readinitfile(gchar *fname) {
 		}
 		return 1;
 	}
-#ifndef HAVE_JSON_GLIB
 	com.pref.check_update = FALSE;
-#endif
 	if (read_keyfile(kf) == 0)
 		siril_log_message(_("Warning: nothing could be read from the settings file\n"));
 	g_key_file_free(kf);

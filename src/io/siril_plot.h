@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,8 @@ typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
 	int nb;		// number of points in the plot
 	gchar *label; // the name of the series
-	double x_offset;
+	double x_offset; // the offset to be added in x
+	enum kplottype pl_type; // the plot type (-1 if undefined)
 } splxydata;
 
 typedef struct siril_plot_xyerrdata_struct {
@@ -66,7 +67,7 @@ typedef struct siril_plot_data_struct {
 	gchar *xfmt; // x axis number format
 	gchar *yfmt; // y axis number format
 	gchar *savename; // chain to be prepended when interactively saving (png, dat)
-	gboolean forsequence; // using for saving 
+	gboolean forsequence; // using for saving
 	enum kplottype plottype;
 	enum kplotstype plotstype;
 	enum kplottype plotstypes[3];
@@ -92,8 +93,11 @@ void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);
 void siril_plot_set_xfmt(siril_plot_data *spl_data, const gchar *xfmt);
 void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt);
 void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename);
+void siril_plot_set_nth_color(siril_plot_data *spl_data, int n, double color[3]);
+void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplottype pl_type);
+void siril_plot_set_nth_plots_types(siril_plot_data *spl_data, int n, enum kplottype pl_type[3]);
 
-gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm);
+gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, size_t nb, const double *x, const double *y, const double *errp, const double *errm);
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg);
 cairo_surface_t *siril_plot_draw_to_image_surface(siril_plot_data *spl_data, int width, int height);
 gboolean siril_plot_save_png(siril_plot_data *spl_data, char *pngfilename, int width, int height);

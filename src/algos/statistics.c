@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #include <float.h>
 #include <assert.h>
 #include <gsl/gsl_statistics.h>
+#include "algos/sorting.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -1156,5 +1157,47 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 		}
 		*noise = fSigma / nchans;
 	}
+	return retval;
+}
+
+double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float upper) {
+	uint32_t x0, y0, x1,y1;
+	if (area) {
+		x0 = area->x;
+		y0 = area->y;
+		x1 = area->x + area->w;
+		y1 = area->y + area->h;
+	} else {
+		x0 = y0 = 0;
+		x1 = fit->rx;
+		y1 = fit->ry;
+	}
+	size_t npixels = (x1 - x0) * (y1 - y0);
+	WORD *data = fit->pdata[chan];
+	WORD *filtered_data = malloc(npixels * sizeof(WORD));
+	size_t count = 0;
+	WORD lowerw = roundf_to_WORD(lower);
+	WORD upperw = roundf_to_WORD(upper);
+	for (uint32_t y = y0 ; y < y1 ; y++) {
+		size_t j = y * fit->rx;
+		for (uint32_t x = x0 ; x < x1 ; x++) {
+			size_t i = x + j;
+			if (data[i] >= lowerw && data[i] <= upperw) {
+				filtered_data[count++] = data[i];
+			}
+		}
+	}
+
+	// Check if there are any elements in the specified range
+	if (count == 0) {
+		free(filtered_data);
+		return 0.0; // No elements in the range, return 0 as median
+	}
+
+	double retval = quickmedian(filtered_data, count);
+
+	// Free the allocated memory for filtered_data
+	free(filtered_data);
+
 	return retval;
 }

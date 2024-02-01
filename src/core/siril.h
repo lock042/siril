@@ -474,6 +474,47 @@ struct ffit {
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
 
+/* Filter spectral responses are defined by unevenly spaced frequency samples
+ * and accompanying spectral responses corresponding to the sampling points. */
+typedef struct _spcc_object {
+	gchar *model;
+	gchar *name;
+	gchar *filepath;
+	gchar *comment; // optional comment
+	int index; // index in the JSON file
+	int type;
+	int quality;
+	int channel;
+	gchar *manufacturer;
+	gchar *source;
+	int version;
+	gboolean arrays_loaded;
+	double *x;  // Wavelength array
+	double *y;  // Quantity array
+	int n; // Number of points in x and y
+} spcc_object;
+
+typedef struct _osc_sensor {
+	spcc_object channel[3];
+} osc_sensor;
+
+struct spcc_data_store {
+	GList *mono_sensors;
+	GList *osc_sensors;
+	GList *mono_filters[4]; // R, G, B, Lum
+	GList *osc_lpf;
+	GList *osc_filters;
+	GList *wb_ref;
+};
+
+/* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
+ * 336-1020nm for use with Gaia DR3 xp_sampled data products. */
+#define XPSAMPLED_LEN 343
+typedef struct _xpsampdata {
+	const double *x;
+	double y[XPSAMPLED_LEN];
+} xpsampled;
+
 typedef struct {
 	double x, y;
 } point;
@@ -528,6 +569,7 @@ struct historic_struct {
 	struct wcsprm *wcslib;
 	double focal_length;
 	cmsHPROFILE icc_profile;
+	gboolean spcc_applied;
 };
 
 /* the structure storing information for each layer to be composed
@@ -625,6 +667,7 @@ struct guiinf {
 	int selected_star;		// current selected star in the GtkListStore
 
 	gboolean show_wcs_grid;		// show the equatorial grid over the image
+	gboolean show_wcs_disto;		// show the distortions (if present) include in the wcs solution
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 
@@ -637,6 +680,7 @@ struct guiinf {
 	GList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
+	gboolean spcc_repo_available;
 
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
@@ -741,6 +785,8 @@ struct cominf {
 	GSList *grad_samples;		// list of samples for the background extraction
 
 	GSList *found_object;		// list of objects found in the image from catalogues
+
+	struct spcc_data_store spcc_data; // library of SPCC filters, sensors
 
 	sensor_tilt *tilt;		// computed tilt information
 

@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -129,7 +129,7 @@ static void set_filter(GtkFileChooser *dialog, const gchar *name, const gchar *p
 	gtk_file_chooser_set_filter(dialog, f);
 }
 
-static gchar* save_siril_plot_dialog(GtkWindow *parent, gchar *defaultfilename, gchar *filter_name, gchar *filter_pattern) {
+static gchar* save_siril_plot_dialog(GtkWindow *parent, const gchar *defaultfilename, const gchar *filter_name, const gchar *filter_pattern) {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
 	gint res;
@@ -582,6 +582,8 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_widget_show_all(menu);
 	// and cache its handle
 	g_object_set_data(G_OBJECT(window), "menu_handle", menu);
+
+	gtk_window_present(GTK_WINDOW(window));
 
 	gtk_widget_show_all(window);
 	return FALSE;

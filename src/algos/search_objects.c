@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -479,8 +479,8 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 	gchar *cleaned_url = url_cleanup(url);
 	g_free(url);
 	siril_debug_print("URL: %s\n", cleaned_url);
-
-	char *result = fetch_url(cleaned_url);
+	gsize length;
+	char *result = fetch_url(cleaned_url, &length);
 
 	g_free(cleaned_url);
 	return result;

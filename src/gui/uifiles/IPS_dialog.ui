@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -27,11 +27,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkImage" id="image1">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">edit-find</property>
-  </object>
   <object class="GtkAdjustment" id="AdjIPS_Dec_deg">
     <property name="upper">90</property>
     <property name="step-increment">1</property>
@@ -76,6 +71,27 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_bg_sigma_lower">
+    <property name="lower">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">2.7999999999999998</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_bg_sigma_upper">
+    <property name="lower">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">2</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_spcc_max_stars">
+    <property name="lower">100</property>
+    <property name="upper">5000</property>
+    <property name="value">1000</property>
+    <property name="step-increment">100</property>
+    <property name="page-increment">1000</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_cc_bkg_h">
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -92,6 +108,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">edit-find</property>
+  </object>
   <object class="GtkListStore" id="liststoreIPS">
     <columns>
       <!-- column-name Resolver -->
@@ -99,6 +120,48 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <!-- column-name Name -->
       <column type="gchararray"/>
     </columns>
+  </object>
+  <object class="GtkAdjustment" id="nb_b_bw">
+    <property name="lower">1</property>
+    <property name="upper">40</property>
+    <property name="value">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_b_wl">
+    <property name="lower">380</property>
+    <property name="upper">700</property>
+    <property name="value">500.69999999999999</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_g_bw">
+    <property name="lower">1</property>
+    <property name="upper">40</property>
+    <property name="value">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_g_wl">
+    <property name="lower">380</property>
+    <property name="upper">700</property>
+    <property name="value">500.69999999999999</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_r_bw">
+    <property name="lower">1</property>
+    <property name="upper">40</property>
+    <property name="value">6</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="nb_r_wl">
+    <property name="lower">380</property>
+    <property name="upper">700</property>
+    <property name="value">656.27999999999997</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkDialog" id="ImagePlateSolver_Dial">
     <property name="can-focus">False</property>
@@ -118,6 +181,22 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkCheckButton" id="spcc_plot_fits">
+                <property name="label" translatable="yes">Plot fits and chromaticity</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios, and a CIE 1931 diagram showing the computed source profile compared to sRGB</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="buttonIPS_close">
                 <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
@@ -129,7 +208,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -147,7 +226,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -165,7 +244,24 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_spcc_ok">
+                <property name="label" translatable="yes">OK</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_button_spcc_ok_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -551,7 +647,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">9</property>
+                        <property name="top-attach">8</property>
                         <property name="width">2</property>
                       </packing>
                     </child>
@@ -568,8 +664,8 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">10</property>
-                        <property name="width">5</property>
+                        <property name="top-attach">9</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -584,7 +680,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">8</property>
+                        <property name="top-attach">10</property>
                       </packing>
                     </child>
                     <child>
@@ -661,6 +757,42 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="left-attach">1</property>
                         <property name="top-attach">8</property>
                         <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="ComboBoxIPS_order">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the order of the solution:
+Linear assumes no distorsion is present in the image
+Quadratic, Cubic and Quartic will include second-, third- or fourth-order polynomial distorsions.
+When selecting an order with distorsions, additional terms are added to the solution, using SIP convention</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item>Linear</item>
+                          <item>Quadratic (SIP)</item>
+                          <item>Cubic (SIP)</item>
+                          <item>Quartic (SIP)</item>
+                        </items>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">10</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_IPS_order">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
+                        <property name="halign">end</property>
+                        <property name="valign">center</property>
+                        <property name="label" translatable="yes">Solution order: </property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">10</property>
                       </packing>
                     </child>
                     <child>
@@ -814,11 +946,13 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Choose the online catalogue against one want to compare the image and compute photometry.
 * NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
-* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.</property>
+* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.
+* Gaia Data Release 3 was released on 13 June 2022. Photometry is given for around 1.46 billion sources, with a limiting magnitude of G = 21. It uses different filters from Johnson B and V, however it provides measures of source effective temperature based on the source's spectrum, and Siril uses this Teff for PCC.</property>
                         <property name="active">0</property>
                         <items>
                           <item>NOMAD</item>
                           <item translatable="yes">APASS</item>
+                          <item translatable="yes">GAIA DR3</item>
                         </items>
                         <signal name="changed" handler="on_combophoto_catalog_changed" swapped="no"/>
                       </object>
@@ -954,111 +1088,131 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="box_cc_manual_bkg">
+                      <object class="GtkBox">
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
                         <property name="can-focus">False</property>
                         <property name="spacing">10</property>
                         <child>
-                          <!-- n-columns=3 n-rows=3 -->
-                          <object class="GtkGrid" id="grid46">
+                          <object class="GtkBox" id="box_cc_manual_bkg">
                             <property name="visible">True</property>
+                            <property name="sensitive">False</property>
                             <property name="can-focus">False</property>
-                            <property name="row-spacing">5</property>
-                            <property name="column-spacing">5</property>
-                            <property name="column-homogeneous">True</property>
+                            <property name="spacing">5</property>
                             <child>
-                              <object class="GtkSpinButton" id="spin_cc_bkg_x">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">x coordinate of the start of the background selection</property>
-                                <property name="editable">False</property>
-                                <property name="width-chars">6</property>
-                                <property name="text" translatable="yes">0</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjustment_cc_bkg_x</property>
-                                <property name="numeric">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spin_cc_bkg_y">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">y coordinate of the start of the background selection</property>
-                                <property name="editable">False</property>
-                                <property name="width-chars">6</property>
-                                <property name="text" translatable="yes">0</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjustment_cc_bkg_y</property>
-                                <property name="numeric">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spin_cc_bkg_w">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Width of the background selection</property>
-                                <property name="editable">False</property>
-                                <property name="width-chars">6</property>
-                                <property name="text" translatable="yes">0</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjustment_cc_bkg_w</property>
-                                <property name="numeric">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spin_cc_bkg_h">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Height of the background selection</property>
-                                <property name="editable">False</property>
-                                <property name="width-chars">6</property>
-                                <property name="text" translatable="yes">0</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjustment_cc_bkg_h</property>
-                                <property name="numeric">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label180">
+                              <!-- n-columns=2 n-rows=3 -->
+                              <object class="GtkGrid" id="grid46">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Selected area</property>
+                                <property name="row-spacing">5</property>
+                                <property name="column-spacing">5</property>
+                                <property name="column-homogeneous">True</property>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_cc_bkg_x">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">x coordinate of the start of the background selection</property>
+                                    <property name="editable">False</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="text" translatable="yes">0</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_cc_bkg_x</property>
+                                    <property name="numeric">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_cc_bkg_y">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">y coordinate of the start of the background selection</property>
+                                    <property name="editable">False</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="text" translatable="yes">0</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_cc_bkg_y</property>
+                                    <property name="numeric">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_cc_bkg_w">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Width of the background selection</property>
+                                    <property name="editable">False</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="text" translatable="yes">0</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_cc_bkg_w</property>
+                                    <property name="numeric">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_cc_bkg_h">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Height of the background selection</property>
+                                    <property name="editable">False</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="text" translatable="yes">0</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_cc_bkg_h</property>
+                                    <property name="numeric">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label180">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Selected area</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
                               </object>
                               <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                                <property name="width">2</property>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
                               </packing>
                             </child>
                             <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
+                              <object class="GtkButton" id="button_cc_bkg_selection">
+                                <property name="label" translatable="yes">Use current selection</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">You must specify a selection that represents the true background of the image, trying to exclude all stars or other stellar objects.</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <signal name="clicked" handler="on_button_cc_bkg_selection_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
                             </child>
                           </object>
                           <packing>
@@ -1068,20 +1222,60 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="button_cc_bkg_selection">
-                            <property name="label" translatable="yes">Use current selection</property>
+                          <object class="GtkBox">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">You must specify a selection that represents the true background of the image, trying to exclude all stars or other stellar objects.</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <signal name="clicked" handler="on_button_cc_bkg_selection_clicked" swapped="no"/>
+                            <property name="can-focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">5</property>
+                            <child>
+                              <object class="GtkLabel" id="label1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Tolerance / σ</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bg_tol_upper">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Include background samples this many σ above the median. Default is 2.00</property>
+                                <property name="text" translatable="yes">2.00</property>
+                                <property name="adjustment">adj_bg_sigma_upper</property>
+                                <property name="digits">2</property>
+                                <property name="value">2</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bg_tol_lower">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Include background samples this many σ below the median. Default is 2.8</property>
+                                <property name="text" translatable="yes">2.80</property>
+                                <property name="adjustment">adj_bg_sigma_lower</property>
+                                <property name="digits">2</property>
+                                <property name="value">2.7999999999999998</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                       </object>
@@ -1110,6 +1304,593 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="position">3</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkExpander" id="spcc_options">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
+                <child>
+                  <!-- n-columns=4 n-rows=10 -->
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="row-spacing">5</property>
+                    <property name="column-spacing">5</property>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_wp">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">White Point Reference:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_sensors_mono">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Mono Sensor:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_sensors_osc">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">OSC Sensor:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_r">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Red Filter:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_g">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Green Filter:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_osc">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">OSC Filter:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_b">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Blue Filter:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">8</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="spcc_toggle_sensor_type">
+                        <property name="label" translatable="yes">Mono sensor</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Choose OSC or mono sensor</property>
+                        <property name="active">True</property>
+                        <signal name="toggled" handler="on_spcc_toggle_sensor_type_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_sensor_type">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Sensor Type:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_sensors_osc">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select an OSC sensor</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_sensors_mono">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select a mono sensor</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_filters_osc">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select an OSC filter (e.g. a broadband light pollution filter)</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">5</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_filters_r">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select a red filter used with composited mono images</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">6</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_filters_g">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select a green filter used with composited mono images</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">7</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_filters_b">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select a blue filter used with composited mono images</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">8</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_sensors_osc">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected OSC sensor</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_sensors_mono">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected mono sensor</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_filters_osc">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected OSC filter</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_filters_r">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected red filter</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_filters_g">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected green filter</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_filters_b">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected blue filter</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">8</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="osc_is_dslr">
+                        <property name="label" translatable="yes">DSLR</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Set whether the OSC sensor is a DSLR. This allows setting the LPF for astro-modified or unmodifed DSLRs, for example</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_osc_is_dslr_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_spcc_filters_lpf">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">DSLR Low Pass Filter:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_filters_lpf">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected LPF</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_filters_lpf">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">For unmodified DSLRs, select the LPF most closely matching your model (many Canon LPFs are almost identical so there may not be an exact match for your model). For modified DSLRs, select the replacement LPF (if there isn't an exact match the Baader BCF is probably close).</property>
+                        <signal name="changed" handler="on_spcc_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">4</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_spcc_whitepoint">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select white balance reference</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="spcc_plot_all">
+                        <property name="label" translatable="yes">Plot all</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Plot the selected sensor QE, filter responses and white reference relative photon count as a function of wavelength</property>
+                        <signal name="clicked" handler="on_spcc_plot_all_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="details_spcc_wb">
+                        <property name="label" translatable="yes">Details</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show details of the selected white reference</property>
+                        <signal name="clicked" handler="on_spcc_details_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <!-- n-columns=3 n-rows=4 -->
+                      <object class="GtkGrid" id="spcc_nb_controls">
+                        <property name="can-focus">False</property>
+                        <property name="row-spacing">5</property>
+                        <property name="column-spacing">5</property>
+                        <property name="column-homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Blue:</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Green:</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Red:</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Nominal passband wavelength in nm
+Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm</property>
+                            <property name="label" translatable="yes">Wavelength</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Filter bandwidth in nm</property>
+                            <property name="label" translatable="yes">Bandwidth</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_r_wl">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the red channel narrowband filter</property>
+                            <property name="text" translatable="yes">672.00</property>
+                            <property name="adjustment">nb_r_wl</property>
+                            <property name="digits">2</property>
+                            <property name="value">656.27999999999997</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_b_wl">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the blue channel narrowband filter</property>
+                            <property name="text" translatable="yes">500.00</property>
+                            <property name="adjustment">nb_b_wl</property>
+                            <property name="digits">2</property>
+                            <property name="value">500.69999999999999</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_g_wl">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the green channel narrowband filter</property>
+                            <property name="text" translatable="yes">656.46</property>
+                            <property name="adjustment">nb_g_wl</property>
+                            <property name="digits">2</property>
+                            <property name="value">500.69999999999999</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_r_bw">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the red channel narrowband filter</property>
+                            <property name="text" translatable="yes">6.0</property>
+                            <property name="adjustment">nb_r_bw</property>
+                            <property name="digits">1</property>
+                            <property name="value">6</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_g_bw">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the green channel narrowband filter</property>
+                            <property name="text" translatable="yes">6.0</property>
+                            <property name="adjustment">nb_g_bw</property>
+                            <property name="digits">1</property>
+                            <property name="value">6</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spcc_nb_b_bw">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the blue channel narrowband filter</property>
+                            <property name="text" translatable="yes">6.0</property>
+                            <property name="adjustment">nb_b_bw</property>
+                            <property name="digits">1</property>
+                            <property name="value">6</property>
+                            <signal name="value-changed" handler="on_nb_spin_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">9</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="spcc_toggle_nb">
+                        <property name="label" translatable="yes">Narrowband mode</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Set narrowband mode. This is suitable for composited narrowband images such as HOO as well as for OSC images taken with dual narrowband filters etc.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_spcc_toggle_nb_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">SPCC Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -1120,5 +1901,4 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       </object>
     </child>
   </object>
-
 </interface>

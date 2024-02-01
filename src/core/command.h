@@ -63,6 +63,7 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);
@@ -213,6 +214,8 @@ int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
 int	process_subsky(int nb);
+int process_spcc(int nb);
+int process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
 int	process_stat(int nb);

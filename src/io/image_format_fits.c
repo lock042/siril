@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@
 #include "gui/siril_preview.h"
 #include "algos/statistics.h"
 #include "algos/astrometry_solver.h"
+#include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -1312,9 +1313,18 @@ static void save_wcs_keywords(fits *fit) {
 	status = 0;
 
 	if (fit->wcslib) {
-		fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "Coordinate type for the first axis", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
+		gboolean has_sip = fit->wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
+		if (!has_sip) {// no distortions
+			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN", "TAN (gnomic) projection", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "TAN (gnomic) projection", &status);
+			status = 0;
+		} else {
+			fits_update_key(fit->fptr, TSTRING, "CTYPE1", "RA---TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN-SIP", "TAN (gnomic) projection + SIP distortions", &status);
+			status = 0;
+		}
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
 		status = 0;
@@ -1329,6 +1339,10 @@ static void save_wcs_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcslib->crval[0]), "Axis1 reference value (deg)", &status);
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcslib->crval[1]), "Axis2 reference value (deg)", &status);
+		if (fit->wcslib->lonpole) {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->wcslib->lonpole), "Native longitude of celestial pole", &status);
+		}
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcslib->cdelt[0]), "X pixel size (deg)", &status);
@@ -1353,6 +1367,52 @@ static void save_wcs_keywords(fits *fit) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcslib->cd[3]), "Scale matrix (2, 2)", &status);
 			status = 0;
+		}
+		if (has_sip) {
+			// we deal with images up to order 6, we need 7 to hold 0_6 terms
+			double A[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double B[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			struct disprm *dis = fit->wcslib->lin.dispre;
+			int order = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
+			// we know the order of the distortions, we can now write them
+			// A terms
+			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_snprintf(key, 6, "A_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &A[i][j], NULL, &status);
+				}
+			}
+			// B terms
+			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "SIP polynomial degree, axis 2, pixel-to-sky", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_snprintf(key, 6, "B_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &B[i][j], NULL, &status);
+				}
+			}
+			// AP terms
+			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "SIP polynomial degree, axis 1, sky-to-pixel", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[7];
+					g_snprintf(key, 7, "AP_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &AP[i][j], NULL, &status);
+				}
+			}
+			// BP terms
+			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "SIP polynomial degree, axis 2, sky-to-pixel", &status);
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[7];
+					g_snprintf(key, 7, "BP_%d_%d", i, j);
+					fits_update_key(fit->fptr, TDOUBLE, key, &BP[i][j], NULL, &status);
+				}
+			}
 		}
 	}
 	if (fit->wcsdata.pltsolvd) {
@@ -3701,4 +3761,66 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 
 	merge_fits_headers_to_result2(result, array);
 	free(array);
+}
+
+/*****************************************************************
+ *
+ * Functions to operate on special non-image FITS
+ * such as the data retrieval products provided by Gaia datalink
+ *
+ * **************************************************************/
+
+int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
+	// The dataset wavelength range is always the same for all xpsampled spectra
+	// The spacing is always 2nm iaw the dataset
+	int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
+	long nrows;
+	// We open a separate fptr so that multiple threads can operate on the file
+	// simultaneously, reading data from different HDUs corresponding to different sources.
+	fitsfile *fptr = NULL;
+	siril_fits_open_diskfile(&fptr, filename, READONLY, &status);
+	// HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
+	// so the first useful HDU (corresponding to the source at
+	// position 0 in the catalog) is HDU 2.
+	int hdu = i + 2;
+	fits_get_num_hdus(fptr, &num_hdus, &status);
+	if (hdu < 2 || hdu > num_hdus) {
+		siril_debug_print("HDU out of range: hdu = %d, num_hdus = %d\n", hdu, num_hdus);
+		goto error;
+	}
+	if (fits_movabs_hdu(fptr, hdu, NULL, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	fits_get_num_rows(fptr, &nrows, &status);
+	if (fits_get_colnum(fptr, CASEINSEN, "wavelength", &wlcol, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	if (fits_get_colnum(fptr, CASEINSEN, "flux", &fluxcol, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+	if (fits_read_col(fptr, TDOUBLE, fluxcol, 1, 1, 343, NULL, xps->y, &anynul, &status)) {
+		fits_report_error(stderr, status);
+		goto error;
+	}
+
+	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
+	// for consistency with how we handle white references and camera photon counting
+	// behaviour.
+	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
+		xps->y[i] *= xps->x[i];
+	}
+	double norm = xps->y[82];
+	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
+		xps->y[i] /= norm;
+	}
+
+	if (fits_close_file(fptr, &status))
+		fits_report_error(stderr, status);
+	return 0;
+error:
+	fits_close_file(fptr, &status);
+	return 1;
 }

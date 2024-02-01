@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,10 @@
 #include <string.h>
 #include <float.h>
 #include <assert.h>
+#include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_fit.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -761,3 +764,93 @@ int robustmean(int n, const double *x, double *mean, double *stdev)
 	return 0;
 }
 
+/************* robust linear fit *****************/
+
+static int dofit(const gsl_multifit_robust_type *T, const gsl_matrix *X, const gsl_vector *y, gsl_vector *c, gsl_matrix *cov, double *sigma, gboolean *mask) {
+	gsl_multifit_robust_workspace *work = gsl_multifit_robust_alloc (T, X->size1, X->size2);
+	int s = gsl_multifit_robust (X, y, c, cov, work);
+	gsl_multifit_robust_stats fit_stats = gsl_multifit_robust_statistics(work);
+	gsl_vector *weights = fit_stats.weights;
+	*sigma = fit_stats.sigma_rob;
+	for (size_t i = 0; i < weights->size; i++) {
+		if (gsl_vector_get(weights, i) > 0.) // weights are null if gsl_multifit_robust_type = gsl_multifit_robust_bisquare
+			mask[i] = TRUE;
+	}
+	gsl_multifit_robust_free (work);
+	return s;
+}
+
+// Fits y = a + bx to double *xdata, double *ydata with each array of length n
+int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b, double *sigma, gboolean *mask) {
+	const size_t p = 2; /* linear fit */
+	gsl_matrix *X = NULL, *cov = NULL;
+	gsl_vector *y = NULL, *c = NULL;
+	X = gsl_matrix_alloc (n, p);
+	y = gsl_vector_alloc (n);
+	c = gsl_vector_alloc (p);
+	cov = gsl_matrix_alloc (p, p);
+	if (!X || !y || !c || !cov) {
+		gsl_matrix_free(X);
+		gsl_vector_free(y);
+		gsl_vector_free(c);
+		gsl_matrix_free(cov);
+		return 1;
+	}
+	for (int i = 0 ; i < n ; i++) {
+		gsl_vector_set(y, i, ydata[i]);
+	}
+	/* construct design matrix X for linear fit */
+	for (int i = 0; i < n; ++i) {
+		gsl_matrix_set (X, i, 0, 1.0);
+		gsl_matrix_set (X, i, 1, xdata[i]);
+	}
+
+	/* perform robust and OLS fit */
+	int retval = dofit(gsl_multifit_robust_bisquare, X, y, c, cov, sigma, mask);
+	*a = gsl_vector_get(c,0);
+	*b = gsl_vector_get(c,1);
+	gsl_matrix_free (X);
+	gsl_vector_free (y);
+	gsl_vector_free (c);
+	gsl_matrix_free (cov);
+	return retval;
+}
+
+double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper) {
+	uint32_t x0, y0, x1,y1;
+	if (area) {
+		x0 = area->x;
+		y0 = area->y;
+		x1 = area->x + area->w;
+		y1 = area->y + area->h;
+	} else {
+		x0 = y0 = 0;
+		x1 = gfit.rx;
+		y1 = gfit.ry;
+	}
+	size_t npixels = (x1 - x0) * (y1 - y0);
+	float *data = fit->fpdata[chan];
+	float *filtered_data = malloc(npixels * sizeof(float));
+	size_t count = 0;
+	for (uint32_t y = y0 ; y < y1 ; y++) {
+		size_t j = y * fit->rx;
+		for (uint32_t x = x0 ; x < x1 ; x++) {
+			size_t i = x + j;
+			if (data[i] >= lower && data[i] <= upper) {
+				filtered_data[count++] = data[i];
+			}
+		}
+	}
+	// Check if there are any elements in the specified range
+	if (count == 0) {
+		free(filtered_data);
+		return 0.0; // No elements in the range, return 0 as median
+	}
+	// Sort the filtered data
+	double retval = quickmedian_float(filtered_data, count);
+
+	// Free the allocated memory for filtered_data
+	free(filtered_data);
+
+	return retval;
+}

@@ -1,3 +1,29 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * FITS sequences are not a sequence of FITS files but a FITS file containing a
+ * sequence. It simply has as many elements in the third dimension as the
+ * number of images in the sequence multiplied by the number of channels per
+ * image. Given its use of the third dimension, it's sometimes called FITS cube.
+ */
+
 #include <assert.h>
 #include <inttypes.h>
 #include "core/siril.h"
@@ -8,6 +34,7 @@
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
 #include "gui/progress_and_log.h"
+#include "gui/photometric_cc.h" // for reset_spcc_filters() (this is not a GTK function)
 #include "gui/utils.h"
 #include "gui/script_menu.h"
 #include "core/siril_update.h" // for the version_number struct
@@ -17,10 +44,10 @@
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
 
-const gchar *REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
+const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
+const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-spcc-database";
 
 static GtkListStore *list_store = NULL;
-static GString *git_pending_commit_buffer = NULL, *git_conflict_buffer = NULL;
 static gboolean can_fastforward;
 
 static void *xrealloc(void *oldp, size_t newsz)
@@ -156,9 +183,7 @@ static int fetchhead_cb(const char *ref_name, const char *remote_url, const git_
     return 0;
 }
 
-static int reset_repository() {
-	// Local directory where the repository will be cloned
-	const gchar *local_path = siril_get_scripts_repo_path();
+static int reset_repository(const gchar *local_path) {
 
 	// Initialisation
 	git_libgit2_init();
@@ -199,6 +224,18 @@ static int reset_repository() {
 	git_repository_free(repo);
 	git_libgit2_shutdown();
 	return 0;
+}
+
+static int reset_scripts_repository() {
+	// Local directory where the repository will be cloned
+	const gchar *local_path = siril_get_scripts_repo_path();
+	return reset_repository(local_path);
+}
+
+static int reset_spcc_repository() {
+	// Local directory where the repository will be cloned
+	const gchar *local_path = siril_get_spcc_repo_path();
+	return reset_repository(local_path);
 }
 
 static int lg2_fetch(git_repository *repo)
@@ -314,7 +351,7 @@ ERROR_OR_COMPLETE:
 	return retval;
 }
 
-static int analyse(git_repository *repo) {
+static int analyse(git_repository *repo, GString** git_pending_commit_buffer) {
 	git_remote *remote = NULL;
 
 	// Carry out merge analysis
@@ -427,12 +464,12 @@ static int analyse(git_repository *repo) {
 
 		// We have not yet reached the HEAD so we print the commit message.
 		commit_msg = git_commit_message(commit);
-		if (!git_pending_commit_buffer) {
+		if (!*git_pending_commit_buffer) {
 			gchar* buf = g_strdup_printf(_("Commit message: %s\n"), commit_msg);
-			git_pending_commit_buffer = g_string_new(buf);
+			*git_pending_commit_buffer = g_string_new(buf);
 			g_free(buf);
 		} else {
-			g_string_append_printf(git_pending_commit_buffer, _("Commit message: %s\n"), commit_msg);
+			g_string_append_printf(*git_pending_commit_buffer, _("Commit message: %s\n"), commit_msg);
 		}
 
 		if (git_commit_parentcount(commit) > 0) {
@@ -472,7 +509,7 @@ int auto_update_gitscripts(gboolean sync) {
 	git_libgit2_init();
 
     // URL of the remote repository
-	siril_debug_print("Repository URL: %s\n", REPOSITORY_URL);
+	siril_debug_print("Repository URL: %s\n", SCRIPT_REPOSITORY_URL);
 
 	// Local directory where the repository will be cloned
 	const gchar *local_path = siril_get_scripts_repo_path();
@@ -489,7 +526,7 @@ int auto_update_gitscripts(gboolean sync) {
 		const git_error *e = giterr_last();
 		siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone from remote source...\n"), "salmon", e->message);
 		// Perform the clone operation
-		error = git_clone(&repo, REPOSITORY_URL, local_path, &clone_opts);
+		error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
 
 		if (error != 0) {
 			e = giterr_last();
@@ -523,11 +560,11 @@ int auto_update_gitscripts(gboolean sync) {
 		siril_log_color_message(_("Error: cannot identify local repository's configured remote.\n"), "red");
 		return 1;
 	}
-	if (strcmp(remote_url, REPOSITORY_URL)) {
+	if (strcmp(remote_url, SCRIPT_REPOSITORY_URL)) {
 		gchar *msg = g_strdup_printf(_("Error: local siril-scripts repository folder is not "
 				"configured with %s as its remote. You should remove the folder %s "
 				"and restart Siril to re-clone the correct repository.\n"),
-				REPOSITORY_URL, local_path);
+				SCRIPT_REPOSITORY_URL, local_path);
 		siril_log_color_message(msg, "red");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
 		g_free(msg);
@@ -599,7 +636,118 @@ cleanup:
     return retval;
 }
 
-int preview_update() {
+int auto_update_gitspcc(gboolean sync) {
+	int retval = 0;
+	// Initialize libgit2
+	git_libgit2_init();
+
+    // URL of the remote repository
+	siril_debug_print("Repository URL: %s\n", SPCC_REPOSITORY_URL);
+
+	// Local directory where the repository will be cloned
+	const gchar *local_path = siril_get_spcc_repo_path();
+
+	// Clone options
+	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+
+	git_repository *repo = NULL;
+
+	// See if the repository already exists
+	int error = git_repository_open(&repo, local_path);
+
+	if (error != 0) {
+		const git_error *e = giterr_last();
+		siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone from remote source...\n"), "salmon", e->message);
+		// Perform the clone operation
+		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
+
+		if (error != 0) {
+			e = giterr_last();
+			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
+			gui.spcc_repo_available = FALSE;
+			git_libgit2_shutdown();
+			return 1;
+		} else {
+			siril_log_message(_("Repository cloned successfully!\n"));
+		}
+	} else {
+		siril_debug_print("Local SPCC database repository opened successfully!\n");
+	}
+	gui.spcc_repo_available = TRUE;
+
+	// Check we are using the correct repository
+	git_remote *remote = NULL;
+	const char *remote_name = "origin";
+	error = git_remote_lookup(&remote, repo, remote_name);
+	if (error != 0) {
+		siril_log_color_message(_("Failed to lookup remote.\n"), "red");
+		git_repository_free(repo);
+		git_libgit2_shutdown();
+		return 1;
+	}
+
+	const char *remote_url = git_remote_url(remote);
+	if (remote_url != NULL) {
+		siril_debug_print("Remote URL: %s\n", remote_url);
+	} else {
+		siril_log_color_message(_("Error: cannot identify local repository's configured remote.\n"), "red");
+		return 1;
+	}
+	if (strcmp(remote_url, SPCC_REPOSITORY_URL)) {
+		gchar *msg = g_strdup_printf(_("Error: local siril-spcc-database repository folder is not "
+				"configured with %s as its remote. You should remove the folder %s "
+				"and restart Siril to re-clone the correct repository.\n"),
+				SPCC_REPOSITORY_URL, local_path);
+		siril_log_color_message(msg, "red");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
+		g_free(msg);
+		// Make scripts unavailable, as the contents of a random git repository could be complete rubbish
+		gui.spcc_repo_available = FALSE;
+		goto cleanup;
+	}
+
+	// Synchronise the repository
+	if (error == 0 && sync) {
+		// fetch, analyse and merge changes from the remote
+		lg2_fetch(repo);
+
+		// Get the FETCH_HEAD reference
+		git_object *target_commit = NULL;
+		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
+		if (error != 0) {
+			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			gui.spcc_repo_available = FALSE;
+			git_repository_free(repo);
+			git_libgit2_shutdown();
+			return -1;
+		}
+
+		// Perform the reset
+		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
+		if (error != 0) {
+			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			git_object_free(target_commit);
+			git_repository_free(repo);
+			git_libgit2_shutdown();
+			return -1;
+		}
+
+		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
+	}
+
+	// We don't do anything else post-sync as the repository is not actually used until
+	// a user initiates SPCC
+
+    // Cleanup
+cleanup:
+    if (repo)
+		git_repository_free(repo);
+    git_libgit2_shutdown();
+
+    return retval;
+}
+
+int preview_scripts_update(GString** git_pending_commit_buffer) {
 	// Initialize libgit2
 	git_libgit2_init();
 
@@ -618,7 +766,29 @@ int preview_update() {
 	// Fetch changes
 	lg2_fetch(repo);
 	// Analyse the repository against the remote
-	return analyse(repo);
+	return analyse(repo, git_pending_commit_buffer);
+}
+
+int preview_spcc_update(GString** git_pending_commit_buffer) {
+	// Initialize libgit2
+	git_libgit2_init();
+
+	// Local directory where the repository will be cloned
+	const gchar *local_path = siril_get_spcc_repo_path();
+
+	git_repository *repo = NULL;
+	int error = git_repository_open(&repo, local_path);
+	if (error < 0) {
+		siril_debug_print("Error opening repository: %s\n",giterr_last()->message);
+		siril_log_color_message(_("Error: unable to open local spcc-database repository.\n"), "red");
+		gui.spcc_repo_available = FALSE;
+		return 1;
+	}
+
+	// Fetch changes
+	lg2_fetch(repo);
+	// Analyse the repository against the remote
+	return analyse(repo, git_pending_commit_buffer);
 }
 
 /************* GUI code for the Preferences->Scripts TreeView ****************/
@@ -733,18 +903,61 @@ void on_script_text_close_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data) {
+	GString *git_pending_commit_buffer = NULL;
 	can_fastforward = FALSE;
 	set_cursor_waiting(TRUE);
-	if (git_pending_commit_buffer) {
-		g_string_free(git_pending_commit_buffer, TRUE);
-		git_pending_commit_buffer = NULL;
-	}
-	if (git_conflict_buffer) {
-		g_string_free(git_conflict_buffer, TRUE);
-		git_conflict_buffer = NULL;
-	}
 
-	switch (preview_update()) {
+	switch (preview_scripts_update(&git_pending_commit_buffer)) {
+		case 1:
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
+			return;
+		case 2:
+			// Merge cannot be fast forwarded
+			if (!siril_confirm_dialog(_("Warning!"), _("Merge analysis shows that "
+					"the merge cannot be fast-forwarded. This indicates you have "
+					"made changes to the local repository. Siril does not "
+					"provide full git functionality and cannot be used to merge "
+					"upstream updates into an altered local repository.\n\nIf you "
+					"accept the update, the local repository will be hard reset "
+					"to match the remote repository and any local changes will "
+					"be lost.\n\nIf you have made local changes that you wish to "
+					"keep, you should cancel this update and copy your modified "
+					"scripts to another location, and add this location to the "
+					"list of script directories to be searched."),
+					_("Accept"))) {
+				g_string_free(git_pending_commit_buffer, TRUE);
+				return;
+			} else {
+				reset_scripts_repository();
+				g_string_free(git_pending_commit_buffer, TRUE);
+				return;
+			}
+		default:
+			break;
+	}
+	if (git_pending_commit_buffer != NULL) {
+		if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"), _("Read and confirm the pending changes to be synced"), _("Confirm"), git_pending_commit_buffer->str)) {
+			if (reset_scripts_repository()) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
+			}
+			fill_script_repo_list(FALSE);
+		} else {
+			siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
+		}
+		g_string_free(git_pending_commit_buffer, TRUE);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The spcc-database repository is up to date."));
+	}
+	fill_script_repo_list(TRUE);
+	set_cursor_waiting(FALSE);
+}
+
+void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
+	GString *git_pending_commit_buffer = NULL;
+	can_fastforward = FALSE;
+	set_cursor_waiting(TRUE);
+
+	switch (preview_spcc_update(&git_pending_commit_buffer)) {
 		case 1:
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
 			return;
@@ -762,9 +975,11 @@ void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data)
 					"scripts to another location, and add this location to the "
 					"list of script directories to be searched."),
 					_("Accept"))) {
+				g_string_free(git_pending_commit_buffer, TRUE);
 				return;
 			} else {
-				reset_repository();
+				reset_spcc_repository();
+				g_string_free(git_pending_commit_buffer, TRUE);
 				return;
 			}
 		default:
@@ -772,17 +987,24 @@ void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data)
 	}
 	if (git_pending_commit_buffer != NULL) {
 		if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"), _("Read and confirm the pending changes to be synced"), _("Confirm"), git_pending_commit_buffer->str)) {
-			if (reset_repository()) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Scripts failed to update."));
+			if (reset_spcc_repository()) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
 			}
-			fill_script_repo_list(FALSE);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
 		}
+		g_string_free(git_pending_commit_buffer, TRUE);
 	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The scripts repository is up to date."));
+		if (!com.headless) {
+			reset_spcc_filters();
+			// Check if the SPCC window is open, if so refresh the combo boxes
+			GtkWidget *spcc_dialog = lookup_widget("ImagePlateSolver_Dial");
+			if (gtk_widget_get_visible(spcc_dialog)) {
+				populate_spcc_combos();
+			}
+		}
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
 	}
-	fill_script_repo_list(TRUE);
 	set_cursor_waiting(FALSE);
 }
 
@@ -846,6 +1068,14 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 	gtk_widget_set_sensitive(lookup_widget("treeview2"), (com.pref.use_scripts_repository && gui.script_repo_available));
 }
 
+void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (gtk_toggle_button_get_active(button)) {
+		com.pref.spcc.use_spcc_repository = TRUE;
+		auto_update_gitspcc(FALSE);
+	}
+	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.spcc.use_spcc_repository);
+	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
+}
 #else
 
 void hide_git_widgets() {
@@ -856,6 +1086,10 @@ void hide_git_widgets() {
 // even though the widgets are hidden with libgit2 disabled
 
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
+	return;
+}
+
+void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	return;
 }
 

@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -184,9 +184,6 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 			mean += kernel / n;
 		}
 	}
-
-	// Must turn off error handler or it aborts on error
-	gsl_set_error_handler_off();
 
 	/* Smoothing */
 	smoothing = 1e-4 * pow(10.0, (smoothing-0.5) * 3);
@@ -381,9 +378,6 @@ static gboolean computeBackground_Polynom(GSList *list, double *background, int 
 
 		k++;
 	}
-
-	// Must turn off error handler or it aborts on error
-	gsl_set_error_handler_off();
 
 	gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n, nbParam);
 	int status = gsl_multifit_wlinear(J, w, y, c, cov, &chisq, work);

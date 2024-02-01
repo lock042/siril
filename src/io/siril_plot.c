@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,6 +72,7 @@ static splxydata *alloc_xyplot_data(int nb) {
 	}
 	plot->nb = nb;
 	plot->label = NULL;
+	plot->pl_type = KPLOT_UNDEFINED;
 	return plot;
 }
 
@@ -215,6 +216,51 @@ void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
 	spl_data->savename = g_strdup(savename);
 }
 
+// set the color of the nth plot (n is one-based)
+// e.g.: siril_plot_set_nth_color(spl_data, 1, (double[3]){1., 0., 0.});
+// sets the first series color to red
+void siril_plot_set_nth_color(siril_plot_data *spl_data, int n, double color[3]) {
+	if (n > spl_data->cfgplot.clrsz) {
+		siril_debug_print("can't add color out of palette size (%lu)\n", spl_data->cfgplot.clrsz);
+		return;
+	}
+	memcpy(spl_data->cfgplot.clrs[n - 1].rgba, color, 3 * sizeof(double));
+}
+
+// set the type of the nth plot (n is one-based)
+// Note: spl_data->plot member is the list of xydata (w/o error bars)
+// e.g.: siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_LINESMARKS);
+// sets the first series type to line with cross markers
+// This overiddes the setting defined in spl_data->plottype which applies
+// if no specific type is passed for a series
+void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplottype pl_type) {
+	GList *current_entry = g_list_nth(spl_data->plot, n - 1);
+	if (!current_entry) {
+		siril_debug_print("can't add plot type out of plot list size\n");
+		return;
+	}
+	splxydata *plot = (splxydata *)current_entry->data;
+	plot->pl_type = pl_type;
+}
+
+// set the types of the nth plots (n is one-based)
+// Note: spl_data->plots member is the list of xydata + error bars
+// e.g.: siril_plot_set_nth_plot_types(spl_data, 1, (enum kplottype[3]){KPLOT_MARKS, KPLOT_POINTS, KPLOT_POINTS});
+// sets the first series with error bars to crosses with circle error bar markers
+// This overiddes the setting defined in spl_data->plotstypes which applies
+// if no specific type is passed for a series
+void siril_plot_set_nth_plots_types(siril_plot_data *spl_data, int n, enum kplottype pl_type[3]) {
+	GList *current_entry = g_list_nth(spl_data->plots, n - 1);
+	if (!current_entry) {
+		siril_debug_print("can't add plots types out of plots list size\n");
+		return;
+	}
+	splxyerrdata *plots = (splxyerrdata *)current_entry->data;
+	for (int i = 0; i < 3; i++) {
+		plots->plots[i]->pl_type = pl_type[i];
+	}
+}
+
 // utilities
 static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax, int *sig) {
 	double extent = vmax - vmin;
@@ -250,7 +296,7 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 }
 
 // data assignment
-gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm) {
+gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, size_t nb, const double *x, const double *y, const double *errp, const double *errm) {
 	// single plot case
 	if (!errp) {
 		// allocate data
@@ -401,7 +447,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
 		d1 = kdata_array_alloc(plot->data, plot->nb);
-		kplot_attach_data(p, d1, spl_data->plottype, &spl_data->cfgdata);
+		enum kplottype plottype = (plot->pl_type == KPLOT_UNDEFINED) ? spl_data->plottype : plot->pl_type;
+		kplot_attach_data(p, d1, plottype, &spl_data->cfgdata);
 		if (spl_data->show_legend) {
 			int index = nb_graphs % spl_data->cfgplot.clrsz;
 			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XY, spl_data->cfgplot.clrs[index].rgba));
@@ -419,11 +466,13 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
 		const struct kdatacfg *cfgs[3];
+		enum kplottype plotstypes[3];
 		for (int i = 0; i < 3; i++) {
 			d2[i] = kdata_array_alloc(plots->plots[i]->data, plots->nb);
 			cfgs[i] = &spl_data->cfgdata;
+			plotstypes[i] = (plots->plots[i]->pl_type == KPLOT_UNDEFINED) ? spl_data->plotstypes[i] : plots->plots[i]->pl_type;
 		}
-		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, cfgs, spl_data->plotstype);
+		kplot_attach_datas(p, 3, d2, plotstypes, cfgs, spl_data->plotstype);
 		if (spl_data->show_legend) {
 			int index = nb_graphs % spl_data->cfgplot.clrsz;
 			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
@@ -524,13 +573,13 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		guint index = 0;
 		do {
 			GList *current_entry = g_list_nth(legend, index);
-			double color[3];
-			memcpy(color, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
+			double color3[3];
+			memcpy(color3, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
 			if (iter == NULL)
 				break;
 			y0 = pango_layout_iter_get_baseline(iter);
 			double dy = (double)y0 / PANGO_SCALE - 0.5 * SIRIL_PLOT_LEGEND_SIZE;
-			cairo_set_source_rgb(cr, color[0], color[1], color[2]);
+			cairo_set_source_rgb(cr, color3[0], color3[1], color3[2]);
 			cairo_set_line_width(cr, 1.);
 			if (index < nb_xygraphs) {
 				cairo_move_to(cr, px0, py0 + dy);
@@ -608,7 +657,7 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int w
 		}
 	}
 	// draw the plot and save the surface to svg
-	if (success && siril_plot_draw(svg_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT, TRUE))
+	if (success && siril_plot_draw(svg_cr, spl_data, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT, TRUE))
 		siril_log_message(_("%s has been saved.\n"), svgfilename);
 	else {
 		success = FALSE;
@@ -718,7 +767,11 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 		}
 		j += 3;
 	}
-	fileout = g_fopen(datfilename, "w");
+	char *newfilename = strdup(datfilename);
+	if (!g_str_has_suffix(newfilename, ".dat")) {
+		str_append(&newfilename, ".dat");
+	}
+	fileout = g_fopen(newfilename, "w");
 	if (fileout == NULL) {
 		siril_log_message(_("Could not create %s, aborting\n"));
 		retval = FALSE;
@@ -732,10 +785,11 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 			fprintf(fileout, " %g", data[index++]);
 	}
 	fclose(fileout);
-	siril_log_message(_("%s has been saved.\n"), datfilename);
+	siril_log_message(_("%s has been saved.\n"), newfilename);
 
 clean_and_exit:
 	g_string_free(header, TRUE);
 	free(data);
+	free(newfilename);
 	return retval;
 }

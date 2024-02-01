@@ -85,6 +85,8 @@ siril_common_SOURCES = \
 	algos/siril_wcs.c \
 	algos/sorting.c \
 	algos/sorting.h \
+	algos/spcc.c \
+	algos/spcc.h \
 	algos/star_finder.c \
 	algos/star_finder.h \
 	algos/statistics.c \
@@ -368,8 +370,6 @@ siril_common_SOURCES = \
 	registration/matching/match.c \
 	registration/matching/atpmatch.c \
 	registration/matching/misc.c \
-	registration/matching/project_coords.c \
-	registration/matching/project_coords.h \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
 	registration/registration.c \

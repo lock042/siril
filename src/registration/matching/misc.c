@@ -192,6 +192,7 @@ char *format, /* I: format part of printf statement */
  *      AT_TRANS_LINEAR      linear transformation
  *      AT_TRANS_QUADRATIC   linear plus quadratic terms
  *      AT_TRANS_CUBIC       linear plus quadratic plus cubic terms
+ *      AT_TRANS_QUARTIC     linear plus quadratic plus cubic terms plus order 4 terms
  *
  * RETURN:
  *    nothing
@@ -214,6 +215,7 @@ void atTransOrderSet(int order /* I: order for all TRANS structures */
  *      AT_TRANS_LINEAR      linear transformation
  *      AT_TRANS_QUADRATIC   linear plus quadratic terms
  *      AT_TRANS_CUBIC       linear plus quadratic plus cubic terms
+ *      AT_TRANS_QUARTIC     linear plus quadratic plus cubic terms plus order 4 terms
  *
  * RETURN:
  *    the order value
@@ -419,6 +421,65 @@ int get_stars(psf_star **s, int n, int *num_stars, struct s_star **list) {
 	return (SH_SUCCESS);
 }
 
+int update_stars_positions(struct s_star **old_list, int n_old, psf_star **s) {
+	int i = 0;
+	struct s_star *current = *old_list;
+
+	while (i < n_old) {
+		int index = current->id;
+		current->x = s[index]->xpos;
+		current->y = s[index]->ypos;
+		current = current->next;
+		i++;
+	}
+
+	return (SH_SUCCESS);
+}
+
+/***********************************************************************
+ * ROUTINE: create_grid_list
+ *
+ * DESCRIPTION:
+ * Create an array of s_star structures, placed on a regular grid
+ * The grid is nbpoints x nbpoints, centered about the image center
+ * so from [-rx/2,rx/2][-y/2, ry/2]
+ * Return a pointer to the complete, filled array.
+ *
+ */
+
+struct s_star *
+create_grid_list(int rx, int ry, int nbpoints
+) {
+	struct s_star *head, *last, *new;
+
+	head = (struct s_star *) NULL;
+	last = head;
+	double paceX = (double)rx / (double)(nbpoints - 1);
+	double paceY = (double)ry / (double)(nbpoints - 1);
+	double currX = -0.5 * (double)rx;
+	double currY = -0.5 * (double)ry;
+	int s = 0;
+
+	for (int i = 0; i < nbpoints; i++) {
+		currY = -0.5 * (double)ry;
+		for (int j = 0; j < nbpoints; j++) {
+			new = atStarNew(currX, currY, 0., 0.);
+			new->id = s++;
+			currY += paceY;
+			if (head == NULL) {
+				head = new;
+				last = new;
+			} else {
+				last->next = new;
+				last = new;
+			}
+		}
+		currX += paceX;
+	}
+
+	return head;
+}
+
 void free_stars(struct s_star **list) {
 	struct s_star *head = *list;
 	while (head != NULL) {
@@ -459,25 +520,38 @@ print_trans
 {
    switch (trans->order) {
 
-   case 1:  /* linear transformation */
-      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e",
-            trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
+   case AT_TRANS_LINEAR:  /* linear transformation */
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e\ny00=%+15.9e y10=%+15.9e y01=%+15.9e\n",
+            trans->x00, trans->x10, trans->x01, trans->y00, trans->y10, trans->y01);
       break;
 
-   case 2:  /* quadratic terms */
-      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e ",
-          trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
-      siril_debug_print("       g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e",
-          trans->g, trans->h, trans->i, trans->j, trans->k, trans->l);
+   case AT_TRANS_QUADRATIC:  /* quadratic terms */
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e\n",
+          trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02);
+      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e\n",
+          trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02);
       break;
 
-   case 3:  /* cubic terms */
-      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e",
-         trans->a, trans->b, trans->c, trans->d, trans->e, trans->f,
-         trans->g, trans->h);
-      siril_debug_print("       i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e",
-         trans->i, trans->j, trans->k, trans->l, trans->m, trans->n,
-         trans->o, trans->p);
+   case AT_TRANS_CUBIC:  /* cubic terms */
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
+         trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
+         trans->x30, trans->x21, trans->x12, trans->x03);
+      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
+         trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
+         trans->y30, trans->y21, trans->y12, trans->y03);
+      break;
+
+   case AT_TRANS_QUARTIC:  /* order 4 terms */
+      siril_debug_print("TRANS:\nx00=%+15.9e x10=%+15.9e x01=%+15.9e x20=%+15.9e x11=%+15.9e x02=%+15.9e x30=%+15.9e x21=%+15.9e x12=%+15.9e x03=%+15.9e\n",
+         trans->x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02,
+         trans->x30, trans->x21, trans->x12, trans->x03);
+      siril_debug_print("x40=%+15.9e x31=%+15.9e 22=%+15.9e x13=%+15.9e x04=%+15.9e\n",
+         trans->x40, trans->x31, trans->x22, trans->x13, trans->x04);
+      siril_debug_print("y00=%+15.9e y10=%+15.9e y01=%+15.9e y20=%+15.9e y11=%+15.9e y02=%+15.9e y30=%+15.9e y21=%+15.9e y12=%+15.9e y03=%+15.9e\n",
+         trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02,
+         trans->y30, trans->y21, trans->y12, trans->y03);
+      siril_debug_print("y40=%+15.9e y31=%+15.9e 22=%+15.9e y13=%+15.9e y04=%+15.9e\n",
+         trans->y40, trans->y31, trans->y22, trans->y13, trans->y04);
       break;
 
    default:
@@ -489,9 +563,8 @@ print_trans
 	 * we always print this information about the match at the end
 	 * of the line ]
 	 */
-	printf(" sig=%-.4e Nr=%d Nm=%d sx=%-.4e sy=%-.4e",
+	printf("sig=%-.4e Nr=%d Nm=%d sx=%-.4e sy=%-.4e\n",
 	       trans->sig, trans->nr, trans->nm, trans->sx, trans->sy);
-	printf(" \n");
 
 }
 

@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 
 
 // Use this flag to print wcslib related verbose - not for production
-#define DEBUG_WCS 1
+#define DEBUG_WCS 0
 
 gboolean has_wcs(fits *fit) {
 	return fit->wcslib != NULL;
@@ -86,9 +86,13 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 	wcsprm_t *data = NULL, *wcs = NULL;
 	int nreject, nwcs;
+	int ctrl = 0;
+#if DEBUG_WCS
+	ctrl = 2; // writes rejected WCS cards
+#endif
 	/** There was a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
 	 * We now force to have 7.12 at least */
-	int wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
+	int wcs_status = wcspih(header, nkeyrec, 0, ctrl, &nreject, &nwcs, &data);
 
 	if (wcs_status == 0) {
 		for (int i = 0; i < nwcs; i++) {
@@ -238,7 +242,7 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 	int c = 0;
 	int *status = calloc((unsigned)n , sizeof(int));
 	int globstatus = wcss2p(fit->wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
-	if (globstatus == WCSERR_SUCCESS || WCSERR_BAD_WORLD) {// we accept BAD_WORLD as it does not mean all of the conversions failed
+	if (globstatus == WCSERR_SUCCESS || globstatus == WCSERR_BAD_WORLD) {// we accept BAD_WORLD as it does not mean all of the conversions failed
 		for (int i = 0; i < n; i++) {
 			if (!status[i]) {
 				double xx = pixcrd[c++];
@@ -350,6 +354,67 @@ double get_wcs_image_resolution(fits *fit) {
 		// what about pix size x != y?
 	}
 	return resolution;
+}
+
+// return the order of the SIP polynomials and fills the coeffs matrices (if first matrix A is not NULL)
+int extract_SIP_order_and_matrices(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]) {
+	int order = 0;
+	if (!dis)
+		return 0;
+	for (int n = 0; n < dis->ndp; n++) {
+		if (!g_str_has_prefix(dis->dp[n].field + 4, "SIP"))
+			continue;
+		int mat  = dis->dp[n].j; // if 1, it's the A terms, if 2, it's the B terms
+		int fwd = (g_str_has_prefix(dis->dp[n].field + 8, "FWD")) ? 1 : 2; // if 1, it's A/B, if 2, it's AP/BP
+		int i, j;
+		sscanf(dis->dp[n].field + 12, "%d_%d", &i, &j);
+		if (fabs(dis->dp[n].value.f) > 0) {
+			order = max(order, i);
+			order = max(order, j);
+		}
+		if (!A) // Warning: for brevity, we only test for the first matrix for brevity...
+			continue;
+		if (mat == 1) {
+			if (fwd == 1) {
+				A[i][j] = dis->dp[n].value.f;
+			} else {
+				AP[i][j] = dis->dp[n].value.f;
+			}
+		} else {
+			if (fwd == 1) {
+				B[i][j] = dis->dp[n].value.f;
+			} else {
+				BP[i][j] = dis->dp[n].value.f;
+			}
+		}
+	}
+	return order;
+}
+
+void update_SIP_keys(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]) {
+	if (!dis)
+		return;
+	for (int n = 0; n < dis->ndp; n++) {
+		if (!g_str_has_prefix(dis->dp[n].field + 4, "SIP"))
+			continue;
+		int mat  = dis->dp[n].j; // if 1, it's the A terms, if 2, it's the B terms
+		int fwd = (g_str_has_prefix(dis->dp[n].field + 8, "FWD")) ? 1 : 2; // if 1, it's A/B, if 2, it's AP/BP
+		int i, j;
+		sscanf(dis->dp[n].field + 12, "%d_%d", &i, &j);
+		if (mat == 1) {
+			dis->dp[n].value.f = (fwd == 1) ? A[i][j] : AP[i][j];
+		} else {
+			dis->dp[n].value.f = (fwd == 1) ? B[i][j] : BP[i][j];
+		}
+	}
 }
 
 void wcs_print(wcsprm_t *prm) {

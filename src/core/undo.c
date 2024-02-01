@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -268,6 +268,7 @@ static int undo_get_data(fits *fit, historic *hist) {
 	fit->icc_profile = copyICCProfile(hist->icc_profile);
 	color_manage(fit, (fit->icc_profile != NULL));
 	fits_change_depth(fit, hist->nchans);
+
 	if (hist->type == DATA_USHORT) {
 		if (gfit.type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];

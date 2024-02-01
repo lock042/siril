@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -524,10 +524,13 @@ gpointer cut_profile(gpointer p) {
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
+	siril_plot_set_nth_color(spl_data, 1, (double[3]){1., 0., 0.});
 	siril_plot_set_savename(spl_data, "profile");
 	if (arg->fit->naxes[2] == 3 && arg->mode != CUT_MONO) {
 		siril_plot_add_xydata(spl_data, "G", nbr_points, x, g, NULL, NULL);
 		siril_plot_add_xydata(spl_data, "B", nbr_points, x, b, NULL, NULL);
+		siril_plot_set_nth_color(spl_data, 2, (double[3]){0., 1., 0.});
+		siril_plot_set_nth_color(spl_data, 3, (double[3]){0., 0., 1.});
 	}
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);

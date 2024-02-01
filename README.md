@@ -35,6 +35,7 @@ Then, mandatory build dependencies:
 - **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
 - **A C++ compiler** for opencv code and avi exporter
 - **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possible without some shift-only registration)
+- **json-glib-1.0**, (>= 1.2.6) for Siril update check, spectrophotometry color calibration and metadata output
 
 Siril works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file
@@ -43,7 +44,6 @@ libraries listed below. Libraries need to be present at compilation time, or
 their support won't be included.
 
 - **libcurl** for web access
-- **json-glib-1.0**, (>= 1.2.6) for Siril update check and metadata output
 - **exiv2** to get thumbnails from files
 - **libraw** for DSLR RAW files import
 - **libffms2** for films import (any format supported by ffmpeg)
@@ -127,7 +127,7 @@ ninja -C _build uninstall
 ```
 
 Using meson to build siril requires all optional dependencies to be available or explicitly
-disabled on the meson command line adding `-Djson_glib=false` for example. The autotools way
+disabled on the meson command line adding `-Dexiv2=false` for example. The autotools way
 still only enables dependencies that are found and is available using autogen.sh.
 
 ## Building Siril for macOS

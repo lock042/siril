@@ -30,10 +30,12 @@ xx/xx/xx
 * Fixed a crash when carrying out sequence geometry operations, caused by ROI (#1235)
 * Fixed wavelets redraw. (#1236)
 * Removed glib-networking as a dependency (#1157)
+* Added color management to photometric color calibration, and SPCC as a new method. (!598)
+* Added solving with distorsions using SIP convention and handling writing related keywords in the header (!612 and #1154::3)
 * Added auto remove VSX stars from compstars list (!608)
 
 siril 1.2.1
-xx/xx/xx
+01/26/24
 
 * Fixed Anscombe VST noise reduction option for mono images
 * Fixed HEIF import (#1198)
@@ -52,6 +54,9 @@ xx/xx/xx
 * Fixed using wcs info when using light_curve command (#1195)
 * Allowed moving file into workdir to be picked up for livestacking (#1223)
 * Fixed the way we check if there is enough space to use quick photometry (#1238)
+* Fixed platesolving close to poles (#1245)
+* Fixed bit depth evaluation for 8-bit images (#1244)
+* Fixed division by 0 in PixelMath (#1249)
 
 siril 1.2.0
 09/15/23

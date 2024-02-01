@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@ void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_LIBCURL)
+#if defined(HAVE_LIBCURL)
 	siril_check_updates(TRUE);
 #else
 	siril_log_message(_("Cannot check for updates with this version, missing dependency\n"));
@@ -501,6 +501,27 @@ void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer
 	compute_aberration_inspector();
 }
 
+void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+	if (g_variant_get_boolean(state)) {
+		draw_sensor_tilt(&gfit);
+
+	} else {
+		clear_sensor_tilt();
+		redraw(REDRAW_OVERLAY);
+	}
+	g_simple_action_set_state(action, state);
+	set_cursor_waiting(FALSE);
+}
+
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("file_information");
 }
@@ -526,6 +547,12 @@ void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 void pcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	initialize_photometric_cc_dialog();
+	siril_open_dialog("ImagePlateSolver_Dial");
+	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
+}
+
+void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
+	initialize_spectrophotometric_cc_dialog();
 	siril_open_dialog("ImagePlateSolver_Dial");
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 }

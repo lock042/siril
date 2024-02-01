@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -264,8 +264,8 @@ const char *psf_error_to_string(psf_error err) {
 			return _("area too small");
 		case PSF_ERR_INVALID_IMAGE:
 			return _("image is invalid");
-		case PSF_ERR_OUT_OF_IMAGE:
-			return _("not in image");
+		case PSF_ERR_FLUX_RATIO:
+			return _("flux ratio failed");
 		default:
 			return _("unknown error");
 	}

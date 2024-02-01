@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1655,14 +1655,20 @@ static void coeff_clear() {
 }
 
 void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	gboolean photometric = gtk_toggle_button_get_active((GtkToggleButton*) lookup_widget("compositing_pcc_active"));
+	int photometric = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")));
 	GtkWidget *win = NULL;
-	if (photometric) {
-		win = lookup_widget("ImagePlateSolver_Dial");
-		initialize_photometric_cc_dialog();
-	} else {
-		win = lookup_widget("color_calibration");
-		initialize_calibration_interface();
+	switch (photometric) {
+		case 0:
+			win = lookup_widget("color_calibration");
+			initialize_calibration_interface();
+		break;
+		case 1:
+			win = lookup_widget("ImagePlateSolver_Dial");
+			initialize_photometric_cc_dialog();
+		break;
+		case 2:
+			win = lookup_widget("ImagePlateSolver_Dial");
+			initialize_spectrophotometric_cc_dialog();
 	}
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */

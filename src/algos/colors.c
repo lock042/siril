@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <float.h>
 
+#include "algos/cie_standard_observer.h" // Do not include this from anywhere else
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -635,7 +636,8 @@ void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
 	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
-// color index to temperature in kelvin
+// Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
+// Uses Ballesteros' formula based on considering stars as black bodies
 double BV_to_T(double BV) {
 	double T;
 
@@ -651,6 +653,83 @@ double BV_to_T(double BV) {
 
 	return T;
 }
+
+// CIE XYZ Color Matching Functions
+float x1931(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1931_1nm[index][0] * w1_w + xyz1931_1nm[index+1][0] * w2_w;
+	return retval;
+}
+
+float y1931(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1931_1nm[index][1] * w1_w + xyz1931_1nm[index+1][1] * w2_w;
+	return retval;
+}
+
+float z1931(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1931_1nm[index][2] * w1_w + xyz1931_1nm[index+1][2] * w2_w;
+	return retval;
+}
+
+float x1964(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1964_1nm[index][0] * w1_w + xyz1964_1nm[index+1][0] * w2_w;
+	return retval;
+}
+
+float y1964(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1964_1nm[index][1] * w1_w + xyz1964_1nm[index+1][1] * w2_w;
+	return retval;
+}
+
+float z1964(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1964_1nm[index][2] * w1_w + xyz1964_1nm[index+1][2] * w2_w;
+	return retval;
+}
+
+cmsCIExyY wl_to_xyY(double wl) {
+	cmsCIEXYZ XYZ;
+	cmsCIExyY xyY;
+	if (com.pref.icc.cmf == CMF_1931_2DEG) {
+		XYZ = (cmsCIEXYZ) { x1931(wl), y1931(wl), z1931(wl) };
+	} else {
+		XYZ = (cmsCIEXYZ) { x1964(wl), y1964(wl), z1964(wl) };
+	}
+	cmsXYZ2xyY(&xyY, &XYZ);
+	return xyY;
+}
+
+// Returns the emittance of a Planckian black body spectrum at wavelength
+// wl and temperature bbTemp
+// from "Colour Rendering of Spectra", John Walker, Fourmilab. Public domain code, last updated March 9 2003
+/*
+float bb_spectrum(float wl, float bbTemp) {
+	float wlm = wl * 1e-9;   // Wavelength in meters
+	return (3.74183e-16f * pow(wlm, -5.f)) / (expf(1.4388e-2f / (wlm * bbTemp)) - 1.f);
+}
+*/
 
 int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string) {
 	unsigned int row, col, pat_cell;

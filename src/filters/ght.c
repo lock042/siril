@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -488,8 +488,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 		}
 		memcpy(to->fdata, buf, ndata * sizeof(float));
 	} else if (from->type == DATA_USHORT) {
-		float norm = get_normalized_value(from);
-		float invnorm = 1.0f / norm;
+		float invnorm = 1.0f / USHRT_MAX_SINGLE;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -504,7 +503,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 		for (size_t i = 0 ; i < ndata ; i++)
-			to->data[i] = roundf_to_WORD(buf[i] * norm);
+			to->data[i] = roundf_to_WORD(buf[i] * USHRT_MAX_SINGLE);
 	}
 	free(buf);
 	invalidate_stats_from_fit(to);
@@ -541,8 +540,7 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 		float* pbuf2[3];
 		for (long i = 0 ; i < from->naxes[2]; i++)
 			pbuf2[i] = buf2 + i * npixels;
-		float norm = get_normalized_value(from);
-		float invnorm = 1.0f / norm;
+		float invnorm = 1.0f / USHRT_MAX_SINGLE;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -558,9 +556,9 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 #endif
 		for (long i = 0 ; i < npixels ; i++) {
 			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &pbuf2[0][i], &pbuf2[1][i], &pbuf2[2][i]);
-			to->pdata[0][i] = roundf_to_WORD(pbuf2[0][i] * norm);
-			to->pdata[1][i] = roundf_to_WORD(pbuf2[1][i] * norm);
-			to->pdata[2][i] = roundf_to_WORD(pbuf2[2][i] * norm);
+			to->pdata[0][i] = roundf_to_WORD(pbuf2[0][i] * USHRT_MAX_SINGLE);
+			to->pdata[1][i] = roundf_to_WORD(pbuf2[1][i] * USHRT_MAX_SINGLE);
+			to->pdata[2][i] = roundf_to_WORD(pbuf2[2][i] * USHRT_MAX_SINGLE);
 		}
 		free(buf2);
 	}

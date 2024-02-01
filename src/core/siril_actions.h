@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,6 +85,8 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
@@ -92,6 +94,7 @@ void remove_green_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 void saturation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void pcc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data);
 void split_channel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
