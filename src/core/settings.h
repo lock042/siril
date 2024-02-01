@@ -84,9 +84,13 @@ typedef enum {
 	V2 = 1,
 	V1MONO = 2,
 	V1RGB = 4,
-	TORCH = 8,
+	TORCH = 8
 } starnet_version;
 
+typedef enum {
+	CMF_1931_2DEG = 0,
+	CMF_1964_10DEG = 1
+} cmf_pref;
 
 /***********************************************************************************************/
 
@@ -304,7 +308,29 @@ typedef struct icc_params {
 	icc_autoconvert_type autoconversion;
 	icc_assign_type autoassignment;
 	gboolean pedantic_linear;
+	cmf_pref cmf;
 } icc_params;
+
+struct spcc_favourites {
+	gboolean use_spcc_repository;
+	gboolean auto_spcc_update; // automatically update spcc repository at startup
+	gchar *redpref;
+	gchar *greenpref;
+	gchar *bluepref;
+	gchar *lpfpref;
+	gchar *oscfilterpref;
+	gchar *monosensorpref;
+	gchar *oscsensorpref;
+	gboolean is_mono;
+	gboolean is_dslr;
+	gboolean nb_mode;
+	double red_wl;
+	double green_wl;
+	double blue_wl;
+	double red_bw;
+	double green_bw;
+	double blue_bw;
+};
 
 /**
  * This is the preference structure.
@@ -357,6 +383,7 @@ struct pref_struct {
 	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;
+	struct spcc_favourites spcc;
 	fftw_params fftw_conf;
 	icc_params icc;
 	GList *selected_scripts;

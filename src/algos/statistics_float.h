@@ -15,5 +15,6 @@ float siril_stats_robust_mean(const float sorted_data[],
 		const size_t stride, const size_t size, double *deviation);
 
 int robustmean(int n, const double *x, double *mean, double *stdev);
+int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b, double *sigma, gboolean *mask);
 
 #endif

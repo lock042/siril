@@ -268,8 +268,8 @@ const char *psf_error_to_string(psf_error err) {
 			return _("area too small");
 		case PSF_ERR_INVALID_IMAGE:
 			return _("image is invalid");
-		case PSF_ERR_OUT_OF_IMAGE:
-			return _("not in image");
+		case PSF_ERR_FLUX_RATIO:
+			return _("flux ratio failed");
 		default:
 			return _("unknown error");
 	}

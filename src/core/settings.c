@@ -44,15 +44,11 @@ preferences pref_init = {
 	.hd_bitdepth = 20,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
-#ifdef HAVE_JSON_GLIB
  #ifdef SIRIL_UNSTABLE
 	.check_update = FALSE,
  #else
 	.check_update = TRUE,
  #endif
-#else
-	.check_update = FALSE,
-#endif
 	.lang = 0,
 	.swap_dir = NULL,
 	.binning_update = TRUE,
@@ -68,7 +64,7 @@ preferences pref_init = {
 	.gnuplot_dir = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
-	.use_scripts_repository = FALSE,
+	.use_scripts_repository = TRUE,
 	.auto_script_update = FALSE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
@@ -233,7 +229,28 @@ preferences pref_init = {
 		.rendering_bpc = TRUE,
 		.autoconversion = ICC_NEVER_AUTOCONVERT,
 		.autoassignment = ICC_ASSIGN_ON_STRETCH,
-		.pedantic_linear = FALSE
+		.pedantic_linear = FALSE,
+		.cmf = CMF_1931_2DEG
+	},
+	.spcc = {
+		.use_spcc_repository = TRUE,
+		.auto_spcc_update = TRUE,
+		.redpref = NULL,
+		.greenpref = NULL,
+		.bluepref = NULL,
+		.lpfpref = NULL,
+		.oscfilterpref = NULL,
+		.monosensorpref = NULL,
+		.oscsensorpref = NULL,
+		.is_mono = TRUE,
+		.is_dslr = FALSE,
+		.nb_mode = FALSE,
+		.red_wl = 656.28,
+		.green_wl = 500.70,
+		.blue_wl = 500.70,
+		.red_bw = 6.0,
+		.green_bw = 6.0,
+		.blue_bw = 6.0
 	}
 };
 
@@ -280,6 +297,7 @@ static void initialize_configurable_colors() {
 /* static + dynamic settings initialization */
 void initialize_default_settings() {
 	com.pref = pref_init;
+	com.pref.spcc.oscfilterpref = g_strdup("No filter");
 	com.pref.ext = g_strdup(".fit");
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
@@ -350,6 +368,22 @@ struct settings_access all_settings[] = {
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 2.0, 50.0 } } },
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
+	{ "photometry", "redpref", STYPE_STR, N_("preferred SPCC red filter"), &com.pref.spcc.redpref },
+	{ "photometry", "greenpref", STYPE_STR, N_("preferred SPCC green filter"), &com.pref.spcc.greenpref },
+	{ "photometry", "bluepref", STYPE_STR, N_("preferred SPCC blue filter"), &com.pref.spcc.bluepref },
+	{ "photometry", "lpfpref", STYPE_STR, N_("preferred SPCC DSLR LPF filter"), &com.pref.spcc.lpfpref },
+	{ "photometry", "oscfilterpref", STYPE_STR, N_("preferred SPCC OSC filter"), &com.pref.spcc.oscfilterpref },
+	{ "photometry", "monosensorpref", STYPE_STR, N_("preferred SPCC mono sensor"), &com.pref.spcc.monosensorpref },
+	{ "photometry", "oscsensorpref", STYPE_STR, N_("preferred SPCC OSC sensor"), &com.pref.spcc.oscsensorpref },
+	{ "photometry", "is_mono", STYPE_BOOL, N_("is the SPCC sensor mono?"), &com.pref.spcc.is_mono },
+	{ "photometry", "is_dslr", STYPE_BOOL, N_("is the SPCC OSC sensor a DSLR?"), &com.pref.spcc.is_dslr },
+	{ "photometry", "nb_mode", STYPE_BOOL, N_("are we in narrowband mode?"), &com.pref.spcc.nb_mode },
+	{ "photometry", "r_wl", STYPE_DOUBLE, N_("red NB filter wavelength"), &com.pref.spcc.red_wl },
+	{ "photometry", "r_bw", STYPE_DOUBLE, N_("red NB filter bandwidth"), &com.pref.spcc.red_bw },
+	{ "photometry", "g_wl", STYPE_DOUBLE, N_("green NB filter wavelength"), &com.pref.spcc.green_wl },
+	{ "photometry", "g_bw", STYPE_DOUBLE, N_("green NB filter bandwidth"), &com.pref.spcc.green_bw },
+	{ "photometry", "b_wl", STYPE_DOUBLE, N_("blue NB filter wavelength"), &com.pref.spcc.blue_wl },
+	{ "photometry", "b_bw", STYPE_DOUBLE, N_("blue NB filter bandwidth"), &com.pref.spcc.blue_bw },
 
 	{ "astrometry", "asnet_sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 6 } } },
 	{ "astrometry", "asnet_radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },
@@ -421,7 +455,9 @@ struct settings_access all_settings[] = {
 	{ "gui", "icon_symbolic", STYPE_BOOL, N_("icon style"), &com.pref.gui.icon_symbolic },
 	{ "gui", "script_path", STYPE_STRLIST, N_("list of script directories"), &com.pref.gui.script_path },
 	{ "gui", "use_scripts_repository", STYPE_BOOL, N_("use and sync online scripts repository"), &com.pref.use_scripts_repository },
+	{ "gui", "use_spcc_repository", STYPE_BOOL, N_("use and sync spcc-database repository"), &com.pref.spcc.use_spcc_repository },
 	{ "gui", "auto_update_scripts", STYPE_BOOL, N_("auto sync online scripts repository"), &com.pref.auto_script_update },
+	{ "gui", "auto_update_spcc", STYPE_BOOL, N_("auto sync spcc-database repository"), &com.pref.spcc.auto_spcc_update },
 	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
 	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },

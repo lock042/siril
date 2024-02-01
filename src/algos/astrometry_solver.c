@@ -46,6 +46,7 @@
 #include "io/annotation_catalogues.h"
 #include "algos/photometry.h"
 #include "algos/photometric_cc.h"
+#include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
@@ -408,7 +409,7 @@ static int add_disto_to_wcslib(fits *fit, TRANS *trans) {
 		AP[3][1] = revtrans.x31;
 		AP[2][2] = revtrans.x22;
 		AP[1][3] = revtrans.x13;
-		AP[0][4] = revtrans.x04;	
+		AP[0][4] = revtrans.x04;
 
 		BP[4][0] = revtrans.y40;
 		BP[3][1] = revtrans.y31;
@@ -763,6 +764,7 @@ static int get_catalog_stars(struct astrometry_data *args, gboolean do_fetch) {
 	if (do_fetch) {
 		if (siril_catalog_conesearch(args->ref_stars) <= 0)
 			return 1;
+		sort_cat_items_by_mag(args->ref_stars);
 		siril_log_message(_("Fetched %d stars from %s catalogue\n"), args->ref_stars->nbitems, catalog_to_str(args->ref_stars->cat_index));
 	} else { // the stars were already fetched, we just reset the projection
 		siril_catalog_reset_projection(args->ref_stars);
@@ -861,7 +863,7 @@ gpointer plate_solver(gpointer p) {
 		// capping the detection to max usable number of stars
 		if (args->n_cat == 0)
 				args->n_cat = BRIGHTEST_STARS;
-		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
+		int max_stars = (args->for_photometry_cc || args->for_photometry_spcc) ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
 
 #ifdef _WIN32
 		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
@@ -958,7 +960,7 @@ gpointer plate_solver(gpointer p) {
 	print_image_center(&solution);
 
 	/* 5. Run photometric color correction, if enabled */
-	if (args->for_photometry_cc) {
+	if (args->for_photometry_cc || args->for_photometry_spcc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
 		// We relaunch the conesearch with phot flag set to TRUE
@@ -978,7 +980,12 @@ gpointer plate_solver(gpointer p) {
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->ref_stars->limitmag);
 		}
 		siril_catalog_free_items(args->ref_stars);
-		siril_catalog_conesearch(args->ref_stars);
+		if (args->for_photometry_spcc) {
+			args->ref_stars->cat_index = CAT_GAIADR3_DIRECT;
+			siril_gaiadr3_datalink_query(args->ref_stars, XP_SAMPLED, &args->pcc->datalink_path, 5000);
+		} else {
+			siril_catalog_conesearch(args->ref_stars);
+		}
 		siril_catalog_project_with_WCS(args->ref_stars, args->fit, TRUE, FALSE);
 		pcc_stars = convert_siril_cat_to_pcc_stars(args->ref_stars, &nb_pcc_stars);
 		args->ret = nb_pcc_stars == 0;
@@ -1232,8 +1239,17 @@ static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data 
 
 	// saving state for undo before modifying fit structure
 	if (!com.script) {
-		const char *undo_str = args->for_photometry_cc ? _("Photometric CC") : _("Plate Solve");
-		undo_save_state(args->fit, undo_str);
+		if (args->for_photometry_spcc || args->for_photometry_cc) {
+			const char *algo;
+			if (args-> for_photometry_spcc) {
+				algo = _("SPCC");
+			} else {
+				algo = _("PCC");
+			}
+			undo_save_state(args->fit, _("Photometric CC (algorithm: %s)"), algo);
+		} else {
+			undo_save_state(args->fit, _("Plate Solve"));
+		}
 	}
 
 	solution->crpix[0] = args->rx_solver * 0.5;
@@ -1337,6 +1353,7 @@ static void get_asnet_version(gchar *path) {
 		} else {
 			asnet_version = g_strdup("<0.88"); // version switch was introduced from 0.88 (https://github.com/dstndstn/astrometry.net/commit/25f0b829d80c57984d404de50f9c645cb3da2223)
 		}
+		g_strfreev(chunks);
 	}
 	g_free(child_stdout);
 	siril_debug_print("Running asnet version %s\n", asnet_version);

@@ -214,6 +214,8 @@ int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
 int	process_subsky(int nb);
+int process_spcc(int nb);
+int process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
 int	process_stat(int nb);
