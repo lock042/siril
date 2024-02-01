@@ -63,6 +63,8 @@ static void free_list_plots(gpointer data) {
 }
 
 static void free_bkg(splbkg *bkg) {
+	if (!bkg)
+		return;
 	g_free(bkg->bkgfilepath);
 	if (bkg->img)
 		g_object_unref(bkg->img);
@@ -117,6 +119,37 @@ static int comparex(const void *a, const void *b) {
 	return 0;
 }
 
+// TODO later (zoomable background)
+// get subpixmap to display background
+// static GdkPixbuf *extract_sub_bkg(siril_plot_data *spl_data, double xmin, double xmax, double ymin, double ymax, int *offsx, int *offsy) {
+// 	*offsx = 0;
+// 	*offsy = 0;
+// 	double deltax = spl_data->datamax.x - spl_data->datamin.x;
+// 	double deltay = spl_data->datamax.y - spl_data->datamin.y;
+// 	double xminp = xmin * (double)spl_data->bkg->width / deltax;
+// 	double xmaxp = xmax * (double)spl_data->bkg->width / deltax;
+// 	double yminp = (spl_data->datamax.y - ymin) * (double)spl_data->bkg->width / deltax;// the display has y down
+// 	double ymaxp = (spl_data->datamax.y - ymax) * (double)spl_data->bkg->width / deltax;
+// 	double rangex = (xmax - xmin) * (double)spl_data->bkg->width / deltax;
+// 	double rangey = (ymax - ymin) * (double)spl_data->bkg->height / deltay;
+// 	if (xminp < 0) {
+// 		*offsx = (int)xminp;
+// 		xminp = 0.;
+// 	}
+// 	if (ymaxp < 0) {
+// 		*offsy = (int)ymaxp;
+// 		ymaxp = 0.;
+// 	}
+// 	if (rangex > (double)spl_data->bkg->width) {
+// 		rangex = (double)spl_data->bkg->width;
+// 	}
+// 	if (rangey > (double)spl_data->bkg->height) {
+// 		rangey = (double)spl_data->bkg->height;
+// 	}
+// 	GdkPixbuf *subbkg = gdk_pixbuf_new_subpixbuf(spl_data->bkg->img, (int)xminp, (int)ymaxp, (int)(rangex), (int)(rangey));
+// 	return subbkg;
+// }
+
 // init/free spl_data
 
 void init_siril_plot_data(siril_plot_data *spl_data) {
@@ -140,7 +173,7 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->autotic = TRUE;
 	spl_data->revertX = FALSE;
 	spl_data->revertY = FALSE;
-	spl_data->interactive = FALSE;
+	spl_data->zoomable = FALSE;
 	spl_data->bkg = NULL;
 	spl_data->width = 0;
 	spl_data->height = 0;
@@ -413,10 +446,10 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	spl_data->cfgplot.yaxisrevert = (spl_data->revertY) ? 1 : 0;
 
 	// computing the tics spacing and bounds
-	double x1 = (!spl_data->interactive) ? spl_data->datamin.x : spl_data->pdd.datamin.x;
-	double x2 = (!spl_data->interactive) ? spl_data->datamax.x : spl_data->pdd.datamax.x;
-	double y1 = (!spl_data->interactive) ? spl_data->datamin.y : spl_data->pdd.datamin.y;
-	double y2 = (!spl_data->interactive) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
+	double x1 = (!spl_data->zoomable) ? spl_data->datamin.x : spl_data->pdd.datamin.x;
+	double x2 = (!spl_data->zoomable) ? spl_data->datamax.x : spl_data->pdd.datamax.x;
+	double y1 = (!spl_data->zoomable) ? spl_data->datamin.y : spl_data->pdd.datamin.y;
+	double y2 = (!spl_data->zoomable) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
 	double xmin, xmax, ymin, ymax;
 	int nbticX, nbticY, sigX, sigY;
 	if (spl_data->autotic &&
@@ -573,23 +606,24 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	struct kplotctx ctx = { 0 };
 	cairo_t *draw_cr = cairo_create(draw_surface);
 	kplot_draw(p, drawwidth, drawheight, draw_cr, &ctx);
+	spl_data->pdd.range = (point){ ctx.dims.x,  ctx.dims.y};
+	spl_data->pdd.offset = (point){ ctx.offs.x,  ctx.offs.y + top};
 	if (spl_data->bkg) {
+		// TODO later zoomable bkg
+		// int offsx, offsy;
+		// GdkPixbuf *subbkg = extract_sub_bkg(spl_data, xmin, xmax, ymin, ymax, &offsx, &offsy);
 		GdkPixbuf *bkg = gdk_pixbuf_scale_simple(spl_data->bkg->img, (int)ctx.dims.x, (int)ctx.dims.y, GDK_INTERP_BILINEAR);
-		// printf("width: %d, height: %d\n",  (int)ctx.dims.x, (int)ctx.dims.y);
-		// printf("width: %d, height: %d\n",  gdk_pixbuf_get_width(bkg), gdk_pixbuf_get_height(bkg));
-		// printf("x0: %g, y0: %g\n",  ctx.offs.x, ctx.offs.y + top);
 		gdk_cairo_set_source_pixbuf(cr, bkg, ctx.offs.x, ctx.offs.y + top);
 		cairo_paint(cr);
 		cairo_fill(cr);
 		g_object_unref(bkg);
+		// g_object_unref(subbkg);
 	}
 	cairo_set_source_surface(cr, draw_surface, 0., (int)top);
 	cairo_paint(cr);
 	cairo_destroy(draw_cr);
 	cairo_surface_destroy(draw_surface);
 	kplot_free(p);
-	spl_data->pdd.range = (point){ ctx.dims.x,  ctx.dims.y};
-	spl_data->pdd.offset = (point){ ctx.offs.x,  ctx.offs.y + top};
 
 	if (spl_data->show_legend) {
 		// creating the legend
@@ -775,6 +809,8 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	}
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
+		if (plot->nb != nbpoints)
+			continue;
 		// adding x if none is present
 		if (j == 0) {
 			int index = j;
@@ -794,6 +830,8 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	}
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
+		if (plots->nb != nbpoints)
+			continue;
 		// adding x if none is present
 		if (j == 0) {
 			int index = j;

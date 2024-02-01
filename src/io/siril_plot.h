@@ -86,7 +86,7 @@ typedef struct siril_plot_data_struct {
 	gboolean revertX;
 	gboolean revertY;
 	plot_draw_data_t pdd; // data for display interaction
-	gboolean interactive; // true if GUI display
+	gboolean zoomable; // true if GUI display (unless there is a backgroung set)
 	splbkg *bkg; // background image structure
 	int width; // width of the display area (if 0, uses SIRIL_PLOT_DISPLAY_WIDTH)
 	int height; // height of the display area (if 0, uses SIRIL_PLOT_DISPLAY_HEIGHT)
