@@ -27,6 +27,7 @@
 #include <pango/pangocairo.h>
 #include <math.h>
 #include "core/proto.h"
+#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "gui/plot.h"
 
@@ -59,6 +60,13 @@ static void free_list_plots(gpointer data) {
 	splxyerrdata *item = (splxyerrdata *)data;
 	free_xyerrplot_data(data);
 	g_slice_free(splxyerrdata, item);
+}
+
+static void free_bkg(splbkg *bkg) {
+	g_free(bkg->bkgfilepath);
+	if (bkg->img)
+		g_object_unref(bkg->img);
+	free(bkg);
 }
 
 // allocate a simple xy data structure
@@ -133,6 +141,9 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->revertX = FALSE;
 	spl_data->revertY = FALSE;
 	spl_data->interactive = FALSE;
+	spl_data->bkg = NULL;
+	spl_data->width = 0;
+	spl_data->height = 0;
 
 	// initializing kplot cfg structs
 	kplotcfg_defaults(&spl_data->cfgplot);
@@ -176,7 +187,9 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	g_list_free_full(spl_data->plots, (GDestroyNotify)free_list_plots);
 	//freeing kplot cfg structures
 	free(spl_data->cfgplot.clrs);
+	free_bkg(spl_data->bkg);
 	free(spl_data);
+
 }
 
 // setters
@@ -241,6 +254,28 @@ void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplotty
 	}
 	splxydata *plot = (splxydata *)current_entry->data;
 	plot->pl_type = pl_type;
+}
+
+// set an image to be used as background
+// loads the image as a GdkPixBuf and gets its dimensions
+// `bkgfilename` is the name of the bkg file which should be located in `pixmaps/plot_background` folder
+gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfilename) {
+	if (spl_data->bkg) {
+		free_bkg(spl_data->bkg);
+	}
+	GError *error = NULL;
+	spl_data->bkg = calloc(1, sizeof(splbkg));
+	spl_data->bkg->bkgfilepath = g_build_filename(siril_get_system_data_dir(), "pixmaps", "plot_background", bkgfilename, NULL);
+	spl_data->bkg->img = gdk_pixbuf_new_from_file(spl_data->bkg->bkgfilepath, &error);
+	if (error) {
+		free_bkg(spl_data->bkg);
+		siril_debug_print("can't load background image %s (Error: s)", spl_data->bkg->bkgfilepath, error->message);
+		g_error_free(error);
+		return FALSE;
+	}
+	spl_data->bkg->height = gdk_pixbuf_get_height(spl_data->bkg->img);
+	spl_data->bkg->width = gdk_pixbuf_get_width(spl_data->bkg->img);
+	return TRUE;
 }
 
 // set the types of the nth plots (n is one-based)
@@ -538,6 +573,16 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	struct kplotctx ctx = { 0 };
 	cairo_t *draw_cr = cairo_create(draw_surface);
 	kplot_draw(p, drawwidth, drawheight, draw_cr, &ctx);
+	if (spl_data->bkg) {
+		GdkPixbuf *bkg = gdk_pixbuf_scale_simple(spl_data->bkg->img, (int)ctx.dims.x, (int)ctx.dims.y, GDK_INTERP_BILINEAR);
+		// printf("width: %d, height: %d\n",  (int)ctx.dims.x, (int)ctx.dims.y);
+		// printf("width: %d, height: %d\n",  gdk_pixbuf_get_width(bkg), gdk_pixbuf_get_height(bkg));
+		// printf("x0: %g, y0: %g\n",  ctx.offs.x, ctx.offs.y + top);
+		gdk_cairo_set_source_pixbuf(cr, bkg, ctx.offs.x, ctx.offs.y + top);
+		cairo_paint(cr);
+		cairo_fill(cr);
+		g_object_unref(bkg);
+	}
 	cairo_set_source_surface(cr, draw_surface, 0., (int)top);
 	cairo_paint(cr);
 	cairo_destroy(draw_cr);

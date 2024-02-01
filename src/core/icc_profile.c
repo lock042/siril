@@ -2206,12 +2206,16 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
 	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.0, 0.0 } );
 	n++;
+	if (!siril_plot_set_background(spl_data, "CIE1931xy.svg"))
+		siril_log_color_message(_("Could not load background\n"), "red");
 	if (compare_srgb) {
 		siril_plot_add_xydata(spl_data, _("sRGB"), 4, srgb_x, srgb_y, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
 	}
 	spl_data->datamin = (point) { 0.0, 0.0 };
 	spl_data->datamax = (point) { 0.8, 0.9 };
+	spl_data->width = 600;
+	spl_data->height = 600;
 	spl_data->cfgdata.line.sz = 2;
 
 	free(horseshoe_x);

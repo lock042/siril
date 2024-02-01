@@ -508,7 +508,9 @@ gboolean create_new_siril_plot_window(gpointer p) {
 
 	// add the drawing area
 	da = gtk_drawing_area_new();
-	gtk_widget_set_size_request(da, SIRIL_PLOT_DISPLAY_WIDTH, SIRIL_PLOT_DISPLAY_HEIGHT);
+	int width = (!spl_data->width) ? SIRIL_PLOT_DISPLAY_WIDTH : spl_data->width;
+	int height = (!spl_data->height) ? SIRIL_PLOT_DISPLAY_WIDTH : spl_data->height;
+	gtk_widget_set_size_request(da, width, height);
 	gtk_box_pack_start(GTK_BOX(vbox), da, TRUE, TRUE, 0);
 	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
 	GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | 
