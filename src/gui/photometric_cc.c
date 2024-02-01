@@ -406,8 +406,13 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
 	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
 	GList *osc = g_list_nth(com.spcc_data.osc_sensors, args->selected_sensor_osc);
-	osc_sensor *oscsen = (osc_sensor*) osc->data;
-	args->is_dslr = oscsen->channel[0].is_dslr;
+	if (osc) {
+		osc_sensor *oscsen = (osc_sensor*) osc->data;
+		args->is_dslr = oscsen->channel[0].is_dslr;
+	} else {
+		args->is_dslr = com.pref.spcc.is_dslr;
+	}
+
 	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
 	args->do_plot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_plot));
 	args->nb_mode = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nb_mode));
@@ -752,8 +757,12 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		gboolean is_dslr;
 		GList *osc = g_list_nth(com.spcc_data.osc_sensors, gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))));
-		osc_sensor *oscsensor = (osc_sensor*) osc->data;
-		is_dslr = oscsensor->channel[0].is_dslr;
+		if (osc) {
+			osc_sensor *oscsensor = (osc_sensor*) osc->data;
+			is_dslr = oscsensor->channel[0].is_dslr;
+		} else {
+			is_dslr = com.pref.spcc.is_dslr;
+		}
 		spcc_object *sensor_r = NULL, *sensor_g = NULL, *sensor_b = NULL, *filter_osc = NULL, *filter_lpf = NULL, *whiteref = NULL;
 		if (args.selected_sensor_osc >= 0 && args.selected_sensor_osc < g_list_length (sensor_list)) {
 			osc_sensor *osc = (osc_sensor*) g_list_nth(sensor_list, args.selected_sensor_osc)->data;
