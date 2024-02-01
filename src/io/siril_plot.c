@@ -291,15 +291,16 @@ void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplotty
 
 // set an image to be used as background
 // loads the image as a GdkPixBuf and gets its dimensions
-// `bkgfilename` is the name of the bkg file which should be located in `pixmaps/plot_background` folder
+// `bkgfilename` is the name of the bkg file which should be added in
+// `pixmaps/plot_background` folder and added to siril_resource.xml
 gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfilename) {
 	if (spl_data->bkg) {
 		free_bkg(spl_data->bkg);
 	}
 	GError *error = NULL;
 	spl_data->bkg = calloc(1, sizeof(splbkg));
-	spl_data->bkg->bkgfilepath = g_build_filename(siril_get_system_data_dir(), "pixmaps", "plot_background", bkgfilename, NULL);
-	spl_data->bkg->img = gdk_pixbuf_new_from_file(spl_data->bkg->bkgfilepath, &error);
+	spl_data->bkg->bkgfilepath = g_build_filename("/org/siril/ui/pixmaps/plot_background", bkgfilename, NULL);
+	spl_data->bkg->img = gdk_pixbuf_new_from_resource(spl_data->bkg->bkgfilepath, &error);
 	if (error) {
 		free_bkg(spl_data->bkg);
 		siril_debug_print("can't load background image %s (Error: s)", spl_data->bkg->bkgfilepath, error->message);
