@@ -164,7 +164,7 @@ void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	if (fit == &gfit && !com.headless) {
 		gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
-		gchar *name = g_build_filename(siril_get_system_data_dir(), "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
+		gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
 		gchar *tooltip = NULL;
 		if (active) {
 			if (fit->icc_profile) {
@@ -184,7 +184,7 @@ void color_manage(fits *fit, gboolean active) {
 		}
 		GtkWidget *image = lookup_widget("color_managed_icon");
 		GtkWidget *button = lookup_widget("icc_main_window_button");
-		gtk_image_set_from_file((GtkImage*) image, name);
+		gtk_image_set_from_resource((GtkImage*) image, name);
 		gtk_widget_set_tooltip_text(button, tooltip);
 		g_free(name);
 		g_free(buffer);
