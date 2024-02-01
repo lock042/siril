@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-01-27 10:44+0100\n"
-"PO-Revision-Date: 2024-02-01 09:42+0000\n"
+"PO-Revision-Date: 2024-02-02 09:25+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/fr/>\n"
@@ -9031,7 +9031,7 @@ msgstr "Ouvrir la fenêtre de résolution astrométrique"
 #: src/gui/siril-shortcuts.ui:177
 msgctxt "shortcut window"
 msgid "Open photometric color calibration dialog"
-msgstr "Ouvrir la fenêtre d'étalonnage photométrique des couleurs"
+msgstr "Ouvrir la fenêtre d'étalonnage des couleurs par photométrie"
 
 #: src/gui/siril-shortcuts.ui:184
 msgctxt "shortcut window"
@@ -9623,7 +9623,7 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1588 src/algos/photometric_cc.c:487
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr "L'étalonnage photométrique des couleurs a réussi\n"
+msgstr "L'étalonnage des couleurs par photométrie a réussi\n"
 
 #: src/algos/astrometry_solver.c:1596
 msgid "Flipping image and updating astrometry data.\n"
