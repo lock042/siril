@@ -30,6 +30,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="aavso_dialog.ui">gui/uifiles/aavso_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="aberration_inspector.ui">gui/uifiles/aberration_inspector.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="asinh_dialog.ui">gui/uifiles/asinh_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="astrometry_dialog.ui">gui/uifiles/astrometry_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="background_extraction_dialog.ui">gui/uifiles/background_extraction_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="bdeconv_dialog.ui">gui/uifiles/bdeconv_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="binxy_dialog.ui">gui/uifiles/binxy_dialog.ui</file>
@@ -54,7 +55,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="histogram_dialog.ui">gui/uifiles/histogram_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="icc_dialog.ui">gui/uifiles/icc_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="icc_gamut_dialog.ui">gui/uifiles/icc_gamut_dialog.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks" alias="IPS_dialog.ui">gui/uifiles/IPS_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="linearmatch_dialog.ui">gui/uifiles/linearmatch_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="livestacking_player.ui">gui/uifiles/livestacking_player.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="Median_dialog.ui">gui/uifiles/Median_dialog.ui</file>
@@ -63,6 +63,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="resample_dialog.ui">gui/uifiles/resample_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="rgradient_dialog.ui">gui/uifiles/rgradient_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="rotation_dialog.ui">gui/uifiles/rotation_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="s_pcc_dialog.ui">gui/uifiles/s_pcc_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="satu_dialog.ui">gui/uifiles/satu_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="savepopup.ui">gui/uifiles/savepopup.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="SCNR_dialog.ui">gui/uifiles/SCNR_dialog.ui</file>

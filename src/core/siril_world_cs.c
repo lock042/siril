@@ -60,6 +60,14 @@ void siril_world_cs_unref(SirilWorldCS *world_cs) {
 	}
 }
 
+SirilWorldCS *siril_world_cs_copy(SirilWorldCS *world_cs) {
+	g_return_val_if_fail(world_cs != NULL, NULL);
+	SirilWorldCS *world_cs_new = siril_world_cs_alloc();
+	world_cs_new->alpha = world_cs->alpha;
+	world_cs_new->delta = world_cs->delta;
+	return world_cs_new;
+}
+
 SirilWorldCS* siril_world_cs_new_from_a_d(gdouble alpha, gdouble delta) {
 	SirilWorldCS *world_cs;
 	/*

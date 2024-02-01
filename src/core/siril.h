@@ -481,6 +481,7 @@ typedef struct _spcc_object {
 	gchar *name;
 	gchar *filepath;
 	gchar *comment; // optional comment
+	gboolean is_dslr; // optional flag to indicate if a DSLR, defaults to FALSE
 	int index; // index in the JSON file
 	int type;
 	int quality;

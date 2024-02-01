@@ -1748,7 +1748,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
+            <property name="tooltip-markup" translatable="yes">Open the photometric color calibration dialog.
+
+&lt;b&gt;WARNING: image must be platesolved before.&lt;/b&gt;</property>
             <property name="action-name">win.pcc-processing</property>
             <property name="text" translatable="yes">Photometric Color Calibration...</property>
           </object>
@@ -1763,7 +1765,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
+            <property name="tooltip-markup" translatable="yes">Open the spectrophotometric color calibration dialog.
+
+&lt;b&gt;WARNING: image must be platesolved before.&lt;/b&gt;</property>
             <property name="action-name">win.spcc-processing</property>
             <property name="text" translatable="yes">Spectrophotometric Color Calibration...</property>
           </object>

@@ -23,6 +23,7 @@ const char* ui_files[] = {
 // Dialogs (sorted)
 	"/org/siril/ui/aavso_dialog.ui",
 	"/org/siril/ui/asinh_dialog.ui",
+	"/org/siril/ui/astrometry_dialog.ui",
 	"/org/siril/ui/background_extraction_dialog.ui",
 	"/org/siril/ui/bdeconv_dialog.ui",
 	"/org/siril/ui/binxy_dialog.ui",
@@ -45,7 +46,6 @@ const char* ui_files[] = {
 	"/org/siril/ui/histogram_dialog.ui",
 	"/org/siril/ui/icc_dialog.ui",
 	"/org/siril/ui/icc_gamut_dialog.ui",
-	"/org/siril/ui/IPS_dialog.ui",
 	"/org/siril/ui/linearmatch_dialog.ui",
 	"/org/siril/ui/livestacking_player.ui",
 	"/org/siril/ui/Median_dialog.ui",
@@ -54,6 +54,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/resample_dialog.ui",
 	"/org/siril/ui/rgradient_dialog.ui",
 	"/org/siril/ui/rotation_dialog.ui",
+	"/org/siril/ui/s_pcc_dialog.ui",
 	"/org/siril/ui/satu_dialog.ui",
 	"/org/siril/ui/savepopup.ui",
 	"/org/siril/ui/SCNR_dialog.ui",
