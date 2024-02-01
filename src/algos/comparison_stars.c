@@ -194,7 +194,7 @@ static gboolean end_compstars(gpointer p) {
 	return end_generic(NULL);
 }
 
-static void write_nina_file(struct compstars_arg *args) {
+void write_nina_file(struct compstars_arg *args) {
 	if (!args->nina_file)
 		return;
 	if (!g_strcmp0(args->nina_file, "auto")) {
@@ -233,7 +233,7 @@ static gboolean is_same_star(cat_item *s1, cat_item *s2) {
 			(fabs(s1->dec - s2->dec) < 2.0 * ONE_ARCSEC);
 }
 
-static void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
+void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
 	item->ra = ra;
 	item->dec = dec;
 	item->mag = mag;

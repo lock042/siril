@@ -688,6 +688,12 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 }
 
 void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	static GtkWidget *dialog = NULL;	// the window, a GtkDialog
+	if (!has_wcs(&gfit)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
+		gtk_widget_hide(dialog);
+		return;
+	}
 	siril_open_dialog("compstars");
 }
 
