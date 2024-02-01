@@ -59,7 +59,7 @@
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "io/gitscripts.h"
+#include "io/siril_git.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/ui_files.h"

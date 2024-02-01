@@ -129,6 +129,7 @@ int	process_modasinh(int nb);
 
 int	process_parse(int nb);
 int	process_pcc(int nb);
+int	process_platesolve(int nb);
 int	process_pm(int nb);
 int	process_preprocess(int nb);
 int	process_preprocess_single(int nb);

@@ -31,7 +31,8 @@ siril 1.4.0 xx xx, xx
 * Removed glib-networking as a dependency (#1157)
 * Fixed a crash in asinh (#1246)
 * Added color management to photometric color calibration, and SPCC as a new method. (!598)
-* Added solving with distorsions using SIP convention and handling writing related keywords in the header (!612 and #1154::3)
+* Added solving with distortions using SIP convention and handling writing related keywords in the header (!612 and #1154::3)
+* Split Astrometry from (S)PCC
 
 siril 1.2.1 January 26, 2024
 
