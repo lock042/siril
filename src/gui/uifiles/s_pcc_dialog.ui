@@ -568,7 +568,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the red channel narrowband filter</property>
-                            <property name="text" translatable="yes">656,28</property>
+                            <property name="text">656,28</property>
                             <property name="adjustment">nb_r_wl</property>
                             <property name="digits">2</property>
                             <property name="value">656.27999999999997</property>
@@ -584,7 +584,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the blue channel narrowband filter</property>
-                            <property name="text" translatable="yes">500,70</property>
+                            <property name="text">500,70</property>
                             <property name="adjustment">nb_b_wl</property>
                             <property name="digits">2</property>
                             <property name="value">500.69999999999999</property>
@@ -600,7 +600,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Enter the nominal wavelength of the green channel narrowband filter</property>
-                            <property name="text" translatable="yes">500,70</property>
+                            <property name="text">500,70</property>
                             <property name="adjustment">nb_g_wl</property>
                             <property name="digits">2</property>
                             <property name="value">500.69999999999999</property>
@@ -616,7 +616,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the red channel narrowband filter</property>
-                            <property name="text" translatable="yes">6,0</property>
+                            <property name="text">6,0</property>
                             <property name="adjustment">nb_r_bw</property>
                             <property name="digits">1</property>
                             <property name="value">6</property>
@@ -632,7 +632,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the green channel narrowband filter</property>
-                            <property name="text" translatable="yes">6,0</property>
+                            <property name="text">6,0</property>
                             <property name="adjustment">nb_g_bw</property>
                             <property name="digits">1</property>
                             <property name="value">6</property>
@@ -648,7 +648,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="tooltip-text" translatable="yes">Enter the nominal bandwidth of the blue channel narrowband filter</property>
-                            <property name="text" translatable="yes">6,0</property>
+                            <property name="text">6,0</property>
                             <property name="adjustment">nb_b_bw</property>
                             <property name="digits">1</property>
                             <property name="value">6</property>
@@ -675,7 +675,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios, and a CIE 1931 diagram showing the computed source profile compared to sRGB</property>
+                        <property name="tooltip-text" translatable="yes">Plot SPCC linear fits for catalog to image R/G and B/G ratios</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
                       </object>
@@ -936,7 +936,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="tooltip-text" translatable="yes">Include background samples this many σ above the median. Default is 2.00</property>
                             <property name="halign">start</property>
                             <property name="width-chars">5</property>
-                            <property name="text" translatable="yes">2,00</property>
+                            <property name="text">2,00</property>
                             <property name="adjustment">adj_bg_sigma_lower</property>
                             <property name="digits">2</property>
                             <property name="value">2</property>
@@ -954,7 +954,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <property name="tooltip-text" translatable="yes">Include background samples this many σ below the median. Default is 2.8</property>
                             <property name="halign">start</property>
                             <property name="width-chars">5</property>
-                            <property name="text" translatable="yes">2,80</property>
+                            <property name="text">2,80</property>
                             <property name="adjustment">adj_bg_sigma_upper</property>
                             <property name="digits">2</property>
                             <property name="value">2.7999999999999998</property>

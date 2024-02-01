@@ -434,7 +434,7 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 		if (args->selected_sensor_osc == -1 || args->selected_filter_osc == -1 ||
 						(args->selected_filter_lpf == -1 && args->is_dslr == TRUE) ||
 						args->selected_white_ref == -1) {
-			siril_log_color_message(_("Error: ensure OSC sensor, OSC filter and white reference are selected. If the DSLR option is checked, a DSLR LPF must be selected as well.\n"), "red");
+			siril_log_color_message(_("Error: ensure OSC sensor, OSC filter and white reference are selected.\n"), "red");
 			return 1;
 		}
 	}

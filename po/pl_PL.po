@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-01 10:50+0100\n"
+"POT-Creation-Date: 2024-02-01 14:52+0100\n"
 "PO-Revision-Date: 2018-12-21 14:06+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1045,7 +1045,7 @@ msgid "Pixel Size / μm"
 msgstr "Rozmiar pixela X (micron): "
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:513
-#: src/gui/photometric_cc.c:723 src/gui/photometric_cc.c:798
+#: src/gui/photometric_cc.c:728 src/gui/photometric_cc.c:807
 #, c-format
 msgid "Wavelength / nm"
 msgstr ""
@@ -5306,10 +5306,7 @@ msgid ""
 "placed in this directory."
 msgstr ""
 
-#: src/gui/uifiles/settings_window.ui:2879 src/gui/uifiles/spcc_details.ui:107
-#: src/gui/uifiles/spcc_details.ui:122 src/gui/uifiles/spcc_details.ui:137
-#: src/gui/uifiles/spcc_details.ui:178 src/gui/uifiles/spcc_details.ui:206
-#: src/gui/uifiles/spcc_details.ui:234
+#: src/gui/uifiles/settings_window.ui:2879
 msgid "label"
 msgstr ""
 
@@ -9286,16 +9283,8 @@ msgstr ""
 msgid "Enter the nominal wavelength of the red channel narrowband filter"
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:571
-msgid "656,28"
-msgstr ""
-
 #: src/gui/uifiles/s_pcc_dialog.ui:586
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
-msgstr ""
-
-#: src/gui/uifiles/s_pcc_dialog.ui:587 src/gui/uifiles/s_pcc_dialog.ui:603
-msgid "500,70"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:602
@@ -9304,11 +9293,6 @@ msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:618
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
-msgstr ""
-
-#: src/gui/uifiles/s_pcc_dialog.ui:619 src/gui/uifiles/s_pcc_dialog.ui:635
-#: src/gui/uifiles/s_pcc_dialog.ui:651
-msgid "6,0"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:634
@@ -9325,16 +9309,14 @@ msgid "Plot fits"
 msgstr "Diagram"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:678
-msgid ""
-"Plot SPCC linear fits for catalog to image R/G and B/G ratios, and a CIE "
-"1931 diagram showing the computed source profile compared to sRGB"
+msgid "Plot SPCC linear fits for catalog to image R/G and B/G ratios"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:693
 msgid "Sensor Type:"
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:723 src/gui/photometric_cc.c:541
+#: src/gui/uifiles/s_pcc_dialog.ui:723 src/gui/photometric_cc.c:546
 msgid "mono"
 msgstr ""
 
@@ -9394,16 +9376,8 @@ msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
 msgstr ""
 
-#: src/gui/uifiles/s_pcc_dialog.ui:939
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/s_pcc_dialog.ui:954
 msgid "Include background samples this many σ below the median. Default is 2.8"
-msgstr ""
-
-#: src/gui/uifiles/s_pcc_dialog.ui:957
-msgid "2,80"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:977
@@ -11853,7 +11827,7 @@ msgstr "Musisz wczytać wcześniej przynajmniej dwie warstwy !\n"
 
 #: src/compositing/compositing.c:773 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328
-#: src/gui/nina_light_curve.c:127 src/gui/photometric_cc.c:687
+#: src/gui/nina_light_curve.c:127 src/gui/photometric_cc.c:692
 #: src/registration/registration.c:1407 src/registration/registration.c:1501
 msgid "Warning"
 msgstr "Ostrzeżenie"
@@ -20452,49 +20426,48 @@ msgstr "Kalibracja kolorów..."
 msgid "Spectrophotometric Color Calibration"
 msgstr "Kalibracja kolorów..."
 
-#: src/gui/photometric_cc.c:425
+#: src/gui/photometric_cc.c:430
 msgid ""
 "Error: ensure mono sensor, R, G and B filters and white reference are "
 "selected.\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:432
+#: src/gui/photometric_cc.c:437
 msgid ""
-"Error: ensure OSC sensor, OSC filter and white reference are selected. If "
-"the DSLR option is checked, a DSLR LPF must be selected as well.\n"
+"Error: ensure OSC sensor, OSC filter and white reference are selected.\n"
 msgstr ""
 
-#: src/gui/photometric_cc.c:541
+#: src/gui/photometric_cc.c:546
 msgid "one-shot color (OSC)"
 msgstr ""
 
-#: src/gui/photometric_cc.c:687
+#: src/gui/photometric_cc.c:692
 msgid "No selection made: no details to show."
 msgstr ""
 
-#: src/gui/photometric_cc.c:725
+#: src/gui/photometric_cc.c:730
 #, fuzzy
 msgid "SPCC Data"
 msgstr "Wyczyść wszystko"
 
-#: src/gui/photometric_cc.c:726
+#: src/gui/photometric_cc.c:731
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr ""
 
-#: src/gui/photometric_cc.c:802 src/gui/photometric_cc.c:817
+#: src/gui/photometric_cc.c:811 src/gui/photometric_cc.c:826
 #, c-format
 msgid "SPCC Data: %s"
 msgstr ""
 
-#: src/gui/photometric_cc.c:804 src/gui/photometric_cc.c:820
+#: src/gui/photometric_cc.c:813 src/gui/photometric_cc.c:829
 msgid "Quantum Efficiency"
 msgstr ""
 
-#: src/gui/photometric_cc.c:820
+#: src/gui/photometric_cc.c:829
 msgid "Relative photon count"
 msgstr ""
 
-#: src/gui/photometric_cc.c:820
+#: src/gui/photometric_cc.c:829
 msgid "Transmittance"
 msgstr ""
 

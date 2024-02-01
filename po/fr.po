@@ -7,11 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-01 10:50+0100\n"
+"POT-Creation-Date: 2024-02-01 14:52+0100\n"
 "PO-Revision-Date: 2024-02-01 13:52+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/"
-"siril-application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
+"application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1171,7 +1171,7 @@ msgid "Pixel Size / μm"
 msgstr "Taille Pixel / μm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:513
-#: src/gui/photometric_cc.c:723 src/gui/photometric_cc.c:798
+#: src/gui/photometric_cc.c:728 src/gui/photometric_cc.c:807
 #, c-format
 msgid "Wavelength / nm"
 msgstr "Longueur d'onde / nm"
@@ -5912,9 +5912,9 @@ msgstr ""
 "Activer le dépôt git. Celui-ci fournit les données de filtre et de capteur "
 "nécessaires à l'utilisation de SPCC.\n"
 "Il est fortement recommandé de laisser cette option activée. Si vous "
-"choisissez de ne pas utiliser le dépôt, vous devrez télécharger les fichiers "
-".json manuellement et les décompresser dans le chemin du dépôt indiqué ci-"
-"dessous afin d'utiliser SPCC."
+"choisissez de ne pas utiliser le dépôt, vous devrez télécharger les "
+"fichiers .json manuellement et les décompresser dans le chemin du dépôt "
+"indiqué ci-dessous afin d'utiliser SPCC."
 
 #: src/gui/uifiles/settings_window.ui:2866
 msgid "Repository path:"
@@ -5928,10 +5928,7 @@ msgstr ""
 "Si vous désactivez le dépôt, tous les fichiers json de données SPCC dont "
 "vous avez besoin doivent être placés dans ce répertoire."
 
-#: src/gui/uifiles/settings_window.ui:2879 src/gui/uifiles/spcc_details.ui:107
-#: src/gui/uifiles/spcc_details.ui:122 src/gui/uifiles/spcc_details.ui:137
-#: src/gui/uifiles/spcc_details.ui:178 src/gui/uifiles/spcc_details.ui:206
-#: src/gui/uifiles/spcc_details.ui:234
+#: src/gui/uifiles/settings_window.ui:2879
 msgid "label"
 msgstr ""
 
@@ -7552,8 +7549,8 @@ msgid ""
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
 msgstr ""
-"Ouvrez la boîte de dialogue d'étalonnage des couleurs par spectrophotométrie."
-"\n"
+"Ouvrez la boîte de dialogue d'étalonnage des couleurs par "
+"spectrophotométrie.\n"
 "\n"
 "<b>AVERTISSEMENT : l'image doit être étalonnée avant d'ouvrir la boîte de "
 "dialogue.</b>"
@@ -10198,8 +10195,8 @@ msgid ""
 "486.1 nm"
 msgstr ""
 "Longueur d'onde nominale de la bande passante en nm\n"
-"Longueurs d'onde courantes : S II - 672 nm ; Ha - 656,46 nm ; O III - 500 nm "
-"; Hb - 486,1 nm"
+"Longueurs d'onde courantes : S II - 672 nm ; Ha - 656,46 nm ; O III - 500 "
+"nm ; Hb - 486,1 nm"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:558
 msgid "Filter bandwidth in nm"
@@ -10214,18 +10211,10 @@ msgid "Enter the nominal wavelength of the red channel narrowband filter"
 msgstr ""
 "Indiquer la longueur d'onde nominale du filtre à bande étroite du canal rouge"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:571
-msgid "656,28"
-msgstr ""
-
 #: src/gui/uifiles/s_pcc_dialog.ui:586
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
 msgstr ""
 "Indiquer la longueur d'onde nominale du filtre à bande étroite du canal bleu"
-
-#: src/gui/uifiles/s_pcc_dialog.ui:587 src/gui/uifiles/s_pcc_dialog.ui:603
-msgid "500,70"
-msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:602
 msgid "Enter the nominal wavelength of the green channel narrowband filter"
@@ -10236,11 +10225,6 @@ msgstr ""
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
 msgstr ""
 "Entrer la largeur de bande nominale du filtre à bande étroite du canal rouge"
-
-#: src/gui/uifiles/s_pcc_dialog.ui:619 src/gui/uifiles/s_pcc_dialog.ui:635
-#: src/gui/uifiles/s_pcc_dialog.ui:651
-msgid "6,0"
-msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:634
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
@@ -10257,9 +10241,8 @@ msgid "Plot fits"
 msgstr "Tracer fits"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:678
-msgid ""
-"Plot SPCC linear fits for catalog to image R/G and B/G ratios, and a CIE "
-"1931 diagram showing the computed source profile compared to sRGB"
+#, fuzzy
+msgid "Plot SPCC linear fits for catalog to image R/G and B/G ratios"
 msgstr ""
 "Tracer les fits linéaires SPCC pour les rapports R/G et B/G entre le "
 "catalogue et l'image"
@@ -10268,7 +10251,7 @@ msgstr ""
 msgid "Sensor Type:"
 msgstr "Type de capteur :"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:723 src/gui/photometric_cc.c:541
+#: src/gui/uifiles/s_pcc_dialog.ui:723 src/gui/photometric_cc.c:546
 msgid "mono"
 msgstr "mono"
 
@@ -10348,19 +10331,11 @@ msgstr ""
 "Inclure les échantillons d'arrière-plan de ce nombre de σ au-dessus de la "
 "médiane. La valeur par défaut est de 2,00"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:939
-msgid "2,00"
-msgstr ""
-
 #: src/gui/uifiles/s_pcc_dialog.ui:954
 msgid "Include background samples this many σ below the median. Default is 2.8"
 msgstr ""
 "Inclure les échantillons d'arrière-plan de ce nombre de σ au-dessous de la "
 "médiane. La valeur par défaut est de 2,8"
-
-#: src/gui/uifiles/s_pcc_dialog.ui:957
-msgid "2,80"
-msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:977
 msgid "Automatic detection"
@@ -12949,7 +12924,7 @@ msgstr "Vous devez au moins charger 2 canaux\n"
 
 #: src/compositing/compositing.c:773 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328
-#: src/gui/nina_light_curve.c:127 src/gui/photometric_cc.c:687
+#: src/gui/nina_light_curve.c:127 src/gui/photometric_cc.c:692
 #: src/registration/registration.c:1407 src/registration/registration.c:1501
 msgid "Warning"
 msgstr "Attention"
@@ -15185,8 +15160,8 @@ msgstr ""
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"
 msgstr ""
-"SPCC utilisera le capteur couleur \"%s\", le filtre \"%s\" et le LPF APN \"%"
-"s\".\n"
+"SPCC utilisera le capteur couleur \"%s\", le filtre \"%s\" et le LPF APN "
+"\"%s\".\n"
 
 #: src/core/command.c:8554
 #, c-format
@@ -15206,17 +15181,17 @@ msgstr ""
 #, c-format
 msgid "SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"
 msgstr ""
-"SPCC utilisera le capteur mono \"%s\" et les filtres \"%s\", \"%s\" et \"%s\""
-".\n"
+"SPCC utilisera le capteur mono \"%s\" et les filtres \"%s\", \"%s\" et "
+"\"%s\".\n"
 
 #: src/core/command.c:8600
 msgid ""
 "Siril has been compiled without libcurl support for network operations; SPCC "
 "is therefore not available. Recompile with libcurl support to enable SPCC.\n"
 msgstr ""
-"Siril a été compilé sans le support de libcurl pour les opérations de réseau "
-"; SPCC n'est donc pas disponible. Recompiler avec le support de libcurl pour "
-"activer SPCC.\n"
+"Siril a été compilé sans le support de libcurl pour les opérations de "
+"réseau ; SPCC n'est donc pas disponible. Recompiler avec le support de "
+"libcurl pour activer SPCC.\n"
 
 #: src/core/command.c:8624
 msgid ""
@@ -17135,8 +17110,8 @@ msgstr ""
 "astrométrie et chargée.\n"
 "\n"
 "La magnitude limite des étoiles est automatiquement calculée à partir de la "
-"taille du champ de vision, mais peut être modifiée en passant une valeur +"
-"offset ou -offset à <b>-limitmag=</b>, ou simplement une valeur positive "
+"taille du champ de vision, mais peut être modifiée en passant une valeur "
+"+offset ou -offset à <b>-limitmag=</b>, ou simplement une valeur positive "
 "absolue pour la magnitude limite.\n"
 "Le catalogue d'étoiles utilisé est NOMAD par défaut, il peut être modifié en "
 "fournissant <b>-catalog=apass</b> ou <b>-catalog=gaia</b>. S'il est installé "
@@ -17186,16 +17161,16 @@ msgid ""
 "with the option <b>-order=</b> giving a value between 1 and 4"
 msgstr ""
 "Résout l'astrométrie de l'image chargée.\n"
-"Si l'image a déjà été résolue, rien ne sera fait, à moins que l'argument "
-"<b>-platesolve</b> ne soit passé pour forcer une nouvelle résolution. Si WCS "
-"ou d'autres métadonnées d'image sont erronées ou manquantes, des arguments "
+"Si l'image a déjà été résolue, rien ne sera fait, à moins que l'argument <b>-"
+"platesolve</b> ne soit passé pour forcer une nouvelle résolution. Si WCS ou "
+"d'autres métadonnées d'image sont erronées ou manquantes, des arguments "
 "doivent être passés :\n"
 "   les coordonnées approximatives du centre de l'image peuvent être fournies "
 "en degrés décimaux ou en degrés/heure minute seconde (J2000 avec séparateurs "
 "deux-points), avec les valeurs d'ascension droite et de déclinaison séparées "
 "par une virgule ou un espace (pas obligatoire pour astrometry.net).\n"
-"   la distance focale et la taille des pixels peuvent être passées avec "
-"<b>-focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
+"   la distance focale et la taille des pixels peuvent être passées avec <b>-"
+"focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
 "valeurs de l'image et des paramètres.\n"
 "\n"
 "Sauf si <b>-noflip</b> est spécifié, si l'image est détectée comme étant à "
@@ -17205,8 +17180,8 @@ msgstr ""
 "\n"
 "Les images peuvent être soit résolues astrométriquement par Siril à l'aide "
 "d'un catalogue d'étoiles et de l'algorithme d'alignement global, soit par la "
-"commande locale solve-field d'astrometry.net (activée avec "
-"<b>-localasnet</b>).\n"
+"commande locale solve-field d'astrometry.net (activée avec <b>-localasnet</"
+"b>).\n"
 "Les options suivantes s'appliquent uniquement à la résolution astrométrique "
 "de Siril.\n"
 "La magnitude limite des étoiles utilisées pour la résolution astrométrique "
@@ -17214,12 +17189,12 @@ msgstr ""
 "peut être modifiée en passant une valeur +offset ou -offset à <b>-limitmag=</"
 "b>, ou simplement une valeur absolue valeur positive pour la magnitude "
 "limite.\n"
-"Le choix du catalogue d'étoiles est automatique sauf si l'option "
-"<b>-catalog=</b> est passée : si des catalogues locaux sont installés, ils "
-"sont utilisés, sinon le choix est basé sur le champ de vision et la "
-"magnitude limite. Si l'option est passée, elle force l'utilisation du "
-"catalogue distant donné en argument, avec les valeurs possibles : tycho2, "
-"nomad, gaia, ppmxl, brightstars, apass"
+"Le choix du catalogue d'étoiles est automatique sauf si l'option <b>-"
+"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
+"utilisés, sinon le choix est basé sur le champ de vision et la magnitude "
+"limite. Si l'option est passée, elle force l'utilisation du catalogue "
+"distant donné en argument, avec les valeurs possibles : tycho2, nomad, gaia, "
+"ppmxl, brightstars, apass"
 
 #: src/core/command_def.h:109
 msgid ""
@@ -18740,27 +18715,27 @@ msgstr ""
 "résolue par astrométrie et chargée.\n"
 "\n"
 "La magnitude limite des étoiles est automatiquement calculée à partir de la "
-"taille du champ de vision, mais peut être modifiée en passant une valeur +"
-"offset ou -offset à <b>-limitmag=</b>, ou simplement une valeur positive "
+"taille du champ de vision, mais peut être modifiée en passant une valeur "
+"+offset ou -offset à <b>-limitmag=</b>, ou simplement une valeur positive "
 "absolue pour la magnitude limite.\n"
 "Le catalogue d'étoiles utilisé pour SPCC est toujours Gaia DR3.\n"
 "\n"
 "Les noms des capteurs et des filtres peuvent être spécifiés à l'aide des "
 "options suivantes : <b>-monosensor=</b>, <b>-rfilter=</b>, <b>-gfilter=</b>, "
-"<b> -bfilter=</b> ou <b>-oscsensor=</b>, <b>-oscfilter=</b>, <b>-osclpf=</b> "
-"; le nom de la référence des blancs peut être spécifié à l'aide de l'option "
-"<b>-whiteref=</b>. Dans tous les cas, le nom doit être fourni exactement tel "
-"qu'il est dans les listes déroulantes de l'outil SPCC. Notez que les noms de "
-"capteurs, de filtres et de références des blancs peuvent contenir des "
-"espaces : dans ce cas, lorsque vous les utilisez comme arguments de la "
-"commande <b>spcc</b>, l'argument entier doit être placé entre guillemets, "
-"par exemple \"-whiteref=Average Spiral Galaxy\".\n"
+"<b> -bfilter=</b> ou <b>-oscsensor=</b>, <b>-oscfilter=</b>, <b>-osclpf=</"
+"b> ; le nom de la référence des blancs peut être spécifié à l'aide de "
+"l'option <b>-whiteref=</b>. Dans tous les cas, le nom doit être fourni "
+"exactement tel qu'il est dans les listes déroulantes de l'outil SPCC. Notez "
+"que les noms de capteurs, de filtres et de références des blancs peuvent "
+"contenir des espaces : dans ce cas, lorsque vous les utilisez comme "
+"arguments de la commande <b>spcc</b>, l'argument entier doit être placé "
+"entre guillemets, par exemple \"-whiteref=Average Spiral Galaxy\".\n"
 "\n"
-"Le mode bande étroite peut être sélectionné à l'aide de l'argument "
-"<b>-narrowband</b>, auquel cas les arguments de filtre précédents sont "
-"ignorés et les longueurs d'onde et bandes passantes du filtre NB peuvent "
-"être fournies en utilisant <b>-rwl=</b>, <b >-rbw=</b>, <b>-gwl=</b>, "
-"<b>-gbw=</b>, <b>-bwl=</b> et <b>-bbw=</ b>.\n"
+"Le mode bande étroite peut être sélectionné à l'aide de l'argument <b>-"
+"narrowband</b>, auquel cas les arguments de filtre précédents sont ignorés "
+"et les longueurs d'onde et bandes passantes du filtre NB peuvent être "
+"fournies en utilisant <b>-rwl=</b>, <b >-rbw=</b>, <b>-gwl=</b>, <b>-gbw=</"
+"b>, <b>-bwl=</b> et <b>-bbw=</ b>.\n"
 "\n"
 "Si l'un des arguments de données spectrales est omis, la valeur précédemment "
 "utilisée sera utilisée.\n"
@@ -18783,10 +18758,10 @@ msgid ""
 msgstr ""
 "Imprimez une liste de noms SPCC disponibles pour définir des capteurs, des "
 "filtres ou des références de blancs à l'aide de la commande <b>spcc</b>. "
-"Cette commande nécessite un argument pour définir quelle liste est imprimée :"
-" les options sont <b>oscsensor</b>, <b>monosensor</b>, <b>redfilter</b>, "
-"<b>greenfilter</b> , <b>bluefilter</b>, <b>oscfilter</b>, <b>osclpf</b> ou "
-"<b>whiteref</b>.\n"
+"Cette commande nécessite un argument pour définir quelle liste est "
+"imprimée : les options sont <b>oscsensor</b>, <b>monosensor</b>, "
+"<b>redfilter</b>, <b>greenfilter</b> , <b>bluefilter</b>, <b>oscfilter</b>, "
+"<b>osclpf</b> ou <b>whiteref</b>.\n"
 "Notez que les noms de capteurs, de filtres et de références blanches peuvent "
 "contenir des espaces : dans ce cas, lorsque vous les utilisez comme "
 "arguments de la commande <b>spcc</b>, l'argument entier doit être placé "
@@ -23424,7 +23399,7 @@ msgstr "Étalonnage des couleurs par photométrie"
 msgid "Spectrophotometric Color Calibration"
 msgstr "Étalonnage des couleurs par spectrophotométrie"
 
-#: src/gui/photometric_cc.c:425
+#: src/gui/photometric_cc.c:430
 msgid ""
 "Error: ensure mono sensor, R, G and B filters and white reference are "
 "selected.\n"
@@ -23432,44 +23407,44 @@ msgstr ""
 "Erreur : s'assurer que le capteur mono, les filtres R, V et B et la "
 "référence des blancs sont sélectionnés.\n"
 
-#: src/gui/photometric_cc.c:432
+#: src/gui/photometric_cc.c:437
+#, fuzzy
 msgid ""
-"Error: ensure OSC sensor, OSC filter and white reference are selected. If "
-"the DSLR option is checked, a DSLR LPF must be selected as well.\n"
+"Error: ensure OSC sensor, OSC filter and white reference are selected.\n"
 msgstr ""
-"Erreur : assurez-vous que le capteur couleur, le filtre couleur et la "
+"Erreur : s'assurer que le capteur mono, les filtres R, V et B et la "
 "référence des blancs sont sélectionnés.\n"
 
-#: src/gui/photometric_cc.c:541
+#: src/gui/photometric_cc.c:546
 msgid "one-shot color (OSC)"
 msgstr "couleur (OSC)"
 
-#: src/gui/photometric_cc.c:687
+#: src/gui/photometric_cc.c:692
 msgid "No selection made: no details to show."
 msgstr "Aucune sélection n'a été faite : aucun détail à montrer."
 
-#: src/gui/photometric_cc.c:725
+#: src/gui/photometric_cc.c:730
 msgid "SPCC Data"
 msgstr "Données SPCC"
 
-#: src/gui/photometric_cc.c:726
+#: src/gui/photometric_cc.c:731
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "Efficacité quantique / Transmittance / Nombre relatif de photons"
 
-#: src/gui/photometric_cc.c:802 src/gui/photometric_cc.c:817
+#: src/gui/photometric_cc.c:811 src/gui/photometric_cc.c:826
 #, c-format
 msgid "SPCC Data: %s"
 msgstr "Données SPCC : %s"
 
-#: src/gui/photometric_cc.c:804 src/gui/photometric_cc.c:820
+#: src/gui/photometric_cc.c:813 src/gui/photometric_cc.c:829
 msgid "Quantum Efficiency"
 msgstr "Efficacité quantique"
 
-#: src/gui/photometric_cc.c:820
+#: src/gui/photometric_cc.c:829
 msgid "Relative photon count"
 msgstr "Nombre relatif de photons"
 
-#: src/gui/photometric_cc.c:820
+#: src/gui/photometric_cc.c:829
 msgid "Transmittance"
 msgstr "Transmittance"
 
@@ -26451,8 +26426,8 @@ msgstr "Erreur de lecture de l'objet JSON dans le fichier %s\n"
 #, c-format
 msgid "Warning: Duplicate x value detected in JSON file %s: %.1f\n"
 msgstr ""
-"Attention : Une valeur x dupliquée a été détectée dans le fichier JSON %s : %"
-".1f\n"
+"Attention : Une valeur x dupliquée a été détectée dans le fichier JSON %s : "
+"%.1f\n"
 
 #: src/io/spcc_json.c:476
 #, c-format
@@ -28342,6 +28317,13 @@ msgstr "Mise à l'échelle de la séquence pour l’empilement"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "L'empilement se fera sans mise à l'échelle (désactivation du 'drizzle')\n"
+
+#~ msgid ""
+#~ "Error: ensure OSC sensor, OSC filter and white reference are selected. If "
+#~ "the DSLR option is checked, a DSLR LPF must be selected as well.\n"
+#~ msgstr ""
+#~ "Erreur : assurez-vous que le capteur couleur, le filtre couleur et la "
+#~ "référence des blancs sont sélectionnés.\n"
 
 #~ msgid "When checked, photometric color calibration is used."
 #~ msgstr ""
