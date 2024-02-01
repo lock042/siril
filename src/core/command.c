@@ -8485,7 +8485,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	}
 
 	if (gfit.wcslib->lin.dispre == NULL) {
-		siril_log_message(_("Found linear plate solve data, you may need to solve your image with distorsions to ensure correct calibration of stars near image corners.\n"));
+		siril_log_message(_("Found linear plate solve data, you may need to solve your image with distortions to ensure correct calibration of stars near image corners.\n"));
 	}
 
 	if (spectro && nb_mode) {
