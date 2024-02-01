@@ -159,6 +159,8 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_SIMBAD:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME);
+		case CAT_VARISUM:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_PGC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DIAMETER);
 		case CAT_EXOPLANETARCHIVE:
@@ -248,6 +250,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("GCVS");
 		case CAT_SIMBAD:
 			return _("SIMBAD");
+		case CAT_VARISUM:
+			return _("Gaia DR3 Variability");
 		case CAT_PGC:
 			return _("PGC");
 		case CAT_EXOPLANETARCHIVE:
@@ -289,7 +293,7 @@ const char *catalog_to_str(siril_cat_index cat) {
 // Used to set display diameters
 gboolean is_star_catalogue(siril_cat_index Catalog) {
 	switch (Catalog) {
-		case CAT_TYCHO2 ...	CAT_SIMBAD:
+		case CAT_TYCHO2 ...	CAT_VARISUM:
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
 		case CAT_AN_STARS:
@@ -797,6 +801,15 @@ gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item) {
 	if (siril_cat->projected > CAT_PROJ_NONE)
 		siril_catalog_reset_projection(siril_cat);
 	return TRUE;
+}
+
+// Concatenates 2 catalogues
+void siril_catalog_concat(siril_catalogue *siril_cat1, siril_catalogue *siril_cat2) {
+	if (!siril_cat1 || !siril_cat1->cat_items || !siril_cat2 || !siril_cat2->cat_items)
+		return;
+	for (int i = 0; i < siril_cat2->nbitems; i++) {
+		siril_catalog_append_item (siril_cat1, &siril_cat2->cat_items[i]);
+	}
 }
 
 static gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {

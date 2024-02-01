@@ -33,6 +33,7 @@ xx/xx/xx
 * Added color management to photometric color calibration, and SPCC as a new method. (!598)
 * Added solving with distorsions using SIP convention and handling writing related keywords in the header (!612 and #1154::3)
 * Added manual photometry output comparison stars file creation from UI (!614)
+* Added auto remove VSX stars from compstars list (!608)
 
 siril 1.2.1
 01/26/24
