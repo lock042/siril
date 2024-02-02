@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="resample_X">
+    <property name="lower">0.01</property>
+    <property name="upper">999</property>
+    <property name="value">100</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="resample_Y">
+    <property name="lower">0.01</property>
+    <property name="upper">999.89999999999998</property>
+    <property name="value">100</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkDialog" id="resample_dialog">
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="1">Resample</property>
+    <property name="resizable">0</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox" id="dialog-vbox15">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkBox" id="box50">
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkGrid" id="grid36">
+                <property name="row-spacing">10</property>
+                <child>
+                  <object class="GtkLabel" id="label87">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">X scale (%): </property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label88">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">Y scale (%): </property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="button_sample_ratio">
+                    <property name="label" translatable="1">Preserve Aspect Ratio</property>
+                    <property name="focusable">1</property>
+                    <property name="halign">end</property>
+                    <property name="active">1</property>
+                    <signal name="toggled" handler="on_button_sample_ratio_toggled" swapped="no"/>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                      <property name="column-span">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label89">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">Interpolation: </property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="combo_interpolation">
+                    <property name="tooltip-text" translatable="1">Type of algorithm used for resampling</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                    <property name="hexpand">1</property>
+                    <property name="active">4</property>
+                    <items>
+                      <item translatable="yes">Nearest Neighbor</item>
+                      <item translatable="yes">Bilinear</item>
+                      <item translatable="yes">Bicubic</item>
+                      <item translatable="yes">Pixel Area Relation</item>
+                      <item translatable="yes">Lanczos-4</item>
+                    </items>
+                    <signal name="changed" handler="on_combo_interpolation_changed" swapped="no"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spinbutton_resample_Y">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="width-chars">9</property>
+                    <property name="text">100,00</property>
+                    <property name="input-purpose">number</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                    <property name="adjustment">resample_Y</property>
+                    <property name="climb-rate">0.01</property>
+                    <property name="digits">2</property>
+                    <property name="numeric">1</property>
+                    <property name="value">100</property>
+                    <signal name="value-changed" handler="on_spinbutton_resample_Y_value_changed" swapped="no"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spinbutton_resample_X">
+                    <property name="focusable">1</property>
+                    <property name="halign">start</property>
+                    <property name="invisible-char">●</property>
+                    <property name="width-chars">9</property>
+                    <property name="text">100,00</property>
+                    <property name="input-purpose">number</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                    <property name="adjustment">resample_X</property>
+                    <property name="climb-rate">0.01</property>
+                    <property name="digits">2</property>
+                    <property name="numeric">1</property>
+                    <property name="value">100</property>
+                    <signal name="value-changed" handler="on_spinbutton_resample_X_value_changed" swapped="no"/>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_scale_clamp">
+                <property name="label" translatable="1">Interpolation clamping</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to prevent ringing artefacts</property>
+                <property name="active">1</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox" id="dialog-action_area16">
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="button_resample_close">
+            <property name="label" translatable="1">Close</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_button_resample_close_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="button_resample_ok">
+            <property name="label" translatable="1">Apply</property>
+            <property name="focusable">1</property>
+            <property name="has-focus">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_button_resample_ok_clicked" swapped="no"/>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adjustment_satu">
+    <property name="lower">-1</property>
+    <property name="upper">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_satu_bkg">
+    <property name="upper">2</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkDialog" id="satu_dialog">
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="1">Color saturation</property>
+    <property name="resizable">0</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="close" handler="on_satu_dialog_close" swapped="no"/>
+    <signal name="delete-event" handler="on_satu_cancel_clicked" swapped="no"/>
+    <signal name="show" handler="on_satu_dialog_show" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox" id="dialog-vbox24">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkBox">
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkLabel" id="label168">
+                <property name="halign">start</property>
+                <property name="label" translatable="1">Hue:</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="combo_saturation">
+                <property name="halign">start</property>
+                <property name="active">6</property>
+                <items>
+                  <item translatable="yes">Pink-Red / Red-Orange</item>
+                  <item translatable="yes">Orange-Brown / Yellow</item>
+                  <item translatable="yes">Yellow-Green / Green-Cyan</item>
+                  <item id="&lt;Saisir un identifiant&gt;" translatable="yes">Cyan</item>
+                  <item translatable="yes">Cyan-Blue / Blue-Magenta</item>
+                  <item translatable="yes">Magenta / Pink</item>
+                  <item translatable="yes">Global</item>
+                </items>
+                <signal name="changed" handler="on_combo_saturation_changed" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <child>
+              <object class="GtkLabel" id="label100">
+                <property name="halign">start</property>
+                <property name="label" translatable="1">Amount</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_satu">
+                <property name="focusable">1</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                <property name="adjustment">adjustment_satu</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_spin_satu_value_changed" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_satu">
+            <property name="focusable">1</property>
+            <property name="tooltip-text" translatable="1">Value of 0 means no change, negative reduces the color saturation, positive increases it.</property>
+            <property name="hexpand">1</property>
+            <property name="adjustment">adjustment_satu</property>
+            <property name="round-digits">2</property>
+            <property name="digits">2</property>
+            <property name="value-pos">bottom</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="1">Background factor</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_satu_bkg">
+                <property name="focusable">1</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                <property name="adjustment">adj_satu_bkg</property>
+                <property name="digits">2</property>
+                <property name="numeric">1</property>
+                <signal name="value-changed" handler="on_spin_satu_bkg_value_changed" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_satu_bkg">
+            <property name="focusable">1</property>
+            <property name="tooltip-text" translatable="1">This is the factor multiplied by the background value. Lower is the value, stronger is the saturation effect. While a high value will preserve the background.</property>
+            <property name="adjustment">adj_satu_bkg</property>
+            <property name="round-digits">1</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="satu_preview">
+            <property name="label" translatable="1">Preview</property>
+            <property name="focusable">1</property>
+            <property name="halign">start</property>
+            <property name="active">1</property>
+            <signal name="toggled" handler="on_satu_preview_toggled" swapped="no"/>
+          </object>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="0">satu_close</action-widget>
+    </action-widgets>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox" id="dialog-action_area26">
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="satu_undo">
+            <property name="label" translatable="1">Reset</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_satu_undo_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="satu_cancel">
+            <property name="label" translatable="1">Cancel</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_satu_cancel_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="satu_close">
+            <property name="label" translatable="1">Apply</property>
+            <property name="focusable">1</property>
+            <property name="has-focus">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_satu_apply_clicked" swapped="no"/>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

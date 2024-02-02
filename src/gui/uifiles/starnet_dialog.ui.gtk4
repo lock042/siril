@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_starnet_stride">
+    <property name="lower">2</property>
+    <property name="upper">512</property>
+    <property name="value">256</property>
+    <property name="step-increment">2</property>
+    <property name="page-increment">128</property>
+  </object>
+  <object class="GtkDialog" id="starnet_dialog">
+    <property name="name">starnet_dialog</property>
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="1">StarNet Star Removal</property>
+    <property name="resizable">0</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="on_starnet_cancel_clicked" swapped="no"/>
+    <signal name="show" handler="on_starnet_dialog_show" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkGrid" id="grid2">
+            <property name="vexpand">1</property>
+            <property name="name">label_starnet_stride</property>
+            <property name="row-spacing">10</property>
+            <property name="column-spacing">6</property>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_stretch">
+                <property name="label" translatable="1">Pre-stretch linear image</property>
+                <property name="name">toggle_starnet_stretch</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">If selected, an optimised Midtone Transfer Function (MTF) stretch is applied to the image before running StarNet, and the inverse stretch is applied on completion. This is necessary for using StarNet at the linear stage of processing.</property>
+                <property name="halign">start</property>
+                <property name="hexpand">1</property>
+                <signal name="toggled" handler="on_toggle_starnet_stretch_toggled" swapped="no"/>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_starmask">
+                <property name="label" translatable="1">Generate star mask</property>
+                <property name="name">toggle_starnet_starmask</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">If selected, a star mask will be generated and saved in the working directory. The star mask is calculated as the difference between the original image and the starless image. The default is to produce a star mask.</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="hexpand">1</property>
+                <property name="active">1</property>
+                <signal name="toggled" handler="on_toggle_starnet_starmask_toggled" swapped="no"/>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_customstride">
+                <property name="label" translatable="1">Use custom stride</property>
+                <property name="name">toggle_starnet_starmask</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">If selected, a custom value may be entererd for the StarNet stride parameter. The default value is 256 and the StarNet developer recommends not to change this.</property>
+                <property name="halign">end</property>
+                <property name="hexpand">1</property>
+                <signal name="toggled" handler="on_toggle_starnet_customstride_toggled" swapped="no"/>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="stride_control">
+                <property name="visible">0</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="xpad">8</property>
+                    <property name="label" translatable="1">Stride</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_starnet_stride">
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="1">Sets the size of tiles passed to the StarNet neural network for processing. It is strongly recommended to leave this at the default setting. Halving the stride setting quadruples the processing time. If altered, stride must be an even integer between 2-256.</property>
+                    <property name="margin-start">8</property>
+                    <property name="hexpand">1</property>
+                    <property name="input-purpose">digits</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                    <property name="adjustment">adj_starnet_stride</property>
+                    <property name="value">256</property>
+                    <signal name="value-changed" handler="on_spin_starnet_stride_value_changed" swapped="no"/>
+                  </object>
+                </child>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_postremix">
+                <property name="label" translatable="1">Recompose stars on completion</property>
+                <property name="name">toggle_starnet_starmask</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">If selected, on completion of the StarNet process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.
+This option has no effect if processing a sequence.</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="hexpand">1</property>
+                <signal name="toggled" handler="on_toggle_starnet_postremix_toggled" swapped="no"/>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_starnet_upsample">
+                <property name="label" translatable="1">Upsample x2</property>
+                <property name="name">toggle_starnet_scale</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">If selected, the image will be upsampled by a factor of 2 before running StarNet. This improves performance on very tight stars but quadruples processing time and may impair performance on very large stars. The image is rescaled to the original size on completion.</property>
+                <property name="halign">end</property>
+                <property name="hexpand">1</property>
+                <signal name="toggled" handler="on_toggle_starnet_upsample_toggled" swapped="no"/>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="starnet_sequence_toggle">
+                <property name="label" translatable="1">Apply to sequence</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">Apply StarNet to all images in the current sequence. Starless and, if selected, star mask, sequences will be generated.</property>
+                <property name="halign">start</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label_starnetinfo">
+            <property name="sensitive">0</property>
+            <property name="label">
+</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox">
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="starnet_cancel">
+            <property name="label" translatable="1">Cancel</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Close current window</property>
+            <signal name="clicked" handler="on_starnet_cancel_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="starnet_apply">
+            <property name="label" translatable="1">Execute</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Apply StarNet</property>
+            <signal name="clicked" handler="on_starnet_execute_clicked" swapped="no"/>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

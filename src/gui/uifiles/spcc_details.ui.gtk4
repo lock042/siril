@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkDialog" id="spcc_details">
+    <property name="width-request">320</property>
+    <property name="resizable">0</property>
+    <property name="default-width">320</property>
+    <property name="type-hint">normal</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkFrame">
+            <property name="valign">center</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <object class="GtkGrid" id="spcc_details_ver">
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">6</property>
+                    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="label" translatable="1">Name</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="label" translatable="1">Manufacturer</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_name">
+                        <property name="halign">start</property>
+                        <property name="label">label</property>
+                        <property name="wrap">1</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_mfr">
+                        <property name="halign">start</property>
+                        <property name="label">label</property>
+                        <property name="wrap">1</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_source">
+                        <property name="halign">start</property>
+                        <property name="label">label</property>
+                        <property name="wrap">1</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="label" translatable="1">Data Source</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="label" translatable="1">Datafile version</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_version">
+                        <property name="halign">start</property>
+                        <property name="label">label</property>
+                        <property name="wrap">1</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="label" translatable="1">Number of samples</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_nsamples">
+                        <property name="halign">start</property>
+                        <property name="label">label</property>
+                        <property name="wrap">1</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_comment_label">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="label" translatable="1">Comment</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="spcc_details_comment">
+                        <property name="halign">start</property>
+                        <property name="label">label</property>
+                        <property name="wrap">1</property>
+                        <property name="wrap-mode">word-char</property>
+                        <property name="max-width-chars">40</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="ypad">10</property>
+                <property name="label" translatable="1">SPCC Details</property>
+                <attributes>
+                  <attribute name="weight" value="bold"></attribute>
+                </attributes>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox">
+        <property name="valign">center</property>
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="spcc_details_plot">
+            <property name="label" translatable="1">Plot</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Plot the data (QE, transmittance or relative photon count) as a function of wavelength</property>
+            <signal name="clicked" handler="on_spcc_details_plot_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="spcc_details_close">
+            <property name="label" translatable="1">Close</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_spcc_details_close_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

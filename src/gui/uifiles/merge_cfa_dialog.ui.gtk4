@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkDialog" id="merge_cfa_dialog">
+    <property name="width-request">500</property>
+    <property name="height-request">1</property>
+    <property name="title" translatable="1">Merge CFA Elements</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="show" handler="on_merge_cfa_show" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkFrame">
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <object class="GtkGrid">
+                    <property name="row-spacing">10</property>
+                    <property name="column-spacing">10</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="1">CFA0</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="1">CFA1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="1">CFA2</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="1">CFA3</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa0">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="1">Select the image containing the CFA0 Bayer subpattern. If this has been produced using Siril&apos;s Split CFA function it will have the CFA0 prefix.</property>
+                        <property name="local-only">False</property>
+                        <property name="title" translatable="1"></property>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA0_file_set" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa1">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="1">Select the image containing the CFA1 Bayer subpattern. If this has been produced using Siril&apos;s Split CFA function it will have the CFA1 prefix.</property>
+                        <property name="local-only">False</property>
+                        <property name="title" translatable="1"></property>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA1_file_set" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa2">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="1">Select the image containing the CFA2 Bayer subpattern. If this has been produced using Siril&apos;s Split CFA function it will have the CFA2 prefix.</property>
+                        <property name="local-only">False</property>
+                        <property name="title" translatable="1"></property>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA2_file_set" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa3">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="1">Select the image containing the CFA3 Bayer subpattern. If this has been produced using Siril&apos;s Split CFA function it will have the CFA3 prefix.</property>
+                        <property name="local-only">False</property>
+                        <property name="title" translatable="1"></property>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA3_file_set" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="label" translatable="1">Input Files</property>
+                <attributes>
+                  <attribute name="weight" value="bold"></attribute>
+                </attributes>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="margin-top">10</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <object class="GtkComboBoxText" id="merge_cfa_pattern">
+                    <property name="tooltip-text" translatable="1">Sets the Bayer pattern header to be applied to the result. This must match the Bayer pattern of the image that the original Bayer subchannels were split from.</property>
+                    <property name="halign">start</property>
+                    <property name="active">0</property>
+                    <items>
+                      <item translatable="yes">RGGB</item>
+                      <item translatable="yes">BGGR</item>
+                      <item translatable="yes">GBRG</item>
+                      <item translatable="yes">GRBG</item>
+                    </items>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="label" translatable="1">Bayer Pattern</property>
+                <attributes>
+                  <attribute name="weight" value="bold"></attribute>
+                </attributes>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="merge_cfa_seqapply">
+            <property name="label" translatable="1">Apply to sequence</property>
+            <property name="focusable">1</property>
+            <property name="tooltip-text" translatable="1">Merges separated CFA images for a sequence. You should have the sequence for CFA0 loaded to start with, and ensure filenames are consistent across images for all CFA channels.</property>
+            <property name="halign">start</property>
+            <property name="margin-top">10</property>
+            <signal name="toggled" handler="on_merge_cfa_seqapply_toggled" swapped="no"/>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="width-request">500</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkGrid" id="grid_merge_cfa_prefixes">
+                <property name="halign">start</property>
+                <property name="hexpand">1</property>
+                <property name="row-spacing">5</property>
+                <property name="column-spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="halign">start</property>
+                    <property name="label" translatable="1">Sequence input marker</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Sequence output prefix</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entryMergeCFAin">
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="1">Identifier prefix used to denote CFA number in the separate CFA channel images. This should be set to whatever sequence prefix was used when the split_cfa process was run (default: CFA_).</property>
+                    <property name="hexpand">1</property>
+                    <property name="max-length">10</property>
+                    <property name="width-chars">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">CFA_</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entryMergeCFAout">
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="1">Prefix of the image names resulting from the merge CFA process.</property>
+                    <property name="hexpand">1</property>
+                    <property name="max-length">10</property>
+                    <property name="width-chars">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">mCFA_</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame" id="merge_cfa_seq_controls">
+                <property name="visible">0</property>
+                <property name="margin-top">10</property>
+                <property name="shadow-type">none</property>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="left-padding">12</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="width-request">500</property>
+                            <property name="margin-end">8</property>
+                            <property name="label" translatable="1">You must have the CFA0 sequence selected in the main window sequence tab.
+
+Your separate sub-CFA sequences must have been processed in exactly the same way.
+
+The filenames &lt;b&gt;must&lt;/b&gt; be in the same directory and &lt;b&gt;must&lt;/b&gt; differ only by the name of the CFA channel. i.e. if a CFA0 image is &lt;i&gt;r_pp_CFA_0_Light_0001.fit&lt;/i&gt;, the corresponding images for the other CFA channels must be &lt;i&gt;r_pp_CFA_1_Light_0001.fit&lt;/i&gt;, &lt;i&gt;r_pp_CFA_2_Light_0001.fit&lt;/i&gt; and &lt;i&gt;r_pp_CFA_3_Light_0001.fit&lt;/i&gt;.
+
+Each image in the sequence will only be processed if the corresponding images for the other 3 CFA channels can be found. Both G1 and G2 are required. Note this means that if you discard an image containing one CFA channel of an image between split_cfa and merge_cfa, merge_cfa will be unable to merge the remaining CFA channels for that image. All sequence filtering should be done either before split_cfa or after merge_cfa.</property>
+                            <property name="use-markup">1</property>
+                            <property name="wrap">1</property>
+                            <property name="max-width-chars">80</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Sequences</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox">
+        <property name="valign">center</property>
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="merge_cfa_cancel">
+            <property name="label" translatable="1">Cancel</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_merge_cfa_close_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="merge_cfa_reset">
+            <property name="label" translatable="1">Reset</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_merge_cfa_reset_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="merge_cfa_apply">
+            <property name="label" translatable="1">Apply</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_merge_cfa_apply_clicked" swapped="no"/>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adj_cut_wn1">
+    <property name="upper">100000</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_cut_wn2">
+    <property name="upper">100000</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="cut_adj_wavelength1">
+    <property name="upper">100000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="cut_adj_wavelength2">
+    <property name="upper">100000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="cut_width_spin">
+    <property name="lower">1</property>
+    <property name="upper">49</property>
+    <property name="value">1</property>
+    <property name="step-increment">2</property>
+    <property name="page-increment">2</property>
+  </object>
+  <object class="GtkDialog" id="cut_spectroscopy_dialog">
+    <property name="title" translatable="1">Spectrometry</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="hide" handler="on_cut_spectroscopy_dialog_hide" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkGrid">
+            <property name="column-homogeneous">1</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="1">Profile width / px</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_width">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">Set the width of the cut. The median pixel value perpendicular to the cut will be used.</property>
+                <property name="adjustment">cut_width_spin</property>
+                <signal name="value-changed" handler="on_cut_spin_width_value_changed" swapped="no"/>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_wavenumber1">
+                <property name="label" translatable="1">Pick point 1</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="1">Pick a point on the profile line corresponding to a known wavelength / wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavelength / wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <signal name="clicked" handler="on_cut_wavenumber1_clicked" swapped="no"/>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_wavenumber2">
+                <property name="label" translatable="1">Pick point 2</property>
+                <property name="focusable">1</property>
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="1">Pick a point on the profile line corresponding to a known wavelength / wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavelength / wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
+                <signal name="clicked" handler="on_cut_wavenumber2_clicked" swapped="no"/>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavenumber1">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">Enter the wavenumber corresponding to the selected point</property>
+                <property name="text" translatable="1">0</property>
+                <property name="adjustment">adj_cut_wn1</property>
+                <property name="digits">1</property>
+                <signal name="value-changed" handler="on_cut_spin_point1_value_changed" swapped="no"/>
+                <layout>
+                  <property name="column">3</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavenumber2">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">Enter the wavenumber corresponding to the selected point</property>
+                <property name="text" translatable="1">0</property>
+                <property name="adjustment">adj_cut_wn2</property>
+                <property name="digits">1</property>
+                <signal name="value-changed" handler="on_cut_spin_point2_value_changed" swapped="no"/>
+                <layout>
+                  <property name="column">3</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn1_x">
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn1_y">
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn2_x">
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_wn2_y">
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="1">x</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="1">y</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength1">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_wavelength1</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_cut_spin_point1_value_changed" swapped="no"/>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="cut_spin_wavelength2">
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">This is a convenience function to allow a known wavelength to be entered instead of wavenumbers. Since wavenumber is required for the plot x axis, the value entered will be converted to wavenumber</property>
+                <property name="adjustment">cut_adj_wavelength2</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_cut_spin_point2_value_changed" swapped="no"/>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="1">wavelength / nm</property>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="tooltip-text" translatable="1">The wavenumber is the spatial frequency 1 / λ</property>
+                <property name="label" translatable="1">wavenumber / cm&lt;sup&gt;-1&lt;/sup&gt;</property>
+                <property name="use-markup">1</property>
+                <layout>
+                  <property name="column">3</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="1">Plot x axis</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="spectro_x_axis">
+                <property name="tooltip-text" translatable="1">When plotting a spectrogram, should the x axis show wavenumber or wavelength?</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Wavelength</item>
+                  <item translatable="yes">Wavenumber</item>
+                </items>
+                <signal name="changed" handler="on_spectro_x_axis_changed" swapped="no"/>
+                <layout>
+                  <property name="column">3</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox">
+        <property name="valign">center</property>
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="cut_spectro_cancel_button">
+            <property name="label" translatable="1">Close</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_cut_spectro_cancel_button_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="cut_spectro_apply_button">
+            <property name="label" translatable="1">Apply</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_cut_spectro_apply_button_clicked" swapped="no"/>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

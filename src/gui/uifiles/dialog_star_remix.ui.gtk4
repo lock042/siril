@@ -1,0 +1,1083 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adjustment_payneBL">
+    <property name="lower">-5</property>
+    <property name="upper">15</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneBPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneBPR">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneBR">
+    <property name="lower">-5</property>
+    <property name="upper">15</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneDL">
+    <property name="upper">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneDR">
+    <property name="upper">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneHPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneHPR">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneLPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneLPR">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneSPL">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_payneSPR">
+    <property name="upper">1</property>
+    <property name="step-increment">0.001</property>
+    <property name="page-increment">0.01</property>
+  </object>
+  <object class="GtkDialog" id="dialog_star_remix">
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="1">Star Recomposition</property>
+    <property name="resizable">0</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkGrid">
+                <property name="column-spacing">16</property>
+                <child>
+                  <object class="GtkBox" id="box_ghtcontrols1">
+                    <property name="valign">start</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkFileChooserButton" id="remix_filechooser_right">
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="1">Select a starless image for recomposing with a star mask.
+While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
+                        <property name="create-folders">False</property>
+                        <property name="local-only">False</property>
+                        <property name="title" translatable="1"></property>
+                        <signal name="file-set" handler="on_remix_filechooser_right_file_set" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkExpander">
+                        <property name="focusable">1</property>
+                        <property name="expanded">1</property>
+                        <child>
+                          <object class="GtkDrawingArea" id="remix_histo_right">
+                            <property name="width-request">300</property>
+                            <property name="height-request">150</property>
+                            <signal name="draw" handler="redraw_remix_histo_right" swapped="no"/>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="tooltip-text" translatable="1">Expands to show a mini histogram and transfer function display for the star image</property>
+                            <property name="hexpand">1</property>
+                            <property name="vexpand">1</property>
+                            <property name="label" translatable="1">Star Histogram</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow">
+                        <property name="focusable">1</property>
+                        <property name="shadow-type">in</property>
+                        <property name="max-content-height">320</property>
+                        <property name="propagate-natural-width">1</property>
+                        <property name="propagate-natural-height">1</property>
+                        <property name="child">
+                          <object class="GtkViewport">
+                            <property name="child">
+                              <object class="GtkBox">
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkBox" id="ghtStretchTypecontrols1">
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">5</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="1">Type of stretch</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"></attribute>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="remix_type_right">
+                                        <property name="tooltip-text" translatable="1">Select type of stretch. Generalised hyperbolic stretch performs a hyperbolic stretch with parameters for stretch strength, local intensity, symmetry point, and shadow and highlight preservation regions. Modified arcsinh stretch performs an arcsinh stretch with additional parameters for symmetry point, lowlight and highlight preservation. The inverse hyperbolic and arcsinh stretches are also available.</property>
+                                        <property name="hexpand">1</property>
+                                        <property name="active">2</property>
+                                        <items>
+                                          <item translatable="yes">Generalised hyperbolic transform</item>
+                                          <item translatable="yes">Inverse generalised hyperbolic transform</item>
+                                          <item translatable="yes">Modified arcsinh transform</item>
+                                          <item translatable="yes">Inverse modified arcsinh transform</item>
+                                        </items>
+                                        <signal name="changed" handler="on_remix_type_right_changed" swapped="no"/>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtColourmodelcontrols1">
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">5</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="1">Colour stretch model</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"></attribute>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="remix_colour_right">
+                                        <property name="tooltip-text" translatable="1">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.
+Note that luminance based models are not generally invertible.</property>
+                                        <property name="hexpand">1</property>
+                                        <property name="active">0</property>
+                                        <items>
+                                          <item translatable="yes">Independent channel values</item>
+                                          <item translatable="yes">Human weighted luminance</item>
+                                          <item translatable="yes">Even weighted luminance</item>
+                                        </items>
+                                        <signal name="changed" handler="on_remix_colour_right_changed" swapped="no"/>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtDcontrols1">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payne1">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Stretch factor (ln(D+1))</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_D_right">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. Increasing D increases the intensity of stars in the resulting composition.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneDR</property>
+                                            <property name="digits">3</property>
+                                            <signal name="value-changed" handler="on_spin_remix_D_right_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_D_right">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. Increasing D increases the intensity of stars in the resulting composition.</property>
+                                        <property name="adjustment">adjustment_payneDR</property>
+                                        <property name="digits">3</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtBcontrols1">
+                                    <property name="visible">0</property>
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payn1">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Local stretch intensity (b)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_B_right">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Controls how tightly the stretch is focused by changing the form of the transform itself. Increasing b will increase the intensity of stars with peak brightness above SP, but may bloat their PSF; it will reduce the intensity of stars below SP.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.000</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneBR</property>
+                                            <property name="digits">3</property>
+                                            <signal name="value-changed" handler="on_spin_remix_B_right_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_B_right">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Controls how tightly the stretch is focused by changing the form of the transform itself. Increasing b will increase the intensity of stars with peak brightness above SP, but may bloat their PSF; it will reduce the intensity of stars below SP.</property>
+                                        <property name="adjustment">adjustment_payneBR</property>
+                                        <property name="digits">3</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtSPcontrols1">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payneS1">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Symmetry point (SP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_SP_right">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Sets the symmetry point around which the stretch is focused. For star recomposition, increasing SP reduces the intensity of stars with peak brightness below SP and therefore the amount of stars that show in the resulting composition.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.00000</property>
+                                            <property name="progress-fraction">0.01</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneSPR</property>
+                                            <property name="digits">5</property>
+                                            <signal name="value-changed" handler="on_spin_remix_SP_right_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">2</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="eyedropper_SP_right">
+                                            <property name="focusable">1</property>
+                                            <property name="receives-default">1</property>
+                                            <property name="tooltip-text" translatable="1">Allows setting SP from the current selection. This is best suited for use with the background image, where it can effectively pick out faint detail above the background. It is not generally useful with the star mask image.</property>
+                                            <signal name="clicked" handler="on_eyedropper_SP_right_clicked" swapped="no"/>
+                                            <child>
+                                              <object class="GtkImage" id="eyedrop1">
+                                                <property name="resource">/org/siril/ui/pixmaps/eyedropper.svg</property>
+                                              </object>
+                                            </child>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_SP_right">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Sets the symmetry point around which the stretch is focused. For star recomposition, increasing SP reduces the intensity of stars with peak brightness below SP and therefore the amount of stars that show in the resulting composition.</property>
+                                        <property name="adjustment">adjustment_payneSPR</property>
+                                        <property name="digits">6</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtLPcontrols1">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payneL1">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Shadow protection point (LP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_LP_right">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.00000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneLPR</property>
+                                            <property name="digits">5</property>
+                                            <signal name="value-changed" handler="on_spin_remix_LP_right_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_LP_right">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                                        <property name="adjustment">adjustment_payneLPR</property>
+                                        <property name="digits">5</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtHPcontrols1">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payneH1">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Highlight protection point (HP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_HP_right">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. The star mask HP can be set to quite a low value to prevent bloat of brighter stars.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">1.00000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneHPR</property>
+                                            <property name="digits">5</property>
+                                            <property name="value">1</property>
+                                            <signal name="value-changed" handler="on_spin_remix_HP_right_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_HP_right">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This can be set to quite a low value in star recomposition mode to prevent bloat of brighter stars while boosting the brightness of fainter ones.</property>
+                                        <property name="adjustment">adjustment_payneHPR</property>
+                                        <property name="digits">5</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtBPcontrols1">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Black Point (BP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_BP_right">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                                            <property name="halign">end</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.00000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneBPR</property>
+                                            <property name="digits">5</property>
+                                            <signal name="value-changed" handler="on_spin_remix_BP_right_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_BP_right">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                                        <property name="adjustment">adjustment_payneBPR</property>
+                                        <property name="digits">5</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_ghtcontrols2">
+                    <property name="valign">start</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">5</property>
+                    <child>
+                      <object class="GtkFileChooserButton" id="remix_filechooser_left">
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="1">Select a starless image for recomposing with a star mask.
+While the primary aim of the tool is star recomposition as part of a star reduction workflow, you can specify any two fits files with the same dimensions and bit depth for blending.</property>
+                        <property name="create-folders">False</property>
+                        <property name="local-only">False</property>
+                        <property name="title" translatable="1"></property>
+                        <signal name="file-set" handler="on_remix_filechooser_left_file_set" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkExpander">
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
+                        <property name="expanded">1</property>
+                        <child>
+                          <object class="GtkDrawingArea" id="remix_histo_left">
+                            <property name="width-request">300</property>
+                            <property name="height-request">150</property>
+                            <signal name="draw" handler="redraw_remix_histo_left" swapped="no"/>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="tooltip-text" translatable="1">Expands to show a mini histogram and transfer function display for the background image.</property>
+                            <property name="hexpand">1</property>
+                            <property name="vexpand">1</property>
+                            <property name="label" translatable="1">Background Histogram</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow">
+                        <property name="focusable">1</property>
+                        <property name="shadow-type">in</property>
+                        <property name="max-content-height">320</property>
+                        <property name="propagate-natural-width">1</property>
+                        <property name="propagate-natural-height">1</property>
+                        <property name="child">
+                          <object class="GtkViewport">
+                            <property name="child">
+                              <object class="GtkBox">
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkBox" id="ghtStretchTypecontrols3">
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">5</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="1">Type of stretch</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"></attribute>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="remix_type_left">
+                                        <property name="tooltip-text" translatable="1">Select type of stretch. Generalised hyperbolic stretch performs a hyperbolic stretch with parameters for stretch strength, local intensity, symmetry point, and shadow and highlight preservation regions. Modified arcsinh stretch performs an arcsinh stretch with additional parameters for symmetry point, lowlight and highlight preservation. The inverse hyperbolic and arcsinh stretches are also available.</property>
+                                        <property name="hexpand">1</property>
+                                        <property name="active">0</property>
+                                        <items>
+                                          <item translatable="yes">Generalised hyperbolic transform</item>
+                                          <item translatable="yes">Inverse generalised hyperbolic transform</item>
+                                          <item translatable="yes">Modified arcsinh transform</item>
+                                          <item translatable="yes">Inverse modified arcsinh transform</item>
+                                        </items>
+                                        <signal name="changed" handler="on_remix_type_left_changed" swapped="no"/>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtColourmodelcontrols2">
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">5</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="1">Colour stretch model</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"></attribute>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="remix_colour_left">
+                                        <property name="tooltip-text" translatable="1">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.
+Note that luminance based models are not generally invertible.</property>
+                                        <property name="hexpand">1</property>
+                                        <property name="active">0</property>
+                                        <items>
+                                          <item translatable="yes">Independent channel values</item>
+                                          <item translatable="yes">Human weighted luminance</item>
+                                          <item translatable="yes">Even weighted luminance</item>
+                                        </items>
+                                        <signal name="changed" handler="on_remix_colour_left_changed" swapped="no"/>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtDcontrols2">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payne2">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Stretch factor (ln(D+1))</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_D_left">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneDL</property>
+                                            <property name="digits">3</property>
+                                            <signal name="value-changed" handler="on_spin_remix_D_left_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_D_left">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                                        <property name="adjustment">adjustment_payneDL</property>
+                                        <property name="digits">3</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtBcontrols2">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payn2">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Local stretch intensity (b)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_B_left">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.000</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneBL</property>
+                                            <property name="digits">3</property>
+                                            <signal name="value-changed" handler="on_spin_remix_B_left_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_B_left">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
+                                        <property name="adjustment">adjustment_payneBL</property>
+                                        <property name="digits">3</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtSPcontrols2">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payneS2">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Symmetry point (SP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_SP_left">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.00000</property>
+                                            <property name="progress-fraction">0.01</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneSPL</property>
+                                            <property name="digits">5</property>
+                                            <signal name="value-changed" handler="on_spin_remix_SP_left_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">2</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="eyedropper_SP_left">
+                                            <property name="focusable">1</property>
+                                            <property name="receives-default">1</property>
+                                            <property name="tooltip-text" translatable="1">This dropper allows you to set the background stretch symmetry point  based on the average value of  the current selection. This helps in picking out faint detail above the dark background.</property>
+                                            <signal name="clicked" handler="on_eyedropper_SP_left_clicked" swapped="no"/>
+                                            <child>
+                                              <object class="GtkImage" id="eyedrop2">
+                                                <property name="resource">/org/siril/ui/pixmaps/eyedropper.svg</property>
+                                              </object>
+                                            </child>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_SP_left">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
+                                        <property name="adjustment">adjustment_payneSPL</property>
+                                        <property name="digits">6</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtLPcontrols2">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payneL2">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Shadow protection point (LP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_LP_left">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.00000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneLPL</property>
+                                            <property name="digits">5</property>
+                                            <signal name="value-changed" handler="on_spin_remix_LP_left_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_LP_left">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                                        <property name="adjustment">adjustment_payneLPL</property>
+                                        <property name="digits">5</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtHPcontrols2">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel" id="label_payneH2">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Highlight protection point (HP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_HP_left">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP. This parameter is generally of limited use for starless backgrounds but is very effective on the star mask for preventing star bloat.</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">1.00000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneHPL</property>
+                                            <property name="digits">5</property>
+                                            <property name="value">1</property>
+                                            <signal name="value-changed" handler="on_spin_remix_HP_left_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_HP_left">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP. This parameter is generally of limited use for starless backgrounds but is very effective on the star mask for preventing star bloat.</property>
+                                        <property name="adjustment">adjustment_payneHPL</property>
+                                        <property name="digits">5</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="ghtBPcontrols2">
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkGrid">
+                                        <property name="column-spacing">6</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="halign">start</property>
+                                            <property name="hexpand">1</property>
+                                            <property name="label" translatable="1">Black Point (BP)</property>
+                                            <layout>
+                                              <property name="column">0</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_remix_BP_left">
+                                            <property name="focusable">1</property>
+                                            <property name="tooltip-text" translatable="1">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                                            <property name="halign">end</property>
+                                            <property name="width-chars">10</property>
+                                            <property name="text">0.00000</property>
+                                            <property name="progress-pulse-step">0.01</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                            <property name="adjustment">adjustment_payneBPL</property>
+                                            <property name="digits">5</property>
+                                            <signal name="value-changed" handler="on_spin_remix_BP_left_value_changed" swapped="no"/>
+                                            <layout>
+                                              <property name="column">1</property>
+                                              <property name="row">0</property>
+                                            </layout>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScale" id="scale_remix_BP_left">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Black point adjustment. This is a constant value that is subtracted from the image after the initial hyperbolic stretch. BP adjustment may result in clipping the shadows.</property>
+                                        <property name="adjustment">adjustment_payneBPL</property>
+                                        <property name="digits">5</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="ypad">4</property>
+                    <property name="label" translatable="1">Background Stretch Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                      <attribute name="size" value="12288"></attribute>
+                    </attributes>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="ypad">4</property>
+                    <property name="label" translatable="1">Star Stretch Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                      <attribute name="size" value="12288"></attribute>
+                    </attributes>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="spacing">6</property>
+                <property name="homogeneous">1</property>
+                <child>
+                  <object class="GtkButtonBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="layout-style">start</property>
+                    <child>
+                      <object class="GtkButton" id="remix_reset_right">
+                        <property name="label" translatable="1">Reset</property>
+                        <property name="focusable">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="1">Resets stretch parameters for the star image</property>
+                        <signal name="clicked" handler="on_remix_reset_right_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="remix_apply_right">
+                        <property name="label" translatable="1">Apply</property>
+                        <property name="focusable">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="1">Applies current stretch to the star image and resets the stretch parameters.</property>
+                        <signal name="clicked" handler="on_remix_apply_right_clicked" swapped="no"/>
+                        <style>
+                          <class name="suggested-action"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButtonBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="layout-style">start</property>
+                    <child>
+                      <object class="GtkButton" id="remix_reset_left">
+                        <property name="label" translatable="1">Reset</property>
+                        <property name="focusable">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="1">Resets stretch parameters for the starless image</property>
+                        <signal name="clicked" handler="on_remix_reset_left_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="remix_apply_left">
+                        <property name="label" translatable="1">Apply</property>
+                        <property name="focusable">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="1">Applies current stretch to the starless image and resets the stretch parameters.</property>
+                        <signal name="clicked" handler="on_remix_apply_left_clicked" swapped="no"/>
+                        <style>
+                          <class name="suggested-action"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox">
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkCheckButton" id="toggle_remixer_log_histograms">
+            <property name="label" translatable="1">Log histograms</property>
+            <property name="focusable">1</property>
+            <signal name="toggled" handler="on_toggle_remixer_log_histograms_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="remix_advanced">
+            <property name="label" translatable="1">Advanced</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Show advanced stretch options</property>
+            <signal name="clicked" handler="on_remix_advanced_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="remix_cancel">
+            <property name="label" translatable="1">Close</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Close current window</property>
+            <signal name="clicked" handler="on_remix_close_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkWindow" id="search_objects">
+    <property name="title" translatable="1">Search Object</property>
+    <property name="resizable">0</property>
+    <property name="destroy-with-parent">1</property>
+    <property name="type-hint">utility</property>
+    <property name="skip-taskbar-hint">True</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <property name="child">
+      <object class="GtkSearchEntry" id="search_objects_entry">
+        <property name="focusable">1</property>
+        <property name="tooltip-text" translatable="1">Enter the object name you want to search in online database, SIMBAD or the Minor Planet Center database.
+Solar system objects can be referred to either by their number or name, but with a prefix depending on their type, for example &apos;a:1&apos; or &apos;a:Ceres&apos;, &apos;p:mars&apos; or &apos;c:C/2017 T2&apos;.
+If found, objects will be added to the User Catalogue. Solar system objects will be added with a date in their name, with no duplicate check. Purge the User Catalogue to remove previous searches.</property>
+        <property name="primary-icon-name">edit-find-symbolic</property>
+        <property name="primary-icon-activatable">False</property>
+        <property name="primary-icon-sensitive">False</property>
+        <signal name="activate" handler="on_search_objects_entry_activate" swapped="no"/>
+      </object>
+    </property>
+  </object>
+</interface>

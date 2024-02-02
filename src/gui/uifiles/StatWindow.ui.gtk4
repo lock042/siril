@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkListStore" id="liststoreStat">
+    <columns>
+      <column type="gchararray"/>
+      <column type="gchararray"/>
+      <column type="gchararray"/>
+      <column type="gchararray"/>
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkDialog" id="StatWindow">
+    <property name="width-request">450</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="1">Statistics</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox" id="dialog-vbox30">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkBox">
+            <child>
+              <object class="GtkCheckButton" id="statCheckButton">
+                <property name="label" translatable="1">Normalized Real [0, 1]</property>
+                <property name="focusable">1</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cfastatsCheckButton">
+                <property name="label" translatable="1">Per CFA channel</property>
+                <property name="sensitive">0</property>
+                <property name="focusable">1</property>
+                <property name="tooltip-text" translatable="1">Compute statistics on pixels that have the same filter as the corresponding channel, for CFA (non-demosaiced) images.</property>
+                <property name="active">1</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="statNameLabel">
+            <property name="label" translatable="1">Name</property>
+            <property name="ellipsize">start</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="statSelecLabel">
+            <property name="label" translatable="1">No Selection</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="scrolledwindow2">
+            <property name="vexpand">1</property>
+            <property name="height-request">250</property>
+            <property name="focusable">1</property>
+            <property name="shadow-type">in</property>
+            <property name="child">
+              <object class="GtkTreeView" id="statTreeView">
+                <property name="focusable">1</property>
+                <property name="model">liststoreStat</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection" id="treeview-selection9"/>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn19">
+                    <property name="resizable">1</property>
+                    <property name="fixed-width">100</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext8"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">0</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn20">
+                    <property name="resizable">1</property>
+                    <property name="fixed-width">100</property>
+                    <property name="title" translatable="1">Red</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext9"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn21">
+                    <property name="resizable">1</property>
+                    <property name="fixed-width">100</property>
+                    <property name="title" translatable="1">Green</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext10"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn22">
+                    <property name="resizable">1</property>
+                    <property name="fixed-width">100</property>
+                    <property name="title" translatable="1">Blue</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext11"/>
+                      <attributes>
+                        <attribute name="background">4</attribute>
+                        <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox" id="dialog-action_area32">
+        <property name="valign">center</property>
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="statButtonRun">
+            <property name="label" translatable="1">Execute</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Run statistic calculation</property>
+            <property name="always-show-image">True</property>
+            <signal name="clicked" handler="on_statButtonRun_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="statButtonClose">
+            <property name="label" translatable="1">Close</property>
+            <property name="focusable">1</property>
+            <property name="has-focus">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Close the window</property>
+            <signal name="clicked" handler="on_statButtonClose_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkApplicationWindow" id="edge_dialog">
+    <property name="title" translatable="1">Aberration Inspector</property>
+    <property name="resizable">0</property>
+    <property name="transient-for">control_window</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child>
+      <object class="GtkGrid">
+        <property name="row-spacing">6</property>
+        <property name="column-spacing">6</property>
+        <child>
+          <object class="GtkDrawingArea" id="left_top">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_left_top_draw" swapped="no"/>
+            <layout>
+              <property name="column">0</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_top">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_center_top_draw" swapped="no"/>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_top">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_right_top_draw" swapped="no"/>
+            <layout>
+              <property name="column">2</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_center">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_left_center_draw" swapped="no"/>
+            <layout>
+              <property name="column">0</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_center">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_center_center_draw" swapped="no"/>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_center">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_right_center_draw" swapped="no"/>
+            <layout>
+              <property name="column">2</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="left_bottom">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_left_bottom_draw" swapped="no"/>
+            <layout>
+              <property name="column">0</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="center_bottom">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_center_bottom_draw" swapped="no"/>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="GtkDrawingArea" id="right_bottom">
+            <property name="width-request">127</property>
+            <property name="height-request">127</property>
+            <signal name="draw" handler="on_right_bottom_draw" swapped="no"/>
+            <layout>
+              <property name="column">2</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

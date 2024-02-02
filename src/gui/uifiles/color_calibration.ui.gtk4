@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="adjustment_bkg_h">
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_bkg_w">
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_bkg_x">
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_bkg_y">
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_scale_b">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_scale_g">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_scale_r">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_white_h">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_white_w">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_white_x">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_white_y">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="lowWhiteColorCalibAdj">
+    <property name="upper">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="upWhiteColorCalibAdj">
+    <property name="upper">1</property>
+    <property name="value">0.90</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkDialog" id="color_calibration">
+    <property name="border-width">5</property>
+    <property name="title" translatable="1">Color Calibration</property>
+    <property name="resizable">0</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox" id="dialog-vbox23">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkBox" id="box3">
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkFrame" id="frame22">
+                <property name="shadow-type">none</property>
+                <child>
+                  <object class="GtkAlignment" id="alignment26">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="left-padding">12</property>
+                    <child>
+                      <object class="GtkBox" id="box40">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkBox" id="box42">
+                            <property name="homogeneous">1</property>
+                            <child>
+                              <object class="GtkGrid" id="grid26">
+                                <property name="row-spacing">5</property>
+                                <property name="column-spacing">5</property>
+                                <property name="column-homogeneous">1</property>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_bkg_x">
+                                    <property name="focusable">1</property>
+                                    <property name="tooltip-text" translatable="1">x coordinate of the start of the background selection</property>
+                                    <property name="editable">0</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_bkg_x</property>
+                                    <property name="climb-rate">1</property>
+                                    <property name="numeric">1</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_bkg_y">
+                                    <property name="focusable">1</property>
+                                    <property name="tooltip-text" translatable="1">y coordinate of the start of the background selection</property>
+                                    <property name="editable">0</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_bkg_y</property>
+                                    <property name="numeric">1</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_bkg_w">
+                                    <property name="focusable">1</property>
+                                    <property name="tooltip-text" translatable="1">Width of the background selection</property>
+                                    <property name="editable">0</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_bkg_w</property>
+                                    <property name="numeric">1</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_bkg_h">
+                                    <property name="focusable">1</property>
+                                    <property name="tooltip-text" translatable="1">Height of the background selection</property>
+                                    <property name="editable">0</property>
+                                    <property name="width-chars">6</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">adjustment_bkg_h</property>
+                                    <property name="numeric">1</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label150">
+                                    <property name="label" translatable="1">Selected area</property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                      <property name="column-span">2</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="button_bkg_selection">
+                                <property name="label" translatable="1">Use current selection</property>
+                                <property name="focusable">1</property>
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="1">You must specify a selection that represents the true background of the image, trying to exclude all stars or other stellar objects.</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <signal name="clicked" handler="on_button_bkg_selection_clicked" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button_bkg_neutralization">
+                            <property name="label" translatable="1">Background Neutralization</property>
+                            <property name="focusable">1</property>
+                            <property name="receives-default">1</property>
+                            <property name="tooltip-text" translatable="1">Background Neutralization will compute the mean of each color channel and will equalize the sky background in a neutral grey.
+This step should be run before any attempt of color calibration.</property>
+                            <property name="halign">center</property>
+                            <signal name="clicked" handler="on_button_bkg_neutralization_clicked" swapped="no"/>
+                            <style>
+                              <class name="suggested-action"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel" id="label103">
+                    <property name="label" translatable="1">Background reference</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame" id="frame10">
+                <property name="shadow-type">none</property>
+                <child>
+                  <object class="GtkAlignment" id="alignment6">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="left-padding">12</property>
+                    <child>
+                      <object class="GtkBox" id="box7">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">5</property>
+                        <child>
+                          <object class="GtkCheckButton" id="checkbutton_manual_calibration">
+                            <property name="label" translatable="1">Manual White Balance</property>
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="1">By clicking on this option, you will use your own color calibration factors. This option is disabled by default.</property>
+                            <property name="halign">start</property>
+                            <signal name="toggled" handler="on_checkbutton_manual_calibration_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="cc_box_red">
+                            <property name="sensitive">0</property>
+                            <child>
+                              <object class="GtkLabel" id="label104">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="1">Red</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton">
+                                <property name="focusable">1</property>
+                                <property name="width-chars">7</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjustment_scale_r</property>
+                                <property name="digits">3</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_r">
+                            <property name="sensitive">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="adjustment">adjustment_scale_r</property>
+                            <property name="round-digits">3</property>
+                            <property name="digits">3</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="cc_box_green">
+                            <property name="sensitive">0</property>
+                            <child>
+                              <object class="GtkLabel" id="label105">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="1">Green</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton">
+                                <property name="focusable">1</property>
+                                <property name="width-chars">7</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjustment_scale_g</property>
+                                <property name="digits">3</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_g">
+                            <property name="sensitive">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="adjustment">adjustment_scale_g</property>
+                            <property name="round-digits">3</property>
+                            <property name="digits">3</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="cc_box_blue">
+                            <property name="sensitive">0</property>
+                            <child>
+                              <object class="GtkLabel" id="label106">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="1">Blue</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton">
+                                <property name="focusable">1</property>
+                                <property name="width-chars">7</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjustment_scale_b</property>
+                                <property name="digits">3</property>
+                                <property name="numeric">1</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="scale_b">
+                            <property name="sensitive">0</property>
+                            <property name="focusable">1</property>
+                            <property name="hexpand">1</property>
+                            <property name="adjustment">adjustment_scale_b</property>
+                            <property name="round-digits">3</property>
+                            <property name="digits">3</property>
+                            <property name="value-pos">bottom</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="box19">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">5</property>
+                            <child>
+                              <object class="GtkBox" id="box20">
+                                <property name="margin-top">10</property>
+                                <property name="homogeneous">1</property>
+                                <child>
+                                  <object class="GtkGrid" id="grid27">
+                                    <property name="row-spacing">5</property>
+                                    <property name="column-spacing">5</property>
+                                    <property name="column-homogeneous">1</property>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_white_x">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">x coordinate of the start of the white reference selection</property>
+                                        <property name="editable">0</property>
+                                        <property name="width-chars">6</property>
+                                        <property name="text">0</property>
+                                        <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                        <property name="adjustment">adjustment_white_x</property>
+                                        <property name="numeric">1</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_white_y">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">y coordinate of the start of the white reference selection</property>
+                                        <property name="editable">0</property>
+                                        <property name="width-chars">6</property>
+                                        <property name="text">0</property>
+                                        <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                        <property name="adjustment">adjustment_white_y</property>
+                                        <property name="numeric">1</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">1</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_white_w">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Width of the white reference selection</property>
+                                        <property name="editable">0</property>
+                                        <property name="width-chars">6</property>
+                                        <property name="text">0</property>
+                                        <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                        <property name="adjustment">adjustment_white_w</property>
+                                        <property name="numeric">1</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">2</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_white_h">
+                                        <property name="focusable">1</property>
+                                        <property name="tooltip-text" translatable="1">Height of the white reference selection</property>
+                                        <property name="editable">0</property>
+                                        <property name="width-chars">6</property>
+                                        <property name="text">0</property>
+                                        <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                        <property name="adjustment">adjustment_white_h</property>
+                                        <property name="numeric">1</property>
+                                        <layout>
+                                          <property name="column">1</property>
+                                          <property name="row">2</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="label151">
+                                        <property name="label" translatable="1">Selected area</property>
+                                        <layout>
+                                          <property name="column">0</property>
+                                          <property name="row">0</property>
+                                          <property name="column-span">2</property>
+                                        </layout>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="button_white_selection">
+                                    <property name="label" translatable="1">Use current selection</property>
+                                    <property name="focusable">1</property>
+                                    <property name="receives-default">1</property>
+                                    <property name="tooltip-text" translatable="1">You should specify a selection that represents an average of suitable white reference.
+If the selection is empty, the whole image will be used as reference.</property>
+                                    <property name="halign">center</property>
+                                    <property name="valign">center</property>
+                                    <signal name="clicked" handler="on_button_white_selection_clicked" swapped="no"/>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkGrid" id="grid41">
+                                <child>
+                                  <object class="GtkScale" id="lowWhiteColorCalibScale">
+                                    <property name="draw-value">1</property>
+                                    <property name="width-request">160</property>
+                                    <property name="focusable">1</property>
+                                    <property name="tooltip-text" translatable="1">Lower rejection bound for white selection. Pixels below this value are not taken into account. Black pixels are always excluded from computation.</property>
+                                    <property name="hexpand">1</property>
+                                    <property name="adjustment">lowWhiteColorCalibAdj</property>
+                                    <property name="round-digits">3</property>
+                                    <property name="digits">3</property>
+                                    <property name="value-pos">right</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkScale" id="upWhiteColorCalibScale">
+                                    <property name="draw-value">1</property>
+                                    <property name="width-request">160</property>
+                                    <property name="focusable">1</property>
+                                    <property name="tooltip-text" translatable="1">Upper rejection bound for white selection. Pixels above this value are not taken into account. Saturated pixels are always excluded from computation.</property>
+                                    <property name="hexpand">1</property>
+                                    <property name="adjustment">upWhiteColorCalibAdj</property>
+                                    <property name="round-digits">3</property>
+                                    <property name="digits">3</property>
+                                    <property name="value-pos">right</property>
+                                    <layout>
+                                      <property name="column">1</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label69">
+                                    <property name="label" translatable="1">Lower limit: </property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">0</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label123">
+                                    <property name="label" translatable="1">Upper limit: </property>
+                                    <layout>
+                                      <property name="column">0</property>
+                                      <property name="row">1</property>
+                                    </layout>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel" id="label102">
+                    <property name="label" translatable="1">White reference</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox" id="dialog-action_area25">
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="calibration_close_button">
+            <property name="label" translatable="1">Close</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <signal name="clicked" handler="on_calibration_close_button_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="calibration_apply_button">
+            <property name="label" translatable="1">Apply</property>
+            <property name="focusable">1</property>
+            <property name="has-focus">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">A set of three color calibration factors will be computed and multiplied with every color channel.
+The Background Neutralization should be applied before this operation.</property>
+            <signal name="clicked" handler="on_calibration_apply_button_clicked" swapped="no"/>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

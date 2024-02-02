@@ -1,0 +1,751 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="AdjIPS_Dec_deg">
+    <property name="upper">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="AdjIPS_Dec_m">
+    <property name="upper">59</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="AdjIPS_Mag_Limit">
+    <property name="lower">4</property>
+    <property name="upper">25</property>
+    <property name="value">12</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="AdjIPS_Obs_day">
+    <property name="lower">1</property>
+    <property name="upper">31</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="AdjIPS_Obs_mon">
+    <property name="lower">1</property>
+    <property name="upper">12</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="AdjIPS_Obs_y">
+    <property name="upper">3000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="AdjIPS_RA_h">
+    <property name="upper">23</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="AdjIPS_RA_m">
+    <property name="upper">59</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkImage" id="image1">
+    <property name="icon-name">edit-find</property>
+  </object>
+  <object class="GtkListStore" id="liststoreIPS">
+    <columns>
+      <column type="gchararray"/>
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkDialog" id="astrometry_dialog">
+    <property name="border-width">5</property>
+    <property name="title" translatable="1">Image Plate Solver</property>
+    <property name="resizable">0</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <child internal-child="content_area">
+      <object class="GtkBox">
+        <property name="visible">0</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkBox" id="GtkBoxIPS2">
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkExpander" id="frame_IPS_Image">
+                <property name="focusable">1</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
+                <property name="expanded">1</property>
+                <child>
+                  <object class="GtkGrid" id="GtkGridIPS">
+                    <property name="row-spacing">5</property>
+                    <property name="column-spacing">5</property>
+                    <child>
+                      <object class="GtkSpinButton" id="GtkSpinIPS_RA_h">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
+                        <property name="halign">start</property>
+                        <property name="max-length">2</property>
+                        <property name="width-chars">2</property>
+                        <property name="max-width-chars">2</property>
+                        <property name="text" translatable="1">0</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">AdjIPS_RA_h</property>
+                        <property name="numeric">1</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="GtkSpinIPS_RA_m">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
+                        <property name="halign">start</property>
+                        <property name="max-length">2</property>
+                        <property name="width-chars">2</property>
+                        <property name="max-width-chars">2</property>
+                        <property name="text" translatable="1">0</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">AdjIPS_RA_m</property>
+                        <property name="numeric">1</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="GtkSpinIPS_Dec_deg">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
+                        <property name="halign">start</property>
+                        <property name="max-length">2</property>
+                        <property name="width-chars">2</property>
+                        <property name="max-width-chars">2</property>
+                        <property name="text" translatable="1">0</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">AdjIPS_Dec_deg</property>
+                        <property name="numeric">1</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="GtkSpinIPS_Dec_m">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
+                        <property name="halign">start</property>
+                        <property name="max-length">2</property>
+                        <property name="width-chars">2</property>
+                        <property name="max-width-chars">2</property>
+                        <property name="text" translatable="1">0</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">AdjIPS_Dec_m</property>
+                        <property name="numeric">1</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="GtkEntryIPS_RA_s">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
+                        <property name="halign">start</property>
+                        <property name="width-chars">7</property>
+                        <property name="max-width-chars">6</property>
+                        <property name="text">0.0000</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="GtkEntryIPS_Dec_s">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Initial equatorial coordinates. Input value must be inside the image, close to the centre.</property>
+                        <property name="halign">start</property>
+                        <property name="width-chars">7</property>
+                        <property name="max-width-chars">6</property>
+                        <property name="text">0.0000</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_IPS_RA">
+                        <property name="label" translatable="1">Right Ascension: </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_IPS_D">
+                        <property name="label" translatable="1">Declination: </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="GtkCheckButtonIPS_S">
+                        <property name="label" translatable="1">S</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">This button is checked for negative declination (southern hemisphere).</property>
+                        <property name="halign">start</property>
+                        <layout>
+                          <property name="column">4</property>
+                          <property name="row">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSearchEntry" id="GtkSearchIPS">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Enter the identifier or the name of an object located close to the centre of the image. This feature requires an Internet connection (asks SIMBAD by default or the selected server at the right).
+If coordinates are already filled when clicking on the Get Metadata From Image button below, this is probably not required.</property>
+                        <property name="valign">center</property>
+                        <property name="primary-icon-name">edit-find</property>
+                        <property name="primary-icon-activatable">False</property>
+                        <property name="primary-icon-sensitive">False</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <signal name="activate" handler="on_GtkSearchIPS_activate" swapped="no"/>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="GtkButtonIPS">
+                        <property name="label" translatable="1">Find</property>
+                        <property name="focusable">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="1">Start searching the coordinates of named object. This feature requires an Internet connection (asks SIMBAD by default or the selected server at the right).
+If coordinates are already filled when clicking on the Get Metadata From Image button below, this is probably not required.</property>
+                        <property name="image">image1</property>
+                        <property name="always-show-image">True</property>
+                        <signal name="clicked" handler="on_GtkButtonIPS_clicked" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="GtkEntry_IPS_focal">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Effective focal length of the optical system in millimeter. Even if the input value has not to be very accurate, try to give a value with an error not exceeding 20%.</property>
+                        <property name="halign">start</property>
+                        <property name="width-chars">10</property>
+                        <property name="text">1000.0</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <signal name="changed" handler="on_GtkEntry_IPS_focal_changed" swapped="no"/>
+                        <signal name="insert-text" handler="on_GtkEntry_IPS_insert_text" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="GtkEntry_IPS_pixels">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Pixel size in microns. The image is assumed to have square pixels. Value is already multiplied by the camera binning.</property>
+                        <property name="halign">start</property>
+                        <property name="width-chars">10</property>
+                        <property name="text">5.00</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <signal name="changed" handler="on_GtkEntry_IPS_pixels_changed" swapped="no"/>
+                        <signal name="insert-text" handler="on_GtkEntry_IPS_insert_text" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">6</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="GtkLabelFocal">
+                        <property name="tooltip-text" translatable="1">Effective focal length of the optical system in millimeter. Even if the input value has not to be very accurate, try to give a value with an error not exceeding 20%.</property>
+                        <property name="label" translatable="1">Focal length (mm):</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="GtkLabelPixelSize">
+                        <property name="tooltip-text" translatable="1">Pixel size in microns. The image is assumed to have square pixels.</property>
+                        <property name="label" translatable="1">Pixel size (µm):</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">6</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_IPS_resolution">
+                        <property name="tooltip-text" translatable="1">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
+                        <property name="halign">end</property>
+                        <property name="valign">center</property>
+                        <property name="label" translatable="1">Resolution: </property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">5</property>
+                          <property name="row-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="GtkEntry_IPS_resolution">
+                        <property name="tooltip-text" translatable="1">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                        <property name="editable">0</property>
+                        <property name="has-frame">0</property>
+                        <property name="width-chars">7</property>
+                        <property name="text">1.031</property>
+                        <property name="input-purpose">number</property>
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">5</property>
+                          <property name="row-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="GtkScrollIPS">
+                        <property name="height-request">100</property>
+                        <property name="focusable">1</property>
+                        <property name="shadow-type">in</property>
+                        <property name="child">
+                          <object class="GtkTreeView" id="GtkTreeViewIPS">
+                            <property name="focusable">1</property>
+                            <property name="tooltip-text" translatable="1">Several resolvers can be found and displayed in this list. However, it just about getting the coordinates of the centre of the object. Choosing one item or the others should not influence the plate-solving or the photometry data, which is based on the selected catalogue.</property>
+                            <property name="model">liststoreIPS</property>
+                            <property name="search-column">0</property>
+                            <signal name="cursor-changed" handler="on_GtkTreeViewIPS_cursor_changed" swapped="no"/>
+                            <child internal-child="selection">
+                              <object class="GtkTreeSelection" id="gtkselectionIPS"/>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="GtkTreeViwColumnResolver">
+                                <property name="title" translatable="1">Resolver</property>
+                                <child>
+                                  <object class="GtkCellRendererText" id="cellrendererResolver"/>
+                                  <attributes>
+                                    <attribute name="text">0</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="GtkTreeViwColumnName">
+                                <property name="title" translatable="1">Name</property>
+                                <child>
+                                  <object class="GtkCellRendererText" id="cellrendererName"/>
+                                  <attributes>
+                                    <attribute name="text">1</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                          <property name="column-span">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkButton_IPS_flip">
+                        <property name="label" translatable="1">Flip image if needed</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Flip image at the end of the platesolving if image is mirrored.</property>
+                        <property name="halign">end</property>
+                        <property name="active">1</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">9</property>
+                          <property name="column-span">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="downsample_ips_button">
+                        <property name="label" translatable="1">Downsample image</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Sometimes, for oversampled images (like with Drizzle), it is complicated to resolve astrometry data. In consequence, downsampling data generally helps and also makes star detection run faster.</property>
+                        <property name="halign">start</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">8</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="autocrop_ips_button">
+                        <property name="label" translatable="1">Auto-crop (for wide field)</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Only use the center of the image (or selection) if the field is too wide, larger than 5 degrees.</property>
+                        <property name="halign">start</property>
+                        <property name="active">1</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">9</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="GtkButton_IPS_metadata">
+                        <property name="label" translatable="1">Get Metadata From Image</property>
+                        <property name="focusable">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="1">Click on this button to get focal length, pixel size and RA/Dec pointing coordinates from the header of the file if they exist.</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                        <signal name="clicked" handler="on_GtkButton_IPS_metadata_clicked" swapped="no"/>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">4</property>
+                          <property name="column-span">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparator">
+                        <property name="margin-top">8</property>
+                        <property name="margin-bottom">8</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">7</property>
+                          <property name="column-span">5</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_server_ips">
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Select the server that searches the coordinates of the entered object name.</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item translatable="yes">CDS</item>
+                          <item translatable="yes">VizieR</item>
+                          <item translatable="yes">SIMBAD</item>
+                        </items>
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">0</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">end</property>
+                        <property name="label" translatable="1">Server:</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="localasnet_check_button">
+                        <property name="label" translatable="1">Use local astrometry.net solver</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Use the solve-field command to find the astrometric solution instead of Siril&apos;s plate solver</property>
+                        <property name="halign">end</property>
+                        <signal name="toggled" handler="on_localasnet_check_button_toggled" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">8</property>
+                          <property name="column-span">4</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="ComboBoxIPS_order">
+                        <property name="tooltip-text" translatable="1">Select the order of the solution:
+Linear assumes no distortion is present in the image
+Quadratic, Cubic and Quartic will include second-, third- or fourth-order polynomial distortions.
+When selecting an order with distortions, additional terms are added to the solution, using SIP convention</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item>Linear</item>
+                          <item>Quadratic (SIP)</item>
+                          <item>Cubic (SIP)</item>
+                          <item>Quartic (SIP)</item>
+                        </items>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">10</property>
+                          <property name="column-span">3</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_IPS_order">
+                        <property name="tooltip-text" translatable="1">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
+                        <property name="halign">end</property>
+                        <property name="valign">center</property>
+                        <property name="label" translatable="1">Solution order: </property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">10</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Image Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander" id="labelIPSCatalogParameters">
+                <property name="focusable">1</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
+                <property name="expanded">1</property>
+                <child>
+                  <object class="GtkGrid" id="GtkGridIPS2">
+                    <property name="row-spacing">5</property>
+                    <property name="column-spacing">5</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="1">Catalogue Limit Mag: </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="GtkSpinIPS_Mag_Limit">
+                        <property name="sensitive">0</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">Maximum star magnitude used in the catalog queries. Wider is the field, lower is the value.</property>
+                        <property name="halign">start</property>
+                        <property name="text">12</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">AdjIPS_Mag_Limit</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="GtkCheckButton_Mag_Limit">
+                        <property name="label" translatable="1">Auto</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">The limit magnitude is automatically determined using the approximation of the Field Of View.</property>
+                        <property name="halign">start</property>
+                        <property name="active">1</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="photometric_catalog_label">
+                        <property name="tooltip-text" translatable="1">The NOMAD catalogue can be installed locally to not rely on an Internet connection for this operation.</property>
+                        <property name="margin-start">4</property>
+                        <property name="margin-start">4</property>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="GtkLabelCatalog">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="1">Online Star Catalogue: </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="ComboBoxIPSCatalog">
+                        <property name="sensitive">0</property>
+                        <property name="tooltip-text" translatable="1">Choose the online catalogue against one want to compare the image.
+* TYCHO-2 catalogue contains positions, proper motions, and two-color photometric data for 2,539,913 of the brightest stars in the Milky Way.
+* NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
+* Gaia Data Release 3 was released on 13 June 2022. The five-parameter astrometric solution, positions on the sky (α, δ), parallaxes, and proper motions, are given for around 1.46 billion sources, with a limiting magnitude of G = 21.
+* PPMXL is a catalog of positions, proper motions, 2MASS- and optical photometry of 900 million stars and galaxies.
+* The Bright Star Catalogue is a star catalogue that lists all stars of stellar magnitude 6.5 or brighter, which is roughly every star visible to the naked eye from Earth. The catalog contains 9,110 objects.
+* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u&apos;, g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.</property>
+                        <property name="active">1</property>
+                        <items>
+                          <item>TYCHO2</item>
+                          <item>NOMAD</item>
+                          <item>Gaia DR3</item>
+                          <item>PPMXL</item>
+                          <item>Bright stars</item>
+                          <item>APASS</item>
+                        </items>
+                        <signal name="changed" handler="on_comboastro_catalog_changed" swapped="no"/>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="GtkCheckButton_OnlineCat">
+                        <property name="label" translatable="1">Auto</property>
+                        <property name="focusable">1</property>
+                        <property name="tooltip-text" translatable="1">The online catalogue is automatically determined using the approximation of the Field Of View and magnitude.</property>
+                        <property name="halign">start</property>
+                        <property name="active">1</property>
+                        <signal name="toggled" handler="on_GtkCheckButton_OnlineCat_toggled" swapped="no"/>
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="astrometry_catalog_label">
+                        <property name="tooltip-text" translatable="1">The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to not rely on an Internet connection for this operation.</property>
+                        <property name="margin-start">4</property>
+                        <property name="margin-start">4</property>
+                        <layout>
+                          <property name="column">3</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Catalogue Parameters</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkExpander" id="Frame_IPS_star_detection">
+                <property name="vexpand">1</property>
+                <property name="focusable">1</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
+                <child>
+                  <object class="GtkCheckButton" id="checkButton_IPS_manual">
+                    <property name="label" translatable="1">Manual detection</property>
+                    <property name="focusable">1</property>
+                    <property name="tooltip-text" translatable="1">Check this option if you want to pick each stars manually. It could be useful in some cases where Siril can&apos;t find enough stars. Please, try to choose the brightest stars in the image.
+Use the Dynamic PSF tool, or the findstar command, adjusting the settings to your image.</property>
+                    <property name="halign">start</property>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="label" translatable="1">Star Detection</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"></attribute>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox">
+        <property name="valign">center</property>
+        <property name="can-focus">False</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="buttonIPS_close">
+            <property name="label" translatable="1">Close</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Close the window.</property>
+            <signal name="clicked" handler="on_buttonIPS_close_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="buttonIPS_ok">
+            <property name="label" translatable="1">OK</property>
+            <property name="focusable">1</property>
+            <property name="receives-default">1</property>
+            <property name="tooltip-text" translatable="1">Start the plate solving algorithm.</property>
+            <signal name="clicked" handler="on_buttonIPS_ok_clicked" swapped="no"/>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
