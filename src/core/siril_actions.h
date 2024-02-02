@@ -128,6 +128,8 @@ void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);

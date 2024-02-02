@@ -718,6 +718,16 @@ void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	rgb_align(1);
 }
 
+void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (Global stars)"));
+	rgb_align(2);
+}
+
+void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (KOMBAT)"));
+	rgb_align(3);
+}
+
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	undo_save_state(&gfit, _("RGB alignment (PSF)"));
 	if (com.selection.w > 300 || com.selection.h > 300) {

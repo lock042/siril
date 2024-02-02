@@ -33,6 +33,7 @@ siril 1.4.0 xx xx, xx
 * Added color management to photometric color calibration, and SPCC as a new method. (!598)
 * Added solving with distortions using SIP convention and handling writing related keywords in the header (!612 and #1154::3)
 * Split Astrometry from (S)PCC
+* Add better registration options to RGB align right-click menu and improve DATE-OBS handling in LRGB composition (!620)
 
 siril 1.2.1 January 26, 2024
 
