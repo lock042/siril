@@ -3,7 +3,7 @@ crossroad source msys2
 mkdir _deps && cd _deps
 
 crossroad install lcms2 \
-                  gtk3 \
+                  gtk4 \
                   fftw \
                   libjxl \
                   exiv2 \
