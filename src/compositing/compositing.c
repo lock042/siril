@@ -86,6 +86,8 @@ static unsigned int orig_ry[MAX_LAYERS] = { 0 }; // dimensions before any upscal
 
 static int luminance_mode = 0;		// 0 if luminance is not used
 
+static gboolean timespan_warning_given = FALSE;
+
 static struct registration_method *reg_methods[5];
 
 static sequence *seq = NULL;		// the sequence of layers, for alignments and normalization
@@ -1140,6 +1142,42 @@ void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer use
 static void colors_align_and_compose() {
 	int x, y;
 	if (no_color_available()) return;
+	// Sort the date_obs and pic the earliest one
+	GList *date_obs_list = NULL;
+	for (int layer = 1 ; layers[layer]; layer++) {
+		if (has_fit(layer) && layers[layer]->the_fit.date_obs) {
+			date_obs_list = g_list_append(date_obs_list, layers[layer]->the_fit.date_obs);
+		}
+	}
+	int len = g_list_length(date_obs_list);
+	if (len > 0) {
+		date_obs_list = g_list_sort(date_obs_list, g_date_time_compare);
+		GDateTime *earliest = (GDateTime*) g_list_nth(date_obs_list, 0)->data;
+		GDateTime *latest = (GDateTime*) g_list_nth(date_obs_list, len-1)->data;
+		GTimeSpan timespan = g_date_time_difference(latest, earliest);
+		timespan /= 3600000000;
+		if (timespan > 24 && !timespan_warning_given) {
+			siril_log_message(_("Attention: channels are dated more than 24 hours apart. DATE_OBS "
+								"set to the earliest observation start date but for "
+								"some purposes this field may be of limited use (e.g. solar "
+								"system objects may have moved significantly between channels).\n"));
+			timespan_warning_given = TRUE;
+		} else {
+			timespan_warning_given = FALSE;
+		}
+		if (gfit.date_obs) {
+			g_date_time_unref(gfit.date_obs);
+		}
+		gfit.date_obs = g_date_time_new(
+				g_date_time_get_timezone(earliest),
+				g_date_time_get_year(earliest),
+				g_date_time_get_month(earliest),
+				g_date_time_get_day_of_month(earliest),
+				g_date_time_get_hour(earliest),
+				g_date_time_get_minute(earliest),
+				g_date_time_get_seconds(earliest));
+	}
+	g_list_free(date_obs_list);
 	fprintf(stdout, "colour layers only composition\n");
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
@@ -1511,6 +1549,7 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 }
 
 void reset_compositing_module() {
+	timespan_warning_given = FALSE;
 	gui.comp_layer_centering = NULL;
 	if (!compositing_loaded)
 		return;
