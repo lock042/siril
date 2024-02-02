@@ -2629,10 +2629,12 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	} else if (cp_type == heif_color_profile_type_nclx) {
 		struct heif_color_profile_nclx *nclx = NULL;
 		err = heif_image_handle_get_nclx_color_profile(handle, &nclx);
-		cmsHPROFILE profile = nclx_to_icc_profile(nclx);
-		heif_nclx_color_profile_free(nclx);
-		icc_buffer = get_icc_profile_data(profile, &icc_length);
-		cmsCloseProfile(profile);
+		if (!err.code) {
+			cmsHPROFILE profile = nclx_to_icc_profile(nclx);
+			heif_nclx_color_profile_free(nclx);
+			icc_buffer = get_icc_profile_data(profile, &icc_length);
+			cmsCloseProfile(profile);
+		}
 	} else if (cp_type == heif_color_profile_type_not_present) {
 		siril_debug_print("HEIF does not contain any color profile. Assuming sRGB.\n");
 		icc_buffer = get_icc_profile_data(com.icc.srgb_profile, &icc_length);
@@ -2815,18 +2817,13 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 #ifdef HAVE_LIBJXL
 
 int readjxl(const char* name, fits *fit) {
-
-	FILE *f = g_fopen(name, "rb");
-	if (f == NULL) {
-		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
-		return OPEN_IMAGE_ERROR;
-	}
 	GError* error = NULL;
 	gsize jxl_size;
 	uint8_t* jxl_data = NULL;
 	gboolean success = g_file_get_contents(name, (gchar**) &jxl_data, &jxl_size, &error);
 	if (!success) {
 		siril_log_color_message(_("Sorry but Siril cannot open the file: %s.\n"), "red", name);
+		g_error_free(error);
 		return OPEN_IMAGE_ERROR;
 	}
 	uint8_t* icc_profile = NULL;
@@ -2844,7 +2841,6 @@ int readjxl(const char* name, fits *fit) {
 		return 1;
 	}
 	siril_debug_print("Image decoded as %d bits per pixel\n", bitdepth);
-	fclose(f);
 	clearfits(fit);
 	fit->bitpix = (bitdepth == 16 || com.pref.force_16bit) ? USHORT_IMG : FLOAT_IMG;
 	fit->type = fit->bitpix == FLOAT_IMG ? DATA_FLOAT : DATA_USHORT;
@@ -3071,6 +3067,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 	free(buffer);
 	free(compressed);
 	free(filename);
+	g_error_free(error);
 	return OPEN_IMAGE_OK;
 }
 
