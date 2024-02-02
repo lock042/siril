@@ -120,7 +120,9 @@ gboolean siril_confirm_data_dialog(GtkMessageType type, char *title, char *text,
 	args->secondary_text = text;
 	args->data = data;
 	args->type = type;
-	return siril_confirm_data_dialog_internal(args, button_accept);
+	gboolean retval = siril_confirm_data_dialog_internal(args, button_accept);
+	free(args);
+	return retval;
 }
 
 
