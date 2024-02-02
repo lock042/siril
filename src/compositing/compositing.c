@@ -219,7 +219,8 @@ layer *create_layer(int index) {
 			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
 			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
-	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
+	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
+	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
 
 	ret->label = GTK_LABEL(gtk_label_new(_("not loaded")));
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
@@ -1174,7 +1175,20 @@ static void luminance_and_colors_align_and_compose() {
 	 * luminance layer's value and transformed back to RGB. */
 	guint x, y;
 	assert(has_fit(0));
-
+	// Copy the date_obs field from the luminance layer
+	if (layers[0]->the_fit.date_obs) {
+		if (gfit.date_obs) {
+			g_date_time_unref(gfit.date_obs);
+		}
+		gfit.date_obs = g_date_time_new(
+				g_date_time_get_timezone(layers[0]->the_fit.date_obs),
+				g_date_time_get_year(layers[0]->the_fit.date_obs),
+				g_date_time_get_month(layers[0]->the_fit.date_obs),
+				g_date_time_get_day_of_month(layers[0]->the_fit.date_obs),
+				g_date_time_get_hour(layers[0]->the_fit.date_obs),
+				g_date_time_get_minute(layers[0]->the_fit.date_obs),
+				g_date_time_get_seconds(layers[0]->the_fit.date_obs));
+	}
 	if (no_color_available()) {
 		/* luminance only: we copy its data to all result layers */
 		int i;
