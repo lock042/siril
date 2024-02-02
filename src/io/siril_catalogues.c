@@ -710,11 +710,9 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 	gsize n;
 	GError *error = NULL;
 	if (siril_cat->header && !g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", siril_cat->header)) {
-		g_warning("%s\n", error->message);
-		g_clear_error(&error);
+		g_error_free(error);
 		return FALSE;
 	}
-
 
 	// we write the line containing the columns names based on catalog spec
 	GString *columns = NULL;
@@ -740,6 +738,7 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		g_free(columns_str);
 	} else {
 		siril_debug_print("no columns to write");
+		g_error_free(error);
 		return FALSE;
 	}
 	for (int j = 0; j < siril_cat->nbitems; j++) {
@@ -750,12 +749,13 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		gchar *newline = g_strjoinv(",", tokens);
 		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "\n%s", newline)) {
 			g_warning("%s\n", error->message);
-			g_clear_error(&error);
+			g_error_free(error);
 			g_free(newline);
 			return FALSE;
 		}
 		g_free(newline);
 	}
+	g_error_free(error);
 	return TRUE;
 }
 

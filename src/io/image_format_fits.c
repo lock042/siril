@@ -608,7 +608,10 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 		strncpy(curr, token[i], FLEN_CARD - 1);
 		curr += FLEN_CARD - 1;
 		fits_parse_template(tok, card, &keytype, &status);
-		if (status) return status;
+		if (status) {
+			free(header2);
+			return status;
+		}
 		fits_parse_value(card, value, comment, &status);
 
 		if (g_str_has_prefix(card, "END")) {
