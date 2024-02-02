@@ -263,13 +263,13 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 		}
 		g_free(labeltext);
 		// display selection box
-		if (spl_data->pdd.action == SELACTION_SELECTING) {
+		if (spl_data->pdd.action == SELACTION_SELECTING && spl_data->zoomable) {
 			spl_data->pdd.selection.w = x - spl_data->pdd.start.x;
 			spl_data->pdd.selection.h = y - spl_data->pdd.start.y;
 			gtk_widget_queue_draw(da);
 			return TRUE;
 		}
-		if (spl_data->pdd.action == SELACTION_MOVING) {
+		if (spl_data->pdd.action == SELACTION_MOVING && spl_data->zoomable) {
 			double x1, x2, y1, y2;
 			convert_surface_to_plot(spl_data, spl_data->pdd.start.x, spl_data->pdd.start.y, &x1, &y1);
 			convert_surface_to_plot(spl_data, x, y, &x2, &y2);
@@ -288,10 +288,10 @@ static gboolean on_siril_plot_motion_notify_event(GtkWidget *widget, GdkEventMot
 static gboolean on_siril_plot_scroll_event(GtkWidget *widget, GdkEventScroll *event, gpointer user_data) {
 	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
-		return FALSE;
+		return TRUE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !da)
+	if (!spl_data || !spl_data->zoomable || !da)
 		return TRUE;
 	gboolean handled = FALSE;
 	if (event->state & get_primary()) {
@@ -326,7 +326,7 @@ static gboolean on_siril_plot_scroll_event(GtkWidget *widget, GdkEventScroll *ev
 static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	GtkWidget *window = (GtkWidget *)(user_data);
 	if (!window)
-		return FALSE;
+		return TRUE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *menu = (GtkWidget *)g_object_get_data(G_OBJECT(window), "menu_handle");
 	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
@@ -338,6 +338,8 @@ static gboolean on_siril_plot_button_press_event(GtkWidget *widget, GdkEventButt
 		gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
 		return TRUE;
 	}
+	if(!spl_data->zoomable)
+		return TRUE;
 
 	// single left-click draws selection (terminates when released)
 	// double left-click resets zoom
@@ -372,7 +374,7 @@ static gboolean on_siril_plot_button_release_event(GtkWidget *widget, GdkEventBu
 		return FALSE;
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(window), "spl_data");
 	GtkWidget *da = (GtkWidget *)g_object_get_data(G_OBJECT(window), "drawing_area_handle");
-	if (!spl_data || !da)
+	if (!spl_data || !spl_data->zoomable || !da)
 		return TRUE;
 	if (event->button == GDK_BUTTON_PRIMARY && spl_data->pdd.action == SELACTION_SELECTING) {
 		if (fabs(spl_data->pdd.selection.w) > 1. && fabs(spl_data->pdd.selection.h) > 1.) {
@@ -483,7 +485,7 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	//prepare interactivity for spl_data
 	reset_zoom(spl_data);
 	reset_selection(&spl_data->pdd);
-	spl_data->interactive = TRUE;
+	spl_data->zoomable = spl_data->bkg == NULL;
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "Siril plot");
@@ -508,7 +510,9 @@ gboolean create_new_siril_plot_window(gpointer p) {
 
 	// add the drawing area
 	da = gtk_drawing_area_new();
-	gtk_widget_set_size_request(da, SIRIL_PLOT_DISPLAY_WIDTH, SIRIL_PLOT_DISPLAY_HEIGHT);
+	int width = (!spl_data->width) ? SIRIL_PLOT_DISPLAY_WIDTH : spl_data->width;
+	int height = (!spl_data->height) ? SIRIL_PLOT_DISPLAY_WIDTH : spl_data->height;
+	gtk_widget_set_size_request(da, width, height);
 	gtk_box_pack_start(GTK_BOX(vbox), da, TRUE, TRUE, 0);
 	gtk_widget_add_events(da, GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
 	GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | 

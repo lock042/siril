@@ -95,9 +95,9 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		siril_catalog_free(siril_cat);
 		return 1;
 	}
-	
+
 	// parsing the file header to get metadata
-	if (siril_cat->header) { 
+	if (siril_cat->header) {
 		gchar **tokens = g_strsplit(siril_cat->header, "\n", -1);
 		int length = g_strv_length(tokens);
 		for (int i = 0; i < length; i++) {
@@ -290,7 +290,7 @@ int sort_compstars(struct compstars_arg *args) {
 		// (discards BORDER_RATIO of the width/height on both borders)
 		if ((item->x > xmin && item->x < xmax && item->y > ymin && item->y < ymax) &&
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
-				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors 
+				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
 				((args->cat == CAT_APASS) ? (item->e_mag > 0. && item->e_mag <= args->max_emag) : TRUE)) {// Criteria #3: e_mag smaller than threshold, for catalogues that have the info
 			sorter[nb_phot_stars] = (compstar_dist){i, compute_coords_distance(siril_cat->center_ra, siril_cat->center_dec, item->ra, item->dec)};
 			nb_phot_stars++;
@@ -367,7 +367,7 @@ static int get_catstars(struct compstars_arg *args) {
 		radius = resolution * min(gfit.rx, gfit.ry) / 2.0;	// in degrees
 	} else {
 		// The whole Field of View
-		sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
+		sqr_radius = ((uint64_t) gfit.rx * gfit.rx + (uint64_t) gfit.ry * gfit.ry) / 4;
 		radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	}
 

@@ -1364,9 +1364,9 @@ gboolean asnet_is_available() {
 	gchar *bin = siril_get_asnet_bin();
 	if (!bin) return FALSE;
 	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-	g_free(bin);
 	if (!asnet_version)
 		get_asnet_version(bin);
+	g_free(bin);
 	return is_available;
 }
 #endif

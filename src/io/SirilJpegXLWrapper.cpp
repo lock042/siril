@@ -441,7 +441,6 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
   std::vector<uint8_t> pixels;
   size_t xsize, ysize, zsize;
   xsize = ysize = zsize = 0;
-  bool got_preview = FALSE;
 
   // Multi-threaded parallel runner.
   auto runner = JxlResizableParallelRunnerMake(nullptr);
@@ -462,7 +461,7 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
     return NULL;
   }
 
-  JxlBasicInfo info;
+  JxlBasicInfo info = { 0 };
 
   JxlDecoderSetInput(dec.get(), jxl, size);
   JxlDecoderCloseInput(dec.get());
@@ -516,7 +515,6 @@ extern "C" GdkPixbuf* get_thumbnail_from_jxl(uint8_t *jxl, gchar **descr, size_t
       pixbuf = createPixbufFromMono(pixels, info.preview.xsize, info.preview.ysize);
       return pixbuf;
     } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
-      if (got_preview) continue;
       format.num_channels = zsize; // Update for RGB images (not previews)
       size_t buffer_size;
       if (JXL_DEC_SUCCESS !=

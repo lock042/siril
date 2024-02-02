@@ -128,13 +128,12 @@ static gboolean siril_plot_save_aavso(siril_plot_data *spl_data,
 		}
 
 		// Free memory
-		g_string_free(header, TRUE);
 		for (int i = 0; i < nbpoints * nbcols; i++) {
 			g_free(data[i]);
 		}
 		g_free(data);
 	}
-
+	g_string_free(header, TRUE);
 	return retval;
 }
 
