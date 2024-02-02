@@ -1168,14 +1168,8 @@ static void colors_align_and_compose() {
 		if (gfit.date_obs) {
 			g_date_time_unref(gfit.date_obs);
 		}
-		gfit.date_obs = g_date_time_new(
-				g_date_time_get_timezone(earliest),
-				g_date_time_get_year(earliest),
-				g_date_time_get_month(earliest),
-				g_date_time_get_day_of_month(earliest),
-				g_date_time_get_hour(earliest),
-				g_date_time_get_minute(earliest),
-				g_date_time_get_seconds(earliest));
+		g_date_time_ref(earliest);
+		gfit.date_obs = earliest;
 	}
 	g_list_free(date_obs_list);
 	fprintf(stdout, "colour layers only composition\n");
@@ -1218,14 +1212,8 @@ static void luminance_and_colors_align_and_compose() {
 		if (gfit.date_obs) {
 			g_date_time_unref(gfit.date_obs);
 		}
-		gfit.date_obs = g_date_time_new(
-				g_date_time_get_timezone(layers[0]->the_fit.date_obs),
-				g_date_time_get_year(layers[0]->the_fit.date_obs),
-				g_date_time_get_month(layers[0]->the_fit.date_obs),
-				g_date_time_get_day_of_month(layers[0]->the_fit.date_obs),
-				g_date_time_get_hour(layers[0]->the_fit.date_obs),
-				g_date_time_get_minute(layers[0]->the_fit.date_obs),
-				g_date_time_get_seconds(layers[0]->the_fit.date_obs));
+		g_date_time_ref(layers[0]->the_fit.date_obs);
+		gfit.date_obs = layers[0]->the_fit.date_obs;
 	}
 	if (no_color_available()) {
 		/* luminance only: we copy its data to all result layers */
