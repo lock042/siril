@@ -2876,7 +2876,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-text" translatable="yes">If you disable the repository, any SPCC data json files you need must be placed in this directory.</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">label</property>
+                                    <property name="label">label</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>

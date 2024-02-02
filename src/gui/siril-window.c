@@ -199,13 +199,20 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		"remove-green-processing",
 		"saturation-processing",
 		"color-calib-processing",
-		"pcc-processing",
-		"spcc-processing",
 		"split-channel-processing",
 		"align-global",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_processing_actions, enable);
+}
+
+void siril_window_enable_rgb_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *rgb_wcs_processing_actions[] = {
+		"pcc-processing",
+		"spcc-processing",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_wcs_processing_actions, enable);
 }
 
 void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean enable) {

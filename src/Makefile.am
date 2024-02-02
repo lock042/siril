@@ -327,8 +327,6 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
-	io/gitscripts.c \
-	io/gitscripts.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
@@ -353,6 +351,8 @@ siril_common_SOURCES = \
 	io/single_image.h \
 	io/siril_catalogues.c \
 	io/siril_catalogues.h \
+	io/siril_git.c \
+	io/siril_git.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
 	livestacking/livestacking.c \

@@ -182,6 +182,7 @@ void siril_catalog_free(siril_catalogue *siril_cat);
 void siril_catalog_reset_projection(siril_catalogue *siril_cat);
 gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);
 void siril_catalogue_copy_item(cat_item *from, cat_item *to);
+void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to);
 gboolean is_star_catalogue(siril_cat_index Catalog);
 gboolean display_names_for_catalogue(siril_cat_index Catalog);
 

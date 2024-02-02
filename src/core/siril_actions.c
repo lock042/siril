@@ -547,14 +547,12 @@ void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 void pcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	initialize_photometric_cc_dialog();
-	siril_open_dialog("ImagePlateSolver_Dial");
-	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
+	siril_open_dialog("s_pcc_dialog");
 }
 
 void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	initialize_spectrophotometric_cc_dialog();
-	siril_open_dialog("ImagePlateSolver_Dial");
-	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
+	siril_open_dialog("s_pcc_dialog");
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
