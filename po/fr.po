@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:41+0100\n"
-"PO-Revision-Date: 2024-02-02 14:44+0000\n"
+"PO-Revision-Date: 2024-02-03 23:02+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/fr/>\n"
@@ -3824,7 +3824,7 @@ msgstr "PSF de la séquence"
 
 #: src/gui/siril3.glade:14751
 msgid "Pick a Star"
-msgstr "Pointer l'étoile"
+msgstr "Sélectionner une étoile"
 
 #: src/gui/siril3.glade:14760
 msgid "Search Object..."
@@ -3921,7 +3921,7 @@ msgstr "Rotation&Recadrage"
 
 #: src/gui/siril3.glade:15048
 msgid "RGB align"
-msgstr "Alignement RVB"
+msgstr "Aligner RVB"
 
 #: src/gui/siril3.glade:15081
 msgid "Merge CFA Elements"
