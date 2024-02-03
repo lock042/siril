@@ -23,9 +23,7 @@
 #define SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_
 
 #include "misc.h"
-#include "core/siril_world_cs.h"
 
-
-int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double *a, double *d);
+int apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d);
 
 #endif /* SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_ */

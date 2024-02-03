@@ -78,6 +78,15 @@ static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitud
 	}
 }
 
+gboolean has_any_keywords() {
+	return (gfit.focal_length > 0.0 ||
+			gfit.pixel_size_x > 0.f ||
+			gfit.pixel_size_y > 0.f ||
+			(has_wcs(&gfit) && gfit.wcslib->crval[0] != 0.0 && gfit.wcslib->crval[1] != 0.0) ||
+			(gfit.wcsdata.objctra[0] != '\0' && gfit.wcsdata.objctdec[0] != '\0') ||
+			(gfit.wcsdata.ra != 0.0 && gfit.wcsdata.dec != 0.0));
+}
+
 /* effective focal length in mm */
 static double get_focal() {
 	GtkEntry *focal_entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
@@ -312,15 +321,15 @@ gboolean end_plate_solver(gpointer p) {
 		/* update UI */
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
-		update_coordinates(args->new_center);
+		update_coords();
 		delete_selected_area();
 		refresh_annotations(FALSE);
 		close_astrometry_dialog();
 		/* ****** */
-		if (args->flip_image)
+		if (args->image_flipped)
 			redraw(REMAP_ALL);
-		else redraw(REDRAW_OVERLAY);
-		siril_world_cs_unref(args->new_center);
+		else
+			redraw(REDRAW_OVERLAY);
 	}
 	if (args->image_flipped)
 		clear_stars_list(TRUE);

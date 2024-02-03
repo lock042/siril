@@ -104,7 +104,7 @@ typedef enum {
 
 typedef enum {
 	CAT_PROJ_NONE,
-	CAT_PROJ_PLATE,
+	CAT_PROJ_TAN,
 	CAT_PROJ_WCS
 } cat_proj;
 
@@ -191,9 +191,9 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutputStream *output_stream);
 gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename);
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity);
-int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
+int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
-psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars);
+psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat);
 siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, float limit_mag);
 gpointer conesearch_worker(gpointer p);
 

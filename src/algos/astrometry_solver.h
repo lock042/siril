@@ -52,15 +52,10 @@ struct astrometry_data {
 	gboolean uncentered;	// solvearea is not centered with image
 	gboolean asnet_checked;	// local asnet availability already checked
 
-	/* runtime data */
-	psf_star **cstars;	// catalogue stars
-	int n_cat;		// number of catalogue stars
-
 	/* results */
 	int ret;		// return value
 	gchar *message;		// error message
 	gboolean image_flipped;	// image has been flipped
-	SirilWorldCS *new_center; // the image center found by the solve, for GUI update
 };
 
 void open_astrometry_dialog();

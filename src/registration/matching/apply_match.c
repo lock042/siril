@@ -112,18 +112,11 @@
 
 #undef DEBUG           /* get some of diagnostic output */
 
-int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double *a, double *d) {
-	double xval, yval;
+int apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d) {
 	double r_dec;
 	double z, zz, alpha, delta;
 	double delta_ra, delta_dec;
-	double ra = siril_world_cs_get_alpha(px_cat_center);
-	double dec = siril_world_cs_get_delta(px_cat_center);
-
 	r_dec = dec * DEGTORAD;
-
-	xval = crpix[0];
-	yval = crpix[1];
 
 	/*
 	 * let's transform from (x,y) to (delta_ra, delta_dec),

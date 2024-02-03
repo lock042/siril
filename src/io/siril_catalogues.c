@@ -938,10 +938,11 @@ clean_and_exit:
 	return !(nbincluded > 0);
 }
 
-// projects passed catalogue wrt to the center ra0 and dec0 coordinates
+// projects passed catalogue wrt to the point ra0 and dec0 coordinates
+// according to gnomonic (a.k.a TAN) projection
 // corrects for proper motions if the flag is TRUE and the necessary data is passed
 // (dateobs) and found in the catalogue (pmra and pmdec fields)
-int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
+int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC))
 		return 1;
 	double jyears = 0.;
@@ -983,7 +984,7 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 		siril_cat->cat_items[i].included = TRUE;
 	}
 	siril_cat->nbincluded = siril_cat->nbitems;
-	siril_cat->projected = CAT_PROJ_PLATE;
+	siril_cat->projected = CAT_PROJ_TAN;
 	return 0;
 }
 
@@ -1176,8 +1177,7 @@ double compute_coords_distance(double ra1, double dec1, double ra2, double dec2)
 // TODO: using this for the moment to avoid chaging too many files
 // This copies the info contained in the catalogue to a psf_star** list
 // only the included items are copied over
-psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars) {
-	*nbstars = 0;
+psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return NULL;
 	if (siril_cat->projected == CAT_PROJ_NONE) {
@@ -1189,11 +1189,11 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 
 	int n = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (n >= siril_cat->nbincluded) {
-			siril_debug_print("problem when converting siril_cat to psf_stars, more than allocated");
-			break;
-		}
 		if (siril_cat->cat_items[i].included) {
+			if (n >= siril_cat->nbincluded) {
+				siril_debug_print("problem when converting siril_cat to psf_stars, more than allocated");
+				break;
+			}
 			results[n] = new_psf_star();
 			results[n]->xpos = siril_cat->cat_items[i].x;
 			results[n]->ypos = siril_cat->cat_items[i].y;
@@ -1212,7 +1212,6 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 		free_fitted_stars(results);
 		return NULL;
 	}
-	*nbstars = n;
 	return results;
 }
 
