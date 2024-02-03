@@ -227,7 +227,7 @@ if platform_windows
 else
   gio_platform_dep = dependency('gio-unix-2.0', required : true, version: '>= 2.56.0')
 endif
-gtk_dep = dependency('gtk4', required : true, version: '>= 4.0.0')
+gtk_dep = dependency('gtk4', required : true, version: '>= 4.10.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')

@@ -335,8 +335,8 @@ static void set_edge_square(gchar **panel) {
 }
 
 gboolean on_left_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -349,8 +349,8 @@ gboolean on_left_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_center_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -363,8 +363,8 @@ gboolean on_center_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_right_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -377,8 +377,8 @@ gboolean on_right_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_left_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -391,8 +391,8 @@ gboolean on_left_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_center_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -405,8 +405,8 @@ gboolean on_center_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_right_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -419,8 +419,8 @@ gboolean on_right_center_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_left_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -433,8 +433,8 @@ gboolean on_left_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_center_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);
@@ -447,8 +447,8 @@ gboolean on_center_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int area_width = gtk_widget_get_allocated_width (widget);
-	int area_height = gtk_widget_get_allocated_height (widget);
+	int area_width = gtk_widget_get_width (widget);
+	int area_height = gtk_widget_get_height (widget);
 
 	cairo_rectangle(cr, 0, 0, area_width, area_height);
 	cairo_fill(cr);

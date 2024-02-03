@@ -8125,7 +8125,7 @@ int process_capabilities(int nb) {
 }
 
 int process_exit(int nb) {
-	gtk_main_quit();
+	g_application_quit(com.app);
 	return CMD_OK;
 }
 

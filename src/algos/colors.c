@@ -394,6 +394,33 @@ void rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v) {
 		*h += 1.0;
 }
 
+void rgb_to_hsvf(float r, float g, float b, float *h, float *s, float *v) {
+	float cmax, cmin, delta;
+
+	cmax = max(r, g);
+	cmax = max(cmax, b);
+	cmin = min(r, g);
+	cmin = min(cmin, b);
+	delta = cmax - cmin;
+	*v = cmax;
+	if (delta == 0.0) {
+		*s = 0.0;
+		*h = 0.0;
+		return;
+	}
+	*s = delta / cmax;
+
+	if (cmax == r)
+		*h = (((g - b) / delta)) / 6.0;
+	else if (cmax == g)
+		*h = (((b - r) / delta) + 2.0) / 6.0;
+	else
+		*h = (((r - g) / delta) + 4.0) / 6.0;
+
+	if (*h < 0.0)
+		*h += 1.0;
+}
+
 void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
 	double p, q, t, f;
 	int i;
@@ -403,6 +430,54 @@ void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
 	h *= 6.0;
 	i = (int)h;
 	f = h - (double)i;
+	p = v * (1.0 - s);
+	q = v * (1.0 - (s * f));
+	t = v * (1.0 - (s * (1.0 - f)));
+
+	switch (i) {
+		case 0:
+			*r = v;
+			*g = t;
+			*b = p;
+			break;
+		case 1:
+			*r = q;
+			*g = v;
+			*b = p;
+			break;
+		case 2:
+			*r = p;
+			*g = v;
+			*b = t;
+			break;
+		case 3:
+			*r = p;
+			*g = q;
+			*b = v;
+			break;
+		case 4:
+			*r = t;
+			*g = p;
+			*b = v;
+			break;
+		case 5:
+		default:
+			*r = v;
+			*g = p;
+			*b = q;
+			break;
+	}
+}
+
+void hsv_to_rgbf(float h, float s, float v, float *r, float *g, float *b) {
+	float p, q, t, f;
+	int i;
+
+	if (h >= 1.0)
+		h -= 1.0;
+	h *= 6.0;
+	i = (int)h;
+	f = h - (float)i;
 	p = v * (1.0 - s);
 	q = v * (1.0 - (s * f));
 	t = v * (1.0 - (s * (1.0 - f)));

@@ -171,7 +171,7 @@ static gboolean end_compstars(gpointer p) {
 	if (args->has_GUI && !args->retval) {
 		purge_user_catalogue(CAT_AN_USER_TEMP); // we always clear user_temp in case there are two successive calls to findcompstars
 		if (!load_siril_cat_to_temp(args->comp_stars)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+			GtkToolItem *button = GTK_TOOL_ITEM(lookup_widget("annotate_button"));
 			refresh_found_objects();
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);

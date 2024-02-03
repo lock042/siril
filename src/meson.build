@@ -221,6 +221,7 @@ src_files = [
   'gui/sequence_list.c',
   'gui/single_image.c',
   'gui/siril_css.c',
+  'gui/siril_filechooserbutton.c',
   'gui/siril_intro.c',
   'gui/siril_preview.c',
   'gui/siril_plot.c',

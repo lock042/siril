@@ -17,6 +17,7 @@
 #include <fitsio.h>	// fitsfile
 
 #include "core/settings.h"
+#include "gui/siril_filechooserbutton.h"
 
 #define _(String) gettext (String)
 #define gettext_noop(String) String
@@ -579,7 +580,7 @@ typedef struct {
 	/* widgets data */
 	GtkButton *remove_button;
 	GtkDrawingArea *color_w;		// the simulated color chooser
-	GtkFileChooserButton *chooser;	// the file choosers
+	SirilFileChooserButton *chooser;	// the file choosers
 	GtkLabel *label;				// the labels
 	GtkSpinButton *spinbutton_x;	// the X spin button
 	GtkSpinButton *spinbutton_y;	// the Y spin button
@@ -745,6 +746,7 @@ struct common_icc {
 
 /* The global data structure of siril core */
 struct cominf {
+	GApplication *app;	// the application
 	GResource *resource; // resources
 	gchar *wd;			// current working directory, where images and sequences are
 

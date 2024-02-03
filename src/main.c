@@ -518,7 +518,7 @@ int main(int argc, char *argv[]) {
 	textdomain(PACKAGE);
 
 	app = gtk_application_new("org.free_astro.siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
-
+	com.app = G_APPLICATION(app);
 	g_signal_connect(app, "startup", G_CALLBACK(siril_app_startup), NULL);
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
 	g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);

@@ -23,6 +23,8 @@ void hsl_to_rgb(double, double, double, double *, double *, double *);
 void hsl_to_rgbf(float h, float s, float l, float * r, float * g, float * b);
 void rgb_to_hsv(double, double, double, double *, double *, double *);
 void hsv_to_rgb(double, double, double, double *, double *, double *);
+void rgb_to_hsvf(float, float, float, float *, float *, float *);
+void hsv_to_rgbf(float, float, float, float *, float *, float *);
 void rgb_to_xyz(double, double, double, double *, double *, double *);
 void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z);
 void xyz_to_LAB(double, double, double, double *, double *, double *);
