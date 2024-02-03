@@ -331,7 +331,7 @@ void siril_file_chooser_add_preview(GtkFileChooser *dialog, fileChooserPreview *
 		gtk_box_pack_start(GTK_BOX(vbox), preview->size_label, FALSE, TRUE, 0);
 		gtk_box_pack_start(GTK_BOX(vbox), preview->dim_label, FALSE, TRUE, 0);
 
-		gtk_widget_show_all(vbox);
+		gtk_widget_show(vbox);
 
 		gtk_file_chooser_set_preview_widget(dialog, vbox);
 		gtk_file_chooser_set_use_preview_label(dialog, FALSE);

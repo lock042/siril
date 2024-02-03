@@ -1405,7 +1405,7 @@ static void fill_combo_boxes() {
 
 void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 	fill_combo_boxes();
-	gtk_widget_show_all(lookup_widget("aavso_dialog"));
+	gtk_widget_show(lookup_widget("aavso_dialog"));
 }
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {

@@ -136,7 +136,7 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 	gtk_widget_set_sensitive(box, TRUE);
 	gtk_widget_set_sensitive(popover, TRUE);
 
-	gtk_widget_show_all(box);
+	gtk_widget_show(box);
 
 	return popover;
 }

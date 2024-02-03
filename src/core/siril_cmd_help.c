@@ -46,6 +46,6 @@ void siril_cmd_help_keyboard_shortcuts(GtkWindow *window) {
 				GTK_WINDOW(window));
 	}
 
-	gtk_widget_show_all(shortcuts_window);
+	gtk_widget_show(shortcuts_window);
 	gtk_window_present(GTK_WINDOW(shortcuts_window));
 }

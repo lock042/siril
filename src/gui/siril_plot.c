@@ -583,13 +583,13 @@ gboolean create_new_siril_plot_window(gpointer p) {
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_svg);
 #endif
 	gtk_container_add(GTK_CONTAINER(menu), spl_menu_save_dat);
-	gtk_widget_show_all(menu);
+	gtk_widget_show(menu);
 	// and cache its handle
 	g_object_set_data(G_OBJECT(window), "menu_handle", menu);
 
 	gtk_window_present(GTK_WINDOW(window));
 
-	gtk_widget_show_all(window);
+	gtk_widget_show(window);
 	return FALSE;
 }
 

@@ -127,7 +127,7 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), labelemag);
 	gtk_container_add(GTK_CONTAINER(content_area), emag_entry);
 	gtk_container_add(GTK_CONTAINER(content_area), radiobox);
-	gtk_widget_show_all(GTK_WIDGET(content_area));
+	gtk_widget_show(GTK_WIDGET(content_area));
 }
 
 // the public getter
