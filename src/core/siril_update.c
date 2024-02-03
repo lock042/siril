@@ -341,7 +341,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			msg = siril_log_message(_("No update check: cannot fetch version file\n"));
 	} else {
 		if (compare_version(current_version, last_version_available) < 0) {
-			gchar *url;
+			gchar *url = NULL;
 
 			if (last_version_available.patched_version != 0) {
 				const gchar *str;
@@ -363,6 +363,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 				/* force the verbose variable */
 				*verbose = TRUE;
 			}
+			g_free(url);
 		} else if (compare_version(current_version, last_version_available) > 0) {
 			if (*verbose)
 				msg = siril_log_message(_("No update check: this is a development version\n"));

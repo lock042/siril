@@ -129,5 +129,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/sum_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/wcs-grid.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/wcs-grid_dark.svg</file>
+    <!-- background files -->
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/plot_background/CIE1931xy.svg</file>
   </gresource>
 </gresources>

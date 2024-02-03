@@ -198,6 +198,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	if (retval2) {
 		retval = NIL;
 		g_free(dir);
+		g_free(v1dir);
 		g_free(currentdir);
 		return retval;
 	}
@@ -217,6 +218,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed during version check: %s\n"), "red", error->message);
 		g_free(versionarg);
+		g_free(v1dir);
 		return NIL;
 	}
 

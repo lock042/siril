@@ -1796,6 +1796,14 @@ int process_cd(int nb) {
 		writeinitfile();
 		set_GUI_CWD();
 	}
+	/*
+	 *  if filename does not exist, siril_change_dir(filename, NULL) returns 2,
+	 *  ie CMD_NO_WAIT which is "no error"; in a script such an error should be
+	 *  considered fatal and end the script.
+	 *  So we return CMD_DIR_NOT_FOUND instead:
+	 */
+	else
+		retval=CMD_DIR_NOT_FOUND;
 	return retval;
 }
 
@@ -3706,7 +3714,7 @@ int process_pm(int nb) {
 
 	for (int j = 0; j < args->nb_rows; j++) {
 		int w, h, c;
-		if (load_pm_var(args->varname[j], j, &w, &h, &c)) {
+		if (args->varname && load_pm_var(args->varname[j], j, &w, &h, &c)) {
 			if (j > 0)
 				free_pm_var(j - 1);
 			free(args->varname);
@@ -3829,6 +3837,7 @@ int process_psf(int nb){
 		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
 		free_psf(result);
 		siril_log_message("%s\n", str);
+		g_free(str);
 	}
 	else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	return CMD_OK;
@@ -8485,7 +8494,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	}
 
 	if (gfit.wcslib->lin.dispre == NULL) {
-		siril_log_message(_("Found linear plate solve data, you may need to solve your image with distorsions to ensure correct calibration of stars near image corners.\n"));
+		siril_log_message(_("Found linear plate solve data, you may need to solve your image with distortions to ensure correct calibration of stars near image corners.\n"));
 	}
 
 	if (spectro && nb_mode) {
