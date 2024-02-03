@@ -917,9 +917,11 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	color_manage(fit, FALSE);
 	fit->icc_profile = NULL;
 
-	fits_flip_top_to_bottom(fit);
-	fit->top_down = FALSE;
-	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
+	fit->top_down = TRUE;
+	snprintf(fit->row_order, FLEN_VALUE, "TOP-DOWN");
+//	fits_flip_top_to_bottom(fit);
+//	fit->top_down = FALSE;
+//	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 	return SER_OK;
 }
 
