@@ -179,7 +179,7 @@ siril-deb-meson:
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
     - cd ${BUILD_DIR}
-gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories src/tests --exclude ${BUILD_DIR}/src/siril_resource.c --root ../ -o coverage.xml --print-summary
+    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories src/tests --exclude ${BUILD_DIR}/src/siril_resource.c --root ../ -o coverage.xml --print-summary
     - cd ..
   artifacts:
     paths:
