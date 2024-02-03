@@ -6,16 +6,16 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:26+0100\n"
-"PO-Revision-Date: 2024-01-18 13:50+0000\n"
+"PO-Revision-Date: 2024-02-03 23:02+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
@@ -2039,14 +2039,12 @@ msgid "Manual"
 msgstr "Вручную"
 
 #: src/gui/uifiles/composition_dialog.ui:409
-#, fuzzy
 msgid "Photometric"
-msgstr "фотометрическая"
+msgstr "Фотометрическая"
 
 #: src/gui/uifiles/composition_dialog.ui:410
-#, fuzzy
 msgid "Spectrophotometric"
-msgstr "фотометрическая"
+msgstr "Спектрофотометрическая"
 
 #: src/gui/uifiles/composition_dialog.ui:451
 msgid "Use this alignment method:"
@@ -5718,9 +5716,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:2866
-#, fuzzy
 msgid "Repository path:"
-msgstr "Ошибка репозитория"
+msgstr "Путь к репозиторию:"
 
 #: src/gui/uifiles/settings_window.ui:2877
 msgid ""
@@ -5729,29 +5726,24 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:2889
-#, fuzzy
 msgid "Sync at startup"
-msgstr "Проверка обновлений при запуске"
+msgstr "Синхронизация при запуске"
 
 #: src/gui/uifiles/settings_window.ui:2893
-#, fuzzy
 msgid "Synchronise the repository at Siril startup."
-msgstr "Автоматически обновлять репозиторий при запуске."
+msgstr "Синхронизировать репозиторий при запуске Siril."
 
 #: src/gui/uifiles/settings_window.ui:2905
-#, fuzzy
 msgid "Manual sync"
-msgstr "Вручную"
+msgstr "Синхронизировать вручную"
 
 #: src/gui/uifiles/settings_window.ui:2909
-#, fuzzy
 msgid "Manually synchronise the repository"
-msgstr "автосинхронизация удалённого репозитория сценариев"
+msgstr "Синхронизировать репозиторий вручную"
 
 #: src/gui/uifiles/settings_window.ui:2933
-#, fuzzy
 msgid "Spectrophotometric Calibration"
-msgstr "Фотометрическая калибровка цвета"
+msgstr "Спектрофотометрическая калибровка"
 
 #: src/gui/uifiles/settings_window.ui:2963
 #: src/gui/uifiles/settings_window.ui:3074
@@ -7234,29 +7226,32 @@ msgid "Color Calibration..."
 msgstr "Калибровка цвета…"
 
 #: src/gui/uifiles/siril.ui:1751
-#, fuzzy
 msgid ""
 "Open the photometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "Диалог фотометрической калибровки цвета"
+msgstr ""
+"Диалог фотометрической калибровки цвета.\n"
+"\n"
+"<b>Предупреждение: изображение уже должно иметь астрономическое решение.</b>"
 
 #: src/gui/uifiles/siril.ui:1755
 msgid "Photometric Color Calibration..."
 msgstr "Фотометрическая калибровка цвета…"
 
 #: src/gui/uifiles/siril.ui:1768
-#, fuzzy
 msgid ""
 "Open the spectrophotometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "Диалог фотометрической калибровки цвета"
+msgstr ""
+"Диалог спектрофотометрической калибровки цвета.\n"
+"\n"
+"<b>Предупреждение: изображение уже должно иметь астрономическое решение.</b>"
 
 #: src/gui/uifiles/siril.ui:1772
-#, fuzzy
 msgid "Spectrophotometric Color Calibration..."
-msgstr "Фотометрическая калибровка цвета…"
+msgstr "Спектрофотометрическая калибровка цвета…"
 
 #: src/gui/uifiles/siril.ui:1815
 msgid "Rotate  image 90 degrees, clockwise"
@@ -7422,9 +7417,8 @@ msgid "Light Curve (ETD format)"
 msgstr "Световая кривая (формат ETD)"
 
 #: src/gui/uifiles/siril.ui:2462
-#, fuzzy
 msgid "AAVSO file format"
-msgstr "Формат образца"
+msgstr "Формат AAVSO"
 
 #: src/gui/uifiles/siril.ui:2542
 msgid "Color Management..."
@@ -9724,9 +9718,8 @@ msgid "Datafile version"
 msgstr "Конвертация цветового профиля"
 
 #: src/gui/uifiles/spcc_details.ui:194
-#, fuzzy
 msgid "Number of samples"
-msgstr "Кол-во звёзд"
+msgstr "Кол-во образцов"
 
 #: src/gui/uifiles/spcc_details.ui:222
 msgid "Comment"
@@ -9754,34 +9747,28 @@ msgid "OSC Sensor:"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:215
-#, fuzzy
 msgid "Red Filter:"
-msgstr "Медианный фильтр"
+msgstr "Красный фильтр:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:227
-#, fuzzy
 msgid "Green Filter:"
-msgstr "Медианный фильтр"
+msgstr "Зелёный фильтр:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:239
-#, fuzzy
 msgid "OSC Filter:"
-msgstr "Фильтр: "
+msgstr "Цветной фильтр:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:251
-#, fuzzy
 msgid "Blue Filter:"
-msgstr "Фильтр: "
+msgstr "Синий фильтр:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:262
-#, fuzzy
 msgid "Select an OSC sensor"
-msgstr "Выберите фазу"
+msgstr "Выберите цветной сенсор"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:275
-#, fuzzy
 msgid "Select a mono sensor"
-msgstr "Выберите фазу"
+msgstr "Выберите монохромный сенсор"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:288
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
@@ -9807,34 +9794,28 @@ msgid "Details"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:342
-#, fuzzy
 msgid "Show details of the selected OSC sensor"
-msgstr "индекс выбранного метода"
+msgstr "Подробности о выбранном цветном сенсоре"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:356
-#, fuzzy
 msgid "Show details of the selected mono sensor"
-msgstr "индекс выбранного метода"
+msgstr "Подробности о выбранном монохромном сенсоре"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:370
-#, fuzzy
 msgid "Show details of the selected OSC filter"
-msgstr "индекс выбранной темы"
+msgstr "Подробности о выбранном цветном фильтре"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:384
-#, fuzzy
 msgid "Show details of the selected red filter"
-msgstr "индекс выбранной темы"
+msgstr "Подробности о выбранном красном фильтре"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:398
-#, fuzzy
 msgid "Show details of the selected green filter"
-msgstr "индекс выбранной темы"
+msgstr "Подробности о выбранном зелёном фильтре"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:412
-#, fuzzy
 msgid "Show details of the selected blue filter"
-msgstr "индекс выбранной темы"
+msgstr "Подробности о выбранном синем фильтре"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:425
 msgid "DSLR Low Pass Filter:"
@@ -11885,9 +11866,8 @@ msgid "Image R/G (flux)"
 msgstr ""
 
 #: src/algos/photometric_cc.c:407
-#, fuzzy
 msgid "R/G"
-msgstr "RGB"
+msgstr "R/G"
 
 #: src/algos/photometric_cc.c:408 src/algos/photometric_cc.c:428
 msgid "Best fit"
