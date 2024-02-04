@@ -1796,14 +1796,6 @@ int process_cd(int nb) {
 		writeinitfile();
 		set_GUI_CWD();
 	}
-	/*
-	 *  if filename does not exist, siril_change_dir(filename, NULL) returns 2,
-	 *  ie CMD_NO_WAIT which is "no error"; in a script such an error should be
-	 *  considered fatal and end the script.
-	 *  So we return CMD_DIR_NOT_FOUND instead:
-	 */
-	else
-		retval=CMD_DIR_NOT_FOUND;
 	return retval;
 }
 
