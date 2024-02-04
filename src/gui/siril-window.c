@@ -72,7 +72,8 @@ static GActionEntry image_entries[] = {
 	{ "seq-list", seq_list_activate },
 	{ "regframe", regframe_activate , NULL, "true", regframe_state },
 	{ "nina_light_curve", nina_lc_activate },
-	{ "compstars", compstars_activate }
+	{ "compstars", compstars_activate },
+	{ "compstars_manu", compstars_manu_activate }
 };
 
 static GActionEntry selection_entries[] = {
@@ -181,6 +182,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"regframe",
 		"nina_light_curve",
 		"compstars",
+		"compstars_manu",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
