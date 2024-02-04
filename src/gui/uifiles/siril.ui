@@ -2386,7 +2386,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
+            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.
 Output is a csv file compatible with NINA Exoplanet</property>
             <property name="action-name">win.compstars</property>
             <property name="text" translatable="yes">Create Comparison Stars File...</property>
