@@ -2611,7 +2611,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="photometry_force_radius_button">
-                                <property name="label" translatable="yes">Automatically Calculated with Radius/half-FWHM ratio of:</property>
+                                <property name="label" translatable="yes">Automatic with a Radius/half-FWHM ratio of:</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
