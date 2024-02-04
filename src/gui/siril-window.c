@@ -179,11 +179,20 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"dyn-psf",
 		"seq-list",
 		"regframe",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
+}
+
+void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *wcs_processing_actions[] = {
+		"annotate-object",
+		"wcs-grid",
 		"nina_light_curve",
 		"compstars",
 		NULL,
 	};
-	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
+	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);
 }
 
 void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable) {
