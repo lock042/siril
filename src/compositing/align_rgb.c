@@ -39,7 +39,7 @@
 #define REGLAYER 0
 
 static sequence *seq = NULL;		// the sequence of channels
-static struct registration_method *reg_methods[3];
+static struct registration_method *reg_methods[5];
 
 
 static void initialize_methods() {
