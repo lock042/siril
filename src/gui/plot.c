@@ -65,7 +65,7 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL;
+		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL, *buttonCompStarsManu = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
