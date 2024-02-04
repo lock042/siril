@@ -698,6 +698,8 @@ void update_MenuItem() {
 
 	/* single RGB image is needed */
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
+	/* single RGB image with wcs information is needed */
+	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(&gfit));
 	/* any image is needed */
 	siril_window_enable_any_proc_actions(app_win, any_image_is_loaded);
 	/* any mono image is needed */
@@ -963,12 +965,16 @@ void display_filename() {
 	}
 	vport = nb_layers > 1 ? nb_layers + 1 : nb_layers;
 
-	gchar *	base_name = g_path_get_basename(filename);
+	gchar *base_name = g_path_get_basename(filename);
+	if (strlen(base_name) > 4096) // Prevent manifestly excessive lengths
+		base_name[4095] = 0;
 	gchar *orig_base_name = NULL;
 	GString *concat_base_name = NULL;
 	if (orig_filename && orig_filename[0] != '\0') {
-		orig_base_name = g_path_get_basename(orig_filename);
+		orig_base_name = g_path_get_basename(orig_filename); // taints orig_filename
 		concat_base_name = g_string_new(orig_base_name);
+		if (concat_base_name->len > 4096) // Sanitize length of tainted string
+			g_string_truncate(concat_base_name, 4096);
 		concat_base_name = g_string_append(concat_base_name, " <==> ");
 		concat_base_name = g_string_append(concat_base_name, base_name);
 	}
@@ -1304,12 +1310,13 @@ static void load_accels() {
 		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
-		"win.search-solar",          "<Primary>slash", NULL,
+		"win.search-solar",           "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
+		"win.spcc-processing",        "<Primary><Shift>c", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
-		"win.clipboard",              "<Primary><Shift>c", NULL,
+		"win.clipboard",              "<Primary><Shift>x", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,

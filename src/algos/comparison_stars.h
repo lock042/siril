@@ -20,6 +20,7 @@ struct compstars_arg {
 	cat_item *target_star;	// the considered variable star
 	siril_catalogue *cat_stars;	// the list of stars for the field
 	siril_catalogue *comp_stars;	// the list of photometric comparison stars
+	GList *var_stars_cat; // a GList holding one or more variable star catalogues to discard
 	
 	int nb_comp_stars;
 	gchar *AAVSO_chartid;

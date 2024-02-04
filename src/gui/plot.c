@@ -65,8 +65,7 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL,
-		*buttonNINA = NULL, *buttonCompStars = NULL, *buttonCompStarsManu = NULL;
+		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -1036,8 +1035,6 @@ static void fill_plot_statics() {
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
-		buttonNINA = lookup_widget("nina_button");
-		buttonCompStars = lookup_widget("comp_stars_button");
 		buttonCompStarsManu = lookup_widget("comp_stars_manu_button");
 	}
 }
@@ -1052,9 +1049,6 @@ static void validate_combos() {
 	}
 	gtk_widget_set_sensitive(photometry_output1, use_photometry);
 	gtk_widget_set_sensitive(photometry_output2, use_photometry);
-	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
-	gtk_widget_set_visible(buttonCompStars, TRUE);
-	gtk_widget_set_sensitive(buttonCompStars, sequence_is_loaded());
 	gtk_widget_set_visible(buttonCompStarsManu, TRUE);
 	gtk_widget_set_sensitive(buttonCompStarsManu, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));

@@ -549,6 +549,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 				free(fit->data);
 			if (tmpbuf)
 				free(tmpbuf);
+			if (tmp)
+				free(tmp);
 			fit->data = NULL;
 			return -1;
 		}
@@ -611,7 +613,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 					free(fit->data);
 				if (tmpbuf)
 					free(tmpbuf);
-				tmp = NULL;
+				if (tmp)
+					free(tmp);
 				return -1;
 			}
 			fit->data = tmp;

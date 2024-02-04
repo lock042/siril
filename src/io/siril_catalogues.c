@@ -159,6 +159,8 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_SIMBAD:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME);
+		case CAT_VARISUM:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_PGC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DIAMETER);
 		case CAT_EXOPLANETARCHIVE:
@@ -248,6 +250,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("GCVS");
 		case CAT_SIMBAD:
 			return _("SIMBAD");
+		case CAT_VARISUM:
+			return _("Gaia DR3 Variability");
 		case CAT_PGC:
 			return _("PGC");
 		case CAT_EXOPLANETARCHIVE:
@@ -289,7 +293,7 @@ const char *catalog_to_str(siril_cat_index cat) {
 // Used to set display diameters
 gboolean is_star_catalogue(siril_cat_index Catalog) {
 	switch (Catalog) {
-		case CAT_TYCHO2 ...	CAT_SIMBAD:
+		case CAT_TYCHO2 ...	CAT_VARISUM:
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
 		case CAT_AN_STARS:
@@ -412,6 +416,26 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 		case CAT_FIELD_UNDEF: // columns with unknown headers
 		default:
 			break;
+	}
+}
+
+// copies all the data from an item to another item
+void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to) {
+	if (!from || !to) {
+		siril_debug_print("no catalogue to copy from or to\n");
+		return;
+	}
+	memcpy(to, from, sizeof(siril_catalogue));
+	if (from->header)
+		to->header = g_strdup(from->header);
+	if (from->IAUcode)
+		to->IAUcode = g_strdup(from->IAUcode);
+	if (from->dateobs)
+		to->dateobs = g_date_time_add(from->dateobs, 0); // makes a copy
+	if (from->cat_items) {
+		to->cat_items = calloc(to->nbitems, sizeof(cat_item));
+		for (int i = 0; i < to->nbitems; i++ )
+			siril_catalogue_copy_item(from->cat_items + i, to->cat_items + i);
 	}
 }
 
@@ -691,11 +715,9 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 	gsize n;
 	GError *error = NULL;
 	if (siril_cat->header && !g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", siril_cat->header)) {
-		g_warning("%s\n", error->message);
-		g_clear_error(&error);
+		g_error_free(error);
 		return FALSE;
 	}
-
 
 	// we write the line containing the columns names based on catalog spec
 	GString *columns = NULL;
@@ -721,6 +743,7 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		g_free(columns_str);
 	} else {
 		siril_debug_print("no columns to write");
+		g_error_free(error);
 		return FALSE;
 	}
 	for (int j = 0; j < siril_cat->nbitems; j++) {
@@ -731,12 +754,13 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		gchar *newline = g_strjoinv(",", tokens);
 		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "\n%s", newline)) {
 			g_warning("%s\n", error->message);
-			g_clear_error(&error);
+			g_error_free(error);
 			g_free(newline);
 			return FALSE;
 		}
 		g_free(newline);
 	}
+	g_error_free(error);
 	return TRUE;
 }
 

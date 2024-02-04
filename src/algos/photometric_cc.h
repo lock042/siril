@@ -12,11 +12,6 @@
 
 __inline __attribute__((always_inline)) int xisnanf(float x) { return x != x; }
 
-typedef struct struct_coeff {
-	float value;
-	int channel;
-} coeff;
-
 typedef enum {
 	CHANNEL_HIGHEST,
 	CHANNEL_MIDDLE,
@@ -56,8 +51,8 @@ struct photometric_cc_data {
 	cmsCIExyYTRIPLE primaries; // used for SPCC source profile
 };
 
-int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *bg, const float *mins, const float *maxs, int norm_channel);
-int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel, float t0, float t1);
+int apply_photometric_color_correction(fits *fit, const float *kw, const float *bg);
+int get_stats_coefficients(fits *fit, rectangle *area, float *bg, float t0, float t1);
 int photometric_cc(struct photometric_cc_data *args);
 gpointer photometric_cc_standalone(gpointer p);
 pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars);

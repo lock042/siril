@@ -1062,11 +1062,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <object class="GtkMenuItem" id="rgb_align_dft">
+              <object class="GtkMenuItem" id="rgb_align_global">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="action-name">win.align-dft</property>
-                <property name="label" translatable="yes">Image pattern alignment (planetary/deep-sky)</property>
+                <property name="action-name">win.align-global</property>
+                <property name="label" translatable="yes">2-pass global star alignment (deep-sky)</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="rgb_align_kombat">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.align-kombat</property>
+                <property name="label" translatable="yes">KOMBAT alignment (planetary/deep-sky)</property>
                 <property name="use-underline">True</property>
               </object>
             </child>
@@ -1076,6 +1085,15 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can-focus">False</property>
                 <property name="action-name">win.align-psf</property>
                 <property name="label" translatable="yes">One star registration (deep-sky)</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="rgb_align_dft">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.align-dft</property>
+                <property name="label" translatable="yes">Image pattern alignment (planetary/deep-sky)</property>
                 <property name="use-underline">True</property>
               </object>
             </child>
@@ -1748,7 +1766,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
+            <property name="tooltip-markup" translatable="yes">Open the photometric color calibration dialog.
+
+&lt;b&gt;WARNING: image must be platesolved before.&lt;/b&gt;</property>
             <property name="action-name">win.pcc-processing</property>
             <property name="text" translatable="yes">Photometric Color Calibration...</property>
           </object>
@@ -1763,7 +1783,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
+            <property name="tooltip-markup" translatable="yes">Open the spectrophotometric color calibration dialog.
+
+&lt;b&gt;WARNING: image must be platesolved before.&lt;/b&gt;</property>
             <property name="action-name">win.spcc-processing</property>
             <property name="text" translatable="yes">Spectrophotometric Color Calibration...</property>
           </object>
@@ -2364,7 +2386,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
+            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.
 Output is a csv file compatible with NINA Exoplanet</property>
             <property name="action-name">win.compstars</property>
             <property name="text" translatable="yes">Create Comparison Stars File from catalogs...</property>

@@ -20,8 +20,6 @@
 
 #include <gtk/gtk.h>
 #include "core/siril_actions.h"
-#include "gui/nina_light_curve.h"
-#include "gui/compstars.h"
 
 static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
@@ -72,7 +70,9 @@ static GActionEntry image_entries[] = {
 	{ "search-object", search_object_activate },
 	{ "search-solar", search_object_solar_activate },
 	{ "seq-list", seq_list_activate },
-	{ "regframe", regframe_activate , NULL, "true", regframe_state }
+	{ "regframe", regframe_activate , NULL, "true", regframe_state },
+	{ "nina_light_curve", nina_lc_activate },
+	{ "compstars", compstars_activate }
 };
 
 static GActionEntry selection_entries[] = {
@@ -95,6 +95,8 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "spcc-processing", spcc_activate },
 	{ "align-dft", align_dft_activate },
 	{ "align-psf", align_psf_activate },
+	{ "align-global", align_global_activate },
+	{ "align-kombat", align_kombat_activate },
 	{ "split-channel-processing", split_channel_activate }
 };
 
@@ -140,9 +142,7 @@ static GActionEntry none_processing_entries[] = {
 	{ "rgb-compositing-processing", rgb_compositing_activate },
 	{ "star-remix-processing", star_remix_activate },
 	{ "merge-cfa-processing", merge_cfa_activate },
-	{ "pixel-math", pixel_math_activate },
-	{ "nina_light_curve", nina_lc_activate },
-	{ "compstars", compstars_activate }
+	{ "pixel-math", pixel_math_activate }
 };
 
 static void _siril_window_enable_action_group(GActionMap *map,
@@ -179,6 +179,8 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"dyn-psf",
 		"seq-list",
 		"regframe",
+		"nina_light_curve",
+		"compstars",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
@@ -197,12 +199,20 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		"remove-green-processing",
 		"saturation-processing",
 		"color-calib-processing",
-		"pcc-processing",
-		"spcc-processing",
 		"split-channel-processing",
+		"align-global",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_processing_actions, enable);
+}
+
+void siril_window_enable_rgb_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *rgb_wcs_processing_actions[] = {
+		"pcc-processing",
+		"spcc-processing",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_wcs_processing_actions, enable);
 }
 
 void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean enable) {
@@ -282,6 +292,7 @@ void siril_window_enable_if_selection_rgb_actions(GtkApplicationWindow *window, 
 	static const gchar *selection_rgb_actions[] = {
 		"align-dft",
 		"align-psf",
+		"align-kombat",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_rgb_actions, enable);

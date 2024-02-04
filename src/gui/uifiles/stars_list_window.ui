@@ -808,7 +808,7 @@ Note: excluding saturated stars from the list will probably make registration or
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
                         <property name="tooltip-text" translatable="yes">Enable roundness upper bound.
-Use only to display optical distorsions or double stars, not for registration or astrometry, this will break them.</property>
+Use only to display optical distortions or double stars, not for registration or astrometry, this will break them.</property>
                         <property name="draw-indicator">True</property>
                         <signal name="toggled" handler="on_psf_roundness_range_check_button_toggled" swapped="no"/>
                       </object>
@@ -822,7 +822,7 @@ Use only to display optical distorsions or double stars, not for registration or
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Maximum roundness, use only to display optical distorsions or double stars, not for registration or astrometry, this will break them.</property>
+                        <property name="tooltip-text" translatable="yes">Maximum roundness, use only to display optical distortions or double stars, not for registration or astrometry, this will break them.</property>
                         <property name="width-chars">5</property>
                         <property name="input-purpose">number</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
