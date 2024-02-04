@@ -388,7 +388,6 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 			timestamp = build_timestamp_filename();
 			*filename = g_strdup_printf("profile_%s_%s.dat", temp, timestamp);
 			g_free(temp);
-			temp = NULL;
 		} else if (arg->seq) {
 			char seq_image_canonical_name[256] = "";
 			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);

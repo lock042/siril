@@ -104,7 +104,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label">label</property>
                         <property name="wrap">True</property>
                         <property name="wrap-mode">word-char</property>
                         <property name="max-width-chars">40</property>
@@ -119,7 +119,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label">label</property>
                         <property name="wrap">True</property>
                         <property name="wrap-mode">word-char</property>
                         <property name="max-width-chars">40</property>
@@ -134,7 +134,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label">label</property>
                         <property name="wrap">True</property>
                         <property name="wrap-mode">word-char</property>
                         <property name="max-width-chars">40</property>
@@ -175,7 +175,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label">label</property>
                         <property name="wrap">True</property>
                         <property name="wrap-mode">word-char</property>
                         <property name="max-width-chars">40</property>
@@ -203,7 +203,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label">label</property>
                         <property name="wrap">True</property>
                         <property name="wrap-mode">word-char</property>
                         <property name="max-width-chars">40</property>
@@ -231,7 +231,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label">label</property>
                         <property name="wrap">True</property>
                         <property name="wrap-mode">word-char</property>
                         <property name="max-width-chars">40</property>

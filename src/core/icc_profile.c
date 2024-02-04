@@ -164,7 +164,7 @@ void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	if (fit == &gfit && !com.headless) {
 		gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
-		gchar *name = g_build_filename(siril_get_system_data_dir(), "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
+		gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
 		gchar *tooltip = NULL;
 		if (active) {
 			if (fit->icc_profile) {
@@ -184,7 +184,7 @@ void color_manage(fits *fit, gboolean active) {
 		}
 		GtkWidget *image = lookup_widget("color_managed_icon");
 		GtkWidget *button = lookup_widget("icc_main_window_button");
-		gtk_image_set_from_file((GtkImage*) image, name);
+		gtk_image_set_from_resource((GtkImage*) image, name);
 		gtk_widget_set_tooltip_text(button, tooltip);
 		g_free(name);
 		g_free(buffer);
@@ -2206,12 +2206,16 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
 	siril_plot_set_nth_color(spl_data, n, (double[3]) { 0.0, 0.0, 0.0 } );
 	n++;
+	if (!siril_plot_set_background(spl_data, "CIE1931xy.svg"))
+		siril_log_color_message(_("Could not load background\n"), "red");
 	if (compare_srgb) {
 		siril_plot_add_xydata(spl_data, _("sRGB"), 4, srgb_x, srgb_y, NULL, NULL);
 		siril_plot_set_nth_plot_type(spl_data, n, KPLOT_LINES);
 	}
 	spl_data->datamin = (point) { 0.0, 0.0 };
 	spl_data->datamax = (point) { 0.8, 0.9 };
+	spl_data->width = 600;
+	spl_data->height = 600;
 	spl_data->cfgdata.line.sz = 2;
 
 	free(horseshoe_x);

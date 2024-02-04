@@ -3709,7 +3709,7 @@ int process_pm(int nb) {
 
 	for (int j = 0; j < args->nb_rows; j++) {
 		int w, h, c;
-		if (load_pm_var(args->varname[j], j, &w, &h, &c)) {
+		if (args->varname && load_pm_var(args->varname[j], j, &w, &h, &c)) {
 			if (j > 0)
 				free_pm_var(j - 1);
 			free(args->varname);
@@ -3832,6 +3832,7 @@ int process_psf(int nb){
 		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
 		free_psf(result);
 		siril_log_message("%s\n", str);
+		g_free(str);
 	}
 	else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	return CMD_OK;
@@ -8376,21 +8377,18 @@ int process_rgbcomp(int nb) {
 	return retval;
 }
 
-// used for plate solver and PCC commands
+// used for PCC and SPCC commands
 static int do_pcc(int nb, gboolean spectro) {
-	gboolean noflip = FALSE, plate_solve = !has_wcs(&gfit), downsample = FALSE;
-	SirilWorldCS *target_coords = NULL;
-	double forced_focal = -1.0, forced_pixsize = -1.0;
-	double mag_offset = 0.0, target_mag = -1.0;
-	int order = 3; // we default to cubic
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
 	siril_cat_index cat = CAT_AUTO;
-	gboolean pcc_command = word[0][1] == 'c' || word[0][1] == 'p'; // not 'platesolve' or 'seqplatesolve'
-	gboolean seqps = !pcc_command && word[0][0] == 's';
-	sequence *seq = NULL;
+	double mag_offset = 0.0, target_mag = -1.0;
 	gchar *monosensor = NULL, *oscsensor = NULL, *rfilter = NULL, *gfilter = NULL, *bfilter = NULL, *oscfilter = NULL, *osclpf = NULL, *whiteref = NULL;
 	gchar* spcc_strings_to_free[8] = { oscsensor, oscfilter, osclpf, monosensor, rfilter, gfilter, bfilter, whiteref };
 	int mono_or_osc = com.pref.spcc.is_mono == 1 ? -1 : 1;
-	int dslr = 0; // for SPCC
+	int dslr; // for SPCC
 	gboolean nb_mode = FALSE; // for SPCC
 	double wl[3] = { -1.0 , -1.0, -1.0}; // for SPCC
 	double bw[3] = { -1.0 , -1.0, -1.0}; // for SPCC
@@ -8398,58 +8396,9 @@ static int do_pcc(int nb, gboolean spectro) {
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
-	if (seqps) {
-		if (!(seq = load_sequence(word[1], NULL)))
-			return CMD_SEQUENCE_NOT_FOUND;
-		if (seq->type == SEQ_SER) {
-			siril_log_color_message(_("SER cannot contain WCS info, plate solving will export to FITS cube format\n"), "salmon");
-		}
-		next_arg++;
-	}
-
-	// check if we have target_coords
-	if (nb > next_arg && (word[next_arg][0] != '-' || (word[next_arg][1] >= '0' && word[next_arg][1] <= '9'))) {
-		char *sep = strchr(word[next_arg], ',');
-		if (!sep) {
-			if (nb == 2) {
-				siril_log_message(_("Could not parse target coordinates\n"));
-				return CMD_ARG_ERROR;
-			}
-			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
-			next_arg += 2;
-		}
-		else {
-			*sep++ = '\0';
-			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
-			next_arg++;
-		}
-		if (!target_coords) {
-			siril_log_message(_("Could not parse target coordinates\n"));
-			return CMD_ARG_ERROR;
-		}
-	}
 
 	while (nb > next_arg && word[next_arg]) {
-		if (!strcmp(word[next_arg], "-noflip"))
-			noflip = TRUE;
-		else if (!seqps && !strcmp(word[next_arg], "-platesolve"))
-			plate_solve = TRUE;
-		else if (!strcmp(word[next_arg], "-downscale"))
-			downsample = TRUE;
-		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
-			char *arg = word[next_arg] + 7;
-			gchar *end;
-			forced_focal = g_ascii_strtod(arg, &end);
-			if (end == arg || forced_focal <= 0.0) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[next_arg], "-bgtol=")) {
+		if (g_str_has_prefix(word[next_arg], "-bgtol=")) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
 			t0 = g_ascii_strtod(arg, &end);
@@ -8457,99 +8406,37 @@ static int do_pcc(int nb, gboolean spectro) {
 			t1 = g_ascii_strtod(arg2, &end);
 			if (end == arg || end == arg2 || t0 < 0.1 || t0 > 10.0 || t1 < 0.1 || t1 > 10.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
 			t0 = 0.0 - t0;
-		}
-		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
-			char *arg = word[next_arg] + 11;
-			gchar *end;
-			forced_pixsize = g_ascii_strtod(arg, &end);
-			if (end == arg || forced_pixsize <= 0.0) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[next_arg], "-limitmag=")) {
+		} else if (g_str_has_prefix(word[next_arg], "-limitmag=")) {
 			char *arg = word[next_arg] + 10;
 			gchar *end;
 			double value;
 			value = g_ascii_strtod(arg, &end);
 			if (end == arg) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
 			if (arg[0] == '-' || arg[0] == '+')
 				mag_offset = value;
 			else target_mag = value;
-		}
-		else if (g_str_has_prefix(word[next_arg], "-order=")) {
-			char *arg = word[next_arg] + 7;
-			gchar *end;
-			int value = g_ascii_strtoull(arg, &end, 10);
-			if (end == arg || value < 1 || value > 4) {
-				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
-			}
-			order = value;
-		}
-		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
-			if (spectro) {
-				siril_log_message(_("For SPCC, catalog can only be GAIA DR3. Ignoring -catalog= argument.\n"));
-				continue;
-			}
+		} else if (!spectro && g_str_has_prefix(word[next_arg], "-catalog=")) {
 			char *arg = word[next_arg] + 9;
-			if (!g_strcmp0(arg, "tycho2"))
-				cat = CAT_TYCHO2;
-			else if (!g_strcmp0(arg, "nomad"))
+			if (!g_strcmp0(arg, "nomad"))
 				cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
 				cat = CAT_GAIADR3;
-			else if (!g_strcmp0(arg, "ppmxl"))
-				cat = CAT_PPMXL;
-			else if (!g_strcmp0(arg, "bsc"))
-				cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
 				cat = CAT_APASS;
 			else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 				return CMD_ARG_ERROR;
 			}
-			if (pcc_command && cat != CAT_NOMAD && cat != CAT_APASS && cat != CAT_GAIADR3) {
-				siril_log_message(_("Catalog can only be NOMAD, APASS or GAIA for photometric usage\n"));
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (!pcc_command && !g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
-			if (cat != CAT_AUTO)
-				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
-			cat = CAT_ASNET;
-			local_cat = TRUE;
-		} else if (spectro && g_str_has_prefix(word[next_arg], "-dslr=")) {
-			char *arg = word[next_arg] + 5;
-			if (!g_ascii_strcasecmp(arg, "true"))
-				dslr = 1;
-			else if (!g_ascii_strcasecmp(arg, "false"))
-				dslr = -1;
-		} else if (spectro && g_str_has_prefix(word[next_arg], "-narrowband")) {
+		} else if (spectro && !g_strcmp0(word[next_arg], "-narrowband")) {
 			nb_mode = TRUE;
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-rwl=")) {
 			char *arg = word[next_arg] + 5;
@@ -8593,39 +8480,16 @@ static int do_pcc(int nb, gboolean spectro) {
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-whiteref=")) {
 			char *arg = word[next_arg] + 10;
 			whiteref = g_strdup(arg);
-		} else if (spectro && g_str_has_prefix(word[next_arg], "-sensortype=")) {
-			char *arg = word[next_arg] + 12;
-			if (!g_ascii_strcasecmp(arg, "osc"))
-				mono_or_osc = 1;
-			else if (!g_ascii_strcasecmp(arg, "mono"))
-				mono_or_osc = -1;
-			else {
-				siril_log_message(_("Unknown argument %s passed to -sensortype=\n"), arg);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
-			}
-			if ((oscsensor && mono_or_osc == -1) || (monosensor && mono_or_osc == 1)) {
-				siril_log_message(_("Inconsistent use of -sensortype=\n"));
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_ARG_ERROR;
-			}
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
-			if (target_coords)
-				siril_world_cs_unref(target_coords);
 			for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
 			return CMD_ARG_ERROR;
 		}
 		next_arg++;
 	}
 
-	if (pcc_command && !plate_solve && gfit.wcslib->lin.dispre == NULL && order > 1) {
-		siril_log_message(_("Found linear plate solve data: will redo plate solving to account for distortion and ensure correct calibration of stars near image corners.\n"));
-		plate_solve = TRUE;
+	if (gfit.wcslib->lin.dispre == NULL) {
+		siril_log_message(_("Found linear plate solve data, you may need to solve your image with distortions to ensure correct calibration of stars near image corners.\n"));
 	}
 
 	if (spectro && nb_mode) {
@@ -8638,301 +8502,95 @@ static int do_pcc(int nb, gboolean spectro) {
 		if (wl[RLAYER] < 380.0 || wl[RLAYER] > 700.0 || wl[GLAYER] < 380.0 || wl[GLAYER] > 700.0 || wl[BLAYER] < 380.0 || wl[BLAYER] > 700.0) {
 		siril_log_message(_("NB wavelength out of range (must be 380 <= wl <= 700)\n"));
 			for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-			if (target_coords) siril_world_cs_unref(target_coords);
 			return CMD_ARG_ERROR;
 		}
 		if (bw[RLAYER] < 1.0 || bw[RLAYER] > 40.0 || bw[GLAYER] < 1.0 || bw[GLAYER] > 40.0 || bw[BLAYER] < 1.0 || bw[BLAYER] > 40.0) {
 			siril_log_message(_("NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"));
 			for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-			if (target_coords) siril_world_cs_unref(target_coords);
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	if (local_cat && cat == CAT_AUTO)
+	if (local_cat && cat == CAT_AUTO) {
 		cat = CAT_LOCAL;
-	if (local_cat && cat != CAT_LOCAL && cat != CAT_ASNET) {
+	}
+	if (!spectro && local_cat && cat != CAT_LOCAL) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
 		local_cat = FALSE;
 	}
 
-	if (seqps) {
-		if (cat == CAT_ASNET && !asnet_is_available()) {
-			siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
-			if (target_coords)
-				siril_world_cs_unref(target_coords);
-			for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-			return CMD_GENERIC_ERROR;
-		}
-
-		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
-		args->pixel_size = forced_pixsize;
-		args->focal_length = forced_focal;
-		args->downsample = downsample;
-		args->autocrop = TRUE;
-		args->flip_image = !noflip;
-		args->manual = FALSE;
-		args->trans_order = order;
-		if (target_coords) {
-			args->cat_center = target_coords;
-		}
-
-		// catalog query parameters
-		args->ref_stars = calloc(1, sizeof(siril_catalogue));
-		args->ref_stars->cat_index = cat;
-		args->ref_stars->columns =  siril_catalog_columns(cat);
-		args->ref_stars->phot = FALSE;
-		if (target_coords) {
-			args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
-			args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
-		}
-
-		if (target_mag > -1.0) {
-			args->mag_mode = LIMIT_MAG_ABSOLUTE;
-			args->magnitude_arg = target_mag;
-		}
-		else if (mag_offset != 0.0) {
-			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
-			args->magnitude_arg = mag_offset;
-		}
-		else args->mag_mode = LIMIT_MAG_AUTO;
-		args->for_sequence = TRUE;
-		args->verbose = FALSE;
-		args->for_photometry_cc = FALSE;
-		args->asnet_checked = TRUE;
-
-		start_sequence_astrometry(seq, args);
-		return CMD_OK;
-	}
-
-	if (plate_solve && !target_coords) {
-		target_coords = get_eqs_from_header(&gfit);
-		if (cat != CAT_ASNET) {
-			if (!target_coords) {
-				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				return CMD_INVALID_IMAGE;
-			}
-		}
-		if (target_coords) {
-			siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
-					siril_world_cs_get_alpha(target_coords),
-					siril_world_cs_get_delta(target_coords));
-		}
-	}
-
-	if (pcc_command) {
-		if (plate_solve)
-			siril_log_message(_("Photometric color correction will use plate solving first\n"));
-		else siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
-	} else if (!plate_solve) {
-		siril_log_message(_("Image is already plate solved. Nothing will be done.\n"));
-		if (target_coords)
-			siril_world_cs_unref(target_coords);
-		for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-		return CMD_OK;
-	}
-
-	struct astrometry_data *args = NULL;	// filled only if running a plate solve
 	struct photometric_cc_data *pcc_args = NULL;	// filled only if pcc_command
 
-	if (plate_solve) {
-		args = calloc(1, sizeof(struct astrometry_data));
-		args->fit = &gfit;
-		args->verbose = TRUE;
-	}
-	if (pcc_command) {
-		pcc_args = calloc(1, sizeof(struct photometric_cc_data));
-		pcc_args->fit = &gfit;
-		pcc_args->bg_auto = TRUE;
-		pcc_args->spcc = spectro;
-		pcc_args->t0 = t0;
-		pcc_args->t1 = t1;
-		if (spectro) {
-			pcc_args->nb_mode = nb_mode;
-			if (nb_mode) {
-				memcpy(&pcc_args->nb_center, wl, sizeof(double[3]));
-				memcpy(&pcc_args->nb_bandwidth, bw, sizeof(double[3]));
-			}
-			if (monosensor && (dslr == 1)) {
-				siril_log_message(_("-dslr is an invalid option with a mono sensor\n"));
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				free(pcc_args);
-				free(args);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
-			}
-			if (!oscsensor && !monosensor && !mono_or_osc) {
-				siril_log_message(_("If neither mono nor OSC sensor is specified you must use the -sensortype={osc|mono} option\n"));
-				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-				free(pcc_args);
-				free(args);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
-			}
-			if (oscsensor || mono_or_osc == 1) {
-				pcc_args->selected_sensor_osc = get_favourite_oscsensor(com.spcc_data.osc_sensors, oscsensor ? oscsensor : com.pref.spcc.oscsensorpref);
-				pcc_args->selected_filter_osc = get_favourite_spccobject(com.spcc_data.osc_filters, oscfilter ? oscfilter : com.pref.spcc.oscfilterpref ? com.pref.spcc.oscfilterpref : "No filter");
-				pcc_args->selected_filter_lpf = get_favourite_spccobject(com.spcc_data.osc_lpf, osclpf ? osclpf : com.pref.spcc.lpfpref ? com.pref.spcc.lpfpref : "Full spectrum");
-				if (pcc_args->selected_sensor_osc == -1 || pcc_args->selected_filter_osc == -1 || (pcc_args->is_dslr && pcc_args->selected_filter_lpf == -1)) {
-					siril_log_message(_("Either the sensor or a filter / LPF was not specified as argument or guessable from previous use. Ensure all necessary data is set.\n"));
-					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-					free(pcc_args);
-					free(args);
-					if (target_coords)
-						siril_world_cs_unref(target_coords);
-					return CMD_ARG_ERROR;
-				}
-				pcc_args->spcc_mono_sensor = FALSE;
-				siril_log_message(_("SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"), oscsensor ? oscsensor : com.pref.spcc.oscsensorpref, oscfilter ? oscfilter : com.pref.spcc.oscfilterpref, osclpf ? osclpf : com.pref.spcc.lpfpref);
-				pcc_args->is_dslr = dslr == 1 ? TRUE : dslr == -1 ? FALSE : com.pref.spcc.is_dslr;
-			} else {
-				pcc_args->selected_sensor_m = get_favourite_spccobject(com.spcc_data.mono_sensors, monosensor ? monosensor : com.pref.spcc.monosensorpref);
-				pcc_args->selected_filter_r = get_favourite_spccobject(com.spcc_data.mono_filters[0], rfilter ? rfilter : com.pref.spcc.redpref);
-				pcc_args->selected_filter_g = get_favourite_spccobject(com.spcc_data.mono_filters[1], gfilter ? gfilter : com.pref.spcc.greenpref);
-				pcc_args->selected_filter_b = get_favourite_spccobject(com.spcc_data.mono_filters[2], bfilter ? bfilter : com.pref.spcc.bluepref);
-				if (pcc_args->selected_sensor_m == -1 || pcc_args->selected_filter_r == -1 || pcc_args->selected_filter_g == -1 || pcc_args->selected_filter_b == -1 ) {
-					siril_log_message(_("Either the sensor or a filter was not specified as argument or guessable from previous use. Ensure all necessary data is set.\n"));
-					for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-					free(pcc_args);
-					free(args);
-					if (target_coords)
-						siril_world_cs_unref(target_coords);
-					return CMD_ARG_ERROR;
-				}
-				pcc_args->spcc_mono_sensor = TRUE;
-				siril_log_message(_("SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"), monosensor ? monosensor : com.pref.spcc.monosensorpref, rfilter ? rfilter : com.pref.spcc.redpref, gfilter ? gfilter : com.pref.spcc.greenpref, bfilter ? bfilter : com.pref.spcc.bluepref);
-			}
-			pcc_args->selected_white_ref = get_favourite_spccobject(com.spcc_data.wb_ref, whiteref ? whiteref : "Average Spiral Galaxy");
-			pcc_args->do_plot = FALSE; // Option not available from scripts
+	pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	pcc_args->fit = &gfit;
+	pcc_args->bg_auto = TRUE;
+	pcc_args->spcc = spectro;
+	pcc_args->t0 = t0;
+	pcc_args->t1 = t1;
+	if (spectro) {
+		pcc_args->nb_mode = nb_mode;
+		if (nb_mode) {
+			memcpy(&pcc_args->nb_center, wl, sizeof(double[3]));
+			memcpy(&pcc_args->nb_bandwidth, bw, sizeof(double[3]));
 		}
+		if (oscsensor || mono_or_osc == 1) {
+			pcc_args->selected_sensor_osc = get_favourite_oscsensor(com.spcc_data.osc_sensors, oscsensor ? oscsensor : com.pref.spcc.oscsensorpref);
+			GList *osc = g_list_nth(com.spcc_data.osc_sensors, pcc_args->selected_sensor_osc);
+			if (osc) {
+				osc_sensor *oscsensor = (osc_sensor*) osc->data;
+				dslr = oscsensor->channel[0].is_dslr;
+			} else {
+				dslr = com.pref.spcc.is_dslr;
+			}
+			pcc_args->selected_filter_osc = get_favourite_spccobject(com.spcc_data.osc_filters, oscfilter ? oscfilter : com.pref.spcc.oscfilterpref ? com.pref.spcc.oscfilterpref : "No filter");
+			pcc_args->selected_filter_lpf = get_favourite_spccobject(com.spcc_data.osc_lpf, osclpf ? osclpf : com.pref.spcc.lpfpref ? com.pref.spcc.lpfpref : "Full spectrum");
+			if (pcc_args->selected_sensor_osc == -1 || pcc_args->selected_filter_osc == -1 || (pcc_args->is_dslr && pcc_args->selected_filter_lpf == -1)) {
+				siril_log_message(_("Either the sensor or a filter / LPF was not specified as argument or guessable from previous use. Ensure all necessary data is set.\n"));
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				free(pcc_args);
+				return CMD_ARG_ERROR;
+			}
+			pcc_args->spcc_mono_sensor = FALSE;
+			if (dslr)
+				siril_log_message(_("SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"), oscsensor ? oscsensor : com.pref.spcc.oscsensorpref, oscfilter ? oscfilter : com.pref.spcc.oscfilterpref, osclpf ? osclpf : com.pref.spcc.lpfpref);
+			else
+				siril_log_message(_("SPCC will use OSC sensor \"%s\" and filter \"%s\"\n"), oscsensor ? oscsensor : com.pref.spcc.oscsensorpref, oscfilter ? oscfilter : com.pref.spcc.oscfilterpref);
+			pcc_args->is_dslr = dslr == 1 ? TRUE : dslr == -1 ? FALSE : com.pref.spcc.is_dslr;
+		} else {
+			pcc_args->selected_sensor_m = get_favourite_spccobject(com.spcc_data.mono_sensors, monosensor ? monosensor : com.pref.spcc.monosensorpref);
+			pcc_args->selected_filter_r = get_favourite_spccobject(com.spcc_data.mono_filters[0], rfilter ? rfilter : com.pref.spcc.redpref);
+			pcc_args->selected_filter_g = get_favourite_spccobject(com.spcc_data.mono_filters[1], gfilter ? gfilter : com.pref.spcc.greenpref);
+			pcc_args->selected_filter_b = get_favourite_spccobject(com.spcc_data.mono_filters[2], bfilter ? bfilter : com.pref.spcc.bluepref);
+			if (pcc_args->selected_sensor_m == -1 || pcc_args->selected_filter_r == -1 || pcc_args->selected_filter_g == -1 || pcc_args->selected_filter_b == -1 ) {
+				siril_log_message(_("Either the sensor or a filter was not specified as argument or guessable from previous use. Ensure all necessary data is set.\n"));
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				free(pcc_args);
+				return CMD_ARG_ERROR;
+			}
+			pcc_args->spcc_mono_sensor = TRUE;
+			siril_log_message(_("SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"), monosensor ? monosensor : com.pref.spcc.monosensorpref, rfilter ? rfilter : com.pref.spcc.redpref, gfilter ? gfilter : com.pref.spcc.greenpref, bfilter ? bfilter : com.pref.spcc.bluepref);
+		}
+		pcc_args->selected_white_ref = get_favourite_spccobject(com.spcc_data.wb_ref, whiteref ? whiteref : "Average Spiral Galaxy");
+		pcc_args->do_plot = FALSE; // TODO: do we want to enable if from GUI?
 	}
 	for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
-	/* populating plate solve arguments */
-	if (forced_pixsize > 0.0) {
-		if (!plate_solve)
-			siril_log_message(_("Focal length and pixel size are only used for plate solving, ignored now\n"));
-		else {
-			args->pixel_size = forced_pixsize;
-			siril_log_message(_("Using provided pixel size: %.2f\n"), args->pixel_size);
-		}
-	} else if (plate_solve) {
-		args->pixel_size = max(gfit.pixel_size_x, gfit.pixel_size_y);
-		if (args->pixel_size <= 0.0) {
-			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
-			if (args->pixel_size <= 0.0) {
-				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				free(args);
-				free(pcc_args);
-				return CMD_INVALID_IMAGE;
-			}
-			siril_log_message(_("Using pixel size from preferences: %.2f\n"), args->pixel_size);
-		}
-		else siril_log_message(_("Using pixel size from image: %.2f\n"), args->pixel_size);
-	}
-	if (forced_focal > 0.0) {
-		if (!plate_solve) {
-			if (forced_pixsize <= 0.0)
-				siril_log_message(_("Focal length and pixel size are only used for plate solving, ignored now\n"));
-		} else {
-			args->focal_length = forced_focal;
-			siril_log_message(_("Using provided focal length: %.2f\n"), args->focal_length);
-		}
-	} else if (plate_solve) {
-		args->focal_length = gfit.focal_length;
-		if (args->focal_length <= 0.0) {
-			args->focal_length = com.pref.starfinder_conf.focal_length;
-			if (args->focal_length <= 0.0) {
-				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				free(args);
-				free(pcc_args);
-				free(target_coords);
-				return CMD_INVALID_IMAGE;
-			}
-			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);
-		}
-		else siril_log_message(_("Using focal length from image: %.2f\n"), args->focal_length);
-	}
 
 	if (target_mag > -1.0) {
-		if (cat == CAT_ASNET)
-			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
-		if (args) {
-			args->mag_mode = LIMIT_MAG_ABSOLUTE;
-			args->magnitude_arg = target_mag;
-		}
-		if (pcc_args) {
-			pcc_args->mag_mode = LIMIT_MAG_ABSOLUTE;
-			pcc_args->magnitude_arg = target_mag;
-		}
-	}
-	else if (mag_offset != 0.0) {
-		if (cat == CAT_ASNET)
-			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
-		if (args) {
-			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
-			args->magnitude_arg = mag_offset;
-		}
-		if (pcc_args) {
-			pcc_args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
-			pcc_args->magnitude_arg = mag_offset;
-		}
-	}
-	else {
-		if (args)
-			args->mag_mode = LIMIT_MAG_AUTO;
-		if (pcc_args)
-			pcc_args->mag_mode = LIMIT_MAG_AUTO;
+		pcc_args->mag_mode = LIMIT_MAG_ABSOLUTE;
+		pcc_args->magnitude_arg = target_mag;
+	} else if (mag_offset != 0.0) {
+		pcc_args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
+		pcc_args->magnitude_arg = mag_offset;
+	}else {
+		pcc_args->mag_mode = LIMIT_MAG_AUTO;
 	}
 
-	if (plate_solve) {
-		if (cat == CAT_ASNET)
-			args->filename = g_strdup(com.uniq->filename);
-		args->cat_center = target_coords;
-		args->downsample = downsample;
-		args->autocrop = TRUE;
-		args->trans_order = order;
-		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
-			noflip = TRUE;
-			siril_debug_print("forced no flip for solving an image from a sequence");
-		}
-		args->flip_image = !noflip;
-		args->manual = FALSE;
-		args->ref_stars = calloc(1, sizeof(siril_catalogue));
-		// preparing the catalogue query
-		args->ref_stars->cat_index = cat;
-		args->ref_stars->columns =  siril_catalog_columns(cat);
-		if (target_coords) {
-			args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
-			args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
-		}
-		process_plate_solver_input(args);
-	}
-
-	if (pcc_command) {
-		pcc_args->catalog = spectro ? CAT_GAIADR3_DIRECT : cat;
-		if (plate_solve) {
-			args->for_photometry_cc = !spectro;
-			args->for_photometry_spcc = spectro;
-			args->pcc = pcc_args;
-		}
-	}
-
+	pcc_args->catalog = spectro ? CAT_GAIADR3_DIRECT : cat;
 	if (spectro)
 		load_spcc_metadata_if_needed();
 
-	if (plate_solve)
-		start_in_new_thread(plate_solver, args);
-	else {
-		start_in_new_thread(photometric_cc_standalone, pcc_args);
-	}
+	start_in_new_thread(photometric_cc_standalone, pcc_args);
 
 	return CMD_OK;
 }
@@ -8948,6 +8606,301 @@ int process_spcc(int nb) {
 #else
 	return do_pcc(nb, TRUE);
 #endif
+}
+
+// used for PCC and SPCC commands
+int process_platesolve(int nb) {
+	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE;
+	SirilWorldCS *target_coords = NULL;
+	double forced_focal = -1.0, forced_pixsize = -1.0;
+	double mag_offset = 0.0, target_mag = -1.0;
+	int order = 3; // we default to cubic
+	siril_cat_index cat = CAT_AUTO;
+	gboolean seqps = word[0][0] == 's';
+	sequence *seq = NULL;
+
+	gboolean local_cat = local_catalogues_available();
+	int next_arg = 1;
+	if (seqps) {
+		if (!(seq = load_sequence(word[1], NULL)))
+			return CMD_SEQUENCE_NOT_FOUND;
+		if (seq->type == SEQ_SER) {
+			siril_log_color_message(_("SER cannot contain WCS info, plate solving will export to FITS cube format\n"), "salmon");
+		}
+		next_arg++;
+		plate_solve = TRUE;
+	} else {
+		plate_solve = !has_wcs(&gfit);
+	}
+
+	// check if we have target_coords
+	if (nb > next_arg && (word[next_arg][0] != '-' || (word[next_arg][1] >= '0' && word[next_arg][1] <= '9'))) {
+		char *sep = strchr(word[next_arg], ',');
+		if (!sep) {
+			if (nb == 2) {
+				siril_log_message(_("Could not parse target coordinates\n"));
+				return CMD_ARG_ERROR;
+			}
+			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
+			next_arg += 2;
+		}
+		else {
+			*sep++ = '\0';
+			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
+			next_arg++;
+		}
+		if (!target_coords) {
+			siril_log_message(_("Could not parse target coordinates\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	while (nb > next_arg && word[next_arg]) {
+		if (!strcmp(word[next_arg], "-noflip"))
+			noflip = TRUE;
+		if (!strcmp(word[next_arg], "-nocrop"))
+			autocrop = FALSE;
+		else if (!seqps && !strcmp(word[next_arg], "-platesolve"))
+			plate_solve = TRUE;
+		else if (!strcmp(word[next_arg], "-downscale"))
+			downsample = TRUE;
+		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
+			char *arg = word[next_arg] + 7;
+			gchar *end;
+			forced_focal = g_ascii_strtod(arg, &end);
+			if (end == arg || forced_focal <= 0.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
+			char *arg = word[next_arg] + 11;
+			gchar *end;
+			forced_pixsize = g_ascii_strtod(arg, &end);
+			if (end == arg || forced_pixsize <= 0.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[next_arg], "-limitmag=")) {
+			char *arg = word[next_arg] + 10;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+			if (arg[0] == '-' || arg[0] == '+')
+				mag_offset = value;
+			else target_mag = value;
+		}
+		else if (g_str_has_prefix(word[next_arg], "-order=")) {
+			char *arg = word[next_arg] + 7;
+			gchar *end;
+			int value = g_ascii_strtoull(arg, &end, 10);
+			if (end == arg || value < 1 || value > 4) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+			order = value;
+		}
+		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
+			char *arg = word[next_arg] + 9;
+			if (!g_strcmp0(arg, "tycho2"))
+				cat = CAT_TYCHO2;
+			else if (!g_strcmp0(arg, "nomad"))
+				cat = CAT_NOMAD;
+			else if (!g_strcmp0(arg, "gaia"))
+				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "ppmxl"))
+				cat = CAT_PPMXL;
+			else if (!g_strcmp0(arg, "bsc"))
+				cat = CAT_BSC;
+			else if (!g_strcmp0(arg, "apass"))
+				cat = CAT_APASS;
+			else {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
+			if (cat != CAT_AUTO)
+				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
+			cat = CAT_ASNET;
+			local_cat = TRUE;
+		} else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+			if (target_coords)
+				siril_world_cs_unref(target_coords);
+			return CMD_ARG_ERROR;
+		}
+		next_arg++;
+	}
+
+	if (!plate_solve) {
+		siril_log_message(_("Image is already plate solved. Nothing will be done.\n"));
+		if (target_coords)
+			siril_world_cs_unref(target_coords);
+		return CMD_OK;
+	}
+
+	if (local_cat && cat == CAT_AUTO) {
+		cat = CAT_LOCAL;
+	}
+
+	if (local_cat && cat != CAT_LOCAL && cat != CAT_ASNET) {
+		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
+				"salmon", catalog_to_str(cat));
+		local_cat = FALSE;
+	}
+
+	if (cat == CAT_ASNET && !asnet_is_available()) {
+		siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
+		if (target_coords)
+			siril_world_cs_unref(target_coords);
+		return CMD_GENERIC_ERROR;
+	}
+
+	fits reffit = { 0 };
+	fits *preffit = &reffit;
+	if (seqps) {
+		int image_to_load = sequence_find_refimage(seq);
+		if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+			return CMD_SEQUENCE_NOT_FOUND;
+		}
+	} else
+		preffit = &gfit;
+
+	if (!target_coords) {
+		target_coords = get_eqs_from_header(preffit);
+		if (cat != CAT_ASNET && !target_coords) {
+				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
+				if (seqps)
+					clearfits(preffit);
+				return CMD_INVALID_IMAGE;
+			}
+		if (target_coords) {
+			siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
+			siril_world_cs_get_alpha(target_coords),
+			siril_world_cs_get_delta(target_coords));
+		}
+	}
+
+	// we are now ready to fill the structure
+	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+
+	if (forced_pixsize > 0.0) {
+		args->pixel_size = forced_pixsize;
+		siril_log_message(_("Using provided pixel size: %.2f\n"), args->pixel_size);
+	} else {
+		args->pixel_size = max(preffit->pixel_size_x, preffit->pixel_size_y);
+		if (args->pixel_size <= 0.0) {
+			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
+			if (args->pixel_size <= 0.0) {
+				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				if (seqps)
+					clearfits(preffit);
+				free(args);
+				return CMD_INVALID_IMAGE;
+			}
+			siril_log_message(_("Using pixel size from preferences: %.2f\n"), args->pixel_size);
+		}
+		else siril_log_message(_("Using pixel size from image: %.2f\n"), args->pixel_size);
+	}
+
+	if (forced_focal > 0.0) {
+		args->focal_length = forced_focal;
+		siril_log_message(_("Using provided focal length: %.2f\n"), args->focal_length);
+	} else {
+		args->focal_length = preffit->focal_length;
+		if (args->focal_length <= 0.0) {
+			args->focal_length = com.pref.starfinder_conf.focal_length;
+			if (args->focal_length <= 0.0) {
+				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				free(args);
+				if (seqps)
+					clearfits(preffit);
+				return CMD_INVALID_IMAGE;
+			}
+			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);
+		}
+		else siril_log_message(_("Using focal length from image: %.2f\n"), args->focal_length);
+	}
+
+	if (target_mag > -1.0) {
+		if (cat == CAT_ASNET)
+			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
+		else {
+			args->mag_mode = LIMIT_MAG_ABSOLUTE;
+			args->magnitude_arg = target_mag;
+		}
+	} else if (mag_offset != 0.0) {
+		if (cat == CAT_ASNET)
+			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
+		else {
+			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
+			args->magnitude_arg = mag_offset;
+		}
+	} else {
+		args->mag_mode = LIMIT_MAG_AUTO;
+	}
+
+	if (seqps)
+		clearfits(preffit);
+	args->downsample = downsample;
+	args->autocrop = autocrop;
+	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
+		noflip = TRUE;
+		siril_debug_print("forced no flip for solving an image from a sequence");
+	}
+	args->flip_image = !noflip;
+	args->manual = FALSE;
+	args->trans_order = order;
+	if (target_coords) {
+		args->cat_center = target_coords;
+	}
+	// catalog query parameters
+	args->ref_stars = calloc(1, sizeof(siril_catalogue));
+	args->ref_stars->cat_index = cat;
+	args->ref_stars->columns =  siril_catalog_columns(cat);
+	args->ref_stars->phot = FALSE;
+	if (target_coords) {
+		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+	}
+
+	args->for_sequence = seqps;
+	args->verbose = !seqps;
+	args->asnet_checked = TRUE;
+
+	// sequence
+	if (seqps) {
+		start_sequence_astrometry(seq, args);
+		return CMD_OK;
+	}
+	// single-image
+	if (cat == CAT_ASNET)
+		args->filename = g_strdup(com.uniq->filename);
+	args->fit = &gfit;
+	process_plate_solver_input(args);
+	start_in_new_thread(plate_solver, args);
+	return CMD_OK;
 }
 
 int process_conesearch(int nb) {
@@ -8981,6 +8934,8 @@ int process_conesearch(int nb) {
 				cat = CAT_GCVS;
 			else if (!g_strcmp0(arg, "vsx"))
 				cat = CAT_VSX;
+			else if (!g_strcmp0(arg, "varisum"))
+				cat = CAT_VARISUM;
 			else if (!g_strcmp0(arg, "simbad"))
 				cat = CAT_SIMBAD;
 			else if (!g_strcmp0(arg, "exo"))

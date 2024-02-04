@@ -608,7 +608,10 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 		strncpy(curr, token[i], FLEN_CARD - 1);
 		curr += FLEN_CARD - 1;
 		fits_parse_template(tok, card, &keytype, &status);
-		if (status) return status;
+		if (status) {
+			free(header2);
+			return status;
+		}
 		fits_parse_value(card, value, comment, &status);
 
 		if (g_str_has_prefix(card, "END")) {
@@ -1017,6 +1020,8 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 			break;
 		case FLOAT_IMG:
 			siril_log_message(_("Normalizing input data to our float range [0, 1]\n"));
+			// Fallthrough is deliberate, this handles FITS with floating point data
+			// where MAX is 65565 (e.g. JWST)
 		default:
 		case USHORT_IMG:	// siril 0.9 native
 			for (i = 0; i < nbdata; i++)

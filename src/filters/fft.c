@@ -625,6 +625,8 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 			set_cursor_waiting(FALSE);
 			free(type);
+			g_free(mag);
+			g_free(phase);
 			return;
 		}
 		open_single_image(mag);

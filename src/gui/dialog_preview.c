@@ -197,8 +197,10 @@ static gpointer update_preview(gpointer p) {
 		uint8_t* jxl_data = NULL;
 		GError *error = NULL;
 		gboolean success = g_file_get_contents(args->filename, (gchar**) &jxl_data, &jxl_size, &error);
-		if (!success)
+		if (!success) {
+			g_error_free(error);
 			goto cleanup2;
+		}
 		siril_debug_print("Generating JXL preview, filesize %lu\n", jxl_size);
 		GdkPixbuf *pixtmp = get_thumbnail_from_jxl(jxl_data, &args->description, jxl_size);
 		if (pixtmp) {

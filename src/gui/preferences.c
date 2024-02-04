@@ -43,7 +43,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "stacking/stacking.h"
-#include "io/gitscripts.h"
+#include "io/siril_git.h"
 
 #include "preferences.h"
 #include "filters/starnet.h"
