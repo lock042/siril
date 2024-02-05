@@ -174,6 +174,7 @@ gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
 GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
 int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even);
 int count_lines_in_textfile(const gchar *filename);
+const gchar *flip_bayer_pattern(const gchar *old_pattern);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,

@@ -2036,7 +2036,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		fits_flip_top_to_bottom(fit);
 		if (fit->wcslib)
 			vflip_wcs(fit->wcslib);
-		if (fit->bayer_pattern) {
+		if (fit->bayer_pattern[0] != '\0') {
 			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
 			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
 		}

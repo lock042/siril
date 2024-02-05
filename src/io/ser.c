@@ -732,19 +732,6 @@ int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	return SER_OK;
 }
 
-static const gchar *flip_bayer_pattern(const gchar *old_pattern) {
-	if (!strcmp(old_pattern, "RGGB"))
-		return "GBRG";
-	else if (!strcmp(old_pattern, "GBRG"))
-		return "RGGB";
-	else if (!strcmp(old_pattern, "BGGR"))
-		return "GRBG";
-	else if (!strcmp(old_pattern, "GRBG"))
-		return "BGGR";
-	else
-		return NULL;
-}
-
 /* reads a frame on an already opened SER sequence.
  * frame number starts at 0 */
 int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolean force_float, gboolean open_debayer) {

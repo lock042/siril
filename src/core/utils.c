@@ -1819,3 +1819,16 @@ int count_lines_in_textfile(const gchar *filename) {
 
     return line_count;
 }
+
+const gchar *flip_bayer_pattern(const gchar *old_pattern) {
+	if (!strcmp(old_pattern, "RGGB"))
+		return "GBRG";
+	else if (!strcmp(old_pattern, "GBRG"))
+		return "RGGB";
+	else if (!strcmp(old_pattern, "BGGR"))
+		return "GRBG";
+	else if (!strcmp(old_pattern, "GRBG"))
+		return "BGGR";
+	else
+		return old_pattern;
+}
