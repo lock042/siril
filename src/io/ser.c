@@ -1199,7 +1199,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	WORD *data16 = NULL;	// for 16-bit files
 
 	// return bottom-up fits to top-down ser row_order (not if the image is already top-down)
-	if (!strcmp(fit->row_order, "TOP-DOWN")) {
+	if (strcmp(fit->row_order, "TOP-DOWN")) {
 		snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->bayer_pattern));
 		fits_flip_top_to_bottom(fit);
 	}
