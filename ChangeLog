@@ -35,6 +35,7 @@ xx/xx/xx
 * Split Astrometry from (S)PCC
 * Added ssl certificates in the appimage (#1259)
 * Added better registration options to RGB align right-click menu and improve DATE-OBS handling in LRGB composition (!620)
+* Added auto remove variable stars (VSX, GCVS, GaDR3-Varisum) from compstars list (!608)
 
 siril 1.2.1
 01/26/24

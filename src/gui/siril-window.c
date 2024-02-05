@@ -20,8 +20,6 @@
 
 #include <gtk/gtk.h>
 #include "core/siril_actions.h"
-#include "gui/nina_light_curve.h"
-#include "gui/compstars.h"
 
 static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
@@ -72,7 +70,9 @@ static GActionEntry image_entries[] = {
 	{ "search-object", search_object_activate },
 	{ "search-solar", search_object_solar_activate },
 	{ "seq-list", seq_list_activate },
-	{ "regframe", regframe_activate , NULL, "true", regframe_state }
+	{ "regframe", regframe_activate , NULL, "true", regframe_state },
+	{ "nina_light_curve", nina_lc_activate },
+	{ "compstars", compstars_activate }
 };
 
 static GActionEntry selection_entries[] = {
@@ -142,9 +142,7 @@ static GActionEntry none_processing_entries[] = {
 	{ "rgb-compositing-processing", rgb_compositing_activate },
 	{ "star-remix-processing", star_remix_activate },
 	{ "merge-cfa-processing", merge_cfa_activate },
-	{ "pixel-math", pixel_math_activate },
-	{ "nina_light_curve", nina_lc_activate },
-	{ "compstars", compstars_activate }
+	{ "pixel-math", pixel_math_activate }
 };
 
 static void _siril_window_enable_action_group(GActionMap *map,
@@ -184,6 +182,17 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
+}
+
+void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *wcs_processing_actions[] = {
+		"annotate-object",
+		"wcs-grid",
+		"nina_light_curve",
+		"compstars",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);
 }
 
 void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable) {
