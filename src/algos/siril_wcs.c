@@ -48,7 +48,6 @@ void reset_wcsdata(fits *fit) {
 	memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
 }
 
-
 void free_wcs(fits *fit) {
 	if (fit->wcslib) {
 		if (!wcsfree(fit->wcslib))
@@ -132,7 +131,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 					break;
 				} else {
 					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
-					wcsfree(wcs); 
+					wcsfree(wcs);
 					wcs = NULL;
 				}
 			}
@@ -142,6 +141,19 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 	return wcs;
 }
 
+void vflip_wcs(wcsprm_t *wcs) {
+    int i;
+
+    // Get the order from the WCS structure
+    int order = wcs->naxis;
+
+    for (i = 0; i <= order; ++i) {
+        if (i % 2 == 1) { // Negate coefficients with odd powers
+            wcs->crpix[i] *= -1;
+            wcs->cdelt[i] *= -1;
+        }
+    }
+}
 
 gboolean load_WCS_from_fits(fits* fit) {
 	int status = 0;
@@ -357,7 +369,7 @@ double get_wcs_image_resolution(fits *fit) {
 }
 
 // return the order of the SIP polynomials and fills the coeffs matrices (if first matrix A is not NULL)
-int extract_SIP_order_and_matrices(struct disprm *dis, 
+int extract_SIP_order_and_matrices(struct disprm *dis,
 		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
@@ -395,7 +407,7 @@ int extract_SIP_order_and_matrices(struct disprm *dis,
 	return order;
 }
 
-void update_SIP_keys(struct disprm *dis, 
+void update_SIP_keys(struct disprm *dis,
 		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],

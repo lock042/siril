@@ -2032,6 +2032,12 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		goto close_readfits;
 
 	retval = read_fits_with_convert(fit, filename, force_float);
+	if (!strcmp(fit->row_order, "TOP-DOWN")) {
+		fits_flip_top_to_bottom(fit);
+		if (fit->wcslib)
+			vflip_wcs(fit->wcslib);
+		snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
+	}
 	fit->top_down = FALSE;
 
 	if (!retval) {

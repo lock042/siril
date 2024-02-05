@@ -38,6 +38,7 @@ void free_wcs(fits *fit);
 wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status);
 wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec);
 gboolean load_WCS_from_fits(fits* fit);
+void vflip_wcs(wcsprm_t *wcs);
 // this one directly uses the WCSLIB struct
 void pix2wcs2(wcsprm_t *wcslib, double x, double y, double *r, double *d);
 void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double *world_y);
@@ -45,18 +46,17 @@ int wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *
 int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y);
 void center2wcs(fits *fit, double *r, double *d);
 double get_wcs_image_resolution(fits *fit);
-
 void wcs_cdelt2unity(wcsprm_t *prm);
 void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_cd2mat(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
 void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
-int extract_SIP_order_and_matrices(struct disprm *dis, 
+int extract_SIP_order_and_matrices(struct disprm *dis,
 		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
-void update_SIP_keys(struct disprm *dis, 
+void update_SIP_keys(struct disprm *dis,
 		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
