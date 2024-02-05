@@ -2036,6 +2036,10 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		fits_flip_top_to_bottom(fit);
 		if (fit->wcslib)
 			vflip_wcs(fit->wcslib);
+		if (fit->bayer_pattern) {
+			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
+			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
+		}
 		snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 	}
 	fit->top_down = FALSE;
