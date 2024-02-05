@@ -29,4 +29,4 @@ G_END_DECLS
  * siril_file_chooser_button_set_do_overwrite_confirmation
  * siril_file_chooser_button_set_filename
  * siril_file_chooser_button_get_filename
- *
+ */
