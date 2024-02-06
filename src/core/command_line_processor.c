@@ -93,8 +93,6 @@ static const char *cmd_err_to_str(cmd_errors err) {
 			return _("memory allocation error");
 		case CMD_THREAD_RUNNING:
 			return _("a processing is already running");
-        case CMD_DIR_NOT_FOUND:
-			return _("directory not found");
 	}
 }
 
