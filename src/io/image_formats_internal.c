@@ -279,7 +279,9 @@ int readbmp(const char *name, fits *fit) {
 	// Initialize ICC profile. As the buffer is set to NULL, this sets the
 	// profile as sRGB (or Gray g22) which is what we want for 8-bit BMPs
 	fits_initialize_icc(fit, NULL, 0);
-
+	// According to MS, BMP DIBs are stored bottom up
+	// https://learn.microsoft.com/en-us/previous-versions/ms969901(v=msdn.10)?redirectedfrom=MSDN
+	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 	char *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading BMP: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
@@ -640,7 +642,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	fit->type = DATA_USHORT;
-	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
 
 	// Initialize ICC profile. As the buffer is set to NULL, this sets the
 	// profile as sRGB (or Gray g22) which is what we want

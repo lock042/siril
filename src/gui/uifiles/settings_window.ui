@@ -777,6 +777,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">Embed ICC profiles in FITS files. This should generally be left on, unless you need interoperability with a program that fails to handle FITS with embedded ICC profiles (none are currently known).</property>
                                 <property name="halign">start</property>
+                                <property name="margin-start">12</property>
                                 <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
                               </object>
@@ -784,6 +785,25 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="checkbutton_canonical_row_order">
+                                <property name="label" translatable="yes">Enforce canonical row order</property>
+                                <property name="use-action-appearance">True</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Enforces BOTTOM-UP row order as required by the FITS standard. This guarantees the correct orientation of images at the cost of a very minor processing overhead the first time a TOP-DOWN image is opened.</property>
+                                <property name="halign">start</property>
+                                <property name="margin-start">12</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                           </object>

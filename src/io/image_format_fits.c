@@ -2033,7 +2033,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		goto close_readfits;
 
 	retval = read_fits_with_convert(fit, filename, force_float);
-	if (!strcmp(fit->row_order, "TOP-DOWN")) {
+	if (com.pref.canonical_row_order && !strcmp(fit->row_order, "TOP-DOWN")) {
 		fits_flip_top_to_bottom(fit);
 		if (has_wcs(fit)) {
 			Homography H = { 0 };

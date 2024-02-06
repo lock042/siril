@@ -37,6 +37,7 @@ preferences pref_init = {
 	.wd = NULL,
 	.ext = NULL,
 	.force_16bit = FALSE,
+	.canonical_row_order = TRUE,
 	.allow_heterogeneous_fitseq = FALSE,
 	.mem_mode = RATIO,
 	.memory_ratio = 0.9,
@@ -173,7 +174,7 @@ preferences pref_init = {
 		.minval = -1500.0,
 		.maxval = 60000.0,
 		.discard_var_catalogues = 4,
-		
+
 	},
 	.astrometry = {
 		.update_default_scale = TRUE,
@@ -316,6 +317,7 @@ struct settings_access all_settings[] = {
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
 	{ "core", "force_16bit", STYPE_BOOL, N_("don't use 32 bits for pixel depth"), &com.pref.force_16bit },
 	{ "core", "fits_save_icc", STYPE_BOOL, N_("embed ICC profiles in FITS when saving"), &com.pref.fits_save_icc },
+	{ "core", "canonical_row_order", STYPE_BOOL, N_("enforce canonical BOTTOM-UP row order in FITS"), &com.pref.canonical_row_order },
 	{ "core", "allow_heterogeneous_fitseq", STYPE_BOOL, N_("allow FITS cubes to have different sizes"), &com.pref.allow_heterogeneous_fitseq },
 	{ "core", "mem_mode", STYPE_INT, N_("memory mode (0 ratio, 1 amount)"), &com.pref.mem_mode, { .range_int = { 0, 1 } } },
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },

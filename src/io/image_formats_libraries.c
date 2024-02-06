@@ -65,6 +65,8 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/exif.h"
+#include "opencv/opencv.h"	// for cvGetEye()
+#include "algos/astrometry_solver.h"	// for reframe_astrometry_data()
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
@@ -615,7 +617,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		}
 	}
 	fit->orig_bitpix = fit->bitpix;
-	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
 
 	/* fill exifs is exist */
 	if (exposure > 0.0)
@@ -1097,7 +1099,25 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			siril_debug_print("XISF Header cannot be read.\n");
 		}
 	}
-	fits_flip_top_to_bottom(fit);
+
+	// XISF will follow the canonical row order preference for FITS
+	if (com.pref.canonical_row_order && !strcmp(fit->row_order, "TOP-DOWN")) {
+		fits_flip_top_to_bottom(fit);
+		if (has_wcs(fit)) {
+			Homography H = { 0 };
+			cvGetEye(&H);
+			H.h11 = -1.;
+			H.h12 = (double)fit->ry;
+			reframe_astrometry_data(fit, H);
+		}
+		if (fit->bayer_pattern[0] != '\0') {
+			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
+			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
+		}
+		snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
+	}
+	fit->top_down = FALSE;
+
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
 
@@ -1557,7 +1577,7 @@ int readpng(const char *name, fits* fit) {
 		fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + npixels * 2 : fit->data;
 
 		fit->binning_x = fit->binning_y = 1;
-		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
 		fill_date_obs_if_any(fit, name);
 		// Initialize ICC profile and display transform
 		fits_initialize_icc(fit, embed, len);

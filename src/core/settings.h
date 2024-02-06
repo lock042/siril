@@ -349,6 +349,7 @@ struct pref_struct {
 	gboolean force_16bit;	// don't use 32 bits for pixel depth
 	gboolean allow_heterogeneous_fitseq; // allow images in FITS cubes to have different sizes
 	gboolean fits_save_icc;		// save ICC profiles in FITS
+	gboolean canonical_row_order;	// enforce BOTTOM-UP row order
 
 	enum { RATIO, AMOUNT } mem_mode; // mode of memory management
 	double memory_ratio;		// ratio of available memory to use for stacking (and others)
