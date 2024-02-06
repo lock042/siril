@@ -754,13 +754,13 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		gchar *newline = g_strjoinv(",", tokens);
 		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "\n%s", newline)) {
 			g_warning("%s\n", error->message);
-			g_error_free(error);
+			g_clear_error(&error);
 			g_free(newline);
 			return FALSE;
 		}
 		g_free(newline);
 	}
-	g_error_free(error);
+	g_clear_error(&error);
 	return TRUE;
 }
 

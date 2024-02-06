@@ -697,7 +697,6 @@ void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 static void manual_photometry_data (sequence *seq) {
-	static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
 	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item));
@@ -708,8 +707,6 @@ static void manual_photometry_data (sequence *seq) {
 	int nb_ref_stars = 0;
 	if (!seq->photometry[0] || !seq->photometry[1]) {
 		siril_log_color_message(_("One Variable star and one comparison star at least are required. Cannot create any file\n"), "salmon");
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required"));  // ... then in the UI
-		gtk_widget_hide(dialog);
 		return;
 	}
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
@@ -720,7 +717,7 @@ static void manual_photometry_data (sequence *seq) {
 	}
 
 	// Header for the console display
-	siril_log_message(_("-> %i comparison stars were selected\n"), nb_ref_stars - 1);
+	siril_log_message(_("-> %i comparison stars selected\n"), nb_ref_stars - 1);
 	siril_log_message("Star type        RA      DEC\n");
 	// Preparing the output catalog
 	comp_sta->columns = siril_catalog_columns(CAT_COMPSTARS); // we add mag to write it in the output file (it is not a mandatory field at readout)
@@ -765,13 +762,6 @@ static void manual_photometry_data (sequence *seq) {
 }
 
 void compstars_manu_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	static GtkWidget *dialog = NULL;	// the window, a GtkDialog
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");		// Message in the console first...
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));  // ... then in the UI
-		gtk_widget_hide(dialog);
-		return;
-	}
 	manual_photometry_data(&com.seq);
 }
 
