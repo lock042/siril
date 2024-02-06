@@ -50,6 +50,7 @@
 #include "io/single_image.h"
 #include "image_format_fits.h"
 #include "algos/siril_wcs.h"
+#include "opencv/opencv.h" // for cvGetEye
 
 const char *fit_extension[] = {
 		".fit",
@@ -2034,8 +2035,13 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	retval = read_fits_with_convert(fit, filename, force_float);
 	if (!strcmp(fit->row_order, "TOP-DOWN")) {
 		fits_flip_top_to_bottom(fit);
-		if (fit->wcslib)
-			vflip_wcs(fit->wcslib);
+		if (has_wcs(fit)) {
+			Homography H = { 0 };
+			cvGetEye(&H);
+			H.h11 = -1.;
+			H.h12 = (double)fit->ry;
+			reframe_astrometry_data(fit, H);
+		}
 		if (fit->bayer_pattern[0] != '\0') {
 			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
 			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);

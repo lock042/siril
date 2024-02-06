@@ -141,20 +141,6 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 	return wcs;
 }
 
-void vflip_wcs(wcsprm_t *wcs) {
-    int i;
-
-    // Get the order from the WCS structure
-    int order = wcs->naxis;
-
-    for (i = 0; i <= order; ++i) {
-        if (i % 2 == 1) { // Negate coefficients with odd powers
-            wcs->crpix[i] *= -1;
-            wcs->cdelt[i] *= -1;
-        }
-    }
-}
-
 gboolean load_WCS_from_fits(fits* fit) {
 	int status = 0;
 	char *header;
