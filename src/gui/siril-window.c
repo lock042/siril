@@ -72,8 +72,7 @@ static GActionEntry image_entries[] = {
 	{ "seq-list", seq_list_activate },
 	{ "regframe", regframe_activate , NULL, "true", regframe_state },
 	{ "nina_light_curve", nina_lc_activate },
-	{ "compstars", compstars_activate },
-	{ "compstars_manu", compstars_manu_activate }
+	{ "compstars", compstars_activate }
 };
 
 static GActionEntry selection_entries[] = {

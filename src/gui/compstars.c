@@ -150,20 +150,19 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(auto_data_grp), emag_entry);
 
 	/* catalogue choice */
-	GtkWidget *radio2, *radiobox;
-	radiobox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
-	gtk_box_set_homogeneous(GTK_BOX(radiobox), TRUE);
-	gtk_widget_set_tooltip_text(radiobox, _("Recommended catalogue for this feature is APASS"));
+	GtkWidget *nomad_radio, *cat_choice_box;
+	cat_choice_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(cat_choice_box), TRUE);
+	gtk_widget_set_tooltip_text(cat_choice_box, _("Recommended catalogue for this feature is APASS"));
 
 	apass_radio = gtk_radio_button_new_with_label_from_widget(NULL, _("APASS catalogue"));
-	radio2 = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON(apass_radio),
-			_("NOMAD catalogue"));
-	gtk_container_add(GTK_CONTAINER(radiobox), apass_radio);
-	gtk_container_add(GTK_CONTAINER(radiobox), radio2);
-	gtk_container_add(GTK_CONTAINER(auto_data_grp), radiobox);
-	g_object_set(G_OBJECT(radiobox), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(radiobox), "margin-top", 0, NULL);
-	g_object_set(G_OBJECT(radiobox), "margin-bottom", 0, NULL);
+	nomad_radio = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON(apass_radio), _("NOMAD catalogue"));
+	gtk_container_add(GTK_CONTAINER(cat_choice_box), apass_radio);
+	gtk_container_add(GTK_CONTAINER(cat_choice_box), nomad_radio);
+	gtk_container_add(GTK_CONTAINER(auto_data_grp), cat_choice_box);
+	g_object_set(G_OBJECT(cat_choice_box), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(cat_choice_box), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(cat_choice_box), "margin-bottom", 0, NULL);
 
 	// Gather the graphic items
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -176,13 +175,7 @@ static void build_the_dialog() {
 
 }
 
-// the public getter
-GtkWidget *get_compstars_dialog() {
-	if (!dialog)
-		build_the_dialog();
-	return dialog;
-}
-
+// The process to perform a **Manual** Compstar List
 static void manual_photometry_data (sequence *seq) {
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
@@ -249,6 +242,66 @@ static void manual_photometry_data (sequence *seq) {
 	free(args);
 }
 
+// The process to perform an **Automatic** Compstar List
+static void auto_photometry_data () {
+	if (!has_wcs(&gfit)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
+		gtk_widget_hide(dialog);
+		return;
+	}
+
+	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(target_entry));
+	gchar *target_name = g_strdup(entered_target_name);
+	g_strstrip(target_name);
+	if (target_name[0] == '\0') {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Enter the name of the target star"));
+		return;
+	}
+
+	gchar *end;
+	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delta_vmag_entry));
+	double delta_Vmag = g_ascii_strtod(text, &end);
+	if (text == end || delta_Vmag <= 0.0 || delta_Vmag > 6.0) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Vmag range not accepted (should be ]0, 6])"));
+		return;
+	}
+	text = gtk_entry_get_text(GTK_ENTRY(delta_bv_entry));
+	double delta_BV = g_ascii_strtod(text, &end);
+	if (text == end || delta_BV <= 0.0 || delta_BV > 0.7) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("BV range not accepted (should be ]0, 0.7]"));
+		return;
+	}
+	text = gtk_entry_get_text(GTK_ENTRY(emag_entry));
+	double emag = g_ascii_strtod(text, &end);
+	if (text == end || emag <= 0.0 || emag > 0.1) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Magnitude error not accepted (should be ]0, 0.1["));
+		return;
+	}
+
+	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
+	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	args->fit = &gfit;
+	args->target_name = g_strdup(target_name);
+	args->narrow_fov = narrow;
+	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
+	args->delta_Vmag = delta_Vmag;
+	args->delta_BV = delta_BV;
+	args->max_emag = emag;
+	args->nina_file = g_strdup("auto");
+
+	start_in_new_thread(compstars_worker, args);
+}
+
+// the public getter
+GtkWidget *get_compstars_dialog() {
+	if (!dialog)
+		build_the_dialog();
+	return dialog;
+}
+
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data) {
 //	auto_manu =gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode))
 	siril_debug_print("got response event\n");
@@ -261,55 +314,7 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 		manual_photometry_data(&com.seq);
 	}
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode))){
-		if (!has_wcs(&gfit)) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
-			gtk_widget_hide(dialog);
-			return;
-		}
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode)))
+		auto_photometry_data();
 
-		const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(target_entry));
-		gchar *target_name = g_strdup(entered_target_name);
-		g_strstrip(target_name);
-		if (target_name[0] == '\0') {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Enter the name of the target star"));
-			return;
-		}
-
-		gchar *end;
-		const gchar *text = gtk_entry_get_text(GTK_ENTRY(delta_vmag_entry));
-		double delta_Vmag = g_ascii_strtod(text, &end);
-		if (text == end || delta_Vmag <= 0.0 || delta_Vmag > 6.0) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Vmag range not accepted (should be ]0, 6])"));
-			return;
-		}
-		text = gtk_entry_get_text(GTK_ENTRY(delta_bv_entry));
-		double delta_BV = g_ascii_strtod(text, &end);
-		if (text == end || delta_BV <= 0.0 || delta_BV > 0.7) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("BV range not accepted (should be ]0, 0.7]"));
-			return;
-		}
-		text = gtk_entry_get_text(GTK_ENTRY(emag_entry));
-		double emag = g_ascii_strtod(text, &end);
-		if (text == end || emag <= 0.0 || emag > 0.1) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Magnitude error not accepted (should be ]0, 0.1["));
-			return;
-		}
-
-		gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
-		gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
-		control_window_switch_to_tab(OUTPUT_LOGS);
-
-		struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
-		args->fit = &gfit;
-		args->target_name = g_strdup(target_name);
-		args->narrow_fov = narrow;
-		args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
-		args->delta_Vmag = delta_Vmag;
-		args->delta_BV = delta_BV;
-		args->max_emag = emag;
-		args->nina_file = g_strdup("auto");
-
-		start_in_new_thread(compstars_worker, args);
-	}
 }
