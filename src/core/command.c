@@ -1752,8 +1752,8 @@ int process_ccm(int nb) {
 	}
 	if (word[10]) {
 		power = g_ascii_strtod(word[10], &end);
-			if (end == word[10] || power < -10.f || power > 10.f) {
-				siril_log_message(_("Invalid power %s, aborting.\n"), word[10]);
+			if (end == word[10] || power < 0.f || power > 10.f) {
+				siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10]);
 				return CMD_ARG_ERROR;
 			}
 	}

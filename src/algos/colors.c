@@ -1252,14 +1252,16 @@ void ccm_float(fits *fit, ccm matrix, float power) {
 		float r = fit->fpdata[RLAYER][i] * matrix[0][0] + fit->fpdata[GLAYER][i] * matrix[0][1] + fit->fpdata[BLAYER][i] * matrix[0][2];
 		float g = fit->fpdata[RLAYER][i] * matrix[1][0] + fit->fpdata[GLAYER][i] * matrix[1][1] + fit->fpdata[BLAYER][i] * matrix[1][2];
 		float b = fit->fpdata[RLAYER][i] * matrix[2][0] + fit->fpdata[GLAYER][i] * matrix[2][1] + fit->fpdata[BLAYER][i] * matrix[2][2];
-		fit->fpdata[RLAYER][i] = powf(r, power);
-		fit->fpdata[GLAYER][i] = powf(g, power);
-		fit->fpdata[BLAYER][i] = powf(b, power);
+		fit->fpdata[RLAYER][i] = powf(r, 1.f / power);
+		fit->fpdata[GLAYER][i] = powf(g, 1.f / power);
+		fit->fpdata[BLAYER][i] = powf(b, 1.f / power);
 	}
 }
 
 void ccm_ushort(fits *fit, ccm matrix, float power) {
 	size_t npixels = fit->rx * fit->ry;
+	float norm = USHRT_MAX_SINGLE;
+	float invnorm = 1.f / norm;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -1267,9 +1269,9 @@ void ccm_ushort(fits *fit, ccm matrix, float power) {
 		float r = (float) fit->pdata[RLAYER][i] * matrix[0][0] + (float) fit->pdata[GLAYER][i] * matrix[0][1] + (float) fit->pdata[BLAYER][i] * matrix[0][2];
 		float g = (float) fit->pdata[RLAYER][i] * matrix[1][0] + (float) fit->pdata[GLAYER][i] * matrix[1][1] + (float) fit->pdata[BLAYER][i] * matrix[1][2];
 		float b = (float) fit->pdata[RLAYER][i] * matrix[2][0] + (float) fit->pdata[GLAYER][i] * matrix[2][1] + (float) fit->pdata[BLAYER][i] * matrix[2][2];
-		fit->pdata[RLAYER][i] = roundf_to_WORD(powf(r, power));
-		fit->pdata[GLAYER][i] = roundf_to_WORD(powf(g, power));
-		fit->pdata[BLAYER][i] = roundf_to_WORD(powf(b, power));
+		fit->pdata[RLAYER][i] = roundf_to_WORD(norm * powf(r * invnorm, 1.f / power));
+		fit->pdata[GLAYER][i] = roundf_to_WORD(norm * powf(g * invnorm, 1.f/ power));
+		fit->pdata[BLAYER][i] = roundf_to_WORD(norm * powf(b * invnorm, 1.f / power));
 	}
 }
 

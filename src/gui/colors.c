@@ -23,6 +23,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
@@ -430,9 +431,23 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 				power);
 	undo_save_state(&gfit, buf);
 	g_free(buf);
+	if (gfit.icc_profile && gfit.color_managed) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
+					"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
+					"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
+		color_manage(&gfit, FALSE);
+		gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
+	}
 	ccm_calc(&gfit, matrix, power);
 	invalidate_stats_from_fit(&gfit);
 	notify_gfit_modified();
+}
+
+void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
+	if (gfit.icc_profile) {
+		color_manage(&gfit, TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
+	}
 }
 
 static void update_ccm_matrix(ccm matrix) {

@@ -3,7 +3,6 @@
 <interface>
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkAdjustment" id="adj_ccm_power">
-    <property name="lower">-10</property>
     <property name="upper">10</property>
     <property name="value">1</property>
     <property name="step-increment">0.10</property>
@@ -234,9 +233,9 @@
                     <items>
                       <item translatable="yes">Custom</item>
                       <item translatable="yes">Linear Rec.709_D65 to XYZ</item>
-                      <item translatable="yes">XYZ to Linear RGB_D65</item>
-                      <item translatable="yes">Simple sRGB to XYZ</item>
-                      <item translatable="yes">XYZ to Simple sRGB</item>
+                      <item translatable="yes">XYZ to Linear Rec.709_D65</item>
+                      <item translatable="yes">Simplified sRGB (gamma = 2.2) to XYZ</item>
+                      <item translatable="yes">XYZ to Simplified sRGB (gamma = 2.2)</item>
                     </items>
                     <signal name="changed" handler="on_combo_ccm_preset_changed" swapped="no"/>
                   </object>
@@ -263,6 +262,22 @@
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkButton" id="ccm_restore_icc">
+                <property name="label" translatable="yes">Restore ICC</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Reactivate ICC profile previously disabled by applying a CCM</property>
+                <signal name="clicked" handler="on_ccm_restore_icc_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="ccm_reset">
                 <property name="label" translatable="yes">Reset</property>
                 <property name="visible">True</property>
@@ -273,7 +288,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -287,7 +302,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -301,7 +316,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
