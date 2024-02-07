@@ -2033,6 +2033,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		goto close_readfits;
 
 	retval = read_fits_with_convert(fit, filename, force_float);
+
 	if (com.pref.canonical_row_order && !strcmp(fit->row_order, "TOP-DOWN")) {
 		fits_flip_top_to_bottom(fit);
 		if (has_wcs(fit)) {
@@ -2042,10 +2043,8 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 			H.h12 = (double)fit->ry;
 			reframe_astrometry_data(fit, H);
 		}
-		if (fit->bayer_pattern[0] != '\0') {
-			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
-			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
-		}
+		// No need to flip the Bayer pattern as this is done in adjust_Bayer_pattern()
+		// during demosaicing.
 		snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 	}
 	fit->top_down = FALSE;
