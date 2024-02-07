@@ -1110,10 +1110,6 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			H.h12 = (double)fit->ry;
 			reframe_astrometry_data(fit, H);
 		}
-		if (fit->bayer_pattern[0] != '\0') {
-			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
-			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
-		}
 		snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 	}
 	fit->top_down = FALSE;
