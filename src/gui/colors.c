@@ -409,3 +409,115 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		free(args);
 	}
 }
+
+void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
+	ccm matrix;
+	float power;
+	matrix[0][0] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m00"))))), NULL);
+	matrix[0][1] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m01"))))), NULL);
+	matrix[0][2] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m02"))))), NULL);
+	matrix[1][0] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m10"))))), NULL);
+	matrix[1][1] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m11"))))), NULL);
+	matrix[1][2] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m12"))))), NULL);
+	matrix[2][0] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m20"))))), NULL);
+	matrix[2][1] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m21"))))), NULL);
+	matrix[2][2] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m22"))))), NULL);
+	power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
+	gchar *buf = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
+				matrix[0][0], matrix[0][1], matrix[0][2],
+				matrix[1][0], matrix[1][1], matrix[1][2],
+				matrix[2][0], matrix[2][1], matrix[2][2],
+				power);
+	undo_save_state(&gfit, buf);
+	g_free(buf);
+	ccm_calc(&gfit, matrix, power);
+	invalidate_stats_from_fit(&gfit);
+	notify_gfit_modified();
+}
+
+static void update_ccm_matrix(ccm matrix) {
+	gchar buf[G_ASCII_DTOSTR_BUF_SIZE+1];
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m00")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][0]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m01")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][1]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m02")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][2]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m10")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][0]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m11")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][1]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m12")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][2]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m20")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][0]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m21")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][1]), -1);
+	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m22")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][2]), -1);
+}
+
+void on_ccm_reset_clicked(GtkButton* button, gpointer user_data) {
+	ccm matrix = { { 0.f } };
+	matrix[0][0] = matrix[1][1] = matrix[2][2] = 1.0f;
+	update_ccm_matrix(matrix);
+}
+
+void on_combo_ccm_preset_changed(GtkComboBox *combo, gpointer user_data) {
+	ccm matrix;
+	float power;
+	int index = gtk_combo_box_get_active(combo);
+	switch (index) {
+		case 0:
+			// Custom - does nothing
+			return;
+		case 1: // Linear Rec.709 to XYZ
+			matrix[0][0] = 0.4124564f;
+			matrix[0][1] = 0.3575761f;
+			matrix[0][2] = 0.1804375f;
+			matrix[1][0] = 0.2126729f;
+			matrix[1][1] = 0.7151522f;
+			matrix[1][2] = 0.0721750f;
+			matrix[2][0] = 0.0193339f;
+			matrix[2][1] = 0.1191920f;
+			matrix[2][2] = 0.9503041f;
+			power = 1.f;
+			break;
+		case 3:
+			matrix[0][0] = 0.4124564f;
+			matrix[0][1] = 0.3575761f;
+			matrix[0][2] = 0.1804375f;
+			matrix[1][0] = 0.2126729f;
+			matrix[1][1] = 0.7151522f;
+			matrix[1][2] = 0.0721750f;
+			matrix[2][0] = 0.0193339f;
+			matrix[2][1] = 0.1191920f;
+			matrix[2][2] = 0.9503041f;
+			power = 2.2f;
+			break;
+		case 2: // XYZ to Linear Rec.709
+			matrix[0][0] = 3.2404542f;
+			matrix[0][1] = -1.5371385f;
+			matrix[0][2] = -0.4985314f;
+			matrix[1][0] = -0.9692660f;
+			matrix[1][1] = 1.8760108f;
+			matrix[1][2] = 0.0415560f;
+			matrix[2][0] = 0.0556434f;
+			matrix[2][1] = -0.2040259f;
+			matrix[2][2] = 1.0572253f;
+			power = 1.f;
+			break;
+		case 4:
+			matrix[0][0] = 3.2404542f;
+			matrix[0][1] = -1.5371385f;
+			matrix[0][2] = -0.4985314f;
+			matrix[1][0] = -0.9692660f;
+			matrix[1][1] = 1.8760108f;
+			matrix[1][2] = 0.0415560f;
+			matrix[2][0] = 0.0556434f;
+			matrix[2][1] = -0.2040259f;
+			matrix[2][2] = 1.0572253f;
+			power = 1.f / 2.2f;
+			break;
+		default:
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), _("This case is not handled yet"));
+			return;
+	}
+	update_ccm_matrix(matrix);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")), power);
+}
+
+void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
+	siril_close_dialog("ccm_dialog");
+}

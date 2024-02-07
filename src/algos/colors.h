@@ -60,6 +60,6 @@ void background_neutralize(fits* fit, rectangle black_selection);
 void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 		double kw[], double bg[], double norm, double low, double high);
 int calibrate(fits *fit, int layer, double kw, double bg, double norm);
-int ccm_calc(fits *fit, ccm matrix);
+int ccm_calc(fits *fit, ccm matrix, float power);
 
 #endif

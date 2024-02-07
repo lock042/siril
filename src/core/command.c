@@ -1737,6 +1737,7 @@ int process_ccm(int nb) {
 		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
 		return CMD_INVALID_IMAGE;
 	}
+	float power = 1.f;
 	gchar *end;
 	ccm matrix = { { 0.f } };
 	for (int i = 0 ; i < 3 ; i++) {
@@ -1744,20 +1745,35 @@ int process_ccm(int nb) {
 			int word_index = 3*i+j+1;
 			matrix[i][j] = g_ascii_strtod(word[word_index], &end);
 			if (end == word[word_index]) {
-				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[1]);
+				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
 				return CMD_ARG_ERROR;
 			}
 		}
 	}
-	ccm_calc(&gfit, matrix);
+	if (word[10]) {
+		power = g_ascii_strtod(word[10], &end);
+			if (end == word[10] || power < -10.f || power > 10.f) {
+				siril_log_message(_("Invalid power %s, aborting.\n"), word[10]);
+				return CMD_ARG_ERROR;
+			}
+	}
+	siril_log_message(_("Applying CCM with coefficients %f, %f, %f, %f, %f, %f, %f, %f, %f and power %f\n"),
+						matrix[0][0], matrix[0][1], matrix[0][2],
+						matrix[1][0], matrix[1][1], matrix[1][2],
+						matrix[2][0], matrix[2][1], matrix[2][2], power);
+
+	ccm_calc(&gfit, matrix, power);
 	char log[90];
-	sprintf(log, "Color correction matrix applied:");
+	snprintf(log, 89, "Color correction matrix applied:");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	sprintf(log, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
+	snprintf(log, 89, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
 				matrix[0][0], matrix[0][1], matrix[0][2],
 				matrix[1][0], matrix[1][1], matrix[1][2],
 				matrix[2][0], matrix[2][1], matrix[2][2]);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	snprintf(log, 89, "Power: %.4f", power);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
