@@ -190,7 +190,6 @@ void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean
 		"wcs-grid",
 		"nina_light_curve",
 		"compstars",
-		"compstars_manu",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);

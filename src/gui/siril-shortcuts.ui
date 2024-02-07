@@ -187,6 +187,20 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">1</property>
+                <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;b</property>
+                <property name="title" translatable="yes" context="shortcut window">Open the Comparison Stars dialog</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;n</property>
+                <property name="title" translatable="yes" context="shortcut window">Open Light Curve dialog</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
                 <property name="accelerator">&lt;Primary&gt;slash</property>
                 <property name="title" translatable="yes" context="shortcut window">Search an object in the image</property>
               </object>
