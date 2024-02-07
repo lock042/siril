@@ -1242,3 +1242,41 @@ int pos_to_neg(fits *fit) {
 
 	return 0;
 }
+
+void ccm_float(fits *fit, ccm matrix) {
+	size_t npixels = fit->rx * fit->ry;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = fit->fpdata[RLAYER][i] * matrix[0][0] + fit->fpdata[GLAYER][i] * matrix[0][1] + fit->fpdata[BLAYER][i] * matrix[0][2];
+		float g = fit->fpdata[RLAYER][i] * matrix[1][0] + fit->fpdata[GLAYER][i] * matrix[1][1] + fit->fpdata[BLAYER][i] * matrix[1][2];
+		float b = fit->fpdata[RLAYER][i] * matrix[2][0] + fit->fpdata[GLAYER][i] * matrix[2][1] + fit->fpdata[BLAYER][i] * matrix[2][2];
+		fit->fpdata[RLAYER][i] = r;
+		fit->fpdata[GLAYER][i] = g;
+		fit->fpdata[BLAYER][i] = b;
+	}
+}
+
+void ccm_ushort(fits *fit, ccm matrix) {
+	size_t npixels = fit->rx * fit->ry;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = (float) fit->pdata[RLAYER][i] * matrix[0][0] + (float) fit->pdata[GLAYER][i] * matrix[0][1] + (float) fit->pdata[BLAYER][i] * matrix[0][2];
+		float g = (float) fit->pdata[RLAYER][i] * matrix[1][0] + (float) fit->pdata[GLAYER][i] * matrix[1][1] + (float) fit->pdata[BLAYER][i] * matrix[1][2];
+		float b = (float) fit->pdata[RLAYER][i] * matrix[2][0] + (float) fit->pdata[GLAYER][i] * matrix[2][1] + (float) fit->pdata[BLAYER][i] * matrix[2][2];
+		fit->pdata[RLAYER][i] = roundf_to_WORD(r);
+		fit->pdata[GLAYER][i] = roundf_to_WORD(g);
+		fit->pdata[BLAYER][i] = roundf_to_WORD(b);
+	}
+}
+
+int ccm_calc(fits *fit, ccm matrix) {
+	// We require a 3-channel FITS
+	if (fit->naxes[2] != 3)
+		return 1;
+	fit->type == DATA_FLOAT ? ccm_float(fit, matrix) : ccm_ushort(fit, matrix);
+	return 0;
+}

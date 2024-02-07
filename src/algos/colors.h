@@ -15,6 +15,8 @@ struct extract_channels_data {
 	const char* str_type;
 };
 
+typedef float ccm[3][3]; // Color Conversion Matrix
+
 void rgb_to_hsl_float_sat(float, float, float, float, float *, float *, float *);
 void hsl_to_rgb_float_sat(float, float, float, float *, float *, float *);
 void rgb_to_hsl(double, double, double, double *, double *, double *);
@@ -58,6 +60,6 @@ void background_neutralize(fits* fit, rectangle black_selection);
 void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 		double kw[], double bg[], double norm, double low, double high);
 int calibrate(fits *fit, int layer, double kw, double bg, double norm);
-
+int ccm_calc(fits *fit, ccm matrix);
 
 #endif

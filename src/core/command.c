@@ -1732,6 +1732,36 @@ static gboolean crop_command_idle(gpointer arg) {
 	return FALSE;
 }
 
+int process_ccm(int nb) {
+	if (gfit.naxes[2] != 3) {
+		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+		return CMD_INVALID_IMAGE;
+	}
+	gchar *end;
+	ccm matrix = { { 0.f } };
+	for (int i = 0 ; i < 3 ; i++) {
+		for (int j = 0 ; j < 3 ; j++) {
+			int word_index = 3*i+j+1;
+			matrix[i][j] = g_ascii_strtod(word[word_index], &end);
+			if (end == word[word_index]) {
+				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[1]);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+	ccm_calc(&gfit, matrix);
+	char log[90];
+	sprintf(log, "Color correction matrix applied:");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+	sprintf(log, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
+				matrix[0][0], matrix[0][1], matrix[0][2],
+				matrix[1][0], matrix[1][1], matrix[1][2],
+				matrix[2][0], matrix[2][1], matrix[2][2]);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+
 int process_crop(int nb) {
 	if (is_preview_active()) {
 		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
