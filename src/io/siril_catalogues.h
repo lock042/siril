@@ -51,6 +51,7 @@ typedef enum {
 	CAT_GCVS,  //06
 	CAT_VSX, //07
 	CAT_SIMBAD, //08
+	CAT_VARISUM, //09
 	CAT_PGC = 20,
 // Other TAP Queries
 	CAT_EXOPLANETARCHIVE = 30,

@@ -1789,21 +1789,24 @@ int process_cd(int nb) {
 
 	expand_home_in_filename(filename, maxpath);
 	retval = siril_change_dir(filename, NULL);
-	if (!retval && !com.script) {
-		if (com.pref.wd)
-			g_free(com.pref.wd);
-		com.pref.wd = g_strdup(com.wd);
-		writeinitfile();
-		set_GUI_CWD();
+	if (!retval){                   /* chdir ok */
+		if (!com.script) {          /* if not a script, change GUI WD*/
+			if (com.pref.wd)
+				g_free(com.pref.wd);
+			com.pref.wd = g_strdup(com.wd);
+			writeinitfile();
+			set_GUI_CWD();
+		}
 	}
+	else {   /* chdir failed */
 	/*
 	 *  if filename does not exist, siril_change_dir(filename, NULL) returns 2,
 	 *  ie CMD_NO_WAIT which is "no error"; in a script such an error should be
 	 *  considered fatal and end the script.
 	 *  So we return CMD_DIR_NOT_FOUND instead:
 	 */
-	else
-		retval=CMD_DIR_NOT_FOUND;
+		retval = CMD_DIR_NOT_FOUND;
+	}
 	return retval;
 }
 
@@ -8943,6 +8946,8 @@ int process_conesearch(int nb) {
 				cat = CAT_GCVS;
 			else if (!g_strcmp0(arg, "vsx"))
 				cat = CAT_VSX;
+			else if (!g_strcmp0(arg, "varisum"))
+				cat = CAT_VARISUM;
 			else if (!g_strcmp0(arg, "simbad"))
 				cat = CAT_SIMBAD;
 			else if (!g_strcmp0(arg, "exo"))
