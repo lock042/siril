@@ -169,7 +169,7 @@ get_stars(psf_star **s, int n, int *num_stars, struct s_star **list);
    /*
     * updates stars positions using an updated psf_star catalog
     */
-int
+void
 update_stars_positions(struct s_star **old_list, int n_old, psf_star **s);
 
    /*

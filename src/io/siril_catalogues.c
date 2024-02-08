@@ -258,8 +258,6 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
 			return _("local Tycho-2+NOMAD");
-		case CAT_ASNET:
-			return _("local astrometry.net");
 		case CAT_AN_MESSIER:
 			return "Messier";
 		case CAT_AN_NGC:
@@ -549,14 +547,17 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	int nbstars = 0;
-
+	if (siril_cat->cat_items) {
+		siril_debug_print("trying to fetch a catalog while a list already exists, should not happen\n");
+		return 0;
+	}
 	if (siril_cat->cat_index < CAT_AN_MESSIER) {
 #ifndef HAVE_LIBCURL
 		siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 		return 0;
 #else
-        nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
-        return nbstars;
+		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
+		return nbstars;
 #endif
 	} else if (siril_cat->cat_index == CAT_LOCAL) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);

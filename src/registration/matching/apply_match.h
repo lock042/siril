@@ -24,6 +24,6 @@
 
 #include "misc.h"
 
-int apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d);
+void apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d);
 
 #endif /* SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_ */

@@ -109,7 +109,7 @@
 #include "registration/matching/match.h"
 #include "registration/matching/atpmatch.h"
 
-#define DEBUG           /* get some of diagnostic output */
+// #define DEBUG           /* get some of diagnostic output */
 
 static void reset_copy_ids(int numA, struct s_star *star_list_A,
 		struct s_star *star_list_A_copy);
@@ -244,7 +244,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 			nobj, min_scale, max_scale, rot_angle, rot_tol, max_iter,
 			halt_sigma, trans);
 	if (ret != SH_SUCCESS) {
+#ifdef DEBUG
 		fprintf(stderr, "initial call to atFindTrans failed\n");
+#endif
 		/** */
 		atTransDel(trans);
 		free_stars(&star_list_A);
@@ -310,7 +312,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	/* okay, now we're ready to call atRecalcTrans, on matched items only */
 	if (atRecalcTrans(num_matched_A, matched_list_A, num_matched_B,
 			matched_list_B, max_iter, halt_sigma, trans) != SH_SUCCESS) {
+#ifdef DEBUG
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
+#endif
 		/** */
 		atTransDel(trans);
 		free_stars(&matched_list_A);
@@ -377,7 +381,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	/* final call atRecalcTrans, on matched items only */
 	if (atRecalcTrans(num_matched_A, matched_list_A, num_matched_B,
 			matched_list_B, max_iter, halt_sigma, trans) != SH_SUCCESS) {
+#ifdef DEBUG
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
+#endif
 		/** */
 		atTransDel(trans);
 		free_stars(&matched_list_A);

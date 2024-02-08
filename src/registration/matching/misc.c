@@ -114,6 +114,7 @@ void shFree(void *vptr /* I: free this chunk of memory */
 void shError(char *format, /* I: format part of printf statement */
 ... /* I: optional arguments to printf */
 ) {
+#ifdef DEBUG
 	va_list ap;
 
 	va_start(ap, format);
@@ -122,6 +123,7 @@ void shError(char *format, /* I: format part of printf statement */
 	fflush(stdout);
 	fflush(stderr);
 	va_end(ap);
+#endif
 }
 
 /*********************************************************************
@@ -421,7 +423,7 @@ int get_stars(psf_star **s, int n, int *num_stars, struct s_star **list) {
 	return (SH_SUCCESS);
 }
 
-int update_stars_positions(struct s_star **old_list, int n_old, psf_star **s) {
+void update_stars_positions(struct s_star **old_list, int n_old, psf_star **s) {
 	int i = 0;
 	struct s_star *current = *old_list;
 
@@ -432,8 +434,6 @@ int update_stars_positions(struct s_star **old_list, int n_old, psf_star **s) {
 		current = current->next;
 		i++;
 	}
-
-	return (SH_SUCCESS);
 }
 
 /***********************************************************************

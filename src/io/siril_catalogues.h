@@ -74,7 +74,6 @@ typedef enum {
 	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
-	CAT_ASNET = 100,	// solve-field local (astrometry.net)
 } siril_cat_index;
 
 typedef enum {

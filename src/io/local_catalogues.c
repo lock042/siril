@@ -55,6 +55,8 @@
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
 const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
 
+#define DEBUG_LOCALCAT 0
+
 struct catalogue_index {
 	uint32_t trixelID;
 	uint32_t offset;	// file size is < 4G, it's fine

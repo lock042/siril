@@ -8613,9 +8613,9 @@ int process_spcc(int nb) {
 #endif
 }
 
-// used for PCC and SPCC commands
+// used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
-	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE;
+	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE, coords_forced = FALSE;
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
@@ -8623,6 +8623,7 @@ int process_platesolve(int nb) {
 	siril_cat_index cat = CAT_AUTO;
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
+	platesolve_solver solver = SOLVER_SIRIL;
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -8658,6 +8659,7 @@ int process_platesolve(int nb) {
 			siril_log_message(_("Could not parse target coordinates\n"));
 			return CMD_ARG_ERROR;
 		}
+		coords_forced = TRUE;
 	}
 
 	while (nb > next_arg && word[next_arg]) {
@@ -8742,8 +8744,7 @@ int process_platesolve(int nb) {
 		else if (!g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
 			if (cat != CAT_AUTO)
 				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
-			cat = CAT_ASNET;
-			local_cat = TRUE;
+			solver = SOLVER_LOCALASNET;
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			if (target_coords)
@@ -8764,13 +8765,13 @@ int process_platesolve(int nb) {
 		cat = CAT_LOCAL;
 	}
 
-	if (local_cat && cat != CAT_LOCAL && cat != CAT_ASNET) {
+	if (local_cat && cat != CAT_LOCAL && solver == SOLVER_SIRIL) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
 		local_cat = FALSE;
 	}
 
-	if (cat == CAT_ASNET && !asnet_is_available()) {
+	if (solver == SOLVER_LOCALASNET && !asnet_is_available()) {
 		siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
 		if (target_coords)
 			siril_world_cs_unref(target_coords);
@@ -8790,7 +8791,7 @@ int process_platesolve(int nb) {
 
 	if (!target_coords) {
 		target_coords = get_eqs_from_header(preffit);
-		if (cat != CAT_ASNET && !target_coords) {
+		if (solver != SOLVER_LOCALASNET && !target_coords) {
 				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
 				if (seqps)
 					clearfits(preffit);
@@ -8849,14 +8850,14 @@ int process_platesolve(int nb) {
 	}
 
 	if (target_mag > -1.0) {
-		if (cat == CAT_ASNET)
+		if (solver != SOLVER_SIRIL)
 			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
 		else {
 			args->mag_mode = LIMIT_MAG_ABSOLUTE;
 			args->magnitude_arg = target_mag;
 		}
 	} else if (mag_offset != 0.0) {
-		if (cat == CAT_ASNET)
+		if (solver != SOLVER_SIRIL)
 			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
 		else {
 			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
@@ -8868,8 +8869,11 @@ int process_platesolve(int nb) {
 
 	if (seqps)
 		clearfits(preffit);
+	args->solver = solver;
+	args->coords_forced = coords_forced;
 	args->downsample = downsample;
 	args->autocrop = autocrop;
+	args->blindradius = 3.;
 	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
 		siril_debug_print("forced no flip for solving an image from a sequence");
@@ -8881,11 +8885,11 @@ int process_platesolve(int nb) {
 		args->cat_center = target_coords;
 	}
 	// catalog query parameters
-	args->ref_stars = calloc(1, sizeof(siril_catalogue));
-	args->ref_stars->cat_index = cat;
-	args->ref_stars->columns =  siril_catalog_columns(cat);
-	args->ref_stars->phot = FALSE;
-	if (target_coords) {
+	if (solver == SOLVER_SIRIL) {
+		args->ref_stars = calloc(1, sizeof(siril_catalogue));
+		args->ref_stars->cat_index = cat;
+		args->ref_stars->columns =  siril_catalog_columns(cat);
+		args->ref_stars->phot = FALSE;
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 	}
@@ -8900,7 +8904,7 @@ int process_platesolve(int nb) {
 		return CMD_OK;
 	}
 	// single-image
-	if (cat == CAT_ASNET)
+	if (solver == SOLVER_LOCALASNET)
 		args->filename = g_strdup(com.uniq->filename);
 	args->fit = &gfit;
 	process_plate_solver_input(args);

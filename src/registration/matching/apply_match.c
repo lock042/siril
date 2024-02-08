@@ -112,7 +112,7 @@
 
 #undef DEBUG           /* get some of diagnostic output */
 
-int apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d) {
+void apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d) {
 	double r_dec;
 	double z, zz, alpha, delta;
 	double delta_ra, delta_dec;
@@ -199,6 +199,4 @@ int apply_match(double ra, double dec, double xval, double yval, TRANS *trans, d
 
 	*a = alpha;
 	*d = delta;
-
-	return (SH_SUCCESS);
 }

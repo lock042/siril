@@ -1385,37 +1385,41 @@ static void save_wcs_keywords(fits *fit) {
 			// A terms
 			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >=0; j--) {
+					int k = i - j;
 					char key[6];
-					g_snprintf(key, 6, "A_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &A[i][j], NULL, &status);
+					g_snprintf(key, 6, "A_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &A[j][k], NULL, &status);
 				}
 			}
 			// B terms
 			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "SIP polynomial degree, axis 2, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >=0; j--) {
+					int k = i - j;
 					char key[6];
-					g_snprintf(key, 6, "B_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &B[i][j], NULL, &status);
+					g_snprintf(key, 6, "B_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &B[j][k], NULL, &status);
 				}
 			}
 			// AP terms
 			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "SIP polynomial degree, axis 1, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >=0; j--) {
+					int k = i - j;
 					char key[7];
-					g_snprintf(key, 7, "AP_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &AP[i][j], NULL, &status);
+					g_snprintf(key, 7, "AP_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &AP[j][k], NULL, &status);
 				}
 			}
 			// BP terms
 			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "SIP polynomial degree, axis 2, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >=0; j--) {
+					int k = i - j;
 					char key[7];
-					g_snprintf(key, 7, "BP_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &BP[i][j], NULL, &status);
+					g_snprintf(key, 7, "BP_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &BP[j][k], NULL, &status);
 				}
 			}
 		}

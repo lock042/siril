@@ -23,12 +23,20 @@ typedef enum {
 	LIMIT_MAG_ABSOLUTE
 } limit_mag_mode;
 
+typedef enum {
+	SOLVER_SIRIL,
+	SOLVER_LOCALASNET
+} platesolve_solver;
+
 struct astrometry_data {
 	/* user input */
 	fits *fit;		// the image
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
+	platesolve_solver solver;	// the solver being used (siril or localasnet for now)
 	siril_catalogue *ref_stars; // siril_catalogue containing query parameters and results
+	gboolean coords_forced; // target coords are forced (used for seqplatesolve)
+	gboolean blind; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
 	SirilWorldCS *cat_center;	// starting point for the search
 	gboolean downsample;	// downsample image before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
@@ -44,6 +52,7 @@ struct astrometry_data {
 	int ry_solver;		// height of the image being solved (accounting for downscale if any)
 	double scalefactor;	// scale factor accounting for downscale if any
 	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
+	double blindradius; // radius of the cone if blind
 
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel

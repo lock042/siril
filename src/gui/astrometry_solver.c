@@ -635,10 +635,9 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
 	args->ref_stars = calloc(1, sizeof(siril_catalogue));
 
-	process_plate_solver_input(args);
-
 	GtkToggleButton *lasnet = GTK_TOGGLE_BUTTON(lookup_widget("localasnet_check_button"));
 	gboolean use_local_asnet = gtk_toggle_button_get_active(lasnet);
+	args->solver = (use_local_asnet) ? SOLVER_LOCALASNET : SOLVER_SIRIL;
 
 	args->trans_order = (use_local_asnet) ? -1 : get_order();
 
@@ -668,8 +667,6 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		if (com.selection.w != 0 && com.selection.h != 0)
 			siril_log_message(_("Selection is not used with the astrometry.net solver\n"));
 
-		args->ref_stars->cat_index = CAT_ASNET;
-
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 			args->filename = g_strdup(com.uniq->filename);
 		} else if (sequence_is_loaded()) {
@@ -698,6 +695,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			args->ref_stars->cat_index = CAT_LOCAL;
 		}
 	}
+	process_plate_solver_input(args);
 	args->ref_stars->columns = siril_catalog_columns(args->ref_stars->cat_index);
 	return 0;
 }
