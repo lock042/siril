@@ -40,11 +40,8 @@ static GtkWidget *auto_data_grp;
 
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data);
 
-static void output_state (GtkToggleButton *source, gpointer user_data) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(manual_mode)))
-		gtk_widget_set_sensitive (auto_data_grp, FALSE);
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode)))
-		gtk_widget_set_sensitive (auto_data_grp, TRUE);
+static void output_state(GtkToggleButton *source, gpointer user_data) {
+    gtk_widget_set_sensitive(auto_data_grp, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode)));
 }
 
 static void build_the_dialog() {
@@ -56,10 +53,6 @@ static void build_the_dialog() {
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_compstars_response), NULL);
-
-
-
-
 
 	/* Mode (Auto/Manu) choice */
 	mode_grp = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -171,17 +164,10 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), auto_data_grp);
 	gtk_widget_set_sensitive (auto_data_grp, FALSE);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
-
-
 }
 
 // The process to perform a **Manual** Compstar List
 static void manual_photometry_data (sequence *seq) {
-	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
-	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
-	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item));
-
-	comp_sta->cat_index = CAT_COMPSTARS;
 	double ra, dec;
 	// Gather the selected stars by hand
 	int nb_ref_stars = 0;
@@ -190,12 +176,17 @@ static void manual_photometry_data (sequence *seq) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required. Cannot create any file"));
 		return;
 	}
+	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item));
+
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem with convertion\n"), "salmon"); // PB in the conversion pix->wcs
 		sel_item[r].ra = ra;
 		sel_item[r].dec = dec;
 		nb_ref_stars++;
 	}
+
+	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
+	comp_sta->cat_index = CAT_COMPSTARS;
 
 	// Header for the console display
 	siril_log_message(_("-> %i comparison stars selected\n"), nb_ref_stars - 1);
@@ -206,9 +197,7 @@ static void manual_photometry_data (sequence *seq) {
 	cat_item *result = calloc(nb_ref_stars + 1, sizeof(cat_item));
 	// Write the target star
 	fill_compstar_item(&result[0], sel_item[0].ra, sel_item[0].dec, 0.0, "V", "Target");
-	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"),
-			sel_item[0].ra,
-			sel_item[0].dec);
+	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"), sel_item[0].ra, sel_item[0].dec);
 	// And write the selected comparison stars
 	for (int i = 0; i < nb_ref_stars; i++) {
 		cat_item *item = &sel_item[i];
@@ -216,10 +205,7 @@ static void manual_photometry_data (sequence *seq) {
 		gchar *name = g_strdup_printf("%d", i);
 		fill_compstar_item(&result[i], item->ra, item->dec, 0.0, name, "Comp1");
 		g_free(name);
-		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"),
-				i, 
-				item->ra,
-				item->dec);
+		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"), i, item->ra, item->dec);
 	}
 
 	// Fill the catalogue structure
@@ -227,6 +213,8 @@ static void manual_photometry_data (sequence *seq) {
 	comp_sta->nbitems = nb_ref_stars;
 	comp_sta->nbincluded = nb_ref_stars;
 	// Fill the other catalogue  structure
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+
 	args->comp_stars = comp_sta;
 	args->nina_file = g_strdup("V_SirilstarList_user.csv");
 	args->target_star = &result[0];
@@ -237,19 +225,13 @@ static void manual_photometry_data (sequence *seq) {
 	// Finally create the csv file
 	write_nina_file(args);
 	// and free the stuff
-	siril_catalog_free (comp_sta);
-	siril_catalog_free_item (sel_item);
+	siril_catalog_free(comp_sta);
+	siril_catalog_free_item(sel_item);
 	free(args);
 }
 
 // The process to perform an **Automatic** Compstar List
 static void auto_photometry_data () {
-	if (!has_wcs(&gfit)) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
-		gtk_widget_hide(dialog);
-		return;
-	}
-
 	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(target_entry));
 	gchar *target_name = g_strdup(entered_target_name);
 	g_strstrip(target_name);
