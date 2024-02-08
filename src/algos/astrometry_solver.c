@@ -693,16 +693,9 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	pc[0][1] = pc1_2;
 	pc[1][0] = pc2_1;
 	pc[1][1] = pc2_2;
-	// we recombine pc and cdelt, and let wcslib decompose from cd
-	// pc and cd are set to the new cd
-	// cdelt is set to unity
-	// we then call wcspcx() to do the decomposition
+	// we recombine pc and cdelt, and decompose it
 	wcs_pc_to_cd(pc, fit->wcslib->cdelt, cd);
-	wcs_mat2pc(fit->wcslib, cd);
-	wcs_mat2cd(fit->wcslib, cd);
-	fit->wcslib->altlin = 2;
-	wcs_cdelt2unity(fit->wcslib);
-	wcspcx(fit->wcslib, 0, 0, NULL);
+	wcs_decompose_cd(fit->wcslib, cd);
 
 	// we fetch the refpoint in siril convention
 	point refpointin = {fit->wcslib->crpix[0] - 0.5, fit->wcslib->crpix[1] - 0.5};
@@ -1145,9 +1138,7 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 					}
 				}
 			// we pass cd and let wcslib decompose it
-			wcs_mat2cd(prm, cd);
-			prm->altlin = 2;
-			wcspcx(prm, 0, 0, NULL);
+			wcs_decompose_cd(prm, cd);
 			if (t.order > AT_TRANS_LINEAR)
 				add_disto_to_wcslib(prm, &t, args->rx_solver, args->ry_solver);
 			wcs_print(prm);
