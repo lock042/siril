@@ -25,6 +25,7 @@
 #include "core/icc_profile.h"
 #include "core/command.h"
 #include "gui/cut.h"
+#include "gui/icc_profile.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/siril_world_cs.h"

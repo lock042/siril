@@ -44,6 +44,7 @@
 #include "gui/callbacks.h"
 #include "gui/documentation.h"
 #include "gui/histogram.h"
+#include "gui/icc_profile.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
