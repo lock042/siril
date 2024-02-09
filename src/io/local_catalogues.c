@@ -431,6 +431,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	uint32_t total_nb_stars = 0;
 	int retval = 0, catalogue = 0;
 	radius /= 60.; // converting to degrees
+	double radius_h = pow(sin(0.5 * radius * DEGTORAD), 2);
 
 	siril_debug_print("looking for stars in local catalogues for target %f, %f, radius %f, magnitude %.2f, photometric: %d\n", target_ra, target_dec, radius, max_mag, photometric);
 	for (; catalogue < nb_catalogues; catalogue++) {
@@ -482,8 +483,8 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 					// catalogue has RA in hours, hence the x15
 					double ra = cat_stars[i].RA * .000015;
 					double dec = cat_stars[i].Dec * .00001;
-					double dist = compute_coords_distance(ra, dec, target_ra, target_dec);
-					if (dist > radius)
+					double dist_h = compute_coords_distance_h(ra, dec, target_ra, target_dec);
+					if (dist_h > radius_h)
 						continue;
 					deepStarData *sdd = &cat_stars[i];
 					(*stars)[j] = *sdd;

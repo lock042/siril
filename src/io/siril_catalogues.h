@@ -197,6 +197,7 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat);
 siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, float limit_mag);
 gpointer conesearch_worker(gpointer p);
 
+double compute_coords_distance_h(double ra1, double dec1, double ra2, double dec2);
 double compute_coords_distance(double ra1, double dec1, double ra2, double dec2);
 
 sky_object_query_args *init_sky_object_query();

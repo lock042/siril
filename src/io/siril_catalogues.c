@@ -1169,12 +1169,20 @@ exit_conesearch:;
 // https://en.wikipedia.org/wiki/Haversine_formula
 // dec is phi, ra is lambda
 // in degrees
-double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
+
+double compute_coords_distance_h(double ra1, double dec1, double ra2, double dec2) {
 	double dec1_r = dec1 * DEGTORAD, dec2_r = dec2 * DEGTORAD;
 	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
 	double ddec_2 = 0.5 * (dec2_r - dec1_r);
 	double sin_ddec = sin(ddec_2), sin_dra = sin(dra_2);
 	double h = sin_ddec * sin_ddec + cos(dec1_r) * cos(dec2_r) * sin_dra * sin_dra;
+	if (h > 1.)
+		return 1.;   // h = 1, asin(1) is pi/2
+	return h;
+}
+
+double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
+	double h = compute_coords_distance_h(ra1, dec1, ra2, dec2);
 	if (h > 1.)
 		return 180.0;   // h = 1, asin(1) is pi/2
 	return 2.0 * asin(sqrt(h)) * RADTODEG;
