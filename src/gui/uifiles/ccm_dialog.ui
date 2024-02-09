@@ -17,6 +17,7 @@
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkFrame">
             <property name="visible">True</property>
@@ -24,142 +25,138 @@
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <!-- n-columns=3 n-rows=3 -->
+              <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
+                <property name="margin-start">12</property>
+                <property name="row-spacing">6</property>
+                <property name="column-spacing">6</property>
                 <child>
-                  <!-- n-columns=3 n-rows=3 -->
-                  <object class="GtkGrid">
+                  <object class="GtkEntry" id="entry_m00">
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <child>
-                      <object class="GtkEntry" id="entry_m00">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">1.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m01">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">0.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m02">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">0.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m10">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">0.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m11">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">1.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m12">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">0.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m20">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">0.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m21">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">0.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry_m22">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="max-length">8</property>
-                        <property name="width-chars">8</property>
-                        <property name="text" translatable="yes">1.0</property>
-                        <property name="input-purpose">number</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">2</property>
-                      </packing>
-                    </child>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">1.0</property>
+                    <property name="input-purpose">number</property>
                   </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m01">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m02">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m10">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m11">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">1.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m12">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m20">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m21">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">0.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry_m22">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="max-length">8</property>
+                    <property name="width-chars">8</property>
+                    <property name="text" translatable="yes">1.0</property>
+                    <property name="input-purpose">number</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">2</property>
+                  </packing>
                 </child>
               </object>
             </child>
@@ -167,7 +164,12 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
                 <property name="label" translatable="yes">Color Conversion Matrix</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
               </object>
             </child>
           </object>
@@ -184,27 +186,27 @@
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkSpinButton" id="spin_ccm_power">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
-                <child>
-                  <object class="GtkSpinButton" id="spin_ccm_power">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">The power to which each result pixel will be raised.</property>
-                    <property name="adjustment">adj_ccm_power</property>
-                    <property name="digits">3</property>
-                    <property name="value">1</property>
-                  </object>
-                </child>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">The power to which each result pixel will be raised.</property>
+                <property name="margin-start">12</property>
+                <property name="text" translatable="yes">1,000</property>
+                <property name="adjustment">adj_ccm_power</property>
+                <property name="digits">3</property>
+                <property name="value">1</property>
               </object>
             </child>
             <child type="label">
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
                 <property name="label" translatable="yes">Power</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
               </object>
             </child>
           </object>
@@ -221,32 +223,31 @@
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkComboBoxText" id="combo_ccm_preset">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
-                <child>
-                  <object class="GtkComboBoxText" id="combo_ccm_preset">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="active">0</property>
-                    <items>
-                      <item translatable="yes">Custom</item>
-                      <item translatable="yes">Linear Rec.709_D65 to XYZ</item>
-                      <item translatable="yes">XYZ to Linear Rec.709_D65</item>
-                      <item translatable="yes">Simplified sRGB (gamma = 2.2) to XYZ</item>
-                      <item translatable="yes">XYZ to Simplified sRGB (gamma = 2.2)</item>
-                    </items>
-                    <signal name="changed" handler="on_combo_ccm_preset_changed" swapped="no"/>
-                  </object>
-                </child>
+                <property name="margin-start">12</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Custom</item>
+                  <item translatable="yes">Linear Rec.709_D65 to XYZ</item>
+                  <item translatable="yes">XYZ to Linear Rec.709_D65</item>
+                  <item translatable="yes">Simplified sRGB (gamma = 2.2) to XYZ</item>
+                  <item translatable="yes">XYZ to Simplified sRGB (gamma = 2.2)</item>
+                </items>
+                <signal name="changed" handler="on_combo_ccm_preset_changed" swapped="no"/>
               </object>
             </child>
             <child type="label">
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
                 <property name="label" translatable="yes">Presets</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
               </object>
             </child>
           </object>
@@ -260,6 +261,7 @@
           <object class="GtkButtonBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="spacing">6</property>
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="ccm_restore_icc">
@@ -312,6 +314,9 @@
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <signal name="clicked" handler="on_ccm_apply_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">True</property>
