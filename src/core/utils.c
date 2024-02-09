@@ -1820,7 +1820,7 @@ int count_lines_in_textfile(const gchar *filename) {
     return line_count;
 }
 
-const gchar *flip_bayer_pattern(const gchar *old_pattern) {
+const char *flip_bayer_pattern(const char *old_pattern) {
 	if (!strcmp(old_pattern, "RGGB"))
 		return "GBRG";
 	else if (!strcmp(old_pattern, "GBRG"))
@@ -1831,4 +1831,19 @@ const gchar *flip_bayer_pattern(const gchar *old_pattern) {
 		return "BGGR";
 	else
 		return old_pattern;
+}
+
+const char* flip_XTrans_pattern(const char* pattern) {
+	if (!strcmp(pattern, "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG")) {
+		return "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
+	} else if (!strcmp(pattern, "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB")) {
+			return "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG";
+	} else if (!strcmp(pattern, "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG")) {
+			return "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
+	} else if (!strcmp(pattern, "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG")) {
+			return "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
+	} else {
+			siril_log_color_message(_("Unknown X-Trans filter encoding: %s Doing nothing\n"), "red", pattern);
+			return pattern;
+	}
 }

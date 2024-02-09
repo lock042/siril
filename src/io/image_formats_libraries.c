@@ -1110,8 +1110,16 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			H.h12 = (double)fit->ry;
 			reframe_astrometry_data(fit, H);
 		}
+		// Flip CFA pattern if needed
 		if (fit->bayer_pattern[0] != '\0') {
-			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
+			sensor_pattern bayer;
+			bayer = get_cfa_pattern_index_from_string(fit->bayer_pattern);
+			const gchar *pattern;
+			if (bayer <= BAYER_FILTER_MAX) {
+				pattern = flip_bayer_pattern(fit->bayer_pattern);
+			} else {
+				pattern = flip_XTrans_pattern(fit->bayer_pattern);
+			}
 			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
 		}
 		snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
@@ -2128,10 +2136,17 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	if (filters)
 		g_snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
 
-	// Flip FITS if needed
+	// Flip CFA pattern if needed
 	if (!raw->sizes.flip) {
 		if (fit->bayer_pattern[0] != '\0') {
-			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
+			sensor_pattern bayer;
+			bayer = get_cfa_pattern_index_from_string(fit->bayer_pattern);
+			const gchar *pattern;
+			if (bayer <= BAYER_FILTER_MAX) {
+				pattern = flip_bayer_pattern(fit->bayer_pattern);
+			} else {
+				pattern = flip_XTrans_pattern(fit->bayer_pattern);
+			}
 			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
 		}
 	}

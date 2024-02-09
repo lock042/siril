@@ -894,7 +894,6 @@ int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	}
 
 	/* read bottom-up */
-	// This is now handled at image load
 /*	if (!top_down && !(fit->ry % 2)) {
 		switch (*pattern) {
 		case BAYER_FILTER_RGGB:
@@ -945,7 +944,7 @@ static void adjust_XTrans_pattern(fits *fit, unsigned int xtrans[6][6]) {
 }
 
 /* convert the string-described X-Trans pattern into an int array with value corresponding to filter */
-static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6]) {
+int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6]) {
 	int i = 0;
 
 	if (strlen(bayer) != 36) {
@@ -1117,8 +1116,8 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 				top_down = FALSE;
 			}
 		}
-		if (!top_down)
-			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+//		if (!top_down)
+//			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
 	} else {
 		adjust_Bayer_pattern(fit, &pattern);
@@ -1187,8 +1186,8 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 				top_down = FALSE;
 			}
 		}
-		if (!top_down)
-			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
+//		if (!top_down)
+//			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
 		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
 	} else {
 		adjust_Bayer_pattern(fit, &pattern);
@@ -1255,6 +1254,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 
 	/* Get Bayer informations from header if available */
 	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
+
 	interpolation_method tmp_algo = com.pref.debayer.bayer_inter;
 	if (com.pref.debayer.use_bayer_header) {
 		sensor_pattern bayer;
@@ -1560,7 +1560,6 @@ static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pat
 
 	if (idx >= BAYER_FILTER_MIN && idx <= BAYER_FILTER_MAX) {
 		/* 2x2 Bayer matrix */
-		// reorient it correctly for the image
 		adjust_Bayer_pattern(fit, &idx);
 		*((unsigned int *)pattern) = compile_bayer_pattern(idx);
 		*pattern_size = 2;
@@ -1571,7 +1570,7 @@ static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pat
 		/* 6x6 X-Trans matrix */
 		unsigned int xtrans[6][6];
 		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
-		adjust_XTrans_pattern(fit, xtrans);
+//		adjust_XTrans_pattern(fit, xtrans);
 		for (int i = 0; i < 36; i++)
 			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
 		*pattern_size = 6;
