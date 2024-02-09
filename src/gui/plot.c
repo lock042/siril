@@ -45,7 +45,6 @@
 #include "registration/registration.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
-#include "algos/comparison_stars.h"
 #include "io/aavso_extended.h"
 #include "io/ser.h"
 #include "io/sequence.h"
@@ -1373,8 +1372,6 @@ void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
 	fill_combo_boxes();
 	gtk_widget_show_all(lookup_widget("aavso_dialog"));
 }
-
-
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	int i;
