@@ -1,3 +1,7 @@
+
+siril 1.2.2 xx xx, 2024
+* Removed bakground extraction samples after using it in script (#1265)
+
 siril 1.2.1 January 26, 2024
 
 * Fixed Anscombe VST noise reduction option for mono images

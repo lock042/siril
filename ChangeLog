@@ -1,3 +1,9 @@
+
+siril 1.2.2
+xx/xx/24
+
+* Removed bakground extraction samples after using it in script (#1265)
+
 siril 1.2.1
 01/26/24
 
