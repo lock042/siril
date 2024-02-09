@@ -894,7 +894,8 @@ int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	}
 
 	/* read bottom-up */
-	if (!top_down && !(fit->ry % 2)) {
+	// This is now handled at image load
+/*	if (!top_down && !(fit->ry % 2)) {
 		switch (*pattern) {
 		case BAYER_FILTER_RGGB:
 			*pattern = BAYER_FILTER_GBRG;
@@ -911,7 +912,8 @@ int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 		default:
 			return 1;
 		}
-	}
+	}*/
+
 	return 0;
 }
 

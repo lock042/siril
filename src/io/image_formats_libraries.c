@@ -1110,6 +1110,10 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			H.h12 = (double)fit->ry;
 			reframe_astrometry_data(fit, H);
 		}
+		if (fit->bayer_pattern[0] != '\0') {
+			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
+			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
+		}
 		snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 	}
 	fit->top_down = FALSE;
@@ -2123,6 +2127,14 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	fit->date_obs = g_date_time_new_from_unix_utc(raw->other.timestamp);
 	if (filters)
 		g_snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
+
+	// Flip FITS if needed
+	if (!raw->sizes.flip) {
+		if (fit->bayer_pattern[0] != '\0') {
+			const gchar *pattern = flip_bayer_pattern(fit->bayer_pattern);
+			snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
+		}
+	}
 
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
 
