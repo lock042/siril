@@ -3,21 +3,21 @@
 # This file is distributed under the same license as the siril package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-30 10:39+0100\n"
-"PO-Revision-Date: 2024-01-07 15:12+0100\n"
-"Last-Translator: \n"
-"Language-Team: \n"
+"PO-Revision-Date: 2024-02-10 20:54+0000\n"
+"Last-Translator: yurim choi <choi@stellaette.com>\n"
+"Language-Team: Korean <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/ko/>\n"
 "Language: ko_KR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Weblate 5.3.1\n"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:53 src/gui/uifiles/denoise_dialog.ui:148
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -50,7 +50,7 @@ msgstr ""
 #: src/gui/uifiles/split_cfa_dialog.ui:51 src/gui/uifiles/data_dialog.ui:64
 #: src/gui/uifiles/color_calibration.ui:114 src/gui/uifiles/aavso_dialog.ui:22
 msgid "Close"
-msgstr ""
+msgstr "닫기"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:73 src/gui/uifiles/starnet_dialog.ui:64
 #: src/gui/uifiles/dialog_star_remix.ui:146
@@ -81,7 +81,7 @@ msgstr ""
 #: src/gui/uifiles/color_calibration.ui:128
 #: src/gui/uifiles/settings_window.ui:258 src/gui/uifiles/aavso_dialog.ui:36
 msgid "Apply"
-msgstr ""
+msgstr "적용"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:89
 msgid "Apply Cosmetic Correction"
@@ -203,7 +203,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:282
 msgid "arcsec"
-msgstr ""
+msgstr "arcsec"
 
 #: src/gui/uifiles/siril.ui:393 src/gui/uifiles/siril.ui:526
 msgid "Image Information"
@@ -248,7 +248,7 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:585 src/gui/uifiles/siril.ui:947
 #: src/gui/uifiles/aberration_inspector.ui:32
 msgid "Aberration Inspector"
-msgstr ""
+msgstr "수차 검사기"
 
 #: src/gui/uifiles/siril.ui:610
 msgid "Information..."
@@ -863,7 +863,7 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:3169 src/gui/uifiles/IPS_dialog.ui:507
 #: src/gui/uifiles/StatWindow.ui:148
 msgid "Name"
-msgstr ""
+msgstr "이름"
 
 #: src/gui/uifiles/siril.ui:3185
 msgid "Size"
@@ -2173,7 +2173,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:7300
 msgid "Plot"
-msgstr ""
+msgstr "플롯"
 
 #: src/gui/uifiles/siril.ui:7353
 msgid ""
@@ -2754,7 +2754,7 @@ msgstr ""
 #: src/gui/uifiles/merge_cfa_dialog.ui:63 src/gui/uifiles/histogram_dialog.ui:156
 #: src/gui/uifiles/histogram_dialog.ui:160 src/gui/uifiles/settings_window.ui:230
 msgid "Reset"
-msgstr ""
+msgstr "초기화"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:82 src/gui/uifiles/starnet_dialog.ui:60
 #: src/gui/uifiles/wavelets_dialog.ui:111 src/gui/uifiles/asinh_dialog.ui:77
@@ -2762,7 +2762,7 @@ msgstr ""
 #: src/gui/uifiles/denoise_dialog.ui:73 src/gui/uifiles/merge_cfa_dialog.ui:49
 #: src/gui/uifiles/settings_window.ui:244
 msgid "Cancel"
-msgstr ""
+msgstr "취소"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:128
 msgid "Tiles Grid Size"
@@ -2794,12 +2794,12 @@ msgstr ""
 #: src/gui/uifiles/asinh_dialog.ui:252 src/gui/uifiles/satu_dialog.ui:280
 #: src/gui/uifiles/histogram_dialog.ui:738
 msgid "Preview"
-msgstr ""
+msgstr "미리보기"
 
 #: src/gui/uifiles/cut_dialog.ui:39 src/gui/uifiles/bdeconv_dialog.ui:662
 #: src/gui/uifiles/bdeconv_dialog.ui:1630
 msgid "Profile"
-msgstr ""
+msgstr "프로필"
 
 #: src/gui/uifiles/cut_dialog.ui:105
 msgid "<b>Type of Profile</b>"
@@ -2924,7 +2924,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_coords_dialog.ui:60
 msgid "Coordinates"
-msgstr ""
+msgstr "좌표"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:122
 #: src/gui/uifiles/cut_coords_dialog.ui:135
@@ -3286,43 +3286,44 @@ msgstr ""
 
 #: src/gui/uifiles/asinh_dialog.ui:45
 msgid "Asinh Transformation"
-msgstr ""
+msgstr "역사인 변환"
 
 #: src/gui/uifiles/asinh_dialog.ui:123
 msgid "Stretch factor"
-msgstr ""
+msgstr "스트레치 팩터"
 
 #: src/gui/uifiles/asinh_dialog.ui:160
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
-msgstr ""
+msgstr "파라미터 스트레치 팩터를 사용하면 비선형성 팩터를 조정할 수 있습니다."
 
 #: src/gui/uifiles/asinh_dialog.ui:182
 msgid "Black Point"
-msgstr ""
+msgstr "검은 점"
 
 #: src/gui/uifiles/asinh_dialog.ui:218
 msgid "Constant value that is subtracted from the image."
-msgstr ""
+msgstr "이미지에서 뺀 상수 값입니다."
 
 #: src/gui/uifiles/asinh_dialog.ui:234
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "밝기 시각적 가중치"
 
 #: src/gui/uifiles/asinh_dialog.ui:238
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
-msgstr ""
+msgstr "컬러 이미지의 경우 사람 시각적 감광 효율 가중치를 사용하여 각 픽셀에 대한 "
+"스트레치를 계산하는 데 사용되는 휘도를 계산합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/algos/background_extraction.c:1062
 msgid "Background Extraction"
-msgstr ""
+msgstr "배경 추출"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:77
 #: src/gui/uifiles/IPS_dialog.ui:126
 msgid "Close the window."
-msgstr ""
+msgstr "창 닫기."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:93
 msgid ""
@@ -3331,28 +3332,31 @@ msgid ""
 "sequence</b> button is checked, this will compute the model and apply it to "
 "the whole sequence."
 msgstr ""
+"그러면 <b>배경 계산</b>버튼이 적용된 이전의 배경 모델이 확인됩니다. 단, "
+"시퀀스의 경우 <b>시퀀스 적용</b>버튼이 체크되면 모델이 계산되어 전체 "
+"시퀀스에 적용됩니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:127
 msgid "Choose between interpolation methods."
-msgstr ""
+msgstr "인터폴레이션 방법 중 하나를 선택합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
 msgid "RBF"
-msgstr ""
+msgstr "RBF"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
-msgstr ""
+msgstr "다항식"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 msgid "Smoothing"
-msgstr ""
+msgstr "스무딩"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:174
 #: src/gui/uifiles/background_extraction_dialog.ui:311
 #: src/gui/uifiles/background_extraction_dialog.ui:338
 msgid "Number of sample per line that will be automatically placed."
-msgstr ""
+msgstr "자동으로 배치되는 라인 당 샘플 수."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:203
 msgid ""
@@ -3361,14 +3365,17 @@ msgid ""
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
+"인터폴레이션에 대한 스무딩 파라미터를 조정합니다. 스무딩 파라미터가 너무 "
+"작으면 배경에 있는 점들 간에 오버슈트와 언더슈트가 발생할 수 있고, 스무딩 "
+"파라미터가 너무 크면 기울기의 편차가 크기에 적합하지 않을 수 있습니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:219
 msgid "page 1"
-msgstr ""
+msgstr "페이지1"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:237
 msgid "Degree order: "
-msgstr ""
+msgstr "Degree order: "
 
 #: src/gui/uifiles/background_extraction_dialog.ui:249
 msgid ""
@@ -3376,10 +3383,13 @@ msgid ""
 "By default the value is of 4.\n"
 "The higher the degree order is, the more complex the gradient can be removed."
 msgstr ""
+"fit에 사용된 다항식 함수의 차수를 선택합니다.\n"
+"기본값은 4입니다.\n"
+"차수가 높을수록 그래디언트를 더 복잡하게 제거할 수 있습니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:299
 msgid "Samples per line"
-msgstr ""
+msgstr "라인 당 샘플 수"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:357
 msgid ""
@@ -4285,7 +4295,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:507 src/gui/uifiles/settings_window.ui:522
 #: src/gui/uifiles/aavso_dialog.ui:315
 msgid "0"
-msgstr ""
+msgstr "0"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:264
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:278
@@ -4542,7 +4552,7 @@ msgstr ""
 #: src/gui/uifiles/file_information_dialog.ui:96
 #: src/gui/uifiles/aavso_dialog.ui:69
 msgid "Non-square pixels can be entered but will not be used in most cases."
-msgstr ""
+msgstr "사각형이 아닌 픽셀은 입력할 수 있지만 대부분의 경우 사용되지 않습니다."
 
 #: src/gui/uifiles/file_information_dialog.ui:98
 msgid "Pixel size (micron): "
@@ -5411,15 +5421,15 @@ msgstr ""
 
 #: src/gui/uifiles/IPS_dialog.ui:106 src/gui/astrometry_solver.c:90
 msgid "Image Plate Solver"
-msgstr ""
+msgstr "이미지 플레이트솔버"
 
 #: src/gui/uifiles/IPS_dialog.ui:137 src/gui/uifiles/IPS_dialog.ui:155
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 #: src/gui/uifiles/IPS_dialog.ui:141
 msgid "Start the plate solving algorithm."
-msgstr ""
+msgstr "플레이트 솔빙 알고리즘 시작."
 
 #: src/gui/uifiles/IPS_dialog.ui:159
 msgid "Start the photometric color calibration algorithm."
@@ -5431,23 +5441,23 @@ msgstr ""
 msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close to "
 "the centre."
-msgstr ""
+msgstr "적도 좌표계 초기화. 이미지 중앙에 좌표 값을 입력합니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:315
 msgid "Right Ascension: "
-msgstr ""
+msgstr "적경: "
 
 #: src/gui/uifiles/IPS_dialog.ui:326
 msgid "Declination: "
-msgstr ""
+msgstr "적위: "
 
 #: src/gui/uifiles/IPS_dialog.ui:335
 msgid "S"
-msgstr ""
+msgstr "S"
 
 #: src/gui/uifiles/IPS_dialog.ui:339
 msgid "This button is checked for negative declination (southern hemisphere)."
-msgstr ""
+msgstr "이 버튼을 체크하면 적위가 반전 됩니다(남반구용)."
 
 #: src/gui/uifiles/IPS_dialog.ui:352
 msgid ""
@@ -5457,10 +5467,15 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From Image "
 "button below, this is probably not required."
 msgstr ""
+"이미지 중앙에 가깝게 위치한 대상의 카달로그 넘버 또는 이름을 입력합니다. 이 "
+"기능을 사용하려면 인터넷 연결이 필요합니다(기본적으로 SIMBAD 또는 오른쪽에 "
+"선택한 서버에 문의).\n"
+"아래의 이미지에서 메타 데이터 가져오기 버튼을 클릭할 때 좌표가 이미 채워진 "
+"경우 이는 필요하지 않을 수 있습니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:368
 msgid "Find"
-msgstr ""
+msgstr "찾기"
 
 #: src/gui/uifiles/IPS_dialog.ui:372
 msgid ""
@@ -5470,23 +5485,30 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From Image "
 "button below, this is probably not required."
 msgstr ""
+"명명된 개체의 좌표 검색을 시작합니다. 이 기능을 사용하려면 인터넷 연결이 "
+"필요합니다(기본적으로 SIMBAD 또는 오른쪽에 선택된 서버에 문의).\n"
+"아래의 이미지에서 메타데이터 가져오기 버튼을 클릭할 때 좌표가 이미 채워진 "
+"경우 이는 필요하지 않을 수 있습니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:387 src/gui/uifiles/IPS_dialog.ui:423
 msgid ""
 "Effective focal length of the optical system in millimeter. Even if the input "
 "value has not to be very accurate, try to give a value with an error not "
 "exceeding 20%."
-msgstr ""
+msgstr "광학계의 유효 초점거리(밀리미터 단위). 입력값이 매우 정확하지 않아도 오차가 "
+"20%를 넘지 않는 값을 주도록 합니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:405
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning."
 msgstr ""
+"픽셀 크기(마이크로미터 단위). 이미지는 정사각형 픽셀을 갖는 것으로 "
+"가정됩니다. 값은 이미 카메라 비닝에 의해 곱해진 것입니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:424
 msgid "Focal length (mm):"
-msgstr ""
+msgstr "초점거리(mm):"
 
 #: src/gui/uifiles/IPS_dialog.ui:435
 msgid "Pixel size in microns. The image is assumed to have square pixels."
@@ -5513,22 +5535,25 @@ msgid ""
 "or the others should not influence the plate-solving or the photometry data, "
 "which is based on the selected catalogue."
 msgstr ""
+"이 목록에는 여러 개의 레졸버가 표시되어 있습니다. 하지만 그것은 단지 대상 "
+"이미지 중심의 좌표를 얻는 것에 관한 것입니다. 선택한 카탈로그를 기반으로 한 "
+"플레이트솔빙 이나 측광 데이터에 영향을 주어서는 안 됩니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:496
 msgid "Resolver"
-msgstr ""
+msgstr "레졸버"
 
 #: src/gui/uifiles/IPS_dialog.ui:527
 msgid "Flip image if needed"
-msgstr ""
+msgstr "필요에 따라 이미지를 플립합니다"
 
 #: src/gui/uifiles/IPS_dialog.ui:531
 msgid "Flip image at the end of the platesolving if image is mirrored."
-msgstr ""
+msgstr "이미지가 미러링 된 경우 플레이트 솔빙이 끝난 후 이미지를 플립합니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:544
 msgid "Downsample image"
-msgstr ""
+msgstr "다운샘플이미지"
 
 #: src/gui/uifiles/IPS_dialog.ui:548
 msgid ""
@@ -5536,6 +5561,9 @@ msgid ""
 "resolve astrometry data. In consequence, downsampling data generally helps and "
 "also makes star detection run faster."
 msgstr ""
+"때때로 드리즐과 같이 오버 샘플링 된 이미지의 경우 플레이트 솔빙을 해결하는 "
+"것이 복잡합니다. 결과적으로 다운 샘플링 데이터는 일반적으로 별 탐지를 더 "
+"빠르게 실행할 수 있도록 도와줍니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:560
 msgid "Auto-crop (for wide field)"
@@ -5582,49 +5610,50 @@ msgstr ""
 
 #: src/gui/uifiles/IPS_dialog.ui:629 src/io/siril_catalogues.c:236
 msgid "SIMBAD"
-msgstr ""
+msgstr "SIMBAD"
 
 #: src/gui/uifiles/IPS_dialog.ui:643
 msgid "Server:"
-msgstr ""
+msgstr "서버:"
 
 #: src/gui/uifiles/IPS_dialog.ui:652
 msgid "Use local astrometry.net solver"
-msgstr ""
+msgstr "지역 astrometry.net 솔버 사용"
 
 #: src/gui/uifiles/IPS_dialog.ui:656
 msgid ""
 "Use the solve-field command to find the astrometric solution instead of "
 "Siril's plate solver"
-msgstr ""
+msgstr "solve-field 명령을 사용하여 Siril의 플레이트 솔버 대신 astrometric 솔루션을 "
+"찾습니다"
 
 #: src/gui/uifiles/IPS_dialog.ui:681
 msgid "Image Parameters"
-msgstr ""
+msgstr "이미지 파라미터"
 
 #: src/gui/uifiles/IPS_dialog.ui:713
 msgid "Catalogue Limit Mag: "
-msgstr ""
+msgstr "카달로그 한계등급: "
 
 #: src/gui/uifiles/IPS_dialog.ui:725
 msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, lower "
 "is the value."
-msgstr ""
+msgstr "카탈로그 쿼리에 사용되는 별의 최대 등급입니다. 필드가 넓을수록 값이 작습니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:739 src/gui/uifiles/IPS_dialog.ui:796
 msgid "Auto"
-msgstr ""
+msgstr "자동"
 
 #: src/gui/uifiles/IPS_dialog.ui:743
 msgid ""
 "The limit magnitude is automatically determined using the approximation of the "
 "Field Of View."
-msgstr ""
+msgstr "한계등급은 Field Of View의 근사치를 사용하여 자동으로 결정됩니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:759
 msgid "Online Star Catalogue: "
-msgstr ""
+msgstr "온라인 스타 카달로그: "
 
 #: src/gui/uifiles/IPS_dialog.ui:771
 msgid ""
@@ -5649,12 +5678,31 @@ msgid ""
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude "
 "to about 17th magnitude for over 37 million stars."
 msgstr ""
+"이미지를 비교하려는 사람과 온라인 카탈로그를 선택합니다.\n"
+"* TYCHO-2 카탈로그에는 은하수에서 가장 밝은 별 2,539,913개의 위치, 고유 운동 "
+"및 2색 광도 데이터가 포함되어 있습니다.\n"
+"* NOMAD는 측성 및 광학 측광을 위한 Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6 "
+"및 USNO-B 카탈로그의 데이터를 2MASS 근적외선으로 보충한 간단한 병합입니다. "
+"거의 100GB에 달하는 데이터 세트에는 약 11억 개의 별에 대한 측광 및 측광 "
+"데이터가 포함되어 있습니다.\n"
+"* Gaia Data Release 3은 2022년 6월 13일에 발표되었습니다. G = 21의 제한된 "
+"크기를 가진 약 14억 6천만 개의 소스에 대해 5개의 매개변수 천체 관측 솔루션, "
+"하늘의 위치(α, δ), 시차 및 고유 운동이 제공됩니다.\n"
+"* PPMXL은 9억 개의 별과 은하의 위치, 고유 운동, 2MASS- 및 광학 광도 측정에 "
+"대한 카탈로그입니다.\n"
+"* 밝은 별 목록(Bright Star Catalogue)은 지구에서 육안으로 볼 수 있는 대략 "
+"모든 별을 나열한 별 목록입니다. 이 목록에는 9,110개의 물체가 포함되어 "
+"있습니다.\n"
+"* APASS, AAVSO 광도계 전천 조사는 전천 광도계 조사를 수행하고 있습니다. 이 "
+"조사는 존슨 B와 V, + 슬론 u', g', r', i', z_s 및 Z의 8개 필터에서 "
+"수행됩니다. 그것은 3,700만 개 이상의 별에 대해 약 7등급에서 약 17등급까지 "
+"유효합니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:800
 msgid ""
 "The online catalogue is automatically determined using the approximation of "
 "the Field Of View and magnitude."
-msgstr ""
+msgstr "온라인 카탈로그는 시야와 밝기 등급의 근사치를 사용하여 자동으로 결정됩니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:815
 msgid ""
@@ -5682,21 +5730,24 @@ msgstr ""
 msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
-msgstr ""
+msgstr "NOMAD 카탈로그는 이 작업을 위해 인터넷 연결에 의존하지 않도록 컴퓨터 에 "
+"저장, 설치할 수 있습니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:858
 msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to not "
 "rely on an Internet connection for this operation."
 msgstr ""
+"TYCHO2, NOMAD 및 Bright Stars 카탈로그는 이 작업을 위해 인터넷 연결에 "
+"의존하지 않도록 컴퓨터에 저장, 설치할 수 있습니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:879
 msgid "Catalogue Parameters"
-msgstr ""
+msgstr "카달로그 파라미터"
 
 #: src/gui/uifiles/IPS_dialog.ui:900
 msgid "Manual detection"
-msgstr ""
+msgstr "수동 감지"
 
 #: src/gui/uifiles/IPS_dialog.ui:904
 msgid ""
@@ -5706,10 +5757,14 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
+"각 별을 수동으로 선택하려면 이 옵션을 선택하십시오. 시릴이 충분한 별을 찾지 "
+"못하는 경우에 유용할 수 있습니다. 이미지에서 가장 밝은 별을 선택하십시오.\n"
+"Dynamic PSF 도구 또는 findstar 명령을 사용하여 이미지에 맞게 설정을 "
+"조정합니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:914 src/gui/uifiles/stars_list_window.ui:871
 msgid "Star Detection"
-msgstr ""
+msgstr "별 감지"
 
 #: src/gui/uifiles/IPS_dialog.ui:940
 msgid "Automatic detection"
@@ -8323,37 +8378,37 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
-msgstr ""
+msgstr "AAVSO 파라미터"
 
 #: src/gui/uifiles/aavso_dialog.ui:71
 msgid "Obstype: "
-msgstr ""
+msgstr "관측지형태 "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
-msgstr ""
+msgstr "이전에 AAVSO에서 할당한 관측자를 위한 공식 AAVSO 관측자 코드."
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "관측지코드 "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "필터 "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
 msgid "The filter used for the observation."
-msgstr ""
+msgstr "촬영에 사용된 필터."
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
-msgstr ""
+msgstr "Cname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
-msgstr ""
+msgstr "Kname: "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
@@ -8361,22 +8416,28 @@ msgid ""
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
 msgstr ""
+"AUID(매우 선호됨) 또는 사용된 비교 스타의 차트 레이블과 같은 비교 스타 이름 "
+"또는 레이블. 존재하지 않는 경우 \"na\"를 사용합니다. 제한: 20글자."
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart label "
 "for the check star. If not present, use \"na\". Limit: 20 characters."
 msgstr ""
+"AUID(매우 선호) 또는 체크스타의 차트 레이블과 같은 스타 이름 또는 레이블을 "
+"확인하십시오. 없으면 \"na\"를 사용하십시오. 제한: 20글자."
 
 #: src/gui/uifiles/aavso_dialog.ui:229
 msgid "Starid: "
-msgstr ""
+msgstr "Starid: "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
 "The star's identifier. It can be the AAVSO Designation, the AAVSO Name, or the "
 "AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 characters."
 msgstr ""
+"별 식별자. AAVSO 지정, AAVSO 이름 또는 AAVSO 고유 식별자일 수 있지만 이들 중 "
+"하나 이상일 수 없습니다. 제한: 30 글자."
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -8384,18 +8445,21 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"데이터 파일에 있는 카메라의 종류. CCD, DSLR, PEP (Photo Electric "
+"Photometry용) 가능합니다. 없으면 CCD로 가정합니다. CMOS 카메라를 사용하는 "
+"경우 CCD로 보고해 주시기 바랍니다."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
 msgid "Comparaison star: "
-msgstr ""
+msgstr "비교성: "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
 msgid "The number of the comparison star."
-msgstr ""
+msgstr "비교성의 갯수."
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr ""
+msgstr "Cstd: "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -8407,14 +8471,20 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for the "
 "comparison."
 msgstr ""
+"변광성에 대한 등급 표준화는 다음과 같습니다.\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"여기서 Vins는 변광성 측정 등급, Cins는 측정기기의 비교 값, Cstd는 비교를 "
+"위한 밝기 차트입니다."
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr ""
+msgstr "Check star: "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
 msgid "The number of the check star."
-msgstr ""
+msgstr "check star 갯수."
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -8427,18 +8497,25 @@ msgid ""
 "a proper chart name like \"APASS DR10\". Then add information on the comp "
 "stars in the notes. Limit: 20 characters."
 msgstr ""
+"측광표 맨 위에 굵은 글씨로 인쇄된 시퀀스 ID를 사용하여 \"관측 보고서의 차트 "
+"필드에 이 시퀀스를 [ID]로 보고하십시오. 시퀀스 팀에서 시퀀스를 생성할 시간이 "
+"없을 때 시간에 민감한 경보가 발생하는 경우 등) 자신의 비교 별을 사용한 경우 "
+"VSP를 사용하여 차트를 표시했더라도 차트 ID를 지정하지 마십시오. 주석 코드 K("
+"비 AAVSO 차트)를 사용하고 \"APASS DR10\"과 같은 적절한 차트 이름을 "
+"지정하십시오. 그런 다음 주석에 컴팩트 별에 대한 정보를 추가하십시오. 제한: "
+"20글자 이내."
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "챠트: "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "노트: "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
-msgstr ""
+msgstr "카메라에 대한 의견이나 메모. 의견이 없으면 \"na\"를 사용합니다."
 
 #: src/gui/siril-shortcuts.ui:14
 msgctxt "shortcut window"
@@ -8682,7 +8759,7 @@ msgstr ""
 #: src/main-cli.c:154 src/main.c:248
 #, c-format
 msgid "Welcome to %s v%s\n"
-msgstr ""
+msgstr "%s v%s에 오신 것을 환영합니다.\n"
 
 #: src/main-cli.c:164 src/main.c:258
 #, c-format
@@ -16899,7 +16976,7 @@ msgstr ""
 #: src/gui/callbacks.c:1583
 #, c-format
 msgid "Welcome to %s"
-msgstr ""
+msgstr "%s에 오신 것을 환영합니다"
 
 #: src/gui/callbacks.c:1586
 msgid ""
@@ -18395,7 +18472,7 @@ msgstr ""
 #: src/gui/script_menu.c:223 src/gui/script_menu.c:257
 #, c-format
 msgid "Loading script: %s\n"
-msgstr ""
+msgstr "스크립트 로딩 중: %s\n"
 
 #. Print this whether verbose or not, as it is likely to be unexpected
 #: src/gui/script_menu.c:263
@@ -18500,7 +18577,8 @@ msgstr ""
 msgid ""
 "Welcome to the newest version of Siril. Please take a moment to read some tips "
 "about this release"
-msgstr ""
+msgstr "Siril 의 최신 버전에 오신 것을 환영합니다. 이 릴리스에 대한 몇 가지 팁을 "
+"읽어 보십시오"
 
 #: src/gui/siril_intro.c:35
 msgid ""
@@ -19177,7 +19255,7 @@ msgstr ""
 #: src/io/gitscripts.c:722
 #, c-format
 msgid "Error loading script contents: %s\n"
-msgstr ""
+msgstr "스크립트 내용을 로딩 하는 중 오류 발생: %s\n"
 
 #: src/io/gitscripts.c:749
 msgid "Error getting the list of unmerged changes"
