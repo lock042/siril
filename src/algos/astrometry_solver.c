@@ -1080,8 +1080,9 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 			get_catalog_stars(siril_cat);
 		}
 		ret = match_catalog(stars, nb_stars, siril_cat, args->scale, args->trans_order, &t, &ra, &dec);
-		if (!ret) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center
-			if (args->blind) {
+		if (!ret) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center if it was too far away
+			double dist = compute_coords_distance(centers[n].x, centers[n].y, ra, dec) * 60.; // distance from last fetched catalogue and solution center in arcmin
+			if (args->blind && dist > 0.3 * args->ref_stars->radius) {
 				siril_catalog_free_items(siril_cat);
 				siril_cat->center_ra = ra;
 				siril_cat->center_dec = dec;
@@ -1713,10 +1714,13 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov
+
 	if (args->ref_stars->cat_index == CAT_AUTO) {
-		if (args->ref_stars->limitmag <= 12.5)
+		if (args->ref_stars->limitmag <= 6.5) {
+			args->ref_stars->cat_index = CAT_BSC;
+		} else if (args->ref_stars->limitmag <= 12.5)
 			args->ref_stars->cat_index = CAT_TYCHO2;
-		else if (args->ref_stars->limitmag <= 17.0)
+		else if (args->ref_stars->limitmag <= 17.0 || args->used_fov > 180.) // we should probably limit the use of GAIA to smaller fov, <60 as it is very long to query
 			args->ref_stars->cat_index = CAT_NOMAD;
 		else args->ref_stars->cat_index = CAT_GAIADR3;
 	} else if (args->ref_stars->cat_index == CAT_LOCAL && args->ref_stars->limitmag > 17.0) { // TODO: not sure about this one, but otherwise, we can't solve long focals with local cats installed

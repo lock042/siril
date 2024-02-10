@@ -115,14 +115,7 @@ static siril_cat_index get_astrometry_catalog(double fov, double mag, gboolean a
 	int ret;
 
 	if (auto_cat) {
-		if (mag <= 6.5) {
-			ret = CAT_BSC;
-		} else if (fov > 180.0) { // we should probably limit the use of GAIA to smaller fov, <60 as it is very long to query
-			ret = CAT_NOMAD;
-		} else {
-			ret = CAT_GAIADR3;
-		}
-		return ret;
+		return CAT_AUTO;
 	} else {
 		GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxIPSCatalog"));
 		ret = gtk_combo_box_get_active(box);
