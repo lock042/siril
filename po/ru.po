@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:26+0100\n"
-"PO-Revision-Date: 2024-02-05 15:44+0000\n"
+"PO-Revision-Date: 2024-02-10 20:54+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -14,9 +14,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.2\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 5.3.1\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -7275,7 +7275,7 @@ msgstr "Диалог вращения"
 
 #: src/gui/uifiles/siril.ui:1872
 msgid "Horizontal Mirror"
-msgstr "Отражение по горизонтали"
+msgstr "Отразить по горизонтали"
 
 #: src/gui/uifiles/siril.ui:1886
 msgid "Vertical Mirror"
@@ -9607,7 +9607,7 @@ msgstr "Показать изображение в полный размер"
 
 #: src/gui/uifiles/siril.ui:9594
 msgid "Horizontal mirror"
-msgstr "Отражение по горизонтали"
+msgstr "Отразить по горизонтали"
 
 #: src/gui/uifiles/siril.ui:9611
 msgid "Vertical mirror"
@@ -10920,6 +10920,7 @@ msgstr "Не найдена последовательность `%s'.\n"
 #: src/algos/astrometry_solver.c:222
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr ""
+"Положение верха относительно С. неопределенно (слишком близко к Полюсу)\n"
 
 #: src/algos/astrometry_solver.c:244
 #, c-format
@@ -18702,9 +18703,8 @@ msgid "a processing is already running"
 msgstr "обработка уже запущена"
 
 #: src/core/command_line_processor.c:99
-#, fuzzy
 msgid "directory not found"
-msgstr "файл не найден"
+msgstr "директория не найдена"
 
 #: src/core/command_line_processor.c:146
 #, c-format
