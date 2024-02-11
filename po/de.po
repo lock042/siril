@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:41+0100\n"
-"PO-Revision-Date: 2024-02-09 13:47+0000\n"
+"PO-Revision-Date: 2024-02-11 20:39+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/de/>\n"
@@ -3785,15 +3785,15 @@ msgstr "Auswahl"
 
 #: src/gui/siril3.glade:14710
 msgid "Undo"
-msgstr "Zurücknehmen"
+msgstr "Undo"
 
 #: src/gui/siril3.glade:14719
 msgid "Redo"
-msgstr "Wiederherstellen"
+msgstr "Redo"
 
 #: src/gui/siril3.glade:14734
 msgid "PSF"
-msgstr "PSF"
+msgstr ""
 
 #: src/gui/siril3.glade:14741
 msgid ""
@@ -3811,7 +3811,7 @@ msgstr "PSF für die Sequenz"
 
 #: src/gui/siril3.glade:14751
 msgid "Pick a Star"
-msgstr "Stern auswählen"
+msgstr "Stern wählen"
 
 #: src/gui/siril3.glade:14760
 msgid "Search Object..."
@@ -3895,7 +3895,7 @@ msgstr "5x5 Rasterlinien"
 #: src/gui/siril3.glade:15016 src/gui/siril3.glade:18860
 #: src/gui/menu_gray_geometry.c:59
 msgid "Crop"
-msgstr "Zuschnitt"
+msgstr "Beschneiden"
 
 #: src/gui/siril3.glade:15025
 msgid "Crop Sequence..."
@@ -3908,7 +3908,7 @@ msgstr "Drehen und zuschneiden"
 
 #: src/gui/siril3.glade:15048
 msgid "RGB align"
-msgstr "RGB Ausrichtung"
+msgstr "RGB-Ausrichtung"
 
 #: src/gui/siril3.glade:15081
 msgid "Merge CFA Elements"
