@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:26+0100\n"
-"PO-Revision-Date: 2024-02-09 19:37+0000\n"
+"PO-Revision-Date: 2024-02-11 20:40+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -4422,7 +4422,7 @@ msgstr "Winkelangaben in Grad. Drehmittelpunkt entspricht der Bildmitte."
 #: src/gui/uifiles/rotation_dialog.ui:160 src/gui/uifiles/siril.ui:982
 #: src/gui/uifiles/siril.ui:993 src/gui/menu_gray_geometry.c:61
 msgid "Crop"
-msgstr "Zuschnitt"
+msgstr "Beschneiden"
 
 #: src/gui/uifiles/rotation_dialog.ui:164
 msgid "Checking this box will crop the output image."
@@ -7084,15 +7084,15 @@ msgstr "Auswahl"
 
 #: src/gui/uifiles/siril.ui:730
 msgid "Undo"
-msgstr "Zurücknehmen"
+msgstr "Undo"
 
 #: src/gui/uifiles/siril.ui:739
 msgid "Redo"
-msgstr "Wiederherstellen"
+msgstr "Redo"
 
 #: src/gui/uifiles/siril.ui:754
 msgid "PSF"
-msgstr "PSF"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:761
 msgid ""
@@ -7110,7 +7110,7 @@ msgstr "PSF für die Sequenz"
 
 #: src/gui/uifiles/siril.ui:771
 msgid "Pick a Star"
-msgstr "Stern auswählen"
+msgstr "Stern wählen"
 
 #: src/gui/uifiles/siril.ui:795
 msgid "Free aspect ratio"
@@ -7185,7 +7185,7 @@ msgstr "Zuschnitt auf gesamte Sequenz anwenden..."
 
 #: src/gui/uifiles/siril.ui:1022
 msgid "ROI"
-msgstr "ROI"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:1033
 msgid "Set ROI to selection"
@@ -7197,7 +7197,7 @@ msgstr "ROI zurücksetzen"
 
 #: src/gui/uifiles/siril.ui:1058
 msgid "RGB align"
-msgstr "RGB Ausrichtung"
+msgstr "RGB-Ausrichtung"
 
 #: src/gui/uifiles/siril.ui:1100
 msgid ""
