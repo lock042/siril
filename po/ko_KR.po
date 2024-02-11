@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-30 10:39+0100\n"
-"PO-Revision-Date: 2024-02-10 20:54+0000\n"
+"PO-Revision-Date: 2024-02-11 20:40+0000\n"
 "Last-Translator: yurim choi <choi@stellaette.com>\n"
 "Language-Team: Korean <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ko/>\n"
@@ -149,7 +149,7 @@ msgstr ""
 #: src/gui/uifiles/histogram_dialog.ui:686
 #: src/gui/uifiles/split_cfa_dialog.ui:127
 msgid "Apply to sequence"
-msgstr ""
+msgstr "시퀀스에 적용"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:333
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:263
@@ -159,7 +159,8 @@ msgstr ""
 msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
-msgstr ""
+msgstr "시퀀스가 로드되고 이것이 활성화되면 로드된 이미지만 처리하는 대신 시퀀스의 "
+"모든 이미지에 대해 처리를 수행합니다."
 
 #: src/gui/uifiles/cosmetic_dialog.ui:347 src/gui/uifiles/siril.ui:4814
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:278
@@ -167,7 +168,7 @@ msgstr ""
 #: src/gui/uifiles/crop_dialog.ui:117 src/gui/uifiles/histogram_dialog.ui:705
 #: src/gui/uifiles/split_cfa_dialog.ui:118
 msgid "Output prefix:"
-msgstr ""
+msgstr "출력 접두사:"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:359
 msgid "Prefix of the image names resulting from the cosmetic correction process."
@@ -902,7 +903,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:3900
 #: src/gui/uifiles/settings_window.ui:5377
 msgid "Clear"
-msgstr ""
+msgstr "지우기"
 
 #: src/gui/uifiles/siril.ui:3325
 msgid ""
@@ -3039,7 +3040,7 @@ msgstr ""
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
 msgid "ROI Preview"
-msgstr ""
+msgstr "ROI 미리보기"
 
 #: src/gui/uifiles/Median_dialog.ui:84
 msgid ""
@@ -3397,10 +3398,13 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"낮은 동적 배경 그라데이션에서 임의의 노이즈를 추가하여 밴딩을 생성하지 "
+"않도록 합니다.\n"
+"이것은 스트레치 되지 않은 이미지에 대해 활성화되어야 합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:360
 msgid "Grid tolerance"
-msgstr ""
+msgstr "그리드 공차"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:372
 msgid ""
@@ -3408,10 +3412,12 @@ msgid ""
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
 msgstr ""
+"전역 표본 거부의 허용 오차 계수(mad 단위)(median + this *mad). 이 값을 "
+"줄임으로써 Siril은 배경 표본을 선택하는 데 더 제한적입니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:389
 msgid "Keep all samples"
-msgstr ""
+msgstr "모든 샘플 보관"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:393
 msgid ""
@@ -3419,16 +3425,20 @@ msgid ""
 "gradients if tolerance 6 is insufficient: you will need to remove samples from "
 "astronomical objects manually."
 msgstr ""
+"공차를 무시하고 모든 샘플을 보관합니다. 공차 6이 충분하지 않은 경우 극단적인 "
+"기울기의 경우 유용할 수 있습니다. 필요할 경우 천체 대상에서 샘플을 수동으로 "
+"제거해야 합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:414
 msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
-msgstr ""
+msgstr "전역 표본 거부 허용 오차(시그마 단위). 이 값을 줄임으로써 Siril은 배경 "
+"표본을 선택하는 데 더 제한적입니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:429
 msgid "Add dither"
-msgstr ""
+msgstr "디더 추가"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:433
 msgid ""
@@ -3437,28 +3447,33 @@ msgid ""
 "quantization error, preventing large-scale patterns such as color banding in "
 "images."
 msgstr ""
+"배경 추출 후 컬러 밴딩이 생성되면 이 옵션을 누릅니다.\n"
+"디더는 의도적으로 양자화 오류를 무작위화하는 데 사용되는 노이즈의 형태로, "
+"이미지에서 컬러 밴딩과 같은 대규모 패턴을 방지합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:450
 msgid "Generate"
-msgstr ""
+msgstr "생성"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:454
 msgid "Click here to generate the automatically defined samples."
-msgstr ""
+msgstr "자동으로 정의된 샘플을 생성하려면 여기를 클릭합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:474
 msgid "Click here to clear all the samples."
-msgstr ""
+msgstr "여기를 클릭하면 모든 샘플이 지워집니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:497
 msgid ""
 "You also can set samples manually.\n"
 "Left click adds samples while right click removes them."
 msgstr ""
+"수동으로 샘플을 설정할 수도 있습니다.\n"
+"왼쪽 클릭은 샘플을 추가하고 오른쪽 클릭은 샘플을 제거합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:512
 msgid "Interpolation Method"
-msgstr ""
+msgstr "인터폴레이션 방법"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:534
 msgid ""
@@ -3469,22 +3484,28 @@ msgid ""
 "vignetting or differential atmospheric absorption for example. However, this "
 "kind of operation should be done by master-flat correction."
 msgstr ""
+"적용할 수정 유형을 선택합니다:\n"
+"뺄셈: 빛 공해 또는 달에 의한 기울기와 같은 부가 효과를 수정하는 데 주로 "
+"사용됩니다.\n"
+"나눗셈: 비네팅이나 차동 대기 흡수와 같은 곱셈 현상을 보정하는 데 주로 "
+"사용됩니다. 그러나 이러한 종류의 작업은 마스터-플랫 보정에 의해 수행되어야 "
+"합니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:541
 msgid "Subtraction"
-msgstr ""
+msgstr "빼기"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:542
 msgid "Division"
-msgstr ""
+msgstr "나누기"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:550
 msgid "Correction"
-msgstr ""
+msgstr "보정"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:565
 msgid "Compute Background"
-msgstr ""
+msgstr "배경계산"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:569
 msgid ""
@@ -3492,19 +3513,22 @@ msgid ""
 "correction. The model is always computed from the original image kept in "
 "memory allowing the user to work iteratively."
 msgstr ""
+"이렇게 하면 합성 배경이 계산되고 선택한 보정이 적용됩니다. 모델은 항상 "
+"메모리에 저장된 원본 이미지에서 계산되어 사용자가 반복적으로 작업할 수 "
+"있습니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:583
 msgid "Show original image"
-msgstr ""
+msgstr "원본 이미지 보기"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:588
 msgid "Keep pressing this button to see the original image."
-msgstr ""
+msgstr "원래 이미지를 보려면 이 버튼을 계속 누릅니다."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:635
 msgid ""
 "Prefix of the image names resulting from the background extraction process."
-msgstr ""
+msgstr "배경 추출 프로세스의 결과 이미지 이름 접두사입니다."
 
 #: src/gui/uifiles/savepopup.ui:118
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -3699,24 +3723,24 @@ msgstr ""
 #: src/gui/uifiles/bdeconv_dialog.ui:249 src/gui/newdeconv.c:1199
 #: src/gui/newdeconv.c:1601
 msgid "Deconvolution"
-msgstr ""
+msgstr "디컨벌루션"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:288 src/gui/uifiles/bdeconv_dialog.ui:306
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
-msgstr ""
+msgstr "커널을 생성하여 현재 이미지 또는 시퀀스의 디콘볼루션에 사용합니다"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:369
 msgid "Blind deconvolution"
-msgstr ""
+msgstr "디컨벌루션 숨기기"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:373
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "이미지로 부터 PSF를 추정합니다"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:386
 msgid "PSF from stars"
-msgstr ""
+msgstr "별로부터 PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:390
 msgid ""
@@ -3724,32 +3748,36 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"확인된 별들의 평균 PSF 매개변수를 기반으로 PSF를 모델링합니다. 만약 별들이 "
+"감지되지 않았다면, 이미지에서 피크 밝기의 적절한 범위 내에서 별들을 "
+"감지하려고 시도할 것입니다."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:403
 msgid "Manual PSF"
-msgstr ""
+msgstr "수동 PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:407
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "선택한 파라미터를 기반으로 수동으로 정의된 PSF를 사용합니다."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:422
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
-msgstr ""
+msgstr "사용할 블라인드 PSF 추정 방법을 선택합니다. ℓ0 하강이 기본이고 일반적으로 "
+"최선의 옵션입니다."
 
 #: src/gui/uifiles/bdeconv_dialog.ui:425
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "스펙트럼 불규칙성"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:426
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 하강"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:437
 msgid "Previous PSF"
-msgstr ""
+msgstr "이전 PSF"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:441
 msgid "Reuse the previously calculated PSF."
@@ -5512,21 +5540,23 @@ msgstr "초점거리(mm):"
 
 #: src/gui/uifiles/IPS_dialog.ui:435
 msgid "Pixel size in microns. The image is assumed to have square pixels."
-msgstr ""
+msgstr "픽셀 크기(마이크로미터 단위). 이미지는 정사각형 픽셀을 갖는 것으로 "
+"가정됩니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:436
 msgid "Pixel size (µm):"
-msgstr ""
+msgstr "픽셀 크기 (µm):"
 
 #: src/gui/uifiles/IPS_dialog.ui:447 src/gui/uifiles/IPS_dialog.ui:462
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
-msgstr ""
+msgstr "초점 및 픽셀 크기 값에서 자동으로 결정되는 이미지 스케일 단위는 픽셀 당 아크 "
+"초입니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:450
 msgid "Resolution: "
-msgstr ""
+msgstr "해상도: "
 
 #: src/gui/uifiles/IPS_dialog.ui:487
 msgid ""
@@ -5535,9 +5565,9 @@ msgid ""
 "or the others should not influence the plate-solving or the photometry data, "
 "which is based on the selected catalogue."
 msgstr ""
-"이 목록에는 여러 개의 레졸버가 표시되어 있습니다. 하지만 그것은 단지 대상 "
-"이미지 중심의 좌표를 얻는 것에 관한 것입니다. 선택한 카탈로그를 기반으로 한 "
-"플레이트솔빙 이나 측광 데이터에 영향을 주어서는 안 됩니다."
+"좌표이 목록에는 여러 개의 레졸버가 표시되어 있습니다. 하지만 그것은 단지 "
+"대상 이미지 중심의 좌표를 얻는 것에 관한 것입니다. 선택한 카탈로그를 "
+"기반으로 한 플레이트솔빙 이나 측광 데이터에 영향을 주어서는 안 됩니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:496
 msgid "Resolver"
@@ -5567,13 +5597,13 @@ msgstr ""
 
 #: src/gui/uifiles/IPS_dialog.ui:560
 msgid "Auto-crop (for wide field)"
-msgstr ""
+msgstr "자동-크롭(와이드필드의 경우)"
 
 #: src/gui/uifiles/IPS_dialog.ui:564
 msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
-msgstr ""
+msgstr "필드가 너무 넓고 5도보다 큰 경우에만 이미지 중앙(또는 선택)을 사용합니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:577
 msgid "Force plate solving"
@@ -5587,26 +5617,27 @@ msgstr ""
 
 #: src/gui/uifiles/IPS_dialog.ui:592
 msgid "Get Metadata From Image"
-msgstr ""
+msgstr "이미지에서 메타데이터 가져오기"
 
 #: src/gui/uifiles/IPS_dialog.ui:596
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
-msgstr ""
+msgstr "이 버튼을 클릭하면 초점 거리, 픽셀 크기 및 RA/Dec 포인팅 좌표가 있는 경우 "
+"파일 헤더에서 얻을 수 있습니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:624
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
-msgstr ""
+msgstr "입력한 대상 이름의 좌표를 검색하는 서버를 선택합니다."
 
 #: src/gui/uifiles/IPS_dialog.ui:627
 msgid "CDS"
-msgstr ""
+msgstr "CDS"
 
 #: src/gui/uifiles/IPS_dialog.ui:628
 msgid "VizieR"
-msgstr ""
+msgstr "VizieR"
 
 #: src/gui/uifiles/IPS_dialog.ui:629 src/io/siril_catalogues.c:236
 msgid "SIMBAD"
