@@ -4595,12 +4595,12 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                     </child>
                                                     <child>
                                                       <object class="GtkCheckButton" id="checkDarkOptimize">
-                                                        <property name="label" translatable="yes">Optimization</property>
+                                                        <property name="label" translatable="yes">Dark Optimization</property>
                                                         <property name="visible">True</property>
                                                         <property name="sensitive">False</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Dark subtraction can be optionally optimized so that the noise of the resulting picture (light frame minus dark frame) is minimized by applying a coefficient to the dark frame. This option is useful when dark frames have not been taken in optimal conditions.
+                                                        <property name="tooltip-text" translatable="yes">Dark subtraction can be optionally optimized so that the noise of the resulting picture (light frame minus dark frame) is minimized by applying a coefficient to the dark frame. This option is useful when dark frames have not been taken in optimal conditions. This can compensate for differences in temperature and / or exposure time between the darks and the lights.
 
 WARNING: Do not apply dark optimization on master-dark if master-bias has not been subtracted previously.</property>
                                                         <property name="halign">start</property>

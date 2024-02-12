@@ -797,9 +797,11 @@ static gpointer extract_channels_ushort(gpointer p) {
 	cmsUInt32Number datasize;
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
-	gchar *desc = siril_color_profile_get_description(args->fit->icc_profile);
-	if(args->fit->icc_profile)
+	gchar *desc = NULL;
+	if(args->fit->icc_profile) {
+		desc = siril_color_profile_get_description(args->fit->icc_profile);
 		cmsCloseProfile(args->fit->icc_profile);
+	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
 		* with similar data and an appropriate color profile is assigned.

@@ -189,7 +189,6 @@ void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean
 	static const gchar *wcs_processing_actions[] = {
 		"annotate-object",
 		"wcs-grid",
-		"nina_light_curve",
 		"compstars",
 		NULL,
 	};

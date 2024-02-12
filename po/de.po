@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:26+0100\n"
-"PO-Revision-Date: 2023-10-31 09:31+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"PO-Revision-Date: 2024-02-11 20:40+0000\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.3.1\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -540,7 +540,6 @@ msgstr ""
 "anstelle des Siril-Plate-Solvers"
 
 #: src/gui/uifiles/astrometry_dialog.ui:622
-#, fuzzy
 msgid ""
 "Select the order of the solution:\n"
 "Linear assumes no distortion is present in the image\n"
@@ -2090,6 +2089,11 @@ msgid ""
 "networked users, and manual offers basic background neutralisation and "
 "manual white balance and may be useful for planetary or lunar images."
 msgstr ""
+"Wählen Sie die Farbkalibrierungsmethode. Spektrophotometrisch ist die "
+"genaueste, erfordert aber eine Internetverbindung. Photometrisch ist das "
+"zweitbeste Verfahren für Benutzer ohne Netzwerkverbindung und Manuell bietet "
+"eine Basis-Hintergrundneutralisation und einen manuellen Weißabgleich, "
+"hilfreich für Planeten- oder Mondbilder."
 
 #: src/gui/uifiles/composition_dialog.ui:408
 #: src/gui/uifiles/settings_window.ui:3541
@@ -2097,14 +2101,12 @@ msgid "Manual"
 msgstr "Manuell"
 
 #: src/gui/uifiles/composition_dialog.ui:409
-#, fuzzy
 msgid "Photometric"
-msgstr "photometrisch"
+msgstr "Photometrisch"
 
 #: src/gui/uifiles/composition_dialog.ui:410
-#, fuzzy
 msgid "Spectrophotometric"
-msgstr "photometrisch"
+msgstr "Spektrophotometrisch"
 
 #: src/gui/uifiles/composition_dialog.ui:451
 msgid "Use this alignment method:"
@@ -3630,6 +3632,8 @@ msgid ""
 "Plot the current ICC profile in a 1931 chromatcity diagram, alongside sRGB "
 "for reference"
 msgstr ""
+"Stellt das aktuelle ICC-Farbprofil in einem 1931-chromatischen Diagramm dar, "
+"zusammen mit sRGB als Referenz"
 
 #: src/gui/uifiles/icc_dialog.ui:80
 msgid "Export"
@@ -3721,7 +3725,7 @@ msgstr "Nichts ausgewählt"
 
 #: src/gui/uifiles/icc_dialog.ui:375
 msgid "sRGB (linear TRC)"
-msgstr ""
+msgstr "sRGB (lineare TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:376
 msgid "sRGB (standard sRGB TRC)"
@@ -3729,7 +3733,7 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Rec2020 (linear TRC)"
-msgstr ""
+msgstr "Rec2020 (lineare TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:378
 msgid "Rec2020 (standard Rec709 TRC)"
@@ -4418,7 +4422,7 @@ msgstr "Winkelangaben in Grad. Drehmittelpunkt entspricht der Bildmitte."
 #: src/gui/uifiles/rotation_dialog.ui:160 src/gui/uifiles/siril.ui:982
 #: src/gui/uifiles/siril.ui:993 src/gui/menu_gray_geometry.c:61
 msgid "Crop"
-msgstr "Zuschnitt"
+msgstr "Beschneiden"
 
 #: src/gui/uifiles/rotation_dialog.ui:164
 msgid "Checking this box will crop the output image."
@@ -5846,11 +5850,11 @@ msgstr "Kamera"
 
 #: src/gui/uifiles/settings_window.ui:2837
 msgid "siril-spcc-database repository:"
-msgstr ""
+msgstr "Repository der Sirl SPCC-Datenbank:"
 
 #: src/gui/uifiles/settings_window.ui:2846
 msgid "Enable repository"
-msgstr ""
+msgstr "Repository aktivieren"
 
 #: src/gui/uifiles/settings_window.ui:2850
 msgid ""
@@ -5860,42 +5864,44 @@ msgid ""
 "the repository, you will need to download the .json files manually and "
 "unpack them into the repository path shown below in order to use SPCC."
 msgstr ""
+"Aktiviert das Git-Repository. Dieses stellt die für die Verwendung von SPCC "
+"erforderlichen Filter- und Sensordaten bereit.\n"
+"Es wird dringend empfohlen, dies aktiviert zu lassen. Wenn Sie das "
+"Repository nicht verwenden möchten, müssen Sie die .json-Dateien manuell "
+"herunterladen und in den unten angegebenen Repository-Pfad entpacken, um "
+"SPCC verwenden zu können."
 
 #: src/gui/uifiles/settings_window.ui:2866
-#, fuzzy
 msgid "Repository path:"
-msgstr "Repositoryfehler"
+msgstr "Pfad des Repositories:"
 
 #: src/gui/uifiles/settings_window.ui:2877
 msgid ""
 "If you disable the repository, any SPCC data json files you need must be "
 "placed in this directory."
 msgstr ""
+"Wenn Sie das Repository deaktivieren, müssen alle SPCC json-Dateien, die Sie "
+"benötigen, in diesem Verzeichnis abgelegt werden."
 
 #: src/gui/uifiles/settings_window.ui:2889
-#, fuzzy
 msgid "Sync at startup"
-msgstr "Beim Programmstart nach Updates suchen"
+msgstr "Beim Programmstart synchronisieren"
 
 #: src/gui/uifiles/settings_window.ui:2893
-#, fuzzy
 msgid "Synchronise the repository at Siril startup."
-msgstr "Das Repository automatisch beim Start aktualisieren."
+msgstr "Das Repository automatisch beim Start synchronisieren."
 
 #: src/gui/uifiles/settings_window.ui:2905
-#, fuzzy
 msgid "Manual sync"
-msgstr "Manuell"
+msgstr "Manuelle Synchronisation"
 
 #: src/gui/uifiles/settings_window.ui:2909
-#, fuzzy
 msgid "Manually synchronise the repository"
-msgstr "Automatische Synchronisierung des Online-Skript-Repositories"
+msgstr "Manuelle Synchronisierung des Repositories"
 
 #: src/gui/uifiles/settings_window.ui:2933
-#, fuzzy
 msgid "Spectrophotometric Calibration"
-msgstr "Photometrische Farb-Kalibrierung"
+msgstr "Spektrophotometrische Farbkalibrierung"
 
 #: src/gui/uifiles/settings_window.ui:2963
 #: src/gui/uifiles/settings_window.ui:3074
@@ -6492,17 +6498,16 @@ msgstr "Automatische Konvertierungs-/Zuweisungsoptionen"
 
 #: src/gui/uifiles/settings_window.ui:4495
 #: src/gui/uifiles/settings_window.ui:4526
-#, fuzzy
 msgid "Color Matching Functions"
-msgstr "Farbsättigung"
+msgstr "Funktionen zur Farbanpassung"
 
 #: src/gui/uifiles/settings_window.ui:4508
 msgid "CIE 1931 2 degree standard observer"
-msgstr ""
+msgstr "CIE 1931 2 Grad Standardbeobachter"
 
 #: src/gui/uifiles/settings_window.ui:4509
 msgid "CIE 1964 10 degree supplementary standard observer"
-msgstr ""
+msgstr "CIE 1964 10 Grad Zusatz-Standardbeobachter"
 
 #: src/gui/uifiles/settings_window.ui:4552
 msgid "Export built-in profiles"
@@ -7079,15 +7084,15 @@ msgstr "Auswahl"
 
 #: src/gui/uifiles/siril.ui:730
 msgid "Undo"
-msgstr "Zurücknehmen"
+msgstr "Undo"
 
 #: src/gui/uifiles/siril.ui:739
 msgid "Redo"
-msgstr "Wiederherstellen"
+msgstr "Redo"
 
 #: src/gui/uifiles/siril.ui:754
 msgid "PSF"
-msgstr "PSF"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:761
 msgid ""
@@ -7105,7 +7110,7 @@ msgstr "PSF für die Sequenz"
 
 #: src/gui/uifiles/siril.ui:771
 msgid "Pick a Star"
-msgstr "Stern auswählen"
+msgstr "Stern wählen"
 
 #: src/gui/uifiles/siril.ui:795
 msgid "Free aspect ratio"
@@ -7180,7 +7185,7 @@ msgstr "Zuschnitt auf gesamte Sequenz anwenden..."
 
 #: src/gui/uifiles/siril.ui:1022
 msgid "ROI"
-msgstr "ROI"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:1033
 msgid "Set ROI to selection"
@@ -7192,7 +7197,7 @@ msgstr "ROI zurücksetzen"
 
 #: src/gui/uifiles/siril.ui:1058
 msgid "RGB align"
-msgstr "RGB Ausrichtung"
+msgstr "RGB-Ausrichtung"
 
 #: src/gui/uifiles/siril.ui:1100
 msgid ""
@@ -7470,29 +7475,32 @@ msgid "Color Calibration..."
 msgstr "Farbkalibrierung..."
 
 #: src/gui/uifiles/siril.ui:1751
-#, fuzzy
 msgid ""
 "Open the photometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "Photometrischen Farb-Kalibrierungsdialog öffnen"
+msgstr ""
+"Photometrischen Farb-Kalibrierungsdialog öffnen.\n"
+"\n"
+"<b>WARNUNG: Das Bild muss vorher astrometrisch gelöst werden.</b>"
 
 #: src/gui/uifiles/siril.ui:1755
 msgid "Photometric Color Calibration..."
 msgstr "Photometrische Farbkalibrierung..."
 
 #: src/gui/uifiles/siril.ui:1768
-#, fuzzy
 msgid ""
 "Open the spectrophotometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "Photometrischen Farb-Kalibrierungsdialog öffnen"
+msgstr ""
+"Spektrophotometrischen Farb-Kalibrierungsdialog öffnen.\n"
+"\n"
+"<b>WARNUNG: Das Bild muss vorher astrometrisch gelöst werden.</b>"
 
 #: src/gui/uifiles/siril.ui:1772
-#, fuzzy
 msgid "Spectrophotometric Color Calibration..."
-msgstr "Photometrische Farbkalibrierung..."
+msgstr "Spektrophotometrische Farbkalibrierung..."
 
 #: src/gui/uifiles/siril.ui:1815
 msgid "Rotate  image 90 degrees, clockwise"
@@ -9958,25 +9966,24 @@ msgid ""
 "Plot the data (QE, transmittance or relative photon count) as a function of "
 "wavelength"
 msgstr ""
+"Anzeigen der Daten (QE, Transmissionsgrad oder relative Photonenzahl) als "
+"Funktion der Wellenlänge"
 
 #: src/gui/uifiles/spcc_details.ui:153
-#, fuzzy
 msgid "Data Source"
-msgstr "Quelle"
+msgstr "Datenquelle"
 
 #: src/gui/uifiles/spcc_details.ui:166
-#, fuzzy
 msgid "Datafile version"
-msgstr "Farbprofilkonvertierung"
+msgstr "Version der Datendatei"
 
 #: src/gui/uifiles/spcc_details.ui:194
-#, fuzzy
 msgid "Number of samples"
-msgstr "Anzahl Sterne"
+msgstr "Anzahl der Proben"
 
 #: src/gui/uifiles/spcc_details.ui:222
 msgid "Comment"
-msgstr ""
+msgstr "Kommentar"
 
 #: src/gui/uifiles/spcc_details.ui:253
 msgid "SPCC Details"
@@ -9987,63 +9994,58 @@ msgid "Start the photometric color calibration algorithm."
 msgstr "Starte Photometrische Farb-Kalibrierung."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:179
-#, fuzzy
 msgid "White Point Reference:"
-msgstr "Weiß-Referenz:\n"
+msgstr "Weißpunkt-Referenz:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:191
 msgid "Mono Sensor:"
-msgstr ""
+msgstr "Mono-Sensor:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:203
 msgid "OSC Sensor:"
-msgstr ""
+msgstr "Farbsensor (OSC):"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:215
-#, fuzzy
 msgid "Red Filter:"
-msgstr "Median Filter"
+msgstr "Rotfilter:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:227
-#, fuzzy
 msgid "Green Filter:"
-msgstr "Median Filter"
+msgstr "Grünfilter:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:239
-#, fuzzy
 msgid "OSC Filter:"
-msgstr "Filter: "
+msgstr "Farbfilter (OSC):"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:251
-#, fuzzy
 msgid "Blue Filter:"
-msgstr "Filter: "
+msgstr "Blaufilter:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:262
-#, fuzzy
 msgid "Select an OSC sensor"
-msgstr "Phase auswählen"
+msgstr "Wählen Sie einen Farb(OSC)-Sensor"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:275
-#, fuzzy
 msgid "Select a mono sensor"
-msgstr "Phase auswählen"
+msgstr "Wählen Sie einen Mono-Sensor"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:288
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
 msgstr ""
+"Wählen Sie einen Farb(OSC)-Filter (z.B. einen Breitband-"
+"Lichtverschmutzungsfilter)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:301
 msgid "Select a red filter used with composited mono images"
-msgstr ""
+msgstr "Wählen Sie einen Rotfilter für die Komposition von Mono-Bildern"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:314
 msgid "Select a green filter used with composited mono images"
-msgstr ""
+msgstr "Wählen Sie einen Grünfilter für die Komposition von Mono-Bildern"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:327
 msgid "Select a blue filter used with composited mono images"
-msgstr ""
+msgstr "Wählen Sie einen Blaufilter für die Komposition von Mono-Bildern"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:338 src/gui/uifiles/s_pcc_dialog.ui:352
 #: src/gui/uifiles/s_pcc_dialog.ui:366 src/gui/uifiles/s_pcc_dialog.ui:380
@@ -10053,43 +10055,36 @@ msgid "Details"
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:342
-#, fuzzy
 msgid "Show details of the selected OSC sensor"
-msgstr "Index der gewählten Methode"
+msgstr "Anzeige der Details des gewählten Farb(OSC)-Sensors"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:356
-#, fuzzy
 msgid "Show details of the selected mono sensor"
-msgstr "Index der gewählten Methode"
+msgstr "Anzeige der Details des gewählten Mono-Sensors"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:370
-#, fuzzy
 msgid "Show details of the selected OSC filter"
-msgstr "Index des ausgewählten Themas"
+msgstr "Anzeige der Details des gewählten Farb(OSC)-Sensors"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:384
-#, fuzzy
 msgid "Show details of the selected red filter"
-msgstr "Index des ausgewählten Themas"
+msgstr "Anzeige der Details des gewählten Rotfilters"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:398
-#, fuzzy
 msgid "Show details of the selected green filter"
-msgstr "Index des ausgewählten Themas"
+msgstr "Anzeige der Details des gewählten Grünfilters"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:412
-#, fuzzy
 msgid "Show details of the selected blue filter"
-msgstr "Index des ausgewählten Themas"
+msgstr "Anzeige der Details des gewählten Blaufilters"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:425
 msgid "DSLR Low Pass Filter:"
-msgstr ""
+msgstr "DSLR Low-Pass-Filter/LPF:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:438
-#, fuzzy
 msgid "Show details of the selected LPF"
-msgstr "Index des ausgewählten Themas"
+msgstr "Anzeige der Details des gewählten LPF"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:450
 msgid ""
@@ -10098,27 +10093,31 @@ msgid ""
 "model). For modified DSLRs, select the replacement LPF (if there isn't an "
 "exact match the Baader BCF is probably close)."
 msgstr ""
+"Bei nicht modifizierten DSLRs wählen Sie den LPF, der Ihrem Modell am "
+"ehesten entspricht (viele Canon LPFs sind fast identisch, so dass es "
+"möglicherweise keine exakte Übereinstimmung für Ihr Modell gibt). Für "
+"modifizierte DSLRs wählen Sie den montierten Ersatz-LPF (wenn es keine "
+"exakte Übereinstimmung gibt, ist der Baader BCF wahrscheinlich nahe dran)."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:463
-#, fuzzy
 msgid "Select white balance reference"
-msgstr "Einstellungen zurücksetzen"
+msgstr "Referenz Weißabgleich wählen"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:472
-#, fuzzy
 msgid "Plot all"
-msgstr "Title der Grafik"
+msgstr "Alles zeichnen"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:476
 msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
 msgstr ""
+"Zeichnet die Sensor-QE, die Filterkurven und der relativen Photonenzahl der "
+"Weißreferenz als Funktion der Wellenlänge"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:490
-#, fuzzy
 msgid "Show details of the selected white reference"
-msgstr "Index des ausgewählten Themas"
+msgstr "Anzeige der Details der gewählten Weißreferenz"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:510
 msgid "Blue:"
@@ -10138,73 +10137,76 @@ msgid ""
 "Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - "
 "486.1 nm"
 msgstr ""
+"Nenn-Durchlassbreite in nm\n"
+"Typische Wellenlängen: S II - 672 nm, Ha - 656,46 nm, O III - 500 nm, Hb - "
+"486,1 nm"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:558
 msgid "Filter bandwidth in nm"
-msgstr ""
+msgstr "Durchlassbreite des Filters in nm"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:559
 msgid "Bandwidth"
-msgstr ""
+msgstr "Durchlassweite"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:570
 msgid "Enter the nominal wavelength of the red channel narrowband filter"
-msgstr ""
+msgstr "Geben Sie die Nenn-Durchlassbreite des Rotfilters an"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:586
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
-msgstr ""
+msgstr "Geben Sie die Nenn-Durchlassbreite des Blaufilters an"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:602
 msgid "Enter the nominal wavelength of the green channel narrowband filter"
-msgstr ""
+msgstr "Geben Sie die Nenn-Durchlassbreite des Grünfilters an"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:618
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
-msgstr ""
+msgstr "Geben Sie die Nenn-Durchlassbreite des Schmalband-Rotfilters an"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:634
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
-msgstr ""
+msgstr "Geben Sie die Nenn-Durchlassbreite des Schmalband-Grünfilters an"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:650
 msgid "Enter the nominal bandwidth of the blue channel narrowband filter"
-msgstr ""
+msgstr "Geben Sie die Nenn-Durchlassbreite des Schmalband-Blaufilters an"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:674
-#, fuzzy
 msgid "Plot fits"
-msgstr "Title der Grafik"
+msgstr "SPCC-Anpassungen zeichnen"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:678
 msgid "Plot SPCC linear fits for catalog to image R/G and B/G ratios"
-msgstr ""
+msgstr "Lineare SPCC-Anpassungen für die R/G und B/G-Verhältnisse im Bild"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:693
 msgid "Sensor Type:"
-msgstr ""
+msgstr "Sensortyp:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:723 src/gui/photometric_cc.c:546
 msgid "mono"
-msgstr ""
+msgstr "Mono"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:740
 msgid "Narrowband mode"
-msgstr ""
+msgstr "Schmalband-Modus"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:744
 msgid ""
 "Set narrowband mode. This is suitable for composited narrowband images such "
 "as HOO as well as for OSC images taken with dual narrowband filters etc."
 msgstr ""
+"Schmalbandmodus aktivieren. Dies eignet sich für zusammengesetzte "
+"Schmalbandbilder wie HOO sowie für OSC-Aufnahmen die mit einem Dual-"
+"Schmalbandfilter etc. aufgenommen wurden."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:760
-#, fuzzy
 msgid "SPCC Parameters"
-msgstr "Bildparameter"
+msgstr "SPCC-Parameter"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:838
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -10232,16 +10234,20 @@ msgstr ""
 "* APASS, die AAVSO Photometric All Sky Survey, führt eine photometrische "
 "Himmelüberwachung durch. Die Überwachung wird mit acht Filtern durchgeführt: "
 "Johnson B und V, plus Sloan u’, g′, r′, i′, z_s und Z. Die Daten sind "
-"zuverlässig von etwa 7. bis 17. Größenordnung für über 37 Millionen Sterne."
+"zuverlässig von etwa 7. bis 17. Größenordnung für über 37 Millionen Sterne.\n"
+"* Gaia Data Release 3 wurde am 13. Juni 2022 veröffentlicht. Er enthält "
+"Photometriedaten für etwa 1,46 Milliarden Quellen, mit einer Grenzgröße von "
+"G = 21. Es werden andere Filter als bei Johnson B und V verwendet, aber er "
+"liefert Messungen der effektiven Temperatur der Quelle auf der Grundlage des "
+"Spektrums der Quelle, und Siril verwendet diesen \"Teff\"-Wert für PCC."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:845 src/io/siril_catalogues.c:244
 msgid "APASS"
 msgstr "APASS"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:846
-#, fuzzy
 msgid "GAIA DR3"
-msgstr "Gaia EDR3"
+msgstr "Gaia DR3"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:860
 msgid "Photometric Star Catalogue: "
@@ -10249,16 +10255,18 @@ msgstr "Photometrischer Sternkatalog "
 
 #: src/gui/uifiles/s_pcc_dialog.ui:924
 msgid "Tolerance / σ"
-msgstr ""
+msgstr "Toleranz / σ"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:936
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
 msgstr ""
+"Hintergrundproben die σ über dem Median liegen einbeziehen. Standard ist 2,00"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:954
 msgid "Include background samples this many σ below the median. Default is 2.8"
 msgstr ""
+"Hintergrundproben die σ unter dem Median liegen einbeziehen. Standard ist 2,8"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:977
 msgid "Automatic detection"
@@ -10711,7 +10719,6 @@ msgid "Roundness range"
 msgstr "Rundheitsbereich"
 
 #: src/gui/uifiles/stars_list_window.ui:810
-#, fuzzy
 msgid ""
 "Enable roundness upper bound.\n"
 "Use only to display optical distortions or double stars, not for "
@@ -10720,17 +10727,16 @@ msgstr ""
 "Aktiviert die Obergrenze für die Rundheit.\n"
 "Benutzen Sie diese Option nur für die Anzeige von optischen Verzerrungen "
 "oder Doppelsternen, nicht für die Registrierung oder Astrometrie, da diese "
-"dadurch zerstört werden."
+"dadurch gestört werden."
 
 #: src/gui/uifiles/stars_list_window.ui:825
-#, fuzzy
 msgid ""
 "Maximum roundness, use only to display optical distortions or double stars, "
 "not for registration or astrometry, this will break them."
 msgstr ""
 "Maximale Rundheit. Benutzen Sie diese Option nur für die Anzeige von "
 "optischen Verzerrungen oder Doppelsternen, nicht für die Registrierung oder "
-"Astrometrie, da diese dadurch zerstört werden."
+"Astrometrie, da diese dadurch gestört werden."
 
 #: src/gui/uifiles/stars_list_window.ui:944
 msgid "Export PSF parameters in an ASCII file"
@@ -10967,10 +10973,9 @@ msgid "Open photometric color calibration dialog"
 msgstr "Starte Photometrische Farb-Kalibrierung"
 
 #: src/gui/siril-shortcuts.ui:184
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open spectrophotometric color calibration dialog"
-msgstr "Starte Photometrische Farb-Kalibrierung"
+msgstr "Dialog Spektrophotometrische Farb-Kalibrierung öffnen"
 
 #: src/gui/siril-shortcuts.ui:191
 msgctxt "shortcut window"
@@ -11156,22 +11161,20 @@ msgstr ""
 "abgerufen oder aktualisiert...\n"
 
 #: src/main.c:303
-#, fuzzy
 msgid ""
 "Online SPCC-database repository not enabled. Not fetching or updating siril-"
 "spcc-database...\n"
 msgstr ""
-"Online-Skript-Repository nicht aktiviert. Siril-Skripte werden nicht "
+"Online-SPCC-Repository nicht aktiviert. Siril-SPCC-Datenbank wird nicht "
 "abgerufen oder aktualisiert...\n"
 
 #: src/main.c:305
-#, fuzzy
 msgid ""
 "Siril was compiled without libgit2 support. Remote repositories cannot be "
 "automatically fetched...\n"
 msgstr ""
-"Siril wurde ohne Netzwerkunterstützung kompiliert und kann diese Operation "
-"nicht durchführen.\n"
+"Siril wurde ohne libgit2-Unterstützung kompiliert. Remote-Repositories "
+"können nicht automatisch geladen werden...\n"
 
 #: src/main.c:384 src/core/command.c:7201 src/core/command_line_processor.c:630
 #: src/gui/single_image.c:82
@@ -11225,6 +11228,8 @@ msgid ""
 "Could not invert the SIP distortion coefficients, try using a lower order or "
 "a linear solution\n"
 msgstr ""
+"Die SIP-Verzerrungskoeffizienten konnten nicht invertiert werden, versuchen "
+"Sie es mit einer Lösung niedrigerer Ordnung oder einer linearen Lösung\n"
 
 #: src/algos/astrometry_solver.c:766 src/algos/astrometry_solver.c:798
 msgid "Cancelled"
@@ -11328,6 +11333,9 @@ msgid ""
 "%s could not find distortion polynomials for the order specified (%d) and "
 "returned a linear solution, try with a lower order\n"
 msgstr ""
+"%s konnte keine Verzerrungspolynome für die angegebene Ordnung (%d) finden "
+"und gab eine lineare Lösung zurück, versuchen Sie es mit einer niedrigeren "
+"Ordnung\n"
 
 #: src/algos/astrometry_solver.c:1181 src/algos/astrometry_solver.c:1568
 msgid "Plate Solve"
@@ -11995,9 +12003,8 @@ msgid "image is invalid"
 msgstr "Bild ist ungültig"
 
 #: src/algos/photometry.c:268
-#, fuzzy
 msgid "flux ratio failed"
-msgstr "Normalisierung fehlgeschlagen."
+msgstr "Flussverhältnis fehlgeschlagen"
 
 #: src/algos/photometry.c:270
 msgid "unknown error"
@@ -12083,6 +12090,12 @@ msgid ""
 "Number of stars: %d (removed %d outliers)\n"
 "White balance factors: %.3f %.3f %.3f</span>"
 msgstr ""
+"Zusammenfassung Weißabgleich\n"
+"<span size=\"small\">%s SPCC Lineare Anpassung: y = %f + %f·x, &#x03C3; = %"
+"f\n"
+"Weißreferenz: %s\n"
+"Anzahl der Sterne: %d (%d Ausreißer entfernt)\n"
+"Faktoren Weißabgleich: %.3f %.3f %.3f</span>"
 
 #: src/algos/photometric_cc.c:220 src/algos/photometric_cc.c:485
 #, c-format
@@ -12094,6 +12107,7 @@ msgstr[1] "Verwende Apertur Photometrie für %d Sterne.\n"
 #: src/algos/photometric_cc.c:338
 msgid "Array mismatch after discarding photometrically invalid stars\n"
 msgstr ""
+"Array-Diskrepanz nach dem Löschen von photometrisch ungültigen Sternen\n"
 
 #: src/algos/photometric_cc.c:343 src/algos/photometric_cc.c:603
 #, c-format
@@ -12104,61 +12118,64 @@ msgstr[1] "%d Sterne von der Berechnung ausgeschlossen\n"
 
 #: src/algos/photometric_cc.c:354
 msgid "Error: insufficient photometrically valid stars\n"
-msgstr ""
+msgstr "Fehler: Unzureichende Anzahl photometrisch nutzbarer Sterne\n"
 
 #: src/algos/photometric_cc.c:364 src/algos/photometric_cc.c:376
 msgid ""
 "Error: unable to compute a fit to the data. Check your sensor and filter "
 "selections are correct.\n"
 msgstr ""
+"Fehler: Berechnung der Anpassung für die Daten nicht möglich. Prüfen Sie ob "
+"der Kamerasensor und die Filter korrekt ausgewählt sind.\n"
 
 #: src/algos/photometric_cc.c:380
 msgid "SPCC Linear Fits\n"
-msgstr ""
+msgstr "SPCC Lineare-Anpassung\n"
 
 #: src/algos/photometric_cc.c:381
 #, c-format
 msgid "Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"
-msgstr ""
+msgstr "Bild R/G = %f + %f * Katalog R/G (Sigma: %f)\n"
 
 #: src/algos/photometric_cc.c:382
 #, c-format
 msgid "Image B/G = %f + %f * Catalog B/G (sigma: %f)\n"
-msgstr ""
+msgstr "Bild B/G = %f + %f * Katalog B/G (Sigma: %f)\n"
 
 #: src/algos/photometric_cc.c:403
 msgid "Catalog R/G (flux)"
-msgstr ""
+msgstr "Katalog R/G (flux)"
 
 #: src/algos/photometric_cc.c:406
 msgid "Image R/G (flux)"
-msgstr ""
+msgstr "Bild R/G (flux)"
 
 #: src/algos/photometric_cc.c:407
-#, fuzzy
 msgid "R/G"
-msgstr "RGB"
+msgstr "R/G"
 
 #: src/algos/photometric_cc.c:408 src/algos/photometric_cc.c:428
 msgid "Best fit"
-msgstr ""
+msgstr "Beste Anpassung"
 
 #: src/algos/photometric_cc.c:422
 msgid "Catalog B/G (flux)"
-msgstr ""
+msgstr "Katalog B/G (flux)"
 
 #: src/algos/photometric_cc.c:425
 msgid "Image B/G (flux)"
-msgstr ""
+msgstr "Bild B/G (flux)"
 
 #: src/algos/photometric_cc.c:426
 msgid "B/G"
-msgstr ""
+msgstr "B/G"
 
 #: src/algos/photometric_cc.c:452
 msgid ""
 "Error calculating white balance coefficients: kw contains negative values.\n"
 msgstr ""
+"Fehler beim berechnen der Koeffizienten des Weißabgleichs: kw enthält "
+"negative Werte.\n"
 
 #: src/algos/photometric_cc.c:455 src/algos/photometric_cc.c:639
 #, c-format
@@ -12188,11 +12205,12 @@ msgid ""
 "Image color space is nonlinear. It is recommended to apply photometric color "
 "calibration to linear images.\n"
 msgstr ""
+"Bildfarbraum ist nicht linear. Es wird empfohlen die photometrische "
+"Farbkalibrierung auf linearen Bildern anzuwenden.\n"
 
 #: src/algos/photometric_cc.c:526
-#, fuzzy
 msgid "Error: failed to set up colorspace transform.\n"
-msgstr "Die Farbraumtransformation konnte nicht erstellt werden."
+msgstr "Fehler: Setup der Farbraumtransformation fehlgeschlagen.\n"
 
 #: src/algos/photometric_cc.c:611
 msgid "No valid stars found.\n"
@@ -12202,13 +12220,12 @@ msgstr "Keine gültigen Sterne gefunden.\n"
 #: src/algos/photometric_cc.c:658
 #, c-format
 msgid "Computing background reference with tolerance +%.2fσ / -%.2fσ.\n"
-msgstr ""
+msgstr "Berechne Hintergrundreferenz mit Toleranz +%.2fσ / -%.2fσ.\n"
 
 #. Check for NaN... If they are NaN the result image is junk
 #: src/algos/photometric_cc.c:691
-#, fuzzy
 msgid "Error computing coefficients: aborting...\n"
-msgstr "Falsche Argumente, Abbruch.\n"
+msgstr "Fehler beim Berechnen der Koeffizienten: Abbruch...\n"
 
 #: src/algos/photometric_cc.c:697
 msgid "White balance factors:\n"
@@ -12219,6 +12236,8 @@ msgid ""
 "Found linear plate solve data. For better result you should redo "
 "platesolving\n"
 msgstr ""
+"Daten einer linearen astrometrischen Lösung gefunden. Für ein besseres "
+"Ergebnis sollten Sie die astrometrische Lösung erneut ausführen\n"
 
 #: src/algos/photometric_cc.c:738
 msgid "Photometric color correction will do nothing for monochrome images\n"
@@ -12286,24 +12305,21 @@ msgid "SPCC"
 msgstr ""
 
 #: src/algos/photometric_cc.c:876
-#, fuzzy
 msgid "PCC"
-msgstr "CDS"
+msgstr ""
 
 #: src/algos/photometric_cc.c:877
-#, fuzzy, c-format
+#, c-format
 msgid "Photometric CC (algorithm: %s)"
-msgstr "Photometrie CC"
+msgstr "Photometrische Farbkalibrierung (Algorithmus: %s)"
 
 #: src/algos/photometric_cc.c:883
-#, fuzzy
 msgid "Catalog error, no stars identified!\n"
-msgstr "Zielstern erkannt: %s\n"
+msgstr "Katalogfehler, keine Sterne erkannt!\n"
 
 #: src/algos/photometric_cc.c:892
-#, fuzzy
 msgid "Spectrophotometric Color Calibration succeeded.\n"
-msgstr "Photometrische Farbkalibrierung abgeschlossen.\n"
+msgstr "Spektrophotometrische Farbkalibrierung abgeschlossen.\n"
 
 #: src/algos/photometric_cc.c:894
 msgid "Photometric Color Calibration succeeded.\n"
@@ -12542,6 +12558,10 @@ msgid ""
 "This will occur when carrying out SPCC on compositions such as HOO whre the "
 "same data is assigned to multiple channels.\n"
 msgstr ""
+"Es kann kein Quellprofil erstellt werden, da die Primärfarben nicht "
+"eindeutig sind. Dies tritt auf, wenn SPCC für Kompositionen wie HOO "
+"durchgeführt wird, bei denen dieselben Daten mehreren Kanälen zugewiesen "
+"sind.\n"
 
 #: src/algos/star_finder.c:188 src/algos/star_finder.c:191
 #, c-format
@@ -14991,14 +15011,21 @@ msgid ""
 "Found linear plate solve data, you may need to solve your image with "
 "distortions to ensure correct calibration of stars near image corners.\n"
 msgstr ""
+"Daten einer linearen astrometrischen LÖsung gefunden. Ggf. müssen Sie ihr "
+"Bild mit Verzerrungen astrometrisch lösen um eine korrekte Kalibrierung von "
+"Sternen nahe den Bildecken zu erhalten.\n"
 
 #: src/core/command.c:8508
 msgid "NB wavelength out of range (must be 380 <= wl <= 700)\n"
 msgstr ""
+"Schmalband-Wellenlänge außerhalb des Bereichs (muss im Bereich 380 <= wl <= "
+"700 liegen)\n"
 
 #: src/core/command.c:8513
 msgid "NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"
 msgstr ""
+"Schmalband-Durchlasbreite außerhalb des Bereichs (muss im Bereich 1,0 <= bw "
+"<= 40,0 liegen)\n"
 
 #: src/core/command.c:8523 src/core/command.c:8768
 #, c-format
@@ -15010,33 +15037,46 @@ msgid ""
 "Either the sensor or a filter / LPF was not specified as argument or "
 "guessable from previous use. Ensure all necessary data is set.\n"
 msgstr ""
+"Entweder wurde der Sensor oder ein Filter / LPF nicht als Argument angegeben "
+"oder aus der vorherigen Verwendung erraten. Stellen Sie sicher, dass alle "
+"erforderlichen Daten eingestellt sind.\n"
 
 #: src/core/command.c:8561
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"
 msgstr ""
+"SPCC wird den Farb(OSC)-Sensor \"%s\", Filter \"%s\" und den DSLR LPF \"%s\""
+"\n"
 
 #: src/core/command.c:8563
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\" and filter \"%s\"\n"
-msgstr ""
+msgstr "SPCC wird den Farb(OSC)-Sensor \"%s\" und den Filter \"%s\" benutzen\n"
 
 #: src/core/command.c:8571
 msgid ""
 "Either the sensor or a filter was not specified as argument or guessable "
 "from previous use. Ensure all necessary data is set.\n"
 msgstr ""
+"Entweder wurde der Sensor oder ein Filter nicht als Argument angegeben oder "
+"aus der vorherigen Verwendung erraten. Stellen Sie sicher, dass alle "
+"erforderlichen Daten eingestellt sind.\n"
 
 #: src/core/command.c:8577
 #, c-format
 msgid "SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"
 msgstr ""
+"SPCC wird den Mono_Sensor \"%s\" und die Filter \"%s\", \"%s\" und \"%s\" "
+"benutzen\n"
 
 #: src/core/command.c:8609
 msgid ""
 "Siril has been compiled without libcurl support for network operations; SPCC "
 "is therefore not available. Recompile with libcurl support to enable SPCC.\n"
 msgstr ""
+"Siril wurde ohne libcurl-Unterstützung für Netzwerkoperationen kompiliert; "
+"SPCC ist daher nicht verfügbar. Kompilieren Sie mit libcurl-Unterstützung "
+"neu, um SPCC zu aktivieren.\n"
 
 #: src/core/command.c:8633
 msgid ""
@@ -15257,50 +15297,46 @@ msgstr "Farbraumkonvertierung abgeschlossen.\n"
 
 #: src/core/command.c:9695
 msgid "OSC Sensors"
-msgstr ""
+msgstr "Farb(OSC)-Sensoren"
 
 #: src/core/command.c:9698
 msgid "Mono Sensors"
-msgstr ""
+msgstr "Mono-Sensoren"
 
 #: src/core/command.c:9701
-#, fuzzy
 msgid "Red Filters"
-msgstr "Median Filter"
+msgstr "Rotfilter"
 
 #: src/core/command.c:9704
-#, fuzzy
 msgid "Green Filters"
-msgstr "Median Filter"
+msgstr "Grünfilter"
 
 #: src/core/command.c:9707
-#, fuzzy
 msgid "Blue Filters"
-msgstr "Median Filter"
+msgstr "Blaufilter"
 
 #: src/core/command.c:9710
-#, fuzzy
 msgid "OSC Filters"
-msgstr "Filter: "
+msgstr "Farb(OSC)-Filter"
 
 #: src/core/command.c:9713
 msgid "OSC Low-Pass Filters"
-msgstr ""
+msgstr "Farb(OSC)-Schmalbandfilter"
 
 #: src/core/command.c:9716
-#, fuzzy
 msgid "White References"
 msgstr "Weiß-Referenz"
 
 #: src/core/command.c:9718
 msgid "Unknown SPCC list\n"
-msgstr ""
+msgstr "Unbekannte SPCC-Liste\n"
 
 #: src/core/command.c:9732
-#, fuzzy
 msgid ""
 "This command only works on plate solved images with distortions included\n"
-msgstr "Dieser Befehl funktioniert nur mit astrometrisch gelösten Bildern\n"
+msgstr ""
+"Dieser Befehl funktioniert nur mit astrometrisch gelösten Bildern die "
+"Verzerrungen enthalten\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -15925,6 +15961,10 @@ msgid ""
 "\n"
 "Pass option <b>clear</b> to disable"
 msgstr ""
+"Anzeige des Verzerrungsfeldes eines astrometrisch gelösten Bildes mit einer "
+"Lösung die Verzerrungsterme beinhaltet\n"
+"\n"
+"Geben Sie die Option <b>clear</b> zum Deaktivieren"
 
 #: src/core/command_def.h:36
 msgid "Dumps the FITS header of the loaded image in the console"
@@ -16955,9 +16995,22 @@ msgid ""
 "Background reference outlier tolerance can be specified in sigma units using "
 "<b>-bgtol=lower,upper</b>: these default to -2.8 and +2.0"
 msgstr ""
+"Die photometrische Farbkalibrierung auf einem geladenen, astrometrisch "
+"gelösten Bild anwenden.\n"
+"\n"
+"Die Grenzgröße der Sterne wird automatisch aus dem Gesichtsfeld berechnet, "
+"kann aber durch Angabe eines Wertes von \"+offset\" oder \"-offset\" beim "
+"Argument <b>limitmag=</b> oder einfach durch Angabe eines absoluten, "
+"positiven Wertes für die Grenzgröße verändert werden.\n"
+"Als Sternkatalog wird standardmäßig NOMAD verwendet. Durch Angabe des "
+"Arguments <b>-catalog=apass</b> oder <b>-catalog=gaia</b> kann das geändert "
+"werden. Falls der lokale NOMAD (komplette Version) installiert ist, kann die "
+"Nutzung des Remote-Katalogs durch <b>-catalog=nomad</b> erzwungen werden.\n"
+"Die Ausreißertoleranz der Hintergrundreferenz kann in Sigma-Einheiten durch "
+"Angabe von <b>-bgtol=lower,upper</b> verändert werden (Standardwerte -2,8 "
+"und +2,0)"
 
 #: src/core/command_def.h:108
-#, fuzzy
 msgid ""
 "Plate solve the loaded image.\n"
 "If the image has already been plate solved nothing will be done, unless the "
@@ -17005,28 +17058,31 @@ msgstr ""
 "angegeben werden, wobei die Werte für Rektaszension und Deklination durch "
 "ein Komma oder ein Leerzeichen getrennt werden (nicht erforderlich für "
 "astrometry.net).\n"
-"  Brennweite und Pixelgröße können mit <b>-focal=</b> (in mm) und <b>-"
-"pixelsize</b> (in μm), die Werte aus dem Bild oder den Einstellungen werden "
-"überschrieben.\n"
+"  Brennweite und Pixelgröße können mit <b>-focal=</b> (in mm) und "
+"<b>-pixelsize</b> (in μm), die Werte aus dem Bild oder den Einstellungen "
+"werden überschrieben.\n"
 "\n"
 "Wenn <b>-noflip</b> nicht angegeben ist und das Bild als auf dem Kopf "
 "stehend erkannt wird, wird das Bild gespiegelt.\n"
+"Wenn das berechnete Sichtfeld größer als 5 Grad ist, wird die Sternerkennung "
+"auf einen beschnittenen Bereich um die Mitte des Bildes begrenzt, es sei "
+"denn, die Option <b>-nocrop</b> wird übergeben.\n"
 "Zur schnelleren Erkennung von Sternen in großen Bildern kann das Bild mit "
 "<b>downscale</b> verkleinert werden.\n"
 "\n"
 "Bilder können mit Siril entweder mit Hilfe eines Sternkatalogs und des "
 "globalen Registrierungsalgorithmus oder mit dem lokalen solve-field Befehl "
 "von astrometry.net (aktiviert mit <b>-localasnet</b>) gelöst werden.\n"
-"Die folgenden Optionen gelten nur für die astrometrische Lösung durch "
-"Siril.\n"
+"Die folgenden Optionen gelten nur für die astrometrische Lösung durch Siril."
+"\n"
 "Die Grenzgröße der Sterne, die für die astrometrische Lösung und PCC "
 "verwendet werden, wird automatisch aus der Größe des Gesichtsfeldes "
 "berechnet, kann aber durch die Übergabe eines Wertes von +offset- oder -"
 "Offset zu <b>-limitmag=</b> oder einfach durch einen absoluten positiven "
 "Wert für die Grenzgröße geändert werden.\n"
-"Die Wahl des Sternkatalogs erfolgt automatisch, es sei denn, die Option <b>-"
-"catalog=</b> wird übergeben: Wenn lokale Kataloge installiert sind, werden "
-"sie verwendet, andernfalls basiert die Wahl auf dem Sichtfeld und der "
+"Die Wahl des Sternkatalogs erfolgt automatisch, es sei denn, die Option "
+"<b>-catalog=</b> wird übergeben: Wenn lokale Kataloge installiert sind, "
+"werden sie verwendet, andernfalls basiert die Wahl auf dem Sichtfeld und der "
 "Grenzgröße. Wenn die Option übergeben wird, erzwingt sie die Verwendung des "
 "im Argument angegebenen Remote-Katalogs, mit den möglichen Werten: tycho2, "
 "nomad, gaia, ppmxl, brightstars, apass. \n"
@@ -17522,7 +17578,6 @@ msgstr ""
 "während ein niedrigerer Werte die Kompressionsrate erhöht"
 
 #: src/core/command_def.h:128
-#, fuzzy
 msgid ""
 "Saves current image into a JPG XL file: <b>filename</b>.jxl.\n"
 "\n"
@@ -17555,7 +17610,7 @@ msgstr ""
 "werden, wobei 9 der größte Aufwand ist, aber sehr langsam, während ein "
 "niedrigerer Wert das Komprimierungsverhältnis erhöht. Werte über 7 werden "
 "nicht empfohlen, da sie sehr langsam sein können und sich kaum oder gar "
-"nicht auf die Dateigröße auswirken. Tatsächlich kann efford=9 manchmal zu "
+"nicht auf die Dateigröße auswirken. Tatsächlich kann effort=9 manchmal zu "
 "größeren Dateien führen. Wenn dieses Argument weggelassen wird, wird der "
 "Standardwert 7 verwendet. Es kann eine Option <b>-8bit</b> bereitgestellt "
 "werden, um eine Ausgabe mit 8 Bit pro Pixel zu erzwingen"
@@ -17989,7 +18044,6 @@ msgstr ""
 "Option <b>-prefix=</b> nichts anderes angegeben wurde"
 
 #: src/core/command_def.h:156
-#, fuzzy
 msgid ""
 "Plate solve a sequence. A new sequence will be created with the prefix "
 "\"ps_\". If the input sequence is SER, providing the metadata is mandatory "
@@ -18041,16 +18095,19 @@ msgstr ""
 "Argumente übergeben werden:  -- Die ungefähren Koordinaten der Bildmitte "
 "können in Dezimalgraden oder Grad/Stunde-Minute-Sekunden-Werten (J2000 mit "
 "Doppelpunkttrennzeichen) angegeben werden, wobei die Rektaszensions- und "
-"Deklinationswerte durch ein Komma oder ein Leerzeichen getrennt werden "
-"(nicht obligatorisch für astrometry.net). Für die gesamte Sequenz wird ein "
+"Deklinationswerte durch ein Komma oder ein Leerzeichen getrennt werden ("
+"nicht obligatorisch für astrometry.net). Für die gesamte Sequenz wird ein "
 "einziger Katalogauszug erstellt. Bei starker Abweichung gelingt dies "
 "möglicherweise nicht für alle Bilder.\n"
-"-- Brennweite und Pixelgröße können mit <b>-focal=</b> (in mm) und <b>-"
-"pixelsize=</b> (in Mikrometern) übergeben werden, wobei Werte aus Bildern "
-"und Einstellungen überschrieben werden.\n"
+"-- Brennweite und Pixelgröße können mit <b>-focal=</b> (in mm) und "
+"<b>-pixelsize=</b> (in Mikrometern) übergeben werden, wobei Werte aus "
+"Bildern und Einstellungen überschrieben werden.\n"
 "\n"
 "Wenn <b>-noflip</b> nicht angegeben ist, werden Bilder gespiegelt, wenn "
 "erkannt wird, dass sie auf dem Kopf stehen (negative Parität).\n"
+"Wenn das berechnete Sichtfeld größer als 5 Grad ist, wird die Sternerkennung "
+"auf einen beschnittenen Bereich um die Mitte des Bildes begrenzt, es sei "
+"denn, die Option <b>-nocrop</b> wird übergeben.\n"
 "Für eine schnellere Sternerkennung in großen Bildern ist ein Downsampling "
 "des Bildes mit <b>-downscale</b> möglich.\n"
 "\n"
@@ -18574,6 +18631,38 @@ msgid ""
 "Background reference outlier tolerance can be specified in sigma units using "
 "<b>-bgtol=lower,upper</b>: these default to -2.8 and +2.0"
 msgstr ""
+"Die Spektrophotometrische Farbkalibrierung auf einem geladenen, "
+"astrometrisch gelösten Bild anwenden.\n"
+"\n"
+"Die Grenzgröße der Sterne wird automatisch aus dem Gesichtsfeld berechnet, "
+"kann aber durch Angabe eines Wertes von \"+offset\" oder \"-offset\" beim "
+"Argument <b>limitmag=</b> oder einfach durch Angabe eines absoluten, "
+"positiven Wertes für die Grenzgröße verändert werden.\n"
+"Als Sternkatalog fpr die SPCC wird immer Gaia DR3 verwendet.\n"
+"\n"
+"Die Namen des Sensors und der Filter können mit den folgenden Optionen "
+"angegeben werden: <b>-monosensor=</b>, <b>-rfilter=</b>, <b>-gfilter=</b>, "
+"<b>-bfilter=</b> oder <b>-oscsensor=</b>, <b>-oscfilter=</b>, "
+"<b>-osclpf=</b>; Der Name der Weißreferenz kann mit der Option "
+"<b>-whiteref=</b> angegeben werden. In allen Fällen muss der angegebene Name "
+"exakt so geschrieben werden wie im Kombifeld des SPCC-Werkzeugs. Beachten "
+"Sie, dass die Namen von Sensor, Filter und Weißreferenz Leerzeichen "
+"enthalten können: In diesem Fall, wenn sie als Argumente des <b>spcc</b>-"
+"Befehls genutzt werden, muss das gesamte Argument in Anführungszeichen "
+"gesetzt werden, zum Beispiel: \"-whiteref=Average Spiral Galaxy\".\n"
+"\n"
+"Der Schmalbandmodus kann durch das Argument <b>-narrowband</b> ausgewählt "
+"werden, wobei dann die verherigen Filterargumente ignoriert werden und die "
+"Wellenlänge und Durchlassbreite der Schmalbandfilter mit <b>-rwl=</b>, "
+"<b>-rwb</b>, <b>-gwl=</b>, <b>-gbw=</b>, <b>-bwl=</b> und <b>-bbw=</b> "
+"angegeben werden können.\n"
+"\n"
+"Falls eines der Spektraldatenargumente weggelassen wird, wird der vorherige "
+"Wert benutzt.\n"
+"\n"
+"Ausreißer der Hintergrundreferenz-Toleranz können in Sigma-Einheiten als "
+"<b>-bgtol=lower,upper</b> angegeben werden; Standardmäßig werden -2,8 und +"
+"2,0 genutzt"
 
 #: src/core/command_def.h:182
 msgid ""
@@ -18587,6 +18676,17 @@ msgid ""
 "entire argument must be enclosed in quotation marks, for example \"-"
 "whiteref=Average Spiral Galaxy\""
 msgstr ""
+"Zeigt eine Liste der verfügbaren SPCC-Namen an, die zum Definieren von "
+"Sensoren, Filtern oder Weißreferenzen mit dem Befehl <b>spcc</b> verwendet "
+"werden können. Dieser Befehl erfordert ein Argument, um festzulegen, welche "
+"Liste gedruckt wird: Die Optionen sind <b>oscsensor</b>, <b>monosensor</b>, "
+"<b>redfilter</b>, <b>greenfilter</b> , <b>bluefilter</b>, <b>oscfilter</b>, "
+"<b>osclpf</b> oder <b>whiteref</b>.\n"
+"Beachten Sie, dass die Namen von Sensoren, Filtern und weißen Referenzen "
+"Leerzeichen enthalten können: In diesem Fall muss bei der Verwendung als "
+"Argumente für den Befehl <b>spcc</b> das gesamte Argument in "
+"Anführungszeichen gesetzt werden, zum Beispiel \"-whiteref=Average Spiral "
+"Galaxy\""
 
 #: src/core/command_def.h:183
 msgid ""
@@ -19118,9 +19218,8 @@ msgid "a processing is already running"
 msgstr "eine Bearbeitung läuft bereits"
 
 #: src/core/command_line_processor.c:99
-#, fuzzy
 msgid "directory not found"
-msgstr "Datei nicht gefunden"
+msgstr "Verzeichnis nicht gefunden"
 
 #: src/core/command_line_processor.c:146
 #, c-format
@@ -19555,9 +19654,8 @@ msgstr ""
 "Proofing anhand des Monitorprofils durchgeführt.\n"
 
 #: src/core/icc_profile.c:1670 src/core/icc_profile.c:1733
-#, fuzzy
 msgid "No color profile chosen, nothing to assign."
-msgstr "Kein Farbprofil gesetzt"
+msgstr "Kein Farbprofil gewählt, nichts zum Zuordnen."
 
 #. We save the undo state as dealing with gfit
 #: src/core/icc_profile.c:1675
@@ -19646,16 +19744,15 @@ msgstr ""
 
 #: src/core/icc_profile.c:1909
 msgid "Chromaticity plot only works with RGB color profiles"
-msgstr ""
+msgstr "Chromatizitäts-Grafik funktioniert nur mit RGB-Farbprofilen"
 
 #: src/core/icc_profile.c:2153
 msgid "This ICC profile is not RGB. Unable to plot the colorspace.\n"
-msgstr ""
+msgstr "Dies ist kein RGB-ICC-Farbprofil. Kann keinen Farbraum zeichnen.\n"
 
 #: src/core/icc_profile.c:2157
-#, fuzzy
 msgid "Error reading chromaticities\n"
-msgstr "Fehler beim Erstellen des Ausgabebildes\n"
+msgstr "Fehler beim Lesen der Chromatizitäten\n"
 
 #: src/core/icc_profile.c:2185
 #, c-format
@@ -19663,6 +19760,8 @@ msgid ""
 "Source Color Profile Chromaticity Diagram\n"
 "<span size=\"small\">%s</span>"
 msgstr ""
+"Chromatizitäts-Diagramm des Quell-Farbprofils\n"
+"<span size=\"small\">%s</span>"
 
 #: src/core/icc_profile.c:2192
 msgid "CIE x"
@@ -19673,23 +19772,20 @@ msgid "CIE y"
 msgstr ""
 
 #: src/core/icc_profile.c:2197
-#, fuzzy
 msgid "Color profile"
-msgstr "Entfernung des Farbprofils"
+msgstr "Farbprofil"
 
 #: src/core/icc_profile.c:2201
-#, fuzzy
 msgid "Color profile whitepoint"
-msgstr "Farbprofilzuweisung"
+msgstr "Weißpunkt des Farbprofils"
 
 #: src/core/icc_profile.c:2205
 msgid "CIE 1931"
 msgstr ""
 
 #: src/core/icc_profile.c:2210
-#, fuzzy
 msgid "Could not load background\n"
-msgstr "nicht genug Hintergrund"
+msgstr "Hintergrund kann nicht geladen werden\n"
 
 #: src/core/initfile.c:55 src/core/initfile.c:66 src/core/initfile.c:86
 #, c-format
@@ -20474,69 +20570,67 @@ msgstr "maximaler gültiger Pixelwert für die Fotometrie"
 
 #: src/core/settings.c:369
 msgid "preferred SPCC red filter"
-msgstr ""
+msgstr "Bevorzugtes SPCC-Rotfilter"
 
 #: src/core/settings.c:370
-#, fuzzy
 msgid "preferred SPCC green filter"
-msgstr "Aktuelle Grün-Datei"
+msgstr "Bevorzugtes SPCC-Grünfilter"
 
 #: src/core/settings.c:371
-#, fuzzy
 msgid "preferred SPCC blue filter"
-msgstr "Aktuell Blau-Datei"
+msgstr "Bevorzugtes SPCC-Blaufilter"
 
 #: src/core/settings.c:372
 msgid "preferred SPCC DSLR LPF filter"
-msgstr ""
+msgstr "Bevorzugtes SPCC-DSLR-LPF-Filter"
 
 #: src/core/settings.c:373
 msgid "preferred SPCC OSC filter"
-msgstr ""
+msgstr "Bevorzugtes SPCC-Farb(OSC)-Filter"
 
 #: src/core/settings.c:374
 msgid "preferred SPCC mono sensor"
-msgstr ""
+msgstr "Bevorzugter SPCC-Mono-Sensor"
 
 #: src/core/settings.c:375
 msgid "preferred SPCC OSC sensor"
-msgstr ""
+msgstr "Bevorzugter SPCC Farb(OSC)-Sensor"
 
 #: src/core/settings.c:376
 msgid "is the SPCC sensor mono?"
-msgstr ""
+msgstr "Ist diese SPCC-Sensor monochrom?"
 
 #: src/core/settings.c:377
 msgid "is the SPCC OSC sensor a DSLR?"
-msgstr ""
+msgstr "Ist dieser SPCC Farb(OSC)-Sensor eine DSLR?"
 
 #: src/core/settings.c:378
 msgid "are we in narrowband mode?"
-msgstr ""
+msgstr "Sind wir im Schmalbandmodus?"
 
 #: src/core/settings.c:379
 msgid "red NB filter wavelength"
-msgstr ""
+msgstr "Wellenlänge Schmalbandfilter rot"
 
 #: src/core/settings.c:380
 msgid "red NB filter bandwidth"
-msgstr ""
+msgstr "Durchlassbreite Schmalbandfilter rot"
 
 #: src/core/settings.c:381
 msgid "green NB filter wavelength"
-msgstr ""
+msgstr "Wellenlänge Schmalbandfilter grün"
 
 #: src/core/settings.c:382
 msgid "green NB filter bandwidth"
-msgstr ""
+msgstr "Durchlassbreite Schmalbandfilter grün"
 
 #: src/core/settings.c:383
 msgid "blue NB filter wavelength"
-msgstr ""
+msgstr "Wellenlänge Schmalbandfilter blau"
 
 #: src/core/settings.c:384
 msgid "blue NB filter bandwidth"
-msgstr ""
+msgstr "Durchlassbreite Schmalbandfilter blau"
 
 #: src/core/settings.c:386
 msgid "degrees of the polynomial correction"
@@ -20751,18 +20845,16 @@ msgid "use and sync online scripts repository"
 msgstr "Verwendet und synchronisiert das Online-Skript-Repository"
 
 #: src/core/settings.c:456
-#, fuzzy
 msgid "use and sync spcc-database repository"
-msgstr "Verwendet und synchronisiert das Online-Skript-Repository"
+msgstr "Verwendet und synchronisiert das Online-SPCC-Repository"
 
 #: src/core/settings.c:457
 msgid "auto sync online scripts repository"
 msgstr "Automatische Synchronisierung des Online-Skript-Repositories"
 
 #: src/core/settings.c:458
-#, fuzzy
 msgid "auto sync spcc-database repository"
-msgstr "Automatische Synchronisierung des Online-Skript-Repositories"
+msgstr "Automatische Synchronisierung des Online-SPCC-Repositories"
 
 #: src/core/settings.c:459
 msgid "list of scripts selected from the repository"
@@ -23184,77 +23276,75 @@ msgstr ""
 "eine einzelne FITS-Datei aus."
 
 #: src/gui/photometric_cc.c:91
-#, fuzzy
 msgid ""
 "There is no valid WCS information in the header. Please platesolve first.\n"
 msgstr ""
-"Es gibt keine gültigen WCS Informationen im Header. Astrometrische Lösung "
-"durchführen.\n"
+"Es gibt keine gültigen WCS Informationen im Header. Vorher eine "
+"astrometrische Lösung durchführen.\n"
 
 #: src/gui/photometric_cc.c:99
 msgid "Using Gaia DR3 for SPCC\n"
-msgstr ""
+msgstr "Benutze Gaia DR3 für SPCC\n"
 
 #: src/gui/photometric_cc.c:113
-#, fuzzy
 msgid "Using remote APASS instead of local NOMAD catalog\n"
-msgstr ""
-"Benutze den Remote-APASS-Katalog an Stelle des lokalen NOMAD-Katalogs\n"
+msgstr "Benutze den Remote-APASS-Katalog an Stelle des lokalen NOMAD-Katalogs\n"
 
 #: src/gui/photometric_cc.c:195
 msgid "Photometric Color Calibration"
 msgstr "Photometrische Farb-Kalibrierung"
 
 #: src/gui/photometric_cc.c:269
-#, fuzzy
 msgid "Spectrophotometric Color Calibration"
-msgstr "Photometrische Farb-Kalibrierung"
+msgstr "Spektrophotometrische Farb-Kalibrierung"
 
 #: src/gui/photometric_cc.c:430
 msgid ""
 "Error: ensure mono sensor, R, G and B filters and white reference are "
 "selected.\n"
 msgstr ""
+"Fehler: Stellen Sie sicher, dass Monosensor, R-, G- und B-Filter und die "
+"Weißreferenz ausgewählt sind.\n"
 
 #: src/gui/photometric_cc.c:437
 msgid ""
 "Error: ensure OSC sensor, OSC filter and white reference are selected.\n"
 msgstr ""
+"Fehler: Stellen Sie sicher, dass OSC-Sensor, OSC-Filter und Weißreferenz "
+"ausgewählt sind.\n"
 
 #: src/gui/photometric_cc.c:546
 msgid "one-shot color (OSC)"
-msgstr ""
+msgstr "one-shot color (Farbsensor/OSC)"
 
 #: src/gui/photometric_cc.c:692
-#, fuzzy
 msgid "No selection made: no details to show."
-msgstr "Keine Ebenen geladen: Keine Dateien zum Speichern"
+msgstr "Es wurde keine Auswahl getroffen: Keine Details zum anzeigen."
 
 #: src/gui/photometric_cc.c:730
-#, fuzzy
 msgid "SPCC Data"
-msgstr "Daten zurücksetzen"
+msgstr "SPCC-Daten"
 
 #: src/gui/photometric_cc.c:731
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
-msgstr ""
+msgstr "Quanteneffizienz / Durchlass / Relative Photonenzahl"
 
 #: src/gui/photometric_cc.c:811 src/gui/photometric_cc.c:826
 #, c-format
 msgid "SPCC Data: %s"
-msgstr ""
+msgstr "SPCC-Daten: %s"
 
 #: src/gui/photometric_cc.c:813 src/gui/photometric_cc.c:829
 msgid "Quantum Efficiency"
-msgstr ""
+msgstr "Quanteneffizienz"
 
 #: src/gui/photometric_cc.c:829
 msgid "Relative photon count"
-msgstr ""
+msgstr "Relative Photonenzahl"
 
 #: src/gui/photometric_cc.c:829
 msgid "Transmittance"
-msgstr ""
+msgstr "Durchlass"
 
 #: src/gui/plot.c:123 src/gui/plot.c:1662 src/gui/sequence_list.c:539
 msgid "Amplitude"
@@ -25223,45 +25313,48 @@ msgid ""
 "Submitting conesearch request to ESA Gaia DR3 catalog. This may take a few "
 "seconds to complete...\n"
 msgstr ""
+"Einreichen einer Conesearch-Anfrage an den ESA Gaia DR3-Katalog. Dies kann "
+"einige Sekunden dauern...\n"
 
 #: src/io/remote_catalogues.c:948
 msgid "Error submitting conesearch request.\n"
-msgstr ""
+msgstr "Fehler beim Einreichen einer Coneserch-Anfrage.\n"
 
 #: src/io/remote_catalogues.c:954
-#, fuzzy
 msgid "Job id not found in the response.\n"
-msgstr "Keine Objekte im Bild gefunden.\n"
+msgstr "Job-ID kann in der Antwort nicht gefunden werden.\n"
 
 #. Avoid infinite loop
 #: src/io/remote_catalogues.c:966
 msgid "Timeout on Gaia DR3 query\n"
-msgstr ""
+msgstr "Timeout bei Gaia DR3-Anfrage\n"
 
 #: src/io/remote_catalogues.c:974
 msgid "Gaia DR3 async query failed, unable to continue.\n"
 msgstr ""
+"Asynchrone Anfrage bei Gaia DR3 fehlgeschlagen, kann nicht fortfahren.\n"
 
 #: src/io/remote_catalogues.c:1014
 #, c-format
 msgid "Gaia DR3 conesearch query succeeded: cached as %s\n"
-msgstr ""
+msgstr "Gaia DR3 Conesearch-Anfrage erfolgreich: Gespeichert als %s\n"
 
 #: src/io/remote_catalogues.c:1064
 msgid ""
 "Submitting spectral data request to ESA Gaia DR3 catalog. This may take "
 "several seconds to complete...\n"
 msgstr ""
+"Einreichen einer Spektraldatenanfrage an den ESA Gaia DR3-Katalog. Dies kann "
+"einige Sekunden dauern...\n"
 
 #: src/io/remote_catalogues.c:1071
-#, fuzzy
 msgid "Using already downloaded datalink product\n"
-msgstr "Der bereits heruntergeladene Katalog %s wird verwendet\n"
+msgstr "Verwendung eines bereits heruntergeladenen Datalink-Produkts\n"
 
 #: src/io/remote_catalogues.c:1088
 #, c-format
 msgid "Gaia DR3 datalink query succeeded: cached as %s\n"
-msgstr ""
+msgstr "Gara DR3 Datalink-Anfrage erfolgreich: Gespeichert als %s\n"
 
 #: src/io/seqfile.c:129
 msgid ""
@@ -25812,9 +25905,8 @@ msgid "Gaia DR3 (via Vizier)"
 msgstr ""
 
 #: src/io/siril_catalogues.c:238
-#, fuzzy
 msgid "Gaia DR3 (direct)"
-msgstr "Gaia EDR3"
+msgstr "Gaia DR3 (direkt)"
 
 #: src/io/siril_catalogues.c:240
 msgid "PPMXL"
@@ -25943,7 +26035,7 @@ msgstr ""
 "Objekt-Tags angezeigt\n"
 
 #: src/io/siril_catalogues.c:1049
-#, fuzzy, c-format
+#, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr "Der Katalog %s wurde erfolgreich heruntergeladen.\n"
 
@@ -26069,29 +26161,27 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Lokales Skript-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:697
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error: local siril-spcc-database repository folder is not configured with %s "
 "as its remote. You should remove the folder %s and restart Siril to re-clone "
 "the correct repository.\n"
 msgstr ""
-"Fehler: Der lokale siril-scripts-Repository-Ordner ist nicht mit %s als "
-"Remote-Ordner konfiguriert. Sie sollten den Ordner %s entfernen und Siril "
-"neu starten, um das richtige Repository neu zu klonen.\n"
+"Fehler: Der lokale siril-SPCC-Datenbank-Repository-Ordner ist nicht mit %s "
+"als Remote-Ordner konfiguriert. Sie sollten den Ordner %s entfernen und "
+"Siril neu starten, um das richtige Repository neu zu klonen.\n"
 
 #: src/io/siril_git.c:735
-#, fuzzy
 msgid "Local SPCC database repository is up-to-date!\n"
-msgstr "Lokales Skript-Repository ist aktuell!\n"
+msgstr "Lokales SPCC-Datenbank-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:761
 msgid "Error: unable to open local scripts repository.\n"
 msgstr "Fehler: Lokales Skript-Repository kann nicht geöffnet werden.\n"
 
 #: src/io/siril_git.c:783
-#, fuzzy
 msgid "Error: unable to open local spcc-database repository.\n"
-msgstr "Fehler: Lokales Skript-Repository kann nicht geöffnet werden.\n"
+msgstr "Fehler: Lokales SPCC-Datenbank-Repository kann nicht geöffnet werden.\n"
 
 #: src/io/siril_git.c:892
 #, c-format
@@ -26108,7 +26198,6 @@ msgid "Warning!"
 msgstr "Warnung!"
 
 #: src/io/siril_git.c:916
-#, fuzzy
 msgid ""
 "Merge analysis shows that the merge cannot be fast-forwarded. This indicates "
 "you have made changes to the local repository. Siril does not provide full "
@@ -26124,7 +26213,7 @@ msgid ""
 msgstr ""
 "Die Analyse der Zusammenführung zeigt, dass die Zusammenführung nicht "
 "übersprungen werden kann. Dies bedeutet, dass Sie Änderungen am lokalen "
-"Skript-Repository vorgenommen haben. Siril bietet keine vollständige Git-"
+"Repository vorgenommen haben. Siril bietet keine vollständige Git-"
 "Funktionalität und kann nicht verwendet werden, um Upstream-Aktualisierungen "
 "in ein geändertes lokales Repository einzubinden.\n"
 "\n"
@@ -26147,18 +26236,16 @@ msgid "Confirm"
 msgstr "Bestätigen"
 
 #: src/io/siril_git.c:941 src/io/siril_git.c:991
-#, fuzzy
 msgid "Error! SPCC database failed to update."
-msgstr "Fehler! Skripte können nicht aktualisiert werden."
+msgstr "Fehler! SPCC-Datenbank konnte nicht aktualisiert werden."
 
 #: src/io/siril_git.c:945 src/io/siril_git.c:994
 msgid "Update cancelled. Updates have not been applied."
 msgstr "Update abgebrochen. Updates wurden nicht angewendet."
 
 #: src/io/siril_git.c:949
-#, fuzzy
 msgid "The spcc-database repository is up to date."
-msgstr "Das Skript-Repository ist auf dem neuesten Stand."
+msgstr "Das SPCC-Datenbank-Repository ist auf dem neuesten Stand."
 
 #: src/io/siril_git.c:966
 msgid ""
@@ -26189,39 +26276,40 @@ msgstr ""
 "Skriptverzeichnisse hinzufügen."
 
 #: src/io/siril_git.c:1006
-#, fuzzy
 msgid "The SPCC database repository is up to date."
-msgstr "Das Skript-Repository ist auf dem neuesten Stand."
+msgstr "Das SPCC-Datenbank-Repository ist auf dem neuesten Stand."
 
 #: src/io/spcc_json.c:57 src/io/spcc_json.c:243 src/io/spcc_json.c:433
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading SPCC JSON file: %s\n"
-msgstr "Fehler beim Öffnen der Dateien!\n"
+msgstr "Fehler beim Laden der SPCC JSON-Datei: %s\n"
 
 #: src/io/spcc_json.c:67 src/io/spcc_json.c:443
 msgid "Error: The JSON file should contain an array of objects.\n"
-msgstr ""
+msgstr "Fehler: Die JSON-Datei sollte ein Feld von Objekten enthalten.\n"
 
 #: src/io/spcc_json.c:161
 #, c-format
 msgid ""
 "Error loading SPCC JSON file: arrays have not the same size (%d != %d)\n"
 msgstr ""
+"Fehler beim Laden der SPCC JSON-Datei: Felder haben nicht die selbe Größe ("
+"%d != %d)\n"
 
 #: src/io/spcc_json.c:310
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading JSON object in file %s\n"
-msgstr "Fehler beim Öffnen der Datei %s\n"
+msgstr "Fehler beim Lesen des JSON-Objekte in Datei %s\n"
 
 #: src/io/spcc_json.c:396
 #, c-format
 msgid "Warning: Duplicate x value detected in JSON file %s: %.1f\n"
-msgstr ""
+msgstr "Warnung: Doppelte X-Werte in JSON-Datei %s erkannt: %.1f\n"
 
 #: src/io/spcc_json.c:476
 #, c-format
 msgid "Warning: error in JSON file %s: unrecognised wavelength unit\n"
-msgstr ""
+msgstr "Warnung: Fehler in JSON-Datei %s: Unerkannte Einheit der Wellenlänge\n"
 
 #: src/livestacking/gui.c:88
 #, c-format
