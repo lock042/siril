@@ -1733,7 +1733,7 @@ static gboolean crop_command_idle(gpointer arg) {
 }
 
 int process_ccm(int nb) {
-	if (!isrgb(fit)) {
+	if (!isrgb(&gfit)) {
 		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
 		return CMD_INVALID_IMAGE;
 	}
