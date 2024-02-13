@@ -1733,7 +1733,7 @@ static gboolean crop_command_idle(gpointer arg) {
 }
 
 int process_ccm(int nb) {
-	if (gfit.naxes[2] != 3) {
+	if (!isrgb(fit)) {
 		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
 		return CMD_INVALID_IMAGE;
 	}
@@ -1742,7 +1742,7 @@ int process_ccm(int nb) {
 	ccm matrix = { { 0.f } };
 	for (int i = 0 ; i < 3 ; i++) {
 		for (int j = 0 ; j < 3 ; j++) {
-			int word_index = 3*i+j+1;
+			int word_index = 3 * i + j + 1;
 			matrix[i][j] = g_ascii_strtod(word[word_index], &end);
 			if (end == word[word_index]) {
 				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
