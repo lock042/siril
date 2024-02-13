@@ -426,7 +426,7 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 }
 
 // copies all the data from an item to another item
-void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to) {
+void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean metadata_only) {
 	if (!from || !to) {
 		siril_debug_print("no catalogue to copy from or to\n");
 		return;
@@ -438,7 +438,7 @@ void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to) {
 		to->IAUcode = g_strdup(from->IAUcode);
 	if (from->dateobs)
 		to->dateobs = g_date_time_add(from->dateobs, 0); // makes a copy
-	if (from->cat_items) {
+	if (!metadata_only && from->cat_items) {
 		to->cat_items = calloc(to->nbitems, sizeof(cat_item));
 		for (int i = 0; i < to->nbitems; i++ )
 			siril_catalogue_copy_item(from->cat_items + i, to->cat_items + i);
@@ -1187,6 +1187,44 @@ double compute_coords_distance(double ra1, double dec1, double ra2, double dec2)
 		return 180.0;   // h = 1, asin(1) is pi/2
 	return 2.0 * asin(sqrt(h)) * RADTODEG;
 }
+
+int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, double ra, double dec, double radius_deg, float limit_mag, siril_catalogue *siril_cat_out) {
+	if (!siril_cat_in)
+		return 0;
+	int nb_alloc = 1200, nb_items = 0;
+	cat_item *cat_items = calloc(nb_alloc, sizeof(cat_item));
+	if (!cat_items) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	if (limit_mag < 0)
+		limit_mag = 30.;
+	double radius_h = pow(sin(0.5 * radius_deg * DEGTORAD), 2);
+	for (int i = 0; i < siril_cat_in->nbitems; i++) {
+		if (nb_items >= nb_alloc) { // re-allocating if there is more to read
+			nb_alloc *= 2;
+			cat_item *new_array = realloc(cat_items, nb_alloc * sizeof(cat_item));
+			if (!new_array) {
+				PRINT_ALLOC_ERR;
+				return -1;
+			}
+			cat_items = new_array;
+		}
+		if (siril_cat_in->cat_items[i].mag > limit_mag)
+			continue;
+		double dist_h = compute_coords_distance_h(ra, dec, siril_cat_in->cat_items[i].ra, siril_cat_in->cat_items[i].dec);
+		if (dist_h <= radius_h) {
+			siril_catalogue_copy_item(siril_cat_in->cat_items + i, cat_items + nb_items);
+			nb_items++;
+		}
+	}
+	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
+	siril_cat_out->cat_items = final_array;
+	siril_cat_out->nbitems = nb_items;
+	siril_cat_out->nbincluded = nb_items;
+	return nb_items;
+}
+
 // TODO: using this for the moment to avoid chaging too many files
 // This copies the info contained in the catalogue to a psf_star** list
 // only the included items are copied over

@@ -62,7 +62,7 @@
 
 
 #define DOWNSAMPLE_FACTOR 0.25
-#define CONV_TOLERANCE 1E-3 // convergence tolerance in arcsec from the projection center
+#define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center
 #define NB_GRID_POINTS 6 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; goto clearup;}
@@ -113,7 +113,7 @@ static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args
 		ret->cat_center = siril_world_cs_copy(args->cat_center);
 	if (args->ref_stars) {
 		ret->ref_stars = calloc(1, sizeof(siril_catalogue));
-		siril_catalogue_copy(args->ref_stars, ret->ref_stars);
+		siril_catalogue_copy(args->ref_stars, ret->ref_stars, FALSE);
 	}
 	ret->fit = NULL;
 	ret->filename = NULL;
@@ -1050,15 +1050,22 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 	int N;
 	double ra0 = siril_world_cs_get_alpha(args->cat_center);
 	double dec0 = siril_world_cs_get_delta(args->cat_center);
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	if (args->blind) {
 		if (!args->blindradius)
 			args->blindradius = 3.;
 		centers = get_centers(args->used_fov / 60., args->blindradius, ra0, dec0, &N);
+		siril_log_message("N:%d\n", N);
+		args->ref_stars->radius = args->blindradius * 60.;
+		get_catalog_stars(args->ref_stars); // we fetch all the stars within the blind cone
 	} else {
 		centers = malloc(sizeof(point));
 		centers[0].x = ra0;
 		centers[0].y = dec0;
 		N = 1;
+		if (!args->for_sequence)
+			get_catalog_stars(args->ref_stars);
 	}
 	gboolean solved = FALSE;
 	siril_catalogue *siril_cat = NULL;
@@ -1067,17 +1074,18 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 	int ret = 1;
 	double ra = -1., dec = -1.;
 	while (!solved && n < N) {
-		if (args->for_sequence && !args->blind) {
+		if (!args->blind) {
 			siril_cat = args->ref_stars; // the catalogue has already been fetched in the prepare_hook and copied in the image_hook
 		} else {
 			if (n == 0) {
 				siril_cat = calloc(1, sizeof(siril_catalogue));
-				siril_catalogue_copy(args->ref_stars, siril_cat); // this only copies the query parameters, the catalogue has not yet been fetched
+				siril_catalogue_copy(args->ref_stars, siril_cat, TRUE); // this only copies the query parameters, the catalogue has not yet been fetched
 			}
-			siril_catalog_free_items(siril_cat);
 			siril_cat->center_ra = centers[n].x;
 			siril_cat->center_dec = centers[n].y;
-			get_catalog_stars(siril_cat);
+			siril_cat->radius = 0.5 * args->used_fov / 60.;
+			int a = siril_catalog_inner_conesearch(args->ref_stars, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, -1, siril_cat);
+			siril_log_message("n:%d\n", a);
 		}
 		ret = match_catalog(stars, nb_stars, siril_cat, args->scale, args->trans_order, &t, &ra, &dec);
 		if (!ret) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center if it was too far away
@@ -1155,6 +1163,8 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 	if (ret) {
 		args->message = g_strdup("failed\n");
 	}
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
 	free(centers);
 	if (siril_cat != args->ref_stars)
 		siril_catalog_free(siril_cat);

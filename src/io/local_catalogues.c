@@ -301,6 +301,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
 	int *trixels;
 	int nb_trixels;
+	uint64_t test = get_htm_index_for_coords(ra, dec, 8);
 	if (get_htm_indices_around_target(ra, dec, radius, cat->HTM_Level, &trixels, &nb_trixels)) {
 		*stars = NULL;
 		*nb_stars = 0;
