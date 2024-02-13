@@ -2566,6 +2566,21 @@ Output is a csv file compatible with NINA Exoplanet</property>
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_ccm">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the CCM dialog</property>
+            <property name="action-name">win.ccm-processing</property>
+            <property name="text" translatable="yes">Color Conversion Matrix...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="info_menu_headers">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -2576,7 +2591,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -2590,7 +2605,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
       </object>
