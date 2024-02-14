@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-14 11:03+0100\n"
+"POT-Creation-Date: 2024-02-14 11:04+0100\n"
 "PO-Revision-Date: 2018-09-12 11:00+0300\n"
 "Last-Translator: Maksym Pyatnytskyy <mpyat2@gmail.com>\n"
 "Language-Team: Maksym Pyatnytskyy, Oleh Malyi. mpyat2@gmail.com\n"
@@ -28,7 +28,7 @@ msgstr "Послідовність не вибрана"
 #: src/gui/uifiles/background_extraction_dialog.ui:73
 #: src/gui/uifiles/bdeconv_dialog.ui:270 src/gui/uifiles/binxy_dialog.ui:57
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:64
-#: src/gui/uifiles/color_calibration.ui:114
+#: src/gui/uifiles/ccm_dialog.ui:57 src/gui/uifiles/color_calibration.ui:114
 #: src/gui/uifiles/composition_dialog.ui:110
 #: src/gui/uifiles/cosmetic_dialog.ui:69 src/gui/uifiles/crop_dialog.ui:51
 #: src/gui/uifiles/cut_coords_dialog.ui:75 src/gui/uifiles/cut_dialog.ui:56
@@ -56,7 +56,8 @@ msgstr "Закрити"
 #: src/gui/uifiles/background_extraction_dialog.ui:88
 #: src/gui/uifiles/bdeconv_dialog.ui:302 src/gui/uifiles/binxy_dialog.ui:71
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:78
-#: src/gui/uifiles/CLAHE_dialog.ui:96 src/gui/uifiles/color_calibration.ui:128
+#: src/gui/uifiles/ccm_dialog.ui:71 src/gui/uifiles/CLAHE_dialog.ui:96
+#: src/gui/uifiles/color_calibration.ui:128
 #: src/gui/uifiles/cosmetic_dialog.ui:84 src/gui/uifiles/crop_dialog.ui:65
 #: src/gui/uifiles/cut_coords_dialog.ui:89 src/gui/uifiles/cut_dialog.ui:70
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:88
@@ -225,8 +226,8 @@ msgstr ""
 msgid "Asinh Transformation"
 msgstr "Виконати трансформацію"
 
-#: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/CLAHE_dialog.ui:68
-#: src/gui/uifiles/dialog_star_remix.ui:1501
+#: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/ccm_dialog.ui:43
+#: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/dialog_star_remix.ui:1501
 #: src/gui/uifiles/dialog_star_remix.ui:1549
 #: src/gui/uifiles/histogram_dialog.ui:156
 #: src/gui/uifiles/histogram_dialog.ui:160
@@ -1508,6 +1509,68 @@ msgstr "Встановіть цей прапорець, якщо смугаст�
 #: src/gui/uifiles/canon_fixbanding_dialog.ui:290
 msgid "Prefix of the image names resulting from the unband process."
 msgstr "Префікс імен зображень після зменшення смугастості."
+
+#: src/gui/uifiles/ccm_dialog.ui:13 src/gui/uifiles/ccm_dialog.ui:248
+#, fuzzy
+msgid "Color Conversion Matrix"
+msgstr "Медіанний стекінг завершено."
+
+#: src/gui/uifiles/ccm_dialog.ui:27
+msgid "Restore ICC"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:32
+msgid "Reactivate ICC profile previously disabled by applying a CCM"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
+#: src/gui/uifiles/ccm_dialog.ui:232
+msgid "1.0"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:134 src/gui/uifiles/ccm_dialog.ui:148
+#: src/gui/uifiles/ccm_dialog.ui:162 src/gui/uifiles/ccm_dialog.ui:190
+#: src/gui/uifiles/ccm_dialog.ui:204 src/gui/uifiles/ccm_dialog.ui:218
+msgid "0.0"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:281
+msgid "The power to which each result pixel will be raised."
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:297
+msgid "Power:"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:309
+#, fuzzy
+msgid "Presets:"
+msgstr "Скинути"
+
+#: src/gui/uifiles/ccm_dialog.ui:322
+msgid "Custom"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:323
+msgid "Linear Rec.709_D65 to XYZ"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:324
+msgid "XYZ to Linear Rec.709_D65"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:325
+msgid "Simplified sRGB (gamma = 2.2) to XYZ"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:326
+msgid "XYZ to Simplified sRGB (gamma = 2.2)"
+msgstr ""
+
+#: src/gui/uifiles/ccm_dialog.ui:343
+#, fuzzy
+msgid "Settings"
+msgstr "Налаштування..."
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1347
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
