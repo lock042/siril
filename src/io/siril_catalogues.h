@@ -193,7 +193,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity);
 int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
-int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, double ra, double dec, double radius_deg, float limit_mag, siril_catalogue *siril_cat_out);
+int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, siril_catalogue *siril_cat_out);
 psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat);
 siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, float limit_mag);
 gpointer conesearch_worker(gpointer p);

@@ -52,7 +52,7 @@ struct astrometry_data {
 	int ry_solver;		// height of the image being solved (accounting for downscale if any)
 	double scalefactor;	// scale factor accounting for downscale if any
 	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
-	double blindradius; // radius of the cone if blind in degrees
+	double searchradius; // radius of the cone if blind in degrees
 
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel

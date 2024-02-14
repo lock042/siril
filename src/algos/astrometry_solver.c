@@ -64,6 +64,7 @@
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center
 #define NB_GRID_POINTS 6 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
+#define NEAR_MAG_OFFSET 3. // the offset in limit magnitude for siril internal near solver
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; goto clearup;}
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
@@ -498,7 +499,7 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 	siril_log_message(_("Image center: alpha: %s, delta: %s\n"), args->fit->wcsdata.objctra, args->fit->wcsdata.objctdec);
 	double dist = compute_coords_distance(args->fit->wcsdata.ra, args->fit->wcsdata.dec,
 										siril_world_cs_get_alpha(args->cat_center), siril_world_cs_get_delta(args->cat_center));
-	siril_log_message(_("Was %.2f arcmin from previous value\n"), dist * 60.);
+	siril_log_message(_("Was %.2f arcmin from initial value\n"), dist * 60.);
 }
 
 // binomial coeffs up to n=6
@@ -747,6 +748,7 @@ void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 }
 
 static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution);
+static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution);
 static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_cat, double scale, int order, TRANS *trans_out, double *ra_out, double *dec_out);
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution);
 
@@ -910,7 +912,15 @@ gpointer plate_solver(gpointer p) {
 			stars[s]->ypos = y0 - stars[s]->ypos;
 		}
 		if (siril_platesolve(stars, nb_stars, args, &solution)) {
-			args->ret = ERROR_PLATESOLVE;
+			if (args->blind) {
+				if (!args->searchradius)
+					args->searchradius = 20.;
+				siril_log_color_message(_("Initial solve failed\n"), "salmon", "salmon");
+				siril_log_color_message(_("Attempting a near solve with a radius of %3.1f degrees\n"), "salmon", args->searchradius);
+				if (siril_near_platesolve(stars, nb_stars, args, &solution))
+					args->ret = ERROR_PLATESOLVE;
+			} else
+				args->ret = ERROR_PLATESOLVE;
 		}
 	}
 	if (args->ret)
@@ -984,6 +994,7 @@ typedef enum {
 	SOLVE_INVALID_TRANS, 		//solution->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
 	SOLVE_PROJ, //solution->message = g_strdup(_("Reprojecting catalog failed."));
 	SOLVE_TRANS_UPDATE, //g_strdup(_("Updating trans failed."));
+	SOLVE_NEAR_NO_MATCH,
 } siril_solve_errcode;
 
 // returns a list of center points to be searched
@@ -1041,133 +1052,151 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 	return centers;
 }
 
+static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	point *centers;
+	int N, n = 0;
+	siril_catalogue *siril_cat;
+	gboolean solved = FALSE;
+	TRANS t = { 0 };
+	int ret = 1;
+	double ra = -1., dec = -1.;
+	double ra0 = siril_world_cs_get_alpha(args->cat_center);
+	double dec0 = siril_world_cs_get_delta(args->cat_center);
+	// We prepare the larger catalogue containing the search cone
+	// we limit the magnitude as we don't want as many stars
+	// we just want to have a good enough linear solution to resend a normal solve afterwards
+	siril_catalog_free_items(args->ref_stars);
+	siril_catalogue siril_search_cat = { 0 };
+	siril_catalogue_copy(args->ref_stars, &siril_search_cat, TRUE);
+	siril_search_cat.radius = args->searchradius * 60.;
+	siril_search_cat.limitmag = args->ref_stars->limitmag - NEAR_MAG_OFFSET;
+	// we fetch all the stars within the search cone
+	// The catalogue will be indexed, so we won't have the stars sorted by mag (disabled in get_catalog_stars)
+	get_catalog_stars(&siril_search_cat); // we fetch all the stars within the search cone
+
+	// We prepare the list of centers to be searched
+	centers = get_centers(args->used_fov / 60., args->searchradius, ra0, dec0, &N);
+	// and we loop...
+	while (!solved && n < N) {
+		if (n == 0) {
+			siril_cat = calloc(1, sizeof(siril_catalogue));
+			siril_catalogue_copy(&siril_search_cat, siril_cat, TRUE); // this only copies the query parameters
+		}
+		siril_catalog_free_items(siril_cat);
+		siril_cat->center_ra = centers[n].x;
+		siril_cat->center_dec = centers[n].y;
+		siril_cat->radius = args->ref_stars->radius;
+		int a = siril_catalog_inner_conesearch(&siril_search_cat, siril_cat);
+		// siril_log_message("n:%d\n", a);
+		if (a) {
+			ret = match_catalog(stars, nb_stars, siril_cat, args->scale, AT_TRANS_LINEAR, &t, &ra, &dec);
+		}
+		if (ret == SOLVE_OK || ret == SOLVE_CANCELLED)
+			solved = TRUE;
+		n++;
+	}
+	if (!solved)
+		ret = SOLVE_NEAR_NO_MATCH;
+	free(centers);
+	siril_catalog_free(siril_cat);
+	siril_catalog_free_items(&siril_search_cat);
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	if (!(ret == SOLVE_OK))
+		return ret; // the near search has failed, we stop there
+	// Otherwise, we do a normal platesolve with the updated ra and dec
+	siril_log_color_message(_("Solving again at updated center\n"), "green");
+	siril_catalog_free_items(args->ref_stars);
+	args->ref_stars->center_ra = ra;
+	args->ref_stars->center_dec = dec;
+	return siril_platesolve(stars, nb_stars, args, solution);
+}
+
 /* entry point for siril's plate solver based on catalogue matching
    args->fit is not modified by this function
    Only solution is filled
 */
 static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
-	point *centers;
-	int N;
-	double ra0 = siril_world_cs_get_alpha(args->cat_center);
-	double dec0 = siril_world_cs_get_delta(args->cat_center);
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
-	if (args->blind) {
-		if (!args->blindradius)
-			args->blindradius = 3.;
-		centers = get_centers(args->used_fov / 60., args->blindradius, ra0, dec0, &N);
-		siril_log_message("N:%d\n", N);
-		args->ref_stars->radius = args->blindradius * 60.;
-		get_catalog_stars(args->ref_stars); // we fetch all the stars within the blind cone
-	} else {
-		centers = malloc(sizeof(point));
-		centers[0].x = ra0;
-		centers[0].y = dec0;
-		N = 1;
-		if (!args->for_sequence)
-			get_catalog_stars(args->ref_stars);
-	}
-	gboolean solved = FALSE;
-	siril_catalogue *siril_cat = NULL;
-	int n = 0;
+	if (!args->for_sequence)
+		get_catalog_stars(args->ref_stars);
 	TRANS t = { 0 };
 	int ret = 1;
 	double ra = -1., dec = -1.;
-	while (!solved && n < N) {
-		if (!args->blind) {
-			siril_cat = args->ref_stars; // the catalogue has already been fetched in the prepare_hook and copied in the image_hook
-		} else {
-			if (n == 0) {
-				siril_cat = calloc(1, sizeof(siril_catalogue));
-				siril_catalogue_copy(args->ref_stars, siril_cat, TRUE); // this only copies the query parameters, the catalogue has not yet been fetched
-			}
-			siril_cat->center_ra = centers[n].x;
-			siril_cat->center_dec = centers[n].y;
-			siril_cat->radius = 0.5 * args->used_fov / 60.;
-			int a = siril_catalog_inner_conesearch(args->ref_stars, siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, -1, siril_cat);
-			siril_log_message("n:%d\n", a);
-		}
-		ret = match_catalog(stars, nb_stars, siril_cat, args->scale, args->trans_order, &t, &ra, &dec);
-		if (!ret) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center if it was too far away
-			double dist = compute_coords_distance(centers[n].x, centers[n].y, ra, dec) * 60.; // distance from last fetched catalogue and solution center in arcmin
-			if (args->blind && dist > 0.3 * args->ref_stars->radius) {
-				siril_catalog_free_items(siril_cat);
-				siril_cat->center_ra = ra;
-				siril_cat->center_dec = dec;
-				get_catalog_stars(siril_cat);
-				int ret2;
-				TRANS t2 = { 0 };
-				double ra2 = -1., dec2 = -1.;
-				ret2 = match_catalog(stars, nb_stars, siril_cat, args->scale, args->trans_order, &t2, &ra2, &dec2);
-				if (!ret2) {
-					t = t2;
-					ra = ra2;
-					dec = dec2;
-				} else {
-					ret = SOLVE_LASTSOLVE;
-				}
-			}
-			double cd[2][2];
-			get_cd_from_trans(&t, cd);
-			for (int i = 0; i < 2; i++) {
-				for (int j = 0; j < 2; j++) {
-					cd[i][j] *= ASECTODEG;
-				}
-			}
-			/**** Fill solution wcslib structure ***/
-			wcsprm_t *prm = calloc(1, sizeof(wcsprm_t));
-			prm->flag = -1;
-			wcsinit(1, 2, prm, 0, 0, 0);
-			prm->equinox = 2000.0;
-			prm->crpix[0] = (double)args->rx_solver * 0.5;
-			prm->crpix[1] = (double)args->ry_solver * 0.5;
-			// we now go back to FITS convention (from siril)
-			prm->crpix[0] += 0.5;
-			prm->crpix[1] += 0.5;
-			prm->crval[0] = ra;
-			prm->crval[1] = dec;
-			prm->lonpole = 180.;
-			if (t.order == AT_TRANS_LINEAR) {
-					const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
-					const char CUNIT[2][4] = { "deg", "deg" };
-					for (int i = 0; i < NAXIS; i++) {
-						strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
-					}
-					for (int i = 0; i < NAXIS; i++) {
-						strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
-					}
+	double ra0 = args->ref_stars->center_ra;
+	double dec0 = args->ref_stars->center_dec;
+	ret = match_catalog(stars, nb_stars, args->ref_stars, args->scale, args->trans_order, &t, &ra, &dec);
+	if (!ret) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center if it was too far away
+		double dist = compute_coords_distance(ra0, dec0, ra, dec) * 60.; // distance from last fetched catalogue and solution center in arcmin
+		if (args->blind && dist > 0.3 * args->ref_stars->radius) {
+			siril_catalog_free_items(args->ref_stars);
+			args->ref_stars->center_ra = ra;
+			args->ref_stars->center_dec = dec;
+			get_catalog_stars(args->ref_stars);
+			int ret2;
+			TRANS t2 = { 0 };
+			double ra2 = -1., dec2 = -1.;
+			ret2 = match_catalog(stars, nb_stars, args->ref_stars, args->scale, args->trans_order, &t2, &ra2, &dec2);
+			if (!ret2) {
+				t = t2;
+				ra = ra2;
+				dec = dec2;
 			} else {
-					const char CTYPE[2][12] = { "RA---TAN-SIP", "DEC--TAN-SIP" };
-					const char CUNIT[2][4] = { "deg", "deg" };
-					for (int i = 0; i < NAXIS; i++) {
-						strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
-					}
-					for (int i = 0; i < NAXIS; i++) {
-						strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
-					}
-				}
-			// we pass cd and let wcslib decompose it
-			wcs_decompose_cd(prm, cd);
-			if (t.order > AT_TRANS_LINEAR)
-				add_disto_to_wcslib(prm, &t, args->rx_solver, args->ry_solver);
-			wcs_print(prm);
-			solution->wcslib = prm;
-			if (args->verbose)
-				siril_log_color_message(_("Siril internal solver succeeded.\n"), "green");
-			solved = TRUE;
-		} else if (ret == SOLVE_CANCELLED) {
-			solved = TRUE; // just to break the while
+				ret = SOLVE_LASTSOLVE;
+			}
 		}
-		n++;
+		double cd[2][2];
+		get_cd_from_trans(&t, cd);
+		for (int i = 0; i < 2; i++) {
+			for (int j = 0; j < 2; j++) {
+				cd[i][j] *= ASECTODEG;
+			}
+		}
+		/**** Fill solution wcslib structure ***/
+		wcsprm_t *prm = calloc(1, sizeof(wcsprm_t));
+		prm->flag = -1;
+		wcsinit(1, 2, prm, 0, 0, 0);
+		prm->equinox = 2000.0;
+		prm->crpix[0] = (double)args->rx_solver * 0.5;
+		prm->crpix[1] = (double)args->ry_solver * 0.5;
+		// we now go back to FITS convention (from siril)
+		prm->crpix[0] += 0.5;
+		prm->crpix[1] += 0.5;
+		prm->crval[0] = ra;
+		prm->crval[1] = dec;
+		prm->lonpole = 180.;
+		if (t.order == AT_TRANS_LINEAR) {
+				const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
+				const char CUNIT[2][4] = { "deg", "deg" };
+				for (int i = 0; i < NAXIS; i++) {
+					strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+				}
+				for (int i = 0; i < NAXIS; i++) {
+					strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+				}
+		} else {
+				const char CTYPE[2][12] = { "RA---TAN-SIP", "DEC--TAN-SIP" };
+				const char CUNIT[2][4] = { "deg", "deg" };
+				for (int i = 0; i < NAXIS; i++) {
+					strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+				}
+				for (int i = 0; i < NAXIS; i++) {
+					strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+				}
+			}
+		// we pass cd and let wcslib decompose it
+		wcs_decompose_cd(prm, cd);
+		if (t.order > AT_TRANS_LINEAR)
+			add_disto_to_wcslib(prm, &t, args->rx_solver, args->ry_solver);
+		wcs_print(prm);
+		solution->wcslib = prm;
+		if (args->verbose)
+			siril_log_color_message(_("Siril internal solver succeeded.\n"), "green");
 	}
-	if (ret) {
+	if (ret) { // TODO: update msg with return?
 		args->message = g_strdup("failed\n");
 	}
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	free(centers);
-	if (siril_cat != args->ref_stars)
-		siril_catalog_free(siril_cat);
 	return (ret > 0);
 }
 

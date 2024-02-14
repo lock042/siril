@@ -425,7 +425,7 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 	}
 }
 
-// copies all the data from an item to another item
+// copies all the data from a catalogue to another
 void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean metadata_only) {
 	if (!from || !to) {
 		siril_debug_print("no catalogue to copy from or to\n");
@@ -442,6 +442,11 @@ void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean m
 		to->cat_items = calloc(to->nbitems, sizeof(cat_item));
 		for (int i = 0; i < to->nbitems; i++ )
 			siril_catalogue_copy_item(from->cat_items + i, to->cat_items + i);
+	} else {
+		to->cat_items = NULL;
+		to->nbitems = 0;
+		to->nbincluded = -1;
+		to->projected = CAT_PROJ_NONE;
 	}
 }
 
@@ -1188,7 +1193,7 @@ double compute_coords_distance(double ra1, double dec1, double ra2, double dec2)
 	return 2.0 * asin(sqrt(h)) * RADTODEG;
 }
 
-int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, double ra, double dec, double radius_deg, float limit_mag, siril_catalogue *siril_cat_out) {
+int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, siril_catalogue *siril_cat_out) {
 	if (!siril_cat_in)
 		return 0;
 	int nb_alloc = 1200, nb_items = 0;
@@ -1197,9 +1202,10 @@ int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, double ra, dou
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
-	if (limit_mag < 0)
-		limit_mag = 30.;
-	double radius_h = pow(sin(0.5 * radius_deg * DEGTORAD), 2);
+	double ra = siril_cat_out->center_ra;
+	double dec = siril_cat_out->center_dec;
+
+	double radius_h = pow(sin(0.5 * siril_cat_out->radius / 60. * DEGTORAD), 2);
 	for (int i = 0; i < siril_cat_in->nbitems; i++) {
 		if (nb_items >= nb_alloc) { // re-allocating if there is more to read
 			nb_alloc *= 2;
@@ -1210,8 +1216,6 @@ int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, double ra, dou
 			}
 			cat_items = new_array;
 		}
-		if (siril_cat_in->cat_items[i].mag > limit_mag)
-			continue;
 		double dist_h = compute_coords_distance_h(ra, dec, siril_cat_in->cat_items[i].ra, siril_cat_in->cat_items[i].dec);
 		if (dist_h <= radius_h) {
 			siril_catalogue_copy_item(siril_cat_in->cat_items + i, cat_items + nb_items);

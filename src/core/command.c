@@ -8876,7 +8876,7 @@ int process_platesolve(int nb) {
 	args->coords_forced = coords_forced;
 	args->downsample = downsample;
 	args->autocrop = autocrop;
-	// args->blindradius = 3.;
+	// args->searchradius = 3.;
 	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
 		siril_debug_print("forced no flip for solving an image from a sequence");
