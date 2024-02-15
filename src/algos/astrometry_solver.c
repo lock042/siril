@@ -1057,7 +1057,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	gettimeofday(&t_start, NULL);
 	point *centers;
 	int N, n = 0;
-	siril_catalogue *siril_cat;
+	siril_catalogue *siril_cat = NULL;
 	gboolean solved = FALSE;
 	TRANS t = { 0 };
 	int ret = 1;
@@ -1073,7 +1073,6 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	siril_search_cat.radius = args->searchradius * 60.;
 	siril_search_cat.limitmag = args->ref_stars->limitmag - NEAR_MAG_OFFSET;
 	// we fetch all the stars within the search cone
-	// The catalogue will be indexed, so we won't have the stars sorted by mag (disabled in get_catalog_stars)
 	get_catalog_stars(&siril_search_cat); // we fetch all the stars within the search cone
 
 	// We prepare the list of centers to be searched

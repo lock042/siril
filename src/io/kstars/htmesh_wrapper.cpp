@@ -23,7 +23,7 @@
 #include "htmesh_wrapper.h"
 #include <stdlib.h>
 
-uint64_t get_htm_index_for_coords(double ra, double dec, int levels) {
+int get_htm_index_for_coords(double ra, double dec, int levels) {
 	HTMesh mesh = HTMesh(levels, 0, 1);
 	return mesh.index(ra, dec);
 }
