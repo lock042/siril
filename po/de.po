@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-14 11:04+0100\n"
-"PO-Revision-Date: 2024-02-11 20:40+0000\n"
+"PO-Revision-Date: 2024-02-18 16:37+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.3.1\n"
+"X-Generator: Weblate 5.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -5360,7 +5360,7 @@ msgstr "Astrometrie"
 
 #: src/gui/uifiles/settings_window.ui:1152
 msgid "Catalogue"
-msgstr "Sternkatalog"
+msgstr "Katalog"
 
 #: src/gui/uifiles/settings_window.ui:1180
 msgid ""
@@ -12374,7 +12374,7 @@ msgstr "Photometrische Radien auf %.1f für innen und %.1f für außen gesetzt\n
 
 #: src/algos/photometric_cc.c:762
 msgid "Photometric color calibration in progress..."
-msgstr "Photometrische Farbkalibrierung in Arbeit..."
+msgstr "Photometrische Farbkalibrierung läuft..."
 
 #: src/algos/photometric_cc.c:781
 msgid "Photometric Color Calibration failed"
@@ -12414,8 +12414,8 @@ msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
 msgstr ""
-"Ermittlung von Sternen aus dem Online-Katalog %s für PCC, mit einem Radius "
-"von %.2f Grad und einer Grenzgröße von %.2f\n"
+"Ermittle Sterne aus online Katalog %s für die Farbkalibrierung, mit einem "
+"Radius von %.2f Grad und einer Grenzgröße von %.2f\n"
 
 #: src/algos/photometric_cc.c:876
 msgid "SPCC"
@@ -20615,7 +20615,7 @@ msgstr "Swap-Verzeichnis"
 
 #: src/core/settings.c:329
 msgid "update pixel size of binned images"
-msgstr "Aktualisierung der Pixelgröße von gebinnten Bildern"
+msgstr ""
 
 #: src/core/settings.c:330
 msgid "WCS formalism used in FITS header"
@@ -20755,70 +20755,72 @@ msgid ""
 "catalogues to be used to discard the variable stars from the comparison "
 "stars list"
 msgstr ""
+"Kataloge, die verwendet werden sollen, um die variablen Sterne aus der Liste "
+"der Vergleichssterne zu entfernen"
 
 #: src/core/settings.c:372
 msgid "preferred SPCC red filter"
-msgstr "Bevorzugtes SPCC-Rotfilter"
+msgstr "Bevorzugtes SPCC Rotfilter"
 
 #: src/core/settings.c:373
 msgid "preferred SPCC green filter"
-msgstr "Bevorzugtes SPCC-Grünfilter"
+msgstr "Bevorzugtes SPCC Grünfilter"
 
 #: src/core/settings.c:374
 msgid "preferred SPCC blue filter"
-msgstr "Bevorzugtes SPCC-Blaufilter"
+msgstr "Bevorzugtes SPCC Blaufilter"
 
 #: src/core/settings.c:375
 msgid "preferred SPCC DSLR LPF filter"
-msgstr "Bevorzugtes SPCC-DSLR-LPF-Filter"
+msgstr "Bevorzugtes SPCC DSLR LPF-Filter"
 
 #: src/core/settings.c:376
 msgid "preferred SPCC OSC filter"
-msgstr "Bevorzugtes SPCC-Farb(OSC)-Filter"
+msgstr "Bevorzugtes SPCC OSC-Filter"
 
 #: src/core/settings.c:377
 msgid "preferred SPCC mono sensor"
-msgstr "Bevorzugter SPCC-Mono-Sensor"
+msgstr "Bevorzugter SPCC Mono-Sensor"
 
 #: src/core/settings.c:378
 msgid "preferred SPCC OSC sensor"
-msgstr "Bevorzugter SPCC Farb(OSC)-Sensor"
+msgstr "Bevorzugter SPCC OSC(Farb)-Sensor"
 
 #: src/core/settings.c:379
 msgid "is the SPCC sensor mono?"
-msgstr "Ist diese SPCC-Sensor monochrom?"
+msgstr "Ist der SPCC-Sensor monochrom?"
 
 #: src/core/settings.c:380
 msgid "is the SPCC OSC sensor a DSLR?"
-msgstr "Ist dieser SPCC Farb(OSC)-Sensor eine DSLR?"
+msgstr "Ist der SPCC-Farbsensor eine DSLR?"
 
 #: src/core/settings.c:381
 msgid "are we in narrowband mode?"
-msgstr "Sind wir im Schmalbandmodus?"
+msgstr "sind wir im Schmalband-Modus?"
 
 #: src/core/settings.c:382
 msgid "red NB filter wavelength"
-msgstr "Wellenlänge Schmalbandfilter rot"
+msgstr "Wellenlänge des Schmalband-Rotfilters"
 
 #: src/core/settings.c:383
 msgid "red NB filter bandwidth"
-msgstr "Durchlassbreite Schmalbandfilter rot"
+msgstr "Durchlassbreite des Schmalband-Rotfilters"
 
 #: src/core/settings.c:384
 msgid "green NB filter wavelength"
-msgstr "Wellenlänge Schmalbandfilter grün"
+msgstr "Wellenlänge des Schmalband-Grünfilters"
 
 #: src/core/settings.c:385
 msgid "green NB filter bandwidth"
-msgstr "Durchlassbreite Schmalbandfilter grün"
+msgstr "Durchlassbreite des Schmalband-Grünfilters"
 
 #: src/core/settings.c:386
 msgid "blue NB filter wavelength"
-msgstr "Wellenlänge Schmalbandfilter blau"
+msgstr "Wellenlänge des Schmalband Blaufilters"
 
 #: src/core/settings.c:387
 msgid "blue NB filter bandwidth"
-msgstr "Durchlassbreite Schmalbandfilter blau"
+msgstr "Durchlassbreite des Schmalband-Blaufilters"
 
 #: src/core/settings.c:389
 msgid "degrees of the polynomial correction"
@@ -21030,19 +21032,19 @@ msgstr "List von Skriptverzeichnissen"
 
 #: src/core/settings.c:458
 msgid "use and sync online scripts repository"
-msgstr "Verwendet und synchronisiert das Online-Skript-Repository"
+msgstr "benutze und synchronisiere das Online Skript-Repository"
 
 #: src/core/settings.c:459
 msgid "use and sync spcc-database repository"
-msgstr "Verwendet und synchronisiert das Online-SPCC-Repository"
+msgstr "benutze und synchronisiere das SPCC-Datenbank-Repository"
 
 #: src/core/settings.c:460
 msgid "auto sync online scripts repository"
-msgstr "Automatische Synchronisierung des Online-Skript-Repositories"
+msgstr "Automatische Synchronisierung des Online Skript-Repositories"
 
 #: src/core/settings.c:461
 msgid "auto sync spcc-database repository"
-msgstr "Automatische Synchronisierung des Online-SPCC-Repositories"
+msgstr "Automatische Synchronisierung des SPCC-Datenbank_Repositories"
 
 #: src/core/settings.c:462
 msgid "list of scripts selected from the repository"
@@ -21082,7 +21084,7 @@ msgstr "ROI Auswahlmodus"
 
 #: src/core/settings.c:471
 msgid "enable ROI dialog warning"
-msgstr "Aktiviere ROI-Dialog-Warnung"
+msgstr "ROI Warndialog aktivieren"
 
 #: src/core/settings.c:472
 msgid "configure background samples color"
@@ -26133,7 +26135,7 @@ msgstr "Gaia DR3 (direkt)"
 
 #: src/io/siril_catalogues.c:242
 msgid "PPMXL"
-msgstr "PPMXL"
+msgstr ""
 
 #: src/io/siril_catalogues.c:244
 msgid "bright stars"
