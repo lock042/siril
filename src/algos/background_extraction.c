@@ -881,6 +881,10 @@ gpointer remove_gradient_from_image(gpointer p) {
 			free(image);
 			free(background);
 			queue_error_message_dialog(_("Not enough samples."), error);
+			if (!args->from_ui) {
+				free_background_sample_list(com.grad_samples);
+				com.grad_samples = NULL;
+			}
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return GINT_TO_POINTER(1);
@@ -903,6 +907,10 @@ gpointer remove_gradient_from_image(gpointer p) {
 	/* free memory */
 	free(image);
 	free(background);
+	if (!args->from_ui) {
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
+	}
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }
