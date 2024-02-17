@@ -797,9 +797,11 @@ static gpointer extract_channels_ushort(gpointer p) {
 	cmsUInt32Number datasize;
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
-	gchar *desc = siril_color_profile_get_description(args->fit->icc_profile);
-	if(args->fit->icc_profile)
+	gchar *desc = NULL;
+	if(args->fit->icc_profile) {
+		desc = siril_color_profile_get_description(args->fit->icc_profile);
 		cmsCloseProfile(args->fit->icc_profile);
+	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
 		* with similar data and an appropriate color profile is assigned.
@@ -1240,5 +1242,45 @@ int pos_to_neg(fits *fit) {
 	}
 	else return 1;
 
+	return 0;
+}
+
+void ccm_float(fits *fit, ccm matrix, float power) {
+	size_t npixels = fit->rx * fit->ry;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = fit->fpdata[RLAYER][i] * matrix[0][0] + fit->fpdata[GLAYER][i] * matrix[0][1] + fit->fpdata[BLAYER][i] * matrix[0][2];
+		float g = fit->fpdata[RLAYER][i] * matrix[1][0] + fit->fpdata[GLAYER][i] * matrix[1][1] + fit->fpdata[BLAYER][i] * matrix[1][2];
+		float b = fit->fpdata[RLAYER][i] * matrix[2][0] + fit->fpdata[GLAYER][i] * matrix[2][1] + fit->fpdata[BLAYER][i] * matrix[2][2];
+		fit->fpdata[RLAYER][i] = powf(r, 1.f / power);
+		fit->fpdata[GLAYER][i] = powf(g, 1.f / power);
+		fit->fpdata[BLAYER][i] = powf(b, 1.f / power);
+	}
+}
+
+void ccm_ushort(fits *fit, ccm matrix, float power) {
+	size_t npixels = fit->rx * fit->ry;
+	float norm = USHRT_MAX_SINGLE;
+	float invnorm = 1.f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = (float) fit->pdata[RLAYER][i] * matrix[0][0] + (float) fit->pdata[GLAYER][i] * matrix[0][1] + (float) fit->pdata[BLAYER][i] * matrix[0][2];
+		float g = (float) fit->pdata[RLAYER][i] * matrix[1][0] + (float) fit->pdata[GLAYER][i] * matrix[1][1] + (float) fit->pdata[BLAYER][i] * matrix[1][2];
+		float b = (float) fit->pdata[RLAYER][i] * matrix[2][0] + (float) fit->pdata[GLAYER][i] * matrix[2][1] + (float) fit->pdata[BLAYER][i] * matrix[2][2];
+		fit->pdata[RLAYER][i] = roundf_to_WORD(norm * powf(r * invnorm, 1.f / power));
+		fit->pdata[GLAYER][i] = roundf_to_WORD(norm * powf(g * invnorm, 1.f/ power));
+		fit->pdata[BLAYER][i] = roundf_to_WORD(norm * powf(b * invnorm, 1.f / power));
+	}
+}
+
+int ccm_calc(fits *fit, ccm matrix, float power) {
+	// We require a 3-channel FITS
+	if (!isrgb(fit))
+		return 1;
+	fit->type == DATA_FLOAT ? ccm_float(fit, matrix, power) : ccm_ushort(fit, matrix, power);
 	return 0;
 }

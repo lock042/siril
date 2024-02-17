@@ -28,6 +28,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/bdeconv_dialog.ui",
 	"/org/siril/ui/binxy_dialog.ui",
 	"/org/siril/ui/canon_fixbanding_dialog.ui",
+	"/org/siril/ui/ccm_dialog.ui",
 	"/org/siril/ui/CLAHE_dialog.ui",
 	"/org/siril/ui/color_calibration.ui",
 	"/org/siril/ui/colorchooserdialog.ui",

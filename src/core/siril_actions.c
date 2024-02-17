@@ -762,3 +762,6 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	on_set_roi();
 }
 
+void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("ccm_dialog");
+}

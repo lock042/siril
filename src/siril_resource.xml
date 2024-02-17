@@ -35,6 +35,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="bdeconv_dialog.ui">gui/uifiles/bdeconv_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="binxy_dialog.ui">gui/uifiles/binxy_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="canon_fixbanding_dialog.ui">gui/uifiles/canon_fixbanding_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="ccm_dialog.ui">gui/uifiles/ccm_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="CLAHE_dialog.ui">gui/uifiles/CLAHE_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="color_calibration.ui">gui/uifiles/color_calibration.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="colorchooserdialog.ui">gui/uifiles/colorchooserdialog.ui</file>
