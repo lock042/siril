@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:41+0100\n"
-"PO-Revision-Date: 2024-02-11 20:39+0000\n"
+"PO-Revision-Date: 2024-02-18 14:02+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/de/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.3.1\n"
+"X-Generator: Weblate 5.4\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7998
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -7772,7 +7772,7 @@ msgstr "Astrometrie"
 
 #: src/gui/siril3.glade:28590
 msgid "Catalogue"
-msgstr "Sternkatalog"
+msgstr "Katalog"
 
 #: src/gui/siril3.glade:28618
 msgid ""
@@ -9257,7 +9257,7 @@ msgstr "Gaia EDR3"
 
 #: src/algos/astrometry_solver.c:102
 msgid "PPMXL"
-msgstr "PPMXL"
+msgstr ""
 
 #: src/algos/astrometry_solver.c:104
 msgid "bright stars"
@@ -10324,7 +10324,7 @@ msgstr "Photometrische Radien auf %.1f für innen und %.1f für außen gesetzt\n
 
 #: src/algos/photometric_cc.c:379
 msgid "Photometric color calibration in progress..."
-msgstr "Photometrische Farbkalibrierung in Arbeit..."
+msgstr "Photometrische Farbkalibrierung läuft..."
 
 #: src/algos/photometric_cc.c:385
 msgid "Photometric Color Calibration failed"
