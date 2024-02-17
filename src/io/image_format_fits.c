@@ -2504,11 +2504,11 @@ int savefits(const char *name, fits *f) {
 	f->naxes[0] = f->rx;
 	f->naxes[1] = f->ry;
 
-	if (f->naxis == 3 && f->naxes[2] != 3) {
+/*	if (f->naxis == 3 && f->naxes[2] != 3) {
 		printf("Trying to save a FITS color file with more than 3 channels?");
 		return 1;
 	}
-
+*/
 	gchar *filename = set_right_extension(name);
 	if (!filename) return 1;
 
