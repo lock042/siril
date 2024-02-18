@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:41+0100\n"
-"PO-Revision-Date: 2024-02-18 14:02+0000\n"
+"PO-Revision-Date: 2024-02-18 22:17+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/de/>\n"
@@ -17108,7 +17108,7 @@ msgstr "Swap-Verzeichnis"
 
 #: src/core/settings.c:275
 msgid "update pixel size of binned images"
-msgstr "Aktualisierung der Pixelgröße von gebinnten Bildern"
+msgstr ""
 
 #: src/core/settings.c:276
 msgid "WCS formalism used in FITS header"
