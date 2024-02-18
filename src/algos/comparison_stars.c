@@ -33,6 +33,7 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 
+
 #define BORDER_RATIO 0.10 // the amount of image that is considered at border
 #define MAX_VAR_CAT 3 // max number of variable stars catalogues
 #define MAX_SEPARATION  2 * 0.000277778 // the max sepration to consider stars are the same
