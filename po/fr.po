@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-14 11:04+0100\n"
-"PO-Revision-Date: 2024-02-15 17:37+0000\n"
+"PO-Revision-Date: 2024-02-18 16:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -726,7 +726,7 @@ msgstr "RBF"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
-msgstr "Polynomiale"
+msgstr "Polynomial"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 msgid "Smoothing"
