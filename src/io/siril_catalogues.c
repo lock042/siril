@@ -472,6 +472,7 @@ void siril_catalog_free_items(siril_catalogue *siril_cat) {
 		return;
 	for (int i = 0; i < siril_cat->nbitems; i++)
 		siril_catalog_free_item(&siril_cat->cat_items[i]);
+	free(siril_cat->cat_items);
 	siril_cat->cat_items = NULL;
 	siril_cat->nbitems = 0;
 	siril_cat->nbincluded = -1;
@@ -684,6 +685,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 		}
 		g_free(line);
 		line = NULL;
+		g_strfreev(vals);
 	}
 	if (nb_items == 0) {
 		siril_log_color_message(_("Catalog %s was read but no items were found in the view cone, nothing to show\n"), "salmon", filename);
