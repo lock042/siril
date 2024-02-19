@@ -1279,7 +1279,7 @@ void ccm_ushort(fits *fit, ccm matrix, float power) {
 
 int ccm_calc(fits *fit, ccm matrix, float power) {
 	// We require a 3-channel FITS
-	if (fit->naxes[2] != 3)
+	if (!isrgb(fit))
 		return 1;
 	fit->type == DATA_FLOAT ? ccm_float(fit, matrix, power) : ccm_ushort(fit, matrix, power);
 	return 0;

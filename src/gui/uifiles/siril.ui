@@ -9902,7 +9902,7 @@ WARNING: This option should not be checked for master stacking.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Menu of the image processing tools. It contains all suitable functions for image enhancement.</property>
+            <property name="tooltip-text" translatable="yes">Siril tools menu. It contains all the functions required for image analysis.</property>
             <property name="popover">tools_menu</property>
             <child>
               <object class="GtkBox" id="image_tools_button_box">

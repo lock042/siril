@@ -9,6 +9,7 @@ src/gui/uifiles/background_extraction_dialog.ui
 src/gui/uifiles/bdeconv_dialog.ui
 src/gui/uifiles/binxy_dialog.ui
 src/gui/uifiles/canon_fixbanding_dialog.ui
+src/gui/uifiles/ccm_dialog.ui
 src/gui/uifiles/CLAHE_dialog.ui
 src/gui/uifiles/color_calibration.ui
 src/gui/uifiles/colorchooserdialog.ui

@@ -202,38 +202,49 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
  * fit: The input fits
  * pixmap: The mapping of the pixel centers from input to output image
  * wcs_o - The output wcs
+ *
+ * Note: if this function is ever used for other purposes with the cv::remap()
+ * function, note that in that case the mapping must be from output to input
  */
 
-int map_image_coordinates_wcs(fits *fit, struct wcsprm *wcs_o, imgmap_t *p) {
-	int rx, ry, status = 0;
+int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p) {
+	int npixels = width * height, status = 0;
 
-	if (!fit->wcslib) {
-		siril_debug_print("Error: FITS has no WCS, unable to create mapping...\n");
+	double *pixcrd = malloc(npixels * 2 * sizeof(double));
+	if (!pixcrd) {
+		return 1;
 	}
-	struct wcsprm *wcs_i = fit->wcslib;
-	rx = fit->rx;
-	ry = fit->ry;
-	double *pixcrd = malloc(rx * ry * 2 * sizeof(double));
 	int index = 0;
-	for (int j = 0 ; j < ry ; j++) {
-		for (int i = 0 ; i < rx;  i++) {
+	for (int j = 0 ; j < height ; j++) {
+		for (int i = 0 ; i < width;  i++) {
 			pixcrd[index++] = i;
 			pixcrd[index++] = j;
 		}
 	}
 
-	double *imgcrd = malloc(rx * ry * 2 * sizeof(double));
-	if (!imgcrd)
+	double *imgcrd = malloc(2 * npixels * sizeof(double));
+	if (!imgcrd) {
+		free(pixcrd);
+		return 1;
+	}
+	// can't pass NULL to the values we don't want to retrieve (intcrd, phi, theta so we just use a single junk array)
+	double *junk = malloc(2 * npixels * sizeof(double));
+	if (!junk) {
+		free(imgcrd);
+		free(pixcrd);
+		return 1;
+	}
+
+	wcsp2s(wcs_i, npixels, 2, pixcrd, junk, junk, junk, imgcrd, &status);
+	wcss2p(wcs_o, npixels, 2, imgcrd, junk, junk, junk, pixcrd, &status);
+
+	free(junk); // finished with the junk array
+
+	p->pixmap = realloc(imgcrd, npixels * 2 * sizeof(float));
+	if (!p->pixmap) // should never happen as realloc halves the allocation
 		return 1;
 
-	wcsp2s(wcs_i, rx * ry, 2, pixcrd, NULL, NULL, NULL, imgcrd, &status);
-	wcss2p(wcs_o, rx * ry, 2, imgcrd, NULL, NULL, NULL, pixcrd, &status);
-
-	p->pixmap = realloc(imgcrd, rx * ry * 2 * sizeof(float));
-	if (!p->pixmap)
-		return 1;
-
-	size_t maxindex = rx * ry * 2;
+	size_t maxindex = npixels * 2;
 	for (index = 0 ; index < maxindex ; index++) {
 		p->pixmap[index] = (float) pixcrd[index];
 	}

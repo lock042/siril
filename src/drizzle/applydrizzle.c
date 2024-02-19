@@ -38,6 +38,11 @@
 #include "io/image_format_fits.h"
 #include "registration/registration.h"
 
+#include "drizzle/driz_portability.h"
+#include "drizzle/cdrizzleutil.h"
+#include "drizzle/cdrizzlemap.h"
+#include "drizzle/cdrizzlebox.h"
+
 #include "opencv/opencv.h"
 
 #define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
@@ -203,6 +208,11 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	return TRUE;
 }
 
+static int apply_drz_medstack(gpointer args) {
+	struct driz_param_t *driz = ((struct generic_seq_args*) args)->user;
+	return 0;
+}
+
 int apply_drz_prepare_results(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
@@ -236,7 +246,7 @@ int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	driz->current_regdata = apply_reg_get_current_regdata(regargs);
 	if (!driz->current_regdata) return -2;
 
-
+	/* fit will now hold the reference frame */
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
@@ -245,15 +255,16 @@ int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	}
 	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0' && !driz->is_bayer)
 		siril_log_color_message(_("Applying drizzle on a sequence opened as CFA without setting the Bayer flag is a bad idea.\n"), "red");
-	if (driz->use_wcs && !fit->wcslib) {
+	if (driz->use_wcs && !fit.wcslib) {
 		// TODO: Attempt to platesolve the reference image
 		// Code goes here, then try again to see if we have a viable struct wcslib...
-		if (driz->use_wcs && !fit->wcslib) {
+		if (driz->use_wcs && !fit.wcslib) {
 			siril_log_color_message(_("Error: platesolver failed. Unable to drizzle using WCS data.\n"), "red");
 			return 1;
 		}
 	}
-	driz->ref_wcs = fit->wcslib;
+	driz->refwcs = fit.wcslib;
+	return 0;
 }
 
 /* reads the image and apply existing transformation */
@@ -271,8 +282,11 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 
 	// Composing transformation wrt reference image
-	if (driz->use_wcs) {
-		// TODO: check the image is plate solved, solve it if not
+	if (driz->use_wcs && !fit->wcslib) {
+		siril_log_color_message(_("Error: drizzle configured to use WCS transforms but this frame "
+					"is not plate solved. Ensure all frames are plate solved, e.g. by running "
+					"seqplatesolve.\n"), "red");
+		return 1;
 	} else {
 		Himg = regargs->seq->regparam[regargs->layer][in_index].H;
 		if (guess_transform_from_H(Himg) == NULL_TRANSFORMATION)
@@ -288,9 +302,9 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz->pixmap->rx = fit->rx;
 	driz->pixmap->ry = fit->ry;
 	if (driz->use_wcs) {
-		map_image_coordinates_wcs(&fit, wcs_ref, driz->pixmap);
+		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, driz->pixmap);
 	} else {
-		map_image_coordinates_h(&fit, H, pixmap);
+		map_image_coordinates_h(fit, H, driz->pixmap);
 	}
 
 	/* NOTE: on the first pass there is no weights file, everything is evenly
@@ -307,10 +321,10 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	// Set up the output_counts fits to store pixel hit counts
 	fits output_counts = { 0 };
-	output_counts->rx = fit->rx;
-	output_counts->ry = fit->ry;
-	output_counts->type = DATA_FLOAT;
-	output_counts->fdata = calloc(output_counts->rx * output_counts->ry * sizeof(float));
+	output_counts.rx = fit->rx;
+	output_counts.ry = fit->ry;
+	output_counts.type = DATA_FLOAT;
+	output_counts.fdata = calloc(output_counts.rx * output_counts.ry, sizeof(float));
 	driz->output_counts = &output_counts;
 
 	if (in_index == regargs->reference_image)
@@ -339,7 +353,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	return 0;
 }
 
-int apply_reg_finalize_hook(struct generic_seq_args *args) {
+int apply_drz_finalize_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int failed = 0;
@@ -497,12 +511,11 @@ int apply_drizzle(/*TODO: what parameters here? */) {
 	args->description = _("Apply drizzle");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-//	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = g_strdup("drz");
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
-	struct driz_param_t drizdata = calloc(1, sizeof(struct driz_param_t));
+	struct driz_param_t *drizdata = calloc(1, sizeof(struct driz_param_t));
 	if (!drizdata) {
 		free(args);
 		return -1;
