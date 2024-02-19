@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:41+0100\n"
-"PO-Revision-Date: 2024-01-18 13:50+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2024-02-20 10:37+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.4.1\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7998
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -7740,9 +7740,8 @@ msgid "Background extraction samples:"
 msgstr "背景提取"
 
 #: src/gui/siril3.glade:30828
-#, fuzzy
 msgid "Standard annotations:"
-msgstr "在标记中显示恒星"
+msgstr "标准标注："
 
 #: src/gui/siril3.glade:30857
 msgid "Overlay Colors"
@@ -15795,27 +15794,27 @@ msgstr "网格上罗盘位置的指标"
 
 #: src/core/settings.c:397
 msgid "show Messier objects in annotations"
-msgstr "在标记中显示梅西叶天体"
+msgstr "在标注中显示梅西叶天体"
 
 #: src/core/settings.c:398
 msgid "show NGC objects in annotations"
-msgstr "在标记中显示NGC天体"
+msgstr "在标记注显示NGC天体"
 
 #: src/core/settings.c:399
 msgid "show IC objects in annotations"
-msgstr "在标记中显示IC天体"
+msgstr "在标注中显示IC天体"
 
 #: src/core/settings.c:400
 msgid "show LDN objects in annotations"
-msgstr "在标记中显示LDN天体"
+msgstr "在标注中显示LDN天体"
 
 #: src/core/settings.c:401
 msgid "show SH2 objects in annotations"
-msgstr "在标记中显示SH2天体"
+msgstr "在标注中显示SH2天体"
 
 #: src/core/settings.c:402
 msgid "show stars in annotations"
-msgstr "在标记中显示恒星"
+msgstr "在标注中显示恒星"
 
 #: src/core/settings.c:403
 msgid "show user objects in annotations"
