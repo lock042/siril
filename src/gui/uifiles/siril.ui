@@ -2382,6 +2382,22 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="occultation_button">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.
+Output is a csv file compatible with NINA Exoplanet</property>
+            <property name="action-name">win.occultation</property>
+            <property name="text" translatable="yes">Calibrate occultation time......</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="comp_stars_button">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -2394,7 +2410,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -2409,7 +2425,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -2424,7 +2440,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>

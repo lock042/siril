@@ -271,6 +271,8 @@ siril_common_SOURCES = \
 	gui/newdeconv.c \
 	gui/nina_light_curve.c \
 	gui/nina_light_curve.h \
+	gui/occultation.c \
+	gui/occultation.h \
 	gui/open_dialog.c \
 	gui/open_dialog.h \
 	gui/photometric_cc.c \

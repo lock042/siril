@@ -31,6 +31,7 @@
 #include "gui/dialogs.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
+#include "occultation.h"
 
 static const SirilDialogEntry entries[] =
 {
@@ -65,6 +66,7 @@ static const SirilDialogEntry entries[] =
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
+	{"occultation", get_occult_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"pixel_math_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"resample_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"rgradient_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
