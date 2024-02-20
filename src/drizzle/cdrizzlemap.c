@@ -264,23 +264,25 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
  */
 
 int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p) {
-	double x, y;
+	float x, y;
 	int rx, ry;
 	int index = 0;
-	point coords_in, coords_out;
 	rx = fit->rx;
 	ry = fit->ry;
+	/* Doing the calculations manually rather than using
+	 * cvTransformImageRefPoint() achieves a speedup of 2 orders of
+	 * magnitude! */
+	float Harr[9] = { (float) H.h00, (float) H.h01, (float) H.h02,
+		(float) H.h10, (float) H.h11, (float) H.h12,
+		(float) H.h20, (float) H.h21, (float) H.h22 };
 
 	p->pixmap = malloc(rx * ry * 2 * sizeof(float));
 
 	for (y = 0; y < ry; y++) {
-		coords_in.y = y;
 		for (x = 0; x < rx; x++) {
-			coords_in.x = x;
-			// Map coordinates and store in the output array
-			cvTransformImageRefPoint(H, coords_in, &coords_out);
-			p->pixmap[index++] = (float) coords_out.x;
-			p->pixmap[index++] = (float) coords_out.y;
+			float z = x * Harr[6] + y * Harr[7] + Harr[8];
+			p->pixmap[index++] = (x * Harr[0] + y * Harr[1] + Harr[2]) / z;
+			p->pixmap[index++] = (x * Harr[3] + y * Harr[4] + Harr[5]) / z;
 		}
 	}
 	return 0;

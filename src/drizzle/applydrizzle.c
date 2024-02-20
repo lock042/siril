@@ -224,7 +224,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 
 static int apply_drz_medstack(gpointer args) {
 	//struct driz_args_t *driz = args->user;
-	// TODO!
+	// TODO! Might be able to use the existing median stacking routine but it may need modifying to avoid zero-elements
 	return 0;
 }
 
@@ -297,7 +297,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz_param_init(p);
 	// TODO: populate any arguments that can be set from the GUI or command args
 	// NOTE: driz_args_t will need equivalent fields to set these from
-//	p->kernel = kernel_turbo;
+	p->kernel = kernel_turbo;
 	p->driz = driz;
 	p->error = malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
@@ -348,7 +348,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		map_image_coordinates_h(fit, H, p->pixmap);
 	}
 	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
+	show_time_msg(t_start, t_end, _("Remapping"));
 	/* Populate the data fits to be drizzled */
 	p->data = fit;
 	// Convert fit to 32-bit float if required
@@ -388,15 +388,23 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	 *       weighted. This will be used to remove outliers after drz_medstack.
 	 *       So we don't need to initialize driz->weights here */
 
+	gettimeofday(&t_start, NULL);
 	if (dobox(p)) // Do the drizzle
 		return 1;
+	gettimeofday(&t_end, NULL);
+	show_time_msg(t_start, t_end, _("Drizzle"));
 
-	// TODO: copy driz->output_data to fit so that it is saved as the output sequence frame
+	// Copy driz->output_data to fit so that it is saved as the output sequence frame
 	clearfits(fit);
 	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+
 	// TODO: do we still need the mapping file for the blot or the second drizzle or is it
 	//       cheaper to recalculate it (if needed) than to save / load it?
+	free(p->pixmap->pixmap);
+	free(p->pixmap);
+
 	// TODO: do we need to save driz->output_counts? Or just discard it once dobox() is done?
+	clearfits(&output_counts);
 
 	if (in_index == driz->reference_image)
 		new_ref_index = out_index; // keeping track of the new ref index in output sequence

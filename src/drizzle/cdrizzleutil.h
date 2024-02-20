@@ -321,7 +321,7 @@ get_dimensions(fits *image, integer_t size[2]) {
 
 static inline_macro float*
 get_pixmap(imgmap_t *p, integer_t xpix, integer_t ypix) {
-  return (float*) p->pixmap + (xpix + ypix * p->rx) * 2;
+  return (float*) p->pixmap + ((xpix + ypix * p->rx) * 2);
 }
 
 #if defined(LOGGING) && defined(CHECK_OOB)
@@ -363,6 +363,8 @@ set_pixel(fits *image, integer_t xpix, integer_t ypix, float value) {
 /* For the context image we will blatantly misuse a FITS structure (because it's
  * convenient) by storing integer_t (aka uint8_t) data in the fdata array. This
  * applies to the next 3 functions.
+ *
+ * NOTE: the context image is optional, so for the moment we are simply not using it.
  *
  * TODO: this should really be made less ugly!! */
 
