@@ -36,6 +36,7 @@
 #include "io/sequence.h"
 #include "algos/geometry.h"
 #include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "gui/message_dialog.h"
 #include "opencv/opencv.h"
 #include "background_extraction.h"
@@ -267,7 +268,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 #endif
 					{
 						++progress;
-						if (!(progress % 32)) {
+						if (!(progress % 1024)) {
 							set_progress_bar_data(NULL,	(double) progress / total);
 						}
 					}
@@ -881,6 +882,10 @@ gpointer remove_gradient_from_image(gpointer p) {
 			free(image);
 			free(background);
 			queue_error_message_dialog(_("Not enough samples."), error);
+			if (!args->from_ui) {
+				free_background_sample_list(com.grad_samples);
+				com.grad_samples = NULL;
+			}
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return GINT_TO_POINTER(1);
@@ -903,6 +908,11 @@ gpointer remove_gradient_from_image(gpointer p) {
 	/* free memory */
 	free(image);
 	free(background);
+	invalidate_stats_from_fit(&gfit);
+	if (!args->from_ui) {
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
+	}
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }
