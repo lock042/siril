@@ -154,16 +154,27 @@ typedef struct _imgmap_t {
 	int ry;
 } imgmap_t;
 
-struct driz_param_t {
+struct driz_args_t {
   /* Siril sequence data */
   sequence *seq; /* Sequence to operate on */
-  struct registration_args *regargs; /* Reg args to get the ref homography */
-  regdata *current_regdata; /* Current reg data */
-  struct wcsprm *refwcs; /* Reference WCS */
-
-  bool_t wcsalign; /* Use WCS transform if TRUE, else Homography transform */
+  int reference_image; /* reference image */
   bool_t is_bayer; /* Is this a Bayer drizzle? */
   bool_t use_wcs; /* Use WCS mapping? If not, Homography mapping will be used */
+  regdata *ref_regdata; /* Reference reg data */
+  struct wcsprm *refwcs; /* Reference WCS */
+  gchar *prefix;
+  gchar *new_seq_name;
+  imgdata *imgparam;
+  regdata *regparam;
+  int new_total;
+  gboolean load_new_sequence;
+  float scale;
+  BYTE* success;
+};
+
+struct driz_param_t {
+  struct driz_args_t *driz; /* sequence-wide drizzle args */
+  regdata *current_regdata; /* Current reg data */ // Per-image
 
   /* Options */
   enum e_kernel_t kernel; /* Kernel shape and size */
@@ -193,9 +204,9 @@ struct driz_param_t {
   float kscale;
 
   /* Input images */
-  fits *data;
-  fits *weights;
-  imgmap_t *pixmap;
+  fits *data; // Per-image
+  fits *weights; // Per-image
+  imgmap_t *pixmap; // Per-image
 
   /* Output images */
   fits *output_data;
@@ -206,7 +217,6 @@ struct driz_param_t {
   integer_t nmiss;
   integer_t nskip;
   struct driz_error_t* error;
-
 };
 
 /**
@@ -311,7 +321,7 @@ get_dimensions(fits *image, integer_t size[2]) {
 
 static inline_macro float*
 get_pixmap(imgmap_t *p, integer_t xpix, integer_t ypix) {
-  return (float*) p->pixmap + xpix + ypix * p->rx;
+  return (float*) p->pixmap + (xpix + ypix * p->rx) * 2;
 }
 
 #if defined(LOGGING) && defined(CHECK_OOB)
@@ -511,6 +521,9 @@ rad3(const float x, const float y, const float* co,
   *xo = f*x;
   *yo = f*y;
 }
+
+// High level function to apply drizzle
+int apply_drizzle(struct driz_args_t *driz);
 
 // FITS functions for saving 2-channel (x,y) mapping pixmaps as FITS bintables
 int save_floats_to_fits_bintable(const char* filename, float* data, int rx, int ry, int numChannels);

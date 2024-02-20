@@ -47,24 +47,38 @@
 
 #define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
 
-static void create_output_sequence_for_apply_reg(struct registration_args *args);
+static void create_output_sequence_for_apply_driz(struct driz_args_t *args);
 static int new_ref_index = -1;
 
 static Homography Htransf = {0};
 static int rx_out, ry_out;
 
-regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
+static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	regdata *current_regdata;
-	if (regargs->seq->regparam[regargs->layer]) {
+	if (driz->seq->regparam[0]) {
 		siril_log_message(
-				_("Applying existing registration from layer #%d to transform the images\n"), regargs->layer);
-		current_regdata = regargs->seq->regparam[regargs->layer];
+				_("Applying existing registration from layer 0 to transform the images\n"));
+		current_regdata = driz->seq->regparam[0];
 	} else {
 		siril_log_message(
 				_("No registration data exists for this layer\n"));
 		return NULL;
 	}
 	return current_regdata;
+}
+
+static regdata *apply_driz_get_ref_regdata(struct driz_args_t *driz) {
+	regdata *ref_regdata;
+	if (driz->seq->regparam[0]) {
+		siril_log_message(
+				_("Applying existing registration from layer #%d to transform the images\n"), 0);
+		ref_regdata = &driz->seq->regparam[0][driz->reference_image];
+	} else {
+		siril_log_message(
+				_("No registration data exists for this layer\n"));
+		return NULL;
+	}
+	return ref_regdata;
 }
 
 static gboolean compute_framing(struct registration_args *regargs) {
@@ -209,18 +223,18 @@ static gboolean compute_framing(struct registration_args *regargs) {
 }
 
 static int apply_drz_medstack(gpointer args) {
-	struct driz_param_t *driz = ((struct generic_seq_args*) args)->user;
+	//struct driz_args_t *driz = args->user;
+	// TODO!
 	return 0;
 }
 
 int apply_drz_prepare_results(struct generic_seq_args *args) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
+	struct driz_args_t *driz = args->user;
 
 	// allocate destination sequence data
-	regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
-	regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
-	if (!regargs->imgparam  || !regargs->regparam) {
+	driz->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
+	driz->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
+	if (!driz->imgparam  || !driz->regparam) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
@@ -228,8 +242,8 @@ int apply_drz_prepare_results(struct generic_seq_args *args) {
 	if (seq_prepare_hook(args))
 		return 1;
 
-	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
-	if (!sadata->success) {
+	driz->success = calloc(args->nb_filtered_images, sizeof(BYTE));
+	if (!driz->success) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
@@ -237,46 +251,70 @@ int apply_drz_prepare_results(struct generic_seq_args *args) {
 }
 
 int apply_drz_prepare_hook(struct generic_seq_args *args) {
-	struct driz_param_t *driz = args->user;
-	struct registration_args *regargs = driz->regargs;
+	struct driz_args_t *driz = args->user;
 
 	fits fit = { 0 };
 
 	/* preparing reference data from reference fit and making sanity checks*/
-	driz->current_regdata = apply_reg_get_current_regdata(regargs);
-	if (!driz->current_regdata) return -2;
 
 	/* fit will now hold the reference frame */
-	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
+	if (seq_read_frame_metadata(args->seq, driz->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
-		args->seq->regparam[regargs->layer] = NULL;
-		free(driz->current_regdata);
+		args->seq->regparam[0] = NULL;
 		return 1;
 	}
-	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0' && !driz->is_bayer)
-		siril_log_color_message(_("Applying drizzle on a sequence opened as CFA without setting the Bayer flag is a bad idea.\n"), "red");
-	if (driz->use_wcs && !fit.wcslib) {
-		// TODO: Attempt to platesolve the reference image
-		// Code goes here, then try again to see if we have a viable struct wcslib...
-		if (driz->use_wcs && !fit.wcslib) {
-			siril_log_color_message(_("Error: platesolver failed. Unable to drizzle using WCS data.\n"), "red");
-			return 1;
+
+	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
+	// TODO: not implemented yet, this parameter is currently ignored
+
+	if (driz->use_wcs) {
+		if (!fit.wcslib) {
+			// TODO: Attempt to platesolve the reference image
+			// Code goes here, then try again to see if we have a viable struct wcslib...
+			if (!fit.wcslib) {
+				siril_log_color_message(_("Error: platesolver failed. Unable to drizzle using WCS data.\n"), "red");
+				return 1;
+			}
 		}
+		driz->refwcs = fit.wcslib;
+	} else {
+		driz->ref_regdata = apply_driz_get_ref_regdata(driz);
+		if (!driz->ref_regdata)
+			return -2;
+		Htransf = driz->ref_regdata->H;
 	}
-	driz->refwcs = fit.wcslib;
-	return 0;
+	return apply_drz_prepare_results(args);
 }
 
 /* reads the image and apply existing transformation */
 int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
-	struct driz_param_t *driz = args->user;
-	struct registration_args *regargs = driz->regargs;
+	struct driz_args_t *driz = args->user;
 	struct wcsprm *refwcs = driz->refwcs;
+
+	/* Set up the per-image drizzle parameters */
+	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
+	// TODO: populate any arguments that can be set from the GUI or command args
+	// NOTE: driz_args_t will need equivalent fields to set these from
+
+	driz_param_init(p);
+	p->driz = driz;
+	p->error = malloc(sizeof(struct driz_error_t));
+
+	// Set bounds. TODO: make this account for a selection
+	p->xmin = p->ymin = 0;
+	p->xmax = fit->rx;
+	p->ymax = fit->ry;
 
 	Homography H = { 0 };
 	Homography Himg = { 0 };
-	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
+	if (driz->use_wcs) {
+	} else {
+		p->current_regdata = apply_driz_get_current_regdata(driz);
+		if (!p->current_regdata)
+			return -2;
+	}
 
+	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 	if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
 		siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
 	}
@@ -288,36 +326,49 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 					"seqplatesolve.\n"), "red");
 		return 1;
 	} else {
-		Himg = regargs->seq->regparam[regargs->layer][in_index].H;
+		Himg = driz->seq->regparam[0][in_index].H;
 		if (guess_transform_from_H(Himg) == NULL_TRANSFORMATION)
 			return 1; // in case H is null and -selected was not passed
 		cvTransfH(Himg, Htransf, &H);
 	}
-
 	/* Populate the mapping array. This maps pixels from the current frame to
 	 * the reference frame. Either a Homography mapping can be used based on
 	 * image registration or a WCS mapping can be used based on plate solving */
-
-	driz->pixmap = malloc(sizeof(imgmap_t));
-	driz->pixmap->rx = fit->rx;
-	driz->pixmap->ry = fit->ry;
-	if (driz->use_wcs) {
-		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, driz->pixmap);
+	p->pixmap = malloc(sizeof(imgmap_t));
+	p->pixmap->rx = fit->rx;
+	p->pixmap->ry = fit->ry;
+	if (p->driz->use_wcs) {
+		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap);
 	} else {
-		map_image_coordinates_h(fit, H, driz->pixmap);
+		map_image_coordinates_h(fit, H, p->pixmap);
 	}
 
-	/* NOTE: on the first pass there is no weights file, everything is evenly
-	 *       weighted. This will be used to remove outliers after drz_medstack.
-	 *       So we don't need to initialize driz->weights here */
+	/* Populate the data fits to be drizzled */
+	p->data = fit;
+	// Convert fit to 32-bit float if required
+	float *newbuf = NULL;
+	if (fit->type == DATA_USHORT) {
+		siril_debug_print("Replacing ushort buffer for drizzling\n");
+		size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+		newbuf = malloc(ndata * sizeof(float));
+		float invnorm = 1.f / USHRT_MAX_SINGLE;
+		for (size_t i = 0 ; i < ndata ; i++) {
+			newbuf[i] = fit->data[i] * invnorm;
+		}
+		fit_replace_buffer(fit, newbuf, DATA_FLOAT);
+	}
 
-	if (dobox(driz)) // Do the drizzle
-		return 1;
-
-	// TODO: copy driz->output_data to fit so that it is saved as the output sequence frame
-	// TODO: do we still need the mapping file for the blot or the second drizzle or is it
-	//       cheaper to recalculate it (if needed) than to save / load it?
-	// TODO: do we need to save driz->output_counts? Or just discard it once dobox() is done?
+	/* Set up output fits */
+	fits out;
+	copyfits(fit, &out, CP_FORMAT, -1);
+	out.rx = fit->rx * p->scale;
+	out.ry = fit->ry * p->scale;
+	size_t chansize = out.rx * out.ry * sizeof(float);
+	out.fdata = malloc(out.naxes[2] * chansize);
+	out.fpdata[0] = out.fdata;
+	out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+	out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+	p->output_data = &out;
 
 	// Set up the output_counts fits to store pixel hit counts
 	fits output_counts = { 0 };
@@ -325,46 +376,59 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	output_counts.ry = fit->ry;
 	output_counts.type = DATA_FLOAT;
 	output_counts.fdata = calloc(output_counts.rx * output_counts.ry, sizeof(float));
-	driz->output_counts = &output_counts;
+	p->output_counts = &output_counts;
 
-	if (in_index == regargs->reference_image)
+	/* NOTE: on the first pass there is no weights file, everything is evenly
+	 *       weighted. This will be used to remove outliers after drz_medstack.
+	 *       So we don't need to initialize driz->weights here */
+
+	if (dobox(p)) // Do the drizzle
+		return 1;
+
+	// TODO: copy driz->output_data to fit so that it is saved as the output sequence frame
+	clearfits(fit);
+	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	// TODO: do we still need the mapping file for the blot or the second drizzle or is it
+	//       cheaper to recalculate it (if needed) than to save / load it?
+	// TODO: do we need to save driz->output_counts? Or just discard it once dobox() is done?
+
+	if (in_index == driz->reference_image)
 		new_ref_index = out_index; // keeping track of the new ref index in output sequence
 
-	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	regargs->imgparam[out_index].rx = rx_out;
-	regargs->imgparam[out_index].ry = ry_out;
-	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-	cvGetEye(&regargs->regparam[out_index].H);
+	driz->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+	driz->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+	driz->imgparam[out_index].rx = rx_out;
+	driz->imgparam[out_index].ry = ry_out;
+	driz->regparam[out_index].fwhm = p->current_regdata[in_index].fwhm;
+	driz->regparam[out_index].weighted_fwhm = p->current_regdata[in_index].weighted_fwhm;
+	driz->regparam[out_index].roundness = p->current_regdata[in_index].roundness;
+	driz->regparam[out_index].background_lvl = p->current_regdata[in_index].background_lvl;
+	driz->regparam[out_index].number_of_stars = p->current_regdata[in_index].number_of_stars;
+	cvGetEye(&driz->regparam[out_index].H);
 
 	// Compensate metadata for any change in scale
-	fit->pixel_size_x /= driz->scale;
-	fit->pixel_size_y /= driz->scale;
-	regargs->regparam[out_index].fwhm *= driz->scale;
-	regargs->regparam[out_index].weighted_fwhm *= driz->scale;
-	regargs->imgparam[out_index].rx *= driz->scale;
-	regargs->imgparam[out_index].ry *= driz->scale;
+	fit->pixel_size_x /= p->scale;
+	fit->pixel_size_y /= p->scale;
+	driz->regparam[out_index].fwhm *= p->scale;
+	driz->regparam[out_index].weighted_fwhm *= p->scale;
+	driz->imgparam[out_index].rx *= p->scale;
+	driz->imgparam[out_index].ry *= p->scale;
 
-	sadata->success[out_index] = 1;
+//	sadata->success[out_index] = 1;
 	return 0;
 }
 
 int apply_drz_finalize_hook(struct generic_seq_args *args) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
+	struct driz_args_t *driz = args->user;
 	int failed = 0;
 
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(args->seq, FALSE);
 
 	if (!args->retval) {
-		for (int i = 0; i < args->nb_filtered_images; i++)
-			if (!sadata->success[i])
-				failed++;
+/*		for (int i = 0; i < args->nb_filtered_images; i++)
+//			if (!sadata->success[i])
+//				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
 		if (failed) {
 			// regargs->imgparam and regargs->regparam may have holes caused by images
@@ -377,10 +441,10 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 					regargs->regparam[i] = regargs->regparam[j];
 				}
 			}
-		}
+		}*/
 		seq_finalize_hook(args);
 	} else {
-		regargs->new_total = 0;
+		driz->new_total = 0;
 
 		// same as seq_finalize_hook but with file deletion
 		if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
@@ -390,12 +454,12 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 			fitseq_close_and_delete_file(args->new_fitseq);
 			free(args->new_fitseq);
 		} else if (args->seq->type == SEQ_REGULAR) {
-			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+			remove_prefixed_sequence_files(driz->seq, driz->prefix);
 		}
 	}
 
-	if (sadata->success) free(sadata->success);
-	free(sadata);
+//	if (sadata->success) free(sadata->success);
+//	Do not free driz here as it will be needed for blot and second drizzle
 	args->user = NULL;
 
 	if (!args->retval) {
@@ -403,24 +467,24 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
 		str = g_strdup_printf(str, args->nb_filtered_images);
 		siril_log_color_message(str, "green");
-		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
+		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, driz->new_total);
 
 		g_free(str);
 		if (!(args->seq->type == SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
-			create_output_sequence_for_apply_reg(regargs);
+			create_output_sequence_for_apply_driz(driz);
 			// will be loaded in the idle function if (load_new_sequence)
-			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
+			driz->load_new_sequence = TRUE; // only case where a new sequence must be loaded
 		}
 	}
 	else {
 		siril_log_message(_("Transformation aborted.\n"));
 	}
-	return regargs->new_total == 0;
+	return driz->new_total == 0;
 }
 
 int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	struct driz_param_t *driz = args->user;
+	struct driz_args_t *driz = args->user;
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, driz->scale, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -445,7 +509,7 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	unsigned int required = MB_per_orig_image + 2 * MB_per_double_channel + MB_per_float_channel + 2 * MB_per_scaled_image;
 	// If interpolation clamping is set, 2x additional Mats of the same format
 	// as the original image are required
-	struct registration_args *regargs = sadata->regargs;
+//	struct registration_args *regargs = driz->regargs;
 
 	if (limit > 0) {
 
@@ -489,17 +553,13 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	return limit;
 }
 
-int apply_drizzle(/*TODO: what parameters here? */) {
-	struct generic_seq_args *args = create_default_seqargs(p->seq);
+gboolean check_before_applydrizzle(struct driz_args_t *driz);
 
-	if (!check_before_applydrizzle(regargs)) {
-		free(args);
-		return -1;
-	}
-
-	args->filtering_criterion = regargs->filtering_criterion;
-	args->filtering_parameter = regargs->filtering_parameter;
-	args->nb_filtered_images = regargs->new_total;
+int apply_drizzle(struct driz_args_t *driz) {
+	struct generic_seq_args *args = create_default_seqargs(driz->seq);
+	args->seq = driz->seq;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = driz->seq->selnum;
 	args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
 	args->prepare_hook = apply_drz_prepare_hook;
 	args->image_hook = apply_drz_image_hook;
@@ -507,30 +567,19 @@ int apply_drizzle(/*TODO: what parameters here? */) {
 	args->idle_function = apply_drz_medstack; /* When this sequence finishes,
 		it kicks off another one to perform a median stack of the drizzled
 		images. */
-	args->stop_on_error = FALSE;
 	args->description = _("Apply drizzle");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = g_strdup("drz");
+	args->new_seq_prefix = g_strdup("drz_");
 	args->load_new_sequence = TRUE;
-	args->already_in_a_thread = TRUE;
+	args->force_float = FALSE;
+	args->user = driz;
 
-	struct driz_param_t *drizdata = calloc(1, sizeof(struct driz_param_t));
-	if (!drizdata) {
-		free(args);
-		return -1;
-	}
-	driz_param_init(drizdata);
-	args->user = drizdata;
-
-	generic_sequence_worker(args);
-
-	regargs->retval = args->retval;
-	free(args);
-	return regargs->retval;
+	start_in_new_thread(generic_sequence_worker, args);
+	return 0;
 }
 
-static void create_output_sequence_for_apply_reg(struct registration_args *args) {
+static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	sequence seq = { 0 };
 	initialize_sequence(&seq, TRUE);
 
@@ -552,7 +601,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.ry = ry_out;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
-	seq.regparam[args->layer] = args->regparam;
+	seq.regparam[0] = args->regparam;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
@@ -567,47 +616,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	new_ref_index = -1; // resetting
 }
 
-transformation_type guess_transform_from_H(Homography H) {
-	if (fabs(H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__)
-		return NULL_TRANSFORMATION;
-	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__)
-		return HOMOGRAPHY_TRANSFORMATION;
-	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ &&
-			fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
-		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__)
-			return SHIFT_TRANSFORMATION;
-		return IDENTITY_TRANSFORMATION;
-	}
-	if (fabs(H.h10 - H.h00  + H.h01 + H.h11) < __DBL_EPSILON__)
-		return SIMILARITY_TRANSFORMATION;
-	return AFFINE_TRANSFORMATION;
-}
-
-void guess_transform_from_seq(sequence *seq, int layer,
-		transformation_type *min, transformation_type *max, gboolean excludenull) {
-	*min = HOMOGRAPHY_TRANSFORMATION; // highest value
-	*max = UNDEFINED_TRANSFORMATION;  // lowest value
-	gboolean needs_sel_update = FALSE;
-
-	if (!layer_has_registration(seq, layer)) {
-		siril_debug_print("No registration data found in sequence or layer\n");
-		return;
-	}
-	for (int i = 0; i < seq->number; i++){
-		transformation_type val = guess_transform_from_H(seq->regparam[layer][i].H);
-		//siril_debug_print("Image #%d - transf = %d\n", i+1, val);
-		if (*max < val) *max = val;
-		if (*min > val) *min = val;
-		if (val == NULL_TRANSFORMATION && excludenull) {
-			seq->imgparam[i].incl = FALSE;
-			needs_sel_update = TRUE;
-		}
-	}
-	if (excludenull && needs_sel_update)
-		fix_selnum(seq, FALSE);
-}
-
-gboolean check_before_applyreg(struct registration_args *regargs) {
+/*gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 		// check the reference image matrix is not null
 	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
 	if (checkH == NULL_TRANSFORMATION) {
@@ -658,7 +667,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		return FALSE;
 	}
 
-	/* compute_framing uses the filtered list of images, so we compute the filter here */
+	// compute_framing uses the filtered list of images, so we compute the filter here
 	if (!regargs->filtering_criterion &&
 			convert_parsed_filter_to_filter(&regargs->filters,
 				regargs->seq, &regargs->filtering_criterion,
@@ -709,4 +718,4 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 	return TRUE;
 }
-
+*/
