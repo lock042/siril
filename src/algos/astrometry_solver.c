@@ -1091,11 +1091,10 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	// We prepare the larger catalogue containing the search cone
 	// we limit the magnitude as we don't want as many stars
 	// we just want to have a good enough linear solution to resend a normal solve afterwards
-	siril_catalog_free_items(args->ref_stars);
 	siril_catalogue siril_search_cat = { 0 };
 	siril_catalogue_copy(args->ref_stars, &siril_search_cat, TRUE);
 	siril_search_cat.radius = args->searchradius * 60.;
-	siril_search_cat.limitmag = args->ref_stars->limitmag - NEAR_MAG_OFFSET;
+	siril_search_cat.limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., 100);
 	// we fetch all the stars within the search cone
 	get_catalog_stars(&siril_search_cat); // we fetch all the stars within the search cone
 
@@ -1111,9 +1110,9 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 		siril_cat->center_ra = centers[n].x;
 		siril_cat->center_dec = centers[n].y;
 		siril_cat->radius = args->ref_stars->radius;
-		int a = siril_catalog_inner_conesearch(&siril_search_cat, siril_cat);
+		int nbfound = siril_catalog_inner_conesearch(&siril_search_cat, siril_cat);
 		// siril_log_message("n:%d\n", a);
-		if (a) {
+		if (nbfound) {
 			ret = match_catalog(stars, nb_stars, siril_cat, args->scale, AT_TRANS_LINEAR, &t, &ra, &dec);
 		}
 		if (ret == SOLVE_OK || ret == SOLVE_CANCELLED)
@@ -1785,8 +1784,9 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		else if (args->ref_stars->limitmag <= 17.0 || args->used_fov > 180.) // we should probably limit the use of GAIA to smaller fov, <60 as it is very long to query
 			args->ref_stars->cat_index = CAT_NOMAD;
 		else args->ref_stars->cat_index = CAT_GAIADR3;
-	} else if (args->ref_stars->cat_index == CAT_LOCAL && args->ref_stars->limitmag > 17.0) { // TODO: not sure about this one, but otherwise, we can't solve long focals with local cats installed
-		args->ref_stars->cat_index = CAT_GAIADR3;
+	// TODO: not sure about this one, but could be we can't solve long focals with local cats installed
+	// } else if (args->ref_stars->cat_index == CAT_LOCAL && args->ref_stars->limitmag > 17.0) {
+	// 	args->ref_stars->cat_index = CAT_GAIADR3;
 	}
 	solve_is_blind(args); // sets flag to check if the catalogue needs to be fetched at the start or if it will be fetched on demand
 }
