@@ -8922,6 +8922,10 @@ int process_conesearch(int nb) {
 	super_bool display_log = BOOL_NOT_SET;
 	siril_cat_index cat = CAT_AUTO;
 	gchar *obscode = NULL;
+	int trixel = -1;
+	gchar *outfilename = NULL;
+	gboolean local_cat = local_catalogues_available();
+
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
@@ -8973,6 +8977,18 @@ int process_conesearch(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			obscode = g_strdup(arg);
+		} else if (g_str_has_prefix(word[arg_idx], "-trix=")) {
+			if (!local_cat) {
+				siril_log_color_message(_("No local catalogues found, ignoring -trix option\n"), "red");
+				continue;
+			}
+			gchar *end;
+			int trix = (int)g_ascii_strtoull(word[arg_idx] + 6, &end, 10);
+			if (trix < 0 || trix > 511) {
+				siril_log_color_message(_("Trixel number must be between 0 and 511\n"), "red");
+				return CMD_ARG_ERROR;
+			}
+			trixel = trix;
 		} else if (!strcmp(word[arg_idx], "-phot")) {
 			photometric = TRUE;
 		} else if (g_str_has_prefix(word[arg_idx], "-log=")) {
@@ -8995,6 +9011,13 @@ int process_conesearch(int nb) {
 				siril_log_message(_("Wrong parameter values. Tag must be set to on or off, aborting.\n"));
 				return CMD_ARG_ERROR;
 			}
+		} else if (g_str_has_prefix(word[arg_idx], "-out=")) {
+			char *arg = word[arg_idx] + 5;
+			if (arg[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+			outfilename = g_strdup(arg);
 		} else {
 			gchar *end;
 			limit_mag = g_ascii_strtod(word[arg_idx], &end);
@@ -9006,9 +9029,11 @@ int process_conesearch(int nb) {
 		arg_idx++;
 	}
 
-	gboolean local_cat = local_catalogues_available();
-	if (cat == CAT_AUTO)
+	if (cat == CAT_AUTO) {
 		cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
+		if (trixel >= 0 && CAT_LOCAL)
+			cat = CAT_LOCAL_TRIX;
+	}
 
 	// preparing the catalogue query
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, cat, limit_mag);
@@ -9021,6 +9046,9 @@ int process_conesearch(int nb) {
 			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
 		}
 	}
+	if (cat == CAT_LOCAL_TRIX)
+		siril_cat->trixel = trixel;
+
 	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
 	conesearch_args *args = init_conesearch();
 	args->fit = &gfit;
@@ -9028,6 +9056,7 @@ int process_conesearch(int nb) {
 	args->has_GUI = !com.script;
 	args->display_log = (display_log == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_log;
 	args->display_tag = (display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_tag;
+	args->outfilename = outfilename;
 	if (check_conesearch_args(args)) {// can't fail for now
 		free_conesearch(args);
 		return CMD_GENERIC_ERROR;
@@ -9754,6 +9783,24 @@ int process_disto(int nb) {
 		return CMD_OK;
 	} else {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	return CMD_OK;
+}
+
+int process_trixel(int nb) {
+	if (nb > 3)
+		return CMD_WRONG_N_ARG;
+	if (nb == 1) {
+		if (!single_image_is_loaded())
+			return CMD_LOAD_IMAGE_FIRST;
+		if (!has_wcs(&gfit))
+			return CMD_FOR_PLATE_SOLVED;
+		start_in_new_thread(list_trixels, NULL);
+	} else if (!strcmp(word[2], "-p"))
+		start_in_new_thread(write_trixels, NULL);
+	else {
+		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
 	return CMD_OK;

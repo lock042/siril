@@ -228,6 +228,7 @@ int	process_thresh(int nb);
 int	process_threshlo(int nb);
 int	process_threshhi(int nb);
 int	process_tilt(int nb);
+int	process_trixel(int nb);
 
 int	process_unclip(int nb);
 int	process_unset_mag(int nb);

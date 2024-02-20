@@ -75,6 +75,7 @@ typedef enum {
 	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
+	CAT_LOCAL_TRIX = 100 // for trixel query
 } siril_cat_index;
 
 typedef enum {
@@ -145,6 +146,7 @@ typedef struct {
 	cat_proj projected; // the type of projection applied
 	uint32_t columns; // the list of columns which where parsed when read
 	gchar *header; // the file header lines (#) if read from file
+	int trixel; // trixelID
 } siril_catalogue;
 
 #define has_field(cat, column) (cat->columns & (1 << CAT_FIELD_##column))
@@ -167,7 +169,8 @@ typedef struct {
 	gboolean display_log; // if true, displays the list in the log
 	gboolean display_tag; // if true, displays the names next to object in the annotations
 	//gboolean add_to_user; // if true, the objects are added to the user DSO catalogue (not SSO due to imprecision of obscode)
-	gboolean has_GUI; // true if we will need to refresh the disaply
+	gboolean has_GUI; // true if we will need to refresh the display
+	gchar *outfilename; // the name of the outputfile
 } conesearch_args;
 
 

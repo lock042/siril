@@ -32,6 +32,7 @@
 #include "core/siril_date.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
+#include "core/processing.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
@@ -56,6 +57,8 @@
 const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
 
 #define DEBUG_LOCALCAT 0
+#define NTRIXELS 2
+#define NMAG 19
 
 struct catalogue_index {
 	uint32_t trixelID;
@@ -123,6 +126,7 @@ struct top_header {
 
 static struct catalogue_file *catalogue_read_header(FILE *f);
 static int read_trixels_of_target(double ra, double dec, double radius, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
+static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars);
 
 static void bswap_stardata(deepStarData *stardata) {
@@ -152,6 +156,35 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 
 	//if (read_trixel_of_target(ra, dec, cat, &trixel_stars, &trixel_nb_stars)) {
 	if (read_trixels_of_target(ra, dec, radius, cat, trixel_stars, trixel_nb_stars)) {
+		free(cat);
+		fclose(f);
+		return 1;
+	}
+	fclose(f);
+	free(cat->indices);
+	free(cat->de);
+	free(cat);
+	return 0;
+}
+
+/* returns the complete list of stars for a catalogue's list of trixels */
+static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData **trixel_stars, uint32_t *trixel_nb_stars) {
+	siril_debug_print("reading data from catalogue %s\n", path);
+	FILE *f = g_fopen(path, "rb");
+	if (!f) {
+		siril_log_message(_("Could not open local NOMAD catalogue\n"));
+		return 1;
+	}
+
+	struct catalogue_file *cat = catalogue_read_header(f);
+	if (!cat) {
+		siril_log_message(_("Failed to read the local NOMAD catalogue\n"));
+		fclose(f);
+		return 1;
+	}
+
+	//if (read_trixel_of_target(ra, dec, cat, &trixel_stars, &trixel_nb_stars)) {
+	if (read_trixels_by_ID(ID, cat, trixel_stars, trixel_nb_stars)) {
 		free(cat);
 		fclose(f);
 		return 1;
@@ -353,6 +386,75 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 	return 0;
 }
 
+static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
+	int *trixels;
+	int nb_trixels;
+
+	if (cat->HTM_Level == 3) {
+		trixels = malloc(1 * sizeof(int));
+		trixels[0] = ID;
+		nb_trixels = 1;
+	} else if (cat->HTM_Level == 6) {
+		trixels = malloc(64 * sizeof(int));
+		nb_trixels = 64;
+		int base = 64 * ID;
+		for (int i = 0; i < 64; i++) {
+			trixels[i] = base + i;
+		}
+	} else {
+		*stars = NULL;
+		*nb_stars = 0;
+		return 0;
+	}
+
+	siril_debug_print("trixel search found %d trixels\n", nb_trixels);
+	deepStarData **stars_list;
+	uint32_t *nb_stars_list;
+	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
+	if (!stars_list) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	nb_stars_list = malloc(nb_trixels * sizeof(uint32_t));
+	if (!nb_stars_list) {
+		free(stars_list);
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	int retval = 0;
+	uint32_t total_star_count = 0;
+	for (int i = 0; i < nb_trixels; i++) {
+		// double ra1, dec1, ra2, dec2, ra3, dec3;
+		// get_vertices_for_index(trixels[i], cat->HTM_Level, &ra1, &dec1, &ra2, &dec2, &ra3, &dec3);
+		retval = read_trixel(trixels[i], cat, stars_list + i, nb_stars_list + i);
+		if (retval) break;
+		siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
+		total_star_count += nb_stars_list[i];
+	}
+	free(trixels);
+
+	if (!retval) {
+		// aggregate
+		*stars = malloc(total_star_count * sizeof(deepStarData));
+		if (!*stars) {
+			free(stars_list);
+			free(nb_stars_list);
+			PRINT_ALLOC_ERR;
+			return -1;
+		}
+		*nb_stars = total_star_count;
+		uint32_t offset = 0;
+		for (int i = 0; i < nb_trixels; i++) {
+			memcpy(*stars + offset, stars_list[i], nb_stars_list[i] * sizeof(deepStarData));
+			offset += nb_stars_list[i];
+			free(stars_list[i]);
+		}
+	}
+	free(stars_list);
+	free(nb_stars_list);
+	return 0;
+}
+
 /* this function reads all stars of a trixel and returns them as deep star data
  * (the 16-byte struct) even if this is a 32-byte catalog */
 static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **stars, uint32_t *nb_stars) {
@@ -432,6 +534,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	int retval = 0, catalogue = 0;
 	radius /= 60.; // converting to degrees
 	double radius_h = pow(sin(0.5 * radius * DEGTORAD), 2);
+	int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
 
 	siril_debug_print("looking for stars in local catalogues for target %f, %f, radius %f, magnitude %.2f, photometric: %d\n", target_ra, target_dec, radius, max_mag, photometric);
 	for (; catalogue < nb_catalogues; catalogue++) {
@@ -459,33 +562,72 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 			retval = 1;
 		} else {
 			uint32_t j = 0;
-			int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
 			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 				deepStarData *cat_stars = catalogue_stars[catalogue];
 				uint32_t cat_nb_stars = catalogue_nb_stars[catalogue];
 
 				for (uint32_t i = 0; i < cat_nb_stars ; i++) {
-					int16_t mag;
-					if (cat_stars[i].B >= 30000) {
-						if (photometric) continue;
-						mag = cat_stars[i].V;
-					}
-					else mag = cat_stars[i].B;
-					if (cat_stars[i].V >= 30000) {
-						if (photometric) continue;
-						mag = cat_stars[i].B;
-					}
-					else mag = cat_stars[i].V;
-					if (mag >= 30000) continue;
-					if (mag >= mag_threshold)
+					if (cat_stars[i].V > mag_threshold)
 						continue;
-
+					if (cat_stars[i].B >= 30000)
+						if (photometric) continue;
 					// catalogue has RA in hours, hence the x15
 					double ra = cat_stars[i].RA * .000015;
 					double dec = cat_stars[i].Dec * .00001;
 					double dist_h = compute_coords_distance_h(ra, dec, target_ra, target_dec);
 					if (dist_h > radius_h)
 						continue;
+					deepStarData *sdd = &cat_stars[i];
+					(*stars)[j] = *sdd;
+					j++;
+				}
+				free(catalogue_stars[catalogue]);
+			}
+
+			*nb_stars = j;
+			*stars = realloc(*stars, j * sizeof(deepStarData));
+		}
+	}
+
+	free(catalogue_nb_stars);
+	free(catalogue_stars);
+	return retval;
+}
+
+static int get_raw_stars_from_local_catalogues_byID(int ID, deepStarData **stars, uint32_t *nb_stars) {
+	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
+	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
+	uint32_t total_nb_stars = 0;
+	int retval = 0, catalogue = 0;
+
+	siril_debug_print("looking for stars in local catalogues for trixel %4d\n", ID);
+	for (; catalogue < nb_catalogues; catalogue++) {
+		retval = read_trixelID_from_catalogue(com.pref.catalogue_paths[catalogue],
+				ID,
+				catalogue_stars + catalogue, catalogue_nb_stars + catalogue);
+		if (retval)
+			break;
+		total_nb_stars += catalogue_nb_stars[catalogue];
+		siril_debug_print("%d raw stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
+	}
+
+	if (catalogue == nb_catalogues) {
+		// aggregate and filter
+		*stars = malloc(total_nb_stars * sizeof(deepStarData));
+		if (!*stars) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+		} else {
+			uint32_t j = 0;
+			for (catalogue = 0; catalogue < nb_catalogues; catalogue++) {
+				deepStarData *cat_stars = catalogue_stars[catalogue];
+				uint32_t cat_nb_stars = catalogue_nb_stars[catalogue];
+
+				for (uint32_t i = 0; i < cat_nb_stars ; i++) {
+					if (cat_stars[i].V >= 30000) {
+						continue;
+					}
 					deepStarData *sdd = &cat_stars[i];
 					(*stars)[j] = *sdd;
 					j++;
@@ -536,15 +678,40 @@ gboolean local_catalogues_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cat_index != CAT_LOCAL) {
+	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_TRIX) {
 		siril_debug_print("Local cat query - Should not happen\n");
 		return 0;
 	}
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
-	if (get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
+	if (siril_cat->cat_index == CAT_LOCAL && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
+	if (siril_cat->cat_index == CAT_LOCAL_TRIX && get_raw_stars_from_local_catalogues_byID(siril_cat->trixel, &stars, &nb_stars))
+		return 0;
+
+	// compute the trixel centroid position from its 3 vertices
+	if (siril_cat->cat_index == CAT_LOCAL_TRIX) {
+		// double ra1, dec1, ra2, dec2, ra3, dec3;
+		// get_vertices_for_index(siril_cat->trixel, 3, &ra1, &dec1, &ra2, &dec2, &ra3, &dec3);
+		double ra[3], dec[3], x = 0., y = 0., z = 0., N;
+		get_vertices_for_index(siril_cat->trixel, 3, ra, dec, ra + 1, dec + 1, ra + 2, dec + 2);
+		for (int i = 0; i < 3; i++) {
+			double a = ra[i] * DEGTORAD;
+			double d = dec[i] * DEGTORAD;
+			x += cos(d) * cos(a);
+			y += cos(d) * sin(a);
+			z += sin(d);
+		}
+		x /= 3.; y /= 3.; z /= 3.;
+		N = sqrt( x * x + y * y + z * z);
+		x /= N; y /= N; z /= N;
+		siril_cat->center_dec = asin(z) * RADTODEG;
+		siril_cat->center_ra = atan2(y, x) * RADTODEG;
+		if (siril_cat->center_ra < 0.)
+			siril_cat->center_ra +=360.;
+	}
+
 	siril_cat->nbitems = (int)nb_stars;
 	siril_cat->nbincluded = (int)nb_stars;
 	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
@@ -557,8 +724,105 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
 		siril_cat->cat_items[i].included = TRUE;
 	}
+	siril_debug_print("%d stars fetched from local catalogue\n", siril_cat->nbitems);
 	free(stars);
 	if (!siril_cat->nbitems)
 		return -1;
 	return siril_cat->nbitems;
+}
+
+gpointer write_trixels(gpointer p) {
+	int nb[NTRIXELS];
+	double ra[NTRIXELS], dec[NTRIXELS];
+	int table[NTRIXELS][NMAG];
+	double rav[NTRIXELS][3];
+	double decv[NTRIXELS][3];
+	for (int i = 0; i < NTRIXELS; i++) {
+		siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+		siril_cat->cat_index = CAT_LOCAL_TRIX;
+		siril_cat->columns = siril_catalog_columns(CAT_LOCAL_TRIX);
+		siril_cat->trixel = i;
+		siril_catalog_conesearch(siril_cat);
+		sort_cat_items_by_mag(siril_cat);
+		siril_log_message("trixel #%4d - nbstars: %8d - ra: %5.1f, dec: %+5.1f\n", i, siril_cat->nbitems, siril_cat->center_ra, siril_cat->center_dec);
+		nb[i] = siril_cat->nbitems;
+		ra[i] = siril_cat->center_ra;
+		dec[i] = siril_cat->center_dec;
+		int n = 0;
+		for (int j = 0; j < NMAG; j++) {
+			double m = (double)j;
+			while (n < siril_cat->nbitems && siril_cat->cat_items[n].mag < m)
+				n++;
+			// siril_log_message("%4.1f:%7d\n", m, n);
+			table[i][j] = n;
+		}
+		siril_catalog_free(siril_cat);
+		get_vertices_for_index(i, 3, rav[i], decv[i],  rav[i] + 1,decv[i] + 1,  rav[i] + 2, decv[i] + 2);
+	}
+
+	GError *error = NULL;
+	GFile *file = g_file_new_for_path("trixels.csv");
+	if (g_file_test("trixels.csv", G_FILE_TEST_EXISTS)) { // file already exists, we removed it
+		if (!g_file_delete(file, NULL, &error)) {
+			siril_log_color_message(_("File %s cannot be deleted (%s), aborting\n"), "red", "trixels.csv", (error) ? error->message : "unknown error");
+			g_clear_error(&error);
+			g_object_unref(file);
+			siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
+		}
+	}
+	// and we open the stream to write to
+	GOutputStream *output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
+	if (!output_stream) {
+		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", "trixels.csv", (error) ? error->message : "unknown error");
+		g_clear_error(&error);
+		g_object_unref(file);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	gsize s;
+	g_output_stream_printf(output_stream, &s, NULL, &error, "%s", "trixel,nb,ra,dec,ra1,dec1,ra2,dec2,ra3,dec3");
+	for (int i = 0; i < NMAG; i++) {
+		g_output_stream_printf(output_stream, &s, NULL, &error, ",%d", i);
+	}
+	g_output_stream_printf(output_stream, &s, NULL, &error, "\n");
+	for (int i = 0; i < NTRIXELS; i++) {
+		g_output_stream_printf(output_stream, &s, NULL, &error, "%d,%d,%.4f,%+.4f,", i, nb[i], ra[i], dec[i]);
+		g_output_stream_printf(output_stream, &s, NULL, &error, "%.4f,%+.4f,%.4f,%+.4f,%.4f,%+.4f", rav[i][0], decv[i][0], rav[i][1], decv[i][1], rav[i][2], decv[i][2]);
+		for (int j = 0; j < NMAG; j++)
+			g_output_stream_printf(output_stream, &s, NULL, &error, ",%d", table[i][j]);
+		g_output_stream_printf(output_stream, &s, NULL, &error, "\n");
+	}
+	g_object_unref(file);
+	g_object_unref(output_stream);
+	siril_add_idle(end_generic, NULL);
+	siril_log_message(_("Trixels list saved to trixels.csv\n"));
+	return GINT_TO_POINTER(0);
+}
+
+gpointer list_trixels(gpointer p) {
+	if (!has_wcs(&gfit))
+		return GINT_TO_POINTER(1);
+	int nb_trixels;
+	int *trixels;
+	double ra[4], dec[4];
+	double rx = (double)gfit.rx;
+	double ry = (double)gfit.ry;
+	pix2wcs(&gfit, 0., 0., ra, dec);
+	pix2wcs(&gfit, rx, 0., ra + 1, dec + 1);
+	pix2wcs(&gfit, rx, ry, ra + 2, dec + 2);
+	pix2wcs(&gfit, 0., ry, ra + 3, dec + 3);
+	int status = get_htm_indices_around_rectangle(ra, dec, 3, &trixels, &nb_trixels);
+	if (status) {
+		siril_log_color_message(_("Failed\n"), "red");
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(0);
+	}
+	siril_log_message(_("Found %d trixels:\n"), nb_trixels);
+	for (int i = 0; i < nb_trixels; i++) {
+		siril_log_message("%d\n", trixels[i]);
+	}
+	free(trixels);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(0);
 }

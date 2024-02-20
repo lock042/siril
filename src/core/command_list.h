@@ -31,7 +31,7 @@ static command commands[] = {
 	{"clear", 0, "clear", process_clear, STR_CLEAR, FALSE, REQ_CMD_NONE},
 	{"clearstar", 0, "clearstar", process_clearstar, STR_CLEARSTAR, FALSE, REQ_CMD_NONE},
 	{"close", 0, "close", process_close, STR_CLOSE, TRUE, REQ_CMD_NONE},
-	{"conesearch", 0, "conesearch [limit_magnitude] [-cat=] [-phot] [-obscode=] [-tag={on|off}] [-log={on|off}]", process_conesearch, STR_CONESEARCH, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"conesearch", 0, "conesearch [limit_magnitude] [-cat=] [-phot] [-obscode=] [-tag={on|off}] [-log={on|off}] [-trix=] [-out=]", process_conesearch, STR_CONESEARCH, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"convert", 1, "convert basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERT, TRUE, REQ_CMD_NO_THREAD},
 	{"convertraw", 1, "convertraw basename [-debayer] [-fitseq] [-ser] [-start=index] [-out=]", process_convert, STR_CONVERTRAW, TRUE, REQ_CMD_NO_THREAD},
 	{"cosme", 1, "cosme [filename].lst", process_cosme, STR_COSME, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -238,6 +238,7 @@ static command commands[] = {
 	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"thresh", 2, "thresh lo hi", process_thresh, STR_THRESH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"tilt", 0, "tilt [clear]", process_tilt, STR_TILT, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"trixel", 0, "trixel [-p]", process_trixel, STR_TRIXEL, TRUE, REQ_CMD_NONE | REQ_CMD_NO_THREAD},
 
 	{"unclipstars", 0, "unclipstars", process_unclip, STR_SYNTHSTARUNCLIP, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"unselect", 3, "unselect sequencename from to", process_unselect, STR_UNSELECT, TRUE, REQ_CMD_NONE},
