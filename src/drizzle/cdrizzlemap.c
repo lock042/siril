@@ -208,7 +208,8 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
  */
 
 int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p) {
-	int npixels = width * height, status = 0;
+	int npixels = width * height;
+	int status = 0;
 
 	double *pixcrd = malloc(npixels * 2 * sizeof(double));
 	if (!pixcrd) {

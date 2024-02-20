@@ -293,12 +293,13 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	/* Set up the per-image drizzle parameters */
 	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
-	// TODO: populate any arguments that can be set from the GUI or command args
-	// NOTE: driz_args_t will need equivalent fields to set these from
 
 	driz_param_init(p);
+	// TODO: populate any arguments that can be set from the GUI or command args
+	// NOTE: driz_args_t will need equivalent fields to set these from
 	p->driz = driz;
 	p->error = malloc(sizeof(struct driz_error_t));
+	p->scale = driz->scale;
 
 	// Set bounds. TODO: make this account for a selection
 	p->xmin = p->ymin = 0;
@@ -320,11 +321,13 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 
 	// Composing transformation wrt reference image
-	if (driz->use_wcs && !fit->wcslib) {
-		siril_log_color_message(_("Error: drizzle configured to use WCS transforms but this frame "
-					"is not plate solved. Ensure all frames are plate solved, e.g. by running "
-					"seqplatesolve.\n"), "red");
-		return 1;
+	if (driz->use_wcs) {
+		if (!fit->wcslib) {
+			siril_log_color_message(_("Error: drizzle configured to use WCS transforms but this frame "
+						"is not plate solved. Ensure all frames are plate solved, e.g. by running "
+						"seqplatesolve.\n"), "red");
+			return 1;
+		}
 	} else {
 		Himg = driz->seq->regparam[0][in_index].H;
 		if (guess_transform_from_H(Himg) == NULL_TRANSFORMATION)
@@ -337,12 +340,15 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	p->pixmap = malloc(sizeof(imgmap_t));
 	p->pixmap->rx = fit->rx;
 	p->pixmap->ry = fit->ry;
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	if (p->driz->use_wcs) {
 		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap);
 	} else {
 		map_image_coordinates_h(fit, H, p->pixmap);
 	}
-
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
 	/* Populate the data fits to be drizzled */
 	p->data = fit;
 	// Convert fit to 32-bit float if required
