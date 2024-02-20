@@ -174,7 +174,7 @@ struct driz_args_t {
 
 struct driz_param_t {
   struct driz_args_t *driz; /* sequence-wide drizzle args */
-  regdata *current_regdata; /* Current reg data */ // Per-image
+  regdata *current_regdata; /* Current reg data */
 
   /* Options */
   enum e_kernel_t kernel; /* Kernel shape and size */

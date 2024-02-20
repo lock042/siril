@@ -297,6 +297,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz_param_init(p);
 	// TODO: populate any arguments that can be set from the GUI or command args
 	// NOTE: driz_args_t will need equivalent fields to set these from
+//	p->kernel = kernel_turbo;
 	p->driz = driz;
 	p->error = malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
@@ -308,8 +309,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	Homography H = { 0 };
 	Homography Himg = { 0 };
-	if (driz->use_wcs) {
-	} else {
+	if (!driz->use_wcs) {
 		p->current_regdata = apply_driz_get_current_regdata(driz);
 		if (!p->current_regdata)
 			return -2;
@@ -370,7 +370,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	out.rx = fit->rx * p->scale;
 	out.ry = fit->ry * p->scale;
 	size_t chansize = out.rx * out.ry * sizeof(float);
-	out.fdata = malloc(out.naxes[2] * chansize);
+	out.fdata = calloc(out.naxes[2] * chansize, 1);
 	out.fpdata[0] = out.fdata;
 	out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
 	out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
