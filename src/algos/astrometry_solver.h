@@ -7,9 +7,8 @@
 #include "algos/search_objects.h"
 #include "registration/matching/degtorad.h"
 
-#define BRIGHTEST_STARS 2500
+#define BRIGHTEST_STARS 500
 #define AT_MATCH_CATALOG_NBRIGHT 60
-//#define CROP_ALLOWANCE 1.20
 
 
 typedef enum {
@@ -73,7 +72,7 @@ void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer plate_solver(gpointer p);
-double compute_mag_limit_from_fov(double fov_degrees);
+double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov_degrees, int Nstars);
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 

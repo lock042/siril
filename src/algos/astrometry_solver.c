@@ -161,20 +161,44 @@ double get_radius_deg(double resolution, int rx, int ry) {
 	return radius / 3600.0;	// in degrees
 }
 
-double compute_mag_limit_from_fov(double fov_degrees) {
-	// Empiric formula for 1000 stars at 20 deg of galactic latitude
-	double autoLimitMagnitudeFactor = 14.5;
-	double m = autoLimitMagnitudeFactor * pow(fov_degrees, -0.179);
-	// for astrometry, it can be useful to go down to mag 20, for
-	// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
-	return round(100.0 * min(20.0, max(7.0, m))) / 100.;
+double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov_degrees, int Nstars) {
+	// Formulas as per https://siril-contrib-doc.readthedocs.io/en/latest/UsefulStuff.html#limit-magnitude
+	// computing galactic coordinates
+	double l0 = 122.9320 * DEGTORAD;
+	double a0 = 192.8595 * DEGTORAD;
+	double d0 =  27.1284 * DEGTORAD;
+	ra *= DEGTORAD;
+	dec *= DEGTORAD;
+	double ml = (l0 - atan2(cos(dec) * sin(ra - a0), sin(dec) * cos(d0) - cos(dec) * sin(d0) * cos(ra - a0))) * RADTODEG;
+	double mb = asin(sin(dec) * sin(d0) + cos(dec) * cos(d0) * cos(ra - a0)) * RADTODEG;
+	if (ml > 180.)
+		ml -= 360;
+	// fov area in deg^2
+	double S = 2 * (1 - cos(0.5 * fov_degrees * DEGTORAD)) * 180. * 180. / M_PI;
+	// mag intercept
+	double m0 = 11.68 + 2.66 * sin(abs(mb) * DEGTORAD);
+	// mag slope
+	double a = 2.36 + (fabs(ml) - 90) * 0.0073 * (fabs(ml) < 90.);
+	double b = 0.88 - (fabs(ml) - 90) * 0.0065 * (fabs(ml) < 90.);
+	double s = a + b * sin(fabs(mb) * DEGTORAD);
+	// limit mag
+	return (m0 + s * (log10((double)Nstars / S) - 2.));
 }
+
+// double compute_mag_limit_from_fov(double fov_degrees) {
+// 	// Empiric formula for 1000 stars at 20 deg of galactic latitude
+// 	double autoLimitMagnitudeFactor = 14.5;
+// 	double m = autoLimitMagnitudeFactor * pow(fov_degrees, -0.179);
+// 	// for astrometry, it can be useful to go down to mag 20, for
+// 	// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
+// 	return round(100.0 * min(20.0, max(7.0, m))) / 100.;
+// }
 
 static void compute_limit_mag(struct astrometry_data *args) {
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
 		args->ref_stars->limitmag = args->magnitude_arg;
 	else {
-		args->ref_stars->limitmag = compute_mag_limit_from_fov(args->used_fov / 60.0);
+		args->ref_stars->limitmag = compute_mag_limit_from_position_and_fov(siril_world_cs_get_alpha(args->cat_center), siril_world_cs_get_delta(args->cat_center), args->used_fov / 60.0, 500);
 		if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
 			args->ref_stars->limitmag += args->magnitude_arg;
 	}
