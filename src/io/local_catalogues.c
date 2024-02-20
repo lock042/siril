@@ -569,8 +569,8 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 				for (uint32_t i = 0; i < cat_nb_stars ; i++) {
 					if (cat_stars[i].V > mag_threshold)
 						continue;
-					if (cat_stars[i].B >= 30000)
-						if (photometric) continue;
+					if (cat_stars[i].B >= 30000 && photometric)
+						continue;
 					// catalogue has RA in hours, hence the x15
 					double ra = cat_stars[i].RA * .000015;
 					double dec = cat_stars[i].Dec * .00001;
@@ -594,12 +594,13 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	return retval;
 }
 
-static int get_raw_stars_from_local_catalogues_byID(int ID, deepStarData **stars, uint32_t *nb_stars) {
+static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gboolean photometric, deepStarData **stars, uint32_t *nb_stars) {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
 	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
 	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
 	uint32_t total_nb_stars = 0;
 	int retval = 0, catalogue = 0;
+	int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
 
 	siril_debug_print("looking for stars in local catalogues for trixel %4d\n", ID);
 	for (; catalogue < nb_catalogues; catalogue++) {
@@ -625,9 +626,10 @@ static int get_raw_stars_from_local_catalogues_byID(int ID, deepStarData **stars
 				uint32_t cat_nb_stars = catalogue_nb_stars[catalogue];
 
 				for (uint32_t i = 0; i < cat_nb_stars ; i++) {
-					if (cat_stars[i].V >= 30000) {
+					if (cat_stars[i].V > mag_threshold)
 						continue;
-					}
+					if (cat_stars[i].B >= 30000 && photometric)
+						continue;
 					deepStarData *sdd = &cat_stars[i];
 					(*stars)[j] = *sdd;
 					j++;
@@ -687,7 +689,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (siril_cat->cat_index == CAT_LOCAL && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
-	if (siril_cat->cat_index == CAT_LOCAL_TRIX && get_raw_stars_from_local_catalogues_byID(siril_cat->trixel, &stars, &nb_stars))
+	if (siril_cat->cat_index == CAT_LOCAL_TRIX && get_raw_stars_from_local_catalogues_byID(siril_cat->trixel, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
 		return 0;
 
 	// compute the trixel centroid position from its 3 vertices
@@ -742,6 +744,7 @@ gpointer write_trixels(gpointer p) {
 		siril_cat->cat_index = CAT_LOCAL_TRIX;
 		siril_cat->columns = siril_catalog_columns(CAT_LOCAL_TRIX);
 		siril_cat->trixel = i;
+		siril_cat->limitmag = 25;
 		siril_catalog_conesearch(siril_cat);
 		sort_cat_items_by_mag(siril_cat);
 		siril_log_message("trixel #%4d - nbstars: %8d - ra: %5.1f, dec: %+5.1f\n", i, siril_cat->nbitems, siril_cat->center_ra, siril_cat->center_dec);
