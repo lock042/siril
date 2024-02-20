@@ -197,14 +197,14 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
 }
 
 /** ---------------------------------------------------------------------------
- * Create a special pixmap FITS structure to hold the mapping information
+ * Create a special pixmap structure to hold the mapping information
  *
  * fit: The input fits
  * pixmap: The mapping of the pixel centers from input to output image
  * wcs_o - The output wcs
  *
- * Note: if this function is ever used for other purposes with the cv::remap()
- * function, note that in that case the mapping must be from output to input
+ * Note: if this function is ever used with the cv::remap() function for other
+ * purposes, note that in that case the mapping must be from output to input
  */
 
 int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p) {
@@ -256,7 +256,7 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 }
 
 /** ---------------------------------------------------------------------------
- * Create a special pixmap FITS structure to hold the mapping information
+ * Create a special pixmap structure to hold the mapping information
  *
  * fit: The input fits
  * pixmap: The mapping of the pixel centers from input to output image
