@@ -344,7 +344,7 @@ oob_pixel(fits *image, integer_t xpix, integer_t ypix) {
 
 static inline_macro float
 get_pixel(fits *image, integer_t xpix, integer_t ypix) {
-  return *(float*) image->fdata + xpix + ypix * image->rx;
+  return *(float*) (image->fdata + xpix + ypix * image->rx);
 }
 
 static inline_macro float

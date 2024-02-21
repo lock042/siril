@@ -199,8 +199,10 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
 /** ---------------------------------------------------------------------------
  * Create a special pixmap structure to hold the mapping information
  *
- * fit: The input fits
- * pixmap: The mapping of the pixel centers from input to output image
+ * fit: The input fits, The mapping maps coordinates from this fits WCS to the
+ * reference fits WCS.
+ * pixmap: The mapping of the pixel centers from input to output image.
+ *         For each input pixel the pixmap contains pairs of floats mapx, mapy.
  * wcs_o - The output wcs
  *
  * Note: if this function is ever used with the cv::remap() function for other
@@ -258,8 +260,10 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 /** ---------------------------------------------------------------------------
  * Create a special pixmap structure to hold the mapping information
  *
- * fit: The input fits
+ * fit: The input fits. The mapping maps coordinates from this fits to the
+ * reference fits using the homography matrix computed in apply_drz_image_hook.
  * pixmap: The mapping of the pixel centers from input to output image
+ *         For each input pixel the pixmap contains pairs of floats mapx, mapy.
  * H: the Homography matrix to map between the two images
  */
 
