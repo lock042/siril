@@ -106,9 +106,11 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 				if (!status) {
 					if (wcs->altlin & 2) { // header contains CD info
 						double cd[2][2] = {{ 0. }};
-						// we copy cd to pc and set cdelt to unity
 						wcs_cd2mat(wcs, cd);
 						wcs_decompose_cd(wcs, cd);
+						wcs->altlin = 1;
+						wcs->flag = 0;
+						wcsset(wcs);
 						printf("contains CD\n");
 					} else if (wcs->altlin & 1) { // header contains PC info
 						double pc[2][2] = {{ 0. }}, cd[2][2] = {{ 0. }};
@@ -353,7 +355,6 @@ void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
 	wcs_mat2cd(prm, cd);
 	wcs_mat2pc(prm, pc);
 	wcs_mat2cdelt(prm, cdelt);
-	prm->flag = 0;
 }
 
 /* get resolution in degree/pixel */

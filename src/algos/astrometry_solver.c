@@ -1007,6 +1007,7 @@ clearup:
 		siril_add_idle(end_plate_solver, args);
 	}
 	else free(args);
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -1078,6 +1079,7 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 
 static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	struct timeval t_start, t_end;
+	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	point *centers;
 	int N, n = 0;
@@ -1115,12 +1117,14 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 		if (nbfound) {
 			ret = match_catalog(stars, nb_stars, siril_cat, args->scale, AT_TRANS_LINEAR, &t, &ra, &dec);
 		}
+		set_progress_bar_data(NULL, (double)n / N);
 		if (ret == SOLVE_OK || ret == SOLVE_CANCELLED)
 			solved = TRUE;
 		n++;
 	}
 	if (!solved)
 		ret = SOLVE_NEAR_NO_MATCH;
+	set_progress_bar_data(_("Near solver done"), PROGRESS_DONE);
 	free(centers);
 	siril_catalog_free(siril_cat);
 	siril_catalog_free_items(&siril_search_cat);
@@ -1518,7 +1522,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		g_free(table_filename);
 		return 1;
 	}
-
 	char low_scale[16], high_scale[16], time_limit[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
 	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
@@ -1680,6 +1683,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	}
 
 	solution->wcslib = result.wcslib;
+	wcsset(solution->wcslib);
 	result.wcslib = NULL;
 	clearfits(&result);
 	if (!com.pref.astrometry.keep_wcs_files)

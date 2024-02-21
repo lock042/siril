@@ -667,7 +667,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		} else {
 			args->filename = g_strdup_printf("image");
 		}
-
+		process_plate_solver_input(args);
 		return 0;
 	}
 
