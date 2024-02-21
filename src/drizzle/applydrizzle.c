@@ -334,6 +334,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1; // in case H is null and -selected was not passed
 		cvTransfH(Himg, Htransf, &H);
 	}
+	H.h00 *= driz->scale;
+	H.h11 *= driz->scale;
 	/* Populate the mapping array. This maps pixels from the current frame to
 	 * the reference frame. Either a Homography mapping can be used based on
 	 * image registration or a WCS mapping can be used based on plate solving */
@@ -367,8 +369,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	/* Set up output fits */
 	fits out;
 	copyfits(fit, &out, CP_FORMAT, -1);
-	out.rx = fit->rx * p->scale;
-	out.ry = fit->ry * p->scale;
+	out.rx = (int) (fit->rx * p->scale);
+	out.ry = (int) (fit->ry * p->scale);
 	size_t chansize = out.rx * out.ry * sizeof(float);
 	out.fdata = calloc(out.naxes[2] * chansize, 1);
 	out.fpdata[0] = out.fdata;
@@ -378,10 +380,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	// Set up the output_counts fits to store pixel hit counts
 	fits output_counts = { 0 };
-	output_counts.rx = fit->rx;
-	output_counts.ry = fit->ry;
-	output_counts.type = DATA_FLOAT;
-	output_counts.fdata = calloc(output_counts.rx * output_counts.ry, sizeof(float));
+	copyfits(&out, &output_counts, CP_FORMAT, -1);
+	output_counts.fdata = calloc(output_counts.rx * output_counts.ry * output_counts.naxes[2], sizeof(float));
 	p->output_counts = &output_counts;
 
 	/* NOTE: on the first pass there is no weights file, everything is evenly
