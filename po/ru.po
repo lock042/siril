@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-14 11:04+0100\n"
-"PO-Revision-Date: 2024-02-21 12:43+0000\n"
+"PO-Revision-Date: 2024-02-22 09:30+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -8141,7 +8141,7 @@ msgstr "Карта дефектных пикселей"
 
 #: src/gui/uifiles/siril.ui:5018
 msgid "Using Bad Pixel Map"
-msgstr "Использование карты дефектных пикселей"
+msgstr "Использовать карту дефектных пикселей"
 
 #: src/gui/uifiles/siril.ui:5035
 msgid "Cosmetic correction"
