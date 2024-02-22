@@ -96,7 +96,7 @@ src_files = [
   'core/utils.c',
 
   'drizzle/applydrizzle.c',
-  'drizzle/cdrizzleblot.c',
+#  'drizzle/cdrizzleblot.c',
   'drizzle/cdrizzlebox.c',
   'drizzle/cdrizzlemap.c',
   'drizzle/cdrizzlefileutils.c',
