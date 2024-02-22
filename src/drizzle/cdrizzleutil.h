@@ -157,6 +157,7 @@ struct driz_args_t {
   /* Siril sequence data */
   sequence *seq; /* Sequence to operate on */
   int reference_image; /* reference image */
+  enum e_kernel_t kernel; /* Kernel shape and size */
   bool_t is_bayer; /* Is this a Bayer drizzle? */
   bool_t use_wcs; /* Use WCS mapping? If not, Homography mapping will be used */
   regdata *ref_regdata; /* Reference reg data */

@@ -323,7 +323,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz_param_init(p);
 	// TODO: populate any arguments that can be set from the GUI or command args
 	// NOTE: driz_args_t will need equivalent fields to set these from
-	p->kernel = kernel_turbo;
+	p->kernel = driz->kernel;
 	p->driz = driz;
 	p->error = malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
@@ -455,8 +455,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz->regparam[out_index].weighted_fwhm *= p->scale;
 	driz->imgparam[out_index].rx *= p->scale;
 	driz->imgparam[out_index].ry *= p->scale;
-
-//	sadata->success[out_index] = 1;
+	driz->success[out_index] = 1;
+	driz->new_total++; // is this thread safe?
 	return 0;
 }
 
@@ -613,6 +613,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->new_seq_prefix = g_strdup("drz_");
+	driz->prefix = g_strdup("drz_");
 	args->load_new_sequence = TRUE;
 	args->force_float = FALSE;
 	args->user = driz;
@@ -638,7 +639,7 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	seq.number = args->new_total;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
-	seq.nb_layers = args->seq->nb_layers;
+	seq.nb_layers = args->is_bayer ? 3 : args->seq->nb_layers;
 	seq.rx = rx_out;
 	seq.ry = ry_out;
 	seq.imgparam = args->imgparam;

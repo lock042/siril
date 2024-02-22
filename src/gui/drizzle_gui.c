@@ -39,6 +39,7 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	driz->is_bayer = FALSE;
 	driz->use_wcs = FALSE;
 	driz->scale = 1.0f;
+	driz->kernel = kernel_turbo;
 	apply_drizzle(driz);
 }
 
