@@ -374,7 +374,7 @@ do_kernel_point(struct driz_param_t* p) {
  * p: structure containing options, input, and output
  *
  * Note: in accordance with the note on github this kernel does not work properly and will be
- * removed.
+ * removed. Commented out rather than removed in case we want to fix it.
  */
 /*
 static int

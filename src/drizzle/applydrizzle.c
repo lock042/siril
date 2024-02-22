@@ -37,6 +37,7 @@
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 #include "registration/registration.h"
+#include "algos/demosaicing.h"
 
 #include "drizzle/driz_portability.h"
 #include "drizzle/cdrizzleutil.h"
@@ -265,7 +266,32 @@ int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
-	// TODO: not implemented yet, this parameter is currently ignored
+	sensor_pattern pattern;
+	if (driz->is_bayer) {
+		sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
+		if (com.pref.debayer.use_bayer_header) {
+			pattern = get_cfa_pattern_index_from_string(fit.bayer_pattern);
+		}
+		// Copied from debayer.c, this appears to set up a uint32_t that allows mapping pixel to color
+		// using FC()
+		switch (pattern) {
+			case BAYER_FILTER_BGGR:
+				driz->cfa = 0x16161616;
+				break;
+			case BAYER_FILTER_GRBG:
+				driz->cfa = 0x61616161;
+				break;
+			case BAYER_FILTER_RGGB:
+				driz->cfa = 0x94949494;
+				break;
+			case BAYER_FILTER_GBRG:
+				driz->cfa = 0x49494949;
+				break;
+			default:
+				siril_log_color_message(_("Error: cannot drizzle this CFA pattern\n"), "red");
+				return -1;
+			}
+	}
 
 	if (driz->use_wcs) {
 		if (!fit.wcslib) {
@@ -301,6 +327,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	p->driz = driz;
 	p->error = malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
+	p->cfa = driz->cfa;
 
 	// Set bounds. TODO: make this account for a selection
 	p->xmin = p->ymin = 0;

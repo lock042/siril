@@ -220,8 +220,8 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 	int index = 0;
 	for (int j = 0 ; j < height ; j++) {
 		for (int i = 0 ; i < width;  i++) {
-			pixcrd[index++] = i;
-			pixcrd[index++] = j;
+			pixcrd[index++] = (double) i + 1;
+			pixcrd[index++] = (double) j + 1;
 		}
 	}
 
@@ -240,6 +240,9 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 
 	wcsp2s(wcs_i, npixels, 2, pixcrd, junk, junk, junk, imgcrd, &status);
 	wcss2p(wcs_o, npixels, 2, imgcrd, junk, junk, junk, pixcrd, &status);
+	for (int i = 2 * npixels - 1; i >= 0 ; i--) {
+		pixcrd[i] =- 1.0;
+	}
 
 	free(junk); // finished with the junk array
 

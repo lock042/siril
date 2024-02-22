@@ -169,11 +169,12 @@ struct driz_args_t {
   gboolean load_new_sequence;
   float scale;
   BYTE* success;
+  uint32_t cfa;
 };
 
 struct driz_param_t {
   struct driz_args_t *driz; /* sequence-wide drizzle args */
-  regdata *current_regdata; /* Current reg data */
+  regdata *current_regdata; /* Current reg data (to get Homography matrices, if required)*/
 
   /* Options */
   enum e_kernel_t kernel; /* Kernel shape and size */
@@ -188,6 +189,9 @@ struct driz_param_t {
 
   /* Scaling */
   float scale;
+
+  /* CFA filter pattern */
+  uint32_t cfa;
 
   /* Image subset */
   integer_t xmin;
@@ -384,6 +388,11 @@ static inline_macro void
 unset_bit(fits *image, integer_t xpix, integer_t ypix) {
   *(integer_t*) (image->fpdata + ypix * image->rx +xpix) = 0;
   return;
+}
+
+/** Calculate the CFA pattern color from the row and column **/
+static inline_macro int FC(const size_t row, const size_t col, const uint32_t cfa) {
+	return cfa >> (((row << 1 & 14) + (col & 1)) << 1) & 3;
 }
 
 /*****************************************************************
