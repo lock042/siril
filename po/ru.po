@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-14 11:04+0100\n"
-"PO-Revision-Date: 2024-02-22 09:30+0000\n"
+"PO-Revision-Date: 2024-02-22 10:49+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -131,7 +131,7 @@ msgstr ""
 #: src/gui/uifiles/aavso_dialog.ui:229
 #, fuzzy
 msgid "Starid: "
-msgstr "Звезда №1:"
+msgstr "ID звезды: "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -1671,16 +1671,14 @@ msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
-#, fuzzy
 msgid "1.0"
-msgstr "100"
+msgstr "1.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:134 src/gui/uifiles/ccm_dialog.ui:148
 #: src/gui/uifiles/ccm_dialog.ui:162 src/gui/uifiles/ccm_dialog.ui:190
 #: src/gui/uifiles/ccm_dialog.ui:204 src/gui/uifiles/ccm_dialog.ui:218
-#, fuzzy
 msgid "0.0"
-msgstr "0"
+msgstr "0.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:281
 msgid "The power to which each result pixel will be raised."
@@ -1691,9 +1689,8 @@ msgid "Power:"
 msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:309
-#, fuzzy
 msgid "Presets:"
-msgstr "Предустановки"
+msgstr "Предустановки:"
 
 #: src/gui/uifiles/ccm_dialog.ui:322
 msgid "Custom"
@@ -1716,9 +1713,8 @@ msgid "XYZ to Simplified sRGB (gamma = 2.2)"
 msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:343
-#, fuzzy
 msgid "Settings"
-msgstr "Дополнительные параметры"
+msgstr "Параметры"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1347
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -3642,7 +3638,9 @@ msgstr "Удалить"
 
 #: src/gui/uifiles/icc_dialog.ui:99
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr "Удаляет профиль ICC из изображения и прекращает управление его цветом"
+msgstr ""
+"Удаляет ICC-профиль из изображения и прекращает управление цветом этого "
+"изображения"
 
 #: src/gui/uifiles/icc_dialog.ui:110 src/core/icc_profile.c:1250
 msgid "Assign"
@@ -3668,11 +3666,11 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:178
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr "<b><i>Текущий профиль ICC</i></b>"
+msgstr "<b><i>Текущий ICC-профиль</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:228
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b><i>Целевой профиль ICC</i></b>"
+msgstr "<b><i>Целевой ICC-профиль</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:95
@@ -3712,11 +3710,11 @@ msgstr ""
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Rec2020 (linear TRC)"
-msgstr ""
+msgstr "Rec2020 (линейная TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:378
 msgid "Rec2020 (standard Rec709 TRC)"
-msgstr ""
+msgstr "Rec2020 (стандартная Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:379
 msgid "Gray (linear TRC)"
@@ -4506,7 +4504,7 @@ msgstr "<b>Сжатие</b>"
 
 #: src/gui/uifiles/savepopup.ui:360
 msgid "<b>ICC Profile</b>"
-msgstr "<b>Профиль ICC</b>"
+msgstr "<b>ICC-профиль</b>"
 
 #: src/gui/uifiles/savepopup.ui:389
 msgid "<b>Embedded Data</b>"
@@ -5765,11 +5763,11 @@ msgstr "Камера"
 
 #: src/gui/uifiles/settings_window.ui:2837
 msgid "siril-spcc-database repository:"
-msgstr ""
+msgstr "репозиторий siril-spcc-database:"
 
 #: src/gui/uifiles/settings_window.ui:2846
 msgid "Enable repository"
-msgstr ""
+msgstr "Включить репозиторий"
 
 #: src/gui/uifiles/settings_window.ui:2850
 msgid ""
@@ -6051,7 +6049,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:4192
 #: src/gui/uifiles/settings_window.ui:4272 src/core/icc_profile.c:2218
 msgid "sRGB"
-msgstr ""
+msgstr "sRGB"
 
 #: src/gui/uifiles/settings_window.ui:3824
 msgid "Rec2020"
@@ -6147,7 +6145,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:4024
 #: src/gui/uifiles/settings_window.ui:4222
 msgid "Perceptual"
-msgstr ""
+msgstr "Воспринимаемая"
 
 #: src/gui/uifiles/settings_window.ui:4025
 #: src/gui/uifiles/settings_window.ui:4223
@@ -6166,7 +6164,7 @@ msgstr "Абсолютная колориметрическая"
 
 #: src/gui/uifiles/settings_window.ui:4038
 msgid "Black point compensation"
-msgstr "Коррекция точки чёрного"
+msgstr "Компенсация точки чёрного"
 
 #: src/gui/uifiles/settings_window.ui:4042
 msgid ""
@@ -6228,7 +6226,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:4193
 #: src/gui/uifiles/settings_window.ui:4273
 msgid "Working gamut"
-msgstr ""
+msgstr "Рабочий цветовой охват"
 
 #: src/gui/uifiles/settings_window.ui:4194
 #: src/gui/uifiles/settings_window.ui:4274
@@ -7449,12 +7447,11 @@ msgid "Dynamic PSF..."
 msgstr "Динамическая PSF..."
 
 #: src/gui/uifiles/siril.ui:2389
-#, fuzzy
 msgid ""
 "Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.\n"
 "Output is a csv file compatible with NINA Exoplanet"
 msgstr ""
-"Создать список звёзд сравнения (AAVSO, APASS), находящихся в поле зрения.\n"
+"Создать список звёзд сравнения (APASS, NOMAD), находящихся в поле зрения.\n"
 "Будет создан файл csv, совместимый с плагином NINA Exoplanets"
 
 #: src/gui/uifiles/siril.ui:2392
@@ -7476,12 +7473,11 @@ msgstr "Автоматическая световая кривая..."
 
 #: src/gui/uifiles/siril.ui:2420
 msgid "This is the button for outputting photometric data."
-msgstr ""
+msgstr "Сохранение полученных данных фотометрии."
 
 #: src/gui/uifiles/siril.ui:2421
-#, fuzzy
 msgid "Create Output"
-msgstr "Результат"
+msgstr "Сохранить результаты"
 
 #: src/gui/uifiles/siril.ui:2447 src/gui/uifiles/siril.ui:2464
 #: src/gui/uifiles/siril.ui:2479
@@ -7540,7 +7536,7 @@ msgstr "Дата"
 
 #: src/gui/uifiles/siril.ui:3500
 msgid "Add files to convert"
-msgstr "Добавить файлы для конвертирования"
+msgstr "Добавить файлы для конвертации"
 
 #: src/gui/uifiles/siril.ui:3502
 msgid "Add"
@@ -7983,7 +7979,7 @@ msgstr "master-bias.fit"
 #: src/gui/uifiles/siril.ui:4598
 #, fuzzy
 msgid "Dark Optimization"
-msgstr "Оптимизация"
+msgstr "Оптимизация темновых кадров"
 
 #: src/gui/uifiles/siril.ui:4603
 msgid ""
@@ -9804,9 +9800,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/spcc_details.ui:153
-#, fuzzy
 msgid "Data Source"
-msgstr "Источник"
+msgstr "Источник данных"
 
 #: src/gui/uifiles/spcc_details.ui:166
 #, fuzzy
@@ -9819,7 +9814,7 @@ msgstr "Кол-во образцов"
 
 #: src/gui/uifiles/spcc_details.ui:222
 msgid "Comment"
-msgstr ""
+msgstr "Комментарий"
 
 #: src/gui/uifiles/spcc_details.ui:253
 msgid "SPCC Details"
@@ -9832,15 +9827,15 @@ msgstr "Начать фотометрическую калибровку цве�
 #: src/gui/uifiles/s_pcc_dialog.ui:179
 #, fuzzy
 msgid "White Point Reference:"
-msgstr "Ориентир белого:\n"
+msgstr "Точка белого:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:191
 msgid "Mono Sensor:"
-msgstr ""
+msgstr "Монохромный сенсор:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:203
 msgid "OSC Sensor:"
-msgstr ""
+msgstr "Цветной сенсор:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:215
 msgid "Red Filter:"
@@ -9887,7 +9882,7 @@ msgstr ""
 #: src/gui/uifiles/s_pcc_dialog.ui:394 src/gui/uifiles/s_pcc_dialog.ui:408
 #: src/gui/uifiles/s_pcc_dialog.ui:434 src/gui/uifiles/s_pcc_dialog.ui:486
 msgid "Details"
-msgstr ""
+msgstr "Подробности"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:342
 msgid "Show details of the selected OSC sensor"
@@ -9949,7 +9944,7 @@ msgstr ""
 #: src/gui/uifiles/s_pcc_dialog.ui:490
 #, fuzzy
 msgid "Show details of the selected white reference"
-msgstr "индекс выбранной темы"
+msgstr "Подробности выбранной точки белого"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:510
 msgid "Blue:"
@@ -10013,15 +10008,15 @@ msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:693
 msgid "Sensor Type:"
-msgstr ""
+msgstr "Тип сенсора:"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:723 src/gui/photometric_cc.c:546
 msgid "mono"
-msgstr ""
+msgstr "монохромный"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:740
 msgid "Narrowband mode"
-msgstr ""
+msgstr "Узкополосный режим"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:744
 msgid ""
@@ -10032,7 +10027,7 @@ msgstr ""
 #: src/gui/uifiles/s_pcc_dialog.ui:760
 #, fuzzy
 msgid "SPCC Parameters"
-msgstr "Параметры"
+msgstr "Параметры спектофотометрической калибровки"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:838
 #, fuzzy
@@ -10070,9 +10065,8 @@ msgid "APASS"
 msgstr "APASS"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:846
-#, fuzzy
 msgid "GAIA DR3"
-msgstr "Gaia EDR3"
+msgstr "GAIA DR3"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:860
 msgid "Photometric Star Catalogue: "
@@ -10080,7 +10074,7 @@ msgstr "Фотометрический каталог: "
 
 #: src/gui/uifiles/s_pcc_dialog.ui:924
 msgid "Tolerance / σ"
-msgstr ""
+msgstr "Допуск / σ"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:936
 msgid ""
@@ -10535,7 +10529,6 @@ msgid "Roundness range"
 msgstr "Диапазон округлости"
 
 #: src/gui/uifiles/stars_list_window.ui:810
-#, fuzzy
 msgid ""
 "Enable roundness upper bound.\n"
 "Use only to display optical distortions or double stars, not for "
@@ -10546,7 +10539,6 @@ msgstr ""
 "не для регистрации или астрометрии, это нарушит их."
 
 #: src/gui/uifiles/stars_list_window.ui:825
-#, fuzzy
 msgid ""
 "Maximum roundness, use only to display optical distortions or double stars, "
 "not for registration or astrometry, this will break them."
@@ -10789,10 +10781,9 @@ msgid "Open photometric color calibration dialog"
 msgstr "Открыть диалог фотометрической калибровки цвета"
 
 #: src/gui/siril-shortcuts.ui:184
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open spectrophotometric color calibration dialog"
-msgstr "Открыть диалог фотометрической калибровки цвета"
+msgstr "Открыть диалог спектрофотометрической калибровки цвета"
 
 #: src/gui/siril-shortcuts.ui:191
 msgctxt "shortcut window"
@@ -11469,12 +11460,12 @@ msgstr "На изображении не удалось найти звёзды 
 #: src/algos/comparison_stars.c:428
 #, fuzzy
 msgid "variable"
-msgstr "Переменная"
+msgstr "переменная"
 
 #: src/algos/comparison_stars.c:428
 #, fuzzy
 msgid "comparison"
-msgstr "Звёзды сравнения"
+msgstr "сравнения"
 
 #: src/algos/comparison_stars.c:438
 msgid "Comparison stars: processing...\n"
@@ -12052,9 +12043,8 @@ msgstr ""
 
 #. Check for NaN... If they are NaN the result image is junk
 #: src/algos/photometric_cc.c:691
-#, fuzzy
 msgid "Error computing coefficients: aborting...\n"
-msgstr "Ошибка при разборе аргументов, прерывание.\n"
+msgstr "Ошибка при вычислении коэффициентов, прерывание…\n"
 
 #: src/algos/photometric_cc.c:697
 msgid "White balance factors:\n"
@@ -12128,24 +12118,21 @@ msgid "SPCC"
 msgstr ""
 
 #: src/algos/photometric_cc.c:876
-#, fuzzy
 msgid "PCC"
-msgstr "PGC"
+msgstr "PCC"
 
 #: src/algos/photometric_cc.c:877
-#, fuzzy, c-format
+#, c-format
 msgid "Photometric CC (algorithm: %s)"
-msgstr "Фотометрическая калибровка цвета"
+msgstr "Фотометрическая калибровка цвета (алгоритм: %s)"
 
 #: src/algos/photometric_cc.c:883
-#, fuzzy
 msgid "Catalog error, no stars identified!\n"
-msgstr "Целевая звезда определена: %s\n"
+msgstr "Ошибка каталога, звёзды не были определены!\n"
 
 #: src/algos/photometric_cc.c:892
-#, fuzzy
 msgid "Spectrophotometric Color Calibration succeeded.\n"
-msgstr "Фотометрическая калибровка цвета успешно завершена.\n"
+msgstr "Спектрофотометрическая калибровка цвета успешно завершена.\n"
 
 #: src/algos/photometric_cc.c:894
 msgid "Photometric Color Calibration succeeded.\n"
@@ -12487,14 +12474,12 @@ msgid "Global star registration (deep-sky)"
 msgstr "Регистрация по одной звезде (дальний космос)"
 
 #: src/compositing/align_rgb.c:52
-#, fuzzy
 msgid "KOMBAT registration (planetary / deep-sky)"
-msgstr "Регистрация по одной звезде (дальний космос)"
+msgstr "KOMBAT (планеты / дальний космос)"
 
 #: src/compositing/align_rgb.c:186
-#, fuzzy
 msgid "Error in channels alignment."
-msgstr "Ошибка в выравнивании слоёв."
+msgstr "Ошибка выравнивания каналов."
 
 #: src/compositing/align_rgb.c:201 src/compositing/compositing.c:925
 #: src/compositing/compositing.c:962
@@ -15084,24 +15069,20 @@ msgid "Mono Sensors"
 msgstr ""
 
 #: src/core/command.c:9752
-#, fuzzy
 msgid "Red Filters"
-msgstr "Медианный фильтр"
+msgstr "Красные фильтры"
 
 #: src/core/command.c:9755
-#, fuzzy
 msgid "Green Filters"
-msgstr "Медианный фильтр"
+msgstr "Зелёные фильтры"
 
 #: src/core/command.c:9758
-#, fuzzy
 msgid "Blue Filters"
-msgstr "Медианный фильтр"
+msgstr "Синие фильтры"
 
 #: src/core/command.c:9761
-#, fuzzy
 msgid "OSC Filters"
-msgstr "Фильтр: "
+msgstr "Цветные фильтры"
 
 #: src/core/command.c:9764
 msgid "OSC Low-Pass Filters"
@@ -16190,7 +16171,7 @@ msgstr ""
 
 #: src/core/command_def.h:73
 msgid "Removes the ICC profile from the current image, if it has one"
-msgstr "Удаляет профиль ICC из текущего изображения если оно уже имеет таковой"
+msgstr "Удаляет ICC-профиль из текущего изображения если оно уже имеет таковой"
 
 #: src/core/command_def.h:74
 msgid ""
@@ -19011,12 +18992,12 @@ msgstr ""
 #: src/core/icc_profile.c:213 src/core/icc_profile.c:1901
 #, c-format
 msgid "Exported ICC profile to %s\n"
-msgstr "Профиль ICC экспортирован в %s\n"
+msgstr "ICC-профиль экспортирован в %s\n"
 
 #: src/core/icc_profile.c:215 src/core/icc_profile.c:1903
 #, c-format
 msgid "Failed to export ICC profile to %s\n"
-msgstr "Не удалось экспортировать профиль ICC в %s\n"
+msgstr "Не удалось экспортировать ICC-профиль в %s\n"
 
 #. Also we use this function to export the ICC sRGB perceptual display profile,
 #. but use a confirmation dialog to confirm the ICC's terms of use.
@@ -19111,7 +19092,7 @@ msgstr ""
 
 #: src/core/icc_profile.c:1021 src/core/icc_profile.c:1028
 msgid "No ICC profile"
-msgstr "Профиль ICC отсутствует"
+msgstr "ICC-профиль отсутствует"
 
 #: src/core/icc_profile.c:1064
 msgid ""
@@ -19122,16 +19103,16 @@ msgstr ""
 #: src/core/icc_profile.c:1065
 msgid "Image is not color managed. Will not write an ICC profile."
 msgstr ""
-"Управления цветом изображения не происходит. Профиль ICC не будет записан."
+"Управления цветом изображения не происходит. ICC-профиль не будет записан."
 
 #: src/core/icc_profile.c:1114
 msgid "ICC profile removed"
-msgstr "Профиль ICC удалён"
+msgstr "ICC-профиль удалён"
 
 #: src/core/icc_profile.c:1134 src/core/icc_profile.c:1225
 #, c-format
 msgid "Assigned ICC profile: %s"
-msgstr "Назначенный профиль ICC: %s"
+msgstr "Назначенный ICC-профиль: %s"
 
 #: src/core/icc_profile.c:1140 src/core/icc_profile.c:1688
 msgid ""
@@ -19148,7 +19129,7 @@ msgstr ""
 #: src/core/icc_profile.c:1176
 #, c-format
 msgid "Converted to ICC profile: %s"
-msgstr "Преобразовано в профиль ICC: %s"
+msgstr "Преобразовано в ICC-профиль: %s"
 
 #: src/core/icc_profile.c:1181
 msgid "Failed to create colorspace transform."
@@ -19193,12 +19174,12 @@ msgstr "Обновление рабочих профилей.\n"
 
 #: src/core/icc_profile.c:1486
 msgid "Monitor ICC profile set to sRGB\n"
-msgstr "Профиль ICC монитора установлен в sRGB\n"
+msgstr "ICC-профиль монитора установлен в sRGB\n"
 
 #: src/core/icc_profile.c:1488 src/core/icc_profile.c:1555
 #: src/core/icc_profile.c:1564
 msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
-msgstr "Фатальная ошибка: не удалось загрузить стандартный профиль ICC sRGB.\n"
+msgstr "Фатальная ошибка: не удалось загрузить стандартный ICC-профиль sRGB.\n"
 
 #: src/core/icc_profile.c:1537
 msgid "Error: no filename specfied for custom monitor profile.\n"
@@ -19246,9 +19227,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1670 src/core/icc_profile.c:1739
-#, fuzzy
 msgid "No color profile chosen, nothing to assign."
-msgstr "Цветовой профиль не установлен"
+msgstr "Цветовой профиль не выбран, не назначаем."
 
 #. We save the undo state as dealing with gfit
 #: src/core/icc_profile.c:1675
@@ -19351,9 +19331,8 @@ msgid "CIE y"
 msgstr ""
 
 #: src/core/icc_profile.c:2203
-#, fuzzy
 msgid "Color profile"
-msgstr "Удаление цветового профиля"
+msgstr "Цветовой профиль"
 
 #: src/core/icc_profile.c:2207
 #, fuzzy
@@ -20685,9 +20664,8 @@ msgid "RGB alignment (Global stars)"
 msgstr "Выравнивание RGB (DFT)"
 
 #: src/core/siril_actions.c:727
-#, fuzzy
 msgid "RGB alignment (KOMBAT)"
-msgstr "Выравнивание RGB (DFT)"
+msgstr "Выравнивание RGB (KOMBAT)"
 
 #: src/core/siril_actions.c:732
 msgid "RGB alignment (PSF)"
@@ -22227,9 +22205,8 @@ msgid "CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"
 msgstr ""
 
 #: src/gui/colors.c:435
-#, fuzzy
 msgid "ICC Profile"
-msgstr "Профиль ICC отсутствует"
+msgstr "ICC-профиль"
 
 #: src/gui/colors.c:435
 msgid ""
@@ -22854,11 +22831,10 @@ msgstr ""
 "одиночный файл FITS."
 
 #: src/gui/photometric_cc.c:91
-#, fuzzy
 msgid ""
 "There is no valid WCS information in the header. Please platesolve first.\n"
 msgstr ""
-"В заголовке отсутствует достоверная информация WCS. Давайте выполним "
+"В заголовке отсутствует достоверная информация WCS. Давайте сначала получим "
 "астрономическое решение.\n"
 
 #: src/gui/photometric_cc.c:99
@@ -22866,10 +22842,8 @@ msgid "Using Gaia DR3 for SPCC\n"
 msgstr ""
 
 #: src/gui/photometric_cc.c:113
-#, fuzzy
 msgid "Using remote APASS instead of local NOMAD catalog\n"
-msgstr ""
-"Использовать удалённый каталог APASS вместо локального каталога NOMAD\n"
+msgstr "Использовать удалённый каталог APASS вместо локального каталога NOMAD\n"
 
 #: src/gui/photometric_cc.c:195
 msgid "Photometric Color Calibration"
@@ -22900,9 +22874,8 @@ msgid "No selection made: no details to show."
 msgstr "Слои не загружены: нет файлов для сохранения"
 
 #: src/gui/photometric_cc.c:730
-#, fuzzy
 msgid "SPCC Data"
-msgstr "Очистить данные"
+msgstr "Данные SPCC"
 
 #: src/gui/photometric_cc.c:731
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
@@ -24421,7 +24394,7 @@ msgstr "Извините, но Siril не может открыть файл: %s
 
 #: src/io/image_formats_libraries.c:1162
 msgid "Read ICC profile from JPEG.\n"
-msgstr "Прочитать профиль ICC из JPEG.\n"
+msgstr "Прочитать ICC-профиль из JPEG.\n"
 
 #: src/io/image_formats_libraries.c:1165
 msgid "Cannot read an ICC profile from this JPEG, assuming sRGB.\n"
@@ -24442,7 +24415,7 @@ msgstr "Siril не может создавать файл в формате JPG.
 
 #: src/io/image_formats_libraries.c:1374
 msgid "Error: failed to write ICC profile to JPG\n"
-msgstr "Ошибка: не удалось записать профиль ICC в JPG\n"
+msgstr "Ошибка: не удалось записать ICC-профиль в JPG\n"
 
 #: src/io/image_formats_libraries.c:1394
 #, c-format
@@ -25421,7 +25394,7 @@ msgstr ""
 #: src/io/siril_catalogues.c:240
 #, fuzzy
 msgid "Gaia DR3 (direct)"
-msgstr "Gaia EDR3"
+msgstr "Gaia DR3"
 
 #: src/io/siril_catalogues.c:242
 msgid "PPMXL"
@@ -25657,18 +25630,16 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_git.c:735
-#, fuzzy
 msgid "Local SPCC database repository is up-to-date!\n"
-msgstr "Локальный репозиторий сценариев в актуальном состоянии!\n"
+msgstr "Локальный репозиторий базы данных SPCC в актуальном состоянии!\n"
 
 #: src/io/siril_git.c:761
 msgid "Error: unable to open local scripts repository.\n"
 msgstr "Ошибка: не удалось открыть локальный репозиторий сценариев.\n"
 
 #: src/io/siril_git.c:783
-#, fuzzy
 msgid "Error: unable to open local spcc-database repository.\n"
-msgstr "Ошибка: не удалось открыть локальный репозиторий сценариев.\n"
+msgstr "Ошибка: не удалось открыть локальный репозиторий spcc-database.\n"
 
 #: src/io/siril_git.c:892
 #, c-format
@@ -25708,18 +25679,16 @@ msgid "Confirm"
 msgstr "Подтвердить"
 
 #: src/io/siril_git.c:941 src/io/siril_git.c:991
-#, fuzzy
 msgid "Error! SPCC database failed to update."
-msgstr "Ошибка! Не удалось обновить сценарии."
+msgstr "Ошибка! Не удалось обновить базу данных SPCC."
 
 #: src/io/siril_git.c:945 src/io/siril_git.c:994
 msgid "Update cancelled. Updates have not been applied."
 msgstr "Обновление отменено. Обновления не были применены."
 
 #: src/io/siril_git.c:949
-#, fuzzy
 msgid "The spcc-database repository is up to date."
-msgstr "Репозиторий сценариев в актуальном состоянии."
+msgstr "Репозиторий spcc-database в актуальном состоянии."
 
 #: src/io/siril_git.c:966
 msgid ""
@@ -25737,14 +25706,13 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_git.c:1006
-#, fuzzy
 msgid "The SPCC database repository is up to date."
-msgstr "Репозиторий сценариев в актуальном состоянии."
+msgstr "Репозиторий базы данных SPCC в актуальном состоянии."
 
 #: src/io/spcc_json.c:57 src/io/spcc_json.c:243 src/io/spcc_json.c:433
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading SPCC JSON file: %s\n"
-msgstr "Ошибка при загрузке файлов!\n"
+msgstr "Ошибка загрузки JSON-файла SPCC: %s\n"
 
 #: src/io/spcc_json.c:67 src/io/spcc_json.c:443
 msgid "Error: The JSON file should contain an array of objects.\n"
@@ -25757,9 +25725,9 @@ msgid ""
 msgstr ""
 
 #: src/io/spcc_json.c:310
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading JSON object in file %s\n"
-msgstr "Ошибка при открытии файла %s\n"
+msgstr "Ошибка чтения объекта JSON в файле %s\n"
 
 #: src/io/spcc_json.c:396
 #, c-format
