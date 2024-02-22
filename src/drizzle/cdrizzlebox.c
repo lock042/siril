@@ -66,7 +66,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 inline_macro static int
 update_data(struct driz_param_t* p, const integer_t ii, const integer_t jj,
-            const float d, const float vc, const float dow) {
+            const integer_t chan, const float d, const float vc, const float dow) {
 
   float vc_plus_dow;
 
@@ -79,7 +79,7 @@ update_data(struct driz_param_t* p, const integer_t ii, const integer_t jj,
       driz_error_format_message(p->error, "OOB in output_data[%d,%d]", ii, jj);
       return 1;
     } else {
-      set_pixel(p->output_data, ii, jj, d);
+      set_pixel(p->output_data, ii, jj, chan, d);
     }
 
   } else {
@@ -88,8 +88,8 @@ update_data(struct driz_param_t* p, const integer_t ii, const integer_t jj,
       return 1;
     } else {
       float value;
-      value = (get_pixel(p->output_data, ii, jj) * vc + dow * d) / (vc_plus_dow);
-      set_pixel(p->output_data, ii, jj, value);
+      value = (get_pixel(p->output_data, ii, jj, chan) * vc + dow * d) / (vc_plus_dow);
+      set_pixel(p->output_data, ii, jj, chan, value);
     }
   }
 
@@ -97,7 +97,7 @@ update_data(struct driz_param_t* p, const integer_t ii, const integer_t jj,
     driz_error_format_message(p->error, "OOB in output_counts[%d,%d]", ii, jj);
     return 1;
   } else {
-    set_pixel(p->output_counts, ii, jj, vc_plus_dow);
+    set_pixel(p->output_counts, ii, jj, chan, vc_plus_dow);
   }
 
   return 0;
@@ -290,8 +290,9 @@ do_kernel_point(struct driz_param_t* p) {
     struct scanner s;
     integer_t i, j, ii, jj;
     integer_t /*ybounds[2],*/ osize[2];
-    float scale2, vc, d, dow;
+    float scale2, vc[3], d, dow;
     integer_t bv;
+	uint32_t cfa = p->cfa;
     int xmin, xmax, ymin, ymax, n;
 
     scale2 = p->scale * p->scale;
@@ -325,7 +326,7 @@ do_kernel_point(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-
+            int chan = FC(jj, ii, cfa);
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
               ++ p->nmiss;
 
@@ -338,15 +339,15 @@ do_kernel_point(struct driz_param_t* p) {
                     ++ p->nmiss;
 
                 } else {
-                    vc = get_pixel(p->output_counts, ii, jj);
+                    vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
 
                     /* Allow for stretching because of scale change */
-                    d = get_pixel(p->data, i, j) * scale2;
+                    d = get_pixel(p->data, i, j, 0) * scale2;
 
                     /* Scale the weighting mask by the scale factor.  Note that we
                        DON'T scale by the Jacobian as it hasn't been calculated */
                     if (p->weights) {
-                        dow = get_pixel(p->weights, i, j) * p->weight_scale;
+                        dow = get_pixel(p->weights, i, j, 0) * p->weight_scale;
                     } else {
                         dow = 1.0;
                     }
@@ -357,7 +358,7 @@ do_kernel_point(struct driz_param_t* p) {
                         set_bit(p->output_context, ii, jj, bv);
                     }
 
-                    if (update_data(p, ii, jj, d, vc, dow)) {
+                    if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                         return 1;
                     }
                 }
@@ -382,9 +383,10 @@ do_kernel_tophat(struct driz_param_t* p) {
     struct scanner s;
     integer_t bv, i, j, ii, jj, nhit, nxi, nxa, nyi, nya;
     integer_t osize[2];
-    float scale2, pfo, pfo2, vc, d, dow;
+    float scale2, pfo, pfo2, vc[3], d, dow;
     float xxi, xxa, yyi, yya, ddx, ddy, r2;
     int xmin, xmax, ymin, ymax, n;
+	uint32_t cfa = p->cfa;
 
     scale2 = p->scale * p->scale;
     pfo = p->pixel_fraction / p->scale / 2.0;
@@ -420,6 +422,7 @@ do_kernel_tophat(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
+            int chan = FC(jj, ii, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -439,12 +442,12 @@ do_kernel_tophat(struct driz_param_t* p) {
                 nhit = 0;
 
                 // Allow for stretching because of scale change
-                d = get_pixel(p->data, i, j) * scale2;
+                d = get_pixel(p->data, i, j, 0) * scale2;
 
                 // Scale the weighting mask by the scale factor and inversely by
                 // the Jacobian to ensure conservation of weight in the output
                 if (p->weights) {
-                    dow = get_pixel(p->weights, i, j) * p->weight_scale;
+                    dow = get_pixel(p->weights, i, j, 0) * p->weight_scale;
                 } else {
                     dow = 1.0;
                 }
@@ -465,7 +468,7 @@ do_kernel_tophat(struct driz_param_t* p) {
                         if (r2 <= pfo2) {
                             // Count the hits
                             nhit++;
-                            vc = get_pixel(p->output_counts, ii, jj);
+                            vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
 
                             // If we are create or modifying the context image,
                                we do so here.
@@ -473,7 +476,7 @@ do_kernel_tophat(struct driz_param_t* p) {
                               set_bit(p->output_context, ii, jj, bv);
                             }
 
-                            if (update_data(p, ii, jj, d, vc, dow)) {
+                            if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                               return 1;
                             }
                         }
@@ -501,11 +504,12 @@ do_kernel_gaussian(struct driz_param_t* p) {
     struct scanner s;
     integer_t bv, i, j, ii, jj, nxi, nxa, nyi, nya, nhit;
     integer_t /*ybounds[2],*/ osize[2];
-    float vc, d, dow;
+    float vc[3], d, dow;
     float gaussian_efac, gaussian_es;
     float pfo, ac,  scale2, xxi, xxa, yyi, yya, w, ddx, ddy, r2, dover;
     const float nsig = 2.5;
     int xmin, xmax, ymin, ymax, n;
+	uint32_t cfa = p->cfa;
 
     /* Added in V2.9 - make sure pfo doesn't get less than 1.2
        divided by the scale so that there are never holes in the
@@ -550,6 +554,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
+            int chan = FC(jj, ii, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -569,12 +574,12 @@ do_kernel_gaussian(struct driz_param_t* p) {
                 nhit = 0;
 
                 /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j) * scale2;
+                d = get_pixel(p->data, i, j, 0) * scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output */
                 if (p->weights) {
-                    w = get_pixel(p->weights, i, j) * p->weight_scale;
+                    w = get_pixel(p->weights, i, j, 0) * p->weight_scale;
                 } else {
                     w = 1.0;
                 }
@@ -594,7 +599,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
                         /* Count the hits */
                         ++nhit;
 
-                        vc = get_pixel(p->output_counts, ii, jj);
+                        vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
                         dow = (float)dover * w;
 
                         /* If we are create or modifying the context image, we do so
@@ -603,7 +608,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
                             set_bit(p->output_context, ii, jj, bv);
                         }
 
-                        if (update_data(p, ii, jj, d, vc, dow)) {
+                        if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                             return 1;
                         }
                     }
@@ -629,13 +634,14 @@ do_kernel_lanczos(struct driz_param_t* p) {
     struct scanner s;
     integer_t bv, i, j, ii, jj, nxi, nxa, nyi, nya, nhit, ix, iy;
     integer_t /*ybounds[2],*/ osize[2];
-    float scale2, vc, d, dow;
+    float scale2, vc[3], d, dow;
     float pfo, xx, yy, xxi, xxa, yyi, yya, w, dx, dy, dover;
     int kernel_order;
     struct lanczos_param_t lanczos;
     const size_t nlut = 512;
     const float del = 0.01;
     int xmin, xmax, ymin, ymax, n;
+	uint32_t cfa = p->cfa;
 
     dx = 1.0;
     dy = 1.0;
@@ -684,6 +690,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
+            int chan = FC(jj, ii, cfa);
             if (map_pixel(p->pixmap, i, j, &xx, &yy)) {
                 nhit = 0;
 
@@ -701,12 +708,12 @@ do_kernel_lanczos(struct driz_param_t* p) {
                 nhit = 0;
 
                 /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j) * scale2;
+                d = get_pixel(p->data, i, j, 0) * scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output */
                 if (p->weights) {
-                    w = get_pixel(p->weights, i, j) * p->weight_scale;
+                    w = get_pixel(p->weights, i, j, 0) * p->weight_scale;
                 } else {
                     w = 1.0;
                 }
@@ -724,7 +731,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
                         /* Count the hits */
                         ++nhit;
 
-                        vc = get_pixel(p->output_counts, ii, jj);
+                        vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
                         dow = (float)(dover * w);
 
                         /* If we are create or modifying the context image, we do so
@@ -733,7 +740,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
                             set_bit(p->output_context, ii, jj, bv);
                         }
 
-                        if (update_data(p, ii, jj, d, vc, dow)) {
+                        if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                             return 1;
                         }
                     }
@@ -763,10 +770,11 @@ do_kernel_turbo(struct driz_param_t* p) {
     struct scanner s;
     integer_t bv, i, j, ii, jj, nxi, nxa, nyi, nya, nhit, iis, iie, jjs, jje;
     integer_t osize[2];
-    float vc, d, dow;
+    float vc[3], d, dow;
     float pfo, scale2, ac;
     float xxi, xxa, yyi, yya, w, dover;
     int xmin, xmax, ymin, ymax, n;
+	uint32_t cfa = p->cfa;
 
     driz_log_message("starting do_kernel_turbo");
     bv = compute_bit_value(p->uuid);
@@ -804,6 +812,7 @@ do_kernel_turbo(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
+            int chan = FC(jj, ii, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -827,12 +836,12 @@ do_kernel_turbo(struct driz_param_t* p) {
                 nhit = 0;
 
                 /* Allow for stretching because of scale change */
-                d = get_pixel(p->data, i, j) * (float)scale2;
+                d = get_pixel(p->data, i, j, 0) * (float)scale2;
 
                 /* Scale the weighting mask by the scale factor and inversely by
                    the Jacobian to ensure conservation of weight in the output. */
                 if (p->weights) {
-                    w = get_pixel(p->weights, i, j) * p->weight_scale;
+                    w = get_pixel(p->weights, i, j, 0) * p->weight_scale;
                 } else {
                     w = 1.0;
                 }
@@ -851,7 +860,7 @@ do_kernel_turbo(struct driz_param_t* p) {
                             /* Count the hits */
                             ++nhit;
 
-                            vc = get_pixel(p->output_counts, ii, jj);
+                            vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
                             dow = (float)(dover * w);
 
                             /* If we are create or modifying the context image,
@@ -860,7 +869,7 @@ do_kernel_turbo(struct driz_param_t* p) {
                                 set_bit(p->output_context, ii, jj, bv);
                             }
 
-                            if (update_data(p, ii, jj, d, vc, dow)) {
+                            if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                                 return 1;
                             }
                         }
@@ -889,9 +898,10 @@ int
 do_kernel_square(struct driz_param_t* p) {
     integer_t bv, i, j, ii, jj, min_ii, max_ii, min_jj, max_jj, nhit;
     integer_t osize[2];
-    float scale2, vc, d, dow;
+    float scale2, vc[3], d, dow;
     float dh, jaco, tem, dover, w;
     float xin[4], yin[4], xout[4], yout[4];
+	uint32_t cfa = p->cfa;
 
     struct scanner s;
     int xmin, xmax, ymin, ymax, n;
@@ -937,6 +947,7 @@ do_kernel_square(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             nhit = 0;
+            int chan = FC(jj, ii, cfa);
 
             xin[3] = xin[0] = (float) i - dh;
             xin[2] = xin[1] = (float) i + dh;
@@ -962,12 +973,12 @@ do_kernel_square(struct driz_param_t* p) {
             }
 
             /* Allow for stretching because of scale change */
-            d = get_pixel(p->data, i, j) * scale2;
+            d = get_pixel(p->data, i, j, 0) * scale2;
 
             /* Scale the weighting mask by the scale factor and inversely by
                the Jacobian to ensure conservation of weight in the output */
             if (p->weights) {
-                w = get_pixel(p->weights, i, j) * p->weight_scale;
+                w = get_pixel(p->weights, i, j,0) * p->weight_scale;
             } else {
                 w = 1.0;
             }
@@ -984,7 +995,7 @@ do_kernel_square(struct driz_param_t* p) {
                     dover = compute_area((float)ii, (float)jj, xout, yout);
 
                     if (dover > 0.0) {
-                        vc = get_pixel(p->output_counts, ii, jj);
+                        vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
 
                         /* Re-normalise the area overlap using the Jacobian */
                         dover /= jaco;
@@ -999,7 +1010,7 @@ do_kernel_square(struct driz_param_t* p) {
                             set_bit(p->output_context, ii, jj, bv);
                         }
 
-                        if (update_data(p, ii, jj, d, vc, dow)) {
+                        if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                             return 1;
                         }
                     }

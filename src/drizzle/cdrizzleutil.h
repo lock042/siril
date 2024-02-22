@@ -346,8 +346,8 @@ oob_pixel(fits *image, integer_t xpix, integer_t ypix) {
 #endif
 
 static inline_macro float
-get_pixel(fits *image, integer_t xpix, integer_t ypix) {
-  return *(float*) (image->fdata + xpix + ypix * image->rx);
+get_pixel(fits *image, integer_t xpix, integer_t ypix, integer_t chan) {
+  return *(float*) (image->fdata + xpix + ypix * image->rx + chan * image->rx * image->ry);
 }
 
 static inline_macro float
@@ -358,8 +358,8 @@ get_pixel_at_pos(fits *image, integer_t pos) {
 }
 
 static inline_macro void
-set_pixel(fits *image, integer_t xpix, integer_t ypix, float value) {
-  *(float*) (image->fdata + xpix + ypix * image->rx) = value;
+set_pixel(fits *image, integer_t xpix, integer_t ypix, integer_t chan, float value) {
+  *(float*) (image->fdata + xpix + ypix * image->rx + chan * image->rx * image->ry) = value;
   return;
 }
 
