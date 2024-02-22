@@ -37,8 +37,8 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	driz->seq = &com.seq;
 	driz->reference_image = sequence_find_refimage(&com.seq);
 	driz->is_bayer = FALSE;
-	driz->use_wcs = TRUE;
-	driz->scale = 1.5f;
+	driz->use_wcs = FALSE;
+	driz->scale = 1.0f;
 	apply_drizzle(driz);
 }
 

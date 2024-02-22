@@ -398,6 +398,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	copyfits(fit, &out, CP_FORMAT, -1);
 	out.rx = (int) (fit->rx * p->scale);
 	out.ry = (int) (fit->ry * p->scale);
+	out.naxes[2] = driz->is_bayer ? 3 : 1;
 	size_t chansize = out.rx * out.ry * sizeof(float);
 	out.fdata = calloc(out.naxes[2] * chansize, 1);
 	out.fpdata[0] = out.fdata;
