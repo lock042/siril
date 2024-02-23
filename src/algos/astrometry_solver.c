@@ -939,8 +939,10 @@ gpointer plate_solver(gpointer p) {
 			if (args->blind) {
 				if (!args->searchradius)
 					args->searchradius = 20.;
-				siril_log_color_message(_("Initial solve failed\n"), "salmon", "salmon");
-				siril_log_color_message(_("Attempting a near solve with a radius of %3.1f degrees\n"), "salmon", args->searchradius);
+				if (args->verbose) {
+					siril_log_color_message(_("Initial solve failed\n"), "salmon", "salmon");
+					siril_log_color_message(_("Attempting a near solve with a radius of %3.1f degrees\n"), "salmon", args->searchradius);
+				}
 				if (siril_near_platesolve(stars, nb_stars, args, &solution))
 					args->ret = ERROR_PLATESOLVE;
 			} else
@@ -1079,8 +1081,10 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 
 static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	struct timeval t_start, t_end;
-	set_progress_bar_data(NULL, PROGRESS_RESET);
-	gettimeofday(&t_start, NULL);
+	if (args->verbose) {
+		set_progress_bar_data(_("Near solver started"), PROGRESS_RESET);
+		gettimeofday(&t_start, NULL);
+	}
 	point *centers;
 	int N, n = 0;
 	siril_catalogue *siril_cat = NULL;
@@ -1117,23 +1121,27 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 		if (nbfound) {
 			ret = match_catalog(stars, nb_stars, siril_cat, args->scale, AT_TRANS_LINEAR, &t, &ra, &dec);
 		}
-		set_progress_bar_data(NULL, (double)n / N);
+		if (args->verbose)
+			set_progress_bar_data(NULL, (double)n / N);
 		if (ret == SOLVE_OK || ret == SOLVE_CANCELLED)
 			solved = TRUE;
 		n++;
 	}
 	if (!solved)
 		ret = SOLVE_NEAR_NO_MATCH;
-	set_progress_bar_data(_("Near solver done"), PROGRESS_DONE);
+	if (args->verbose) {
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+		set_progress_bar_data(_("Near solver done"), PROGRESS_DONE);
+	}
 	free(centers);
 	siril_catalog_free(siril_cat);
 	siril_catalog_free_items(&siril_search_cat);
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
 	if (!(ret == SOLVE_OK))
 		return ret; // the near search has failed, we stop there
 	// Otherwise, we do a normal platesolve with the updated ra and dec
-	siril_log_color_message(_("Solving again at updated center\n"), "green");
+	if (args->verbose)
+		siril_log_color_message(_("Solving again at updated center\n"), "green");
 	siril_catalog_free_items(args->ref_stars);
 	args->ref_stars->center_ra = ra;
 	args->ref_stars->center_dec = dec;
