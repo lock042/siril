@@ -29,35 +29,80 @@
 #include "gui/utils.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
-static GtkWidget *delta_vmag_entry = NULL;
-static GtkWidget *delta_bv_entry = NULL;
-static GtkWidget *emag_entry = NULL;
-static GtkWidget *target_entry = NULL;
-static GtkWidget *apass_radio = NULL;
-static GtkWidget *check_narrow = NULL;
+static GtkWidget *delay_cam = NULL;
+static GtkWidget *sep = NULL;
+static GtkWidget *apply_offset = NULL;
+//static GtkWidget *delta_vmag_entry = NULL;
+//static GtkWidget *delta_bv_entry = NULL;
+//static GtkWidget *emag_entry = NULL;
+//static GtkWidget *target_entry = NULL;
+//static GtkWidget *apass_radio = NULL;
+//static GtkWidget *check_narrow = NULL;
 
 static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_data);
 
 static void build_the_dialog() {
 	dialog = gtk_dialog_new_with_buttons(_("Calibrate Timestamps over PPS"), NULL,
 			0, _("_OK"), GTK_RESPONSE_ACCEPT, _("_Close"), GTK_RESPONSE_REJECT, NULL);
+
+
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
 	// the GtkDialog::response signal with the corresponding response ID
-	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 400);
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_occult_response), NULL);
 
-	GtkWidget *label = gtk_label_new(_("Calibration of a PPS sequence (.ser file)"));
+	GtkWidget *label = gtk_label_new(_("Calibration of a camera setup with a 1PPS signal trigger"));
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	g_object_set(G_OBJECT(label), "margin", 15, NULL);
 
-	target_entry = gtk_entry_new();
-	gtk_entry_set_placeholder_text(GTK_ENTRY(target_entry), "Target star name");
-	gtk_widget_set_tooltip_text(target_entry, _("Enter the target star name to search in cataloges"));
-	g_object_set(G_OBJECT(target_entry), "margin", 15, NULL);
 
-	check_narrow = gtk_check_button_new_with_label(_("Narrow field of view"));
+	GtkWidget *label2 = gtk_label_new(_("The first step aimes at finding the necessary delay to re-time\nand synchronize the timestamps to a 1PPS signal from a GPS module.\n\nTo get this parameter, you need:\n -a loaded sequence (from a .ser file)\n -this sequence must have a pseudo-star blinking at a beat of 1 pulse per second\n -make a selection around this pseudo-star, including enough background\n\nThen you can either click on Find delay or write your own delay if you know it\n"));
+	gtk_label_set_line_wrap(GTK_LABEL(label2), TRUE);
+	g_object_set(G_OBJECT(label2), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(label2), "margin-top", 15, NULL);
+
+
+//	target_entry = gtk_entry_new();
+//	gtk_entry_set_placeholder_text(GTK_ENTRY(target_entry), "Target star name");
+//	gtk_widget_set_tooltip_text(target_entry, _("Enter the target star name to search in cataloges"));
+//	g_object_set(G_OBJECT(target_entry), "margin", 15, NULL);
+	GtkWidget *label_delay_cam = gtk_label_new(_("Camera delay to handle (ms):"));
+	gtk_widget_set_halign(label_delay_cam, GTK_ALIGN_CENTER);
+//	g_object_set(G_OBJECT(label_delay_cam), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(label_delay_cam), "margin-top", 5, NULL);
+	g_object_set(G_OBJECT(label_delay_cam), "margin-bottom", 0, NULL);
+
+	delay_cam = gtk_entry_new();
+	gtk_entry_set_text(GTK_ENTRY(delay_cam), "0.0");
+//	delay_cam.props.xalign = 0.5;
+	gtk_entry_set_alignment (delay_cam, 0.5);		// it works well, despite the warning during the compilation. Is there another solution?
+	gtk_widget_set_tooltip_text(delay_cam, _("Camera delay"));
+	gtk_widget_set_halign(delay_cam, GTK_ALIGN_CENTER);
+//	g_object_set(G_OBJECT(delay_cam), "margin-left", 35, NULL);
+//	g_object_set(G_OBJECT(delay_cam), "margin-right", 40, NULL);
+//	g_object_set(G_OBJECT(delay_cam), "margin-top", 0, NULL);
+
+	GtkWidget *find_delay = gtk_button_new_with_mnemonic (_("Find Delay"));
+
+	sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_widget_set_size_request (sep, 1, 5);
+	g_object_set(G_OBJECT(sep), "margin-top", 15, NULL);
+
+	GtkWidget *label3 = gtk_label_new(_("Once the delay is set, you can choose to apply it or not \n"));
+//	gtk_label_set_line_wrap(GTK_LABEL(label3), TRUE);
+	gtk_widget_set_halign(label3, GTK_ALIGN_START);
+	g_object_set(G_OBJECT(label3), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(label3), "margin-right", 15, NULL);
+	g_object_set(G_OBJECT(label3), "margin-top", 15, NULL);
+
+	apply_offset = gtk_check_button_new_with_label(_("Apply Offset"));
+	gtk_widget_set_halign(apply_offset, GTK_ALIGN_CENTER);
+	g_object_set(G_OBJECT(apply_offset), "margin-bottom", 35, NULL);
+	g_object_set(G_OBJECT(apply_offset), "margin-top", 5, NULL);
+
+/*	check_narrow = gtk_check_button_new_with_label(_("Narrow field of view"));
 	gtk_widget_set_tooltip_text(check_narrow, _("Tick this box to use a narrow field of view centered about the target star"));
 	gtk_widget_set_halign(check_narrow, GTK_ALIGN_START);
 	g_object_set(G_OBJECT(check_narrow), "margin-left", 15, NULL);
@@ -102,9 +147,9 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(emag_entry), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(emag_entry), "margin-right", 15, NULL);
 	g_object_set(G_OBJECT(emag_entry), "margin-top", 0, NULL);
-
+*/
 	/* catalogue choice */
-	GtkWidget *radio2, *radiobox;
+/*	GtkWidget *radio2, *radiobox;
 	radiobox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(radiobox), TRUE);
 	gtk_widget_set_tooltip_text(radiobox, _("Recommended catalogue for this feature is APASS"));
@@ -128,7 +173,18 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), labelemag);
 	gtk_container_add(GTK_CONTAINER(content_area), emag_entry);
 	gtk_container_add(GTK_CONTAINER(content_area), radiobox);
+*/
+	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	gtk_container_add(GTK_CONTAINER(content_area), label);
+	gtk_container_add(GTK_CONTAINER(content_area), label2);
+	gtk_container_add(GTK_CONTAINER(content_area), label_delay_cam);
+	gtk_container_add(GTK_CONTAINER(content_area), delay_cam);
+	gtk_container_add(GTK_CONTAINER(content_area), find_delay);
+	gtk_container_add(GTK_CONTAINER(content_area), sep);
+	gtk_container_add(GTK_CONTAINER(content_area), label3);
+	gtk_container_add(GTK_CONTAINER(content_area), apply_offset);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
+
 }
 
 // the public getter
@@ -144,21 +200,23 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 		gtk_widget_hide(dialog);
 		return;
 	}
-	if (!has_wcs(&gfit)) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
-		gtk_widget_hide(dialog);
-		return;
-	}
 
-	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(target_entry));
-	gchar *target_name = g_strdup(entered_target_name);
-	g_strstrip(target_name);
-	if (target_name[0] == '\0') {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Enter the name of the target star"));
-		return;
-	}
 
-	gchar *end;
+//	if (!has_wcs(&gfit)) {
+//		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
+//		gtk_widget_hide(dialog);
+//		return;
+//	}
+
+//	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(target_entry));
+//	gchar *target_name = g_strdup(entered_target_name);
+//	g_strstrip(target_name);
+//	if (target_name[0] == '\0') {
+//		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Enter the name of the target star"));
+//		return;
+//	}
+
+/*	gchar *end;
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delta_vmag_entry));
 	double delta_Vmag = g_ascii_strtod(text, &end);
 	if (text == end || delta_Vmag <= 0.0 || delta_Vmag > 6.0) {
@@ -177,13 +235,14 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Magnitude error not accepted (should be ]0, 0.1["));
 		return;
 	}
-
-	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
-	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
+*/
+//	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
+//	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
+	siril_log_message(_("-> stars found within the image from \n"));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
-	args->fit = &gfit;
+//	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+/*	args->fit = &gfit;
 	args->target_name = g_strdup(target_name);
 	args->narrow_fov = narrow;
 	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
@@ -191,6 +250,6 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	args->delta_BV = delta_BV;
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
-
-	start_in_new_thread(compstars_worker, args);
+*/
+//	start_in_new_thread(compstars_worker, args);
 }
