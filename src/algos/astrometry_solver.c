@@ -1024,22 +1024,69 @@ typedef enum {
 	SOLVE_NEAR_NO_MATCH,
 } siril_solve_errcode;
 
+typedef struct {
+	psf_star **stars;
+	siril_catalogue *search_cat;
+	int nb_stars;
+	double scale;
+	point *centers;
+	double radius;
+	int N;
+	gboolean verbose;
+	// modified by the workers
+	gint progress;
+	gint solved;
+	point *center;
+} near_solve_data;
+
+static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
+	near_solve_data *nswdata = (near_solve_data *)data;
+	g_atomic_int_inc(&nswdata->progress);
+	int n = g_atomic_int_get(&nswdata->progress);
+	if (!get_thread_run() || g_atomic_int_get(&nswdata->solved) || n == nswdata->N) {
+		return;
+	}
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_catalogue_copy(nswdata->search_cat, siril_cat, TRUE); // this only copies the query parameters
+	siril_cat->center_ra = nswdata->centers[n].x;
+	siril_cat->center_dec = nswdata->centers[n].y;
+	siril_cat->radius = nswdata->radius;
+	int nbfound = siril_catalog_inner_conesearch(nswdata->search_cat, siril_cat);
+	int ret;
+	TRANS t = { 0 };
+	double ra = -1, dec = -1;
+	if (nbfound) {
+		ret = match_catalog(nswdata->stars, nswdata->nb_stars, siril_cat, nswdata->scale, AT_TRANS_LINEAR, &t, &ra, &dec);
+		if (ret == SOLVE_OK) {
+			g_atomic_int_inc(&nswdata->solved);
+			// we assign the center as a point so that if more than one worker
+			// succeed, we are sure we have a consistent (ra,dec) pair
+			point *center = calloc(1, sizeof(point));
+			*center = (point){ra, dec};
+			g_atomic_pointer_set(&(nswdata->center), center);
+		}
+	}
+	siril_catalog_free(siril_cat);
+	if (nswdata->verbose) {
+		double percent = (double)g_atomic_int_get(&nswdata->progress) / (double)nswdata->N;
+		set_progress_bar_data(NULL, percent);
+	}
+}
+
 // returns a list of center points to be searched
 static point *get_centers(double fov_deg, double search_radius_deg, double ra0, double dec0, int *nb) {
 	point *centers;
 	int N;
 	double radius = fov_deg * 0.5 * DEGTORAD;
-	int n = (int)ceil(2. * search_radius_deg / fov_deg); // number of dec rings
+	int n = (int)ceil(2. * search_radius_deg / fov_deg) - 1; // number of dec rings
 	double *d = malloc(n * sizeof(double));
 	int *nl = malloc(n * sizeof(int));
 	N = 0;
-	for (int i = 0; i < n; i++) {
-		d[i] = M_PI_2 - i * radius;
-		nl[i] = (int)ceil(2. * M_PI * sin(i * radius) / radius); // number of points of ith ring
-		N += nl[i];
+	for (int i = 1; i <= n; i++) {  // we don't search the initial point which has already failed
+		d[i - 1] = M_PI_2 - i * radius;
+		nl[i - 1] = (int)ceil(2. * M_PI * sin(i * radius) / radius); // number of points of ith ring
+		N += nl[i - 1];
 	}
-	nl[0] = 1;
-	N++;
 	point *centers0 = malloc(N * sizeof(point)); // points in native coordinates
 	centers = malloc(N * sizeof(point)); // points in celestial coordinates
 	int s = 0;
@@ -1087,57 +1134,61 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	}
 	point *centers;
 	int N, n = 0;
-	siril_catalogue *siril_cat = NULL;
-	gboolean solved = FALSE;
-	TRANS t = { 0 };
-	int ret = 1;
+	int ret = SOLVE_NEAR_NO_MATCH;
 	double ra = -1., dec = -1.;
 	double ra0 = siril_world_cs_get_alpha(args->cat_center);
 	double dec0 = siril_world_cs_get_delta(args->cat_center);
 	// We prepare the larger catalogue containing the search cone
 	// we limit the magnitude as we don't want as many stars
 	// we just want to have a good enough linear solution to resend a normal solve afterwards
-	siril_catalogue siril_search_cat = { 0 };
-	siril_catalogue_copy(args->ref_stars, &siril_search_cat, TRUE);
-	siril_search_cat.radius = args->searchradius * 60.;
-	siril_search_cat.limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., 100);
+	siril_catalogue *siril_search_cat = calloc(1, sizeof(siril_catalogue));
+	siril_catalogue_copy(args->ref_stars, siril_search_cat, TRUE);
+	siril_search_cat->radius = args->searchradius * 60.;
+	siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., 50);
 	// we fetch all the stars within the search cone
-	get_catalog_stars(&siril_search_cat); // we fetch all the stars within the search cone
+	get_catalog_stars(siril_search_cat); // we fetch all the stars within the search cone
 
 	// We prepare the list of centers to be searched
 	centers = get_centers(args->used_fov / 60., args->searchradius, ra0, dec0, &N);
-	// and we loop...
-	while (!solved && n < N) {
-		if (n == 0) {
-			siril_cat = calloc(1, sizeof(siril_catalogue));
-			siril_catalogue_copy(&siril_search_cat, siril_cat, TRUE); // this only copies the query parameters
+	// and we loop with a pool of workers...
+	near_solve_data nsdata = { 0 };
+	nsdata.search_cat = siril_search_cat;
+	nsdata.centers = centers;
+	nsdata.N = N;
+	nsdata.progress = -1;
+	nsdata.stars = stars;
+	nsdata.nb_stars = nb_stars;
+	nsdata.radius = args->ref_stars->radius;
+	nsdata.scale = args->scale;
+	nsdata.verbose = args->verbose;
+	nsdata.center = NULL;
+	gboolean immediate = FALSE;
+	GThreadPool *pool = g_thread_pool_new(nearsolve_pool_worker, &nsdata, com.max_thread, FALSE, NULL);
+	do {
+		if (!g_thread_pool_push(pool, &nsdata, NULL)) {
+			siril_log_message(_("Failed to queue near solve point, aborting"));
+			immediate = TRUE;
+			break;
 		}
-		siril_catalog_free_items(siril_cat);
-		siril_cat->center_ra = centers[n].x;
-		siril_cat->center_dec = centers[n].y;
-		siril_cat->radius = args->ref_stars->radius;
-		int nbfound = siril_catalog_inner_conesearch(&siril_search_cat, siril_cat);
-		// siril_log_message("n:%d\n", a);
-		if (nbfound) {
-			ret = match_catalog(stars, nb_stars, siril_cat, args->scale, AT_TRANS_LINEAR, &t, &ra, &dec);
-		}
-		if (args->verbose)
-			set_progress_bar_data(NULL, (double)n / N);
-		if (ret == SOLVE_OK || ret == SOLVE_CANCELLED)
-			solved = TRUE;
 		n++;
+	} while (n < N);
+	// we will wait till we exhaust the list or if one of the workers is successful
+	// except if we have a problem pushing new jobs, in which case we stop immediately
+	g_thread_pool_free(pool, immediate, TRUE);
+	if (nsdata.solved) {
+		ret = SOLVE_OK;
+		ra = nsdata.center->x;
+		dec = nsdata.center->y;
 	}
-	if (!solved)
-		ret = SOLVE_NEAR_NO_MATCH;
 	if (args->verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 		set_progress_bar_data(_("Near solver done"), PROGRESS_DONE);
 	}
 	free(centers);
-	siril_catalog_free(siril_cat);
-	siril_catalog_free_items(&siril_search_cat);
-	if (!(ret == SOLVE_OK))
+	free(nsdata.center);
+	siril_catalog_free(siril_search_cat);
+	if (ret != SOLVE_OK)
 		return ret; // the near search has failed, we stop there
 	// Otherwise, we do a normal platesolve with the updated ra and dec
 	if (args->verbose)
