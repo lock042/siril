@@ -846,7 +846,7 @@ gpointer plate_solver(gpointer p) {
 				clearfits(&tmp);
 				siril_log_color_message(_("Failed to downsample image, aborting\n"), "red");
 				args->message = g_strdup(_("Not enough memory"));
-				args->ret = ERROR_PLATESOLVE;
+				args->ret = SOLVE_DOWNSAMPLE;
 				goto clearup;
 			}
 			memcpy(&fit_backup, args->fit, sizeof(fits));
@@ -910,7 +910,7 @@ gpointer plate_solver(gpointer p) {
 	if (!stars || nb_stars < AT_MATCH_STARTN_LINEAR) {
 		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
 				"At least %d are needed."), AT_MATCH_STARTN_LINEAR);
-		args->ret = ERROR_PLATESOLVE;
+		args->ret = SOLVE_NOTENOUGHSTARS;
 		goto clearup;
 	}
 	if (args->verbose)
@@ -925,9 +925,7 @@ gpointer plate_solver(gpointer p) {
 			com.child_is_running = EXT_ASNET;
 			g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 		}
-		if (local_asnet_platesolve(stars, nb_stars, args, &solution)) {
-			args->ret = ERROR_PLATESOLVE;
-		}
+		local_asnet_platesolve(stars, nb_stars, args, &solution);
 	} else {
 		double x0 = args->fit->rx * 0.5;
 		double y0 = args->fit->ry * 0.5;
@@ -937,19 +935,17 @@ gpointer plate_solver(gpointer p) {
 		}
 		if (siril_platesolve(stars, nb_stars, args, &solution)) {
 			if (args->blind) {
-				if (!args->searchradius)
+				if (!args->searchradius) // TODO: move elesewhere
 					args->searchradius = 20.;
 				if (args->verbose) {
 					siril_log_color_message(_("Initial solve failed\n"), "salmon", "salmon");
 					siril_log_color_message(_("Attempting a near solve with a radius of %3.1f degrees\n"), "salmon", args->searchradius);
 				}
-				if (siril_near_platesolve(stars, nb_stars, args, &solution))
-					args->ret = ERROR_PLATESOLVE;
-			} else
-				args->ret = ERROR_PLATESOLVE;
+				siril_near_platesolve(stars, nb_stars, args, &solution);
+			}
 		}
 	}
-	if (args->ret)
+	if (args->ret > 0) // positive error codes indicate failed process
 		goto clearup;
 
 	/* 4. Print and store some results in args->fit*/
@@ -998,7 +994,7 @@ clearup:
 		siril_catalog_free(args->ref_stars);
 	g_free(args->filename);
 	int retval = args->ret;
-	if (com.script && retval) {
+	if (com.script && retval > 0) {
 		siril_log_message(_("Plate solving failed: %s\n"), args->message);
 		g_free(args->message);
 	}
@@ -1012,32 +1008,6 @@ clearup:
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	return GINT_TO_POINTER(retval);
 }
-
-typedef enum {
-	SOLVE_LASTSOLVE = -1,
-	SOLVE_OK,
-	SOLVE_NO_MATCH, //solution->message = g_strdup(_("Could not match stars from the catalogue"));
-	SOLVE_CANCELLED, //solution->message = g_strdup(_("Cancelled"));
-	SOLVE_INVALID_TRANS, 		//solution->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
-	SOLVE_PROJ, //solution->message = g_strdup(_("Reprojecting catalog failed."));
-	SOLVE_TRANS_UPDATE, //g_strdup(_("Updating trans failed."));
-	SOLVE_NEAR_NO_MATCH,
-} siril_solve_errcode;
-
-typedef struct {
-	psf_star **stars;
-	siril_catalogue *search_cat;
-	int nb_stars;
-	double scale;
-	point *centers;
-	double radius;
-	int N;
-	gboolean verbose;
-	// modified by the workers
-	gint progress;
-	gint solved;
-	point *center;
-} near_solve_data;
 
 static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 	near_solve_data *nswdata = (near_solve_data *)data;
@@ -1554,12 +1524,14 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #ifdef _WIN32
 	gchar *asnet_shell = siril_get_asnet_bash();
 	if (!asnet_shell) {
+		args->ret = SOLVE_ASNET_PROC;
 		return 1;
 	}
 #else
 	if (!args->asnet_checked) {
 		if (!asnet_is_available()) {
 			siril_log_color_message(_("solve-field was not found, set its path in the preferences\n"), "red");
+			args->ret = SOLVE_ASNET_PROC;
 			return 1;
 		}
 	}
@@ -1579,6 +1551,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	if (save_list_as_FITS_table(table_filename, stars, nb_stars, args->rx_solver, args->ry_solver)) {
 		siril_log_message(_("Failed to create the input data for solve-field\n"));
 		g_free(table_filename);
+		args->ret = SOLVE_ASNET_PROC;
 		return 1;
 	}
 	char low_scale[16], high_scale[16], time_limit[16];
@@ -1652,6 +1625,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		fprintf(stderr,"cannot create temporary file: exiting solve-field");
 		g_free(asnetscript);
 		g_free(command);
+		args->ret = SOLVE_ASNET_PROC;
 		return 1;
 	}
 	/* Write data to this file  */
@@ -1686,6 +1660,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #else
 		g_free(asnet_path);
 #endif
+		args->ret = SOLVE_ASNET_PROC;
 		return 1;
 	}
 
@@ -1730,14 +1705,17 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #else
 	g_free(asnet_path);
 #endif
-	if (!success)
+	if (!success) {
+		args->ret = SOLVE_NO_MATCH;
 		return 1;
+	}
 
 	/* get the results from the .wcs file */
 	gchar *wcs_filename = replace_ext(args->filename, ".wcs");
 	fits result = { 0 };
 	if (read_fits_metadata_from_path_first_HDU(wcs_filename, &result)) {
 		siril_log_color_message(_("Could not read the solution from solve-field (expected in file %s)\n"), "red", wcs_filename);
+		args->ret = SOLVE_NO_MATCH;
 		return 1;
 	}
 
@@ -1748,6 +1726,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	if (!com.pref.astrometry.keep_wcs_files)
 		g_unlink(wcs_filename);
 	g_free(wcs_filename);
+	args->ret = SOLVE_OK;
 
 	// In some cases asnet returns a dis struct with all coeffs null
 	if (solution->wcslib->lin.dispre) { // some distortions were calculated, checked that the terms are not all null
@@ -1758,16 +1737,16 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 			solution->wcslib->flag = 0;
 			wcsset(solution->wcslib);
 			siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
+			args->ret = SOLVE_LINONLY;
 		}
 	}
 	// In other cases, the dis struct is empyty, we still need to warn the user
 	if (com.pref.astrometry.sip_correction_order > 1 && !solution->wcslib->lin.dispre) {
 		siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
+		args->ret = SOLVE_LINONLY;
 	}
 	if (args->verbose)
 		siril_log_color_message(_("Local astrometry.net solve succeeded.\n"), "green");
-
-	args->ret = 0;
 	return 0;
 }
 

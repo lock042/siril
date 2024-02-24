@@ -1165,11 +1165,11 @@ gpointer conesearch_worker(gpointer p) {
 	retval = 0;
 exit_conesearch:;
 	gboolean go_idle = args->has_GUI;
-	free_conesearch(args);
 	if ((retval || !args->has_GUI) && temp_cat) {
 		siril_catalog_free(temp_cat);
 		temp_cat = NULL;
 	}
+	free_conesearch(args);
 	if (go_idle) {
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {

@@ -12,11 +12,6 @@
 
 
 typedef enum {
-	ERROR_PLATESOLVE = 1,
-	ERROR_PHOTOMETRY = 10,
-} platesolve_error_type;
-
-typedef enum {
 	LIMIT_MAG_AUTO,
 	LIMIT_MAG_AUTO_WITH_OFFSET,
 	LIMIT_MAG_ABSOLUTE
@@ -26,6 +21,25 @@ typedef enum {
 	SOLVER_SIRIL,
 	SOLVER_LOCALASNET
 } platesolve_solver;
+
+typedef enum {
+	SOLVE_LINONLY = -2, // siril or asnet solvers returned a linear solution only instead of the required SIP order
+	SOLVE_LASTSOLVE = -1, // siril internal solver found a solution but the last centered solve did not succeed
+	// generic
+	SOLVE_OK,
+	SOLVE_NO_MATCH, //solution->message = g_strdup(_("Could not match stars from the catalogue"));
+	SOLVE_CANCELLED, //solution->message = g_strdup(_("Cancelled"));
+	// platesolve common errors
+	SOLVE_DOWNSAMPLE,
+	SOLVE_NOTENOUGHSTARS,
+	// siril solver
+	SOLVE_INVALID_TRANS, 		//solution->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
+	SOLVE_PROJ, //solution->message = g_strdup(_("Reprojecting catalog failed."));
+	SOLVE_TRANS_UPDATE, //g_strdup(_("Updating trans failed."));
+	SOLVE_NEAR_NO_MATCH, // siril internal solver did not find a solution using near solver
+	// asnet solver
+	SOLVE_ASNET_PROC, // asnet errors prior to solve
+} siril_solve_errcode;
 
 struct astrometry_data {
 	/* user input */
@@ -65,6 +79,21 @@ struct astrometry_data {
 	gchar *message;		// error message
 	gboolean image_flipped;	// image has been flipped
 };
+
+typedef struct {
+	psf_star **stars;
+	siril_catalogue *search_cat;
+	int nb_stars;
+	double scale;
+	point *centers;
+	double radius;
+	int N;
+	gboolean verbose;
+	// modified by the pool workers
+	gint progress;
+	gint solved;
+	point *center;
+} near_solve_data;
 
 void open_astrometry_dialog();
 void close_astrometry_dialog();

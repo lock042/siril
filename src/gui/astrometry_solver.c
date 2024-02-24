@@ -298,7 +298,7 @@ gboolean end_plate_solver(gpointer p) {
 
 	set_cursor_waiting(FALSE);
 
-	if (args->ret) {
+	if (args->ret > 0) {
 		char *title = siril_log_color_message(_("Plate Solving failed. "
 					"The image could not be aligned with the reference stars.\n"), "red");
 		if (!args->message) {
