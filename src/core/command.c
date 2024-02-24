@@ -8761,7 +8761,7 @@ int process_platesolve(int nb) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
 			int value = g_ascii_strtoull(arg, &end, 10);
-			if (end == arg || value < 1 || value > 4) {
+			if (end == arg || value < 1 || value > 5) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				if (target_coords)
 					siril_world_cs_unref(target_coords);

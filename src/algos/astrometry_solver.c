@@ -63,8 +63,7 @@
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center
-#define NB_GRID_POINTS 6 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
-#define NEAR_MAG_OFFSET 3. // the offset in limit magnitude for siril internal near solver
+#define NB_GRID_POINTS 7 // the number of points in one direction to crete the X,Y meshgrid for inverse polynomial fiiting
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; goto clearup;}
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
@@ -339,7 +338,7 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 	// We will apply CD^-1 to each pair in the forward trans structure to obtain the Aij/Bij SIP coeffs (using defs of eq (1), (2) and (3))
 	// The inverse APij/BPij coeffs are simply the values of revtrans
 	// For the inverse _10 and _01 terms, we need to substract 1., see definitions in eq (5) and (6))
-	double A[5][5] = {{ 0. }}, B[5][5] = {{ 0. }}, AP[5][5]  = {{ 0. }}, BP[5][5]  = {{ 0. }}; // we deal with images up to order 4
+	double A[6][6] = {{ 0. }}, B[6][6] = {{ 0. }}, AP[6][6]  = {{ 0. }}, BP[6][6]  = {{ 0. }}; // we deal with images up to order 4
 	int N = trans->order;
 
 	Mvdecomp(cd_inv, trans->x20, trans->y20, &A[2][0], &B[2][0]);
@@ -395,6 +394,29 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 		BP[2][2] = revtrans.y22;
 		BP[1][3] = revtrans.y13;
 		BP[0][4] = revtrans.y04;
+	}
+
+	if (trans->order >= AT_TRANS_QUINTIC) {
+		Mvdecomp(cd_inv, trans->x50, trans->y50, &A[5][0], &B[5][0]);
+		Mvdecomp(cd_inv, trans->x41, trans->y41, &A[4][1], &B[4][1]);
+		Mvdecomp(cd_inv, trans->x32, trans->y32, &A[3][2], &B[3][2]);
+		Mvdecomp(cd_inv, trans->x23, trans->y23, &A[2][3], &B[2][3]);
+		Mvdecomp(cd_inv, trans->x14, trans->y14, &A[1][4], &B[1][4]);
+		Mvdecomp(cd_inv, trans->x05, trans->y05, &A[0][5], &B[0][5]);
+
+		AP[5][0] = revtrans.x50;
+		AP[4][1] = revtrans.x41;
+		AP[3][2] = revtrans.x32;
+		AP[2][3] = revtrans.x23;
+		AP[1][4] = revtrans.x14;
+		AP[0][5] = revtrans.x05;
+
+		BP[5][0] = revtrans.y50;
+		BP[4][1] = revtrans.y41;
+		BP[3][2] = revtrans.y32;
+		BP[2][3] = revtrans.y23;
+		BP[1][4] = revtrans.y14;
+		BP[0][5] = revtrans.y05;
 	}
 
 	// We can now fill the disprm structure and assign it to wcslib->lin

@@ -38,6 +38,7 @@
 #define AT_TRANS_QUADRATIC   2           /* linear plus quadratic */
 #define AT_TRANS_CUBIC       3           /* linear plus quadratic plus cubic */
 #define AT_TRANS_QUARTIC     4           /* linear plus quadratic plus cubic plus quartic*/
+#define AT_TRANS_QUINTIC     5           /* linear plus quadratic plus cubic plus quartic plus quintic*/
 
    /*
     * little wrappers around 'malloc' and 'free' functions.
@@ -134,8 +135,8 @@ shDebug(int level, char *format, ...);
 typedef struct Trans {
   int id;
   int order;
-  double x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04;
-  double y00, y10, y01, y20, y11, y02, y30, y21, y12, y03, y40, y31, y22, y13, y04;
+  double x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05;
+  double y00, y10, y01, y20, y11, y02, y30, y21, y12, y03, y40, y31, y22, y13, y04, y50, y41, y32, y23, y14, y05;
   int nr;
   int nm;
   double sig;
