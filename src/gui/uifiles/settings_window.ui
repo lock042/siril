@@ -80,7 +80,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_asnet_spi_order">
-    <property name="upper">6</property>
+    <property name="upper">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
