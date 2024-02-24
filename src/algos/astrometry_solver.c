@@ -1126,7 +1126,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	}
 	point *centers;
 	int N, n = 0;
-	int ret = SOLVE_NEAR_NO_MATCH;
+	args->ret = SOLVE_NEAR_NO_MATCH;
 	double ra = -1., dec = -1.;
 	double ra0 = siril_world_cs_get_alpha(args->cat_center);
 	double dec0 = siril_world_cs_get_delta(args->cat_center);
@@ -1164,11 +1164,32 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 		}
 		n++;
 	} while (n < N);
-	// we will wait till we exhaust the list or if one of the workers is successful
+	// we will wait till:
+	// - we exhaust the list or
+	// - one of the workers is successful or
+	// - we hit timeout
 	// except if we have a problem pushing new jobs, in which case we stop immediately
-	g_thread_pool_free(pool, immediate, TRUE);
+	if (immediate) {
+		g_thread_pool_free(pool, TRUE, TRUE);
+		args->ret = SOLVE_NEAR_THREADS;
+	} else if (com.pref.astrometry.max_seconds_run > 0) {// we have a time-out specified
+		guint64 timer = 0;
+		guint64 timeout = com.pref.astrometry.max_seconds_run * G_TIME_SPAN_SECOND;
+		while (!nsdata.solved && g_thread_pool_unprocessed(pool) > 0 && timer < timeout) {
+			g_usleep(G_TIME_SPAN_SECOND);
+			timer += G_TIME_SPAN_SECOND;
+		}
+		if (timer > timeout) {
+			args->ret = SOLVE_NEAR_TIMEOUT;
+		}
+		g_thread_pool_free(pool, TRUE, TRUE);
+	} else {
+		g_thread_pool_free(pool, FALSE, TRUE);
+	}
+
+
 	if (nsdata.solved) {
-		ret = SOLVE_OK;
+		args->ret = SOLVE_OK;
 		ra = nsdata.center->x;
 		dec = nsdata.center->y;
 	}
@@ -1180,8 +1201,8 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	free(centers);
 	free(nsdata.center);
 	siril_catalog_free(siril_search_cat);
-	if (ret != SOLVE_OK)
-		return ret; // the near search has failed, we stop there
+	if (args->ret != SOLVE_OK)
+		return args->ret; // the near search has failed, we stop there
 	// Otherwise, we do a normal platesolve with the updated ra and dec
 	if (args->verbose)
 		siril_log_color_message(_("Solving again at updated center\n"), "green");

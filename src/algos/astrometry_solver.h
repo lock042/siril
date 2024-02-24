@@ -37,8 +37,12 @@ typedef enum {
 	SOLVE_PROJ, //solution->message = g_strdup(_("Reprojecting catalog failed."));
 	SOLVE_TRANS_UPDATE, //g_strdup(_("Updating trans failed."));
 	SOLVE_NEAR_NO_MATCH, // siril internal solver did not find a solution using near solver
+	SOLVE_NEAR_TIMEOUT, // siril internal near solver timed out
+	SOLVE_NEAR_THREADS, // siril internal near solver problem allocating threads
+
 	// asnet solver
 	SOLVE_ASNET_PROC, // asnet errors prior to solve
+
 } siril_solve_errcode;
 
 struct astrometry_data {
