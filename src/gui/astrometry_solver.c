@@ -57,6 +57,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 static void initialize_ips_dialog() {
 	GtkWidget *flip_image;
 	GtkWidget *catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
+	GtkComboBox *orderbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"));
 
 	flip_image = lookup_widget("checkButton_IPS_flip");
 
@@ -64,6 +65,12 @@ static void initialize_ips_dialog() {
 
 	on_comboastro_catalog_changed(GTK_COMBO_BOX(catalog_box_ips), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("photometric_catalog_label")), "");
+	if (gtk_combo_box_get_active(orderbox) == -1) {
+		if (!com.pref.astrometry.sip_correction_order)
+			gtk_combo_box_set_active(orderbox, 0);
+		else
+			gtk_combo_box_set_active(orderbox, com.pref.astrometry.sip_correction_order - 1);
+	}
 }
 
 static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
@@ -584,23 +591,15 @@ void on_localasnet_check_button_toggled(GtkToggleButton *button, gpointer user) 
 	GtkWidget *downsample = lookup_widget("downsample_ips_button");
 	GtkWidget *autocrop = lookup_widget("autocrop_ips_button");
 	GtkExpander *catalogues = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
-	GtkWidget *order_box = lookup_widget("ComboBoxIPS_order");
-	GtkWidget *order_label = lookup_widget("label_IPS_order");
 	if (gtk_toggle_button_get_active(button)) {
-		// gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(downsample), FALSE);
-		// gtk_widget_set_sensitive(downsample, FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(autocrop), FALSE);
 		gtk_widget_set_sensitive(autocrop, FALSE);
 		gtk_expander_set_expanded(catalogues, FALSE);
-		gtk_widget_set_visible(order_box, FALSE);
-		gtk_widget_set_visible(order_label, FALSE);
 	}
 	else {
 		gtk_widget_set_sensitive(downsample, TRUE);
 		gtk_widget_set_sensitive(autocrop, TRUE);
 		gtk_expander_set_expanded(catalogues, TRUE);
-		gtk_widget_set_visible(order_box, TRUE);
-		gtk_widget_set_visible(order_label, TRUE);
 	}
 }
 
@@ -625,6 +624,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->downsample = is_downsample_activated();
 	args->autocrop = is_autocrop_activated();
 	args->flip_image = flip_image_after_ps();
+	args->searchradius = com.pref.astrometry.radius_degrees; // TODO we may want to add a UI entry to override pref value
 	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
 	args->ref_stars = calloc(1, sizeof(siril_catalogue));
 
@@ -632,7 +632,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	gboolean use_local_asnet = gtk_toggle_button_get_active(lasnet);
 	args->solver = (use_local_asnet) ? SOLVER_LOCALASNET : SOLVER_SIRIL;
 
-	args->trans_order = (use_local_asnet) ? -1 : get_order();
+	args->trans_order = get_order();
 
 	SirilWorldCS *catalog_center = get_center_of_catalog();
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 &&

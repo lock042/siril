@@ -184,20 +184,14 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 	return (m0 + s * (log10((double)Nstars / S) - 2.));
 }
 
-// double compute_mag_limit_from_fov(double fov_degrees) {
-// 	// Empiric formula for 1000 stars at 20 deg of galactic latitude
-// 	double autoLimitMagnitudeFactor = 14.5;
-// 	double m = autoLimitMagnitudeFactor * pow(fov_degrees, -0.179);
-// 	// for astrometry, it can be useful to go down to mag 20, for
-// 	// photometry the catalog's limit is 17 for APASS and 18 for NOMAD
-// 	return round(100.0 * min(20.0, max(7.0, m))) / 100.;
-// }
-
 static void compute_limit_mag(struct astrometry_data *args) {
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
 		args->ref_stars->limitmag = args->magnitude_arg;
 	else {
-		args->ref_stars->limitmag = compute_mag_limit_from_position_and_fov(siril_world_cs_get_alpha(args->cat_center), siril_world_cs_get_delta(args->cat_center), args->used_fov / 60.0, 500);
+		args->ref_stars->limitmag = compute_mag_limit_from_position_and_fov(
+		siril_world_cs_get_alpha(args->cat_center), 
+		siril_world_cs_get_delta(args->cat_center),
+		args->used_fov / 60.0, BRIGHTEST_STARS);
 		if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
 			args->ref_stars->limitmag += args->magnitude_arg;
 	}
@@ -205,7 +199,7 @@ static void compute_limit_mag(struct astrometry_data *args) {
 }
 
 static void solve_is_blind(struct astrometry_data *args) {
-	args-> blind = args->solver == SOLVER_LOCALASNET || (args->ref_stars && args->ref_stars->cat_index == CAT_LOCAL);
+	args-> blind = args->solver == SOLVER_LOCALASNET || (args->ref_stars && args->ref_stars->cat_index == CAT_LOCAL && args->searchradius > 0);
 }
 
 SirilWorldCS *get_eqs_from_header(fits *fit) {
@@ -955,15 +949,13 @@ gpointer plate_solver(gpointer p) {
 			stars[s]->xpos -= x0;
 			stars[s]->ypos = y0 - stars[s]->ypos;
 		}
-		if (siril_platesolve(stars, nb_stars, args, &solution)) {
+		if ((args->ret = siril_platesolve(stars, nb_stars, args, &solution))) {
 			if (args->blind) {
-				if (!args->searchradius) // TODO: move elesewhere
-					args->searchradius = 20.;
 				if (args->verbose) {
 					siril_log_color_message(_("Initial solve failed\n"), "salmon", "salmon");
 					siril_log_color_message(_("Attempting a near solve with a radius of %3.1f degrees\n"), "salmon", args->searchradius);
 				}
-				siril_near_platesolve(stars, nb_stars, args, &solution);
+				args->ret = siril_near_platesolve(stars, nb_stars, args, &solution);
 			}
 		}
 	}
@@ -1136,9 +1128,9 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	siril_catalogue *siril_search_cat = calloc(1, sizeof(siril_catalogue));
 	siril_catalogue_copy(args->ref_stars, siril_search_cat, TRUE);
 	siril_search_cat->radius = args->searchradius * 60.;
-	siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., 50);
+	siril_search_cat->limitmag = compute_mag_limit_from_position_and_fov(ra0, dec0, args->used_fov / 60., BRIGHTEST_STARS / 10);
 	// we fetch all the stars within the search cone
-	get_catalog_stars(siril_search_cat); // we fetch all the stars within the search cone
+	get_catalog_stars(siril_search_cat);
 
 	// We prepare the list of centers to be searched
 	centers = get_centers(args->used_fov / 60., args->searchradius, ra0, dec0, &N);
@@ -1186,7 +1178,6 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	} else {
 		g_thread_pool_free(pool, FALSE, TRUE);
 	}
-
 
 	if (nsdata.solved) {
 		args->ret = SOLVE_OK;
@@ -1295,7 +1286,7 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 	if (ret) { // TODO: update msg with return?
 		args->message = g_strdup("failed\n");
 	}
-	return (ret > 0);
+	return ret;
 }
 
 static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_cat, double scale, int order, TRANS *trans_out, double *ra_out, double *dec_out) {
@@ -1309,7 +1300,7 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 	double dec0 = siril_cat->center_dec;
 	int ret = 1;
 
-	max_trials = 20; //always try to converge to the center
+	max_trials = 5; //always try to converge to the center
 
 	/* make sure that arrays are not too small
 	 * make sure that the max of stars is BRIGHTEST_STARS */
@@ -1319,7 +1310,7 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
 	double scale_min = 1.0 / (scale * a);
 	double scale_max = 1.0 / (scale * b);
-	int attempt = 1;
+	int attempt = 1; // TODO: increasing number of object or releasing the scale does nor really help convergence and takes time
 
 	cstars = project_catalog_stars(siril_cat, ra0, dec0);
 	if (!cstars) {
@@ -1597,12 +1588,11 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		args->ret = SOLVE_ASNET_PROC;
 		return 1;
 	}
-	char low_scale[16], high_scale[16], time_limit[16];
+	char low_scale[16], high_scale[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
 	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
 	sprintf(low_scale, "%.3f", args->scale * b);
 	sprintf(high_scale, "%.3f", args->scale * a);
-	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
 #ifndef _WIN32
 	gchar *asnet_path = siril_get_asnet_bin();
 	g_assert(asnet_path);
@@ -1618,12 +1608,17 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		"--temp-axy",	// not available in the old version of ansvr
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
+		"-U", "none", "-S", "none", "--crpix-center",
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, "-s", "FLUX", NULL };
 
+	if (com.pref.astrometry.max_seconds_run > 0) {
+		char time_limit[16];
+		sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
+		char *timeout_args[] = { "-l", time_limit, NULL };
+	}
 	char order[12];	// referenced in sfargs, needs the same scope
-	if (com.pref.astrometry.sip_correction_order > 1) {
-		sprintf(order, "%d", com.pref.astrometry.sip_correction_order);
+	if (args->trans_order > 1) {
+		sprintf(order, "%d", args->trans_order);
 		char *tweak_args[] = { "-t", order, NULL };
 		append_elements_to_array(sfargs, tweak_args);
 	} else {
@@ -1779,13 +1774,13 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 			solution->wcslib->lin.dispre = NULL;
 			solution->wcslib->flag = 0;
 			wcsset(solution->wcslib);
-			siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
+			siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", args->trans_order);
 			args->ret = SOLVE_LINONLY;
 		}
 	}
 	// In other cases, the dis struct is empyty, we still need to warn the user
-	if (com.pref.astrometry.sip_correction_order > 1 && !solution->wcslib->lin.dispre) {
-		siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", com.pref.astrometry.sip_correction_order);
+	if (args->trans_order > 1 && !solution->wcslib->lin.dispre) {
+		siril_log_color_message(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), "red", "astrometry.net", args->trans_order);
 		args->ret = SOLVE_LINONLY;
 	}
 	if (args->verbose)

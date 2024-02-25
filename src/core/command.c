@@ -8667,8 +8667,8 @@ int process_platesolve(int nb) {
 	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE, coords_forced = FALSE;
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
-	double mag_offset = 0.0, target_mag = -1.0;
-	int order = 3; // we default to cubic
+	double mag_offset = 0.0, target_mag = -1.0, searchradius = com.pref.astrometry.radius_degrees;
+	int order = com.pref.astrometry.sip_correction_order; // we default to the pref value
 	siril_cat_index cat = CAT_AUTO;
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
@@ -8768,6 +8768,17 @@ int process_platesolve(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			order = value;
+		}
+		else if (g_str_has_prefix(word[next_arg], "-radius=")) {
+			char *arg = word[next_arg] + 8;
+			gchar *end;
+			searchradius = g_ascii_strtod(arg, &end);
+			if (end == arg || searchradius < 0.0 || searchradius > 180.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
 		}
 		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
 			char *arg = word[next_arg] + 9;
@@ -8922,7 +8933,7 @@ int process_platesolve(int nb) {
 	args->coords_forced = coords_forced;
 	args->downsample = downsample;
 	args->autocrop = autocrop;
-	// args->searchradius = 3.;
+	args->searchradius = searchradius;
 	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
 		siril_debug_print("forced no flip for solving an image from a sequence");
