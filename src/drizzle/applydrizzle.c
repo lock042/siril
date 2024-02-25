@@ -608,7 +608,8 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->prepare_hook = apply_drz_prepare_hook;
 	args->image_hook = apply_drz_image_hook;
 	args->finalize_hook = apply_drz_finalize_hook;
-	args->idle_function = apply_drz_medstack; /* When this sequence finishes,
+//	args->idle_function = apply_drz_medstack;
+	/* When this sequence finishes,
 		it kicks off another one to perform a median stack of the drizzled
 		images. */
 	args->description = _("Apply drizzle");
