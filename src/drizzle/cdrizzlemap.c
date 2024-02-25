@@ -209,7 +209,7 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
  * purposes, note that in that case the mapping must be from output to input
  */
 
-int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p) {
+int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p, float scale) {
 	int npixels = width * height;
 	int status = 0;
 
@@ -252,7 +252,7 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 
 	size_t maxindex = npixels * 2;
 	for (index = 0 ; index < maxindex ; index++) {
-		p->pixmap[index] = (float) pixcrd[index];
+		p->pixmap[index] = (float) pixcrd[index] * scale;
 	}
 
 	free(pixcrd);
@@ -270,7 +270,7 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
  * H: the Homography matrix to map between the two images
  */
 
-int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p) {
+int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, float scale) {
 	float x, y;
 	int rx, ry;
 	int index = 0;
@@ -288,8 +288,8 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p) {
 	for (y = 0; y < ry; y++) {
 		for (x = 0; x < rx; x++) {
 			float z = x * Harr[6] + y * Harr[7] + Harr[8];
-			p->pixmap[index++] = (x * Harr[0] + y * Harr[1] + Harr[2]) / z;
-			p->pixmap[index++] = (x * Harr[3] + y * Harr[4] + Harr[5]) / z;
+			p->pixmap[index++] = scale * (x * Harr[0] + y * Harr[1] + Harr[2]) / z;
+			p->pixmap[index++] = scale * (x * Harr[3] + y * Harr[4] + Harr[5]) / z;
 		}
 	}
 	return 0;

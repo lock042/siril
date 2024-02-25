@@ -361,8 +361,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1; // in case H is null and -selected was not passed
 		cvTransfH(Himg, Htransf, &H);
 	}
-	H.h00 *= driz->scale;
-	H.h11 *= driz->scale;
+//	H.h00 *= driz->scale;
+//	H.h11 *= driz->scale;
 	/* Populate the mapping array. This maps pixels from the current frame to
 	 * the reference frame. Either a Homography mapping can be used based on
 	 * image registration or a WCS mapping can be used based on plate solving */
@@ -372,9 +372,9 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	if (p->driz->use_wcs) {
-		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap);
+		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap, driz->scale);
 	} else {
-		map_image_coordinates_h(fit, H, p->pixmap);
+		map_image_coordinates_h(fit, H, p->pixmap, driz->scale);
 	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("Remapping"));
