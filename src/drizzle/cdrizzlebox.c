@@ -323,7 +323,7 @@ do_kernel_point(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(jj, ii, cfa);
+            int chan = FC(j, i, cfa);
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
               ++ p->nmiss;
 
@@ -419,7 +419,7 @@ do_kernel_tophat(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(jj, ii, cfa);
+            int chan = FC(j, i, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -551,7 +551,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(jj, ii, cfa);
+            int chan = FC(j, i, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -687,7 +687,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
-            int chan = FC(jj, ii, cfa);
+            int chan = FC(j, i, cfa);
             if (map_pixel(p->pixmap, i, j, &xx, &yy)) {
                 nhit = 0;
 
@@ -809,7 +809,7 @@ do_kernel_turbo(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(jj, ii, cfa);
+            int chan = FC(j, i, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -944,7 +944,7 @@ do_kernel_square(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             nhit = 0;
-            int chan = FC(jj, ii, cfa);
+            int chan = FC(j, i, cfa);
 
             xin[3] = xin[0] = (float) i - dh;
             xin[2] = xin[1] = (float) i + dh;
