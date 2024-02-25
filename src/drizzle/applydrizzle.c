@@ -396,9 +396,10 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	/* Set up output fits */
 	fits out;
 	copyfits(fit, &out, CP_FORMAT, -1);
-	out.rx = (int) (fit->rx * p->scale);
-	out.ry = (int) (fit->ry * p->scale);
+	out.rx = out.naxes[0] = (int) (fit->rx * p->scale);
+	out.ry = out.naxes[1] = (int) (fit->ry * p->scale);
 	out.naxes[2] = driz->is_bayer ? 3 : 1;
+	siril_debug_print("Output image %d x %d x %d\n", out.rx, out.ry, out.naxes[2]);
 	size_t chansize = out.rx * out.ry * sizeof(float);
 	out.fdata = calloc(out.naxes[2] * chansize, 1);
 	out.fpdata[0] = out.fdata;
@@ -409,6 +410,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	// Set up the output_counts fits to store pixel hit counts
 	fits output_counts = { 0 };
 	copyfits(&out, &output_counts, CP_FORMAT, -1);
+	siril_debug_print("Output counts image %d x %d x %d\n", out.rx, out.ry, out.naxes[2]);
 	output_counts.fdata = calloc(output_counts.rx * output_counts.ry * output_counts.naxes[2], sizeof(float));
 	p->output_counts = &output_counts;
 
