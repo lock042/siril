@@ -176,12 +176,16 @@ static void manual_photometry_data (sequence *seq) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required. Cannot create any file"));
 		return;
 	}
-	cat_item *sel_item = calloc(MAX_SEQPSF + 1, sizeof(cat_item));
+	point sel_item[MAX_SEQPSF];
 
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->reference_image], &ra, &dec)) siril_log_color_message(_("Problem with convertion\n"), "salmon"); // PB in the conversion pix->wcs
-		sel_item[r].ra = ra;
-		sel_item[r].dec = dec;
+		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->current], &ra, &dec)) {
+			siril_log_color_message(_("Problem with convertion\n"), "red"); // PB in the conversion pix->wcs
+
+			return;
+		}
+		sel_item[r].x = ra;
+		sel_item[r].y = dec;
 		nb_ref_stars++;
 	}
 
@@ -192,20 +196,18 @@ static void manual_photometry_data (sequence *seq) {
 	siril_log_message(_("-> %i comparison stars selected\n"), nb_ref_stars - 1);
 	siril_log_message("Star type        RA      DEC\n");
 	// Preparing the output catalog
-	comp_sta->columns = siril_catalog_columns(CAT_COMPSTARS); // we add mag to write it in the output file (it is not a mandatory field at readout)
+	comp_sta->columns = siril_catalog_columns(CAT_COMPSTARS);
 	// Allocating final sorted list to the required size
-	cat_item *result = calloc(nb_ref_stars + 1, sizeof(cat_item));
+	cat_item *result = calloc(nb_ref_stars, sizeof(cat_item));
 	// Write the target star
-	fill_compstar_item(&result[0], sel_item[0].ra, sel_item[0].dec, 0.0, "V", "Target");
-	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"), sel_item[0].ra, sel_item[0].dec);
+	fill_compstar_item(&result[0], sel_item[0].x, sel_item[0].y, 0.0, "V", "Target");
+	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"), sel_item[0].x, sel_item[0].y);
 	// And write the selected comparison stars
-	for (int i = 0; i < nb_ref_stars; i++) {
-		cat_item *item = &sel_item[i];
-		if (i == 0) continue;
+	for (int i = 1; i < nb_ref_stars; i++) {
 		gchar *name = g_strdup_printf("%d", i);
-		fill_compstar_item(&result[i], item->ra, item->dec, 0.0, name, "Comp1");
+		fill_compstar_item(&result[i], sel_item[i]->x, sel_item[i]->y, 0.0, name, "Comp1");
 		g_free(name);
-		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"), i, item->ra, item->dec);
+		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"), i, sel_item[i]->x, sel_item[i]->y);
 	}
 
 	// Fill the catalogue structure
@@ -226,7 +228,6 @@ static void manual_photometry_data (sequence *seq) {
 	write_nina_file(args);
 	// and free the stuff
 	siril_catalog_free(comp_sta);
-	siril_catalog_free_item(sel_item);
 	free(args);
 }
 
