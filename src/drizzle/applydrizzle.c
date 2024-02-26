@@ -331,8 +331,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	// Set bounds. TODO: make this account for a selection
 	p->xmin = p->ymin = 0;
-	p->xmax = fit->rx;
-	p->ymax = fit->ry;
+	p->xmax = fit->rx - 1;
+	p->ymax = fit->ry - 1;
 
 	Homography H = { 0 };
 	Homography Himg = { 0 };
