@@ -30,8 +30,8 @@ typedef enum {
 	SOLVE_NO_MATCH, //solution->message = g_strdup(_("Could not match stars from the catalogue"));
 	SOLVE_CANCELLED, //solution->message = g_strdup(_("Cancelled"));
 	// platesolve common errors
-	SOLVE_DOWNSAMPLE,
-	SOLVE_NOTENOUGHSTARS,
+	SOLVE_DOWNSAMPLE, //args->message = g_strdup(_("Not enough memory"));
+	SOLVE_NOTENOUGHSTARS, //		args->message = g_strdup_printf(_("There are not enough stars picked in the image. least %d are needed."), AT_MATCH_STARTN_LINEAR);
 	// siril solver
 	SOLVE_INVALID_TRANS, 		//solution->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
 	SOLVE_PROJ, //solution->message = g_strdup(_("Reprojecting catalog failed."));
@@ -52,8 +52,6 @@ struct astrometry_data {
 	double focal_length;	// focal length in mm
 	platesolve_solver solver;	// the solver being used (siril or localasnet for now)
 	siril_catalogue *ref_stars; // siril_catalogue containing query parameters and results
-	gboolean coords_forced; // target coords are forced (used for seqplatesolve)
-	gboolean blind; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
 	SirilWorldCS *cat_center;	// starting point for the search
 	gboolean downsample;	// downsample image before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
@@ -77,10 +75,10 @@ struct astrometry_data {
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
 	gboolean asnet_checked;	// local asnet availability already checked
+	gboolean blind; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
 
 	/* results */
 	int ret;		// return value
-	gchar *message;		// error message
 	gboolean image_flipped;	// image has been flipped
 };
 
@@ -123,8 +121,7 @@ double get_radius_deg(double resolution, int rx, int ry);
 gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
 double get_fov_arcmin(double resolution, int rx, int ry);
-
-const char *catalog_to_str(siril_cat_index cat);
+gchar *platesolve_msg(struct astrometry_data *args);
 
 /* from the GUI */
 gboolean end_process_catsearch(gpointer p);

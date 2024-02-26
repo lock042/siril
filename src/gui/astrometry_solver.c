@@ -308,15 +308,16 @@ gboolean end_plate_solver(gpointer p) {
 	if (args->ret > 0) {
 		char *title = siril_log_color_message(_("Plate Solving failed. "
 					"The image could not be aligned with the reference stars.\n"), "red");
-		if (!args->message) {
-			args->message = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
+		gchar *msg = NULL;
+		if (args->ret == SOLVE_NO_MATCH)
+			msg = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
 					"are too far from the real metadata of the image.\n\n"
 					"You could also try to look into another catalogue, or try to click on the \"Downsampling\" button, especially for image done with Drizzle.\n\n"
 					"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
-
-		}
-		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
-		g_free(args->message);
+		else
+			msg = platesolve_msg(args);
+		siril_message_dialog(GTK_MESSAGE_ERROR, title, msg);
+		g_free(msg);
 	} else {
 		/* update UI */
 		update_image_parameters_GUI();

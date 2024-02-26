@@ -8664,7 +8664,7 @@ int process_spcc(int nb) {
 
 // used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
-	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE, coords_forced = FALSE;
+	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE;
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0, searchradius = com.pref.astrometry.radius_degrees;
@@ -8708,7 +8708,6 @@ int process_platesolve(int nb) {
 			siril_log_message(_("Could not parse target coordinates\n"));
 			return CMD_ARG_ERROR;
 		}
-		coords_forced = TRUE;
 	}
 
 	while (nb > next_arg && word[next_arg]) {
@@ -8930,7 +8929,6 @@ int process_platesolve(int nb) {
 	if (seqps)
 		clearfits(preffit);
 	args->solver = solver;
-	args->coords_forced = coords_forced;
 	args->downsample = downsample;
 	args->autocrop = autocrop;
 	args->searchradius = searchradius;
