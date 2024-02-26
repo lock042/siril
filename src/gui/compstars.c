@@ -205,9 +205,9 @@ static void manual_photometry_data (sequence *seq) {
 	// And write the selected comparison stars
 	for (int i = 1; i < nb_ref_stars; i++) {
 		gchar *name = g_strdup_printf("%d", i);
-		fill_compstar_item(&result[i], sel_item[i]->x, sel_item[i]->y, 0.0, name, "Comp1");
+		fill_compstar_item(&result[i], sel_item[i].x, sel_item[i].y, 0.0, name, "Comp1");
 		g_free(name);
-		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"), i, sel_item[i]->x, sel_item[i]->y);
+		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"), i, sel_item[i].x, sel_item[i].y);
 	}
 
 	// Fill the catalogue structure
