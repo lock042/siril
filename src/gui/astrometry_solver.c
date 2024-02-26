@@ -625,6 +625,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->downsample = is_downsample_activated();
 	args->autocrop = is_autocrop_activated();
 	args->flip_image = flip_image_after_ps();
+	args->numthreads = com.max_thread;
 	args->searchradius = com.pref.astrometry.radius_degrees; // TODO we may want to add a UI entry to override pref value
 	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
 	args->ref_stars = calloc(1, sizeof(siril_catalogue));
@@ -682,11 +683,15 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		if (has_local_cat) {
 			siril_debug_print("using local star catalogues\n");
 			args->ref_stars->cat_index = CAT_LOCAL;
+			args->autocrop = FALSE; // we don't crop fov when using local catalogues
+			siril_debug_print("forced no crop when using local catalogues\n");
 		}
 	} else {
 		if (has_local_cat && (args->ref_stars->cat_index == CAT_NOMAD || args->ref_stars->cat_index == CAT_BSC || args->ref_stars->cat_index == CAT_TYCHO2)) {
 			siril_debug_print("using local star catalogues\n");
 			args->ref_stars->cat_index = CAT_LOCAL;
+			args->autocrop = FALSE; // we don't crop fov when using local catalogues
+			siril_debug_print("forced no crop when using local catalogues\n");
 		}
 	}
 	process_plate_solver_input(args);

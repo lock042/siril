@@ -57,6 +57,7 @@ struct astrometry_data {
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
 	gboolean flip_image;	// Flip at the end if detected mirrored
 	gboolean manual;	// use stars already detected by user, in com.stars
+	gboolean nocache;	// solve each image with its metadata for a sequence (do not use a common catalogue)
 	psf_star **stars;	// alternate source for manual stars (vincent's special)
 	limit_mag_mode mag_mode;// automatically limit magnitude of the catalog
 	double magnitude_arg;	// if not automatic, use this limit magnitude
@@ -68,6 +69,7 @@ struct astrometry_data {
 	double scalefactor;	// scale factor accounting for downscale if any
 	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
 	double searchradius; // radius of the cone if blind in degrees
+	gboolean forced_metadata[3]; // flags using for seq, to indicate if center, pixel and focal where forced
 
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel
@@ -76,6 +78,7 @@ struct astrometry_data {
 	gboolean uncentered;	// solvearea is not centered with image
 	gboolean asnet_checked;	// local asnet availability already checked
 	gboolean blind; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
+	int numthreads; //nb of threads that can be used
 
 	/* results */
 	int ret;		// return value

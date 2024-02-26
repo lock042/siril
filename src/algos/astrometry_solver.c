@@ -113,7 +113,7 @@ static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args
 		ret->cat_center = siril_world_cs_copy(args->cat_center);
 	if (args->ref_stars) {
 		ret->ref_stars = calloc(1, sizeof(siril_catalogue));
-		siril_catalogue_copy(args->ref_stars, ret->ref_stars, FALSE);
+		siril_catalogue_copy(args->ref_stars, ret->ref_stars, args->nocache); // if nocache, we only copy metadata
 	}
 	ret->fit = NULL;
 	ret->filename = NULL;
@@ -914,17 +914,9 @@ gpointer plate_solver(gpointer p) {
 
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 
-#ifdef _WIN32
-		// on Windows, asnet is not run in parallel neither on single image nor sequence, we can use all threads
-		int nthreads = (!args->for_sequence || args->solver == SOLVER_LOCALASNET) ? com.max_thread : 1;
-#else
-		// on UNIX, asnet is in parallel for sequences, we need to restrain to one per worker
-		int nthreads = (!args->for_sequence) ? com.max_thread : 1;
-#endif
-
 		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
 				&(args->solvearea), FALSE, TRUE,
-				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, nthreads);
+				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, args->numthreads);
 
 		if (args->downsample) {
 			clearfits(args->fit);
@@ -1188,7 +1180,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	nsdata.verbose = args->verbose;
 	nsdata.center = NULL;
 	gboolean immediate = FALSE;
-	GThreadPool *pool = g_thread_pool_new(nearsolve_pool_worker, &nsdata, com.max_thread, FALSE, NULL);
+	GThreadPool *pool = g_thread_pool_new(nearsolve_pool_worker, &nsdata, args->numthreads, FALSE, NULL);
 	do {
 		if (!g_thread_pool_push(pool, &nsdata, NULL)) {
 			immediate = TRUE;
@@ -1207,12 +1199,15 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	} else if (com.pref.astrometry.max_seconds_run > 0) {// we have a time-out specified
 		guint64 timer = 0;
 		guint64 timeout = com.pref.astrometry.max_seconds_run * G_TIME_SPAN_SECOND;
-		while (!nsdata.solved && g_thread_pool_unprocessed(pool) > 0 && timer < timeout) {
+		while (get_thread_run() && !nsdata.solved && g_thread_pool_unprocessed(pool) > 0 && timer < timeout) {
 			g_usleep(G_TIME_SPAN_SECOND);
 			timer += G_TIME_SPAN_SECOND;
 		}
 		if (timer > timeout) {
 			ret = SOLVE_NEAR_TIMEOUT;
+		}
+		if (!com.run_thread) {
+			ret = SOLVE_CANCELLED;
 		}
 		g_thread_pool_free(pool, TRUE, TRUE);
 	} else {
@@ -1246,7 +1241,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
    Only solution is filled
 */
 static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
-	if (!args->for_sequence)
+	if (!args->ref_stars->cat_items)
 		get_catalog_stars(args->ref_stars);
 	TRANS t = { 0 };
 	int ret = 1;
@@ -1816,6 +1811,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 // outputs: scale, used_fov, uncentered, solvearea, limit_mag
 void process_plate_solver_input(struct astrometry_data *args) {
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
+	gboolean selected = FALSE;
 
 	rectangle croparea = { 0 };
 	if (!args->manual) {
@@ -1823,6 +1819,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		if (com.selection.w != 0 && com.selection.h != 0) {
 			memcpy(&croparea, &com.selection, sizeof(rectangle));
 			siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
+			selected = TRUE;
 		} else {
 			croparea.x = 0;
 			croparea.y = 0;
@@ -1892,7 +1889,10 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	// } else if (args->ref_stars->cat_index == CAT_LOCAL && args->ref_stars->limitmag > 17.0) {
 	// 	args->ref_stars->cat_index = CAT_GAIADR3;
 	}
-	solve_is_blind(args); // sets flag to check if the catalogue needs to be fetched at the start or if it will be fetched on demand
+	if (selected)
+		args->blind = FALSE;
+	else
+		solve_is_blind(args); // sets flag to check if the catalogue needs to be fetched at the start or if it will be fetched on demand
 }
 
 static int astrometry_prepare_hook(struct generic_seq_args *arg) {
@@ -1910,7 +1910,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 	}
-	if (!args->blind)
+	if (!args->nocache)
 		return get_catalog_stars(args->ref_stars);
 	return 0;
 }
@@ -1924,11 +1924,62 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	char root[256];
 	if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
+		siril_catalog_free(aargs->ref_stars);
+		if (aargs->cat_center) // not filled if asnet blind solve
+			siril_world_cs_unref(aargs->cat_center);
 		free(aargs);
 		return 1;
 	}
-	aargs->filename = g_strdup(root);	// for localasnet
-	// process_plate_solver_input(aargs);	// depends on aargs->fit
+
+	if (aargs->nocache) {
+		if (!aargs->forced_metadata[0] && aargs->cat_center) { // center coordinates where not forced, we need to read new ones from header or skip if blind for asnet
+			siril_world_cs_unref(aargs->cat_center);
+			SirilWorldCS *target_coords = get_eqs_from_header(fit);
+			if (!target_coords) {
+				siril_log_color_message(_("Could not retrieve target coordinates from image %s metadata, skipping\n"), "red", root);
+				siril_catalog_free(aargs->ref_stars);
+				free(aargs);
+				return 1;
+			}
+			aargs->cat_center = target_coords;
+			if (aargs->ref_stars) {
+				aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
+				aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
+			}
+		}
+		if (!aargs->forced_metadata[1]) { // pixel size was not forced, we need to read new one from header/settings
+			aargs->pixel_size = max(fit->pixel_size_x, fit->pixel_size_y);
+			if (aargs->pixel_size <= 0.) {
+				aargs->pixel_size = com.pref.starfinder_conf.pixel_size_x;
+				if (aargs->pixel_size <= 0.0) {
+					siril_log_color_message(_("Could not retrieve pixel size from image %s metadata or settings, skipping\n"), "red", root);
+					siril_catalog_free(aargs->ref_stars);
+					if (aargs->cat_center) // not filled if asnet blind solve
+						siril_world_cs_unref(aargs->cat_center);
+					free(aargs);
+					return 1;
+				}
+			}
+		}
+		if (!aargs->forced_metadata[2]) { // focal was not forced, we need to read new one from header/settings
+			aargs->focal_length = fit->focal_length;
+			if (aargs->focal_length <= 0.0) {
+				aargs->focal_length = com.pref.starfinder_conf.focal_length;
+				if (aargs->pixel_size <= 0.0) {
+					siril_log_color_message(_("Could not retrieve focal length from image %s metadata or settings, skipping\n"), "red", root);
+					siril_catalog_free(aargs->ref_stars);
+					if (aargs->cat_center) // not filled if asnet blind solve
+						siril_world_cs_unref(aargs->cat_center);
+					free(aargs);
+					return 1;
+				}
+			}
+		}
+	}
+	if (aargs->solver == SOLVER_LOCALASNET)
+		aargs->filename = g_strdup(root);	// for localasnet
+	process_plate_solver_input(aargs);
+
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
 	if (retval)
@@ -1943,7 +1994,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
 		siril_catalog_free(aargs->ref_stars);
-	free (aargs);
+	free(aargs);
 	if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
 	com.child_is_running = EXT_NONE;
@@ -1960,6 +2011,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 #else
 	seqargs->parallel = TRUE;
 #endif
+	args->numthreads = (seqargs->parallel) ? 1 : com.max_thread;
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;

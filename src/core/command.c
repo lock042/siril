@@ -8664,7 +8664,8 @@ int process_spcc(int nb) {
 
 // used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
-	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE;
+	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE, nocache = FALSE;
+	gboolean forced_metadata[3] = { 0 }; // used for sequences in the image hook, for center, pixel and focal
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0, searchradius = com.pref.astrometry.radius_degrees;
@@ -8708,6 +8709,7 @@ int process_platesolve(int nb) {
 			siril_log_message(_("Could not parse target coordinates\n"));
 			return CMD_ARG_ERROR;
 		}
+		forced_metadata[0] = TRUE;
 	}
 
 	while (nb > next_arg && word[next_arg]) {
@@ -8719,6 +8721,8 @@ int process_platesolve(int nb) {
 			plate_solve = TRUE;
 		else if (!strcmp(word[next_arg], "-downscale"))
 			downsample = TRUE;
+		if (!strcmp(word[next_arg], "-nocache"))
+			nocache = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
@@ -8729,6 +8733,7 @@ int process_platesolve(int nb) {
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
+			forced_metadata[2] = TRUE;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
 			char *arg = word[next_arg] + 11;
@@ -8740,6 +8745,7 @@ int process_platesolve(int nb) {
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
+			forced_metadata[1] = TRUE;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-limitmag=")) {
 			char *arg = word[next_arg] + 10;
@@ -8822,6 +8828,10 @@ int process_platesolve(int nb) {
 
 	if (local_cat && cat == CAT_AUTO) {
 		cat = CAT_LOCAL;
+		autocrop = FALSE; // we don't crop fov when using local catalogues
+		siril_debug_print("forced no crop when using local catalogues\n");
+		nocache = TRUE; // we solve each image individually when using local catalogues
+		siril_debug_print("forced no cache when using local catalogues\n");
 	}
 
 	if (local_cat && cat != CAT_LOCAL && solver == SOLVER_SIRIL) {
@@ -8931,10 +8941,12 @@ int process_platesolve(int nb) {
 	args->solver = solver;
 	args->downsample = downsample;
 	args->autocrop = autocrop;
+	args->nocache = nocache;
 	args->searchradius = searchradius;
+	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
 	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
-		siril_debug_print("forced no flip for solving an image from a sequence");
+		siril_debug_print("forced no flip for solving an image from a sequence\n");
 	}
 	args->flip_image = !noflip;
 	args->manual = FALSE;
@@ -8965,6 +8977,7 @@ int process_platesolve(int nb) {
 	if (solver == SOLVER_LOCALASNET)
 		args->filename = g_strdup(com.uniq->filename);
 	args->fit = &gfit;
+	args->numthreads = com.max_thread;
 	process_plate_solver_input(args);
 	start_in_new_thread(plate_solver, args);
 	return CMD_OK;
